@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber, PopulatedTransaction } from 'ethers'
+import { constants, BigNumber, PopulatedTransaction, Contract } from 'ethers'
 
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
@@ -9,7 +9,15 @@ import { IStaking } from '../../build/types/IStaking'
 import { LibExponential } from '../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import {
+  GraphNetworkContracts,
+  deriveChannelKey,
+  helpers,
+  isGraphL1ChainId,
+  randomHexBytes,
+  toBN,
+  toGRT,
+} from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -23,6 +31,53 @@ enum AllocationState {
   Closed,
 }
 
+const ABI_LIB_EXPONENTIAL = [
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: 'fees',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint256',
+        name: 'stake',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint32',
+        name: 'alphaNumerator',
+        type: 'uint32',
+      },
+      {
+        internalType: 'uint32',
+        name: 'alphaDenominator',
+        type: 'uint32',
+      },
+      {
+        internalType: 'uint32',
+        name: 'lambdaNumerator',
+        type: 'uint32',
+      },
+      {
+        internalType: 'uint32',
+        name: 'lambdaDenominator',
+        type: 'uint32',
+      },
+    ],
+    name: 'exponentialRebates',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+]
+
 describe('Staking:Allocation', () => {
   const graph = hre.graph()
   let me: SignerWithAddress
@@ -34,6 +89,7 @@ describe('Staking:Allocation', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let curation: Curation
   let epochManager: EpochManager
   let grt: GraphToken
@@ -301,13 +357,24 @@ describe('Staking:Allocation', () => {
   // -- Tests --
 
   before(async function () {
-    ;[me, governor, indexer, delegator, slasher, assetHolder] = await graph.getTestAccounts()
+    ;[me, indexer, delegator, slasher, assetHolder] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ curation, epochManager, grt, staking, libExponential } = await fixture.load(
-      governor,
-      slasher,
-    ))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    curation = contracts.Curation as Curation
+    epochManager = contracts.EpochManager as EpochManager
+    grt = contracts.GraphToken as GraphToken
+    staking = contracts.Staking as IStaking
+
+    const stakingName = isGraphL1ChainId(graph.chainId) ? 'L1Staking' : 'L2Staking'
+    const entry = graph.addressBook.getEntry(stakingName)
+
+    libExponential = new Contract(
+      entry.implementation.libraries.LibExponential,
+      ABI_LIB_EXPONENTIAL,
+      graph.provider,
+    ) as LibExponential
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor).mint(indexer.address, indexerTokens)
@@ -650,7 +717,7 @@ describe('Staking:Allocation', () => {
       )
 
       // Set initial rebate parameters, α = 0, λ = 1
-      await staking.setRebateParameters(0, 1, 1, 1)
+      await staking.connect(governor).setRebateParameters(0, 1, 1, 1)
 
       // Collection amounts
       const firstTokensToCollect = tokensToAllocate.mul(8).div(10) // q1 < sij
@@ -664,7 +731,7 @@ describe('Staking:Allocation', () => {
       expect(firstRebates.queryFeesBurnt).eq(BigNumber.from(0))
 
       // Update rebate parameters, α = 1, λ = 1
-      await staking.setRebateParameters(1, 1, 1, 1)
+      await staking.connect(governor).setRebateParameters(1, 1, 1, 1)
 
       // Second collection
       // Indexer gets 0% of the query fees
@@ -691,7 +758,7 @@ describe('Staking:Allocation', () => {
       )
 
       // Set initial rebate parameters, α = 1, λ = 1
-      await staking.setRebateParameters(1, 1, 1, 1)
+      await staking.connect(governor).setRebateParameters(1, 1, 1, 1)
 
       // Collection amounts
       const firstTokensToCollect = tokensToAllocate
@@ -705,7 +772,7 @@ describe('Staking:Allocation', () => {
       expect(firstRebates.queryFeesBurnt).gt(BigNumber.from(0))
 
       // Update rebate parameters, α = 0.1, λ = 1
-      await staking.setRebateParameters(1, 10, 1, 1)
+      await staking.connect(governor).setRebateParameters(1, 10, 1, 1)
 
       // Second collection
       // Indexer gets 100% of the query fees
@@ -732,7 +799,7 @@ describe('Staking:Allocation', () => {
       )
 
       // Set initial rebate parameters, α = 1, λ = 1
-      await staking.setRebateParameters(1, 1, 1, 1)
+      await staking.connect(governor).setRebateParameters(1, 1, 1, 1)
 
       // First collection
       // Indexer gets rebates and burn
@@ -741,7 +808,7 @@ describe('Staking:Allocation', () => {
       expect(firstRebates.queryFeesBurnt).gt(BigNumber.from(0))
 
       // Update rebate parameters, α = 0, λ = 1
-      await staking.setRebateParameters(0, 1, 1, 1)
+      await staking.connect(governor).setRebateParameters(0, 1, 1, 1)
 
       // Succesive collections
       // Indexer gets 100% of the query fees

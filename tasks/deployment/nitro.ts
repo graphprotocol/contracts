@@ -1,9 +1,9 @@
 import { BigNumber, ContractTransaction } from 'ethers'
 import { subtask, task } from 'hardhat/config'
-import { cliOpts } from '../../cli/defaults'
 import { addCustomNetwork } from '@arbitrum/sdk/dist/lib/dataEntities/networks'
 import fs from 'fs'
 import { execSync } from 'child_process'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 
 export const TASK_NITRO_FUND_ACCOUNTS = 'nitro:fund-accounts'
 export const TASK_NITRO_SETUP_SDK = 'nitro:sdk-setup'
@@ -12,7 +12,7 @@ export const TASK_NITRO_FETCH_DEPLOYMENT_FILE = 'nitro:fetch-deployment-file'
 
 task(TASK_NITRO_FUND_ACCOUNTS, 'Funds protocol accounts on Arbitrum Nitro testnodes')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
   .addOptionalParam('privateKey', 'The private key for Arbitrum testnode genesis account')
   .addOptionalParam('amount', 'The amount to fund each account with')
   .setAction(async (taskArgs, hre) => {

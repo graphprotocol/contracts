@@ -1,8 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getAddressBook } from '../../../../cli/address-book'
-import { isGraphL1ChainId } from '@graphprotocol/sdk'
+import { SimpleAddressBook, isGraphL1ChainId } from '@graphprotocol/sdk'
 
 describe('[L2] L2GraphTokenGateway configuration', function () {
   const graph = hre.graph()
@@ -39,7 +38,7 @@ describe('[L2] L2GraphTokenGateway configuration', function () {
 
     // TODO: is there a cleaner way to get the router address?
     const arbitrumAddressBook = process.env.ARBITRUM_ADDRESS_BOOK ?? 'arbitrum-addresses-local.json'
-    const arbAddressBook = getAddressBook(arbitrumAddressBook, graph.l2.chainId.toString())
+    const arbAddressBook = new SimpleAddressBook(arbitrumAddressBook, graph.l2.chainId)
     const arbL2Router = arbAddressBook.getEntry('L2GatewayRouter')
 
     expect(l2Router).eq(arbL2Router.address)

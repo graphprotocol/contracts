@@ -7,8 +7,7 @@ import removedABI from './abis/staking'
 import allocations from './fixtures/allocations'
 import indexers from './fixtures/indexers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { randomHexBytes } from '../../../cli/network'
-import { helpers } from '@graphprotocol/sdk'
+import { helpers, randomHexBytes } from '@graphprotocol/sdk'
 
 chai.use(chaiAsPromised)
 

@@ -3,13 +3,11 @@ import * as types from 'hardhat/internal/core/params/argumentTypes'
 import { submitSourcesToSourcify } from './sourcify'
 import { isFullyQualifiedName, parseFullyQualifiedName } from 'hardhat/utils/contract-names'
 import { TASK_COMPILE } from 'hardhat/builtin-tasks/task-names'
-import { loadEnv } from '../../cli/env'
-import { cliOpts } from '../../cli/defaults'
-import { getContractConfig } from '../../cli/config'
-import { Wallet } from 'ethers'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 import fs from 'fs'
 import path from 'path'
 import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
+import { getContractConfig } from '@graphprotocol/sdk'
 
 task('sourcify', 'Verifies contract on sourcify')
   .addPositionalParam('address', 'Address of the smart contract to verify', undefined, types.string)
@@ -35,7 +33,11 @@ task('sourcify', 'Verifies contract on sourcify')
   })
 
 task('sourcifyAll', 'Verifies all contracts on sourcify')
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .addParam(
+    'addressBook',
+    GRE_TASK_PARAMS.addressBook.description,
+    GRE_TASK_PARAMS.addressBook.default,
+  )
   .setAction(async (_args, hre) => {
     const chainId = hre.network.config.chainId
     const chainName = hre.network.name
@@ -73,8 +75,16 @@ task('sourcifyAll', 'Verifies all contracts on sourcify')
   })
 
 task('verifyAll', 'Verifies all contracts on etherscan')
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+  .addParam(
+    'addressBook',
+    GRE_TASK_PARAMS.addressBook.description,
+    GRE_TASK_PARAMS.addressBook.default,
+  )
+  .addParam(
+    'graphConfig',
+    GRE_TASK_PARAMS.graphConfig.description,
+    GRE_TASK_PARAMS.graphConfig.default,
+  )
   .setAction(async (args, hre) => {
     const chainId = hre.network.config.chainId
     const chainName = hre.network.name
@@ -84,18 +94,20 @@ task('verifyAll', 'Verifies all contracts on etherscan')
     }
 
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook, graphConfig } = hre.graph({
+    const { addressBook, graphConfig, getDeployer } = hre.graph({
       addressBook: args.addressBook,
       graphConfig: args.graphConfig,
     })
 
-    const accounts = await hre.ethers.getSigners()
-    const env = await loadEnv(args, accounts[0] as unknown as Wallet)
-
     for (const contractName of addressBook.listEntries()) {
       console.log(`\n> Verifying contract ${contractName}...`)
 
-      const contractConfig = getContractConfig(graphConfig, addressBook, contractName, env)
+      const contractConfig = getContractConfig(
+        graphConfig,
+        addressBook,
+        contractName,
+        (await getDeployer()).address,
+      )
       const contractPath = getContractPath(contractName)
       const constructorParams = contractConfig.params.map((p) => p.value.toString())
 

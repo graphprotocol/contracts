@@ -4,6 +4,7 @@ import '@nomiclabs/hardhat-ethers'
 
 import { Governed } from '../../build/types/Governed'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { helpers } from '@graphprotocol/sdk'
 
 const { ethers } = hre
 const { AddressZero } = ethers.constants
@@ -17,6 +18,9 @@ describe('Governed', () => {
 
   beforeEach(async function () {
     ;[me, governor] = await graph.getTestAccounts()
+
+    await helpers.setAutoMine(true)
+    await helpers.setIntervalMining(0)
 
     const factory = await ethers.getContractFactory('GovernedMock')
     governed = (await factory.connect(governor).deploy()) as unknown as Governed

@@ -11,7 +11,14 @@ import { IStaking } from '../../build/types/IStaking'
 import { NetworkFixture } from '../lib/fixtures'
 
 import { Dispute, createQueryDisputeID, encodeAttestation, MAX_PPM } from './common'
-import { helpers, deriveChannelKey, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import {
+  helpers,
+  deriveChannelKey,
+  randomHexBytes,
+  toBN,
+  toGRT,
+  GraphNetworkContracts,
+} from '@graphprotocol/sdk'
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -34,6 +41,7 @@ describe('DisputeManager:Query', async () => {
   const graph = hre.graph()
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let disputeManager: DisputeManager
   let epochManager: EpochManager
   let grt: GraphToken
@@ -121,25 +129,16 @@ describe('DisputeManager:Query', async () => {
   }
 
   before(async function () {
-    ;[
-      me,
-      other,
-      governor,
-      arbitrator,
-      indexer,
-      indexer2,
-      fisherman,
-      fisherman2,
-      assetHolder,
-      rewardsDestination,
-    ] = await graph.getTestAccounts()
+    ;[me, other, indexer, indexer2, fisherman, fisherman2, assetHolder, rewardsDestination] =
+      await graph.getTestAccounts()
+    ;({ governor, arbitrator } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
-      governor,
-      other,
-      arbitrator,
-    ))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    disputeManager = contracts.DisputeManager as DisputeManager
+    epochManager = contracts.EpochManager as EpochManager
+    grt = contracts.GraphToken as GraphToken
+    staking = contracts.Staking as IStaking
 
     // Give some funds to the fisherman
     for (const dst of [fisherman, fisherman2]) {

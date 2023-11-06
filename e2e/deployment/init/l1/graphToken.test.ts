@@ -1,7 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../../../cli/config'
-import { isGraphL2ChainId } from '@graphprotocol/sdk'
+import { getItemValue, isGraphL2ChainId } from '@graphprotocol/sdk'
 
 describe('[L1] GraphToken initialization', () => {
   const graph = hre.graph()

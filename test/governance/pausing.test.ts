@@ -6,7 +6,7 @@ import { Controller } from '../../build/types/Controller'
 import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { toGRT } from '@graphprotocol/sdk'
+import { GraphNetworkContracts, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('Pausing', () => {
@@ -17,6 +17,7 @@ describe('Pausing', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let staking: IStaking
   let controller: Controller
 
@@ -32,9 +33,12 @@ describe('Pausing', () => {
   }
   const AddressZero = constants.AddressZero
   before(async function () {
-    ;[me, governor, guardian] = await graph.getTestAccounts()
-    fixture = new NetworkFixture()
-    ;({ staking, controller } = await fixture.load(governor))
+    ;[me] = await graph.getTestAccounts()
+    ;({ governor, pauseGuardian: guardian } = await graph.getNamedAccounts())
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    staking = contracts.Staking as IStaking
+    controller = contracts.Controller as Controller
   })
 
   beforeEach(async function () {
@@ -45,9 +49,12 @@ describe('Pausing', () => {
     await fixture.tearDown()
   })
   it('should set pause guardian', async function () {
-    expect(await controller.pauseGuardian()).eq(AddressZero)
+    const currentGuardian = await controller.pauseGuardian()
+    expect(await controller.pauseGuardian()).eq(currentGuardian)
     const tx = controller.connect(governor).setPauseGuardian(guardian.address)
-    await expect(tx).emit(controller, 'NewPauseGuardian').withArgs(AddressZero, guardian.address)
+    await expect(tx)
+      .emit(controller, 'NewPauseGuardian')
+      .withArgs(currentGuardian, guardian.address)
     expect(await controller.pauseGuardian()).eq(guardian.address)
   })
   it('should fail pause guardian when not governor', async function () {

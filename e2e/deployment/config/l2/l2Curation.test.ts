@@ -1,7 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getItemValue } from '../../../../cli/config'
-import { isGraphL1ChainId } from '@graphprotocol/sdk'
+import { getItemValue, isGraphL1ChainId } from '@graphprotocol/sdk'
 
 describe('[L2] L2Curation configuration', () => {
   const graph = hre.graph()

@@ -1,11 +1,9 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import { utils, Wallet, Signer } from 'ethers'
+import { Signer, providers } from 'ethers'
 
-import * as deployment from './deployment'
 import { BridgeMock } from '../../build/types/BridgeMock'
 import { InboxMock } from '../../build/types/InboxMock'
 import { OutboxMock } from '../../build/types/OutboxMock'
-import { deployContract } from './deployment'
 import { Controller } from '../../build/types/Controller'
 import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
@@ -24,7 +22,18 @@ import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { LibExponential } from '../../build/types/LibExponential'
-import { helpers } from '@graphprotocol/sdk'
+import {
+  DeployType,
+  GraphNetworkContracts,
+  acceptOwnership,
+  deploy,
+  deployGraphNetwork,
+  helpers,
+  loadGraphNetworkContracts,
+  toBN,
+  toGRT,
+} from '@graphprotocol/sdk'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 export interface L1FixtureContracts {
   controller: Controller
@@ -65,177 +74,68 @@ export interface ArbitrumL1Mocks {
 
 export class NetworkFixture {
   lastSnapshot: any
+  constructor(public provider: providers.Provider) {}
 
-  async _loadLayer(
-    deployer: Signer,
-    slasher: Signer = Wallet.createRandom() as Signer,
-    arbitrator: Signer = Wallet.createRandom() as Signer,
-    isL2: boolean,
-  ): Promise<L1FixtureContracts | L2FixtureContracts> {
+  async load(deployer: SignerWithAddress): Promise<GraphNetworkContracts> {
     await helpers.setIntervalMining(0)
     await helpers.setAutoMine(true)
 
-    // Roles
-    const arbitratorAddress = await arbitrator.getAddress()
-    const slasherAddress = await slasher.getAddress()
-
     // Deploy contracts
-    const proxyAdmin = await deployment.deployProxyAdmin(deployer)
-    const controller = await deployment.deployController(deployer)
-    const epochManager = await deployment.deployEpochManager(
+    await deployGraphNetwork(
+      './addresses.json',
+      './config/graph.localhost.yml',
+      1337,
       deployer,
-      controller.address,
-      proxyAdmin,
-    )
-    let grt: GraphToken | L2GraphToken
-    if (isL2) {
-      grt = await deployment.deployL2GRT(deployer, proxyAdmin)
-    } else {
-      grt = await deployment.deployGRT(deployer)
-    }
-
-    let curation: Curation | L2Curation
-    if (isL2) {
-      curation = await deployment.deployL2Curation(deployer, controller.address, proxyAdmin)
-    } else {
-      curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
-    }
-    let gns: L1GNS | L2GNS
-    let staking: IL1Staking | IL2Staking
-    if (isL2) {
-      gns = await deployment.deployL2GNS(deployer, controller.address, proxyAdmin)
-      staking = await deployment.deployL2Staking(deployer, controller.address, proxyAdmin)
-    } else {
-      gns = await deployment.deployL1GNS(deployer, controller.address, proxyAdmin)
-      staking = await deployment.deployL1Staking(deployer, controller.address, proxyAdmin)
-    }
-    const libExponential = await deployment.deployLibExponential(deployer)
-    const disputeManager = await deployment.deployDisputeManager(
-      deployer,
-      controller.address,
-      arbitratorAddress,
-      proxyAdmin,
-    )
-    const rewardsManager = await deployment.deployRewardsManager(
-      deployer,
-      controller.address,
-      proxyAdmin,
-    )
-    const serviceRegistry = await deployment.deployServiceRegistry(
-      deployer,
-      controller.address,
-      proxyAdmin,
+      this.provider,
+      {
+        skipConfirmation: true,
+        forceDeploy: true,
+        autoMine: true,
+      },
     )
 
-    let l1GraphTokenGateway: L1GraphTokenGateway
-    let l2GraphTokenGateway: L2GraphTokenGateway
-    let bridgeEscrow: BridgeEscrow
-    if (isL2) {
-      l2GraphTokenGateway = await deployment.deployL2GraphTokenGateway(
-        deployer,
-        controller.address,
-        proxyAdmin,
-      )
-    } else {
-      l1GraphTokenGateway = await deployment.deployL1GraphTokenGateway(
-        deployer,
-        controller.address,
-        proxyAdmin,
-      )
-      bridgeEscrow = await deployment.deployBridgeEscrow(deployer, controller.address, proxyAdmin)
-    }
+    const contracts = loadGraphNetworkContracts('./addresses.json', 1337, this.provider)
 
-    // Setup controller
-    await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)
-    await controller.setContractProxy(utils.id('GraphToken'), grt.address)
-    await controller.setContractProxy(utils.id('Curation'), curation.address)
-    await controller.setContractProxy(utils.id('Staking'), staking.address)
-    await controller.setContractProxy(utils.id('DisputeManager'), staking.address)
-    await controller.setContractProxy(utils.id('RewardsManager'), rewardsManager.address)
-    await controller.setContractProxy(utils.id('ServiceRegistry'), serviceRegistry.address)
-    await controller.setContractProxy(utils.id('GNS'), gns.address)
-    if (isL2) {
-      await controller.setContractProxy(utils.id('GraphTokenGateway'), l2GraphTokenGateway.address)
-    } else {
-      await controller.setContractProxy(utils.id('GraphTokenGateway'), l1GraphTokenGateway.address)
-    }
+    // Post deploy configuration
+    await contracts.GraphToken.connect(deployer).addMinter(deployer.address)
+    await contracts.Controller.connect(deployer).setPaused(false)
 
-    // Setup contracts
-    await curation.connect(deployer).syncAllContracts()
-    await gns.connect(deployer).syncAllContracts()
-    await serviceRegistry.connect(deployer).syncAllContracts()
-    await disputeManager.connect(deployer).syncAllContracts()
-    await rewardsManager.connect(deployer).syncAllContracts()
-    await staking.connect(deployer).syncAllContracts()
-    if (isL2) {
-      await l2GraphTokenGateway.connect(deployer).syncAllContracts()
-    } else {
-      await l1GraphTokenGateway.connect(deployer).syncAllContracts()
-      await bridgeEscrow.connect(deployer).syncAllContracts()
-      await grt.connect(deployer).addMinter(l1GraphTokenGateway.address)
-    }
+    // TODO: fix this
+    // Tests asume network parameters previously defined in the tests.
+    // We are now using graph config files, so some of them have different values
+    await contracts.Curation.connect(deployer).setDefaultReserveRatio(toBN('500000'))
+    await contracts.Curation.connect(deployer).setMinimumCurationDeposit(toGRT('100'))
+    await contracts.Curation.connect(deployer).setCurationTaxPercentage(0)
+    await contracts.DisputeManager.connect(deployer).setMinimumDeposit(toGRT('100'))
+    await contracts.DisputeManager.connect(deployer).setFishermanRewardPercentage(toBN('1000'))
+    await contracts.DisputeManager.connect(deployer).setSlashingPercentage(
+      toBN('1000'),
+      toBN('100000'),
+    )
+    await contracts.Staking.connect(deployer).setProtocolPercentage(0)
+    await contracts.Staking.connect(deployer).setCurationPercentage(0)
+    await contracts.Staking.connect(deployer).setDelegationParameters(0, 0, 0)
+    await contracts.Staking.connect(deployer).setDelegationTaxPercentage(0)
+    await contracts.Staking.connect(deployer).setMinimumIndexerStake(toGRT('10'))
+    await contracts.Staking.connect(deployer).setMaxAllocationEpochs(5)
+    await contracts.Staking.connect(deployer).setThawingPeriod(20)
+    await contracts.Staking.connect(deployer).setDelegationUnbondingPeriod(1)
+    await contracts.Staking.connect(deployer).setRebateParameters(100, 100, 60, 100)
+    await contracts.EpochManager.connect(deployer).setEpochLength((15 * 60) / 15)
+    await contracts.RewardsManager.connect(deployer).setIssuancePerBlock(
+      toGRT('114.155251141552511415'),
+    )
 
-    await staking.connect(deployer).setSlasher(slasherAddress, true)
-    await gns.connect(deployer).approveAll()
-    await grt.connect(deployer).addMinter(rewardsManager.address)
-
-    // Unpause the protocol
-    await controller.connect(deployer).setPaused(false)
-
-    if (isL2) {
-      return {
-        controller,
-        disputeManager,
-        epochManager,
-        grt: grt as L2GraphToken,
-        curation,
-        gns,
-        staking,
-        libExponential,
-        rewardsManager,
-        serviceRegistry,
-        proxyAdmin,
-        l2GraphTokenGateway,
-      } as L2FixtureContracts
-    } else {
-      return {
-        controller,
-        disputeManager,
-        epochManager,
-        grt: grt as GraphToken,
-        curation,
-        gns,
-        staking,
-        libExponential,
-        rewardsManager,
-        serviceRegistry,
-        proxyAdmin,
-        l1GraphTokenGateway,
-        bridgeEscrow,
-      } as L1FixtureContracts
-    }
-  }
-
-  async load(
-    deployer: Signer,
-    slasher: Signer = Wallet.createRandom() as Signer,
-    arbitrator: Signer = Wallet.createRandom() as Signer,
-  ): Promise<L1FixtureContracts> {
-    return this._loadLayer(deployer, slasher, arbitrator, false) as unknown as L1FixtureContracts
-  }
-
-  async loadL2(
-    deployer: Signer,
-    slasher: Signer = Wallet.createRandom() as Signer,
-    arbitrator: Signer = Wallet.createRandom() as Signer,
-  ): Promise<L2FixtureContracts> {
-    return this._loadLayer(deployer, slasher, arbitrator, true) as unknown as L2FixtureContracts
+    return contracts
   }
 
   async loadArbitrumL1Mocks(deployer: Signer): Promise<ArbitrumL1Mocks> {
-    const bridgeMock = (await deployContract('BridgeMock', deployer)) as unknown as BridgeMock
-    const inboxMock = (await deployContract('InboxMock', deployer)) as unknown as InboxMock
-    const outboxMock = (await deployContract('OutboxMock', deployer)) as unknown as OutboxMock
+    const bridgeMock = (await deploy(DeployType.Deploy, deployer, { name: 'BridgeMock' }))
+      .contract as BridgeMock
+    const inboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'InboxMock' }))
+      .contract as InboxMock
+    const outboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'OutboxMock' }))
+      .contract as OutboxMock
     return {
       bridgeMock,
       inboxMock,
@@ -246,7 +146,7 @@ export class NetworkFixture {
   async configureL1Bridge(
     deployer: Signer,
     arbitrumMocks: ArbitrumL1Mocks,
-    l1FixtureContracts: L1FixtureContracts,
+    l1FixtureContracts: GraphNetworkContracts,
     mockRouterAddress: string,
     mockL2GRTAddress: string,
     mockL2GatewayAddress: string,
@@ -262,32 +162,33 @@ export class NetworkFixture {
     await arbitrumMocks.outboxMock.connect(deployer).setBridge(arbitrumMocks.bridgeMock.address)
 
     // Configure the gateway
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .setArbitrumAddresses(arbitrumMocks.inboxMock.address, mockRouterAddress)
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .setL2TokenAddress(mockL2GRTAddress)
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .setL2CounterpartAddress(mockL2GatewayAddress)
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .setEscrowAddress(l1FixtureContracts.bridgeEscrow.address)
-    await l1FixtureContracts.bridgeEscrow
-      .connect(deployer)
-      .approveAll(l1FixtureContracts.l1GraphTokenGateway.address)
-    await l1FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL2GNSAddress)
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .addToCallhookAllowlist(l1FixtureContracts.gns.address)
-    await l1FixtureContracts.staking
-      .connect(deployer)
-      .setCounterpartStakingAddress(mockL2StakingAddress)
-    await l1FixtureContracts.l1GraphTokenGateway
-      .connect(deployer)
-      .addToCallhookAllowlist(l1FixtureContracts.staking.address)
-    await l1FixtureContracts.l1GraphTokenGateway.connect(deployer).setPaused(false)
+    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setArbitrumAddresses(
+      arbitrumMocks.inboxMock.address,
+      mockRouterAddress,
+    )
+    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setL2TokenAddress(
+      mockL2GRTAddress,
+    )
+    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setL2CounterpartAddress(
+      mockL2GatewayAddress,
+    )
+    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setEscrowAddress(
+      l1FixtureContracts.BridgeEscrow.address,
+    )
+    await l1FixtureContracts.BridgeEscrow.connect(deployer).approveAll(
+      l1FixtureContracts.L1GraphTokenGateway.address,
+    )
+    await l1FixtureContracts.GNS.connect(deployer).setCounterpartGNSAddress(mockL2GNSAddress)
+    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).addToCallhookAllowlist(
+      l1FixtureContracts.GNS.address,
+    )
+    await l1FixtureContracts.Staking.connect(deployer).setCounterpartStakingAddress(
+      mockL2StakingAddress,
+    )
+    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).addToCallhookAllowlist(
+      l1FixtureContracts.Staking.address,
+    )
+    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
   async configureL2Bridge(

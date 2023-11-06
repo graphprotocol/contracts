@@ -1,11 +1,10 @@
+import { writeConfig, updateItemValue } from '@graphprotocol/sdk'
 import { task } from 'hardhat/config'
-
-import { cliOpts } from '../../cli/defaults'
-import { updateItemValue, writeConfig } from '../../cli/config'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 
 task('migrate:accounts', 'Creates protocol accounts and saves them in graph config')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
     const { graphConfig, getDeployer } = hre.graph(taskArgs)
 

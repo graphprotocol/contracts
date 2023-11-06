@@ -1,14 +1,20 @@
 import { task } from 'hardhat/config'
-
-import { cliOpts } from '../../cli/defaults'
-import { deployContractImplementationAndSave } from '../../cli/network'
-import { getAddressBook } from '../../cli/address-book'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { DeployType, GraphNetworkAddressBook, deploy } from '@graphprotocol/sdk'
 
 task('contracts:upgrade', 'Upgrades a contract')
   .addParam('contract', 'Name of the contract to upgrade')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
-  .addOptionalParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
+  .addOptionalParam(
+    'graphConfig',
+    GRE_TASK_PARAMS.graphConfig.description,
+    GRE_TASK_PARAMS.graphConfig.default,
+  )
+  .addOptionalParam(
+    'addressBook',
+    GRE_TASK_PARAMS.addressBook.description,
+    GRE_TASK_PARAMS.addressBook.default,
+  )
   .addOptionalVariadicPositionalParam(
     'init',
     'Initialization arguments for the contract constructor',
@@ -27,11 +33,14 @@ task('contracts:upgrade', 'Upgrades a contract')
     console.log(`Upgrading ${taskArgs.contract}...`)
 
     // Deploy new implementation
-    const implementation = await deployContractImplementationAndSave(
-      taskArgs.contract,
-      taskArgs.init || [],
+    const { contract: implementation } = await deploy(
+      DeployType.DeployImplementationAndSave,
       deployer,
-      getAddressBook(taskArgs.addressBook, graph.chainId.toString()),
+      {
+        name: taskArgs.contract,
+        args: taskArgs.init || [],
+      },
+      new GraphNetworkAddressBook(taskArgs.addressBook, graph.chainId),
     )
     console.log(`New implementation deployed at ${implementation.address}`)
 

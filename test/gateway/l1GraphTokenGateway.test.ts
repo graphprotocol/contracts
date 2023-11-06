@@ -11,7 +11,7 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { NetworkFixture, ArbitrumL1Mocks, L1FixtureContracts } from '../lib/fixtures'
 
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
-import { helpers, applyL1ToL2Alias, toBN, toGRT } from '@graphprotocol/sdk'
+import { helpers, applyL1ToL2Alias, toBN, toGRT, GraphNetworkContracts } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -37,7 +37,7 @@ describe('L1GraphTokenGateway', () => {
   let outboxMock: OutboxMock
 
   let arbitrumMocks: ArbitrumL1Mocks
-  let fixtureContracts: L1FixtureContracts
+  let fixtureContracts: GraphNetworkContracts
 
   const senderTokens = toGRT('1000')
   const maxGas = toBN('1000000')
@@ -60,23 +60,17 @@ describe('L1GraphTokenGateway', () => {
   )
 
   before(async function () {
-    ;[
-      governor,
-      tokenSender,
-      l2Receiver,
-      mockRouter,
-      mockL2GRT,
-      mockL2Gateway,
-      pauseGuardian,
-      mockL2GNS,
-      mockL2Staking,
-    ] = await graph.getTestAccounts()
+    ;[tokenSender, l2Receiver, mockRouter, mockL2GRT, mockL2Gateway, mockL2GNS, mockL2Staking] =
+      await graph.getTestAccounts()
+    ;({ governor, pauseGuardian } = await graph.getNamedAccounts())
 
     // Dummy code on the mock router so that it appears as a contract
     await helpers.setCode(mockRouter.address, '0x1234')
-    fixture = new NetworkFixture()
+    fixture = new NetworkFixture(graph.provider)
     fixtureContracts = await fixture.load(governor)
-    ;({ grt, l1GraphTokenGateway, bridgeEscrow } = fixtureContracts)
+    grt = fixtureContracts.GraphToken as GraphToken
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
+    bridgeEscrow = fixtureContracts.BridgeEscrow as BridgeEscrow
 
     // Give some funds to the token sender
     await grt.connect(governor).mint(tokenSender.address, senderTokens)
@@ -210,10 +204,10 @@ describe('L1GraphTokenGateway', () => {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l1GraphTokenGateway
           .connect(tokenSender)
-          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.RewardsManager.address)
         await expect(tx).revertedWith('Only Controller governor')
         expect(
-          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.RewardsManager.address),
         ).eq(false)
       })
       it('rejects adding an EOA to the callhook allowlist', async function () {
@@ -223,12 +217,12 @@ describe('L1GraphTokenGateway', () => {
       it('adds an address to the callhook allowlist', async function () {
         const tx = l1GraphTokenGateway
           .connect(governor)
-          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.RewardsManager.address)
         await expect(tx)
           .emit(l1GraphTokenGateway, 'AddedToCallhookAllowlist')
-          .withArgs(fixtureContracts.rewardsManager.address)
+          .withArgs(fixtureContracts.RewardsManager.address)
         expect(
-          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.RewardsManager.address),
         ).eq(true)
       })
     })
@@ -236,27 +230,27 @@ describe('L1GraphTokenGateway', () => {
       it('is not callable by addreses that are not the governor', async function () {
         await l1GraphTokenGateway
           .connect(governor)
-          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.RewardsManager.address)
         const tx = l1GraphTokenGateway
           .connect(tokenSender)
-          .removeFromCallhookAllowlist(fixtureContracts.rewardsManager.address)
+          .removeFromCallhookAllowlist(fixtureContracts.RewardsManager.address)
         await expect(tx).revertedWith('Only Controller governor')
         expect(
-          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.RewardsManager.address),
         ).eq(true)
       })
       it('removes an address from the callhook allowlist', async function () {
         await l1GraphTokenGateway
           .connect(governor)
-          .addToCallhookAllowlist(fixtureContracts.rewardsManager.address)
+          .addToCallhookAllowlist(fixtureContracts.RewardsManager.address)
         const tx = l1GraphTokenGateway
           .connect(governor)
-          .removeFromCallhookAllowlist(fixtureContracts.rewardsManager.address)
+          .removeFromCallhookAllowlist(fixtureContracts.RewardsManager.address)
         await expect(tx)
           .emit(l1GraphTokenGateway, 'RemovedFromCallhookAllowlist')
-          .withArgs(fixtureContracts.rewardsManager.address)
+          .withArgs(fixtureContracts.RewardsManager.address)
         expect(
-          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.rewardsManager.address),
+          await l1GraphTokenGateway.callhookAllowlist(fixtureContracts.RewardsManager.address),
         ).eq(false)
       })
     })

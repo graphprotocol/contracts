@@ -1,11 +1,19 @@
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 import { ContractTransaction } from 'ethers'
 import { task } from 'hardhat/config'
-import { cliOpts } from '../../cli/defaults'
-import { chainIdIsL2 } from '../../cli/cross-chain'
 
 task('migrate:sync', 'Sync controller contracts')
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+  .addParam(
+    'addressBook',
+    GRE_TASK_PARAMS.addressBook.description,
+    GRE_TASK_PARAMS.addressBook.default,
+  )
+  .addParam(
+    'graphConfig',
+    GRE_TASK_PARAMS.graphConfig.description,
+    GRE_TASK_PARAMS.graphConfig.default,
+  )
   .setAction(async (taskArgs, hre) => {
     const { contracts, getDeployer } = hre.graph({
       addressBook: taskArgs.addressBook,
@@ -14,7 +22,7 @@ task('migrate:sync', 'Sync controller contracts')
     const deployer = await getDeployer()
 
     const chainId = hre.network.config.chainId?.toString() ?? '1337'
-    const isL2 = chainIdIsL2(chainId)
+    const isL2 = isGraphL2ChainId(chainId)
 
     // Sync contracts
     console.log(

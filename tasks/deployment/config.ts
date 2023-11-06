@@ -1,19 +1,23 @@
 import { task } from 'hardhat/config'
-import { cliOpts } from '../../cli/defaults'
 
-import { confirm } from '../../cli/helpers'
 import {
   GraphNetworkConfigContractList,
   GraphNetworkConfigGeneralParams,
   updateContractParams,
   updateGeneralParams,
   writeConfig,
+  confirm,
 } from '@graphprotocol/sdk'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 
 task('update-config', 'Update graph config parameters with onchain data')
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
+  .addParam(
+    'graphConfig',
+    GRE_TASK_PARAMS.graphConfig.description,
+    GRE_TASK_PARAMS.graphConfig.default,
+  )
   .addFlag('dryRun', "Only print the changes, don't write them to the config file")
-  .addFlag('skipConfirmation', cliOpts.skipConfirmation.description)
+  .addFlag('skipConfirmation', GRE_TASK_PARAMS.skipConfirmation.description)
   .setAction(async (taskArgs, hre) => {
     const networkName = hre.network.name
     const configFile = taskArgs.graphConfig

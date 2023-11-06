@@ -7,7 +7,7 @@ import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import { toGRT } from '@graphprotocol/sdk'
+import { GraphNetworkContracts, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('BridgeEscrow', () => {
@@ -18,16 +18,20 @@ describe('BridgeEscrow', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let grt: GraphToken
   let bridgeEscrow: BridgeEscrow
 
   const nTokens = toGRT('1000')
 
   before(async function () {
-    ;[governor, tokenReceiver, spender] = await graph.getTestAccounts()
+    ;[tokenReceiver, spender] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ grt, bridgeEscrow } = await fixture.load(governor))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    grt = contracts.GraphToken as GraphToken
+    bridgeEscrow = contracts.BridgeEscrow as BridgeEscrow
 
     // Give some funds to the Escrow
     await grt.connect(governor).mint(bridgeEscrow.address, nTokens)

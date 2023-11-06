@@ -7,7 +7,14 @@ import { GraphToken } from '../../build/types/GraphToken'
 import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import {
+  GraphNetworkContracts,
+  deriveChannelKey,
+  helpers,
+  randomHexBytes,
+  toBN,
+  toGRT,
+} from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, HashZero } = constants
@@ -25,6 +32,7 @@ describe('Staking::Delegation', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let epochManager: EpochManager
   let grt: GraphToken
   let staking: IStaking
@@ -176,9 +184,13 @@ describe('Staking::Delegation', () => {
   before(async function () {
     ;[me, delegator, delegator2, governor, indexer, indexer2, assetHolder] =
       await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ epochManager, grt, staking } = await fixture.load(governor))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    epochManager = contracts.EpochManager as EpochManager
+    grt = contracts.GraphToken as GraphToken
+    staking = contracts.Staking as IStaking
 
     // Distribute test funds
     for (const wallet of [delegator, delegator2]) {
@@ -404,17 +416,17 @@ describe('Staking::Delegation', () => {
 
       describe('delegation tax', function () {
         it('should delegate and burn delegation deposit tax (0.0001%)', async function () {
-          await staking.setDelegationTaxPercentage(1)
+          await staking.connect(governor).setDelegationTaxPercentage(1)
           await shouldDelegate(delegator, toGRT('10000000'))
         })
 
         it('should delegate and burn delegation deposit tax (1%)', async function () {
-          await staking.setDelegationTaxPercentage(10000)
+          await staking.connect(governor).setDelegationTaxPercentage(10000)
           await shouldDelegate(delegator, toGRT('10000000'))
         })
 
         it('reject delegate with delegation deposit tax (100%)', async function () {
-          await staking.setDelegationTaxPercentage(1000000)
+          await staking.connect(governor).setDelegationTaxPercentage(1000000)
           const tx = staking.connect(delegator).delegate(indexer.address, toGRT('10000000'))
           await expect(tx).revertedWith('!shares')
         })
@@ -447,7 +459,7 @@ describe('Staking::Delegation', () => {
         this.timeout(60000) // increase timeout for test runner
 
         // Use long enough epochs to avoid jumping to the next epoch involuntarily on our test
-        await epochManager.setEpochLength(toBN((60 * 60) / 15))
+        await epochManager.connect(governor).setEpochLength(toBN((60 * 60) / 15))
 
         await shouldDelegate(delegator, toGRT('1234'))
         await shouldDelegate(delegator, toGRT('100'))
@@ -461,7 +473,7 @@ describe('Staking::Delegation', () => {
       })
 
       it('should undelegate and withdraw freed tokens from unbonding period', async function () {
-        await staking.setDelegationUnbondingPeriod('2')
+        await staking.connect(governor).setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('100'))
         await shouldUndelegate(delegator, toGRT('50'))
         await helpers.mineEpoch(epochManager) // epoch 1
@@ -477,7 +489,7 @@ describe('Staking::Delegation', () => {
       })
 
       it('reject withdraw before unbonding period', async function () {
-        await staking.setDelegationUnbondingPeriod('2')
+        await staking.connect(governor).setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('1000'))
         await shouldUndelegate(delegator, toGRT('100'))
 
@@ -490,7 +502,7 @@ describe('Staking::Delegation', () => {
         const tokensToWithdraw = toGRT('100')
 
         // Setup
-        await staking.setDelegationUnbondingPeriod('2')
+        await staking.connect(governor).setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('1000'))
         await shouldUndelegate(delegator, tokensToWithdraw)
         await helpers.mineEpoch(epochManager) // epoch 1
@@ -504,7 +516,7 @@ describe('Staking::Delegation', () => {
         const tokensToWithdraw = toGRT('100')
 
         // Setup
-        await staking.setDelegationUnbondingPeriod('2')
+        await staking.connect(governor).setDelegationUnbondingPeriod('2')
         await shouldDelegate(delegator, toGRT('1000'))
         await shouldUndelegate(delegator, tokensToWithdraw)
         await helpers.mineEpoch(epochManager) // epoch 1

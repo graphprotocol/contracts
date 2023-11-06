@@ -66,6 +66,7 @@ function deploy() {
   # Deploy protocol
   npx hardhat migrate \
     --network "$NETWORK" \
+    --disable-secure-accounts \
     --skip-confirmation \
     --auto-mine \
     --force \

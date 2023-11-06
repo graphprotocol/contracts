@@ -1,6 +1,7 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { toGRT } from '@graphprotocol/sdk'
 import { BigNumber } from 'ethers'
-import { toGRT } from '../../../cli/network'
+
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 export interface BridgeFixture {
   deploymentFile: string

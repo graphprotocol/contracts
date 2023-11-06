@@ -7,6 +7,7 @@ import { EpochManager } from '../../build/types/EpochManager'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { GraphNetworkContracts } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
 
@@ -19,16 +20,19 @@ describe('Managed', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let epochManager: EpochManager
   let controller: Controller
 
   before(async function () {
-    ;[me, governor, mockController, newMockEpochManager] = await graph.getTestAccounts()
-
+    ;[me, mockController, newMockEpochManager] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
     // We just run the fixures to set up a contract with  Managed, as this
     // is cleaner and easier for us to test
-    fixture = new NetworkFixture()
-    ;({ epochManager, controller } = await fixture.load(governor))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    epochManager = contracts.EpochManager as EpochManager
+    controller = contracts.Controller as Controller
   })
 
   beforeEach(async function () {
@@ -121,7 +125,10 @@ describe('Managed', () => {
   describe('setPauseGuardian()', function () {
     it('should set the pause guardian', async function () {
       const tx = controller.connect(governor).setPauseGuardian(me.address)
-      await expect(tx).emit(controller, 'NewPauseGuardian').withArgs(AddressZero, me.address)
+      const currentPauseGuardian = await controller.pauseGuardian()
+      await expect(tx)
+        .emit(controller, 'NewPauseGuardian')
+        .withArgs(currentPauseGuardian, me.address)
       expect(await controller.pauseGuardian()).eq(me.address)
     })
 

@@ -1,21 +1,38 @@
-import { Wallet } from 'ethers'
 import { task } from 'hardhat/config'
 
-import { loadEnv } from '../../cli/env'
-import { cliOpts } from '../../cli/defaults'
-import { migrate } from '../../cli/commands/migrate'
+import { GraphChainId, deployGraphNetwork } from '@graphprotocol/sdk'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 
 task('migrate', 'Migrate contracts')
-  .addParam('addressBook', cliOpts.addressBook.description, cliOpts.addressBook.default)
-  .addParam('graphConfig', cliOpts.graphConfig.description, cliOpts.graphConfig.default)
-  .addFlag('skipConfirmation', cliOpts.skipConfirmation.description)
-  .addFlag('force', cliOpts.force.description)
+  .addParam(
+    'addressBook',
+    GRE_TASK_PARAMS.addressBook.description,
+    GRE_TASK_PARAMS.addressBook.default,
+  )
+  .addParam(
+    'graphConfig',
+    GRE_TASK_PARAMS.graphConfig.description,
+    GRE_TASK_PARAMS.graphConfig.default,
+  )
+  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
+  .addFlag('skipConfirmation', GRE_TASK_PARAMS.skipConfirmation.description)
+  .addFlag('force', GRE_TASK_PARAMS.force.description)
   .addFlag('autoMine', 'Enable auto mining after deployment on local networks')
+  .addFlag('buildAcceptTx', '...')
   .setAction(async (taskArgs, hre) => {
-    const accounts = await hre.ethers.getSigners()
-    await migrate(
-      await loadEnv(taskArgs, accounts[0] as unknown as Wallet),
-      taskArgs,
-      taskArgs.autoMine,
+    const graph = hre.graph(taskArgs)
+
+    await deployGraphNetwork(
+      taskArgs.addressBook,
+      taskArgs.graphConfig,
+      graph.chainId as GraphChainId, // TODO: fix type
+      await graph.getDeployer(),
+      graph.provider,
+      {
+        forceDeploy: taskArgs.force,
+        skipConfirmation: taskArgs.skipConfirmation,
+        autoMine: taskArgs.autoMine,
+        buildAcceptTx: taskArgs.buildAcceptTx,
+      },
     )
   })

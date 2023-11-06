@@ -10,8 +10,8 @@ import { IStaking } from '../../build/types/IStaking'
 import * as deployment from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 
-import { getContractAt } from '../../cli/network'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { loadContractAt } from '@graphprotocol/sdk'
 
 const { ethers } = hre
 const { AddressZero } = ethers.constants
@@ -33,7 +33,7 @@ describe('Upgrades', () => {
 
     fixture = new NetworkFixture()
     ;({ proxyAdmin, staking, curation } = await fixture.load(governor))
-    stakingProxy = getContractAt('GraphProxy', staking.address, governor) as GraphProxy
+    stakingProxy = loadContractAt('GraphProxy', staking.address, undefined, governor) as GraphProxy
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
   })
@@ -96,7 +96,7 @@ describe('Upgrades', () => {
         const oldImplementationAddress = await proxyAdmin.getProxyImplementation(staking.address)
         const newImplementationAddress = await proxyAdmin.getProxyImplementation(curation.address)
 
-        const stakingProxy = getContractAt('GraphProxy', staking.address, governor)
+        const stakingProxy = loadContractAt('GraphProxy', staking.address, undefined, governor)
 
         // Upgrade the Staking:Proxy to a new implementation
         const tx1 = proxyAdmin.connect(governor).upgrade(staking.address, newImplementationAddress)
@@ -149,7 +149,12 @@ describe('Upgrades', () => {
     describe('acceptProxy', function () {
       it('reject accept proxy if not using the ProxyAdmin', async function () {
         const newImplementationAddress = await proxyAdmin.getProxyImplementation(curation.address)
-        const implementation = getContractAt('Curation', newImplementationAddress, governor)
+        const implementation = loadContractAt(
+          'Curation',
+          newImplementationAddress,
+          undefined,
+          governor,
+        )
 
         // Start an upgrade to a new implementation
         await proxyAdmin.connect(governor).upgrade(staking.address, newImplementationAddress)

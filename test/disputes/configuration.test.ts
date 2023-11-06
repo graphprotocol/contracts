@@ -4,9 +4,8 @@ import { expect } from 'chai'
 
 import { DisputeManager } from '../../build/types/DisputeManager'
 
-import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
-import { toBN } from '@graphprotocol/sdk'
+import { GraphNetworkContracts, toBN } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -20,15 +19,19 @@ describe('DisputeManager:Config', () => {
   let arbitrator: SignerWithAddress
 
   const graph = hre.graph()
+  const defaults = graph.graphConfig.defaults
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let disputeManager: DisputeManager
 
   before(async function () {
-    ;[me, governor, slasher, arbitrator] = await graph.getTestAccounts()
+    ;[me, slasher] = await graph.getTestAccounts()
+    ;({ governor, arbitrator } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ disputeManager } = await fixture.load(governor, slasher, arbitrator))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    disputeManager = contracts.DisputeManager as DisputeManager
   })
 
   beforeEach(async function () {

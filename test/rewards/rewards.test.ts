@@ -18,6 +18,7 @@ import {
   toBN,
   toGRT,
   deriveChannelKey,
+  GraphNetworkContracts,
 } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -40,6 +41,7 @@ describe('Rewards', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let grt: GraphToken
   let curation: Curation
   let epochManager: EpochManager
@@ -131,11 +133,17 @@ describe('Rewards', () => {
   }
 
   before(async function () {
-    ;[delegator, governor, curator1, curator2, indexer1, indexer2, oracle, assetHolder] =
+    ;[delegator, curator1, curator2, indexer1, indexer2, oracle, assetHolder] =
       await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(governor))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    grt = contracts.GraphToken as GraphToken
+    curation = contracts.Curation as Curation
+    epochManager = contracts.EpochManager as EpochManager
+    staking = contracts.Staking as IStaking
+    rewardsManager = contracts.RewardsManager as RewardsManager
 
     // 200 GRT per block
     await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
@@ -191,7 +199,7 @@ describe('Rewards', () => {
       })
 
       it('reject to deny subgraph if not the oracle', async function () {
-        const tx = rewardsManager.setDenied(subgraphDeploymentID1, true)
+        const tx = rewardsManager.connect(governor).setDenied(subgraphDeploymentID1, true)
         await expect(tx).revertedWith('Caller must be the subgraph availability oracle')
       })
 
@@ -269,7 +277,7 @@ describe('Rewards', () => {
         const tracker = await RewardsTracker.create()
 
         // Update
-        await rewardsManager.updateAccRewardsPerSignal()
+        await rewardsManager.connect(governor).updateAccRewardsPerSignal()
         const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
         // Check
@@ -287,7 +295,7 @@ describe('Rewards', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Update
-        await rewardsManager.updateAccRewardsPerSignal()
+        await rewardsManager.connect(governor).updateAccRewardsPerSignal()
         const contractAccrued = await rewardsManager.accRewardsPerSignal()
 
         // Check
@@ -350,7 +358,7 @@ describe('Rewards', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Update
-        await rewardsManager.onSubgraphSignalUpdate(subgraphDeploymentID1)
+        await rewardsManager.connect(governor).onSubgraphSignalUpdate(subgraphDeploymentID1)
 
         // Check
         const contractRewardsSG1 = (await rewardsManager.subgraphs(subgraphDeploymentID1))
@@ -435,7 +443,7 @@ describe('Rewards', () => {
         const expectedRewardsAT = toGRT('0.08') // allocated during 5 blocks: 1000 GRT, divided by 12500 allocated tokens
 
         // Update
-        await rewardsManager.onSubgraphAllocationUpdate(subgraphDeploymentID1)
+        await rewardsManager.connect(governor).onSubgraphAllocationUpdate(subgraphDeploymentID1)
 
         // Check on demand results saved
         const subgraph = await rewardsManager.subgraphs(subgraphDeploymentID1)
@@ -530,7 +538,7 @@ describe('Rewards', () => {
 
       async function setupIndexerAllocation() {
         // Setup
-        await epochManager.setEpochLength(10)
+        await epochManager.connect(governor).setEpochLength(10)
 
         // Update total signalled
         const signalled1 = toGRT('1500')
@@ -553,7 +561,7 @@ describe('Rewards', () => {
 
       async function setupIndexerAllocationSignalingAfter() {
         // Setup
-        await epochManager.setEpochLength(10)
+        await epochManager.connect(governor).setEpochLength(10)
 
         // Allocate
         const tokensToAllocate = toGRT('12500')
@@ -581,7 +589,7 @@ describe('Rewards', () => {
         const tokensToAllocate = toGRT('12500')
 
         // Setup
-        await epochManager.setEpochLength(10)
+        await epochManager.connect(governor).setEpochLength(10)
 
         // Transfer some funds from the curator, I don't want to mint new tokens
         await grt.connect(curator1).transfer(delegator.address, tokensToDelegate)
@@ -890,7 +898,7 @@ describe('Rewards', () => {
       await helpers.mineEpoch(epochManager)
 
       // Setup
-      await epochManager.setEpochLength(10)
+      await epochManager.connect(governor).setEpochLength(10)
 
       // Update total signalled
       const signalled1 = toGRT('1500')
@@ -936,7 +944,7 @@ describe('Rewards', () => {
       await helpers.mineEpoch(epochManager)
 
       // Setup
-      await epochManager.setEpochLength(10)
+      await epochManager.connect(governor).setEpochLength(10)
 
       // Update total signalled
       const signalled1 = toGRT('1500')
@@ -996,7 +1004,7 @@ describe('Rewards', () => {
       }
 
       // set curation percentage
-      await staking.setCurationPercentage(100000)
+      await staking.connect(governor).setCurationPercentage(100000)
 
       // allow the asset holder
       const tokensToCollect = toGRT('10000')

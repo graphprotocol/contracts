@@ -1,11 +1,11 @@
 import { task } from 'hardhat/config'
-import { cliOpts } from '../../cli/defaults'
 import { isGraphL2ChainId } from '@graphprotocol/sdk'
+import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 
 task('migrate:unpause:protocol', 'Unpause protocol (except bridge)')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam('addressBook', cliOpts.addressBook.description)
-  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
+  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)
     const { governor } = await graph.getNamedAccounts()
@@ -20,8 +20,8 @@ task('migrate:unpause:protocol', 'Unpause protocol (except bridge)')
 
 task('migrate:unpause:bridge', 'Unpause bridge')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam('addressBook', cliOpts.addressBook.description)
-  .addOptionalParam('graphConfig', cliOpts.graphConfig.description)
+  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
+  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)
     const { governor } = await graph.getNamedAccounts()

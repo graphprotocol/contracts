@@ -5,11 +5,9 @@ import { constants } from 'ethers'
 
 import { IStaking } from '../../build/types/IStaking'
 
-import { defaults } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
-import { network } from '../../cli'
-import { toBN, toGRT } from '@graphprotocol/sdk'
+import { DeployType, GraphNetworkContracts, deploy, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -18,6 +16,8 @@ const MAX_PPM = toBN('1000000')
 
 describe('Staking:Config', () => {
   const graph = hre.graph()
+  const defaults = graph.graphConfig.defaults
+
   let me: SignerWithAddress
   let other: SignerWithAddress
   let governor: SignerWithAddress
@@ -25,14 +25,18 @@ describe('Staking:Config', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let staking: IStaking
   let proxyAdmin: GraphProxyAdmin
 
   before(async function () {
-    ;[me, other, governor, slasher] = await graph.getTestAccounts()
+    ;[me, other, slasher] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ staking, proxyAdmin } = await fixture.load(governor, slasher))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    staking = contracts.Staking as IStaking
+    proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
   })
 
   beforeEach(async function () {
@@ -45,7 +49,7 @@ describe('Staking:Config', () => {
 
   describe('minimumIndexerStake', function () {
     it('should set `minimumIndexerStake`', async function () {
-      const oldValue = defaults.staking.minimumIndexerStake
+      const oldValue = toGRT('10')
       const newValue = toGRT('100')
 
       // Set right in the constructor
@@ -234,14 +238,16 @@ describe('Staking:Config', () => {
       await expect(tx).revertedWith('only through proxy')
     })
     it('can set the staking extension implementation with setExtensionImpl', async function () {
-      const newImpl = await network.deployContract('StakingExtension', [], governor)
+      const newImpl = await deploy(DeployType.Deploy, governor, {
+        name: 'StakingExtension',
+      })
       const tx = await staking.connect(governor).setExtensionImpl(newImpl.contract.address)
       await expect(tx)
         .emit(staking, 'ExtensionImplementationSet')
         .withArgs(newImpl.contract.address)
     })
     it('rejects calls to setExtensionImpl from non-governor', async function () {
-      const newImpl = await network.deployContract('StakingExtension', [], governor)
+      const newImpl = await deploy(DeployType.Deploy, governor, { name: 'StakingExtension' })
       const tx = staking.connect(other).setExtensionImpl(newImpl.contract.address)
       await expect(tx).revertedWith('Only Controller governor')
     })
