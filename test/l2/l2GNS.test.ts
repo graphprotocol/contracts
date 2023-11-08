@@ -20,6 +20,7 @@ import { GraphToken } from '../../build/types/GraphToken'
 import {
   buildSubgraph,
   buildSubgraphId,
+  GraphNetworkContracts,
   helpers,
   PublishSubgraph,
   randomHexBytes,
@@ -50,7 +51,7 @@ describe('L2GNS', () => {
   let mockL1Staking: SignerWithAddress
   let fixture: NetworkFixture
 
-  let fixtureContracts: L2FixtureContracts
+  let fixtureContracts: GraphNetworkContracts
   let l2GraphTokenGateway: L2GraphTokenGateway
   let gns: L2GNS
   let curation: L2Curation
@@ -113,12 +114,16 @@ describe('L2GNS', () => {
 
   before(async function () {
     newSubgraph0 = buildSubgraph()
-    ;[me, other, governor, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
+    ;[me, other, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
       await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    fixtureContracts = await fixture.loadL2(governor)
-    ;({ l2GraphTokenGateway, gns, curation, grt } = fixtureContracts)
+    fixture = new NetworkFixture(graph.provider)
+    fixtureContracts = await fixture.load(governor, true)
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
+    gns = fixtureContracts.L2GNS as L2GNS
+    curation = fixtureContracts.L2Curation as L2Curation
+    grt = fixtureContracts.GraphToken as GraphToken
 
     await grt.connect(governor).mint(me.address, toGRT('10000'))
     await fixture.configureL2Bridge(

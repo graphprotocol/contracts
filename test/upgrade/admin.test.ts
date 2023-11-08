@@ -7,11 +7,10 @@ import { Curation } from '../../build/types/Curation'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { IStaking } from '../../build/types/IStaking'
 
-import * as deployment from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { loadContractAt } from '@graphprotocol/sdk'
+import { DeployType, GraphNetworkContracts, deploy, loadContractAt } from '@graphprotocol/sdk'
 
 const { ethers } = hre
 const { AddressZero } = ethers.constants
@@ -23,6 +22,7 @@ describe('Upgrades', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let proxyAdmin: GraphProxyAdmin
   let curation: Curation
   let staking: IStaking
@@ -31,8 +31,11 @@ describe('Upgrades', () => {
   before(async function () {
     ;[me, governor] = await graph.getTestAccounts()
 
-    fixture = new NetworkFixture()
-    ;({ proxyAdmin, staking, curation } = await fixture.load(governor))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    staking = contracts.Staking as IStaking
+    proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
+    curation = contracts.Curation as Curation
     stakingProxy = loadContractAt('GraphProxy', staking.address, undefined, governor) as GraphProxy
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
@@ -55,7 +58,7 @@ describe('Upgrades', () => {
         })
 
         it('reject get admin from other than the ProxyAdmin', async function () {
-          await expect(stakingProxy.admin()).revertedWith(
+          await expect(stakingProxy.connect(governor).admin()).revertedWith(
             "function selector was not recognized and there's no fallback function",
           )
         })
@@ -83,7 +86,7 @@ describe('Upgrades', () => {
         })
 
         it('reject get pending implementation from other than the ProxyAdmin', async function () {
-          await expect(stakingProxy.pendingImplementation()).revertedWith(
+          await expect(stakingProxy.connect(governor).pendingImplementation()).revertedWith(
             "function selector was not recognized and there's no fallback function",
           )
         })
@@ -167,7 +170,9 @@ describe('Upgrades', () => {
 
     describe('changeProxyAdmin', function () {
       it('should set the proxy admin of a proxy', async function () {
-        const otherProxyAdmin = await deployment.deployProxyAdmin(governor)
+        const { contract: otherProxyAdmin } = await deploy(DeployType.Deploy, governor, {
+          name: 'GraphProxyAdmin',
+        })
 
         await proxyAdmin
           .connect(governor)
@@ -185,7 +190,9 @@ describe('Upgrades', () => {
       })
 
       it('reject change admin if not the governor of the ProxyAdmin', async function () {
-        const otherProxyAdmin = await deployment.deployProxyAdmin(governor)
+        const { contract: otherProxyAdmin } = await deploy(DeployType.Deploy, governor, {
+          name: 'GraphProxyAdmin',
+        })
 
         const tx = proxyAdmin.connect(me).changeProxyAdmin(staking.address, otherProxyAdmin.address)
         await expect(tx).revertedWith('Only Governor can call')

@@ -29,6 +29,7 @@ import {
   deploy,
   deployGraphNetwork,
   helpers,
+  isGraphL1ChainId,
   loadGraphNetworkContracts,
   toBN,
   toGRT,
@@ -76,14 +77,14 @@ export class NetworkFixture {
   lastSnapshot: any
   constructor(public provider: providers.Provider) {}
 
-  async load(deployer: SignerWithAddress): Promise<GraphNetworkContracts> {
+  async load(deployer: SignerWithAddress, l2Deploy?: boolean): Promise<GraphNetworkContracts> {
     await helpers.setIntervalMining(0)
     await helpers.setAutoMine(true)
 
     // Deploy contracts
     await deployGraphNetwork(
       './addresses.json',
-      './config/graph.localhost.yml',
+      l2Deploy ? './config/graph.arbitrum-hardhat.yml' : './config/graph.hardhat.yml',
       1337,
       deployer,
       this.provider,
@@ -91,40 +92,23 @@ export class NetworkFixture {
         skipConfirmation: true,
         forceDeploy: true,
         autoMine: true,
+        l2Deploy: l2Deploy,
       },
     )
 
-    const contracts = loadGraphNetworkContracts('./addresses.json', 1337, this.provider)
+    const contracts = loadGraphNetworkContracts(
+      './addresses.json',
+      1337,
+      this.provider,
+      undefined,
+      {
+        l2Load: l2Deploy,
+      },
+    )
 
     // Post deploy configuration
     await contracts.GraphToken.connect(deployer).addMinter(deployer.address)
     await contracts.Controller.connect(deployer).setPaused(false)
-
-    // TODO: fix this
-    // Tests asume network parameters previously defined in the tests.
-    // We are now using graph config files, so some of them have different values
-    await contracts.Curation.connect(deployer).setDefaultReserveRatio(toBN('500000'))
-    await contracts.Curation.connect(deployer).setMinimumCurationDeposit(toGRT('100'))
-    await contracts.Curation.connect(deployer).setCurationTaxPercentage(0)
-    await contracts.DisputeManager.connect(deployer).setMinimumDeposit(toGRT('100'))
-    await contracts.DisputeManager.connect(deployer).setFishermanRewardPercentage(toBN('1000'))
-    await contracts.DisputeManager.connect(deployer).setSlashingPercentage(
-      toBN('1000'),
-      toBN('100000'),
-    )
-    await contracts.Staking.connect(deployer).setProtocolPercentage(0)
-    await contracts.Staking.connect(deployer).setCurationPercentage(0)
-    await contracts.Staking.connect(deployer).setDelegationParameters(0, 0, 0)
-    await contracts.Staking.connect(deployer).setDelegationTaxPercentage(0)
-    await contracts.Staking.connect(deployer).setMinimumIndexerStake(toGRT('10'))
-    await contracts.Staking.connect(deployer).setMaxAllocationEpochs(5)
-    await contracts.Staking.connect(deployer).setThawingPeriod(20)
-    await contracts.Staking.connect(deployer).setDelegationUnbondingPeriod(1)
-    await contracts.Staking.connect(deployer).setRebateParameters(100, 100, 60, 100)
-    await contracts.EpochManager.connect(deployer).setEpochLength((15 * 60) / 15)
-    await contracts.RewardsManager.connect(deployer).setIssuancePerBlock(
-      toGRT('114.155251141552511415'),
-    )
 
     return contracts
   }
@@ -193,7 +177,7 @@ export class NetworkFixture {
 
   async configureL2Bridge(
     deployer: Signer,
-    l2FixtureContracts: L2FixtureContracts,
+    l2FixtureContracts: GraphNetworkContracts,
     mockRouterAddress: string,
     mockL1GRTAddress: string,
     mockL1GatewayAddress: string,
@@ -202,23 +186,23 @@ export class NetworkFixture {
   ): Promise<any> {
     // Configure the L2 GRT
     // Configure the gateway
-    await l2FixtureContracts.grt
-      .connect(deployer)
-      .setGateway(l2FixtureContracts.l2GraphTokenGateway.address)
-    await l2FixtureContracts.grt.connect(deployer).setL1Address(mockL1GRTAddress)
+    await l2FixtureContracts.L2GraphToken.connect(deployer).setGateway(
+      l2FixtureContracts.L2GraphTokenGateway.address,
+    )
+    await l2FixtureContracts.L2GraphToken.connect(deployer).setL1Address(mockL1GRTAddress)
     // Configure the gateway
-    await l2FixtureContracts.l2GraphTokenGateway.connect(deployer).setL2Router(mockRouterAddress)
-    await l2FixtureContracts.l2GraphTokenGateway
-      .connect(deployer)
-      .setL1TokenAddress(mockL1GRTAddress)
-    await l2FixtureContracts.l2GraphTokenGateway
-      .connect(deployer)
-      .setL1CounterpartAddress(mockL1GatewayAddress)
-    await l2FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL1GNSAddress)
-    await l2FixtureContracts.staking
-      .connect(deployer)
-      .setCounterpartStakingAddress(mockL1StakingAddress)
-    await l2FixtureContracts.l2GraphTokenGateway.connect(deployer).setPaused(false)
+    await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setL2Router(mockRouterAddress)
+    await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setL1TokenAddress(
+      mockL1GRTAddress,
+    )
+    await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setL1CounterpartAddress(
+      mockL1GatewayAddress,
+    )
+    await l2FixtureContracts.GNS.connect(deployer).setCounterpartGNSAddress(mockL1GNSAddress)
+    await l2FixtureContracts.Staking.connect(deployer).setCounterpartStakingAddress(
+      mockL1StakingAddress,
+    )
+    await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
   async setUp(): Promise<void> {

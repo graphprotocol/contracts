@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber, ethers } from 'ethers'
+import { constants, BigNumber } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import { GraphToken } from '../../build/types/GraphToken'
@@ -10,11 +10,20 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L1GraphTokenLockTransferToolMock } from '../../build/types/L1GraphTokenLockTransferToolMock'
 import { L1GraphTokenLockTransferToolBadMock } from '../../build/types/L1GraphTokenLockTransferToolBadMock'
 
-import { ArbitrumL1Mocks, L1FixtureContracts, NetworkFixture } from '../lib/fixtures'
+import { ArbitrumL1Mocks, NetworkFixture } from '../lib/fixtures'
 
-import { deployContract } from '../lib/deployment'
-import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import {
+  DeployType,
+  GraphNetworkContracts,
+  deploy,
+  deriveChannelKey,
+  helpers,
+  randomHexBytes,
+  toBN,
+  toGRT,
+} from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { IStaking } from '../../build/types/IStaking'
 
 const { AddressZero } = constants
 
@@ -34,7 +43,7 @@ describe('L1Staking:L2Transfer', () => {
   let mockL2Staking: SignerWithAddress
 
   let fixture: NetworkFixture
-  let fixtureContracts: L1FixtureContracts
+  let fixtureContracts: GraphNetworkContracts
 
   let grt: GraphToken
   let staking: IL1Staking
@@ -76,7 +85,6 @@ describe('L1Staking:L2Transfer', () => {
   before(async function () {
     ;[
       me,
-      governor,
       indexer,
       slasher,
       delegator,
@@ -88,10 +96,15 @@ describe('L1Staking:L2Transfer', () => {
       mockL2Staking,
       l2Delegator,
     ] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    fixtureContracts = await fixture.load(governor, slasher)
-    ;({ grt, staking, l1GraphTokenGateway, controller } = fixtureContracts)
+    fixture = new NetworkFixture(graph.provider)
+    fixtureContracts = await fixture.load(governor)
+    grt = fixtureContracts.GraphToken as GraphToken
+    staking = fixtureContracts.L1Staking as unknown as IL1Staking
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
+    controller = fixtureContracts.Controller as IController
+
     // Dummy code on the mock router so that it appears as a contract
     await helpers.setCode(mockRouter.address, '0x1234')
     arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor)
@@ -106,15 +119,15 @@ describe('L1Staking:L2Transfer', () => {
       mockL2Staking.address,
     )
 
-    l1GraphTokenLockTransferTool = (await deployContract(
-      'L1GraphTokenLockTransferToolMock',
-      governor,
-    )) as unknown as L1GraphTokenLockTransferToolMock
+    l1GraphTokenLockTransferTool = (
+      await deploy(DeployType.Deploy, governor, {
+        name: 'L1GraphTokenLockTransferToolMock',
+      })
+    ).contract as L1GraphTokenLockTransferToolMock
 
-    l1GraphTokenLockTransferToolBad = (await deployContract(
-      'L1GraphTokenLockTransferToolBadMock',
-      governor,
-    )) as unknown as L1GraphTokenLockTransferToolBadMock
+    l1GraphTokenLockTransferToolBad = (
+      await deploy(DeployType.Deploy, governor, { name: 'L1GraphTokenLockTransferToolBadMock' })
+    ).contract as L1GraphTokenLockTransferToolBadMock
 
     await helpers.setBalances([
       { address: l1GraphTokenLockTransferTool.address, balance: parseEther('1') },
@@ -224,7 +237,7 @@ describe('L1Staking:L2Transfer', () => {
     })
     describe('transferStakeToL2', function () {
       it('should not allow transferring if the protocol is partially paused', async function () {
-        await controller.setPartialPaused(true)
+        await controller.connect(governor).setPartialPaused(true)
 
         const tx = staking
           .connect(indexer)
@@ -407,7 +420,7 @@ describe('L1Staking:L2Transfer', () => {
 
     describe('transferLockedStakeToL2', function () {
       it('should not allow transferring if the protocol is partially paused', async function () {
-        await controller.setPartialPaused(true)
+        await controller.connect(governor).setPartialPaused(true)
 
         const tx = staking
           .connect(indexer)
@@ -500,7 +513,7 @@ describe('L1Staking:L2Transfer', () => {
           .withArgs(indexer.address, delegator.address, actualDelegation)
       })
       it('rejects calls if the protocol is partially paused', async function () {
-        await controller.setPartialPaused(true)
+        await controller.connect(governor).setPartialPaused(true)
 
         const tx = staking.connect(delegator).unlockDelegationToTransferredIndexer(indexer.address)
         await expect(tx).revertedWith('Partial-paused')
@@ -567,7 +580,7 @@ describe('L1Staking:L2Transfer', () => {
     })
     describe('transferDelegationToL2', function () {
       it('rejects calls if the protocol is partially paused', async function () {
-        await controller.setPartialPaused(true)
+        await controller.connect(governor).setPartialPaused(true)
 
         const tx = staking
           .connect(delegator)
@@ -884,7 +897,7 @@ describe('L1Staking:L2Transfer', () => {
     })
     describe('transferLockedDelegationToL2', function () {
       it('rejects calls if the protocol is partially paused', async function () {
-        await controller.setPartialPaused(true)
+        await controller.connect(governor).setPartialPaused(true)
 
         const tx = staking
           .connect(delegator)

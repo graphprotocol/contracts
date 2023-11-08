@@ -7,10 +7,8 @@ import { SubgraphDeploymentID, formatGRT } from '@graphprotocol/common-ts'
 import { LegacyGNSMock } from '../build/types/LegacyGNSMock'
 import { GraphToken } from '../build/types/GraphToken'
 import { Curation } from '../build/types/Curation'
-import { SubgraphNFT } from '../build/types/SubgraphNFT'
 
 import { ArbitrumL1Mocks, NetworkFixture } from './lib/fixtures'
-import { deployContract } from './lib/deployment'
 import { Controller } from '../build/types/Controller'
 import { GraphProxyAdmin } from '../build/types/GraphProxyAdmin'
 import { L1GNS } from '../build/types/L1GNS'
@@ -36,6 +34,7 @@ import {
   toBN,
   deploy,
   DeployType,
+  loadContractAt,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -194,19 +193,20 @@ describe('L1GNS', () => {
   }
 
   const deployLegacyGNSMock = async (): Promise<any> => {
-    const subgraphDescriptor = await deployContract('SubgraphNFTDescriptor', governor)
-    const subgraphNFT = (await deployContract(
-      'SubgraphNFT',
-      governor,
-      governor.address,
-    )) as SubgraphNFT
+    const { contract: subgraphDescriptor } = await deploy(DeployType.Deploy, governor, {
+      name: 'SubgraphNFTDescriptor',
+    })
+    const { contract: subgraphNFT } = await deploy(DeployType.Deploy, governor, {
+      name: 'SubgraphNFT',
+      args: [governor.address],
+    })
 
     // Deploy
     const deployResult = await deploy(
       DeployType.DeployWithProxy,
       governor,
       { name: 'LegacyGNSMock', args: [controller.address, subgraphNFT.address] },
-      undefined,
+      graph.addressBook,
       {
         name: 'GraphProxy',
       },
@@ -236,9 +236,15 @@ describe('L1GNS', () => {
     ] = await graph.getTestAccounts()
     // Dummy code on the mock router so that it appears as a contract
     await helpers.setCode(mockRouter.address, '0x1234')
-    fixture = new NetworkFixture()
+    fixture = new NetworkFixture(graph.provider)
     const fixtureContracts = await fixture.load(governor)
-    ;({ grt, curation, gns, controller, proxyAdmin, l1GraphTokenGateway } = fixtureContracts)
+    grt = fixtureContracts.GraphToken as GraphToken
+    curation = fixtureContracts.Curation as Curation
+    gns = fixtureContracts.GNS as L1GNS
+    controller = fixtureContracts.Controller as Controller
+    proxyAdmin = fixtureContracts.GraphProxyAdmin as GraphProxyAdmin
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
+
     newSubgraph0 = buildSubgraph()
     newSubgraph1 = buildSubgraph()
     defaultName = createDefaultName('graph')
@@ -760,8 +766,8 @@ describe('L1GNS', () => {
 
       it('should mint when using the edge case of linear function', async function () {
         // Setup edge case like linear function: 1 vSignal = 1 nSignal = 1 token
-        await curation.setMinimumCurationDeposit(toGRT('1'))
-        await curation.setDefaultReserveRatio(1000000)
+        await curation.connect(governor).setMinimumCurationDeposit(toGRT('1'))
+        await curation.connect(governor).setDefaultReserveRatio(1000000)
         // note - reserve ratio is already set to 1000000 in GNS
 
         const tokensToDepositMany = [
@@ -787,7 +793,7 @@ describe('L1GNS', () => {
 
   describe('Two named subgraphs point to the same subgraph deployment ID', function () {
     it('handle initialization under minimum signal values', async function () {
-      await curation.setMinimumCurationDeposit(toGRT('1'))
+      await curation.connect(governor).setMinimumCurationDeposit(toGRT('1'))
 
       // Publish a named subgraph-0 -> subgraphDeployment0
       const subgraph0 = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
@@ -951,7 +957,9 @@ describe('L1GNS', () => {
       expect(migratedSubgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
       expect(migratedNSignal).eq(toBN('1000'))
 
-      const tokenURI = await graph.contracts.SubgraphNFT.connect(me).tokenURI(expectedSubgraphID)
+      const subgraphNFTAddress = await legacyGNSMock.subgraphNFT()
+      const subgraphNFT = loadContractAt('SubgraphNFT', subgraphNFTAddress)
+      const tokenURI = await subgraphNFT.connect(me).tokenURI(expectedSubgraphID)
 
       const sub = new SubgraphDeploymentID(newSubgraph0.subgraphMetadata)
       expect(sub.ipfsHash).eq(tokenURI)

@@ -5,12 +5,19 @@ import { utils, BigNumber, Event, Signer, constants } from 'ethers'
 import { L2Curation } from '../../build/types/L2Curation'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Controller } from '../../build/types/Controller'
-import { defaults } from '../lib/deployment'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { GNS } from '../../build/types/GNS'
 import { parseEther } from 'ethers/lib/utils'
-import { formatGRT, randomAddress, randomHexBytes, toBN, toGRT, helpers } from '@graphprotocol/sdk'
+import {
+  formatGRT,
+  randomAddress,
+  randomHexBytes,
+  toBN,
+  toGRT,
+  helpers,
+  GraphNetworkContracts,
+} from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -38,18 +45,22 @@ const toRound = (n: number) => n.toPrecision(11)
 
 describe('L2Curation:Config', () => {
   const graph = hre.graph()
+  const defaults = graph.graphConfig.defaults
   let me: SignerWithAddress
   let governor: SignerWithAddress
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let curation: L2Curation
 
   before(async function () {
-    ;[me, governor] = await graph.getTestAccounts()
+    ;[me] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    ;({ curation } = await fixture.loadL2(governor))
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor, true)
+    curation = contracts.L2Curation as L2Curation
   })
 
   beforeEach(async function () {
@@ -63,7 +74,7 @@ describe('L2Curation:Config', () => {
   describe('defaultReserveRatio', function () {
     it('should be fixed to MAX_PPM', async function () {
       // Set right in the constructor
-      expect(await curation.defaultReserveRatio()).eq(MAX_PPM)
+      expect(await curation.connect(me).defaultReserveRatio()).eq(MAX_PPM)
     })
     it('cannot be changed because the setter is not implemented', async function () {
       const tx = curation.connect(governor).setDefaultReserveRatio(10)
@@ -151,6 +162,7 @@ describe('L2Curation', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let curation: L2Curation
   let grt: GraphToken
   let controller: Controller
@@ -331,10 +343,14 @@ describe('L2Curation', () => {
 
   before(async function () {
     // Use stakingMock so we can call collect
-    ;[me, governor, curator, stakingMock] = await graph.getTestAccounts()
-
-    fixture = new NetworkFixture()
-    ;({ controller, curation, grt, gns } = await fixture.loadL2(governor))
+    ;[me, curator, stakingMock] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor, true)
+    curation = contracts.Curation as L2Curation
+    grt = contracts.GraphToken as GraphToken
+    controller = contracts.Controller as Controller
+    gns = contracts.GNS as GNS
 
     gnsImpersonator = await helpers.impersonateAccount(gns.address)
     await helpers.setBalance(gns.address, parseEther('1'))
@@ -505,7 +521,7 @@ describe('L2Curation', () => {
         await controller
           .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
-        await curation.syncAllContracts() // call sync because we change the proxy for staking
+        await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
         const tx = curation.connect(stakingMock).collect(subgraphDeploymentID, tokensToCollect)
         await expect(tx).revertedWith('Subgraph deployment must be curated to collect fees')
@@ -526,7 +542,7 @@ describe('L2Curation', () => {
         await controller
           .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
-        await curation.syncAllContracts() // call sync because we change the proxy for staking
+        await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
         await shouldCollect(toGRT('1'))
         await shouldCollect(toGRT('10'))
@@ -539,7 +555,7 @@ describe('L2Curation', () => {
         await controller
           .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
-        await curation.syncAllContracts() // call sync because we change the proxy for staking
+        await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
         // Collect increase the pool reserves
         await shouldCollect(toGRT('100'))
@@ -556,7 +572,7 @@ describe('L2Curation', () => {
         await controller
           .connect(governor)
           .setContractProxy(utils.id('Staking'), stakingMock.address)
-        await curation.syncAllContracts() // call sync because we change the proxy for staking
+        await curation.connect(governor).syncAllContracts() // call sync because we change the proxy for staking
 
         // Collect increase the pool reserves
         const tokensToCollect = toGRT('100')
@@ -737,7 +753,7 @@ describe('L2Curation', () => {
       this.timeout(60000) // increase timeout for test runner
 
       // Setup edge case with 1 GRT = 1 wei signal
-      await curation.setMinimumCurationDeposit(toGRT('1'))
+      await curation.connect(governor).setMinimumCurationDeposit(toGRT('1'))
 
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit

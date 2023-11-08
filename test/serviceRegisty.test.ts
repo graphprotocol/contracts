@@ -6,6 +6,7 @@ import { IStaking } from '../build/types/IStaking'
 
 import { NetworkFixture } from './lib/fixtures'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { GraphNetworkContracts } from '@graphprotocol/sdk'
 
 describe('ServiceRegistry', () => {
   const graph = hre.graph()
@@ -15,6 +16,7 @@ describe('ServiceRegistry', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let serviceRegistry: ServiceRegistry
   let staking: IStaking
 
@@ -33,9 +35,11 @@ describe('ServiceRegistry', () => {
 
   before(async function () {
     ;[governor, indexer, operator] = await graph.getTestAccounts()
-
-    fixture = new NetworkFixture()
-    ;({ serviceRegistry, staking } = await fixture.load(governor, governor))
+    ;({ governor } = await graph.getNamedAccounts())
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    serviceRegistry = contracts.ServiceRegistry as ServiceRegistry
+    staking = contracts.Staking as IStaking
   })
 
   beforeEach(async function () {

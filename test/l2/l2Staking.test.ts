@@ -3,12 +3,19 @@ import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
-import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
+import { NetworkFixture } from '../lib/fixtures'
 
 import { IL2Staking } from '../../build/types/IL2Staking'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { GraphToken } from '../../build/types/GraphToken'
-import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import {
+  GraphNetworkContracts,
+  deriveChannelKey,
+  helpers,
+  randomHexBytes,
+  toBN,
+  toGRT,
+} from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = ethers.constants
@@ -31,7 +38,7 @@ describe('L2Staking', () => {
   let mockL1Staking: SignerWithAddress
   let fixture: NetworkFixture
 
-  let fixtureContracts: L2FixtureContracts
+  let fixtureContracts: GraphNetworkContracts
   let l2GraphTokenGateway: L2GraphTokenGateway
   let staking: IL2Staking
   let grt: GraphToken
@@ -71,21 +78,15 @@ describe('L2Staking', () => {
   }
 
   before(async function () {
-    ;[
-      me,
-      other,
-      another,
-      governor,
-      mockRouter,
-      mockL1GRT,
-      mockL1Gateway,
-      mockL1GNS,
-      mockL1Staking,
-    ] = await graph.getTestAccounts()
+    ;[me, other, another, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
+      await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
 
-    fixture = new NetworkFixture()
-    fixtureContracts = await fixture.loadL2(governor)
-    ;({ l2GraphTokenGateway, staking, grt } = fixtureContracts)
+    fixture = new NetworkFixture(graph.provider)
+    fixtureContracts = await fixture.load(governor, true)
+    grt = fixtureContracts.GraphToken as GraphToken
+    staking = fixtureContracts.Staking as IL2Staking
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
 
     await grt.connect(governor).mint(me.address, tokens1m)
     await grt.connect(me).approve(staking.address, tokens1m)
@@ -279,18 +280,18 @@ describe('L2Staking', () => {
       expect(delegation.shares).to.equal(expectedTotalShares)
     })
     it('returns delegation to the delegator if it would produce no shares', async function () {
-      await fixtureContracts.rewardsManager.connect(governor).setIssuancePerBlock(toGRT('114'))
+      await fixtureContracts.RewardsManager.connect(governor).setIssuancePerBlock(toGRT('114'))
 
       await staking.connect(me).stake(tokens100k)
       await staking.connect(me).delegate(me.address, toBN(1)) // 1 weiGRT == 1 share
 
       await staking.connect(me).setDelegationParameters(1000, 1000, 1000)
-      await grt.connect(me).approve(fixtureContracts.curation.address, tokens10k)
-      await fixtureContracts.curation.connect(me).mint(subgraphDeploymentID, tokens10k, 0)
+      await grt.connect(me).approve(fixtureContracts.Curation.address, tokens10k)
+      await fixtureContracts.Curation.connect(me).mint(subgraphDeploymentID, tokens10k, 0)
 
       await allocate(tokens100k)
-      await helpers.mineEpoch(fixtureContracts.epochManager)
-      await helpers.mineEpoch(fixtureContracts.epochManager)
+      await helpers.mineEpoch(fixtureContracts.EpochManager)
+      await helpers.mineEpoch(fixtureContracts.EpochManager)
       await staking.connect(me).closeAllocation(allocationID, randomHexBytes(32))
       // Now there are some rewards sent to delegation pool, so 1 weiGRT is less than 1 share
 

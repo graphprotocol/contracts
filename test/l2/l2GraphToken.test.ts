@@ -5,7 +5,7 @@ import { L2GraphToken } from '../../build/types/L2GraphToken'
 
 import { grtTests } from '../lib/graphTokenTests'
 import { NetworkFixture } from '../lib/fixtures'
-import { toGRT, helpers } from '@graphprotocol/sdk'
+import { toGRT, helpers, GraphNetworkContracts } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('L2GraphToken', () => {
@@ -19,15 +19,18 @@ describe('L2GraphToken', () => {
     let governor: SignerWithAddress
     let user: SignerWithAddress
 
+    let contracts: GraphNetworkContracts
     let fixture: NetworkFixture
     let grt: L2GraphToken
 
     before(async function () {
       await helpers.setIntervalMining(0)
       await helpers.setAutoMine(true)
-      ;[mockL1GRT, mockL2Gateway, governor, user] = await graph.getTestAccounts()
-      fixture = new NetworkFixture()
-      ;({ grt } = await fixture.loadL2(governor))
+      ;[mockL1GRT, mockL2Gateway, user] = await graph.getTestAccounts()
+      ;({ governor } = await graph.getNamedAccounts())
+      fixture = new NetworkFixture(graph.provider)
+      contracts = await fixture.load(governor, true)
+      grt = contracts.L2GraphToken as L2GraphToken
     })
 
     beforeEach(async function () {

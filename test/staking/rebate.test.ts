@@ -1,12 +1,12 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { BigNumber } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
 
-import { deployContract } from '../lib/deployment'
 import { LibExponential } from '../../build/types/LibExponential'
 
-import { formatGRT, helpers, toGRT } from '@graphprotocol/sdk'
+import { formatGRT, helpers, isGraphL1ChainId, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { NetworkFixture } from '../lib/fixtures'
 
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toFixed = (n: number | BigNumber, precision = 12) => {
@@ -15,6 +15,53 @@ const toFixed = (n: number | BigNumber, precision = 12) => {
   }
   return toFloat(n).toFixed(precision)
 }
+
+const ABI_LIB_EXPONENTIAL = [
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: 'fees',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint256',
+        name: 'stake',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint32',
+        name: 'alphaNumerator',
+        type: 'uint32',
+      },
+      {
+        internalType: 'uint32',
+        name: 'alphaDenominator',
+        type: 'uint32',
+      },
+      {
+        internalType: 'uint32',
+        name: 'lambdaNumerator',
+        type: 'uint32',
+      },
+      {
+        internalType: 'uint32',
+        name: 'lambdaDenominator',
+        type: 'uint32',
+      },
+    ],
+    name: 'exponentialRebates',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+]
 
 type RebateParameters = number[]
 
@@ -57,9 +104,11 @@ export function exponentialRebates(
 
 describe('Staking:rebates', () => {
   const graph = hre.graph()
-  let deployer: SignerWithAddress
 
   let libExponential: LibExponential
+  let fixture: NetworkFixture
+
+  let governor: SignerWithAddress
 
   const testCases: RebateTestCase[] = [
     { totalRewards: 1400, fees: 100, totalFees: 1400, stake: 5000, totalStake: 7300 },
@@ -159,11 +208,20 @@ describe('Staking:rebates', () => {
     })
   }
 
-  beforeEach(async function () {
+  before(async function () {
     await helpers.setIntervalMining(0)
     await helpers.setAutoMine(true)
-    ;[deployer] = await graph.getTestAccounts()
-    libExponential = (await deployContract('LibExponential', deployer)) as unknown as LibExponential
+    ;({ governor } = await graph.getNamedAccounts())
+    fixture = new NetworkFixture(graph.provider)
+    await fixture.load(governor)
+
+    const stakingName = isGraphL1ChainId(graph.chainId) ? 'L1Staking' : 'L2Staking'
+    const entry = graph.addressBook.getEntry(stakingName)
+    libExponential = new Contract(
+      entry.implementation.libraries.LibExponential,
+      ABI_LIB_EXPONENTIAL,
+      graph.provider,
+    ) as LibExponential
   })
 
   describe('should match rebates Solidity implementation', function () {

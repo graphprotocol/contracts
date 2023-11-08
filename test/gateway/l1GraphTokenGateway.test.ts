@@ -299,10 +299,11 @@ describe('L1GraphTokenGateway', () => {
           await expect(tx).revertedWith('Only Controller governor')
         })
         it('sets a new pause guardian', async function () {
+          const currentPauseGuardian = await l1GraphTokenGateway.pauseGuardian()
           const tx = l1GraphTokenGateway.connect(governor).setPauseGuardian(pauseGuardian.address)
           await expect(tx)
             .emit(l1GraphTokenGateway, 'NewPauseGuardian')
-            .withArgs(AddressZero, pauseGuardian.address)
+            .withArgs(currentPauseGuardian, pauseGuardian.address)
         })
         it('allows a pause guardian to pause and unpause', async function () {
           await fixture.configureL1Bridge(

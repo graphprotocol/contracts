@@ -12,7 +12,7 @@
     "addresses.json"
   ],
   "dependencies": {
-    "@graphprotocol/sdk": "^0.0.1",
+    "@graphprotocol/sdk": "^0.1.0",
     "console-table-printer": "^2.11.1",
     "ethers": "^5.7.0"
   },

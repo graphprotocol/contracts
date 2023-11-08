@@ -7,7 +7,14 @@ import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import { deriveChannelKey, helpers, randomHexBytes, toBN, toGRT } from '@graphprotocol/sdk'
+import {
+  GraphNetworkContracts,
+  deriveChannelKey,
+  helpers,
+  randomHexBytes,
+  toBN,
+  toGRT,
+} from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero, MaxUint256 } = constants
@@ -31,6 +38,7 @@ describe('Staking:Stakes', () => {
 
   let fixture: NetworkFixture
 
+  let contracts: GraphNetworkContracts
   let grt: GraphToken
   let staking: IStaking
 
@@ -76,14 +84,18 @@ describe('Staking:Stakes', () => {
   }
 
   before(async function () {
-    ;[me, governor, indexer, slasher, fisherman] = await graph.getTestAccounts()
-
-    fixture = new NetworkFixture()
-    ;({ grt, staking } = await fixture.load(governor, slasher))
+    ;[me, indexer, slasher, fisherman] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
+    fixture = new NetworkFixture(graph.provider)
+    contracts = await fixture.load(governor)
+    grt = contracts.GraphToken as GraphToken
+    staking = contracts.Staking as IStaking
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     await grt.connect(governor).mint(indexer.address, indexerTokens)
     await grt.connect(indexer).approve(staking.address, indexerTokens)
+
+    await staking.connect(governor).setSlasher(slasher.address, true)
   })
 
   beforeEach(async function () {

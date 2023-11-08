@@ -12,9 +12,8 @@ import { FakeContract, smock } from '@defi-wonderland/smock'
 
 use(smock.matchers)
 
-import { deployContract } from '../lib/deployment'
 import { RewardsManager } from '../../build/types/RewardsManager'
-import { helpers, toBN, toGRT } from '@graphprotocol/sdk'
+import { DeployType, GraphNetworkContracts, deploy, helpers, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -35,7 +34,7 @@ describe('L2GraphTokenGateway', () => {
   let fixture: NetworkFixture
   let arbSysMock: FakeContract
 
-  let fixtureContracts: L2FixtureContracts
+  let fixtureContracts: GraphNetworkContracts
   let grt: L2GraphToken
   let l2GraphTokenGateway: L2GraphTokenGateway
   let callhookReceiverMock: CallhookReceiverMock
@@ -63,14 +62,17 @@ describe('L2GraphTokenGateway', () => {
       mockL1Staking,
     ] = await graph.getTestAccounts()
 
-    fixture = new NetworkFixture()
-    fixtureContracts = await fixture.loadL2(governor)
-    ;({ grt, l2GraphTokenGateway, rewardsManager } = fixtureContracts)
+    fixture = new NetworkFixture(graph.provider)
+    fixtureContracts = await fixture.load(governor, true)
+    grt = fixtureContracts.GraphToken as L2GraphToken
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
+    rewardsManager = fixtureContracts.RewardsManager as RewardsManager
 
-    callhookReceiverMock = (await deployContract(
-      'CallhookReceiverMock',
-      governor,
-    )) as unknown as CallhookReceiverMock
+    callhookReceiverMock = (
+      await deploy(DeployType.Deploy, governor, {
+        name: 'CallhookReceiverMock',
+      })
+    ).contract as CallhookReceiverMock
 
     // Give some funds to the token sender
     await grt.connect(governor).mint(tokenSender.address, senderTokens)
@@ -208,10 +210,11 @@ describe('L2GraphTokenGateway', () => {
           await expect(tx).revertedWith('Only Controller governor')
         })
         it('sets a new pause guardian', async function () {
+          const currentPauseGuardian = await l2GraphTokenGateway.pauseGuardian()
           const tx = l2GraphTokenGateway.connect(governor).setPauseGuardian(pauseGuardian.address)
           await expect(tx)
             .emit(l2GraphTokenGateway, 'NewPauseGuardian')
-            .withArgs(AddressZero, pauseGuardian.address)
+            .withArgs(currentPauseGuardian, pauseGuardian.address)
         })
         it('allows a pause guardian to pause and unpause', async function () {
           await fixture.configureL2Bridge(

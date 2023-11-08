@@ -1,12 +1,12 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, BigNumber, Signature, ethers, Wallet } from 'ethers'
-import * as deployment from './deployment'
 
 import { L2GraphToken } from '../../build/types/L2GraphToken'
 import { GraphToken } from '../../build/types/GraphToken'
-import { toBN, toGRT, helpers, Permit, signPermit } from '@graphprotocol/sdk'
+import { toBN, toGRT, helpers, Permit, signPermit, GraphNetworkContracts } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { NetworkFixture } from './fixtures'
 
 const { AddressZero, MaxUint256 } = constants
 
@@ -18,6 +18,8 @@ export function grtTests(isL2: boolean): void {
   let other: Wallet
   let governor: SignerWithAddress
   let salt: string
+  let fixture: NetworkFixture
+  let fixtureContracts: GraphNetworkContracts
 
   const graph = hre.graph()
 
@@ -55,35 +57,31 @@ export function grtTests(isL2: boolean): void {
 
   async function createPermitTransaction(permit: Permit, signer: string, salt: string) {
     const signature: Signature = signPermit(signer, graph.chainId, grt.address, permit, salt)
-    return grt.permit(
-      permit.owner,
-      permit.spender,
-      permit.value,
-      permit.deadline,
-      signature.v,
-      signature.r,
-      signature.s,
-    )
+    const wallet = new ethers.Wallet(signer, graph.provider)
+    return grt
+      .connect(wallet)
+      .permit(
+        permit.owner,
+        permit.spender,
+        permit.value,
+        permit.deadline,
+        signature.v,
+        signature.r,
+        signature.s,
+      )
   }
 
   before(async function () {
     await helpers.setIntervalMining(0)
     await helpers.setAutoMine(true)
-    ;[governor] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
     me = new ethers.Wallet(mePrivateKey, graph.provider)
     other = new ethers.Wallet(otherPrivateKey, graph.provider)
-  })
 
-  beforeEach(async function () {
-    // Deploy graph token
-    if (isL2) {
-      const proxyAdmin = await deployment.deployProxyAdmin(governor)
-      grt = await deployment.deployL2GRT(governor, proxyAdmin)
-      salt = L2SALT
-    } else {
-      grt = await deployment.deployGRT(governor)
-      salt = L1SALT
-    }
+    fixture = new NetworkFixture(graph.provider)
+    fixtureContracts = await fixture.load(governor, isL2)
+    grt = fixtureContracts.GraphToken as GraphToken
+    salt = isL2 ? L2SALT : L1SALT
 
     // Mint some tokens
     const tokens = toGRT('10000')
@@ -180,6 +178,13 @@ export function grtTests(isL2: boolean): void {
   })
 
   describe('mint', function () {
+    describe('mint', async function () {
+      it('reject mint if not minter', async function () {
+        const tx = grt.connect(me).mint(me.address, toGRT('100'))
+        await expect(tx).revertedWith('Only minter can call')
+      })
+    })
+
     describe('addMinter', function () {
       it('reject add a new minter if not allowed', async function () {
         const tx = grt.connect(me).addMinter(me.address)
@@ -191,13 +196,6 @@ export function grtTests(isL2: boolean): void {
         const tx = grt.connect(governor).addMinter(me.address)
         await expect(tx).emit(grt, 'MinterAdded').withArgs(me.address)
         expect(await grt.isMinter(me.address)).eq(true)
-      })
-    })
-
-    describe('mint', async function () {
-      it('reject mint if not minter', async function () {
-        const tx = grt.connect(me).mint(me.address, toGRT('100'))
-        await expect(tx).revertedWith('Only minter can call')
       })
     })
 

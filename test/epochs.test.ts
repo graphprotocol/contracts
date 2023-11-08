@@ -4,13 +4,12 @@ import { BigNumber } from 'ethers'
 
 import { EpochManager } from '../build/types/EpochManager'
 
-import * as deployment from './lib/deployment'
-import { defaults } from './lib/deployment'
-import { helpers, toBN } from '@graphprotocol/sdk'
+import { DeployType, deploy, helpers, toBN } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('EpochManager', () => {
   const graph = hre.graph()
+  const defaults = graph.graphConfig.defaults
   let me: SignerWithAddress
   let governor: SignerWithAddress
 
@@ -22,12 +21,39 @@ describe('EpochManager', () => {
     await helpers.setIntervalMining(0)
     await helpers.setAutoMine(true)
     ;[me, governor] = await graph.getTestAccounts()
+    ;({ governor } = await graph.getNamedAccounts())
   })
 
   beforeEach(async function () {
-    const controller = await deployment.deployController(governor)
-    const proxyAdmin = await deployment.deployProxyAdmin(governor)
-    epochManager = await deployment.deployEpochManager(governor, controller.address, proxyAdmin)
+    const { contract: controller } = await deploy(
+      DeployType.DeployAndSave,
+      governor,
+      {
+        name: 'Controller',
+      },
+      graph.addressBook,
+    )
+    const { contract: proxyAdmin } = await deploy(
+      DeployType.DeployAndSave,
+      governor,
+      {
+        name: 'GraphProxyAdmin',
+      },
+      graph.addressBook,
+    )
+    const epochManagerResult = await deploy(
+      DeployType.DeployWithProxy,
+      governor,
+      {
+        name: 'EpochManager',
+        args: [controller.address, defaults.epochs.lengthInBlocks],
+      },
+      graph.addressBook,
+      {
+        name: 'GraphProxy',
+      },
+    )
+    epochManager = epochManagerResult.contract as EpochManager
   })
 
   describe('configuration', () => {

@@ -51,7 +51,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      lengthInBlocks: 554 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
+      lengthInBlocks: 60 # length in hours = lengthInBlocks*13/60/60 (~13 second blocks)
   GraphToken:
     init:
       initialSupply: "10000000000000000000000000000" # in wei
@@ -70,8 +70,8 @@ contracts:
       bondingCurve: "${{BancorFormula.address}}"
       curationTokenMaster: "${{GraphCurationToken.address}}"
       reserveRatio: 500000 # in parts per million
-      curationTaxPercentage: 10000 # in parts per million
-      minimumCurationDeposit: "1000000000000000000" # in wei
+      curationTaxPercentage: 0 # in parts per million
+      minimumCurationDeposit: "100000000000000000000" # in wei
     calls:
       - fn: "syncAllContracts"
   DisputeManager:
@@ -79,10 +79,10 @@ contracts:
     init:
       controller: "${{Controller.address}}"
       arbitrator: *arbitrator
-      minimumDeposit: "10000000000000000000000" # in wei
-      fishermanRewardPercentage: 500000 # in parts per million
-      idxSlashingPercentage: 25000 # in parts per million
-      qrySlashingPercentage: 25000 # in parts per million
+      minimumDeposit: "100000000000000000000" # in wei
+      fishermanRewardPercentage: 1000 # in parts per million
+      qrySlashingPercentage: 1000 # in parts per million
+      idxSlashingPercentage: 100000 # in parts per million
     calls:
       - fn: "syncAllContracts"
   L1GNS:
@@ -107,12 +107,12 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
-      minimumIndexerStake: "100000000000000000000000" # in wei
-      thawingPeriod: 6646 # in blocks
-      protocolPercentage: 10000 # in parts per million
-      curationPercentage: 100000 # in parts per million
-      maxAllocationEpochs: 4 # in epochs
-      delegationUnbondingPeriod: 12 # in epochs
+      minimumIndexerStake: "10000000000000000000" # in wei
+      thawingPeriod: 20 # in blocks
+      protocolPercentage: 0 # in parts per million
+      curationPercentage: 0 # in parts per million
+      maxAllocationEpochs: 5 # in epochs
+      delegationUnbondingPeriod: 1 # in epochs
       delegationRatio: 16 # delegated stake to indexer stake multiplier
       rebateParameters:
         alphaNumerator: 100 # alphaNumerator / alphaDenominator
@@ -122,7 +122,7 @@ contracts:
       extensionImpl: "${{StakingExtension.address}}"
     calls:
       - fn: "setDelegationTaxPercentage"
-        delegationTaxPercentage: 5000 # parts per million
+        delegationTaxPercentage: 0 # parts per million
       - fn: "setSlasher"
         slasher: "${{DisputeManager.address}}"
         allowed: true
@@ -136,7 +136,7 @@ contracts:
       controller: "${{Controller.address}}"
     calls:
       - fn: "setIssuancePerBlock"
-        issuancePerBlock: "114693500000000000000" # per block increase of total supply, blocks in a year = 365*60*60*24/12     
+        issuancePerBlock: "114155251141552511415" # per block increase of total supply, blocks in a year = 365*60*60*24/12     
       - fn: "setSubgraphAvailabilityOracle"
         subgraphAvailabilityOracle: *availabilityOracle
       - fn: "syncAllContracts"
