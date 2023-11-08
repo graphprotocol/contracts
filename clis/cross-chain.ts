@@ -11,6 +11,7 @@ export const l1ToL2ChainIdMap = {
   '4': '421611',
   '5': '421613',
   '1337': '412346',
+  '11155111': '421614',
 }
 
 export const l2ChainIds = Object.values(l1ToL2ChainIdMap).map(Number)
