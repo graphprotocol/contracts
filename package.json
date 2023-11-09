@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "5.3.0",
+  "version": "5.3.1",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
