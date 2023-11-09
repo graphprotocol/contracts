@@ -950,7 +950,13 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
 
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
-            uint256 curationFees = uint256(_curationPercentage).mul(_tokens).div(MAX_PPM);
+            // Calculate the tokens after curation fees first, and subtact that,
+            // to prevent curation fees from rounding down to zero
+            uint256 tokensAfterCurationFees = uint256(MAX_PPM)
+                .sub(_curationPercentage)
+                .mul(_tokens)
+                .div(MAX_PPM);
+            uint256 curationFees = _tokens.sub(tokensAfterCurationFees);
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
@@ -976,7 +982,10 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         uint256 _tokens,
         uint256 _percentage
     ) private returns (uint256) {
-        uint256 tax = uint256(_percentage).mul(_tokens).div(MAX_PPM);
+        // Calculate tokens after tax first, and subtract that,
+        // to prevent the tax from rounding down to zero
+        uint256 tokensAfterTax = uint256(MAX_PPM).sub(_percentage).mul(_tokens).div(MAX_PPM);
+        uint256 tax = _tokens.sub(tokensAfterTax);
         TokenUtils.burnTokens(_graphToken, tax); // Burn tax if any
         return tax;
     }
