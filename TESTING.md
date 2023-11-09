@@ -2,7 +2,6 @@
 
 Testing is done with the following stack:
 
-- [Waffle](https://getwaffle.io/)
 - [Hardhat](https://hardhat.org/)
 - [Typescript](https://www.typescriptlang.org/)
 - [Ethers](https://docs.ethers.io/v5/)
