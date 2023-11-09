@@ -1266,6 +1266,14 @@
     console-table-printer "^2.11.1"
     ethers "^5.6.0"
 
+"@graphprotocol/contracts@^5.3.1":
+  version "5.3.1"
+  resolved "https://registry.yarnpkg.com/@graphprotocol/contracts/-/contracts-5.3.1.tgz#4cd2bf86f081ec8260a121ae5b1e2145193e8697"
+  integrity sha512-XaC+povvKRcC2cPWXY5kbIQrGrzUW+SGsQ7tbR/VGdu/Rk4MIAfQGFRTd5kHDcKdYjuGMCFKxRj+Jv8jhNWLNg==
+  dependencies:
+    "@graphprotocol/sdk" "^0.1.1"
+    console-table-printer "^2.11.1"
+
 "@graphprotocol/contracts@test-sdk":
   version "5.2.2-test-sdk"
   resolved "https://registry.yarnpkg.com/@graphprotocol/contracts/-/contracts-5.2.2-test-sdk.tgz#716c52a4f5cb97a2ace3f789e032b53026b88a5c"
@@ -1293,6 +1301,25 @@
     "@ethersproject/experimental" "^5.7.0"
     "@graphprotocol/common-ts" "^2.0.7"
     "@graphprotocol/contracts" test-sdk
+    "@nomicfoundation/hardhat-network-helpers" "^1.0.9"
+    "@nomiclabs/hardhat-ethers" "^2.2.3"
+    debug "^4.3.4"
+    ethers "^5.7.0"
+    hardhat "~2.14.0"
+    hardhat-secure-accounts "^0.0.6"
+    inquirer "^8.0.0"
+    lodash "^4.17.21"
+    yaml "^1.10.2"
+
+"@graphprotocol/sdk@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@graphprotocol/sdk/-/sdk-0.1.2.tgz#ae881ec1b5b0a7f9995774296422d08fce6bfe78"
+  integrity sha512-ZLL5hPo6GoIyUhUxmasxXwEKw8sHxTYuQaR0qvvtFC0dsAMq5xtmljiK7MDRpobZ7o6iHPfXFpV+8Smr9OIqCw==
+  dependencies:
+    "@arbitrum/sdk" "^3.1.12"
+    "@ethersproject/experimental" "^5.7.0"
+    "@graphprotocol/common-ts" "^2.0.7"
+    "@graphprotocol/contracts" "^5.3.1"
     "@nomicfoundation/hardhat-network-helpers" "^1.0.9"
     "@nomiclabs/hardhat-ethers" "^2.2.3"
     debug "^4.3.4"
