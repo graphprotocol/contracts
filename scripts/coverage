@@ -3,4 +3,8 @@
 set -eo pipefail
 
 yarn build
-npx hardhat coverage $@
+
+DISABLE_SECURE_ACCOUNTS=true \
+L1_GRAPH_CONFIG=config/graph.hardhat.yml \
+L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
+  npx hardhat coverage $@
