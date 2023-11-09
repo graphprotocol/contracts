@@ -1311,10 +1311,10 @@
     lodash "^4.17.21"
     yaml "^1.10.2"
 
-"@graphprotocol/sdk@^0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@graphprotocol/sdk/-/sdk-0.1.2.tgz#ae881ec1b5b0a7f9995774296422d08fce6bfe78"
-  integrity sha512-ZLL5hPo6GoIyUhUxmasxXwEKw8sHxTYuQaR0qvvtFC0dsAMq5xtmljiK7MDRpobZ7o6iHPfXFpV+8Smr9OIqCw==
+"@graphprotocol/sdk@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@graphprotocol/sdk/-/sdk-0.2.0.tgz#44183f0b46c49f9a3d09d7276e06667e812ef144"
+  integrity sha512-VaTI0JXuzweXooxWBMmVXXj4icJ6ByxvHnlgXrydVQaJKl3jWAbVz+1y1hSMVkRrC5GDCDisxtLkdKCM8mPw5g==
   dependencies:
     "@arbitrum/sdk" "^3.1.12"
     "@ethersproject/experimental" "^5.7.0"
