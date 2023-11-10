@@ -590,22 +590,26 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
             _withdrawDelegated(_delegator, _indexer, address(0));
         }
 
+        uint256 poolTokens = pool.tokens;
+        uint256 poolShares = pool.shares;
+
         // Calculate tokens to get in exchange for the shares
-        uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
+        uint256 tokens = _shares.mul(poolTokens).div(poolShares);
 
         // Update the delegation pool
-        pool.tokens = pool.tokens.sub(tokens);
-        pool.shares = pool.shares.sub(_shares);
+        poolTokens = poolTokens.sub(tokens);
+        poolShares = poolShares.sub(_shares);
+        pool.tokens = poolTokens;
+        pool.shares = poolShares;
 
         // Update the delegation
         delegation.shares = delegation.shares.sub(_shares);
         // Enforce more than the minimum delegation is left,
         // to prevent rounding attacks
-        require(
-            delegation.shares == 0 ||
-                delegation.shares.mul(pool.tokens).div(pool.shares) >= MINIMUM_DELEGATION,
-            "!minimum-delegation"
-        );
+        if (delegation.shares > 0) {
+            uint256 remainingDelegation = delegation.shares.mul(poolTokens).div(poolShares);
+            require(remainingDelegation >= MINIMUM_DELEGATION, "!minimum-delegation");
+        }
         delegation.tokensLocked = delegation.tokensLocked.add(tokens);
         delegation.tokensLockedUntil = epochManager().currentEpoch().add(
             __delegationUnbondingPeriod
