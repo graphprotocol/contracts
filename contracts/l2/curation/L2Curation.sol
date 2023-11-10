@@ -451,7 +451,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @notice Getter for minimum curation deposit
      * @return Minimum amount of tokens that must be deposited to mint signal
      */
-    function minimumCurationDeposit() external view returns (uint256) {
+    function minimumCurationDeposit() external pure returns (uint256) {
         return MINIMUM_CURATION_DEPOSIT;
     }
 
