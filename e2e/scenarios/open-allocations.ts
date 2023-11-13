@@ -26,7 +26,7 @@ async function main() {
 
   // == Fund participants
   console.log('\n== Fund indexers')
-  await helpers.setBalances(indexerETHBalances)
+  await helpers.setBalances(indexerETHBalances, deployer)
   await setGRTBalances(graph.contracts, deployer, indexerGRTBalances)
 
   // == Stake

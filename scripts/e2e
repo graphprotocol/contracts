@@ -68,7 +68,6 @@ function deploy() {
     --network "$NETWORK" \
     --disable-secure-accounts \
     --skip-confirmation \
-    --auto-mine \
     --force \
     --graph-config "$GRAPH_CONFIG" \
     --address-book "$ADDRESS_BOOK"
@@ -112,9 +111,9 @@ function configure_bridge () {
   fi
 
   # Configure the bridge
-  ./cli/cli.ts -a "$ADDRESS_BOOK" -p "$L2_RPC" -m "$L2_MNEMONIC" -n 2 -r "$ARBITRUM_ADDRESS_BOOK" protocol configure-l2-bridge "$L1_CHAIN_ID"
-  ./cli/cli.ts -a "$ADDRESS_BOOK" -p "$L1_RPC" -m "$L1_MNEMONIC" -n 2 -r "$ARBITRUM_ADDRESS_BOOK" protocol configure-l1-bridge "$L2_CHAIN_ID"
-
+  npx hardhat bridge:configure:l1 --network "$L1_NETWORK" --graph-config "$L1_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK" --disable-secure-accounts
+  npx hardhat bridge:configure:l2 --network "$L2_NETWORK" --graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK" --disable-secure-accounts
+  
   # Unpause the bridge
   npx hardhat migrate:unpause:bridge --network "$L2_NETWORK" --graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
   npx hardhat migrate:unpause:bridge --network "$L1_NETWORK" --graph-config "$L1_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts

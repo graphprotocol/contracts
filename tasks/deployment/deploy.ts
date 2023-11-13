@@ -1,6 +1,11 @@
 import { task } from 'hardhat/config'
 
-import { GraphChainId, deployGraphNetwork } from '@graphprotocol/sdk'
+import {
+  GraphChainId,
+  deployGraphNetwork,
+  helpers,
+  isGraphChainL1Localhost,
+} from '@graphprotocol/sdk'
 import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 
 task('migrate', 'Migrate contracts')
@@ -17,10 +22,19 @@ task('migrate', 'Migrate contracts')
   .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .addFlag('skipConfirmation', GRE_TASK_PARAMS.skipConfirmation.description)
   .addFlag('force', GRE_TASK_PARAMS.force.description)
-  .addFlag('autoMine', 'Enable auto mining after deployment on local networks')
   .addFlag('buildAcceptTx', '...')
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)
+
+    // Set automine before deploying protocol
+    // Not all local nodes support it though
+    if (isGraphChainL1Localhost(graph.chainId)) {
+      try {
+        await helpers.setAutoMine(true)
+      } catch (error) {
+        console.error('Could not set automine to true, node might not support it')
+      }
+    }
 
     await deployGraphNetwork(
       taskArgs.addressBook,
@@ -31,7 +45,6 @@ task('migrate', 'Migrate contracts')
       {
         forceDeploy: taskArgs.force,
         skipConfirmation: taskArgs.skipConfirmation,
-        autoMine: taskArgs.autoMine,
         buildAcceptTx: taskArgs.buildAcceptTx,
       },
     )

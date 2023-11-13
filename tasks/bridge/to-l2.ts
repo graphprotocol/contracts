@@ -1,9 +1,9 @@
 import { task } from 'hardhat/config'
-import { TASK_NITRO_SETUP_SDK } from '../deployment/nitro'
 import { BigNumber } from 'ethers'
 import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 import { sendToL2 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { TASK_NITRO_SETUP_SDK } from '../deployment/nitro'
 
 export const TASK_BRIDGE_TO_L2 = 'bridge:send-to-l2'
 
@@ -45,7 +45,7 @@ task(TASK_BRIDGE_TO_L2, 'Bridge GRT tokens from L1 to L2')
 
     // Patch sendToL2 opts
     taskArgs.l2Provider = graph.l2.provider
-    taskArgs.amount = hre.ethers.utils.formatEther(taskArgs.amount) // sendToL2 expects amount in GRT
+    taskArgs.amount = hre.ethers.utils.parseEther(taskArgs.amount) // sendToL2 expects amount in GRT
 
     // L2 provider gas limit estimation has been hit or miss in CI, 400k should be more than enough
     if (process.env.CI) {

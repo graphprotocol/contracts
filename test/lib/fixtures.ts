@@ -91,7 +91,6 @@ export class NetworkFixture {
       {
         skipConfirmation: true,
         forceDeploy: true,
-        autoMine: true,
         l2Deploy: l2Deploy,
       },
     )

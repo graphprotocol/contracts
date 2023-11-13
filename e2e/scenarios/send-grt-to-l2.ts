@@ -8,6 +8,7 @@ import hre from 'hardhat'
 import { TASK_BRIDGE_TO_L2 } from '../../tasks/bridge/to-l2'
 import { getBridgeFixture } from './fixtures/bridge'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
+import { ethers } from 'ethers'
 
 async function main() {
   const graphOpts = getGREOptsFromArgv()
@@ -22,7 +23,7 @@ async function main() {
   for (const account of bridgeFixture.accountsToFund) {
     await hre.run(TASK_BRIDGE_TO_L2, {
       ...graphOpts,
-      amount: account.amount.toString(),
+      amount: ethers.utils.formatEther(account.amount),
       sender: bridgeFixture.funder.address,
       recipient: account.signer.address,
       deploymentFile: bridgeFixture.deploymentFile,

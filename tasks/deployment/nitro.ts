@@ -4,6 +4,7 @@ import { addCustomNetwork } from '@arbitrum/sdk/dist/lib/dataEntities/networks'
 import fs from 'fs'
 import { execSync } from 'child_process'
 import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { helpers } from '@graphprotocol/sdk'
 
 export const TASK_NITRO_FUND_ACCOUNTS = 'nitro:fund-accounts'
 export const TASK_NITRO_SETUP_SDK = 'nitro:sdk-setup'
@@ -82,14 +83,7 @@ task(TASK_NITRO_FUND_ACCOUNTS, 'Funds protocol accounts on Arbitrum Nitro testno
 subtask(TASK_NITRO_SETUP_SDK, 'Adds nitro testnodes to SDK config')
   .addParam('deploymentFile', 'The testnode deployment file to use', 'localNetwork.json')
   .setAction(async (taskArgs) => {
-    if (!fs.existsSync(taskArgs.deploymentFile)) {
-      throw new Error(`Deployment file not found: ${taskArgs.deploymentFile}`)
-    }
-    const deployment = JSON.parse(fs.readFileSync(taskArgs.deploymentFile, 'utf-8'))
-    addCustomNetwork({
-      customL1Network: deployment.l1Network,
-      customL2Network: deployment.l2Network,
-    })
+    helpers.addLocalNetwork(taskArgs.deploymentFile)
   })
 
 subtask(TASK_NITRO_FETCH_DEPLOYMENT_FILE, 'Fetches nitro deployment file from a local testnode')

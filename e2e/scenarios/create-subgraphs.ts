@@ -34,7 +34,7 @@ async function main() {
 
   // == Fund participants
   console.log('\n== Fund subgraph owners and curators')
-  await helpers.setBalances(ethBalances)
+  await helpers.setBalances(ethBalances, deployer)
   await setGRTBalances(graph.contracts, deployer, grtBalances)
 
   // == Publish subgraphs
