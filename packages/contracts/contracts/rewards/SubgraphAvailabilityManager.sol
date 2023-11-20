@@ -118,6 +118,7 @@ contract SubgraphAvailabilityManager is Governed {
 
     /**
      * @dev Vote deny or allow for a subgraph.
+     * NOTE: Can only be called by an oracle.
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny True to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
@@ -131,17 +132,31 @@ contract SubgraphAvailabilityManager is Governed {
     }
 
     /**
+     * @dev Vote deny or allow for many subgraphs.
+     * NOTE: Can only be called by an oracle.
+     * @param _subgraphDeploymentID Array of subgraph deployment IDs
+     * @param _deny Array of booleans, true to deny, false to allow
+     * @param _oracleIndex Index of the oracle voting
+     */
+    function voteDeniedMany(
+        bytes32[] calldata _subgraphDeploymentID,
+        bool[] calldata _deny,
+        uint256 _oracleIndex
+    ) external onlyOracle(_oracleIndex) {
+        require(_subgraphDeploymentID.length == _deny.length, "!length");
+        for (uint256 i = 0; i < _subgraphDeploymentID.length; i++) {
+            _voteDenied(_subgraphDeploymentID[i], _deny[i], _oracleIndex);
+        }
+    }
+
+    /**
      * @dev Vote deny or allow for a subgraph.
      * When oracles cast their votes we store the timestamp of the vote.
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny True to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
      */
-    function _voteDenied(
-        bytes32 _subgraphDeploymentID,
-        bool _deny,
-        uint256 _oracleIndex
-    ) private {
+    function _voteDenied(bytes32 _subgraphDeploymentID, bool _deny, uint256 _oracleIndex) private {
         uint256 timestamp = block.timestamp;
 
         if (_deny) {
@@ -163,11 +178,7 @@ contract SubgraphAvailabilityManager is Governed {
      * @param _deny True to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
      */
-    function _checkVotes(
-        bytes32 _subgraphDeploymentID,
-        bool _deny,
-        uint256 _oracleIndex
-    ) private {
+    function _checkVotes(bytes32 _subgraphDeploymentID, bool _deny, uint256 _oracleIndex) private {
         // init with 1 for current oracle's vote
         uint256 votes = 1;
 

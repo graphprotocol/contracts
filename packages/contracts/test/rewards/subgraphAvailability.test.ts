@@ -28,6 +28,8 @@ describe('SubgraphAvailabilityManager', () => {
   let subgraphAvailabilityManager: SubgraphAvailabilityManager
 
   const subgraphDeploymentID1 = randomHexBytes()
+  const subgraphDeploymentID2 = randomHexBytes()
+  const subgraphDeploymentID3 = randomHexBytes()
 
   before(async () => {
     ;[me, governor, oracleOne, oracleTwo, oracleThree] = await getAccounts()
@@ -283,6 +285,90 @@ describe('SubgraphAvailabilityManager', () => {
       // subgraph state didn't change because enough time has passed so that
       // previous votes are no longer valid
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.false
+    })
+  })
+
+  describe('vote many', async () => {
+    beforeEach(async () => {
+      await subgraphAvailabilityManager.connect(governor.signer).setOracle(0, oracleOne.address)
+      await subgraphAvailabilityManager.connect(governor.signer).setOracle(1, oracleTwo.address)
+      await subgraphAvailabilityManager.connect(governor.signer).setOracle(2, oracleThree.address)
+      await rewardsManager
+        .connect(governor.signer)
+        .setSubgraphAvailabilityOracle(subgraphAvailabilityManager.address)
+    })
+
+    it('votes many successfully', async () => {
+      const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2, subgraphDeploymentID3]
+      const denied = [true, false, true]
+      const tx = await subgraphAvailabilityManager
+        .connect(oracleOne.signer)
+        .voteDeniedMany(subgraphs, denied, 0)
+      const timestamp = (await ethers.provider.getBlock('latest')).timestamp
+      await expect(tx)
+        .to.emit(subgraphAvailabilityManager, 'OracleVote')
+        .withArgs(subgraphDeploymentID1, true, 0, timestamp)
+      await expect(tx)
+        .to.emit(subgraphAvailabilityManager, 'OracleVote')
+        .withArgs(subgraphDeploymentID2, false, 0, timestamp)
+      await expect(tx)
+        .to.emit(subgraphAvailabilityManager, 'OracleVote')
+        .withArgs(subgraphDeploymentID3, true, 0, timestamp)
+    })
+
+    it('should change subgraph state if majority of oracles have voted', async () => {
+      const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2, subgraphDeploymentID3]
+      const denied = [true, false, true]
+      // 3/5 oracles vote denied = true
+      await subgraphAvailabilityManager
+        .connect(oracleOne.signer)
+        .voteDeniedMany(subgraphs, denied, 0)
+      await subgraphAvailabilityManager
+        .connect(oracleTwo.signer)
+        .voteDeniedMany(subgraphs, denied, 1)
+
+      const tx = await subgraphAvailabilityManager
+        .connect(oracleThree.signer)
+        .voteDeniedMany(subgraphs, denied, 2)
+
+      await expect(tx)
+        .to.emit(rewardsManager, 'RewardsDenylistUpdated')
+        .withArgs(subgraphDeploymentID1, tx.blockNumber)
+      await expect(tx)
+        .to.emit(rewardsManager, 'RewardsDenylistUpdated')
+        .withArgs(subgraphDeploymentID2, 0)
+      await expect(tx)
+        .to.emit(rewardsManager, 'RewardsDenylistUpdated')
+        .withArgs(subgraphDeploymentID3, tx.blockNumber)
+
+      // check that subgraphs are denied
+      expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.true
+      expect(await rewardsManager.isDenied(subgraphDeploymentID2)).to.be.false
+      expect(await rewardsManager.isDenied(subgraphDeploymentID3)).to.be.true
+    })
+
+    it('should fail if not called by oracle', async () => {
+      const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2, subgraphDeploymentID3]
+      const denied = [true, false, true]
+      await expect(
+        subgraphAvailabilityManager.connect(me.signer).voteDeniedMany(subgraphs, denied, 0),
+      ).to.be.revertedWith('SAM: caller must be oracle')
+    })
+
+    it('should fail if index is out of bounds', async () => {
+      const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2, subgraphDeploymentID3]
+      const denied = [true, false, true]
+      await expect(
+        subgraphAvailabilityManager.connect(oracleOne.signer).voteDeniedMany(subgraphs, denied, 5),
+      ).to.be.revertedWith('SAM: index out of bounds')
+    })
+
+    it('should fail if oracle used an incorrect index', async () => {
+      const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2, subgraphDeploymentID3]
+      const denied = [true, false, true]
+      await expect(
+        subgraphAvailabilityManager.connect(oracleOne.signer).voteDeniedMany(subgraphs, denied, 1),
+      ).to.be.revertedWith('SAM: caller must be oracle')
     })
   })
 })
