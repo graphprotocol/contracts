@@ -422,6 +422,28 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
     }
 
     /**
+     * @notice Calculate the amount of tokens that would be recovered if minting signal with
+     * the input tokens and then burning it. This can be used to compute rounding error.
+     * This function does not account for curation tax.
+     * @param _subgraphDeploymentID Subgraph deployment for which to mint signal
+     * @param _tokensIn Amount of tokens used to mint signal
+     * @return Amount of tokens that would be recovered after minting and burning signal
+     */
+    function tokensToSignalToTokensNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        require(_tokensIn != 0, "Can't calculate with 0 tokens");
+        uint256 signal = _tokensToSignal(_subgraphDeploymentID, _tokensIn);
+        CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        uint256 poolSignalAfter = getCurationPoolSignal(_subgraphDeploymentID).add(signal);
+        uint256 poolTokensAfter = curationPool.tokens.add(_tokensIn);
+        return poolTokensAfter.mul(signal).div(poolSignalAfter);
+    }
+
+    /**
      * @notice Calculate number of tokens to get when burning signal from a curation pool.
      * @param _subgraphDeploymentID Subgraph deployment for which to burn signal
      * @param _signalIn Amount of signal to burn

@@ -358,18 +358,13 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState != AllocationState.Null, "!collect");
 
-        // Get allocation
-        Allocation storage alloc = __allocations[_allocationID];
-        // The allocation must've been opened at least 1 epoch ago,
-        // to prevent manipulation of the curation or delegation pools
-        require(alloc.createdAtEpoch < epochManager().currentEpoch(), "!epoch");
-
         // If the query fees are zero, we don't want to revert
         // but we also don't need to do anything, so just return
         if (_tokens == 0) {
             return;
         }
 
+        Allocation storage alloc = __allocations[_allocationID];
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
 
         uint256 queryFees = _tokens; // Tokens collected from the channel
