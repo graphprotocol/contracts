@@ -136,6 +136,8 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         uint256 roundingError;
         uint256 tokens = transferData.tokens;
         {
+            // This can't revert because the bridge ensures that _tokensIn is > 0,
+            // and the minimum curation in L2 is 1 wei GRT
             uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(
                 _subgraphDeploymentID,
                 tokens
@@ -317,6 +319,8 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         IL2Curation curation = IL2Curation(address(curation()));
         uint256 roundingError;
         if (transferData.l2Done && !subgraphData.disabled) {
+            // This can't revert because the bridge ensures that _tokensIn is > 0,
+            // and the minimum curation in L2 is 1 wei GRT
             uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(
                 subgraphData.subgraphDeploymentID,
                 _tokensIn
