@@ -4,6 +4,7 @@ set -eo pipefail
 source $(pwd)/scripts/evm
 
 ### Setup EVM
+EVM_NODE=${EVM_NODE:-hardhat}
 
 # Ensure we compiled sources
 
@@ -18,7 +19,7 @@ function cleanup() {
 trap cleanup EXIT
 
 # Gas reporter needs to run in its own evm instance
-if [ "$RUN_EVM" = true  ]; then
+if [ "$RUN_EVM" = true ]; then
   evm_kill
   evm_start
   sleep 5
@@ -32,7 +33,7 @@ mkdir -p reports
 DISABLE_SECURE_ACCOUNTS=true \
 L1_GRAPH_CONFIG=config/graph.hardhat.yml \
 L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
-  npx hardhat test --network hardhat $@
+  npx hardhat test --network $EVM_NODE $@
 
 if [ "$REPORT_GAS" = true ]; then
   cat reports/gas-report.log
