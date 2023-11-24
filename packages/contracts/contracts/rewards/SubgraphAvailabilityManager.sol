@@ -17,15 +17,27 @@ import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 contract SubgraphAvailabilityManager is Governed {
     // -- Immutable --
 
+    // Maximum number of oracles
     uint256 public immutable maxOracles;
+
+    // Number of votes required to execute a deny or allow call to the RewardsManager
     uint256 public immutable executionThreshold;
+
+    // Address of the RewardsManager contract
     IRewardsManager private immutable rewardsManager;
 
     // -- State --
 
+    // Time limit for a vote to be valid
     uint256 public voteTimeLimit;
+
+    // Array of oracle addresses
     address[] public oracles;
+
+    // Mapping of subgraph deployment ID to oracle index to timestamp of last deny vote
     mapping(bytes32 => mapping(uint256 => uint256)) public lastDenyVote;
+
+    // Mapping of subgraph deployment ID to oracle index to timestamp of last allow vote
     mapping(bytes32 => mapping(uint256 => uint256)) public lastAllowVote;
 
     // -- Events --
@@ -46,7 +58,7 @@ contract SubgraphAvailabilityManager is Governed {
     event OracleVote(
         bytes32 indexed subgraphDeploymentID,
         bool deny,
-        uint256 oracleIndex,
+        uint256 indexed oracleIndex,
         uint256 timestamp
     );
 
@@ -87,11 +99,6 @@ contract SubgraphAvailabilityManager is Governed {
         executionThreshold = _executionThreshold;
         voteTimeLimit = _voteTimeLimit;
         oracles = new address[](_maxOracles);
-
-        // Initialize oracles array with empty addresses
-        for (uint256 i = 0; i < _maxOracles; i++) {
-            oracles[i] = address(0);
-        }
     }
 
     // -- Functions --
@@ -123,12 +130,12 @@ contract SubgraphAvailabilityManager is Governed {
      * @param _deny True to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
      */
-    function voteDenied(
+    function vote(
         bytes32 _subgraphDeploymentID,
         bool _deny,
         uint256 _oracleIndex
     ) external onlyOracle(_oracleIndex) {
-        _voteDenied(_subgraphDeploymentID, _deny, _oracleIndex);
+        _vote(_subgraphDeploymentID, _deny, _oracleIndex);
     }
 
     /**
@@ -138,33 +145,38 @@ contract SubgraphAvailabilityManager is Governed {
      * @param _deny Array of booleans, true to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
      */
-    function voteDeniedMany(
+    function voteMany(
         bytes32[] calldata _subgraphDeploymentID,
         bool[] calldata _deny,
         uint256 _oracleIndex
     ) external onlyOracle(_oracleIndex) {
         require(_subgraphDeploymentID.length == _deny.length, "!length");
         for (uint256 i = 0; i < _subgraphDeploymentID.length; i++) {
-            _voteDenied(_subgraphDeploymentID[i], _deny[i], _oracleIndex);
+            _vote(_subgraphDeploymentID[i], _deny[i], _oracleIndex);
         }
     }
 
     /**
      * @dev Vote deny or allow for a subgraph.
      * When oracles cast their votes we store the timestamp of the vote.
+     * Check if the execution threshold has been reached for a subgraph.
+     * If execution threshold is reached we call the RewardsManager to set the correct state.
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny True to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
      */
-    function _voteDenied(bytes32 _subgraphDeploymentID, bool _deny, uint256 _oracleIndex) private {
+    function _vote(bytes32 _subgraphDeploymentID, bool _deny, uint256 _oracleIndex) private {
         uint256 timestamp = block.timestamp;
 
-        if (_deny) {
-            _checkVotes(_subgraphDeploymentID, _deny, _oracleIndex);
-            lastDenyVote[_subgraphDeploymentID][_oracleIndex] = timestamp;
-        } else {
-            _checkVotes(_subgraphDeploymentID, _deny, _oracleIndex);
-            lastAllowVote[_subgraphDeploymentID][_oracleIndex] = timestamp;
+        // corresponding votes based on _deny for a subgraph deployment
+        mapping(uint256 => uint256) storage lastVoteForSubgraph = _deny
+            ? lastDenyVote[_subgraphDeploymentID]
+            : lastAllowVote[_subgraphDeploymentID];
+        lastVoteForSubgraph[_oracleIndex] = timestamp;
+
+        // check if execution threshold is reached, if it is call the RewardsManager
+        if (checkVotes(_subgraphDeploymentID, _deny)) {
+            rewardsManager.setDenied(_subgraphDeploymentID, _deny);
         }
 
         emit OracleVote(_subgraphDeploymentID, _deny, _oracleIndex, timestamp);
@@ -172,15 +184,13 @@ contract SubgraphAvailabilityManager is Governed {
 
     /**
      * @dev Check if the execution threshold has been reached for a subgraph.
-     * If execution threshold is reached we call the RewardsManager to set the correct state.
      * For a vote to be valid it needs to be within the vote time limit.
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny True to deny, false to allow
-     * @param _oracleIndex Index of the oracle voting
+     * @return True if execution threshold is reached
      */
-    function _checkVotes(bytes32 _subgraphDeploymentID, bool _deny, uint256 _oracleIndex) private {
-        // init with 1 for current oracle's vote
-        uint256 votes = 1;
+    function checkVotes(bytes32 _subgraphDeploymentID, bool _deny) public view returns (bool) {
+        uint256 votes = 0;
 
         // timeframe for a vote to be valid
         uint256 voteTimeValiditiy = block.timestamp - voteTimeLimit;
@@ -191,16 +201,17 @@ contract SubgraphAvailabilityManager is Governed {
             : lastAllowVote[_subgraphDeploymentID];
 
         for (uint256 i = 0; i < maxOracles; i++) {
-            // check if oracle has voted, skip check for current oracle
-            if (i != _oracleIndex && lastVoteForSubgraph[i] > voteTimeValiditiy) {
+            // check if vote is within the vote time limit
+            if (lastVoteForSubgraph[i] > voteTimeValiditiy) {
                 votes++;
             }
 
             // check if execution threshold is reached
             if (votes == executionThreshold) {
-                rewardsManager.setDenied(_subgraphDeploymentID, _deny);
-                break;
+                return true;
             }
         }
+
+        return false;
     }
 }
