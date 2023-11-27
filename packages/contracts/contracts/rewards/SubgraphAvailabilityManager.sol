@@ -17,27 +17,27 @@ import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 contract SubgraphAvailabilityManager is Governed {
     // -- Immutable --
 
-    // Maximum number of oracles
+    /// @notice Maximum number of oracles
     uint256 public immutable maxOracles;
 
-    // Number of votes required to execute a deny or allow call to the RewardsManager
+    /// @notice Number of votes required to execute a deny or allow call to the RewardsManager
     uint256 public immutable executionThreshold;
 
-    // Address of the RewardsManager contract
+    /// @dev Address of the RewardsManager contract
     IRewardsManager private immutable rewardsManager;
 
     // -- State --
 
-    // Time limit for a vote to be valid
+    /// @notice Time limit for a vote to be valid
     uint256 public voteTimeLimit;
 
-    // Array of oracle addresses
+    /// @notice Array of oracle addresses
     address[] public oracles;
 
-    // Mapping of subgraph deployment ID to oracle index to timestamp of last deny vote
+    /// @notice Mapping of subgraph deployment ID to oracle index to timestamp of last deny vote
     mapping(bytes32 => mapping(uint256 => uint256)) public lastDenyVote;
 
-    // Mapping of subgraph deployment ID to oracle index to timestamp of last allow vote
+    /// @notice Mapping of subgraph deployment ID to oracle index to timestamp of last allow vote
     mapping(bytes32 => mapping(uint256 => uint256)) public lastAllowVote;
 
     // -- Events --
