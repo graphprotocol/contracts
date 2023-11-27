@@ -24,8 +24,6 @@ describe('L2GraphToken', () => {
     let grt: L2GraphToken
 
     before(async function () {
-      await helpers.setIntervalMining(0)
-      await helpers.setAutoMine(true)
       ;[mockL1GRT, mockL2Gateway, user] = await graph.getTestAccounts()
       ;({ governor } = await graph.getNamedAccounts())
       fixture = new NetworkFixture(graph.provider)

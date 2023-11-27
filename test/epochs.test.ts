@@ -18,8 +18,6 @@ describe('EpochManager', () => {
   const epochLength: BigNumber = toBN('3')
 
   before(async function () {
-    await helpers.setIntervalMining(0)
-    await helpers.setAutoMine(true)
     ;[me, governor] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
   })

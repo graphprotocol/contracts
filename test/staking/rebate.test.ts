@@ -209,8 +209,6 @@ describe('Staking:rebates', () => {
   }
 
   before(async function () {
-    await helpers.setIntervalMining(0)
-    await helpers.setAutoMine(true)
     ;({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     await fixture.load(governor)

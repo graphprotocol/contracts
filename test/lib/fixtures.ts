@@ -25,14 +25,10 @@ import { LibExponential } from '../../build/types/LibExponential'
 import {
   DeployType,
   GraphNetworkContracts,
-  acceptOwnership,
   deploy,
   deployGraphNetwork,
   helpers,
-  isGraphL1ChainId,
   loadGraphNetworkContracts,
-  toBN,
-  toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -78,6 +74,7 @@ export class NetworkFixture {
   constructor(public provider: providers.Provider) {}
 
   async load(deployer: SignerWithAddress, l2Deploy?: boolean): Promise<GraphNetworkContracts> {
+    // Ensure we are auto mining
     await helpers.setIntervalMining(0)
     await helpers.setAutoMine(true)
 
@@ -206,8 +203,6 @@ export class NetworkFixture {
 
   async setUp(): Promise<void> {
     this.lastSnapshot = await helpers.takeSnapshot()
-    await helpers.setIntervalMining(0)
-    await helpers.setAutoMine(true)
   }
 
   async tearDown(): Promise<void> {

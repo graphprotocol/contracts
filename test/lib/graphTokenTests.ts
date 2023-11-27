@@ -72,8 +72,6 @@ export function grtTests(isL2: boolean): void {
   }
 
   before(async function () {
-    await helpers.setIntervalMining(0)
-    await helpers.setAutoMine(true)
     ;({ governor } = await graph.getNamedAccounts())
     me = new ethers.Wallet(mePrivateKey, graph.provider)
     other = new ethers.Wallet(otherPrivateKey, graph.provider)

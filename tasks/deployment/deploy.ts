@@ -26,16 +26,6 @@ task('migrate', 'Migrate contracts')
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)
 
-    // Set automine before deploying protocol
-    // Not all local nodes support it though
-    if (isGraphChainL1Localhost(graph.chainId)) {
-      try {
-        await helpers.setAutoMine(true)
-      } catch (error) {
-        console.error('Could not set automine to true, node might not support it')
-      }
-    }
-
     await deployGraphNetwork(
       taskArgs.addressBook,
       taskArgs.graphConfig,

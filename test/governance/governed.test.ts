@@ -19,9 +19,6 @@ describe('Governed', () => {
   beforeEach(async function () {
     ;[me, governor] = await graph.getTestAccounts()
 
-    await helpers.setAutoMine(true)
-    await helpers.setIntervalMining(0)
-
     const factory = await ethers.getContractFactory('GovernedMock')
     governed = (await factory.connect(governor).deploy()) as unknown as Governed
   })
