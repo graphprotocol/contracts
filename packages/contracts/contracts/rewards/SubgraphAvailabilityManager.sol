@@ -28,17 +28,20 @@ contract SubgraphAvailabilityManager is Governed {
 
     // -- State --
 
+    /// @dev Nonce for generating votes on subgraph deployment IDs
+    uint256 private currentNonce;
+
     /// @notice Time limit for a vote to be valid
     uint256 public voteTimeLimit;
 
     /// @notice Array of oracle addresses
     address[] public oracles;
 
-    /// @notice Mapping of subgraph deployment ID to oracle index to timestamp of last deny vote
-    mapping(bytes32 => mapping(uint256 => uint256)) public lastDenyVote;
+    /// @notice Mapping of current nonce to subgraph deployment ID to oracle index to timestamp of last deny vote
+    mapping(uint256 => mapping(bytes32 => mapping(uint256 => uint256))) public lastDenyVote;
 
-    /// @notice Mapping of subgraph deployment ID to oracle index to timestamp of last allow vote
-    mapping(bytes32 => mapping(uint256 => uint256)) public lastAllowVote;
+    /// @notice Mapping of  current nonce to subgraph deployment ID to oracle index to timestamp of last allow vote
+    mapping(uint256 => mapping(bytes32 => mapping(uint256 => uint256))) public lastAllowVote;
 
     // -- Events --
 
@@ -85,12 +88,19 @@ contract SubgraphAvailabilityManager is Governed {
         address _rewardsManager,
         uint256 _maxOracles,
         uint256 _executionThreshold,
-        uint256 _voteTimeLimit
+        uint256 _voteTimeLimit,
+        address[] memory _oracles
     ) {
         require(_governor != address(0), "SAM: governor must be set");
         require(_rewardsManager != address(0), "SAM: rewardsManager must be set");
         require(_maxOracles > 1, "SAM: maxOracles must be greater than 1");
         require(_executionThreshold > 1, "SAM: executionThreshold must be greater than 1");
+        require(_oracles.length == _maxOracles, "SAM: oracles length must equal maxOracles");
+
+        // Oracles should not be address zero
+        for (uint256 i = 0; i < _oracles.length; i++) {
+            require(_oracles[i] != address(0), "SAM: oracle cannot be address zero");
+        }
 
         Governed._initialize(_governor);
         rewardsManager = IRewardsManager(_rewardsManager);
@@ -98,7 +108,7 @@ contract SubgraphAvailabilityManager is Governed {
         maxOracles = _maxOracles;
         executionThreshold = _executionThreshold;
         voteTimeLimit = _voteTimeLimit;
-        oracles = new address[](_maxOracles);
+        oracles = _oracles;
     }
 
     // -- Functions --
@@ -109,6 +119,7 @@ contract SubgraphAvailabilityManager is Governed {
      */
     function setVoteTimeLimit(uint256 _voteTimeLimit) external onlyGovernor {
         voteTimeLimit = _voteTimeLimit;
+        currentNonce++;
         emit VoteTimeLimitSet(_voteTimeLimit);
     }
 
@@ -119,7 +130,12 @@ contract SubgraphAvailabilityManager is Governed {
      */
     function setOracle(uint256 _index, address _oracle) external onlyGovernor {
         require(_index < maxOracles, "SAM: index out of bounds");
+        require(_oracle != address(0), "SAM: oracle cannot be address zero");
+
         oracles[_index] = _oracle;
+        // Increment the current nonce to refresh all existing votes for subgraph deployment IDs
+        currentNonce++;
+
         emit OracleSet(_index, _oracle);
     }
 
@@ -170,8 +186,8 @@ contract SubgraphAvailabilityManager is Governed {
 
         // corresponding votes based on _deny for a subgraph deployment
         mapping(uint256 => uint256) storage lastVoteForSubgraph = _deny
-            ? lastDenyVote[_subgraphDeploymentID]
-            : lastAllowVote[_subgraphDeploymentID];
+            ? lastDenyVote[currentNonce][_subgraphDeploymentID]
+            : lastAllowVote[currentNonce][_subgraphDeploymentID];
         lastVoteForSubgraph[_oracleIndex] = timestamp;
 
         // check if execution threshold is reached, if it is call the RewardsManager
@@ -197,8 +213,8 @@ contract SubgraphAvailabilityManager is Governed {
 
         // corresponding votes based on _deny for a subgraph deployment
         mapping(uint256 => uint256) storage lastVoteForSubgraph = _deny
-            ? lastDenyVote[_subgraphDeploymentID]
-            : lastAllowVote[_subgraphDeploymentID];
+            ? lastDenyVote[currentNonce][_subgraphDeploymentID]
+            : lastAllowVote[currentNonce][_subgraphDeploymentID];
 
         for (uint256 i = 0; i < maxOracles; i++) {
             // check if vote is within the vote time limit
