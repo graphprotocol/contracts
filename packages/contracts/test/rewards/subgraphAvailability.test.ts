@@ -81,6 +81,9 @@ describe('SubgraphAvailabilityManager', () => {
       }
     ))
     subgraphAvailabilityManager = deployResult.contract as SubgraphAvailabilityManager
+    await rewardsManager
+      .connect(governor)
+      .setSubgraphAvailabilityOracle(subgraphAvailabilityManager.address)
   })
 
   beforeEach(async function () {
@@ -234,15 +237,6 @@ describe('SubgraphAvailabilityManager', () => {
   })
 
   describe('voting', async () => {
-    beforeEach(async () => {
-      await subgraphAvailabilityManager.connect(governor).setOracle(0, oracleOne.address)
-      await subgraphAvailabilityManager.connect(governor).setOracle(1, oracleTwo.address)
-      await subgraphAvailabilityManager.connect(governor).setOracle(2, oracleThree.address)
-      await rewardsManager
-        .connect(governor)
-        .setSubgraphAvailabilityOracle(subgraphAvailabilityManager.address)
-    })
-
     it('votes denied successfully', async () => {
       const denied = true
       const tx = await subgraphAvailabilityManager
@@ -363,15 +357,6 @@ describe('SubgraphAvailabilityManager', () => {
   })
 
   describe('vote many', async () => {
-    beforeEach(async () => {
-      await subgraphAvailabilityManager.connect(governor).setOracle(0, oracleOne.address)
-      await subgraphAvailabilityManager.connect(governor).setOracle(1, oracleTwo.address)
-      await subgraphAvailabilityManager.connect(governor).setOracle(2, oracleThree.address)
-      await rewardsManager
-        .connect(governor)
-        .setSubgraphAvailabilityOracle(subgraphAvailabilityManager.address)
-    })
-
     it('votes many successfully', async () => {
       const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2, subgraphDeploymentID3]
       const denied = [true, false, true]
@@ -443,15 +428,6 @@ describe('SubgraphAvailabilityManager', () => {
   })
 
   describe('refreshing votes', () => {
-    beforeEach(async () => {
-      await subgraphAvailabilityManager.connect(governor).setOracle(0, oracleOne.address)
-      await subgraphAvailabilityManager.connect(governor).setOracle(1, oracleTwo.address)
-      await subgraphAvailabilityManager.connect(governor).setOracle(2, oracleThree.address)
-      await rewardsManager
-        .connect(governor)
-        .setSubgraphAvailabilityOracle(subgraphAvailabilityManager.address)
-    })
-
     it('should refresh votes if an oracle is replaced', async () => {
       const denied = true
       // 2/3 oracles vote denied = true
