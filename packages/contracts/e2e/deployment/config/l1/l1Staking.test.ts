@@ -1,0 +1,25 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
+
+describe('[L1] Staking', () => {
+  const graph = hre.graph()
+  const { L1Staking } = graph.contracts
+
+  let unauthorized: SignerWithAddress
+
+  before(async function () {
+    if (isGraphL2ChainId(graph.chainId)) this.skip()
+    unauthorized = (await graph.getTestAccounts())[0]
+  })
+
+  describe('L1Staking', () => {
+    it('counterpartStakingAddress should match the L2Staking address', async () => {
+      // counterpartStakingAddress is internal so we access the storage directly
+      const l2StakingData = await hre.ethers.provider.getStorageAt(L1Staking.address, 24)
+      const l2Staking = hre.ethers.utils.defaultAbiCoder.decode(['address'], l2StakingData)[0]
+      expect(l2Staking).eq(graph.l2.contracts.L2Staking.address)
+    })
+  })
+})
