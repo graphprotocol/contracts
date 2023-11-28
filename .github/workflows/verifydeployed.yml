@@ -23,12 +23,10 @@ jobs:
     name: Compile contracts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-          cache: 'yarn'
-      - run: yarn install --non-interactive --frozen-lockfile
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
 
       - name: Compile contracts
         run: yarn build
@@ -46,12 +44,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-          cache: 'yarn'
-      - run: yarn install --non-interactive --frozen-lockfile
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
       - name: Get build artifacts
         uses: actions/download-artifact@v3
         with:

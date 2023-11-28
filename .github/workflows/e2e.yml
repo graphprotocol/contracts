@@ -1,34 +1,30 @@
-name: Run E2E tests
+name: [contracts] Run E2E tests
+
+env:
+  CI: true
 
 on:
   push:
     branches: [main]
     paths:
-      - contracts/**
-      - config/**
-      - e2e/**
-      - cli/**
-      - tasks/**
-      - scripts/**
-      - hardhat.config.ts
+      - packages/contracts/contracts/**
+      - packages/contracts/config/**
+      - packages/contracts/e2e/**
+      - packages/contracts/cli/**
+      - packages/contracts/tasks/**
+      - packages/contracts/scripts/**
+      - packages/contracts/hardhat.config.ts
   pull_request: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.x]
-
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: Install packages
-        run: yarn install --non-interactive --frozen-lockfile
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
       - name: Run e2e tests
         run: |
           git clone https://github.com/edgeandnode/nitro
