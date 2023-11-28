@@ -114,7 +114,7 @@ contract SubgraphAvailabilityManager is Governed {
     // -- Functions --
 
     /**
-     * @dev Set the vote time limit
+     * @dev Set the vote time limit. Refreshes all existing votes by incrementing the current nonce.
      * @param _voteTimeLimit Vote time limit in seconds
      */
     function setVoteTimeLimit(uint256 _voteTimeLimit) external onlyGovernor {
@@ -124,7 +124,7 @@ contract SubgraphAvailabilityManager is Governed {
     }
 
     /**
-     * @dev Set oracle address with index
+     * @dev Set oracle address with index. Refreshes all existing votes by incrementing the current nonce.
      * @param _index Index of the oracle
      * @param _oracle Address of the oracle
      */
