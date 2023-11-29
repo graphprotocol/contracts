@@ -49,6 +49,7 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   const l2GNSCounterpart = l2AddressBook.getEntry('L2GNS')
   logger.info('L2 GNS address: ' + l2GNSCounterpart.address)
   await sendTransaction(cli.wallet, gns, 'setCounterpartGNSAddress', [l2GNSCounterpart.address])
+  await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [gns.address])
 
   // Staking
   const staking = cli.contracts.L1Staking
@@ -57,6 +58,7 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   await sendTransaction(cli.wallet, staking, 'setCounterpartStakingAddress', [
     l2StakingCounterpart.address,
   ])
+  await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [staking.address])
 }
 
 export const configureL2Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
