@@ -27,7 +27,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.json
+          files: ./packages/contracts/coverage.json
           flags: unittests
           name: graphprotocol-contracts
           fail_ci_if_error: true
