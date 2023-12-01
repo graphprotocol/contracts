@@ -10,6 +10,7 @@ runs:
         node-version: 18
         cache: 'yarn'
     - name: Install modern Yarn
+      shell: bash
       run: corepack enable && yarn set version berry
     - name: Install dependencies
       run: yarn --immutable
