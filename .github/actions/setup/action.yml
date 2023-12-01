@@ -5,16 +5,13 @@ runs:
 
   steps:
     - name: Install Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 18 
-    - name: Cache
-      uses: actions/cache@v3
-      id: cache
-      with:
-        path: '**/node_modules'
-        key: yarn-${{ hashFiles('**/yarn.lock') }}
-    - name: Install
+        node-version: 18
+        cache: 'yarn'
+    - name: Install modern Yarn
+      run: corepack enable && yarn set version berry
+    - name: Install dependencies
       run: yarn --immutable
-      shell: bash
-      if: steps.cache.outputs.cache-hit != 'true'
+    - name: Build
+      run: yarn build
