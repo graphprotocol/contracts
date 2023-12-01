@@ -13,6 +13,8 @@ runs:
       shell: bash
       run: corepack enable && yarn set version berry
     - name: Install dependencies
+      shell: bash
       run: yarn --immutable
     - name: Build
+      shell: bash
       run: yarn build
