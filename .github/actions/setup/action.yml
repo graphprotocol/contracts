@@ -3,21 +3,17 @@ name: Setup
 runs:
   using: composite
 
-  strategy:
-    matrix:
-      node-version: [16.x]
-
   steps:
-    - name: Install Node.js ${{ matrix.node-version }}
+    - name: Install Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 18 
     - name: Cache
       uses: actions/cache@v3
       id: cache
       with:
         path: '**/node_modules'
-        key: yarn-v1-${{ hashFiles('**/yarn.lock') }}
+        key: yarn-${{ hashFiles('**/yarn.lock') }}
     - name: Install
       run: yarn --immutable
       shell: bash
