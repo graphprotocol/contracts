@@ -5,11 +5,11 @@
   "directories": {
     "test": "test"
   },
+  "types": "build/types/index.d.ts",
   "files": [
     "dist/**/*",
     "build/contracts/**/*",
     "README.md",
-    "LICENSE",
     "addresses.json"
   ],
   "dependencies": {
@@ -138,6 +138,5 @@
   "bugs": {
     "url": "https://github.com/graphprotocol/contracts/issues"
   },
-  "homepage": "https://github.com/graphprotocol/contracts#readme",
-  "types": "dist/types/index.d.ts"
+  "homepage": "https://github.com/graphprotocol/contracts#readme"
 }

@@ -1,4 +1,4 @@
-name: [contracts] Run E2E tests
+name: E2E
 
 env:
   CI: true

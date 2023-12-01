@@ -5,8 +5,6 @@
 
 # Graph Protocol Contracts
 
-[The Graph](https://thegraph.com/) is an indexing protocol for querying networks like Ethereum, IPFS, Polygon, and other blockchains. Anyone can build and Publish open APIs, called subgraphs, making data easily accessible.
-
 The Graph Protocol Smart Contracts are a set of Solidity contracts that exist on the Ethereum Blockchain. The contracts enable an open and permissionless decentralized network that coordinates [Graph Nodes](https://github.com/graphprotocol/graph-node) to Index any subgraph that is added to the network. Graph Nodes then provide queries to users for those Subgraphs. Users pay for queries with the Graph Token (GRT).
 
 The protocol allows Indexers to Stake, Delegators to Delegate, and Curators to Signal on Subgraphs. The Signal informs Indexers which Subgraphs they should index.
@@ -125,19 +123,6 @@ The accounts used depends on a few environment variables:
 Considerations when forking a chain:
 
 - When running on the `localhost` network it will use by default a deterministic seed for testing purposes. If you want to connect to a local node that is forking while retaining the capability to impersonate accounts or use local accounts you need to set the FORK=true environment variable.
-
-# Contributing
-
-Contributions are welcomed and encouraged! You can do so by:
-
-- Creating an issue
-- Opening a PR
-
-If you are opening a PR, it is a good idea to first go to [The Graph Discord](https://discord.com/invite/vtvv7FP) or [The Graph Forum](https://forum.thegraph.com/) and discuss your idea! Discussions on the forum or Discord are another great way to contribute.
-
-# Security Disclosure
-
-If you have found a bug / security issue, please go through the official channel, [The Graph Security Bounties on Immunefi](https://immunefi.com/bounty/thegraph/). Responsible disclosure procedures must be followed to receive bounties.
 
 # Copyright
 

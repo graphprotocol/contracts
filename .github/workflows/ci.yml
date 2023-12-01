@@ -1,4 +1,4 @@
-name: [contracts] Run CI tests
+name: CI
 
 env:
   CI: true
