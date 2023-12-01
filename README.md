@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://thegraph.com/"><img src="https://cryptologos.cc/logos/the-graph-grt-logo.png" alt="The Graph" width="200"></a> 
+  <a href="https://thegraph.com/"><img src="https://storage.thegraph.com/logos/grt.png" alt="The Graph" width="200"></a> 
 </p>
 
 <h4 align="center">A decentralized network for querying and indexing blockchain data.</h4>

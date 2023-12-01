@@ -5,16 +5,23 @@ env:
 
 on:
   push:
-    branches: [main]
+    branches: "*"
     paths:
       - packages/contracts/contracts/**
       - packages/contracts/config/**
       - packages/contracts/e2e/**
-      - packages/contracts/cli/**
       - packages/contracts/tasks/**
       - packages/contracts/scripts/**
       - packages/contracts/hardhat.config.ts
-  pull_request: {}
+  pull_request: 
+    branches: "*"
+    paths:
+      - packages/contracts/contracts/**
+      - packages/contracts/config/**
+      - packages/contracts/e2e/**
+      - packages/contracts/tasks/**
+      - packages/contracts/scripts/**
+      - packages/contracts/hardhat.config.ts
 
 jobs:
   test-e2e:

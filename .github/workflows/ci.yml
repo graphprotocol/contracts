@@ -5,11 +5,13 @@ env:
 
 on:
   push:
-    branches: [main]
+    branches: "*"
     paths:
       - packages/contracts/**
-  pull_request: {}
-
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/contracts/**
 
 jobs:
   test-ci:
