@@ -38,10 +38,15 @@ This repository is a Yarn workspaces monorepo containing the following packages:
 
 ## Setup
 
-To set up this project you'll need [git](https://git-scm.com) and [yarn](https://yarnpkg.com/) installed.
+To set up this project you'll need [git](https://git-scm.com) and [yarn](https://yarnpkg.com/) installed. Note that Yarn v4 is required to install the dependencies and build the project. 
+
 From your command line:
 
 ```bash
+# Enable Yarn v4
+corepack enable
+yarn set version stable
+
 # Clone this repository
 $ git clone https://github.com/graphprotocol/contracts
 
