@@ -21,6 +21,7 @@ import {
 } from '../lib/testHelpers'
 
 import { Dispute, createQueryDisputeID, encodeAttestation, MAX_PPM } from './common'
+import { isExportDeclaration } from 'typescript'
 
 const { AddressZero, HashZero } = constants
 
@@ -528,8 +529,10 @@ describe('DisputeManager:Query', async () => {
       // Do
       await disputeManager.connect(arbitrator.signer).acceptDispute(dID1)
       // Check
+      const mainDispute = await disputeManager.disputes(dID1)
+      expect(mainDispute.status).to.eq(1) // 1 = DisputeStatus.Accepted
       const relatedDispute = await disputeManager.disputes(dID2)
-      expect(relatedDispute.indexer).eq(AddressZero)
+      expect(relatedDispute.status).to.eq(2) // 2 = DisputeStatus.Rejected
     })
 
     it('should not allow to reject, user need to accept the related dispute ID to reject it', async function () {
@@ -549,7 +552,7 @@ describe('DisputeManager:Query', async () => {
       await disputeManager.connect(arbitrator.signer).drawDispute(dID1)
       // Check
       const relatedDispute = await disputeManager.disputes(dID2)
-      expect(relatedDispute.indexer).eq(AddressZero)
+      expect(relatedDispute.status).not.eq(4) // 4 = DisputeStatus.Pending
     })
   })
 })
