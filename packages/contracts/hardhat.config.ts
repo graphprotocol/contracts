@@ -158,6 +158,10 @@ const config: HardhatUserConfig = {
       },
       hardfork: 'london',
     },
+    anvil: {
+      chainId: 1337,
+      url: 'http://localhost:8545',
+    },
     localhost: {
       chainId: 1337,
       url: 'http://localhost:8545',

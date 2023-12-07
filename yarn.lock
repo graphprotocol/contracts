@@ -1685,7 +1685,7 @@ __metadata:
     "@ethersproject/experimental": "npm:^5.7.0"
     "@graphprotocol/common-ts": "npm:^2.0.7"
     "@graphprotocol/contracts": "workspace:^5.3.1"
-    "@nomicfoundation/hardhat-network-helpers": "npm:^1.0.9"
+    "@nomicfoundation/hardhat-network-helpers": "npm:^1.0.10"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@types/chai": "npm:^4.3.9"
     "@types/chai-as-promised": "npm:^7.1.7"
@@ -2379,14 +2379,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nomicfoundation/hardhat-network-helpers@npm:^1.0.9":
-  version: 1.0.9
-  resolution: "@nomicfoundation/hardhat-network-helpers@npm:1.0.9"
+"@nomicfoundation/hardhat-network-helpers@npm:^1.0.10":
+  version: 1.0.10
+  resolution: "@nomicfoundation/hardhat-network-helpers@npm:1.0.10"
   dependencies:
     ethereumjs-util: "npm:^7.1.4"
   peerDependencies:
     hardhat: ^2.9.5
-  checksum: ff3588875d7c486618fa485f0929fe23b1ea951a34ac385b778ebf9a78532db7fb88ab3cb01d71d14441b2e2ea2c7835b6e81aacb04c12cbfe9294add09c83c9
+  checksum: ff41875b2ece46ae33d144d83e8f43fbef18c7387d069a939cdbce1581cae83f415ca3477799e26dabe5e8faea7aadee4c4b4a90460f06b5b5e5aa02f9a2e4dd
   languageName: node
   linkType: hard
 

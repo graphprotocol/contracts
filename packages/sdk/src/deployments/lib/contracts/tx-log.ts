@@ -48,16 +48,22 @@ export function wrapCalls(contract: Contract, contractName: string): Contract {
   const wrappedContract = lodash.cloneDeep(contract)
 
   for (const fn of Object.keys(contract.functions)) {
-    const call: ContractFunction<ContractTransaction> = contract.functions[fn]
+    const call = contract.functions[fn]
     const override = async (...args: Array<ContractParam>): Promise<ContractTransaction> => {
       // Make the call
-      const tx = await call(...args)
-      logContractCall(tx, contractName, fn, args)
+      const result = await call(...args)
 
-      // Wait for confirmation
-      const receipt = await contract.provider.waitForTransaction(tx.hash)
-      logContractReceipt(tx, receipt)
-      return tx
+      // logContractCall(tx, contractName, fn, args)
+
+      // If there is a tx hash it's a tx, otherwise it's just a call
+      // Wait for tx confirmation if it's a tx
+      if (result.hash) {
+        const receipt = await contract.provider.waitForTransaction(result.hash)
+        // logContractReceipt(tx, receipt)
+        return result
+      } else {
+        return result.length ? result[0] : result
+      }
     }
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

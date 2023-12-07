@@ -75,8 +75,7 @@ export class NetworkFixture {
 
   async load(deployer: SignerWithAddress, l2Deploy?: boolean): Promise<GraphNetworkContracts> {
     // Ensure we are auto mining
-    await helpers.setIntervalMining(0)
-    await helpers.setAutoMine(true)
+    // await helpers.setAutoMine(true)
 
     // Deploy contracts
     await deployGraphNetwork(
@@ -99,6 +98,7 @@ export class NetworkFixture {
       undefined,
       {
         l2Load: l2Deploy,
+        enableTxLogging: false,
       },
     )
 
