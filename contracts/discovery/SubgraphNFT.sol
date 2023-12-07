@@ -150,7 +150,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
         // Default token URI
         uint256 metadata = uint256(_subgraphMetadataHashes[_tokenId]);
 
-        string memory _subgraphURI = metadata > 0 ? HexStrings.toString(metadata) : "";
+        string memory _subgraphURI = metadata > 0 ? HexStrings.toHexString(metadata, 32) : "";
         string memory base = baseURI();
 
         // If there is no base URI, return the token URI.
