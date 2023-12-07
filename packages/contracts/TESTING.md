@@ -11,6 +11,14 @@ Testing is done with the following stack:
 To test all the smart contracts, use `yarn test`.
 To test a single file run: `npx hardhat test test/<FILE_NAME>.ts`
 
+### Anvil
+
+To use anvil node instead of hardhat:
+
+```bash
+anvil --chain-id 1337 --mnemonic "myth like bonus scare over problem client lizard pioneer submit female collect" --accounts 20 --prune-history --transaction-block-keeper 64
+```
+
 ## E2E Testing
 
 End to end tests are also available and can be run against a local network or a live network. These can be useful to validate that a protocol deployment is configured and working as expected. 

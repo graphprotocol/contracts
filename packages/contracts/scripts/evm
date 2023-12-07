@@ -2,6 +2,8 @@
 
 TESTRPC_PORT=${TESTRPC_PORT:-8545}
 MAX_RETRIES=120
+DEFAULT_MNEMONIC='myth like bonus scare over problem client lizard pioneer submit female collect'
+EVM_NODE=${EVM_NODE:-hardhat}
 
 evm_running() {
   lsof -i:$TESTRPC_PORT -t > /dev/null
@@ -34,6 +36,7 @@ evm_automine() {
 evm_start() {
   local FORK_URL=$1
   local FORK_BLOCK_NUMBER="$2"
+
   echo "Starting our own evm instance at port $TESTRPC_PORT"
   if [[ -n "$FORK_URL" ]]; then
     if [[ "$FORK_BLOCK_NUMBER" == "latest" ]]; then
@@ -44,6 +47,7 @@ evm_start() {
   else
     npx hardhat node --port "$TESTRPC_PORT" > /dev/null & 
   fi
+
   retries=0
   while ! evm_ping $TESTRPC_PORT; do
     ((retries=retries+1))
