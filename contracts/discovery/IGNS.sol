@@ -18,7 +18,7 @@ interface IGNS {
         uint256 nSignal; // The token of the subgraph bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
-        uint32 reserveRatioDeprecated; // Ratio for the bonding curve, always 1 in PPM, deprecated.
+        uint32 __DEPRECATED_reserveRatio; // solhint-disable-line var-name-mixedcase
         bool disabled;
         uint256 withdrawableGRT;
     }

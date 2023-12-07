@@ -97,9 +97,9 @@ export const setDelegationParameters = async (
   const staking = cli.contracts.Staking
 
   logger.info(`Setting the following delegation parameters for indexer ${cli.walletAddress}
-      indexingRewardCut = ${indexingRewardCut}
-      queryFeeCut       = ${queryFeeCut}
-      cooldownBlocks    = ${cooldownBlocks}
+      indexingRewardCut           = ${indexingRewardCut}
+      queryFeeCut                 = ${queryFeeCut}
+      cooldownBlocks (deprecated) = ${cooldownBlocks}
   `)
   await sendTransaction(cli.wallet, staking, 'setDelegationParameters', [
     indexingRewardCut,
@@ -305,7 +305,7 @@ export const stakingCommand = {
               demandOption: true,
             })
             .option('cooldownBlocks', {
-              description: 'Period that need to pass to update delegation parameters',
+              description: 'Period that need to pass to update delegation parameters (deprecated)',
               type: 'number',
             })
         },

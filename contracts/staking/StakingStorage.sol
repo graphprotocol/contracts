@@ -32,7 +32,7 @@ contract StakingV1Storage is Managed {
     uint32 internal __protocolPercentage;
 
     /// @dev Period for allocation to be finalized
-    uint32 private __DEPRECATED_channelDisputeEpochs;
+    uint32 private __DEPRECATED_channelDisputeEpochs; // solhint-disable-line var-name-mixedcase
 
     /// @dev Maximum allocation time
     uint32 internal __maxAllocationEpochs;
@@ -55,7 +55,7 @@ contract StakingV1Storage is Managed {
     mapping(bytes32 => uint256) internal __subgraphAllocations;
 
     // Rebate pools : epoch => Pool
-    mapping(uint256 => uint256) private __DEPRECATED_rebates;
+    mapping(uint256 => uint256) private __DEPRECATED_rebates; // solhint-disable-line var-name-mixedcase
 
     // -- Slashing --
 
@@ -69,8 +69,8 @@ contract StakingV1Storage is Managed {
     /// then they can use up to 500 GRT from the delegated stake
     uint32 internal __delegationRatio;
 
-    /// @dev Time in blocks an indexer needs to wait to change delegation parameters
-    uint32 internal __delegationParametersCooldown;
+    /// @dev Time in blocks an indexer needs to wait to change delegation parameters (deprecated)
+    uint32 internal __DEPRECATED_delegationParametersCooldown; // solhint-disable-line var-name-mixedcase
 
     /// @dev Time in epochs a delegator needs to wait to withdraw delegated stake
     uint32 internal __delegationUnbondingPeriod; // in epochs

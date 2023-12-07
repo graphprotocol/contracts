@@ -544,14 +544,13 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @notice Set the delegation parameters for the caller.
      * @param _indexingRewardCut Percentage of indexing rewards left for the indexer
      * @param _queryFeeCut Percentage of query fees left for the indexer
-     * @param _cooldownBlocks Period that need to pass to update delegation parameters
      */
     function setDelegationParameters(
         uint32 _indexingRewardCut,
         uint32 _queryFeeCut,
-        uint32 _cooldownBlocks
+        uint32 // _cooldownBlocks, deprecated
     ) public override {
-        _setDelegationParameters(msg.sender, _indexingRewardCut, _queryFeeCut, _cooldownBlocks);
+        _setDelegationParameters(msg.sender, _indexingRewardCut, _queryFeeCut);
     }
 
     /**
@@ -661,41 +660,24 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _indexer Indexer to set delegation parameters
      * @param _indexingRewardCut Percentage of indexing rewards left for delegators
      * @param _queryFeeCut Percentage of query fees left for delegators
-     * @param _cooldownBlocks Period that need to pass to update delegation parameters
      */
     function _setDelegationParameters(
         address _indexer,
         uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
-        uint32 _cooldownBlocks
+        uint32 _queryFeeCut
     ) internal {
         // Incentives must be within bounds
         require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
         require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");
 
-        // Cooldown period set by indexer cannot be below protocol global setting
-        require(_cooldownBlocks >= __delegationParametersCooldown, "<cooldown");
-
-        // Verify the cooldown period passed
         DelegationPool storage pool = __delegationPools[_indexer];
-        require(
-            pool.updatedAtBlock == 0 ||
-                pool.updatedAtBlock.add(uint256(pool.cooldownBlocks)) <= block.number,
-            "!cooldown"
-        );
 
         // Update delegation params
         pool.indexingRewardCut = _indexingRewardCut;
         pool.queryFeeCut = _queryFeeCut;
-        pool.cooldownBlocks = _cooldownBlocks;
         pool.updatedAtBlock = block.number;
 
-        emit DelegationParametersUpdated(
-            _indexer,
-            _indexingRewardCut,
-            _queryFeeCut,
-            _cooldownBlocks
-        );
+        emit DelegationParametersUpdated(_indexer, _indexingRewardCut, _queryFeeCut, 0);
     }
 
     /**
@@ -718,7 +700,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
 
         // Initialize the delegation pool the first time
         if (__delegationPools[_indexer].updatedAtBlock == 0) {
-            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM, __delegationParametersCooldown);
+            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM);
         }
 
         emit StakeDeposited(_indexer, _tokens);

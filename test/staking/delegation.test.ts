@@ -222,20 +222,6 @@ describe('Staking::Delegation', () => {
       })
     })
 
-    describe('delegationParametersCooldown', function () {
-      const cooldown = 5
-
-      it('should set `delegationParametersCooldown`', async function () {
-        await staking.connect(governor.signer).setDelegationParametersCooldown(cooldown)
-        expect(await staking.delegationParametersCooldown()).eq(cooldown)
-      })
-
-      it('reject set `delegationParametersCooldown` if not allowed', async function () {
-        const tx = staking.connect(me.signer).setDelegationParametersCooldown(cooldown)
-        await expect(tx).revertedWith('Only Controller governor')
-      })
-    })
-
     describe('delegationTaxPercentage', function () {
       it('should set `delegationTaxPercentage`', async function () {
         for (const newValue of [toBN('0'), toBN('5'), MAX_PPM]) {
@@ -259,43 +245,18 @@ describe('Staking::Delegation', () => {
     describe('delegationParameters', function () {
       const indexingRewardCut = toBN('50000')
       const queryFeeCut = toBN('80000')
-      const cooldownBlocks = 5
-
-      it('reject to set if under cooldown period', async function () {
-        // Set parameters
-        await staking
-          .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
-
-        // Try to set before cooldown period passed
-        const tx = staking
-          .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
-        await expect(tx).revertedWith('!cooldown')
-      })
-
-      it('reject to set if cooldown below the global configuration', async function () {
-        // Set global cooldown parameter
-        await staking.connect(governor.signer).setDelegationParametersCooldown(cooldownBlocks)
-
-        // Try to set delegation cooldown below global cooldown parameter
-        const tx = staking
-          .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks - 1)
-        await expect(tx).revertedWith('<cooldown')
-      })
 
       it('reject to set parameters out of bound', async function () {
         // Indexing reward out of bounds
         const tx1 = staking
           .connect(indexer.signer)
-          .setDelegationParameters(MAX_PPM.add('1'), queryFeeCut, cooldownBlocks)
+          .setDelegationParameters(MAX_PPM.add('1'), queryFeeCut, 0)
         await expect(tx1).revertedWith('>indexingRewardCut')
 
         // Query fee out of bounds
         const tx2 = staking
           .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, MAX_PPM.add('1'), cooldownBlocks)
+          .setDelegationParameters(indexingRewardCut, MAX_PPM.add('1'), 0)
         await expect(tx2).revertedWith('>queryFeeCut')
       })
 
@@ -303,16 +264,15 @@ describe('Staking::Delegation', () => {
         // Set parameters
         const tx = staking
           .connect(indexer.signer)
-          .setDelegationParameters(indexingRewardCut, queryFeeCut, cooldownBlocks)
+          .setDelegationParameters(indexingRewardCut, queryFeeCut, 0)
         await expect(tx)
           .emit(staking, 'DelegationParametersUpdated')
-          .withArgs(indexer.address, indexingRewardCut, queryFeeCut, cooldownBlocks)
+          .withArgs(indexer.address, indexingRewardCut, queryFeeCut, 0)
 
         // State updated
         const params = await staking.delegationPools(indexer.address)
         expect(params.indexingRewardCut).eq(indexingRewardCut)
         expect(params.queryFeeCut).eq(queryFeeCut)
-        expect(params.cooldownBlocks).eq(cooldownBlocks)
         expect(params.updatedAtBlock).eq(await latestBlock())
       })
 
@@ -321,7 +281,6 @@ describe('Staking::Delegation', () => {
         const beforeParams = await staking.delegationPools(indexer.address)
         expect(beforeParams.indexingRewardCut).eq(0)
         expect(beforeParams.queryFeeCut).eq(0)
-        expect(beforeParams.cooldownBlocks).eq(0)
         expect(beforeParams.updatedAtBlock).eq(0)
 
         // Indexer stake tokens
@@ -334,7 +293,6 @@ describe('Staking::Delegation', () => {
         const afterParams = await staking.delegationPools(indexer.address)
         expect(afterParams.indexingRewardCut).eq(MAX_PPM)
         expect(afterParams.queryFeeCut).eq(MAX_PPM)
-        expect(afterParams.cooldownBlocks).eq(0)
         expect(afterParams.updatedAtBlock).eq(await latestBlock())
       })
 
@@ -343,7 +301,6 @@ describe('Staking::Delegation', () => {
         const beforeParams = await staking.delegationPools(indexer.address)
         expect(beforeParams.indexingRewardCut).eq(0)
         expect(beforeParams.queryFeeCut).eq(0)
-        expect(beforeParams.cooldownBlocks).eq(0)
         expect(beforeParams.updatedAtBlock).eq(0)
 
         // Indexer stake tokens
@@ -356,7 +313,6 @@ describe('Staking::Delegation', () => {
         const afterParams = await staking.delegationPools(indexer.address)
         expect(afterParams.indexingRewardCut).eq(MAX_PPM)
         expect(afterParams.queryFeeCut).eq(MAX_PPM)
-        expect(afterParams.cooldownBlocks).eq(0)
         expect(afterParams.updatedAtBlock).eq(await latestBlock())
       })
     })

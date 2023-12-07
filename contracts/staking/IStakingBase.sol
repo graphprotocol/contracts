@@ -90,7 +90,7 @@ interface IStakingBase is IStakingData {
         address indexed indexer,
         uint32 indexingRewardCut,
         uint32 queryFeeCut,
-        uint32 cooldownBlocks
+        uint32 __DEPRECATED_cooldownBlocks // solhint-disable-line var-name-mixedcase
     );
 
     /**
@@ -260,12 +260,11 @@ interface IStakingBase is IStakingData {
      * @notice Set the delegation parameters for the caller.
      * @param _indexingRewardCut Percentage of indexing rewards left for the indexer
      * @param _queryFeeCut Percentage of query fees left for the indexer
-     * @param _cooldownBlocks Period that need to pass to update delegation parameters
      */
     function setDelegationParameters(
         uint32 _indexingRewardCut,
         uint32 _queryFeeCut,
-        uint32 _cooldownBlocks
+        uint32 // _cooldownBlocks, deprecated
     ) external;
 
     /**
