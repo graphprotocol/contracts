@@ -221,17 +221,6 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set an address as allowed asset holder.
-     * @param _assetHolder Address of allowed source for state channel funds
-     * @param _allowed True if asset holder is allowed
-     */
-    function setAssetHolder(address _assetHolder, bool _allowed) external override onlyGovernor {
-        require(_assetHolder != address(0), "!assetHolder");
-        __assetHolders[_assetHolder] = _allowed;
-        emit AssetHolderUpdate(msg.sender, _assetHolder, _allowed);
-    }
-
-    /**
      * @notice Authorize or unauthorize an address to be an operator for the caller.
      * @param _operator Address to authorize or unauthorize
      * @param _allowed Whether the operator is authorized or not
@@ -354,7 +343,6 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
 
     /**
      * @dev Collect and rebate query fees from state channels to the indexer
-     * Funds received are only accepted from a valid sender.
      * To avoid reverting on the withdrawal from channel flow this function will accept calls with zero tokens.
      * We use an exponential rebate formula to calculate the amount of tokens to rebate to the indexer.
      * This implementation allows collecting multiple times on the same allocation, keeping track of the
@@ -366,12 +354,15 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         // Allocation identifier validation
         require(_allocationID != address(0), "!alloc");
 
-        // The contract caller must be an authorized asset holder
-        require(__assetHolders[msg.sender] == true, "!assetHolder");
-
         // Allocation must exist
         AllocationState allocState = _getAllocationState(_allocationID);
         require(allocState != AllocationState.Null, "!collect");
+
+        // If the query fees are zero, we don't want to revert
+        // but we also don't need to do anything, so just return
+        if (_tokens == 0) {
+            return;
+        }
 
         Allocation storage alloc = __allocations[_allocationID];
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
@@ -382,9 +373,8 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         uint256 queryRebates = 0; // Tokens to distribute to indexer
         uint256 delegationRewards = 0; // Tokens to distribute to delegators
 
-        // Process query fees only if non-zero amount
-        if (queryFees > 0) {
-            // -- Pull tokens from the authorized sender --
+        {
+            // -- Pull tokens from the sender --
             IGraphToken graphToken = graphToken();
             TokenUtils.pullTokens(graphToken, msg.sender, queryFees);
 
@@ -789,7 +779,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
 
         // Creates an allocation
         // Allocation identifiers are not reused
-        // The assetHolder address can send collected funds to the allocation
+        // Anyone can send collected funds to the allocation using collect()
         Allocation memory alloc = Allocation(
             _indexer,
             _subgraphDeploymentID,
@@ -955,7 +945,13 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
 
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
-            uint256 curationFees = uint256(_curationPercentage).mul(_tokens).div(MAX_PPM);
+            // Calculate the tokens after curation fees first, and subtact that,
+            // to prevent curation fees from rounding down to zero
+            uint256 tokensAfterCurationFees = uint256(MAX_PPM)
+                .sub(_curationPercentage)
+                .mul(_tokens)
+                .div(MAX_PPM);
+            uint256 curationFees = _tokens.sub(tokensAfterCurationFees);
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
@@ -981,7 +977,10 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         uint256 _tokens,
         uint256 _percentage
     ) private returns (uint256) {
-        uint256 tax = uint256(_percentage).mul(_tokens).div(MAX_PPM);
+        // Calculate tokens after tax first, and subtract that,
+        // to prevent the tax from rounding down to zero
+        uint256 tokensAfterTax = uint256(MAX_PPM).sub(_percentage).mul(_tokens).div(MAX_PPM);
+        uint256 tax = _tokens.sub(tokensAfterTax);
         TokenUtils.burnTokens(_graphToken, tax); // Burn tax if any
         return tax;
     }

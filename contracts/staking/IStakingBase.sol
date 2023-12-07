@@ -94,12 +94,6 @@ interface IStakingBase is IStakingData {
     );
 
     /**
-     * @dev Emitted when `caller` set `assetHolder` address as `allowed` to send funds
-     * to staking contract.
-     */
-    event AssetHolderUpdate(address indexed caller, address indexed assetHolder, bool allowed);
-
-    /**
      * @dev Emitted when `indexer` set `operator` access.
      */
     event SetOperator(address indexed indexer, address indexed operator, bool allowed);
@@ -218,14 +212,6 @@ interface IStakingBase is IStakingData {
         uint32 _lambdaNumerator,
         uint32 _lambdaDenominator
     ) external;
-
-    /**
-     * @notice Set an address as allowed asset holder.
-     * @dev This function can only be called by the governor.
-     * @param _assetHolder Address of allowed source for state channel funds
-     * @param _allowed True if asset holder is allowed
-     */
-    function setAssetHolder(address _assetHolder, bool _allowed) external;
 
     /**
      * @notice Authorize or unauthorize an address to be an operator for the caller.

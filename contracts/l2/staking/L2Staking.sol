@@ -19,6 +19,9 @@ contract L2Staking is Staking, IL2StakingBase {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
 
+    /// @dev Minimum amount of tokens that can be delegated
+    uint256 private constant MINIMUM_DELEGATION = 1e18;
+
     /**
      * @dev Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
      * gets `shares` for the delegation pool proportionally to the tokens staked.
@@ -124,8 +127,10 @@ contract L2Staking is Staking, IL2StakingBase {
         // Calculate shares to issue (without applying any delegation tax)
         uint256 shares = (pool.tokens == 0) ? _amount : _amount.mul(pool.shares).div(pool.tokens);
 
-        if (shares == 0) {
-            // If no shares would be issued (probably a rounding issue or attack), return the tokens to the delegator
+        if (shares == 0 || _amount < MINIMUM_DELEGATION) {
+            // If no shares would be issued (probably a rounding issue or attack),
+            // or if the amount is under the minimum delegation (which could be part of a rounding attack),
+            // return the tokens to the delegator
             graphToken().transfer(_delegationData.delegator, _amount);
             emit TransferredDelegationReturnedToDelegator(
                 _delegationData.indexer,

@@ -117,9 +117,13 @@ describe('Staking:Allocation', () => {
   // This function tests collect with state updates
   const shouldCollect = async (
     tokensToCollect: BigNumber,
-    _allocationID?: string,
+    options: {
+      allocationID?: string
+      expectEvent?: boolean
+    } = {},
   ): Promise<{ queryRebates: BigNumber; queryFeesBurnt: BigNumber }> => {
-    const alloID = _allocationID ?? allocationID
+    const expectEvent = options.expectEvent ?? true
+    const alloID = options.allocationID ?? allocationID
     const alloStateBefore = await staking.getAllocationState(alloID)
     // Should have a particular state before collecting
     expect(alloStateBefore).to.be.oneOf([AllocationState.Active, AllocationState.Closed])
@@ -174,21 +178,26 @@ describe('Staking:Allocation', () => {
 
     // Collect tokens from allocation
     const tx = staking.connect(assetHolder.signer).collect(tokensToCollect, alloID)
-    await expect(tx)
-      .emit(staking, 'RebateCollected')
-      .withArgs(
-        assetHolder.address,
-        indexer.address,
-        subgraphDeploymentID,
-        alloID,
-        await epochManager.currentEpoch(),
-        tokensToCollect,
-        protocolFees,
-        curationFees,
-        queryFees,
-        queryRebates,
-        delegationRewards,
-      )
+    if (expectEvent) {
+      await expect(tx)
+        .emit(staking, 'RebateCollected')
+        .withArgs(
+          assetHolder.address,
+          indexer.address,
+          subgraphDeploymentID,
+          alloID,
+          await epochManager.currentEpoch(),
+          tokensToCollect,
+          protocolFees,
+          curationFees,
+          queryFees,
+          queryRebates,
+          delegationRewards,
+        )
+    } else {
+      await expect(tx).to.not.be.reverted
+      await expect(tx).to.not.emit(staking, 'RebateCollected')
+    }
 
     // After state
     const afterTokenSupply = await grt.totalSupply()
@@ -255,8 +264,9 @@ describe('Staking:Allocation', () => {
     )
 
     // Collect `tokensToCollect` with a single voucher
-    const rebatedAmountFull = (await shouldCollect(totalTokensToCollect, anotherAllocationID))
-      .queryRebates
+    const rebatedAmountFull = (
+      await shouldCollect(totalTokensToCollect, { allocationID: anotherAllocationID })
+    ).queryRebates
 
     // Check rebated amounts match, allow a small error margin of 5 wei
     // Due to rounding it's not possible to guarantee an exact match in case of multiple collections
@@ -322,9 +332,6 @@ describe('Staking:Allocation', () => {
     // Give some funds to the delegator and approve staking contract to use funds on delegator behalf
     await grt.connect(governor.signer).mint(delegator.address, tokensToDelegate)
     await grt.connect(delegator.signer).approve(staking.address, tokensToDelegate)
-
-    // Allow the asset holder
-    await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {
@@ -526,6 +533,7 @@ describe('Staking:Allocation', () => {
     beforeEach(async function () {
       // Create the allocation
       await staking.connect(indexer.signer).stake(tokensToStake)
+      await advanceToNextEpoch(epochManager)
       await allocate(tokensToAllocate)
 
       // Add some signal to the subgraph to enable curation fees
@@ -593,7 +601,7 @@ describe('Staking:Allocation', () => {
           })
 
           it('should collect zero tokens', async function () {
-            await shouldCollect(toGRT('0'))
+            await shouldCollect(toGRT('0'), { expectEvent: false })
           })
 
           it('should allow multiple collections on the same allocation', async function () {
@@ -641,7 +649,7 @@ describe('Staking:Allocation', () => {
       )
 
       // Collect from closed allocation, should get no rebates
-      const rebates = await shouldCollect(tokensToCollect, anotherAllocationID)
+      const rebates = await shouldCollect(tokensToCollect, { allocationID: anotherAllocationID })
       expect(rebates.queryRebates).eq(BigNumber.from(0))
       expect(rebates.queryFeesBurnt).eq(tokensToCollect)
     })
@@ -665,7 +673,9 @@ describe('Staking:Allocation', () => {
 
       // First collection
       // Indexer gets 100% of the query fees due to α = 0
-      const firstRebates = await shouldCollect(firstTokensToCollect, anotherAllocationID)
+      const firstRebates = await shouldCollect(firstTokensToCollect, {
+        allocationID: anotherAllocationID,
+      })
       expect(firstRebates.queryRebates).eq(firstTokensToCollect)
       expect(firstRebates.queryFeesBurnt).eq(BigNumber.from(0))
 
@@ -675,14 +685,18 @@ describe('Staking:Allocation', () => {
       // Second collection
       // Indexer gets 0% of the query fees
       // Parameters changed so now they are over-rebated and should get "negative rebates", instead they get 0
-      const secondRebates = await shouldCollect(secondTokensToCollect, anotherAllocationID)
+      const secondRebates = await shouldCollect(secondTokensToCollect, {
+        allocationID: anotherAllocationID,
+      })
       expect(secondRebates.queryRebates).eq(BigNumber.from(0))
       expect(secondRebates.queryFeesBurnt).eq(secondTokensToCollect)
 
       // Third collection
       // Previous collection plus this new one tip the balance and indexer is no longer over-rebated
       // They get rebates and burn again
-      const thirdRebates = await shouldCollect(thirdTokensToCollect, anotherAllocationID)
+      const thirdRebates = await shouldCollect(thirdTokensToCollect, {
+        allocationID: anotherAllocationID,
+      })
       expect(thirdRebates.queryRebates).gt(BigNumber.from(0))
       expect(thirdRebates.queryFeesBurnt).gt(BigNumber.from(0))
     })
@@ -706,7 +720,9 @@ describe('Staking:Allocation', () => {
 
       // First collection
       // Indexer gets rebates and burn
-      const firstRebates = await shouldCollect(firstTokensToCollect, anotherAllocationID)
+      const firstRebates = await shouldCollect(firstTokensToCollect, {
+        allocationID: anotherAllocationID,
+      })
       expect(firstRebates.queryRebates).gt(BigNumber.from(0))
       expect(firstRebates.queryFeesBurnt).gt(BigNumber.from(0))
 
@@ -716,16 +732,24 @@ describe('Staking:Allocation', () => {
       // Second collection
       // Indexer gets 100% of the query fees
       // Parameters changed so now they are under-rebated and should get more than the available amount but we cap it
-      const secondRebates = await shouldCollect(secondTokensToCollect, anotherAllocationID)
+      const secondRebates = await shouldCollect(secondTokensToCollect, {
+        allocationID: anotherAllocationID,
+      })
       expect(secondRebates.queryRebates).eq(secondTokensToCollect)
       expect(secondRebates.queryFeesBurnt).eq(BigNumber.from(0))
 
       // Third collection
       // Previous collection plus this new one tip the balance and indexer is no longer under-rebated
       // They get rebates and burn again
-      const thirdRebates = await shouldCollect(thirdTokensToCollect, anotherAllocationID)
+      const thirdRebates = await shouldCollect(thirdTokensToCollect, {
+        allocationID: anotherAllocationID,
+      })
       expect(thirdRebates.queryRebates).gt(BigNumber.from(0))
       expect(thirdRebates.queryFeesBurnt).gt(BigNumber.from(0))
+    })
+
+    it('should collect zero tokens', async function () {
+      await shouldCollect(toGRT('0'), { expectEvent: false })
     })
 
     it('should get stuck under-rebated if alpha is changed to zero', async function () {
@@ -742,7 +766,9 @@ describe('Staking:Allocation', () => {
 
       // First collection
       // Indexer gets rebates and burn
-      const firstRebates = await shouldCollect(tokensToCollect, anotherAllocationID)
+      const firstRebates = await shouldCollect(tokensToCollect, {
+        allocationID: anotherAllocationID,
+      })
       expect(firstRebates.queryRebates).gt(BigNumber.from(0))
       expect(firstRebates.queryFeesBurnt).gt(BigNumber.from(0))
 
@@ -754,7 +780,9 @@ describe('Staking:Allocation', () => {
       // Parameters changed so now they are under-rebated and should get more than the available amount but we cap it
       // Distributed amount will never catch up due to the initial collection which was less than 100%
       for (const _i of [...Array(10).keys()]) {
-        const succesiveRebates = await shouldCollect(tokensToCollect, anotherAllocationID)
+        const succesiveRebates = await shouldCollect(tokensToCollect, {
+          allocationID: anotherAllocationID,
+        })
         expect(succesiveRebates.queryRebates).eq(tokensToCollect)
         expect(succesiveRebates.queryFeesBurnt).eq(BigNumber.from(0))
       }

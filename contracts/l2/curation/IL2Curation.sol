@@ -29,4 +29,17 @@ interface IL2Curation {
         external
         view
         returns (uint256);
+
+    /**
+     * @notice Calculate the amount of tokens that would be recovered if minting signal with
+     * the input tokens and then burning it. This can be used to compute rounding error.
+     * This function does not account for curation tax.
+     * @param _subgraphDeploymentID Subgraph deployment for which to mint signal
+     * @param _tokensIn Amount of tokens used to mint signal
+     * @return Amount of tokens that would be recovered after minting and burning signal
+     */
+    function tokensToSignalToTokensNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        external
+        view
+        returns (uint256);
 }

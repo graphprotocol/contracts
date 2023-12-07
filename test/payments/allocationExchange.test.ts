@@ -14,8 +14,10 @@ import {
   randomHexBytes,
   toGRT,
   Account,
+  advanceToNextEpoch,
 } from '../lib/testHelpers'
 import { arrayify, joinSignature, SigningKey, solidityKeccak256 } from 'ethers/lib/utils'
+import { EpochManager } from '../../build/types/EpochManager'
 
 const { AddressZero, MaxUint256 } = constants
 
@@ -35,6 +37,7 @@ describe('AllocationExchange', () => {
   let grt: GraphToken
   let staking: IStaking
   let allocationExchange: AllocationExchange
+  let epochManager: EpochManager
 
   async function createVoucher(
     allocationID: string,
@@ -57,7 +60,7 @@ describe('AllocationExchange', () => {
     authority = Wallet.createRandom()
 
     fixture = new NetworkFixture()
-    ;({ grt, staking } = await fixture.load(governor.signer))
+    ;({ grt, staking, epochManager } = await fixture.load(governor.signer))
     allocationExchange = (await deployment.deployContract(
       'AllocationExchange',
       governor.signer,
@@ -77,7 +80,6 @@ describe('AllocationExchange', () => {
     await grt.connect(governor.signer).mint(allocationExchange.address, exchangeTokens)
 
     // Ensure the exchange is correctly setup
-    await staking.connect(governor.signer).setAssetHolder(allocationExchange.address, true)
     await allocationExchange.connect(governor.signer).setAuthority(authority.address, true)
     await allocationExchange.approveAll()
   })
@@ -192,6 +194,7 @@ describe('AllocationExchange', () => {
 
       // Setup an active allocation
       const allocationID = await setupAllocation()
+      await advanceToNextEpoch(epochManager)
 
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount
@@ -213,6 +216,7 @@ describe('AllocationExchange', () => {
     it('reject double spending of a voucher', async function () {
       // Setup an active allocation
       const allocationID = await setupAllocation()
+      await advanceToNextEpoch(epochManager)
 
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount

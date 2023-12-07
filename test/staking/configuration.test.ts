@@ -88,35 +88,6 @@ describe('Staking:Config', () => {
     })
   })
 
-  describe('setAssetHolder', function () {
-    it('should set `assetHolder`', async function () {
-      expect(await staking.assetHolders(me.address)).eq(false)
-
-      const tx1 = staking.connect(governor.signer).setAssetHolder(me.address, true)
-      await expect(tx1)
-        .emit(staking, 'AssetHolderUpdate')
-        .withArgs(governor.address, me.address, true)
-      expect(await staking.assetHolders(me.address)).eq(true)
-
-      const tx2 = staking.connect(governor.signer).setAssetHolder(me.address, false)
-      await expect(tx2)
-        .emit(staking, 'AssetHolderUpdate')
-        .withArgs(governor.address, me.address, false)
-      await staking.connect(governor.signer).setAssetHolder(me.address, false)
-      expect(await staking.assetHolders(me.address)).eq(false)
-    })
-
-    it('reject set `assetHolder` if not allowed', async function () {
-      const tx = staking.connect(other.signer).setAssetHolder(me.address, true)
-      await expect(tx).revertedWith('Only Controller governor')
-    })
-
-    it('reject set `assetHolder` to address zero', async function () {
-      const tx = staking.connect(governor.signer).setAssetHolder(AddressZero, true)
-      await expect(tx).revertedWith('!assetHolder')
-    })
-  })
-
   describe('curationPercentage', function () {
     it('should set `curationPercentage`', async function () {
       const newValue = toBN('5')

@@ -26,6 +26,8 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
 
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
+    /// @dev Minimum amount of tokens that can be delegated
+    uint256 private constant MINIMUM_DELEGATION = 1e18;
 
     /**
      * @dev Check if the caller is the slasher.
@@ -302,17 +304,6 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Getter for assetHolders[_maybeAssetHolder]:
-     * returns true if the address is an asset holder, i.e. an entity that can collect
-     * query fees into the Staking contract.
-     * @param _maybeAssetHolder The address that may or may not be an asset holder
-     * @return True if the address is an asset holder
-     */
-    function assetHolders(address _maybeAssetHolder) external view override returns (bool) {
-        return __assetHolders[_maybeAssetHolder];
-    }
-
-    /**
      * @notice Getter for operatorAuth[_indexer][_maybeOperator]:
      * returns true if the operator is authorized to operate on behalf of the indexer.
      * @param _indexer The indexer address for which to query authorization
@@ -539,8 +530,8 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
         address _indexer,
         uint256 _tokens
     ) private returns (uint256) {
-        // Only delegate a non-zero amount of tokens
-        require(_tokens > 0, "!tokens");
+        // Only allow delegations over a minimum, to prevent rounding attacks
+        require(_tokens >= MINIMUM_DELEGATION, "!minimum-delegation");
         // Only delegate to non-empty address
         require(_indexer != address(0), "!indexer");
         // Only delegate to staked indexer
@@ -599,15 +590,26 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
             _withdrawDelegated(_delegator, _indexer, address(0));
         }
 
+        uint256 poolTokens = pool.tokens;
+        uint256 poolShares = pool.shares;
+
         // Calculate tokens to get in exchange for the shares
-        uint256 tokens = _shares.mul(pool.tokens).div(pool.shares);
+        uint256 tokens = _shares.mul(poolTokens).div(poolShares);
 
         // Update the delegation pool
-        pool.tokens = pool.tokens.sub(tokens);
-        pool.shares = pool.shares.sub(_shares);
+        poolTokens = poolTokens.sub(tokens);
+        poolShares = poolShares.sub(_shares);
+        pool.tokens = poolTokens;
+        pool.shares = poolShares;
 
         // Update the delegation
         delegation.shares = delegation.shares.sub(_shares);
+        // Enforce more than the minimum delegation is left,
+        // to prevent rounding attacks
+        if (delegation.shares > 0) {
+            uint256 remainingDelegation = delegation.shares.mul(poolTokens).div(poolShares);
+            require(remainingDelegation >= MINIMUM_DELEGATION, "!minimum-delegation");
+        }
         delegation.tokensLocked = delegation.tokensLocked.add(tokens);
         delegation.tokensLockedUntil = epochManager().currentEpoch().add(
             __delegationUnbondingPeriod
