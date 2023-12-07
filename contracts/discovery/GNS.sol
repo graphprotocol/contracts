@@ -731,8 +731,13 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         address _owner,
         uint32 _curationTaxPercentage
     ) internal returns (uint256) {
+        // If curation or owner tax are zero, we don't need to charge owner tax
+        // so the amount of tokens to signal will remain the same.
+        // Note if owner tax is zero but curation tax is nonzero, the curation tax
+        // will still be charged (in Curation or L2Curation) - this function just calculates
+        // the owner's additional tax.
         if (_curationTaxPercentage == 0 || ownerTaxPercentage == 0) {
-            return 0;
+            return _tokens;
         }
 
         // Tax on the total bonding curve funds
