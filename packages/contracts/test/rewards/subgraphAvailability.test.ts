@@ -37,7 +37,6 @@ describe('SubgraphAvailabilityManager', () => {
 
   let fixture: NetworkFixture
 
-  const maxOracles = '5'
   const executionThreshold = '3'
   const voteTimeLimit = '5' // 5 seconds
 
@@ -73,7 +72,6 @@ describe('SubgraphAvailabilityManager', () => {
         args: [
           governor.address,
           rewardsManager.address,
-          maxOracles,
           executionThreshold,
           voteTimeLimit,
           oracles,
@@ -81,6 +79,7 @@ describe('SubgraphAvailabilityManager', () => {
       }
     ))
     subgraphAvailabilityManager = deployResult.contract as SubgraphAvailabilityManager
+
     await rewardsManager
       .connect(governor)
       .setSubgraphAvailabilityOracle(subgraphAvailabilityManager.address)
@@ -99,6 +98,25 @@ describe('SubgraphAvailabilityManager', () => {
       expect(subgraphAvailabilityManager.address).to.be.properAddress
     })
 
+    it('should revert if oracles array is less than 5', async () => {
+      await expect(
+        deploy(
+          DeployType.Deploy,
+          governor,
+          {
+            name: "SubgraphAvailabilityManager",
+            args: [
+              governor.address,
+              rewardsManager.address,
+              executionThreshold,
+              voteTimeLimit,
+              [oracleOne.address, oracleTwo.address, oracleThree.address, oracleFour.address],
+            ]
+          }
+        ),
+      ).to.be.reverted
+    })
+
     it('should revert if an oracle is address zero', async () => {
       await expect(
         deploy(
@@ -109,7 +127,6 @@ describe('SubgraphAvailabilityManager', () => {
             args: [
               governor.address,
               rewardsManager.address,
-              maxOracles,
               executionThreshold,
               voteTimeLimit,
               [
@@ -135,7 +152,6 @@ describe('SubgraphAvailabilityManager', () => {
             args: [
               AddressZero,
               rewardsManager.address,
-              maxOracles,
               executionThreshold,
               voteTimeLimit,
               oracles,
@@ -155,7 +171,6 @@ describe('SubgraphAvailabilityManager', () => {
             args: [
               governor.address,
               AddressZero,
-              maxOracles,
               executionThreshold,
               voteTimeLimit,
               oracles,
@@ -164,6 +179,25 @@ describe('SubgraphAvailabilityManager', () => {
         ),
       ).to.be.revertedWith('SAM: rewardsManager must be set')
     })
+
+    it('should revert if executionThreshold is too low', async () => {
+      await expect(
+        deploy(
+          DeployType.Deploy,
+          governor,
+          {
+            name: "SubgraphAvailabilityManager",
+            args: [
+              governor.address,
+              rewardsManager.address,
+              '2',
+              voteTimeLimit,
+              oracles,
+            ]
+          }
+        ),
+      ).to.be.revertedWith('SAM: executionThreshold too low')
+    })
   })
 
   describe('initializer', () => {
@@ -171,8 +205,7 @@ describe('SubgraphAvailabilityManager', () => {
       expect(await subgraphAvailabilityManager.governor()).to.be.equal(governor.address)
     })
 
-    it('should init maxOracles and executionThreshold', async () => {
-      expect(await subgraphAvailabilityManager.maxOracles()).to.be.equal(maxOracles)
+    it('should init executionThreshold', async () => {
       expect(await subgraphAvailabilityManager.executionThreshold()).to.be.equal(executionThreshold)
     })
 
