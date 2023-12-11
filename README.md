@@ -64,6 +64,8 @@ $ yarn build
 
 > Coming soon
 
+For now, each package has its own README with more specific documentation you can check out.
+
 ## Contributing
 
 Contributions are welcomed and encouraged! You can do so by:
