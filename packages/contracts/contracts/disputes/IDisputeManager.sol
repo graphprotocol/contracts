@@ -12,6 +12,14 @@ interface IDisputeManager {
         QueryDispute
     }
 
+    enum DisputeStatus {
+        Null,
+        Accepted,
+        Rejected,
+        Drawn,
+        Pending
+    }
+
     // Disputes contain info necessary for the Arbitrator to verify and resolve
     struct Dispute {
         address indexer;
@@ -19,6 +27,7 @@ interface IDisputeManager {
         uint256 deposit;
         bytes32 relatedDisputeID;
         DisputeType disputeType;
+        DisputeStatus status;
     }
 
     // -- Attestation --

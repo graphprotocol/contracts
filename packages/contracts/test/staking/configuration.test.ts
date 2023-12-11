@@ -35,7 +35,7 @@ describe('Staking:Config', () => {
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    staking = contracts.Staking as IStaking
+    staking = contracts.Staking as unknown as IStaking
     proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
   })
 
@@ -91,35 +91,6 @@ describe('Staking:Config', () => {
     it('reject set `slasher` for zero', async function () {
       const tx = staking.connect(governor).setSlasher(AddressZero, true)
       await expect(tx).revertedWith('!slasher')
-    })
-  })
-
-  describe('setAssetHolder', function () {
-    it('should set `assetHolder`', async function () {
-      expect(await staking.assetHolders(me.address)).eq(false)
-
-      const tx1 = staking.connect(governor).setAssetHolder(me.address, true)
-      await expect(tx1)
-        .emit(staking, 'AssetHolderUpdate')
-        .withArgs(governor.address, me.address, true)
-      expect(await staking.assetHolders(me.address)).eq(true)
-
-      const tx2 = staking.connect(governor).setAssetHolder(me.address, false)
-      await expect(tx2)
-        .emit(staking, 'AssetHolderUpdate')
-        .withArgs(governor.address, me.address, false)
-      await staking.connect(governor).setAssetHolder(me.address, false)
-      expect(await staking.assetHolders(me.address)).eq(false)
-    })
-
-    it('reject set `assetHolder` if not allowed', async function () {
-      const tx = staking.connect(other).setAssetHolder(me.address, true)
-      await expect(tx).revertedWith('Only Controller governor')
-    })
-
-    it('reject set `assetHolder` to address zero', async function () {
-      const tx = staking.connect(governor).setAssetHolder(AddressZero, true)
-      await expect(tx).revertedWith('!assetHolder')
     })
   })
 

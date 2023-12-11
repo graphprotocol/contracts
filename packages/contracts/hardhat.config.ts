@@ -3,7 +3,6 @@ import fs from 'fs'
 import * as dotenv from 'dotenv'
 import { execSync } from 'child_process'
 
-// import 'hardhat/types/runtime'
 import { HardhatUserConfig } from 'hardhat/types'
 
 dotenv.config()

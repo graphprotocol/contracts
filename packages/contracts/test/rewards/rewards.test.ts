@@ -142,7 +142,7 @@ describe('Rewards', () => {
     grt = contracts.GraphToken as GraphToken
     curation = contracts.Curation as Curation
     epochManager = contracts.EpochManager as EpochManager
-    staking = contracts.Staking as IStaking
+    staking = contracts.Staking as unknown as IStaking
     rewardsManager = contracts.RewardsManager as RewardsManager
 
     // 200 GRT per block
@@ -602,7 +602,7 @@ describe('Rewards', () => {
           .setDelegationParameters(
             delegationParams.indexingRewardCut,
             delegationParams.queryFeeCut,
-            delegationParams.cooldownBlocks,
+            0,
           )
 
         // Delegate
@@ -790,7 +790,7 @@ describe('Rewards', () => {
         const delegationParams = {
           indexingRewardCut: toBN('823000'), // 82.30%
           queryFeeCut: toBN('80000'), // 8%
-          cooldownBlocks: 5,
+          cooldownBlocks: 0,
         }
         const tokensToDelegate = toGRT('2000')
 
@@ -1008,7 +1008,6 @@ describe('Rewards', () => {
 
       // allow the asset holder
       const tokensToCollect = toGRT('10000')
-      await staking.connect(governor).setAssetHolder(assetHolder.address, true)
 
       // signal in two subgraphs in the same block
       const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
@@ -1038,7 +1037,7 @@ describe('Rewards', () => {
         ])
 
       // move time fwd
-      await helpers.mine()
+      await helpers.mineEpoch(epochManager)
 
       // collect funds into staking for that sub
       await staking.connect(assetHolder).collect(tokensToCollect, allocationID1)

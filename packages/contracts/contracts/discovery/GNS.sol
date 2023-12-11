@@ -256,7 +256,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         uint256 subgraphID = _nextSubgraphID(subgraphOwner);
         SubgraphData storage subgraphData = _getSubgraphData(subgraphID);
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
-        subgraphData.reserveRatioDeprecated = fixedReserveRatio;
+        subgraphData.__DEPRECATED_reserveRatio = fixedReserveRatio;
 
         // Mint the NFT. Use the subgraphID as tokenID.
         // This function will check the if tokenID already exists.
@@ -367,7 +367,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         // Deprecate the subgraph and do cleanup
         subgraphData.disabled = true;
         subgraphData.vSignal = 0;
-        subgraphData.reserveRatioDeprecated = 0;
+        subgraphData.__DEPRECATED_reserveRatio = 0;
         // NOTE: We don't reset the following variable as we use it to test if the Subgraph was ever created
         // subgraphData.subgraphDeploymentID = 0;
 
@@ -710,8 +710,13 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
         address _owner,
         uint32 _curationTaxPercentage
     ) internal returns (uint256) {
+        // If curation or owner tax are zero, we don't need to charge owner tax
+        // so the amount of tokens to signal will remain the same.
+        // Note if owner tax is zero but curation tax is nonzero, the curation tax
+        // will still be charged (in Curation or L2Curation) - this function just calculates
+        // the owner's additional tax.
         if (_curationTaxPercentage == 0 || ownerTaxPercentage == 0) {
-            return 0;
+            return _tokens;
         }
 
         // Tax on the total bonding curve funds

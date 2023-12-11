@@ -1533,6 +1533,12 @@
         "runtimeCodeHash": "0x3a7fab6792b4dad58c7b59da19c5b65b3985d1be77024a9f86cb135965e9b462",
         "txHash": "0x78ff2e39d5c33ddfb89b1dbee89bdbc24452843a051f860c94e4e9dd75ded9c3"
       }
+    },
+    "EthereumDIDRegistry": {
+      "address": "0xF5f4cA61481558709AFa94AdEDa7B5F180f4AD59",
+      "creationCodeHash": "0x20cd202f7991716a84c097da5fbd365fd27f7f35f241f82c529ad7aba18b814b",
+      "runtimeCodeHash": "0x5f396ffd54b6cd6b3faded0f366c5d7e148cc54743926061be2dfd12a75391de",
+      "txHash": "0x2cefbc169b8ae51c263d0298956d86a397b05f11f076b71c918551f63fe33784"
     }
   },
   "11155111": {
@@ -1754,6 +1760,12 @@
         "runtimeCodeHash": "0x796b2cef94bab38e2cc4f82fef882d4c3441ef229329468d46fa72e1fd74be4a",
         "txHash": "0xbadc145e826c54b4a4a0263701a29d6ecd11f8c6533c0d8e1cfe5422321d55f6"
       }
+    },
+    "EthereumDIDRegistry": {
+      "address": "0xDe57D27e530c99bDa15Fe231B8C632E4a37E7343",
+      "creationCodeHash": "0x20cd202f7991716a84c097da5fbd365fd27f7f35f241f82c529ad7aba18b814b",
+      "runtimeCodeHash": "0x5f396ffd54b6cd6b3faded0f366c5d7e148cc54743926061be2dfd12a75391de",
+      "txHash": "0x8f3c9ae70242ed54c51a8f22c8d97f3ebc34cd65ccc4cc87054637b47610cf3a"
     }
   }
 }

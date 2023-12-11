@@ -90,14 +90,8 @@ interface IStakingBase is IStakingData {
         address indexed indexer,
         uint32 indexingRewardCut,
         uint32 queryFeeCut,
-        uint32 cooldownBlocks
+        uint32 __DEPRECATED_cooldownBlocks // solhint-disable-line var-name-mixedcase
     );
-
-    /**
-     * @dev Emitted when `caller` set `assetHolder` address as `allowed` to send funds
-     * to staking contract.
-     */
-    event AssetHolderUpdate(address indexed caller, address indexed assetHolder, bool allowed);
 
     /**
      * @dev Emitted when `indexer` set `operator` access.
@@ -220,14 +214,6 @@ interface IStakingBase is IStakingData {
     ) external;
 
     /**
-     * @notice Set an address as allowed asset holder.
-     * @dev This function can only be called by the governor.
-     * @param _assetHolder Address of allowed source for state channel funds
-     * @param _allowed True if asset holder is allowed
-     */
-    function setAssetHolder(address _assetHolder, bool _allowed) external;
-
-    /**
      * @notice Authorize or unauthorize an address to be an operator for the caller.
      * @param _operator Address to authorize or unauthorize
      * @param _allowed Whether the operator is authorized or not
@@ -274,12 +260,11 @@ interface IStakingBase is IStakingData {
      * @notice Set the delegation parameters for the caller.
      * @param _indexingRewardCut Percentage of indexing rewards left for the indexer
      * @param _queryFeeCut Percentage of query fees left for the indexer
-     * @param _cooldownBlocks Period that need to pass to update delegation parameters
      */
     function setDelegationParameters(
         uint32 _indexingRewardCut,
         uint32 _queryFeeCut,
-        uint32 _cooldownBlocks
+        uint32 // _cooldownBlocks, deprecated
     ) external;
 
     /**

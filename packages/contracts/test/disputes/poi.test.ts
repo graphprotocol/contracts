@@ -108,9 +108,6 @@ describe('DisputeManager:POI', async () => {
     // Give some funds to the fisherman
     await grt.connect(governor).mint(fisherman.address, fishermanTokens)
     await grt.connect(fisherman).approve(disputeManager.address, fishermanTokens)
-
-    // Allow the asset holder
-    await staking.connect(governor).setAssetHolder(assetHolder.address, true)
   })
 
   beforeEach(async function () {

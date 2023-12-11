@@ -20,7 +20,7 @@ interface IStakingExtension is IStakingData {
      * the original DelegationPool in IStakingData.sol contains a nested mapping.
      */
     struct DelegationPoolReturn {
-        uint32 cooldownBlocks; // Blocks to wait before updating parameters
+        uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
         uint32 indexingRewardCut; // in PPM
         uint32 queryFeeCut; // in PPM
         uint256 updatedAtBlock; // Block when the pool was last updated
@@ -84,14 +84,6 @@ interface IStakingExtension is IStakingData {
      * @param _delegationRatio Delegation capacity multiplier
      */
     function setDelegationRatio(uint32 _delegationRatio) external;
-
-    /**
-     * @notice Set the minimum time in blocks an indexer needs to wait to change delegation parameters.
-     * Indexers can set a custom amount time for their own cooldown, but it must be greater than this.
-     * @dev This function is only callable by the governor
-     * @param _blocks Number of blocks to set the delegation parameters cooldown period
-     */
-    function setDelegationParametersCooldown(uint32 _blocks) external;
 
     /**
      * @notice Set the time, in epochs, a Delegator needs to wait to withdraw tokens after undelegating.
@@ -191,13 +183,6 @@ interface IStakingExtension is IStakingData {
     function delegationRatio() external view returns (uint32);
 
     /**
-     * @notice Getter for delegationParametersCooldown:
-     * Minimum time in blocks an indexer needs to wait to change delegation parameters
-     * @return Delegation parameters cooldown in blocks
-     */
-    function delegationParametersCooldown() external view returns (uint32);
-
-    /**
      * @notice Getter for delegationUnbondingPeriod:
      * Time in epochs a delegator needs to wait to withdraw delegated stake
      * @return Delegation unbonding period in epochs
@@ -235,15 +220,6 @@ interface IStakingExtension is IStakingData {
      * @return The address where the indexer's rewards are sent, zero if none is set in which case rewards are re-staked
      */
     function rewardsDestination(address _indexer) external view returns (address);
-
-    /**
-     * @notice Getter for assetHolders[_maybeAssetHolder]:
-     * returns true if the address is an asset holder, i.e. an entity that can collect
-     * query fees into the Staking contract.
-     * @param _maybeAssetHolder The address that may or may not be an asset holder
-     * @return True if the address is an asset holder
-     */
-    function assetHolders(address _maybeAssetHolder) external view returns (bool);
 
     /**
      * @notice Getter for subgraphAllocations[_subgraphDeploymentId]:
