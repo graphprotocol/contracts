@@ -20,7 +20,7 @@ interface IStakingExtension is IStakingData {
      * the original DelegationPool in IStakingData.sol contains a nested mapping.
      */
     struct DelegationPoolReturn {
-        uint32 cooldownBlocks; // Blocks to wait before updating parameters
+        uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
         uint32 indexingRewardCut; // in PPM
         uint32 queryFeeCut; // in PPM
         uint256 updatedAtBlock; // Block when the pool was last updated
@@ -84,14 +84,6 @@ interface IStakingExtension is IStakingData {
      * @param _delegationRatio Delegation capacity multiplier
      */
     function setDelegationRatio(uint32 _delegationRatio) external;
-
-    /**
-     * @notice Set the minimum time in blocks an indexer needs to wait to change delegation parameters.
-     * Indexers can set a custom amount time for their own cooldown, but it must be greater than this.
-     * @dev This function is only callable by the governor
-     * @param _blocks Number of blocks to set the delegation parameters cooldown period
-     */
-    function setDelegationParametersCooldown(uint32 _blocks) external;
 
     /**
      * @notice Set the time, in epochs, a Delegator needs to wait to withdraw tokens after undelegating.
@@ -160,10 +152,10 @@ interface IStakingExtension is IStakingData {
      * @param _delegator Address of the delegator
      * @return Delegation data
      */
-    function getDelegation(address _indexer, address _delegator)
-        external
-        view
-        returns (Delegation memory);
+    function getDelegation(
+        address _indexer,
+        address _delegator
+    ) external view returns (Delegation memory);
 
     /**
      * @notice Return whether the delegator has delegated to the indexer.
@@ -178,10 +170,9 @@ interface IStakingExtension is IStakingData {
      * @param _delegation Delegation of tokens from delegator to indexer
      * @return Amount of tokens to withdraw
      */
-    function getWithdraweableDelegatedTokens(Delegation memory _delegation)
-        external
-        view
-        returns (uint256);
+    function getWithdraweableDelegatedTokens(
+        Delegation memory _delegation
+    ) external view returns (uint256);
 
     /**
      * @notice Getter for the delegationRatio, i.e. the delegation capacity multiplier:
@@ -190,13 +181,6 @@ interface IStakingExtension is IStakingData {
      * @return Delegation ratio
      */
     function delegationRatio() external view returns (uint32);
-
-    /**
-     * @notice Getter for delegationParametersCooldown:
-     * Minimum time in blocks an indexer needs to wait to change delegation parameters
-     * @return Delegation parameters cooldown in blocks
-     */
-    function delegationParametersCooldown() external view returns (uint32);
 
     /**
      * @notice Getter for delegationUnbondingPeriod:
@@ -236,15 +220,6 @@ interface IStakingExtension is IStakingData {
      * @return The address where the indexer's rewards are sent, zero if none is set in which case rewards are re-staked
      */
     function rewardsDestination(address _indexer) external view returns (address);
-
-    /**
-     * @notice Getter for assetHolders[_maybeAssetHolder]:
-     * returns true if the address is an asset holder, i.e. an entity that can collect
-     * query fees into the Staking contract.
-     * @param _maybeAssetHolder The address that may or may not be an asset holder
-     * @return True if the address is an asset holder
-     */
-    function assetHolders(address _maybeAssetHolder) external view returns (bool);
 
     /**
      * @notice Getter for subgraphAllocations[_subgraphDeploymentId]:
@@ -337,8 +312,7 @@ interface IStakingExtension is IStakingData {
      * @param _allocationID Allocation ID for which to query the allocation information
      * @return The specified allocation, as an IStakingData.Allocation struct
      */
-    function allocations(address _allocationID)
-        external
-        view
-        returns (IStakingData.Allocation memory);
+    function allocations(
+        address _allocationID
+    ) external view returns (IStakingData.Allocation memory);
 }

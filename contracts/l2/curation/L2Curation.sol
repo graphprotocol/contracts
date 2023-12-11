@@ -116,11 +116,9 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @notice Update the minimum deposit amount to `_minimumCurationDeposit`
      * @param _minimumCurationDeposit Minimum amount of tokens required deposit
      */
-    function setMinimumCurationDeposit(uint256 _minimumCurationDeposit)
-        external
-        override
-        onlyGovernor
-    {
+    function setMinimumCurationDeposit(
+        uint256 _minimumCurationDeposit
+    ) external override onlyGovernor {
         _setMinimumCurationDeposit(_minimumCurationDeposit);
     }
 
@@ -232,13 +230,10 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _tokensIn Amount of Graph Tokens to deposit
      * @return Signal minted
      */
-    function mintTaxFree(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        external
-        override
-        notPartialPaused
-        onlyGNS
-        returns (uint256)
-    {
+    function mintTaxFree(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn
+    ) external override notPartialPaused onlyGNS returns (uint256) {
         // Need to deposit some funds
         require(_tokensIn != 0, "Cannot deposit zero tokens");
 
@@ -337,12 +332,9 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _subgraphDeploymentID Subgraph deployment curation poool
      * @return Amount of token reserves in the curation pool
      */
-    function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getCurationPoolTokens(
+        bytes32 _subgraphDeploymentID
+    ) external view override returns (uint256) {
         return pools[_subgraphDeploymentID].tokens;
     }
 
@@ -361,12 +353,10 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal owned by a curator for the subgraph deployment
      */
-    function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getCuratorSignal(
+        address _curator,
+        bytes32 _subgraphDeploymentID
+    ) public view override returns (uint256) {
         IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.balanceOf(_curator);
     }
@@ -376,12 +366,9 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _subgraphDeploymentID Subgraph deployment curation poool
      * @return Amount of signal minted for the subgraph deployment
      */
-    function getCurationPoolSignal(bytes32 _subgraphDeploymentID)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getCurationPoolSignal(
+        bytes32 _subgraphDeploymentID
+    ) public view override returns (uint256) {
         IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.totalSupply();
     }
@@ -394,12 +381,10 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @return Amount of signal that can be bought
      * @return Amount of GRT that would be subtracted as curation tax
      */
-    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        public
-        view
-        override
-        returns (uint256, uint256)
-    {
+    function tokensToSignal(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn
+    ) public view override returns (uint256, uint256) {
         uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
         return (signalOut, curationTax);
@@ -412,13 +397,31 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _tokensIn Amount of tokens used to mint signal
      * @return Amount of signal that can be bought
      */
-    function tokensToSignalNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function tokensToSignalNoTax(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn
+    ) public view override returns (uint256) {
         return _tokensToSignal(_subgraphDeploymentID, _tokensIn);
+    }
+
+    /**
+     * @notice Calculate the amount of tokens that would be recovered if minting signal with
+     * the input tokens and then burning it. This can be used to compute rounding error.
+     * This function does not account for curation tax.
+     * @param _subgraphDeploymentID Subgraph deployment for which to mint signal
+     * @param _tokensIn Amount of tokens used to mint signal
+     * @return Amount of tokens that would be recovered after minting and burning signal
+     */
+    function tokensToSignalToTokensNoTax(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn
+    ) external view override returns (uint256) {
+        require(_tokensIn != 0, "Can't calculate with 0 tokens");
+        uint256 signal = _tokensToSignal(_subgraphDeploymentID, _tokensIn);
+        CurationPool memory curationPool = pools[_subgraphDeploymentID];
+        uint256 poolSignalAfter = getCurationPoolSignal(_subgraphDeploymentID).add(signal);
+        uint256 poolTokensAfter = curationPool.tokens.add(_tokensIn);
+        return poolTokensAfter.mul(signal).div(poolSignalAfter);
     }
 
     /**
@@ -427,12 +430,10 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _signalIn Amount of signal to burn
      * @return Amount of tokens to get for an amount of signal
      */
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function signalToTokens(
+        bytes32 _subgraphDeploymentID,
+        uint256 _signalIn
+    ) public view override returns (uint256) {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
@@ -505,11 +506,10 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _tokensIn Amount of tokens used to mint signal
      * @return Amount of signal that can be bought with tokens
      */
-    function _tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        private
-        view
-        returns (uint256)
-    {
+    function _tokensToSignal(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn
+    ) private view returns (uint256) {
         // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
 

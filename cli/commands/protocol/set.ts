@@ -14,10 +14,6 @@ export const settersList = {
   'staking-max-allocation-epochs': { contract: 'Staking', name: 'setMaxAllocationEpochs' },
   'staking-protocol-percentage': { contract: 'Staking', name: 'setProtocolPercentage' },
   'staking-delegation-parameters': { contract: 'Staking', name: 'setDelegationParameters' },
-  'staking-delegation-parameters-cooldown': {
-    contract: 'Staking',
-    name: 'setDelegationParametersCooldown',
-  },
   'staking-delegation-unbonding-period': {
     contract: 'Staking',
     name: 'setDelegationUnbondingPeriod',

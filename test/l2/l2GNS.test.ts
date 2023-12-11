@@ -20,6 +20,7 @@ import { GraphToken } from '../../build/types/GraphToken'
 import {
   buildSubgraph,
   buildSubgraphId,
+  deriveChannelKey,
   GraphNetworkContracts,
   helpers,
   PublishSubgraph,
@@ -29,6 +30,7 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { IL2Staking } from '../../build/types/IL2Staking'
 
 const { HashZero } = ethers.constants
 
@@ -42,6 +44,7 @@ interface L1SubgraphParams {
 describe('L2GNS', () => {
   const graph = hre.graph()
   let me: SignerWithAddress
+  let attacker: SignerWithAddress
   let other: SignerWithAddress
   let governor: SignerWithAddress
   let mockRouter: SignerWithAddress
@@ -56,6 +59,7 @@ describe('L2GNS', () => {
   let gns: L2GNS
   let curation: L2Curation
   let grt: GraphToken
+  let staking: IL2Staking
 
   let newSubgraph0: PublishSubgraph
   let newSubgraph1: PublishSubgraph
@@ -114,14 +118,14 @@ describe('L2GNS', () => {
 
   before(async function () {
     newSubgraph0 = buildSubgraph()
-    ;[me, other, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
+    ;[me, attacker, other, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
       await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     fixtureContracts = await fixture.load(governor, true)
     l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
-    gns = fixtureContracts.L2GNS as L2GNS
+    gns = fixtureContracts.L2GNS as unknown as L2GNS // this is BAD but should only be needed until monorepo
     curation = fixtureContracts.L2Curation as L2Curation
     grt = fixtureContracts.GraphToken as GraphToken
 
@@ -166,6 +170,11 @@ describe('L2GNS', () => {
     })
 
     it('should publish a new version on an existing subgraph', async function () {
+      await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
+    })
+
+    it('should publish a new version on an existing subgraph when owner tax is zero', async function () {
+      await gns.connect(governor).setOwnerTaxPercentage(0)
       await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
     })
 
@@ -296,7 +305,7 @@ describe('L2GNS', () => {
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
       expect(subgraphData.subgraphDeploymentID).eq(HashZero)
-      expect(subgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
+      expect(subgraphData.__DEPRECATED_reserveRatio).eq(DEFAULT_RESERVE_RATIO)
       expect(subgraphData.disabled).eq(true)
       expect(subgraphData.withdrawableGRT).eq(0) // Important so that it's not the same as a deprecated subgraph!
 
@@ -336,7 +345,7 @@ describe('L2GNS', () => {
       expect(subgraphData.vSignal).eq(0)
       expect(subgraphData.nSignal).eq(0)
       expect(subgraphData.subgraphDeploymentID).eq(HashZero)
-      expect(subgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
+      expect(subgraphData.__DEPRECATED_reserveRatio).eq(DEFAULT_RESERVE_RATIO)
       expect(subgraphData.disabled).eq(true)
       expect(subgraphData.withdrawableGRT).eq(0) // Important so that it's not the same as a deprecated subgraph!
 
@@ -347,7 +356,7 @@ describe('L2GNS', () => {
       expect(l2SubgraphData.vSignal).eq(0)
       expect(l2SubgraphData.nSignal).eq(0)
       expect(l2SubgraphData.subgraphDeploymentID).eq(l2Subgraph.subgraphDeploymentID)
-      expect(l2SubgraphData.reserveRatioDeprecated).eq(DEFAULT_RESERVE_RATIO)
+      expect(l2SubgraphData.__DEPRECATED_reserveRatio).eq(DEFAULT_RESERVE_RATIO)
       expect(l2SubgraphData.disabled).eq(false)
       expect(l2SubgraphData.withdrawableGRT).eq(0)
     })
@@ -399,6 +408,67 @@ describe('L2GNS', () => {
       await expect(tx)
         .emit(gns, 'SignalMinted')
         .withArgs(l2SubgraphId, me.address, expectedNSignal, expectedSignal, curatedTokens)
+    })
+    it('protects the owner against a rounding attack', async function () {
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
+        await defaultL1SubgraphParams()
+      const collectTokens = curatedTokens.mul(20)
+
+      await staking.connect(governor).setCurationPercentage(100000)
+
+      // Set up an indexer account with some stake
+      await grt.connect(governor).mint(attacker.address, toGRT('1000000'))
+      // Curate 1 wei GRT by minting 1 GRT and burning most of it
+      await grt.connect(attacker).approve(curation.address, toBN(1))
+      await curation.connect(attacker).mint(newSubgraph0.subgraphDeploymentID, toBN(1), 0)
+
+      // Check this actually gave us 1 wei signal
+      expect(await curation.getCurationPoolTokens(newSubgraph0.subgraphDeploymentID)).eq(1)
+      await grt.connect(attacker).approve(staking.address, toGRT('1000000'))
+      await staking.connect(attacker).stake(toGRT('100000'))
+      const channelKey = deriveChannelKey()
+      // Allocate to the same deployment ID
+      await staking
+        .connect(attacker)
+        .allocateFrom(
+          attacker.address,
+          newSubgraph0.subgraphDeploymentID,
+          toGRT('100000'),
+          channelKey.address,
+          randomHexBytes(32),
+          await channelKey.generateProof(attacker.address),
+        )
+      // Spoof some query fees, 10% of which will go to the Curation pool
+      await staking.connect(attacker).collect(collectTokens, channelKey.address)
+      // The curation pool now has 1 wei shares and a lot of tokens, so the rounding attack is prepared
+      // But L2GNS will protect the owner by sending the tokens
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(0), l1SubgraphId, me.address],
+      )
+      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+
+      const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
+      const tx = gns
+        .connect(me)
+        .finishSubgraphTransferFromL1(
+          l2SubgraphId,
+          newSubgraph0.subgraphDeploymentID,
+          subgraphMetadata,
+          versionMetadata,
+        )
+      await expect(tx)
+        .emit(gns, 'SubgraphPublished')
+        .withArgs(l2SubgraphId, newSubgraph0.subgraphDeploymentID, DEFAULT_RESERVE_RATIO)
+      await expect(tx).emit(gns, 'SubgraphMetadataUpdated').withArgs(l2SubgraphId, subgraphMetadata)
+      await expect(tx).emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+      await expect(tx)
+        .emit(gns, 'SubgraphUpgraded')
+        .withArgs(l2SubgraphId, 0, 0, newSubgraph0.subgraphDeploymentID)
+      await expect(tx)
+        .emit(gns, 'SubgraphVersionUpdated')
+        .withArgs(l2SubgraphId, newSubgraph0.subgraphDeploymentID, versionMetadata)
+      await expect(tx).emit(gns, 'SubgraphL2TransferFinalized').withArgs(l2SubgraphId)
     })
     it('cannot be called by someone other than the subgraph owner', async function () {
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
@@ -694,14 +764,14 @@ describe('L2GNS', () => {
 
       const callhookData = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],
-        [toBN(1), l2Subgraph.id!, me.address],
+        [toBN(1), l2Subgraph.id, me.address],
       )
       const curatorTokensBefore = await grt.balanceOf(me.address)
       const gnsBalanceBefore = await grt.balanceOf(gns.address)
       const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
       await expect(tx)
         .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
-        .withArgs(l2Subgraph.id!, me.address, toGRT('1'))
+        .withArgs(l2Subgraph.id, me.address, toGRT('1'))
       const curatorTokensAfter = await grt.balanceOf(me.address)
       expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('1')))
       const gnsBalanceAfter = await grt.balanceOf(gns.address)
@@ -735,6 +805,63 @@ describe('L2GNS', () => {
         .withArgs(l1SubgraphId, me.address, toGRT('1'))
       const curatorTokensAfter = await grt.balanceOf(me.address)
       expect(curatorTokensAfter).eq(curatorTokensBefore.add(toGRT('1')))
+      const gnsBalanceAfter = await grt.balanceOf(gns.address)
+      // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
+      // so the GNS balance should be the same
+      expect(gnsBalanceAfter).eq(gnsBalanceBefore)
+    })
+
+    it('protects the curator against a rounding attack', async function () {
+      // Transfer a subgraph from L1 with only 1 wei GRT of curated signal
+      const { l1SubgraphId, subgraphMetadata, versionMetadata } = await defaultL1SubgraphParams()
+      const curatedTokens = toBN('1')
+      await transferMockSubgraphFromL1(
+        l1SubgraphId,
+        curatedTokens,
+        subgraphMetadata,
+        versionMetadata,
+      )
+      // Prepare the rounding attack by setting up an indexer and collecting a lot of query fees
+      const curatorTokens = toGRT('10000')
+      const collectTokens = curatorTokens.mul(20)
+      await staking.connect(governor).setCurationPercentage(100000)
+      // Set up an indexer account with some stake
+      await grt.connect(governor).mint(attacker.address, toGRT('1000000'))
+
+      await grt.connect(attacker).approve(staking.address, toGRT('1000000'))
+      await staking.connect(attacker).stake(toGRT('100000'))
+      const channelKey = deriveChannelKey()
+      // Allocate to the same deployment ID
+      await staking
+        .connect(attacker)
+        .allocateFrom(
+          attacker.address,
+          newSubgraph0.subgraphDeploymentID,
+          toGRT('100000'),
+          channelKey.address,
+          randomHexBytes(32),
+          await channelKey.generateProof(attacker.address),
+        )
+      // Spoof some query fees, 10% of which will go to the Curation pool
+      await staking.connect(attacker).collect(collectTokens, channelKey.address)
+
+      const callhookData = defaultAbiCoder.encode(
+        ['uint8', 'uint256', 'address'],
+        [toBN(1), l1SubgraphId, me.address],
+      )
+      const curatorTokensBefore = await grt.balanceOf(me.address)
+      const gnsBalanceBefore = await grt.balanceOf(gns.address)
+      const tx = gatewayFinalizeTransfer(
+        mockL1GNS.address,
+        gns.address,
+        curatorTokens,
+        callhookData,
+      )
+      await expect(tx)
+        .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
+        .withArgs(l1SubgraphId, me.address, curatorTokens)
+      const curatorTokensAfter = await grt.balanceOf(me.address)
+      expect(curatorTokensAfter).eq(curatorTokensBefore.add(curatorTokens))
       const gnsBalanceAfter = await grt.balanceOf(gns.address)
       // gatewayFinalizeTransfer will mint the tokens that are sent to the curator,
       // so the GNS balance should be the same

@@ -46,4 +46,11 @@ interface IL2GNS is ICallhookReceiver {
      * @return L2 subgraph ID
      */
     function getAliasedL2SubgraphID(uint256 _l1SubgraphID) external pure returns (uint256);
+
+    /**
+     * @notice Return the unaliased L1 subgraph ID from a transferred L2 subgraph ID
+     * @param _l2SubgraphID L2 subgraph ID
+     * @return L1subgraph ID
+     */
+    function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID) external pure returns (uint256);
 }

@@ -18,7 +18,7 @@ interface IGNS {
         uint256 nSignal; // The token of the subgraph bonding curve
         mapping(address => uint256) curatorNSignal;
         bytes32 subgraphDeploymentID;
-        uint32 reserveRatioDeprecated; // Ratio for the bonding curve, always 1 in PPM, deprecated.
+        uint32 __DEPRECATED_reserveRatio; // solhint-disable-line var-name-mixedcase
         bool disabled;
         uint256 withdrawableGRT;
     }
@@ -109,11 +109,7 @@ interface IGNS {
      * @param _tokensIn The amount of tokens the nameCurator wants to deposit
      * @param _nSignalOutMin Expected minimum amount of name signal to receive
      */
-    function mintSignal(
-        uint256 _subgraphID,
-        uint256 _tokensIn,
-        uint256 _nSignalOutMin
-    ) external;
+    function mintSignal(uint256 _subgraphID, uint256 _tokensIn, uint256 _nSignalOutMin) external;
 
     /**
      * @notice Burn signal for a subgraph and return the GRT.
@@ -121,11 +117,7 @@ interface IGNS {
      * @param _nSignal The amount of nSignal the nameCurator wants to burn
      * @param _tokensOutMin Expected minimum amount of tokens to receive
      */
-    function burnSignal(
-        uint256 _subgraphID,
-        uint256 _nSignal,
-        uint256 _tokensOutMin
-    ) external;
+    function burnSignal(uint256 _subgraphID, uint256 _nSignal, uint256 _tokensOutMin) external;
 
     /**
      * @notice Move subgraph signal from sender to `_recipient`
@@ -133,11 +125,7 @@ interface IGNS {
      * @param _recipient Address to send the signal to
      * @param _amount The amount of nSignal to transfer
      */
-    function transferSignal(
-        uint256 _subgraphID,
-        address _recipient,
-        uint256 _amount
-    ) external;
+    function transferSignal(uint256 _subgraphID, address _recipient, uint256 _amount) external;
 
     /**
      * @notice Withdraw tokens from a deprecated subgraph.
@@ -176,14 +164,10 @@ interface IGNS {
      * @param _tokensIn Tokens being exchanged for subgraph signal
      * @return Amount of subgraph signal and curation tax
      */
-    function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        );
+    function tokensToNSignal(
+        uint256 _subgraphID,
+        uint256 _tokensIn
+    ) external view returns (uint256, uint256, uint256);
 
     /**
      * @notice Calculate tokens returned for an amount of subgraph signal.
@@ -191,10 +175,10 @@ interface IGNS {
      * @param _nSignalIn Subgraph signal being exchanged for tokens
      * @return Amount of tokens returned for an amount of subgraph signal
      */
-    function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
-        external
-        view
-        returns (uint256, uint256);
+    function nSignalToTokens(
+        uint256 _subgraphID,
+        uint256 _nSignalIn
+    ) external view returns (uint256, uint256);
 
     /**
      * @notice Calculate subgraph signal to be returned for an amount of subgraph deployment signal.
@@ -202,10 +186,10 @@ interface IGNS {
      * @param _vSignalIn Amount of subgraph deployment signal to exchange for subgraph signal
      * @return Amount of subgraph signal that can be bought
      */
-    function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)
-        external
-        view
-        returns (uint256);
+    function vSignalToNSignal(
+        uint256 _subgraphID,
+        uint256 _vSignalIn
+    ) external view returns (uint256);
 
     /**
      * @notice Calculate subgraph deployment signal to be returned for an amount of subgraph signal.
@@ -213,10 +197,10 @@ interface IGNS {
      * @param _nSignalIn Subgraph signal being exchanged for subgraph deployment signal
      * @return Amount of subgraph deployment signal that can be returned
      */
-    function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn)
-        external
-        view
-        returns (uint256);
+    function nSignalToVSignal(
+        uint256 _subgraphID,
+        uint256 _nSignalIn
+    ) external view returns (uint256);
 
     /**
      * @notice Get the amount of subgraph signal a curator has.
@@ -224,10 +208,10 @@ interface IGNS {
      * @param _curator Curator address
      * @return Amount of subgraph signal owned by a curator
      */
-    function getCuratorSignal(uint256 _subgraphID, address _curator)
-        external
-        view
-        returns (uint256);
+    function getCuratorSignal(
+        uint256 _subgraphID,
+        address _curator
+    ) external view returns (uint256);
 
     /**
      * @notice Return whether a subgraph is published.
@@ -249,8 +233,7 @@ interface IGNS {
      * @return account Account that created the subgraph (or 0 if it's not a legacy subgraph)
      * @return seqID Sequence number for the subgraph
      */
-    function getLegacySubgraphKey(uint256 _subgraphID)
-        external
-        view
-        returns (address account, uint256 seqID);
+    function getLegacySubgraphKey(
+        uint256 _subgraphID
+    ) external view returns (address account, uint256 seqID);
 }

@@ -11,11 +11,13 @@ import { arrayify, joinSignature, SigningKey, solidityKeccak256 } from 'ethers/l
 import {
   deriveChannelKey,
   GraphNetworkContracts,
+  helpers,
   randomAddress,
   randomHexBytes,
   toGRT,
 } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { EpochManager } from '../../build/types/EpochManager'
 
 const { AddressZero, MaxUint256 } = constants
 
@@ -37,6 +39,7 @@ describe('AllocationExchange', () => {
   let grt: GraphToken
   let staking: IStaking
   let allocationExchange: AllocationExchange
+  let epochManager: EpochManager
 
   const graph = hre.graph()
 
@@ -65,7 +68,7 @@ describe('AllocationExchange', () => {
     contracts = await fixture.load(governor)
     allocationExchange = contracts.AllocationExchange as AllocationExchange
     grt = contracts.GraphToken as GraphToken
-    staking = contracts.Staking as IStaking
+    staking = contracts.Staking as unknown as IStaking
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')
@@ -77,9 +80,8 @@ describe('AllocationExchange', () => {
     await grt.connect(governor).mint(allocationExchange.address, exchangeTokens)
 
     // Ensure the exchange is correctly setup
-    await staking.connect(governor).setAssetHolder(allocationExchange.address, true)
-    await allocationExchange.connect(allocationExchangeOwner).setAuthority(authority.address, true)
-    await allocationExchange.connect(allocationExchangeOwner).approveAll()
+    await allocationExchange.connect(governor).setAuthority(authority.address, true)
+    await allocationExchange.approveAll()
   })
 
   beforeEach(async function () {
@@ -204,6 +206,7 @@ describe('AllocationExchange', () => {
 
       // Setup an active allocation
       const allocationID = await setupAllocation()
+      await helpers.mineEpoch(epochManager)
 
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount
@@ -225,6 +228,7 @@ describe('AllocationExchange', () => {
     it('reject double spending of a voucher', async function () {
       // Setup an active allocation
       const allocationID = await setupAllocation()
+      await helpers.mineEpoch(epochManager)
 
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount

@@ -26,8 +26,16 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using SafeMathUpgradeable for uint256;
 
+    /// Offset added to an L1 subgraph ID to compute the L2 subgraph ID alias
     uint256 public constant SUBGRAPH_ID_ALIAS_OFFSET =
         uint256(0x1111000000000000000000000000000000000000000000000000000000001111);
+
+    /// Maximum rounding error when receiving signal tokens from L1, in parts-per-million.
+    /// If the error from minting signal is above this, tokens will be sent back to the curator.
+    uint256 public constant MAX_ROUNDING_ERROR = 1000;
+
+    /// @dev 100% expressed in parts-per-million
+    uint256 private constant MAX_PPM = 1000000;
 
     /// @dev Emitted when a subgraph is received from L1 through the bridge
     event SubgraphReceivedFromL1(
@@ -122,10 +130,34 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         require(_subgraphDeploymentID != 0, "GNS: deploymentID != 0");
 
         IL2Curation curation = IL2Curation(address(curation()));
-        // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
-        // Buy all signal from the new deployment
-        uint256 vSignal = curation.mintTaxFree(_subgraphDeploymentID, transferData.tokens);
-        uint256 nSignal = vSignalToNSignal(_l2SubgraphID, vSignal);
+
+        uint256 vSignal;
+        uint256 nSignal;
+        uint256 roundingError;
+        uint256 tokens = transferData.tokens;
+        {
+            // This can't revert because the bridge ensures that _tokensIn is > 0,
+            // and the minimum curation in L2 is 1 wei GRT
+            uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(
+                _subgraphDeploymentID,
+                tokens
+            );
+            roundingError = tokens.sub(tokensAfter).mul(MAX_PPM).div(tokens);
+        }
+        if (roundingError <= MAX_ROUNDING_ERROR) {
+            vSignal = curation.mintTaxFree(_subgraphDeploymentID, tokens);
+            nSignal = vSignalToNSignal(_l2SubgraphID, vSignal);
+            emit SignalMinted(_l2SubgraphID, msg.sender, nSignal, vSignal, tokens);
+            emit SubgraphUpgraded(_l2SubgraphID, vSignal, tokens, _subgraphDeploymentID);
+        } else {
+            graphToken().transfer(msg.sender, tokens);
+            emit CuratorBalanceReturnedToBeneficiary(
+                getUnaliasedL1SubgraphID(_l2SubgraphID),
+                msg.sender,
+                tokens
+            );
+            emit SubgraphUpgraded(_l2SubgraphID, vSignal, 0, _subgraphDeploymentID);
+        }
 
         subgraphData.disabled = false;
         subgraphData.vSignal = vSignal;
@@ -134,16 +166,8 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         subgraphData.subgraphDeploymentID = _subgraphDeploymentID;
         // Set the token metadata
         _setSubgraphMetadata(_l2SubgraphID, _subgraphMetadata);
-
         emit SubgraphPublished(_l2SubgraphID, _subgraphDeploymentID, fixedReserveRatio);
-        emit SubgraphUpgraded(
-            _l2SubgraphID,
-            subgraphData.vSignal,
-            transferData.tokens,
-            _subgraphDeploymentID
-        );
         emit SubgraphVersionUpdated(_l2SubgraphID, _subgraphDeploymentID, _versionMetadata);
-        emit SignalMinted(_l2SubgraphID, msg.sender, nSignal, vSignal, transferData.tokens);
         emit SubgraphL2TransferFinalized(_l2SubgraphID);
     }
 
@@ -228,6 +252,17 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
+     * @notice Return the unaliased L1 subgraph ID from a transferred L2 subgraph ID
+     * @param _l2SubgraphID L2 subgraph ID
+     * @return L1subgraph ID
+     */
+    function getUnaliasedL1SubgraphID(
+        uint256 _l2SubgraphID
+    ) public pure override returns (uint256) {
+        return _l2SubgraphID - SUBGRAPH_ID_ALIAS_OFFSET;
+    }
+
+    /**
      * @dev Receive a subgraph from L1.
      * This function will initialize a subgraph received through the bridge,
      * and store the transfer data so that it's finalized later using finishSubgraphTransferFromL1.
@@ -244,7 +279,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
         IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[l2SubgraphID];
 
-        subgraphData.reserveRatioDeprecated = fixedReserveRatio;
+        subgraphData.__DEPRECATED_reserveRatio = fixedReserveRatio;
         // The subgraph will be disabled until finishSubgraphTransferFromL1 is called
         subgraphData.disabled = true;
 
@@ -278,13 +313,23 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[l2SubgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
 
+        IL2Curation curation = IL2Curation(address(curation()));
+        uint256 roundingError;
+        if (transferData.l2Done && !subgraphData.disabled) {
+            // This can't revert because the bridge ensures that _tokensIn is > 0,
+            // and the minimum curation in L2 is 1 wei GRT
+            uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(
+                subgraphData.subgraphDeploymentID,
+                _tokensIn
+            );
+            roundingError = _tokensIn.sub(tokensAfter).mul(MAX_PPM).div(_tokensIn);
+        }
         // If subgraph transfer wasn't finished, we should send the tokens to the curator
-        if (!transferData.l2Done || subgraphData.disabled) {
+        if (!transferData.l2Done || subgraphData.disabled || roundingError > MAX_ROUNDING_ERROR) {
             graphToken().transfer(_curator, _tokensIn);
             emit CuratorBalanceReturnedToBeneficiary(_l1SubgraphID, _curator, _tokensIn);
         } else {
             // Get name signal to mint for tokens deposited
-            IL2Curation curation = IL2Curation(address(curation()));
             uint256 vSignal = curation.mintTaxFree(subgraphData.subgraphDeploymentID, _tokensIn);
             uint256 nSignal = vSignalToNSignal(l2SubgraphID, vSignal);
 
@@ -307,12 +352,9 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
-    function _getSubgraphData(uint256 _subgraphID)
-        internal
-        view
-        override
-        returns (SubgraphData storage)
-    {
+    function _getSubgraphData(
+        uint256 _subgraphID
+    ) internal view override returns (SubgraphData storage) {
         // Return new subgraph type
         return subgraphs[_subgraphID];
     }
