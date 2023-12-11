@@ -427,7 +427,7 @@ describe('L1GNS', () => {
       })
 
       it('should publish a new version on an existing subgraph when owner tax is zero', async function () {
-        await gns.connect(governor.signer).setOwnerTaxPercentage(0)
+        await gns.connect(governor).setOwnerTaxPercentage(0)
         await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
       })
 

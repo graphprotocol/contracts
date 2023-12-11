@@ -125,7 +125,8 @@ describe('L2GNS', () => {
     fixture = new NetworkFixture(graph.provider)
     fixtureContracts = await fixture.load(governor, true)
     l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
-    gns = fixtureContracts.L2GNS as unknown as L2GNS // this is BAD but should only be needed until monorepo
+    gns = fixtureContracts.L2GNS as L2GNS
+    staking = fixtureContracts.L2Staking as unknown as IL2Staking
     curation = fixtureContracts.L2Curation as L2Curation
     grt = fixtureContracts.GraphToken as GraphToken
 

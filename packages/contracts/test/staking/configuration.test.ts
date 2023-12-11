@@ -35,7 +35,7 @@ describe('Staking:Config', () => {
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    staking = contracts.Staking as unknown as IStaking
+    staking = contracts.Staking as IStaking
     proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
   })
 

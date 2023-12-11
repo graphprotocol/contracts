@@ -191,7 +191,7 @@ describe('Staking::Delegation', () => {
     contracts = await fixture.load(governor)
     epochManager = contracts.EpochManager as EpochManager
     grt = contracts.GraphToken as GraphToken
-    staking = contracts.Staking as unknown as IStaking
+    staking = contracts.Staking as IStaking
 
     // Distribute test funds
     for (const wallet of [delegator, delegator2]) {

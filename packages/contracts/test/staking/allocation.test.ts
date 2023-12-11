@@ -375,7 +375,7 @@ describe('Staking:Allocation', () => {
     curation = contracts.Curation as Curation
     epochManager = contracts.EpochManager as EpochManager
     grt = contracts.GraphToken as GraphToken
-    staking = contracts.Staking as unknown as IStaking
+    staking = contracts.Staking as IStaking
 
     const stakingName = isGraphL1ChainId(graph.chainId) ? 'L1Staking' : 'L2Staking'
     const entry = graph.addressBook.getEntry(stakingName)

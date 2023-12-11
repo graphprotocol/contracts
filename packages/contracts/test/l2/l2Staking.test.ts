@@ -85,7 +85,7 @@ describe('L2Staking', () => {
     fixture = new NetworkFixture(graph.provider)
     fixtureContracts = await fixture.load(governor, true)
     grt = fixtureContracts.GraphToken as GraphToken
-    staking = fixtureContracts.Staking as unknown as IL2Staking
+    staking = fixtureContracts.Staking as IL2Staking
     l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
 
     await grt.connect(governor).mint(me.address, tokens1m)

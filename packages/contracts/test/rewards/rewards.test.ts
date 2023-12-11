@@ -142,7 +142,7 @@ describe('Rewards', () => {
     grt = contracts.GraphToken as GraphToken
     curation = contracts.Curation as Curation
     epochManager = contracts.EpochManager as EpochManager
-    staking = contracts.Staking as unknown as IStaking
+    staking = contracts.Staking as IStaking
     rewardsManager = contracts.RewardsManager as RewardsManager
 
     // 200 GRT per block

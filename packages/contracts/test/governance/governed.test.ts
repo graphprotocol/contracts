@@ -4,7 +4,6 @@ import '@nomiclabs/hardhat-ethers'
 
 import { Governed } from '../../build/types/Governed'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { helpers } from '@graphprotocol/sdk'
 
 const { ethers } = hre
 const { AddressZero } = ethers.constants
@@ -20,7 +19,7 @@ describe('Governed', () => {
     ;[me, governor] = await graph.getTestAccounts()
 
     const factory = await ethers.getContractFactory('GovernedMock')
-    governed = (await factory.connect(governor).deploy()) as unknown as Governed
+    governed = (await factory.connect(governor).deploy()) as Governed
   })
 
   it('should reject transfer if not allowed', async function () {

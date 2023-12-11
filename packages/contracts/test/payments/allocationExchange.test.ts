@@ -68,7 +68,8 @@ describe('AllocationExchange', () => {
     contracts = await fixture.load(governor)
     allocationExchange = contracts.AllocationExchange as AllocationExchange
     grt = contracts.GraphToken as GraphToken
-    staking = contracts.Staking as unknown as IStaking
+    staking = contracts.Staking as IStaking
+    epochManager = contracts.EpochManager as EpochManager
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')
@@ -80,8 +81,8 @@ describe('AllocationExchange', () => {
     await grt.connect(governor).mint(allocationExchange.address, exchangeTokens)
 
     // Ensure the exchange is correctly setup
-    await allocationExchange.connect(governor).setAuthority(authority.address, true)
-    await allocationExchange.approveAll()
+    await allocationExchange.connect(allocationExchangeOwner).setAuthority(authority.address, true)
+    await allocationExchange.connect(allocationExchangeOwner).approveAll()
   })
 
   beforeEach(async function () {
