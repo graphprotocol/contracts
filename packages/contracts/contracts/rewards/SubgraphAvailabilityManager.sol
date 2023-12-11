@@ -21,7 +21,7 @@ contract SubgraphAvailabilityManager is Governed {
     // -- Immutable --
 
     /// @notice Number of oracles
-    uint256 public constant numOracles = 5;
+    uint256 public constant NUM_ORACLES = 5;
 
     /// @notice Number of votes required to execute a deny or allow call to the RewardsManager
     uint256 public immutable executionThreshold;
@@ -39,7 +39,7 @@ contract SubgraphAvailabilityManager is Governed {
     uint256 public voteTimeLimit;
 
     /// @notice Array of oracle addresses
-    address[numOracles] public oracles;
+    address[NUM_ORACLES] public oracles;
 
     /// @notice Mapping of current nonce to subgraph deployment ID to oracle index to timestamp of last deny vote
     /// currentNonce => subgraphDeploymentId => oracleIndex => timestamp
@@ -74,7 +74,7 @@ contract SubgraphAvailabilityManager is Governed {
     // -- Modifiers --
 
     modifier onlyOracle(uint256 _oracleIndex) {
-        require(_oracleIndex < numOracles, "SAM: index out of bounds");
+        require(_oracleIndex < NUM_ORACLES, "SAM: index out of bounds");
         require(msg.sender == oracles[_oracleIndex], "SAM: caller must be oracle");
         _;
     }
@@ -93,11 +93,14 @@ contract SubgraphAvailabilityManager is Governed {
         address _rewardsManager,
         uint256 _executionThreshold,
         uint256 _voteTimeLimit,
-        address[numOracles] memory _oracles
+        address[NUM_ORACLES] memory _oracles
     ) {
         require(_governor != address(0), "SAM: governor must be set");
         require(_rewardsManager != address(0), "SAM: rewardsManager must be set");
-        require(_executionThreshold >= numOracles.div(2).add(1), "SAM: executionThreshold too low");
+        require(
+            _executionThreshold >= NUM_ORACLES.div(2).add(1),
+            "SAM: executionThreshold too low"
+        );
 
         // Oracles should not be address zero
         for (uint256 i = 0; i < _oracles.length; i++) {
@@ -130,7 +133,7 @@ contract SubgraphAvailabilityManager is Governed {
      * @param _oracle Address of the oracle
      */
     function setOracle(uint256 _index, address _oracle) external onlyGovernor {
-        require(_index < numOracles, "SAM: index out of bounds");
+        require(_index < NUM_ORACLES, "SAM: index out of bounds");
         require(_oracle != address(0), "SAM: oracle cannot be address zero");
 
         oracles[_index] = _oracle;
@@ -221,7 +224,7 @@ contract SubgraphAvailabilityManager is Governed {
             ? lastDenyVote[currentNonce][_subgraphDeploymentID]
             : lastAllowVote[currentNonce][_subgraphDeploymentID];
 
-        for (uint256 i = 0; i < numOracles; i++) {
+        for (uint256 i = 0; i < NUM_ORACLES; i++) {
             // check if vote is within the vote time limit
             if (lastVoteForSubgraph[i] > voteTimeValidity) {
                 votes++;
