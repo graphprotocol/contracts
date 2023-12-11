@@ -27,8 +27,7 @@
       "files": "*.sol",
       "options": {
         "tabWidth": 4,
-        "singleQuote": false,
-        "explicitTypes": "always"
+        "singleQuote": false
       }
     }
   ]
