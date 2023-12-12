@@ -15,5 +15,9 @@ interface ICallhookReceiver {
      * @param _amount Amount of tokens that were transferred
      * @param _data ABI-encoded callhook data
      */
-    function onTokenTransfer(address _from, uint256 _amount, bytes calldata _data) external;
+    function onTokenTransfer(
+        address _from,
+        uint256 _amount,
+        bytes calldata _data
+    ) external;
 }

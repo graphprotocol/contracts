@@ -2,6 +2,7 @@
   "printWidth": 100,
   "useTabs": false,
   "bracketSpacing": true,
+  "plugins": ["prettier-plugin-solidity"],
   "overrides": [
     {
       "files": "*.js",

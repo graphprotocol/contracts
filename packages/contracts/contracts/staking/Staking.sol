@@ -478,9 +478,12 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _allocationID Address used as allocation identifier
      * @return Allocation data
      */
-    function getAllocation(
-        address _allocationID
-    ) external view override returns (Allocation memory) {
+    function getAllocation(address _allocationID)
+        external
+        view
+        override
+        returns (Allocation memory)
+    {
         return __allocations[_allocationID];
     }
 
@@ -489,9 +492,12 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
      */
-    function getAllocationState(
-        address _allocationID
-    ) external view override returns (AllocationState) {
+    function getAllocationState(address _allocationID)
+        external
+        view
+        override
+        returns (AllocationState)
+    {
         return _getAllocationState(_allocationID);
     }
 
@@ -500,9 +506,12 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _subgraphDeploymentID Deployment ID for the subgraph
      * @return Total tokens allocated to subgraph
      */
-    function getSubgraphAllocatedTokens(
-        bytes32 _subgraphDeploymentID
-    ) external view override returns (uint256) {
+    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return __subgraphAllocations[_subgraphDeploymentID];
     }
 
@@ -860,10 +869,10 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of delegation rewards
      */
-    function _collectDelegationQueryRewards(
-        address _indexer,
-        uint256 _tokens
-    ) private returns (uint256) {
+    function _collectDelegationQueryRewards(address _indexer, uint256 _tokens)
+        private
+        returns (uint256)
+    {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = __delegationPools[_indexer];
         if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
@@ -881,10 +890,10 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of delegation rewards
      */
-    function _collectDelegationIndexingRewards(
-        address _indexer,
-        uint256 _tokens
-    ) private returns (uint256) {
+    function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens)
+        private
+        returns (uint256)
+    {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = __delegationPools[_indexer];
         if (pool.tokens > 0 && pool.indexingRewardCut < MAX_PPM) {

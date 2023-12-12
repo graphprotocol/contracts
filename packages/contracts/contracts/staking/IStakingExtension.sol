@@ -152,10 +152,10 @@ interface IStakingExtension is IStakingData {
      * @param _delegator Address of the delegator
      * @return Delegation data
      */
-    function getDelegation(
-        address _indexer,
-        address _delegator
-    ) external view returns (Delegation memory);
+    function getDelegation(address _indexer, address _delegator)
+        external
+        view
+        returns (Delegation memory);
 
     /**
      * @notice Return whether the delegator has delegated to the indexer.
@@ -170,9 +170,10 @@ interface IStakingExtension is IStakingData {
      * @param _delegation Delegation of tokens from delegator to indexer
      * @return Amount of tokens to withdraw
      */
-    function getWithdraweableDelegatedTokens(
-        Delegation memory _delegation
-    ) external view returns (uint256);
+    function getWithdraweableDelegatedTokens(Delegation memory _delegation)
+        external
+        view
+        returns (uint256);
 
     /**
      * @notice Getter for the delegationRatio, i.e. the delegation capacity multiplier:
@@ -312,7 +313,8 @@ interface IStakingExtension is IStakingData {
      * @param _allocationID Allocation ID for which to query the allocation information
      * @return The specified allocation, as an IStakingData.Allocation struct
      */
-    function allocations(
-        address _allocationID
-    ) external view returns (IStakingData.Allocation memory);
+    function allocations(address _allocationID)
+        external
+        view
+        returns (IStakingData.Allocation memory);
 }

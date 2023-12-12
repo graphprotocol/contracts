@@ -1652,7 +1652,7 @@ __metadata:
     lint-staged: "npm:^10.5.4"
     p-queue: "npm:^6.6.1"
     prettier: "npm:^2.2.1"
-    prettier-plugin-solidity: "npm:^1.0.0-beta.9"
+    prettier-plugin-solidity: "npm:1.0.0-beta.19"
     solhint: "npm:^3.3.6"
     solhint-plugin-prettier: "npm:^0.0.5"
     solidity-coverage: "npm:^0.7.16"
@@ -2902,7 +2902,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@solidity-parser/parser@npm:^0.16.0, @solidity-parser/parser@npm:^0.16.2":
+"@solidity-parser/parser@npm:^0.16.0":
   version: 0.16.2
   resolution: "@solidity-parser/parser@npm:0.16.2"
   dependencies:
@@ -7332,6 +7332,13 @@ __metadata:
     minimalistic-assert: "npm:^1.0.1"
     minimalistic-crypto-utils: "npm:^1.0.1"
   checksum: 5f361270292c3b27cf0843e84526d11dec31652f03c2763c6c2b8178548175ff5eba95341dd62baff92b2265d1af076526915d8af6cc9cb7559c44a62f8ca6e2
+  languageName: node
+  linkType: hard
+
+"emoji-regex@npm:^10.0.0":
+  version: 10.3.0
+  resolution: "emoji-regex@npm:10.3.0"
+  checksum: b4838e8dcdceb44cf47f59abe352c25ff4fe7857acaf5fb51097c427f6f75b44d052eb907a7a3b86f86bc4eae3a93f5c2b7460abe79c407307e6212d65c91163
   languageName: node
   linkType: hard
 
@@ -14731,16 +14738,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier-plugin-solidity@npm:^1.0.0-beta.9":
-  version: 1.2.0
-  resolution: "prettier-plugin-solidity@npm:1.2.0"
+"prettier-plugin-solidity@npm:1.0.0-beta.19":
+  version: 1.0.0-beta.19
+  resolution: "prettier-plugin-solidity@npm:1.0.0-beta.19"
   dependencies:
-    "@solidity-parser/parser": "npm:^0.16.2"
-    semver: "npm:^7.5.4"
+    "@solidity-parser/parser": "npm:^0.14.0"
+    emoji-regex: "npm:^10.0.0"
+    escape-string-regexp: "npm:^4.0.0"
+    semver: "npm:^7.3.5"
     solidity-comments-extractor: "npm:^0.0.7"
+    string-width: "npm:^4.2.3"
   peerDependencies:
-    prettier: ">=2.3.0"
-  checksum: 5fa3a3ff41fd531c0fdbfe997542ca226354e2d1a141f7b56e16a8aebf17b6ddd516df65bafed054306aad6b34c30aac24ddb97f931bd7b580127c026549128f
+    prettier: ^2.3.0
+  checksum: f0fcfb61afeb3c9cda4bc0d49ddb81a730faa4398dd06459d39d1a93b345a2ab9eeb227b4f68c6278b19f053e4b4ac4ab239889691ac7924f620407ef698a426
   languageName: node
   linkType: hard
 

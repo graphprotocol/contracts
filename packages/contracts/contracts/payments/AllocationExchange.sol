@@ -31,7 +31,7 @@ contract AllocationExchange is Governed {
 
     // -- Constants --
 
-    uint256 private constant MAX_UINT256 = 2 ** 256 - 1;
+    uint256 private constant MAX_UINT256 = 2**256 - 1;
     uint256 private constant SIGNATURE_LENGTH = 65;
 
     // -- State --
@@ -56,7 +56,12 @@ contract AllocationExchange is Governed {
      * @param _governor Account capable of withdrawing funds and setting the authority
      * @param _authority Account that can sign the vouchers that this contract will redeem
      */
-    constructor(IGraphToken _graphToken, IStaking _staking, address _governor, address _authority) {
+    constructor(
+        IGraphToken _graphToken,
+        IStaking _staking,
+        address _governor,
+        address _authority
+    ) {
         require(_governor != address(0), "Exchange: governor must be set");
         Governed._initialize(_governor);
 

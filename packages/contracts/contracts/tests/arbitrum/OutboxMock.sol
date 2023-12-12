@@ -136,7 +136,11 @@ contract OutboxMock is IOutbox {
      * @param _amount Callvalue for the function call
      * @param _data Calldata for the function call
      */
-    function executeBridgeCall(address _destAddr, uint256 _amount, bytes memory _data) internal {
+    function executeBridgeCall(
+        address _destAddr,
+        uint256 _amount,
+        bytes memory _data
+    ) internal {
         (bool success, bytes memory returndata) = bridge.executeCall(_destAddr, _amount, _data);
         if (!success) {
             if (returndata.length > 0) {

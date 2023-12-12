@@ -60,10 +60,10 @@ abstract contract GraphUpgradeable {
      * @param _proxy Proxy to accept
      * @param _data Calldata for the initialization function call (including selector)
      */
-    function acceptProxyAndCall(
-        IGraphProxy _proxy,
-        bytes calldata _data
-    ) external onlyProxyAdmin(_proxy) {
+    function acceptProxyAndCall(IGraphProxy _proxy, bytes calldata _data)
+        external
+        onlyProxyAdmin(_proxy)
+    {
         _proxy.acceptUpgradeAndCall(_data);
     }
 }

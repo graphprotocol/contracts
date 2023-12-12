@@ -216,9 +216,11 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * and can be withdrawn with `withdrawDelegated()` immediately after calling this.
      * @param _indexer Address of the indexer (in L1, before transferring to L2)
      */
-    function unlockDelegationToTransferredIndexer(
-        address _indexer
-    ) external override notPartialPaused {
+    function unlockDelegationToTransferredIndexer(address _indexer)
+        external
+        override
+        notPartialPaused
+    {
         require(
             indexerTransferredToL2[_indexer] != address(0) && __stakes[_indexer].tokensStaked == 0,
             "indexer not transferred"

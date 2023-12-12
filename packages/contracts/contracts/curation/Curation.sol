@@ -113,9 +113,11 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @notice Update the minimum deposit amount to `_minimumCurationDeposit`
      * @param _minimumCurationDeposit Minimum amount of tokens required deposit
      */
-    function setMinimumCurationDeposit(
-        uint256 _minimumCurationDeposit
-    ) external override onlyGovernor {
+    function setMinimumCurationDeposit(uint256 _minimumCurationDeposit)
+        external
+        override
+        onlyGovernor
+    {
         _setMinimumCurationDeposit(_minimumCurationDeposit);
     }
 
@@ -275,9 +277,12 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @param _subgraphDeploymentID Subgraph deployment curation poool
      * @return Amount of token reserves in the curation pool
      */
-    function getCurationPoolTokens(
-        bytes32 _subgraphDeploymentID
-    ) external view override returns (uint256) {
+    function getCurationPoolTokens(bytes32 _subgraphDeploymentID)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return pools[_subgraphDeploymentID].tokens;
     }
 
@@ -296,10 +301,12 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal owned by a curator for the subgraph deployment
      */
-    function getCuratorSignal(
-        address _curator,
-        bytes32 _subgraphDeploymentID
-    ) public view override returns (uint256) {
+    function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
+        public
+        view
+        override
+        returns (uint256)
+    {
         IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.balanceOf(_curator);
     }
@@ -309,9 +316,12 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @param _subgraphDeploymentID Subgraph deployment curation poool
      * @return Amount of signal minted for the subgraph deployment
      */
-    function getCurationPoolSignal(
-        bytes32 _subgraphDeploymentID
-    ) public view override returns (uint256) {
+    function getCurationPoolSignal(bytes32 _subgraphDeploymentID)
+        public
+        view
+        override
+        returns (uint256)
+    {
         IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
         return (address(gcs) == address(0)) ? 0 : gcs.totalSupply();
     }
@@ -324,10 +334,12 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @return Amount of signal that can be bought
      * @return Amount of tokens that will be burned as curation tax
      */
-    function tokensToSignal(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokensIn
-    ) public view override returns (uint256, uint256) {
+    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        public
+        view
+        override
+        returns (uint256, uint256)
+    {
         uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
         return (signalOut, curationTax);
@@ -339,10 +351,11 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @param _tokensIn Amount of tokens used to mint signal
      * @return Amount of signal that can be bought with tokens
      */
-    function _tokensToSignal(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokensIn
-    ) private view returns (uint256) {
+    function _tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
+        private
+        view
+        returns (uint256)
+    {
         // Get curation pool tokens and signal
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
 
@@ -378,10 +391,12 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
      * @param _signalIn Amount of signal to burn
      * @return Amount of tokens to get for the specified amount of signal
      */
-    function signalToTokens(
-        bytes32 _subgraphDeploymentID,
-        uint256 _signalIn
-    ) public view override returns (uint256) {
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
         uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(

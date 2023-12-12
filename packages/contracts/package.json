@@ -73,7 +73,7 @@
     "lint-staged": "^10.5.4",
     "p-queue": "^6.6.1",
     "prettier": "^2.2.1",
-    "prettier-plugin-solidity": "^1.0.0-beta.9",
+    "prettier-plugin-solidity": "1.0.0-beta.19",
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.16",

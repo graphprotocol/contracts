@@ -72,7 +72,11 @@ library LibFixedMath {
     }
 
     /// @dev Performs (a * n) / d, without scaling for precision.
-    function mulDiv(int256 a, int256 n, int256 d) internal pure returns (int256 c) {
+    function mulDiv(
+        int256 a,
+        int256 n,
+        int256 d
+    ) internal pure returns (int256 c) {
         c = _div(_mul(a, n), d);
     }
 

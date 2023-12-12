@@ -53,10 +53,11 @@ contract Controller is Governed, Pausable, IController {
      * @param _id Contract id (keccak256 hash of contract name)
      * @param _contractAddress Contract address
      */
-    function setContractProxy(
-        bytes32 _id,
-        address _contractAddress
-    ) external override onlyGovernor {
+    function setContractProxy(bytes32 _id, address _contractAddress)
+        external
+        override
+        onlyGovernor
+    {
         require(_contractAddress != address(0), "Contract address must be set");
         _registry[_id] = _contractAddress;
         emit SetContractProxy(_id, _contractAddress);

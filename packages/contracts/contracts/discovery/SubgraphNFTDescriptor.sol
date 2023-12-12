@@ -9,8 +9,8 @@ import "./ISubgraphNFTDescriptor.sol";
 contract SubgraphNFTDescriptor is ISubgraphNFTDescriptor {
     /// @inheritdoc ISubgraphNFTDescriptor
     function tokenURI(
-        address /* _minter */,
-        uint256 /* _tokenId */,
+        address, /* _minter */
+        uint256, /* _tokenId */
         string calldata _baseURI,
         bytes32 _subgraphMetadata
     ) external pure override returns (string memory) {

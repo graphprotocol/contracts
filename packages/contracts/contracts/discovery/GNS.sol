@@ -230,10 +230,11 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphID Subgraph ID
      * @param _subgraphMetadata IPFS hash for the subgraph metadata
      */
-    function updateSubgraphMetadata(
-        uint256 _subgraphID,
-        bytes32 _subgraphMetadata
-    ) external override onlySubgraphAuth(_subgraphID) {
+    function updateSubgraphMetadata(uint256 _subgraphID, bytes32 _subgraphMetadata)
+        external
+        override
+        onlySubgraphAuth(_subgraphID)
+    {
         _setSubgraphMetadata(_subgraphID, _subgraphMetadata);
     }
 
@@ -349,9 +350,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * Can only be done by the subgraph owner.
      * @param _subgraphID Subgraph ID
      */
-    function deprecateSubgraph(
-        uint256 _subgraphID
-    ) external override notPaused onlySubgraphAuth(_subgraphID) {
+    function deprecateSubgraph(uint256 _subgraphID)
+        external
+        override
+        notPaused
+        onlySubgraphAuth(_subgraphID)
+    {
         // Subgraph check
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
 
@@ -588,10 +592,16 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _tokensIn Tokens being exchanged for subgraph signal
      * @return Amount of subgraph signal and curation tax
      */
-    function tokensToNSignal(
-        uint256 _subgraphID,
-        uint256 _tokensIn
-    ) public view override returns (uint256, uint256, uint256) {
+    function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn)
+        public
+        view
+        override
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         (uint256 vSignal, uint256 curationTax) = curation().tokensToSignal(
             subgraphData.subgraphDeploymentID,
@@ -607,10 +617,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _nSignalIn Subgraph signal being exchanged for tokens
      * @return Amount of tokens returned for an amount of subgraph signal
      */
-    function nSignalToTokens(
-        uint256 _subgraphID,
-        uint256 _nSignalIn
-    ) public view override returns (uint256, uint256) {
+    function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn)
+        public
+        view
+        override
+        returns (uint256, uint256)
+    {
         // Get subgraph or revert if not published
         // It does not make sense to convert signal from a disabled or non-existing one
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
@@ -625,10 +637,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _vSignalIn Amount of subgraph deployment signal to exchange for subgraph signal
      * @return Amount of subgraph signal that can be bought
      */
-    function vSignalToNSignal(
-        uint256 _subgraphID,
-        uint256 _vSignalIn
-    ) public view override returns (uint256) {
+    function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
 
         // Handle initialization by using 1:1 version to name signal
@@ -645,10 +659,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _nSignalIn Subgraph signal being exchanged for subgraph deployment signal
      * @return Amount of subgraph deployment signal that can be returned
      */
-    function nSignalToVSignal(
-        uint256 _subgraphID,
-        uint256 _nSignalIn
-    ) public view override returns (uint256) {
+    function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         return subgraphData.vSignal.mul(_nSignalIn).div(subgraphData.nSignal);
     }
@@ -659,10 +675,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _curator Curator address
      * @return Amount of subgraph signal owned by a curator
      */
-    function getCuratorSignal(
-        uint256 _subgraphID,
-        address _curator
-    ) public view override returns (uint256) {
+    function getCuratorSignal(uint256 _subgraphID, address _curator)
+        public
+        view
+        override
+        returns (uint256)
+    {
         return _getSubgraphData(_subgraphID).curatorNSignal[_curator];
     }
 
@@ -681,9 +699,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @return account Account that created the subgraph (or 0 if it's not a legacy subgraph)
      * @return seqID Sequence number for the subgraph
      */
-    function getLegacySubgraphKey(
-        uint256 _subgraphID
-    ) public view override returns (address account, uint256 seqID) {
+    function getLegacySubgraphKey(uint256 _subgraphID)
+        public
+        view
+        override
+        returns (address account, uint256 seqID)
+    {
         LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
         account = legacySubgraphKey.account;
         seqID = legacySubgraphKey.accountSeqID;
@@ -801,9 +822,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
-    function _getSubgraphData(
-        uint256 _subgraphID
-    ) internal view virtual returns (SubgraphData storage) {
+    function _getSubgraphData(uint256 _subgraphID)
+        internal
+        view
+        virtual
+        returns (SubgraphData storage)
+    {
         // If there is a legacy subgraph created return it
         LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
         if (legacySubgraphKey.account != address(0)) {
@@ -827,9 +851,11 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
-    function _getSubgraphOrRevert(
-        uint256 _subgraphID
-    ) internal view returns (SubgraphData storage) {
+    function _getSubgraphOrRevert(uint256 _subgraphID)
+        internal
+        view
+        returns (SubgraphData storage)
+    {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
         require(_isPublished(subgraphData) == true, "GNS: Must be active");
         return subgraphData;
@@ -841,10 +867,11 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * Subgraph ID is the keccak hash of account+seqID
      * @return Subgraph ID
      */
-    function _buildLegacySubgraphID(
-        address _account,
-        uint256 _seqID
-    ) internal pure returns (uint256) {
+    function _buildLegacySubgraphID(address _account, uint256 _seqID)
+        internal
+        pure
+        returns (uint256)
+    {
         return uint256(keccak256(abi.encodePacked(_account, _seqID)));
     }
 

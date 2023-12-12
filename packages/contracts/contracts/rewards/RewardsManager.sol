@@ -103,9 +103,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @dev Sets the subgraph oracle allowed to denegate distribution of rewards to subgraphs.
      * @param _subgraphAvailabilityOracle Address of the subgraph availability oracle
      */
-    function setSubgraphAvailabilityOracle(
-        address _subgraphAvailabilityOracle
-    ) external override onlyGovernor {
+    function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle)
+        external
+        override
+        onlyGovernor
+    {
         subgraphAvailabilityOracle = _subgraphAvailabilityOracle;
         emit ParameterUpdated("subgraphAvailabilityOracle");
     }
@@ -134,10 +136,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny Whether to set the subgraph as denied for claiming rewards or not
      */
-    function setDenied(
-        bytes32 _subgraphDeploymentID,
-        bool _deny
-    ) external override onlySubgraphAvailabilityOracle {
+    function setDenied(bytes32 _subgraphDeploymentID, bool _deny)
+        external
+        override
+        onlySubgraphAvailabilityOracle
+    {
         _setDenied(_subgraphDeploymentID, _deny);
     }
 
@@ -147,10 +150,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Array of subgraph deployment ID
      * @param _deny Array of denied status for claiming rewards for each subgraph
      */
-    function setDeniedMany(
-        bytes32[] calldata _subgraphDeploymentID,
-        bool[] calldata _deny
-    ) external override onlySubgraphAvailabilityOracle {
+    function setDeniedMany(bytes32[] calldata _subgraphDeploymentID, bool[] calldata _deny)
+        external
+        override
+        onlySubgraphAvailabilityOracle
+    {
         require(_subgraphDeploymentID.length == _deny.length, "!length");
         for (uint256 i = 0; i < _subgraphDeploymentID.length; i++) {
             _setDenied(_subgraphDeploymentID[i], _deny[i]);
@@ -229,9 +233,12 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards for subgraph
      */
-    function getAccRewardsForSubgraph(
-        bytes32 _subgraphDeploymentID
-    ) public view override returns (uint256) {
+    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID)
+        public
+        view
+        override
+        returns (uint256)
+    {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         // Get tokens signalled on the subgraph
@@ -253,9 +260,12 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @return Accumulated rewards per allocated token for the subgraph
      * @return Accumulated rewards for subgraph
      */
-    function getAccRewardsPerAllocatedToken(
-        bytes32 _subgraphDeploymentID
-    ) public view override returns (uint256, uint256) {
+    function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID)
+        public
+        view
+        override
+        returns (uint256, uint256)
+    {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
@@ -301,9 +311,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards for subgraph
      */
-    function onSubgraphSignalUpdate(
-        bytes32 _subgraphDeploymentID
-    ) external override returns (uint256) {
+    function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID)
+        external
+        override
+        returns (uint256)
+    {
         // Called since `total signalled GRT` will change
         updateAccRewardsPerSignal();
 
@@ -322,9 +334,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards per allocated token for a subgraph
      */
-    function onSubgraphAllocationUpdate(
-        bytes32 _subgraphDeploymentID
-    ) public override returns (uint256) {
+    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID)
+        public
+        override
+        returns (uint256)
+    {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
         (
             uint256 accRewardsPerAllocatedToken,

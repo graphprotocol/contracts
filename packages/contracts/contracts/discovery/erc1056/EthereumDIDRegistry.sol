@@ -188,7 +188,11 @@ contract EthereumDIDRegistry {
         changed[identity] = block.number;
     }
 
-    function revokeDelegate(address identity, bytes32 delegateType, address delegate) public {
+    function revokeDelegate(
+        address identity,
+        bytes32 delegateType,
+        address delegate
+    ) public {
         revokeDelegate(identity, msg.sender, delegateType, delegate);
     }
 
@@ -288,7 +292,11 @@ contract EthereumDIDRegistry {
         changed[identity] = block.number;
     }
 
-    function revokeAttribute(address identity, bytes32 name, bytes memory value) public {
+    function revokeAttribute(
+        address identity,
+        bytes32 name,
+        bytes memory value
+    ) public {
         revokeAttribute(identity, msg.sender, name, value);
     }
 

@@ -63,7 +63,11 @@ contract ServiceRegistry is ServiceRegistryV1Storage, GraphUpgradeable, IService
      * @param _url URL of the indexer service
      * @param _geohash Geohash of the indexer service location
      */
-    function _register(address _indexer, string calldata _url, string calldata _geohash) private {
+    function _register(
+        address _indexer,
+        string calldata _url,
+        string calldata _geohash
+    ) private {
         require(_isAuth(_indexer), "!auth");
         require(bytes(_url).length > 0, "Service must specify a URL");
 

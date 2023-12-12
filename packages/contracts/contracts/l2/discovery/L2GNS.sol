@@ -256,9 +256,12 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _l2SubgraphID L2 subgraph ID
      * @return L1subgraph ID
      */
-    function getUnaliasedL1SubgraphID(
-        uint256 _l2SubgraphID
-    ) public pure override returns (uint256) {
+    function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID)
+        public
+        pure
+        override
+        returns (uint256)
+    {
         return _l2SubgraphID - SUBGRAPH_ID_ALIAS_OFFSET;
     }
 
@@ -352,9 +355,12 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
-    function _getSubgraphData(
-        uint256 _subgraphID
-    ) internal view override returns (SubgraphData storage) {
+    function _getSubgraphData(uint256 _subgraphID)
+        internal
+        view
+        override
+        returns (SubgraphData storage)
+    {
         // Return new subgraph type
         return subgraphs[_subgraphID];
     }

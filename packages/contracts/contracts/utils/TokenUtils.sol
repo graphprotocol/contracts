@@ -11,7 +11,11 @@ library TokenUtils {
      * @param _from Address sending the tokens
      * @param _amount Amount of tokens to transfer
      */
-    function pullTokens(IGraphToken _graphToken, address _from, uint256 _amount) internal {
+    function pullTokens(
+        IGraphToken _graphToken,
+        address _from,
+        uint256 _amount
+    ) internal {
         if (_amount > 0) {
             require(_graphToken.transferFrom(_from, address(this), _amount), "!transfer");
         }
@@ -23,7 +27,11 @@ library TokenUtils {
      * @param _to Address receiving the tokens
      * @param _amount Amount of tokens to transfer
      */
-    function pushTokens(IGraphToken _graphToken, address _to, uint256 _amount) internal {
+    function pushTokens(
+        IGraphToken _graphToken,
+        address _to,
+        uint256 _amount
+    ) internal {
         if (_amount > 0) {
             require(_graphToken.transfer(_to, _amount), "!transfer");
         }
