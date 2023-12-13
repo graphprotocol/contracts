@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="#packages">Packages</a> •
-  <a href="#setup">Setup</a> •
+  <a href="#development">Development</a> •
   <a href="#documentation">Docs</a> •
   <a href="#contributing">Contributing</a> •
   <a href="#security">Security</a> •
@@ -33,11 +33,15 @@
 
 This repository is a Yarn workspaces monorepo containing the following packages:
 
-- [contracts](./packages/contracts): Contracts enabling the open and permissionless decentralized network known as The Graph protocol.
-- [sdk](./packages/sdk): TypeScript based SDK to interact with the protocol contracts
+| Package | Latest version | Description |
+| --- | --- | --- |
+| [contracts](./packages/contracts) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts) | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
+| [sdk](./packages/sdk) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk) | TypeScript based SDK to interact with the protocol contracts |
 
-## Setup
 
+## Development
+
+### Setup
 To set up this project you'll need [git](https://git-scm.com) and [yarn](https://yarnpkg.com/) installed. Note that Yarn v4 is required to install the dependencies and build the project. 
 
 From your command line:
@@ -59,6 +63,31 @@ $ yarn
 # Build projects
 $ yarn build
 ```
+
+### Versioning a package 
+
+To version a package, run the following command from the root of the repository:
+
+```bash
+# Change directory to the package you want to version
+$ cd packages/<package-name>
+
+# Bump the version
+$ yarn version <major|minor|patch>
+```
+
+__Note on cross referenced packages__: Bumping the version of a package that is cross referenced by another package will automatically bump the dependency version in the other package. For example, if you bump the version of `sdk` from `0.0.1` to `0.0.2`, the required version of `sdk` in the `contracts` package will automatically be bumped to `0.0.2`. Depending on the nature of the change you might need to bump (and publish) a new version of the `contracts` package as well.
+
+### Publishing a package
+
+Packages are published and distributed via NPM. To publish a package, run the following command from the root of the repository:
+
+```bash
+# Publish the package
+$ yarn npm publish --access public --tag <tag>
+```
+
+Alternatively, there is a GitHub action that can be manually triggered to publish a package.
 
 ## Documentation
 
