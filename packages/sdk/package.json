@@ -1,12 +1,12 @@
 {
   "name": "@graphprotocol/sdk",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "TypeScript based SDK to interact with The Graph protocol contracts",
-  "main": "build/src/index.js",
-  "types": "build/src/index.d.ts",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "exports": {
-    ".": "./build/src/index.js",
-    "./gre": "./build/src/gre/index.js"
+    ".": "./build/index.js",
+    "./gre": "./build/gre/index.js"
   },
   "repository": "git@github.com:graphprotocol/sdk.git",
   "author": "tomas@edgeandnode.com",
@@ -15,7 +15,7 @@
     "@arbitrum/sdk": "^3.1.12",
     "@ethersproject/experimental": "^5.7.0",
     "@graphprotocol/common-ts": "^2.0.7",
-    "@graphprotocol/contracts": "workspace:^5.3.1",
+    "@graphprotocol/contracts": "workspace:^6.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.9",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "debug": "^4.3.4",

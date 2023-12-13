@@ -1,0 +1,34 @@
+name: Publish package to NPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        type: choice
+        options:
+        - contracts
+        - sdk
+      tag:
+        description: 'Tag to publish'
+        required: true
+        type: string
+        default: latest
+
+jobs:
+  publish:
+    name: Publish package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Publish 🚀
+        shell: bash
+        run: |
+          pushd packages/${{ inputs.package }}
+          yarn npm publish --tag ${{ inputs.tag }} --access public
+        env:
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
