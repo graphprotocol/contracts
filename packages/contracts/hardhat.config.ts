@@ -159,19 +159,19 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       chainId: 1337,
-      url: 'http://localhost:8545',
+      url: 'http://127.0.0.1:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
     },
     localnitrol1: {
       chainId: 1337,
-      url: 'http://localhost:8545',
+      url: 'http://127.0.0.1:8545',
       accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
       graphConfig: 'config/graph.localhost.yml',
     },
     localnitrol2: {
       chainId: 412346,
-      url: 'http://localhost:8547',
+      url: 'http://127.0.0.1:8547',
       accounts: { mnemonic: DEFAULT_L2_TEST_MNEMONIC },
       graphConfig: 'config/graph.arbitrum-localhost.yml',
     },

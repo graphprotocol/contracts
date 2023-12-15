@@ -12,7 +12,7 @@ ETHERSCAN_API_KEY=
 INFURA_KEY=
 ADDRESS_BOOK="addresses.json"
 GRAPH_CONFIG="config/graph.mainnet.yml"
-PROVIDER_URL="http://localhost:8545"
+PROVIDER_URL="http://127.0.0.1:8545"
 ```
 
 Also, run the following to create the proper typescript bindings for each contract:

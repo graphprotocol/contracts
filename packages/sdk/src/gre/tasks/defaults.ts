@@ -9,7 +9,7 @@ export const GRE_TASK_PARAMS = {
   },
   providerUrl: {
     description: 'The URL of an Ethereum provider',
-    default: 'http://localhost:8545',
+    default: 'http://127.0.0.1:8545',
   },
   mnemonic: {
     description: 'The mnemonic for an account which will pay for gas',

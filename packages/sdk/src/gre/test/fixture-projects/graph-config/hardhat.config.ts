@@ -33,11 +33,11 @@ module.exports = {
     },
     localhost: {
       chainId: 1337,
-      url: 'http://localhost:8545',
+      url: 'http://127.0.0.1:8545',
     },
     'arbitrum-rinkeby': {
       chainId: 421611,
-      url: 'http://localhost:8545',
+      url: 'http://127.0.0.1:8545',
     },
   },
   graph: {

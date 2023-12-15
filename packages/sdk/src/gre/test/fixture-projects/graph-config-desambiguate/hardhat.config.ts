@@ -12,15 +12,15 @@ module.exports = {
     },
     localhost: {
       chainId: 1337,
-      url: `http://localhost:8545`,
+      url: `http://127.0.0.1:8545`,
     },
     localnitrol1: {
       chainId: 1337,
-      url: `http://localhost:8545`,
+      url: `http://127.0.0.1:8545`,
     },
     localnitrol2: {
       chainId: 412346,
-      url: `http://localhost:8547`,
+      url: `http://127.0.0.1:8547`,
     },
     mainnet: {
       chainId: 1,

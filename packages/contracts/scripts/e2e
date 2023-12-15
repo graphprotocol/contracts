@@ -99,8 +99,8 @@ function configure_bridge () {
   local L1_CHAIN_ID=${L1_CHAIN_ID:-"1337"}
   local L2_CHAIN_ID=${L2_CHAIN_ID:-"412346"}
 
-  local L1_RPC=${L1_RPC:-"http://localhost:8545"}
-  local L2_RPC=${L2_RPC:-"http://localhost:8547"}
+  local L1_RPC=${L1_RPC:-"http://127.0.0.1:8545"}
+  local L2_RPC=${L2_RPC:-"http://127.0.0.1:8547"}
 
   local L1_MNEMONIC=${L1_MNEMONIC:-"myth like bonus scare over problem client lizard pioneer submit female collect"}
   local L2_MNEMONIC=${L2_MNEMONIC:-"urge never interest human any economy gentle canvas anxiety pave unlock find"}
