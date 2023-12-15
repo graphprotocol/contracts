@@ -1,33 +1,34 @@
-name: Run CI tests
+name: CI
+
+env:
+  CI: true
 
 on:
   push:
-    branches: [main]
-  pull_request: {}
+    branches: "*"
+    paths:
+      - packages/contracts/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/contracts/**
+  workflow_dispatch:
 
 jobs:
-  build:
+  test-ci:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [16.x]
-
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: Install packages
-        run: yarn install --non-interactive --frozen-lockfile
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
       - name: Run tests
         run: yarn test:coverage
       - name: Upload coverage report
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.json
+          files: ./packages/contracts/coverage.json
           flags: unittests
           name: graphprotocol-contracts
           fail_ci_if_error: true
