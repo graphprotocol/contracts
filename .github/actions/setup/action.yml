@@ -1,0 +1,20 @@
+name: Setup
+
+runs:
+  using: composite
+
+  steps:
+    - name: Enable corepack for modern yarn
+      shell: bash
+      run: corepack enable
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'yarn'
+    - name: Install dependencies
+      shell: bash
+      run: yarn --immutable
+    - name: Build
+      shell: bash
+      run: yarn build
