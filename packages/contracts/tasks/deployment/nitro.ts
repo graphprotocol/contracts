@@ -21,7 +21,7 @@ task(TASK_NITRO_FUND_ACCOUNTS, 'Funds protocol accounts on Arbitrum Nitro testno
     // - L1 > https://github.com/OffchainLabs/nitro/blob/01c558c06ad9cbaa083bebe3e51960e195c3fd6b/test-node.bash#L136
     // - L2 > https://github.com/OffchainLabs/nitro/blob/01c558c06ad9cbaa083bebe3e51960e195c3fd6b/testnode-scripts/config.ts#L22
     const genesisAccountPrivateKey =
-      taskArgs.privateKey ?? 'e887f7d17d07cc7b8004053fb8826f6657084e88904bb61590e498ca04704cf2'
+      taskArgs.privateKey ?? 'b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659'
     const genesisAccount = new hre.ethers.Wallet(genesisAccountPrivateKey)
 
     // Get protocol accounts
@@ -95,7 +95,7 @@ subtask(TASK_NITRO_FETCH_DEPLOYMENT_FILE, 'Fetches nitro deployment file from a 
   .setAction(async (taskArgs) => {
     console.log(`Attempting to fetch deployment file from testnode...`)
 
-    const command = `docker exec $(docker ps -qf "name=sequencer") cat /workspace/localNetwork.json > ${taskArgs.deploymentFile}`
+    const command = `docker container cp $(docker ps -alqf "name=tokenbridge" --format "{{.ID}}"):/workspace/localNetwork.json .`
     const stdOut = execSync(command)
     console.log(stdOut.toString())
 

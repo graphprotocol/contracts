@@ -34,9 +34,10 @@ jobs:
         uses: ./.github/actions/setup
       - name: Run e2e tests
         run: |
-          git clone https://github.com/edgeandnode/nitro
-          pushd nitro
+          git clone https://github.com/OffchainLabs/nitro-testnode/
+          pushd nitro-testnode
+          git checkout c47cb8c643bc8e63ff096f7f88f9152064d1532a
           git submodule update --init --recursive
-          ./test-node.bash --init --no-blockscout --detach
+          ./test-node.bash --init --batchposters 0 --redundantsequencers 0 --no-blockscout --detach
           popd
           L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 yarn test:e2e
