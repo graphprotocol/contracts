@@ -2,6 +2,7 @@
   <a href="https://thegraph.com/"><img src="https://storage.thegraph.com/logos/grt.png" alt="The Graph" width="200"></a> 
 </p>
 
+<h3 align="center">The Graph Protocol</h3>
 <h4 align="center">A decentralized network for querying and indexing blockchain data.</h4>
 
 <p align="center">
