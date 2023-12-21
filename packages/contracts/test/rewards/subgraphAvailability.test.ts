@@ -16,7 +16,7 @@ import {
   randomAddress,
   randomHexBytes,
   deploy,
-  DeployType
+  DeployType,
 } from '@graphprotocol/sdk'
 
 const { AddressZero } = constants
@@ -49,7 +49,7 @@ describe('SubgraphAvailabilityManager', () => {
   const subgraphDeploymentID3 = randomHexBytes()
 
   before(async () => {
-    ;[me, oracleOne, oracleTwo, oracleThree, oracleFour, oracleFive, newOracle] = 
+    ;[me, oracleOne, oracleTwo, oracleThree, oracleFour, oracleFive, newOracle] =
       await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
@@ -64,20 +64,11 @@ describe('SubgraphAvailabilityManager', () => {
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     rewardsManager = contracts.RewardsManager as IRewardsManager
-    const deployResult = (await deploy(
-      DeployType.Deploy,
-      governor,
-      {
-        name: "SubgraphAvailabilityManager",
-        args: [
-          governor.address,
-          rewardsManager.address,
-          executionThreshold,
-          voteTimeLimit,
-          oracles,
-        ]
-      }
-    ))
+    console.log('Llega hasta aca?')
+    const deployResult = await deploy(DeployType.Deploy, governor, {
+      name: 'SubgraphAvailabilityManager',
+      args: [governor.address, rewardsManager.address, executionThreshold, voteTimeLimit, oracles],
+    })
     subgraphAvailabilityManager = deployResult.contract as SubgraphAvailabilityManager
 
     await rewardsManager
@@ -100,102 +91,64 @@ describe('SubgraphAvailabilityManager', () => {
 
     it('should revert if oracles array is less than 5', async () => {
       await expect(
-        deploy(
-          DeployType.Deploy,
-          governor,
-          {
-            name: "SubgraphAvailabilityManager",
-            args: [
-              governor.address,
-              rewardsManager.address,
-              executionThreshold,
-              voteTimeLimit,
-              [oracleOne.address, oracleTwo.address, oracleThree.address, oracleFour.address],
-            ]
-          }
-        ),
+        deploy(DeployType.Deploy, governor, {
+          name: 'SubgraphAvailabilityManager',
+          args: [
+            governor.address,
+            rewardsManager.address,
+            executionThreshold,
+            voteTimeLimit,
+            [oracleOne.address, oracleTwo.address, oracleThree.address, oracleFour.address],
+          ],
+        }),
       ).to.be.reverted
     })
 
     it('should revert if an oracle is address zero', async () => {
       await expect(
-        deploy(
-          DeployType.Deploy,
-          governor,
-          {
-            name: "SubgraphAvailabilityManager",
-            args: [
-              governor.address,
-              rewardsManager.address,
-              executionThreshold,
-              voteTimeLimit,
-              [
-                AddressZero,
-                oracleTwo.address,
-                oracleThree.address,
-                oracleFour.address,
-                oracleFive.address,
-              ],
-            ]
-          }
-        ),
+        deploy(DeployType.Deploy, governor, {
+          name: 'SubgraphAvailabilityManager',
+          args: [
+            governor.address,
+            rewardsManager.address,
+            executionThreshold,
+            voteTimeLimit,
+            [
+              AddressZero,
+              oracleTwo.address,
+              oracleThree.address,
+              oracleFour.address,
+              oracleFive.address,
+            ],
+          ],
+        }),
       ).to.be.revertedWith('SAM: oracle cannot be address zero')
     })
 
     it('should revert if governor is address zero', async () => {
       await expect(
-        deploy(
-          DeployType.Deploy,
-          governor,
-          {
-            name: "SubgraphAvailabilityManager",
-            args: [
-              AddressZero,
-              rewardsManager.address,
-              executionThreshold,
-              voteTimeLimit,
-              oracles,
-            ]
-          }
-        ),
+        deploy(DeployType.Deploy, governor, {
+          name: 'SubgraphAvailabilityManager',
+          args: [AddressZero, rewardsManager.address, executionThreshold, voteTimeLimit, oracles],
+        }),
       ).to.be.revertedWith('SAM: governor must be set')
     })
 
     it('should revert if rewardsManager is address zero', async () => {
       await expect(
-        deploy(
-          DeployType.Deploy,
-          governor,
-          {
-            name: "SubgraphAvailabilityManager",
-            args: [
-              governor.address,
-              AddressZero,
-              executionThreshold,
-              voteTimeLimit,
-              oracles,
-            ]
-          }
-        ),
+        deploy(DeployType.Deploy, governor, {
+          name: 'SubgraphAvailabilityManager',
+          args: [governor.address, AddressZero, executionThreshold, voteTimeLimit, oracles],
+        }),
       ).to.be.revertedWith('SAM: rewardsManager must be set')
     })
 
     it('should revert if executionThreshold is too low', async () => {
       await expect(
-        deploy(
-          DeployType.Deploy,
-          governor,
-          {
-            name: "SubgraphAvailabilityManager",
-            args: [
-              governor.address,
-              rewardsManager.address,
-              '2',
-              voteTimeLimit,
-              oracles,
-            ]
-          }
-        ),
+        deploy(DeployType.Deploy, governor, {
+          name: 'SubgraphAvailabilityManager',
+          args: [governor.address, rewardsManager.address, '2', voteTimeLimit, oracles],
+        }),
       ).to.be.revertedWith('SAM: executionThreshold too low')
     })
   })
@@ -223,9 +176,7 @@ describe('SubgraphAvailabilityManager', () => {
   describe('set vote limit', async () => {
     it('sets voteTimeLimit successfully', async () => {
       const newVoteTimeLimit = 10
-      await expect(
-        subgraphAvailabilityManager.connect(governor).setVoteTimeLimit(newVoteTimeLimit),
-      )
+      await expect(subgraphAvailabilityManager.connect(governor).setVoteTimeLimit(newVoteTimeLimit))
         .emit(subgraphAvailabilityManager, 'VoteTimeLimitSet')
         .withArgs(newVoteTimeLimit)
       expect(await subgraphAvailabilityManager.voteTimeLimit()).to.be.equal(newVoteTimeLimit)
@@ -250,9 +201,9 @@ describe('SubgraphAvailabilityManager', () => {
 
     it('should fail if not called by governor', async () => {
       const oracle = randomAddress()
-      await expect(
-        subgraphAvailabilityManager.connect(me).setOracle(0, oracle),
-      ).to.be.revertedWith('Only Governor can call')
+      await expect(subgraphAvailabilityManager.connect(me).setOracle(0, oracle)).to.be.revertedWith(
+        'Only Governor can call',
+      )
     })
 
     it('should fail if setting oracle to address zero', async () => {
@@ -291,18 +242,14 @@ describe('SubgraphAvailabilityManager', () => {
     it('should fail if index is out of bounds', async () => {
       const denied = true
       await expect(
-        subgraphAvailabilityManager
-          .connect(oracleOne)
-          .vote(subgraphDeploymentID1, denied, 5),
+        subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 5),
       ).to.be.revertedWith('SAM: index out of bounds')
     })
 
     it('should fail if oracle used an incorrect index', async () => {
       const denied = true
       await expect(
-        subgraphAvailabilityManager
-          .connect(oracleOne)
-          .vote(subgraphDeploymentID1, denied, 1),
+        subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 1),
       ).to.be.revertedWith('SAM: caller must be oracle')
     })
 
@@ -318,12 +265,8 @@ describe('SubgraphAvailabilityManager', () => {
     it('should be denied or allowed if majority of oracles have voted', async () => {
       // 3/5 oracles vote denied = true
       let denied = true
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
-      await subgraphAvailabilityManager
-        .connect(oracleTwo)
-        .vote(subgraphDeploymentID1, denied, 1)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleTwo).vote(subgraphDeploymentID1, denied, 1)
       const tx = await subgraphAvailabilityManager
         .connect(oracleThree)
         .vote(subgraphDeploymentID1, denied, 2)
@@ -336,15 +279,9 @@ describe('SubgraphAvailabilityManager', () => {
 
       // 3/5 oracles vote denied = false
       denied = false
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
-      await subgraphAvailabilityManager
-        .connect(oracleTwo)
-        .vote(subgraphDeploymentID1, denied, 1)
-      await subgraphAvailabilityManager
-        .connect(oracleThree)
-        .vote(subgraphDeploymentID1, denied, 2)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleTwo).vote(subgraphDeploymentID1, denied, 1)
+      await subgraphAvailabilityManager.connect(oracleThree).vote(subgraphDeploymentID1, denied, 2)
 
       // check that subgraph is not denied
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.false
@@ -352,15 +289,9 @@ describe('SubgraphAvailabilityManager', () => {
 
     it('should not be denied if the same oracle votes three times', async () => {
       const denied = true
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
 
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.false
     })
@@ -368,12 +299,8 @@ describe('SubgraphAvailabilityManager', () => {
     it('should not be denied if voteTimeLimit has passed and not enough oracles have voted', async () => {
       // 2/3 oracles vote denied = true
       const denied = true
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
-      await subgraphAvailabilityManager
-        .connect(oracleTwo)
-        .vote(subgraphDeploymentID1, denied, 1)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleTwo).vote(subgraphDeploymentID1, denied, 1)
 
       // increase time by 6 seconds
       await ethers.provider.send('evm_increaseTime', [6])
@@ -393,9 +320,7 @@ describe('SubgraphAvailabilityManager', () => {
     it('votes many successfully', async () => {
       const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2, subgraphDeploymentID3]
       const denied = [true, false, true]
-      const tx = await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .voteMany(subgraphs, denied, 0)
+      const tx = await subgraphAvailabilityManager.connect(oracleOne).voteMany(subgraphs, denied, 0)
       const timestamp = (await ethers.provider.getBlock('latest')).timestamp
       await expect(tx)
         .to.emit(subgraphAvailabilityManager, 'OracleVote')
@@ -464,20 +389,14 @@ describe('SubgraphAvailabilityManager', () => {
     it('should refresh votes if an oracle is replaced', async () => {
       const denied = true
       // 2/3 oracles vote denied = true
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
-      await subgraphAvailabilityManager
-        .connect(oracleTwo)
-        .vote(subgraphDeploymentID1, denied, 1)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleTwo).vote(subgraphDeploymentID1, denied, 1)
 
       // replace oracleOne with a new oracle
       await subgraphAvailabilityManager.connect(governor).setOracle(2, newOracle.address)
 
       // new oracle votes denied = true
-      await subgraphAvailabilityManager
-        .connect(newOracle)
-        .vote(subgraphDeploymentID1, denied, 2)
+      await subgraphAvailabilityManager.connect(newOracle).vote(subgraphDeploymentID1, denied, 2)
 
       // subgraph shouldn't be denied because setting a new oracle should refresh the votes
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.false
@@ -486,20 +405,14 @@ describe('SubgraphAvailabilityManager', () => {
     it('should refresh votes if voteTimeLimit changes', async () => {
       const denied = true
       // 2/3 oracles vote denied = true
-      await subgraphAvailabilityManager
-        .connect(oracleOne)
-        .vote(subgraphDeploymentID1, denied, 0)
-      await subgraphAvailabilityManager
-        .connect(oracleTwo)
-        .vote(subgraphDeploymentID1, denied, 1)
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleTwo).vote(subgraphDeploymentID1, denied, 1)
 
       // change voteTimeLimit to 10 seconds
       await subgraphAvailabilityManager.connect(governor).setVoteTimeLimit(10)
 
       // last oracle votes denied = true
-      await subgraphAvailabilityManager
-        .connect(oracleThree)
-        .vote(subgraphDeploymentID1, denied, 2)
+      await subgraphAvailabilityManager.connect(oracleThree).vote(subgraphDeploymentID1, denied, 2)
 
       // subgraph shouldn't be denied because voteTimeLimit should refresh the votes
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.false

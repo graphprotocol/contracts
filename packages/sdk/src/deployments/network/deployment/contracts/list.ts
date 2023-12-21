@@ -13,6 +13,7 @@ export const GraphNetworkSharedContractNameList = [
   'RewardsManager',
   'DisputeManager',
   'AllocationExchange',
+  'SubgraphAvailabilityManager',
 ] as const
 export const GraphNetworkOptionalContractNameList = [
   'IENS',

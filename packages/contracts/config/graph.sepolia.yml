@@ -159,3 +159,13 @@ contracts:
       controller: "${{Controller.address}}"
     calls:
       - fn: "syncAllContracts"
+  SubgraphAvailabilityManager:
+    init:
+      governor: "${{Env.deployer}}"
+      rewardsManager: "${{RewardsManager.address}}"
+      executionThreshold: 5
+      voteTimeLimit: 300
+      oracles: [*availabilityOracle, *availabilityOracle, *availabilityOracle, *availabilityOracle, *availabilityOracle]
+    calls:
+      - fn: "transferOwnership"
+        owner: *governor
