@@ -104,7 +104,10 @@ contract SubgraphAvailabilityManager is Governed {
 
         // Oracles should not be address zero
         for (uint256 i = 0; i < _oracles.length; i++) {
-            require(_oracles[i] != address(0), "SAM: oracle cannot be address zero");
+            address oracle = _oracles[i];
+            require(oracle != address(0), "SAM: oracle cannot be address zero");
+            oracles[i] = oracle;
+            emit OracleSet(i, oracle);
         }
 
         Governed._initialize(_governor);
@@ -112,7 +115,6 @@ contract SubgraphAvailabilityManager is Governed {
 
         executionThreshold = _executionThreshold;
         voteTimeLimit = _voteTimeLimit;
-        oracles = _oracles;
     }
 
     // -- Functions --
