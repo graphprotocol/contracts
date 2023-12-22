@@ -31,7 +31,7 @@ bin/
 .vscode
 
 # Coverage and other reports
-/reports
+reports/
 coverage.json
 
 # Local test files

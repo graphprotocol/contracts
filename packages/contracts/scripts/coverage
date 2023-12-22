@@ -7,4 +7,5 @@ yarn build
 DISABLE_SECURE_ACCOUNTS=true \
 L1_GRAPH_CONFIG=config/graph.hardhat.yml \
 L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
+ADDRESS_BOOK=addresses-local.json \
   npx hardhat coverage $@
