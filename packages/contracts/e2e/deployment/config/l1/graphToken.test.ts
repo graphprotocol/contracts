@@ -1,4 +1,4 @@
-import { isGraphChainId } from '@graphprotocol/sdk'
+import { isGraphL2ChainId } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
@@ -10,7 +10,7 @@ describe('[L1] GraphToken', () => {
   let unauthorized: SignerWithAddress
 
   before(async function () {
-    if (isGraphChainId(graph.chainId)) this.skip()
+    if (isGraphL2ChainId(graph.chainId)) this.skip()
     unauthorized = (await graph.getTestAccounts())[0]
   })
 

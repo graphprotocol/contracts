@@ -15,16 +15,20 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   const l2AddressBook = getAddressBook(cliArgs.addressBook, l2ChainId)
   const arbAddressBook = getAddressBook(cliArgs.arbAddressBook, cli.chainId.toString())
 
+  // Gateway
   const gateway = cli.contracts['L1GraphTokenGateway']
 
   const l2GRT = l2AddressBook.getEntry('L2GraphToken')
   logger.info('L2 GRT address: ' + l2GRT.address)
   await sendTransaction(cli.wallet, gateway, 'setL2TokenAddress', [l2GRT.address])
 
-  const l2Counterpart = l2AddressBook.getEntry('L2GraphTokenGateway')
-  logger.info('L2 Gateway address: ' + l2Counterpart.address)
-  await sendTransaction(cli.wallet, gateway, 'setL2CounterpartAddress', [l2Counterpart.address])
+  const l2GatewayCounterpart = l2AddressBook.getEntry('L2GraphTokenGateway')
+  logger.info('L2 Gateway address: ' + l2GatewayCounterpart.address)
+  await sendTransaction(cli.wallet, gateway, 'setL2CounterpartAddress', [
+    l2GatewayCounterpart.address,
+  ])
 
+  // Escrow
   const bridgeEscrow = cli.contracts.BridgeEscrow
   logger.info('Escrow address: ' + bridgeEscrow.address)
   await sendTransaction(cli.wallet, gateway, 'setEscrowAddress', [bridgeEscrow.address])
@@ -39,6 +43,22 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
     l1Inbox.address,
     l1Router.address,
   ])
+
+  // GNS
+  const gns = cli.contracts.L1GNS
+  const l2GNSCounterpart = l2AddressBook.getEntry('L2GNS')
+  logger.info('L2 GNS address: ' + l2GNSCounterpart.address)
+  await sendTransaction(cli.wallet, gns, 'setCounterpartGNSAddress', [l2GNSCounterpart.address])
+  await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [gns.address])
+
+  // Staking
+  const staking = cli.contracts.L1Staking
+  const l2StakingCounterpart = l2AddressBook.getEntry('L2Staking')
+  logger.info('L2 Staking address: ' + l2StakingCounterpart.address)
+  await sendTransaction(cli.wallet, staking, 'setCounterpartStakingAddress', [
+    l2StakingCounterpart.address,
+  ])
+  await sendTransaction(cli.wallet, gateway, 'addToCallhookAllowlist', [staking.address])
 }
 
 export const configureL2Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
@@ -52,6 +72,7 @@ export const configureL2Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   const l1AddressBook = getAddressBook(cliArgs.addressBook, l1ChainId)
   const arbAddressBook = getAddressBook(cliArgs.arbAddressBook, cli.chainId.toString())
 
+  // Gateway
   const gateway = cli.contracts['L2GraphTokenGateway']
   const token = cli.contracts['L2GraphToken']
 
@@ -70,6 +91,20 @@ export const configureL2Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
 
   logger.info('L2 Gateway address: ' + gateway.address)
   await sendTransaction(cli.wallet, token, 'setGateway', [gateway.address])
+
+  // GNS
+  const gns = cli.contracts.L2GNS
+  const l1GNSCounterpart = l1AddressBook.getEntry('L1GNS')
+  logger.info('L1 GNS address: ' + l1GNSCounterpart.address)
+  await sendTransaction(cli.wallet, gns, 'setCounterpartGNSAddress', [l1GNSCounterpart.address])
+
+  // Staking
+  const staking = cli.contracts.L2Staking
+  const l1StakingCounterpart = l1AddressBook.getEntry('L1Staking')
+  logger.info('L1 Staking address: ' + l1StakingCounterpart.address)
+  await sendTransaction(cli.wallet, staking, 'setCounterpartStakingAddress', [
+    l1StakingCounterpart.address,
+  ])
 }
 
 export const configureL1BridgeCommand = {

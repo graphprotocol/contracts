@@ -32,6 +32,8 @@ task(TASK_BRIDGE_CONFIGURE_L1, 'Configure L1 bridge')
     await configureL1Bridge(graph.contracts, governor, {
       l2GRTAddress: graph.l2.contracts.GraphToken.address,
       l2GRTGatewayAddress: graph.l2.contracts.L2GraphTokenGateway.address,
+      l2GNSAddress: graph.l2.contracts.L2GNS.address,
+      l2StakingAddress: graph.l2.contracts.L2Staking.address,
       arbAddressBookPath: taskArgs.arbitrumAddressBook,
       chainId: graph.chainId,
     })
@@ -60,6 +62,8 @@ task(TASK_BRIDGE_CONFIGURE_L2, 'Configure L2 bridge')
     await configureL2Bridge(graph.contracts, governor, {
       l1GRTAddress: graph.l1.contracts.GraphToken.address,
       l1GRTGatewayAddress: graph.l1.contracts.L1GraphTokenGateway.address,
+      l1GNSAddress: graph.l1.contracts.L1GNS.address,
+      l1StakingAddress: graph.l1.contracts.L1Staking.address,
       arbAddressBookPath: taskArgs.arbitrumAddressBook,
       chainId: graph.chainId,
     })
