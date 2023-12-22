@@ -5,7 +5,7 @@ import { isGraphL2ChainId } from '@graphprotocol/sdk'
 
 describe('[L2] Staking', () => {
   const graph = hre.graph()
-  const { L2Staking } = graph.contracts
+  const { L2Staking } = graph.l2.contracts
 
   let unauthorized: SignerWithAddress
 
