@@ -13,6 +13,7 @@
   "scripts": {
     "postinstall": "husky install",
     "clean": "yarn workspaces foreach --all --parallel --verbose run clean",
+    "clean:all": "yarn clean && rm -rf node_modules packages/*/node_modules",
     "build": "yarn workspaces foreach --all --verbose run build",
     "lint": "yarn workspaces foreach --all --parallel --verbose run lint",
     "test": "yarn workspaces foreach --all --parallel --verbose --interlaced run test"
