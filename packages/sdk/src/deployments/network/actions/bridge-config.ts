@@ -22,7 +22,14 @@ export const configureL1Bridge: GraphNetworkAction<{
     chainId: number
   },
 ): Promise<void> => {
-  const { l2GRTAddress, l2GRTGatewayAddress, l2GNSAddress, l2StakingAddress, arbAddressBookPath, chainId } = args
+  const {
+    l2GRTAddress,
+    l2GRTGatewayAddress,
+    l2GNSAddress,
+    l2StakingAddress,
+    arbAddressBookPath,
+    chainId,
+  } = args
   console.info(`>>> Setting L1 Bridge Configuration <<<\n`)
 
   const arbAddressBook = new SimpleAddressBook(arbAddressBookPath, chainId)
@@ -83,7 +90,14 @@ export const configureL2Bridge: GraphNetworkAction<{
     chainId: number
   },
 ): Promise<void> => {
-  const { l1GRTAddress, l1GRTGatewayAddress, l1GNSAddress, l1StakingAddress, arbAddressBookPath, chainId } = args
+  const {
+    l1GRTAddress,
+    l1GRTGatewayAddress,
+    l1GNSAddress,
+    l1StakingAddress,
+    arbAddressBookPath,
+    chainId,
+  } = args
   console.info(`>>> Setting L2 Bridge Configuration <<<\n`)
 
   const arbAddressBook = new SimpleAddressBook(arbAddressBookPath, chainId)
