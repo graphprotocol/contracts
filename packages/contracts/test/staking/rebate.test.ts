@@ -103,7 +103,7 @@ export function exponentialRebates(
 }
 
 describe('Staking:rebates', () => {
-  const graph = hre.graph()
+  const graph = hre.graph({ addressBook: 'addresses-local.json' })
 
   let libExponential: LibExponential
   let fixture: NetworkFixture
