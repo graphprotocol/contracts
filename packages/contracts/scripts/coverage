@@ -4,6 +4,8 @@ set -eo pipefail
 
 yarn build
 
+echo {} > addresses-local.json
+
 DISABLE_SECURE_ACCOUNTS=true \
 L1_GRAPH_CONFIG=config/graph.hardhat.yml \
 L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
