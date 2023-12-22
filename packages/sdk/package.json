@@ -3,10 +3,16 @@
   "version": "0.3.0",
   "description": "TypeScript based SDK to interact with The Graph protocol contracts",
   "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "types": "src/index.ts",
   "exports": {
-    ".": "./build/index.js",
-    "./gre": "./build/gre/index.js"
+    ".": {
+      "default": "./build/index.js",
+      "types": "./src/index.ts"
+    },
+    "./gre": {
+      "default": "./build/gre/index.js",
+      "types": "./src/gre/index.ts"
+    }
   },
   "repository": "git@github.com:graphprotocol/sdk.git",
   "author": "tomas@edgeandnode.com",
