@@ -79,7 +79,7 @@ const ABI_LIB_EXPONENTIAL = [
 ]
 
 describe('Staking:Allocation', () => {
-  const graph = hre.graph()
+  const graph = hre.graph({ addressBook: 'addresses-local.json' })
   let me: SignerWithAddress
   let governor: SignerWithAddress
   let indexer: SignerWithAddress
