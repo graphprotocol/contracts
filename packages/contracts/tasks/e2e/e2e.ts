@@ -47,7 +47,7 @@ task('e2e', 'Run all e2e tests')
     ]
 
     if (args.skipBridge) {
-      testFiles = testFiles.filter((file) => !['l1', 'l2'].includes(file.split('/')[3]))
+      testFiles = testFiles.filter((file) => !/l1|l2/.test(file))
     }
 
     // Disable secure accounts, we don't need them for this task
