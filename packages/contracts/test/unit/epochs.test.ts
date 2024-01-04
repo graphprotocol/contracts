@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
-import { EpochManager } from '../build/types/EpochManager'
+import { EpochManager } from '../../build/types/EpochManager'
 
 import { DeployType, deploy, helpers, toBN } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'

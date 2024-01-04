@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
 
-import { ServiceRegistry } from '../build/types/ServiceRegistry'
-import { IStaking } from '../build/types/IStaking'
+import { ServiceRegistry } from '../../build/types/ServiceRegistry'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from './lib/fixtures'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'

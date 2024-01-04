@@ -4,15 +4,15 @@ import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
 import { SubgraphDeploymentID, formatGRT } from '@graphprotocol/common-ts'
 
-import { LegacyGNSMock } from '../build/types/LegacyGNSMock'
-import { GraphToken } from '../build/types/GraphToken'
-import { Curation } from '../build/types/Curation'
+import { LegacyGNSMock } from '../../build/types/LegacyGNSMock'
+import { GraphToken } from '../../build/types/GraphToken'
+import { Curation } from '../../build/types/Curation'
 
 import { ArbitrumL1Mocks, NetworkFixture } from './lib/fixtures'
-import { Controller } from '../build/types/Controller'
-import { GraphProxyAdmin } from '../build/types/GraphProxyAdmin'
-import { L1GNS } from '../build/types/L1GNS'
-import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
+import { Controller } from '../../build/types/Controller'
+import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
+import { L1GNS } from '../../build/types/L1GNS'
+import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import {
   AccountDefaultName,
   createDefaultName,
@@ -37,7 +37,7 @@ import {
   loadContractAt,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { SubgraphNFT } from '../build/types'
+import { SubgraphNFT } from '../../build/types'
 
 const { AddressZero, HashZero } = ethers.constants
 
