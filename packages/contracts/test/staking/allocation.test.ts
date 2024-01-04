@@ -876,9 +876,23 @@ describe('Staking:Allocation', () => {
           await expect(tx).revertedWith('!active')
         })
 
-        it('reject close before at least one epoch has passed', async function () {
+        it('allow close before one epoch has passed', async function () {
+          const currentEpoch = await epochManager.currentEpoch()
+          const beforeAlloc = await staking.getAllocation(allocationID)
+
           const tx = staking.connect(indexer).closeAllocation(allocationID, poi)
-          await expect(tx).revertedWith('<epochs')
+          await expect(tx)
+            .emit(staking, 'AllocationClosed')
+            .withArgs(
+              indexer.address,
+              subgraphDeploymentID,
+              currentEpoch,
+              beforeAlloc.tokens,
+              allocationID,
+              indexer.address,
+              poi,
+              false,
+            )
         })
 
         it('reject close if not the owner of allocation', async function () {
@@ -923,7 +937,7 @@ describe('Staking:Allocation', () => {
         it('should close an allocation (by public) only if allocation is non-zero', async function () {
           // Reject to close if public address and under max allocation epochs
           const tx1 = staking.connect(me).closeAllocation(allocationID, poi)
-          await expect(tx1).revertedWith('<epochs')
+          await expect(tx1).revertedWith('!auth')
 
           // Move max allocation epochs to close by delegator
           const maxAllocationEpochs = await staking.maxAllocationEpochs()

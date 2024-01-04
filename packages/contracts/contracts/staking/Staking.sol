@@ -812,18 +812,18 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         // Get allocation
         Allocation memory alloc = __allocations[_allocationID];
 
-        // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
+
+        // Allocation duration in epochs
         uint256 epochs = MathUtils.diffOrZero(alloc.closedAtEpoch, alloc.createdAtEpoch);
-        require(epochs > 0, "<epochs");
 
         // Indexer or operator can close an allocation
         // Anyone is allowed to close ONLY under two concurrent conditions
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
-        bool isIndexer = _isAuth(alloc.indexer);
+        bool isIndexerOrOperator = _isAuth(alloc.indexer);
         if (epochs <= __maxAllocationEpochs || alloc.tokens == 0) {
-            require(isIndexer, "!auth");
+            require(isIndexerOrOperator, "!auth");
         }
 
         // Close the allocation
@@ -834,7 +834,9 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         // Process non-zero-allocation rewards tracking
         if (alloc.tokens > 0) {
             // Distribute rewards if proof of indexing was presented by the indexer or operator
-            if (isIndexer && _poi != 0) {
+            // and the allocation is at least one epoch old (most indexed chains require the EBO
+            // posting epoch block numbers to produce a valid POI which happens once per epoch)
+            if (isIndexerOrOperator && _poi != 0 && epochs > 0) {
                 _distributeRewards(_allocationID, alloc.indexer);
             } else {
                 _updateRewards(alloc.subgraphDeploymentID);
@@ -858,7 +860,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             _allocationID,
             msg.sender,
             _poi,
-            !isIndexer
+            !isIndexerOrOperator
         );
     }
 
