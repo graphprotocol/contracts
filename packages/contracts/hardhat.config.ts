@@ -119,7 +119,7 @@ const DEFAULT_L2_TEST_MNEMONIC =
 const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
-    tests: './test',
+    tests: './test/unit',
     artifacts: './build/contracts',
   },
   solidity: {
