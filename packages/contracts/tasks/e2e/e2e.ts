@@ -7,8 +7,8 @@ import { runScriptWithHardhat } from 'hardhat/internal/util/scripts-runner'
 import { isGraphL1ChainId } from '@graphprotocol/sdk'
 import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 
-const CONFIG_TESTS = 'e2e/deployment/config/**/*.test.ts'
-const INIT_TESTS = 'e2e/deployment/init/**/*.test.ts'
+const CONFIG_TESTS = 'test/e2e/deployment/config/**/*.test.ts'
+const INIT_TESTS = 'test/e2e/deployment/init/**/*.test.ts'
 
 // Built-in test & run tasks don't support GRE arguments
 // so we pass them by overriding GRE config object
@@ -104,8 +104,8 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphConfig(args, hre)
 
-    const script = `e2e/scenarios/${args.scenario}.ts`
-    const test = `e2e/scenarios/${args.scenario}.test.ts`
+    const script = `test/e2e/scenarios/${args.scenario}.ts`
+    const test = `test/e2e/scenarios/${args.scenario}.test.ts`
 
     console.log(`> Running scenario: ${args.scenario}`)
     console.log(`- script file: ${script}`)
@@ -149,8 +149,8 @@ task('e2e:upgrade', 'Run upgrade tests')
   })
 
 async function runUpgrade(args: any, hre: HardhatRuntimeEnvironment, type: 'pre' | 'post') {
-  const script = `e2e/upgrades/${args.upgrade}/${type}-upgrade.ts`
-  const test = `e2e/upgrades/${args.upgrade}/${type}-upgrade.test.ts`
+  const script = `test/e2e/upgrades/${args.upgrade}/${type}-upgrade.ts`
+  const test = `test/e2e/upgrades/${args.upgrade}/${type}-upgrade.test.ts`
 
   console.log(`> Running ${type}-upgrade: ${args.upgrade}`)
   console.log(`- script file: ${script}`)
