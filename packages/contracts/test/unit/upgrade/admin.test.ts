@@ -2,10 +2,10 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 
-import { GraphProxy } from '../../build/types/GraphProxy'
-import { Curation } from '../../build/types/Curation'
-import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
-import { IStaking } from '../../build/types/IStaking'
+import { GraphProxy } from '../../../build/types/GraphProxy'
+import { Curation } from '../../../build/types/Curation'
+import { GraphProxyAdmin } from '../../../build/types/GraphProxyAdmin'
+import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 

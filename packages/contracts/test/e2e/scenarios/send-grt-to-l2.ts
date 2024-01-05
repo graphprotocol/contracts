@@ -5,7 +5,7 @@
 //    npx hardhat e2e:scenario send-grt-to-l2 --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { TASK_BRIDGE_TO_L2 } from '../../tasks/bridge/to-l2'
+import { TASK_BRIDGE_TO_L2 } from '../../../tasks/bridge/to-l2'
 import { getBridgeFixture } from './fixtures/bridge'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 import { ethers } from 'ethers'

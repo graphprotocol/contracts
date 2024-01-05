@@ -5,11 +5,11 @@ import { BigNumber as BN } from 'bignumber.js'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import { Curation } from '../../build/types/Curation'
-import { EpochManager } from '../../build/types/EpochManager'
-import { GraphToken } from '../../build/types/GraphToken'
-import { RewardsManager } from '../../build/types/RewardsManager'
-import { IStaking } from '../../build/types/IStaking'
+import { Curation } from '../../../build/types/Curation'
+import { EpochManager } from '../../../build/types/EpochManager'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { RewardsManager } from '../../../build/types/RewardsManager'
+import { IStaking } from '../../../build/types/IStaking'
 
 import {
   helpers,

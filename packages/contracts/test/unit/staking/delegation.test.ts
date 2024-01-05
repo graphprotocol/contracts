@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, BigNumber } from 'ethers'
 
-import { EpochManager } from '../../build/types/EpochManager'
-import { GraphToken } from '../../build/types/GraphToken'
-import { IStaking } from '../../build/types/IStaking'
+import { EpochManager } from '../../../build/types/EpochManager'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {

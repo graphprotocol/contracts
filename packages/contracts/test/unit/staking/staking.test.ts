@@ -2,8 +2,8 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, BigNumber, Event } from 'ethers'
 
-import { GraphToken } from '../../build/types/GraphToken'
-import { IStaking } from '../../build/types/IStaking'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 

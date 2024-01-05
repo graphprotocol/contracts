@@ -2,12 +2,12 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { utils, BigNumber, Event, Signer, constants } from 'ethers'
 
-import { L2Curation } from '../../build/types/L2Curation'
-import { GraphToken } from '../../build/types/GraphToken'
-import { Controller } from '../../build/types/Controller'
+import { L2Curation } from '../../../build/types/L2Curation'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { Controller } from '../../../build/types/Controller'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { GNS } from '../../build/types/GNS'
+import { GNS } from '../../../build/types/GNS'
 import { parseEther } from 'ethers/lib/utils'
 import {
   formatGRT,

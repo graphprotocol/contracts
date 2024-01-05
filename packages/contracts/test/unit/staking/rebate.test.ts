@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
-import { LibExponential } from '../../build/types/LibExponential'
+import { LibExponential } from '../../../build/types/LibExponential'
 
 import { formatGRT, helpers, isGraphL1ChainId, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'

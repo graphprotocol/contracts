@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { constants } from 'ethers'
 import { expect } from 'chai'
 
-import { DisputeManager } from '../../build/types/DisputeManager'
+import { DisputeManager } from '../../../build/types/DisputeManager'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { GraphNetworkContracts, toBN } from '@graphprotocol/sdk'

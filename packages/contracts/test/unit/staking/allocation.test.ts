@@ -2,11 +2,11 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, BigNumber, PopulatedTransaction, Contract } from 'ethers'
 
-import { Curation } from '../../build/types/Curation'
-import { EpochManager } from '../../build/types/EpochManager'
-import { GraphToken } from '../../build/types/GraphToken'
-import { IStaking } from '../../build/types/IStaking'
-import { LibExponential } from '../../build/types/LibExponential'
+import { Curation } from '../../../build/types/Curation'
+import { EpochManager } from '../../../build/types/EpochManager'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { IStaking } from '../../../build/types/IStaking'
+import { LibExponential } from '../../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {

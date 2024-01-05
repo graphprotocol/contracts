@@ -2,8 +2,8 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
-import { GraphToken } from '../../build/types/GraphToken'
-import { BridgeEscrow } from '../../build/types/BridgeEscrow'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { BridgeEscrow } from '../../../build/types/BridgeEscrow'
 
 import { NetworkFixture } from '../lib/fixtures'
 

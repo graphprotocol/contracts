@@ -3,10 +3,10 @@ import { expect } from 'chai'
 import { constants } from 'ethers'
 import { createAttestation, Receipt } from '@graphprotocol/common-ts'
 
-import { DisputeManager } from '../../build/types/DisputeManager'
-import { EpochManager } from '../../build/types/EpochManager'
-import { GraphToken } from '../../build/types/GraphToken'
-import { IStaking } from '../../build/types/IStaking'
+import { DisputeManager } from '../../../build/types/DisputeManager'
+import { EpochManager } from '../../../build/types/EpochManager'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 

@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber, constants, Wallet } from 'ethers'
 
-import { AllocationExchange } from '../../build/types/AllocationExchange'
-import { GraphToken } from '../../build/types/GraphToken'
-import { IStaking } from '../../build/types/IStaking'
+import { AllocationExchange } from '../../../build/types/AllocationExchange'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { arrayify, joinSignature, SigningKey, solidityKeccak256 } from 'ethers/lib/utils'
@@ -17,7 +17,7 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { EpochManager } from '../../build/types/EpochManager'
+import { EpochManager } from '../../../build/types/EpochManager'
 
 const { AddressZero, MaxUint256 } = constants
 

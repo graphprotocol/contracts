@@ -2,8 +2,8 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, utils } from 'ethers'
 
-import { Controller } from '../../build/types/Controller'
-import { EpochManager } from '../../build/types/EpochManager'
+import { Controller } from '../../../build/types/Controller'
+import { EpochManager } from '../../../build/types/EpochManager'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'

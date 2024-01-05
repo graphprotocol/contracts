@@ -2,8 +2,8 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants } from 'ethers'
 
-import { Controller } from '../../build/types/Controller'
-import { IStaking } from '../../build/types/IStaking'
+import { Controller } from '../../../build/types/Controller'
+import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { GraphNetworkContracts, toGRT } from '@graphprotocol/sdk'

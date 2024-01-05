@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
 
-import { L2GraphToken } from '../../build/types/L2GraphToken'
+import { L2GraphToken } from '../../../build/types/L2GraphToken'
 
 import { grtTests } from '../lib/graphTokenTests'
 import { NetworkFixture } from '../lib/fixtures'

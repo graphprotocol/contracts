@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 
-import { Governed } from '../../build/types/Governed'
+import { Governed } from '../../../build/types/Governed'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { ethers } = hre

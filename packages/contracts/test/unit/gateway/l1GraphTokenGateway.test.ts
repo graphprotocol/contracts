@@ -2,15 +2,15 @@ import hre from 'hardhat'
 import { expect } from 'chai'
 import { constants, Signer, utils } from 'ethers'
 
-import { GraphToken } from '../../build/types/GraphToken'
-import { BridgeMock } from '../../build/types/BridgeMock'
-import { InboxMock } from '../../build/types/InboxMock'
-import { OutboxMock } from '../../build/types/OutboxMock'
-import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { BridgeMock } from '../../../build/types/BridgeMock'
+import { InboxMock } from '../../../build/types/InboxMock'
+import { OutboxMock } from '../../../build/types/OutboxMock'
+import { L1GraphTokenGateway } from '../../../build/types/L1GraphTokenGateway'
 
 import { NetworkFixture, ArbitrumL1Mocks, L1FixtureContracts } from '../lib/fixtures'
 
-import { BridgeEscrow } from '../../build/types/BridgeEscrow'
+import { BridgeEscrow } from '../../../build/types/BridgeEscrow'
 import { helpers, applyL1ToL2Alias, toBN, toGRT, GraphNetworkContracts } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 

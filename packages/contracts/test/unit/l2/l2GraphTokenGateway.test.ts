@@ -2,9 +2,9 @@ import hre from 'hardhat'
 import { expect, use } from 'chai'
 import { constants, ContractTransaction, Signer, utils } from 'ethers'
 
-import { L2GraphToken } from '../../build/types/L2GraphToken'
-import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
-import { CallhookReceiverMock } from '../../build/types/CallhookReceiverMock'
+import { L2GraphToken } from '../../../build/types/L2GraphToken'
+import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
+import { CallhookReceiverMock } from '../../../build/types/CallhookReceiverMock'
 
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
@@ -12,7 +12,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock'
 
 use(smock.matchers)
 
-import { RewardsManager } from '../../build/types/RewardsManager'
+import { RewardsManager } from '../../../build/types/RewardsManager'
 import { DeployType, GraphNetworkContracts, deploy, helpers, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 

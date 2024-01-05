@@ -5,8 +5,8 @@ import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
 
-import { L2GNS } from '../../build/types/L2GNS'
-import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
+import { L2GNS } from '../../../build/types/L2GNS'
+import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
 import {
   burnSignal,
   DEFAULT_RESERVE_RATIO,
@@ -15,8 +15,8 @@ import {
   publishNewSubgraph,
   publishNewVersion,
 } from '../lib/gnsUtils'
-import { L2Curation } from '../../build/types/L2Curation'
-import { GraphToken } from '../../build/types/GraphToken'
+import { L2Curation } from '../../../build/types/L2Curation'
+import { GraphToken } from '../../../build/types/GraphToken'
 import {
   buildSubgraph,
   buildSubgraphId,
@@ -30,7 +30,7 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { IL2Staking } from '../../build/types/IL2Staking'
+import { IL2Staking } from '../../../build/types/IL2Staking'
 
 const { HashZero } = ethers.constants
 

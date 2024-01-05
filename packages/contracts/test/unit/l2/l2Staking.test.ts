@@ -5,9 +5,9 @@ import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import { IL2Staking } from '../../build/types/IL2Staking'
-import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
-import { GraphToken } from '../../build/types/GraphToken'
+import { IL2Staking } from '../../../build/types/IL2Staking'
+import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
+import { GraphToken } from '../../../build/types/GraphToken'
 import {
   GraphNetworkContracts,
   deriveChannelKey,

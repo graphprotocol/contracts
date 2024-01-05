@@ -3,12 +3,12 @@ import { expect } from 'chai'
 import { constants, BigNumber } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
-import { GraphToken } from '../../build/types/GraphToken'
-import { IL1Staking } from '../../build/types/IL1Staking'
-import { IController } from '../../build/types/IController'
-import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
-import { L1GraphTokenLockTransferToolMock } from '../../build/types/L1GraphTokenLockTransferToolMock'
-import { L1GraphTokenLockTransferToolBadMock } from '../../build/types/L1GraphTokenLockTransferToolBadMock'
+import { GraphToken } from '../../../build/types/GraphToken'
+import { IL1Staking } from '../../../build/types/IL1Staking'
+import { IController } from '../../../build/types/IController'
+import { L1GraphTokenGateway } from '../../../build/types/L1GraphTokenGateway'
+import { L1GraphTokenLockTransferToolMock } from '../../../build/types/L1GraphTokenLockTransferToolMock'
+import { L1GraphTokenLockTransferToolBadMock } from '../../../build/types/L1GraphTokenLockTransferToolBadMock'
 
 import { ArbitrumL1Mocks, NetworkFixture } from '../lib/fixtures'
 
@@ -23,7 +23,6 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { IStaking } from '../../build/types/IStaking'
 
 const { AddressZero } = constants
 

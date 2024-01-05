@@ -3,10 +3,10 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { constants } from 'ethers'
 
-import { IStaking } from '../../build/types/IStaking'
+import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
-import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
+import { GraphProxyAdmin } from '../../../build/types/GraphProxyAdmin'
 import { DeployType, GraphNetworkContracts, deploy, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
