@@ -28,7 +28,7 @@ const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
   require('@graphprotocol/sdk/gre')
-  ;['contracts', 'bridge', 'deployment', 'verify', 'e2e'].forEach((folder) => {
+  ;['contracts', 'bridge', 'deployment', 'migrate', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))

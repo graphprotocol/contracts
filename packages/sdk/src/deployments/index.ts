@@ -19,6 +19,7 @@ export {
   GraphNetworkContractNameList,
   GraphNetworkL1ContractNameList,
   GraphNetworkL2ContractNameList,
+  GraphNetworkGovernedContractNameList,
 } from './network/deployment/contracts/list'
 export {
   GraphNetworkConfigGeneralParams,
@@ -35,6 +36,7 @@ export * from './network/actions/governed'
 export * from './network/actions/bridge-config'
 export * from './network/actions/bridge-to-l1'
 export * from './network/actions/bridge-to-l2'
+export * from './network/actions/pause'
 
 export type { GraphNetworkContracts } from './network/deployment/contracts/load'
 export type { GraphNetworkContractName } from './network/deployment/contracts/list'

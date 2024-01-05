@@ -5,7 +5,14 @@ import { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'har
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 
 import { GraphNetworkAddressBook, readConfig, loadGraphNetworkContracts } from '..'
-import { getDeployer, getNamedAccounts, getTestAccounts, getWallet, getWallets } from './accounts'
+import {
+  getAllAccounts,
+  getDeployer,
+  getNamedAccounts,
+  getTestAccounts,
+  getWallet,
+  getWallets,
+} from './accounts'
 import { getAddressBookPath, getChains, getDefaultProviders, getGraphConfigPaths } from './config'
 import { getSecureAccountsProvider } from './providers'
 import { logDebug, logWarn } from './helpers/logger'
@@ -209,12 +216,14 @@ function buildGraphNetworkEnvironment(
         getNamedAccounts(
           fork ? provider : await getUpdatedProvider('getNamedAccounts'),
           graphConfigPath,
-          fork,
         ),
     ),
     getTestAccounts: lazyFunction(
       () => async () =>
         getTestAccounts(await getUpdatedProvider('getTestAccounts'), graphConfigPath),
+    ),
+    getAllAccounts: lazyFunction(
+      () => async () => getAllAccounts(await getUpdatedProvider('getAllAccounts')),
     ),
   }
 }
