@@ -6,7 +6,7 @@ yarn-error.log*
 node_modules/
 
 # Yarn
-.yarn/*
+.yarn/
 !.yarn/patches
 !.yarn/releases
 !.yarn/plugins
