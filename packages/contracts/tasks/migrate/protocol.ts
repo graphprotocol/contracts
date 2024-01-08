@@ -1,14 +1,7 @@
 import { task } from 'hardhat/config'
 
-import {
-  GraphChainId,
-  GraphNetworkGovernedContractNameList,
-  acceptOwnership,
-  deployGraphNetwork,
-  setPausedProtocol,
-} from '@graphprotocol/sdk'
+import { GraphChainId, deployGraphNetwork } from '@graphprotocol/sdk'
 import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
-import { ContractTransaction } from 'ethers'
 
 task('migrate', 'Deploy protocol contracts')
   .addParam(
@@ -36,25 +29,10 @@ task('migrate', 'Deploy protocol contracts')
       await graph.getDeployer(),
       graph.provider,
       {
+        governor: taskArgs.skipPostDeploy ? undefined : (await graph.getNamedAccounts()).governor,
         forceDeploy: taskArgs.force,
         skipConfirmation: taskArgs.skipConfirmation,
         buildAcceptTx: taskArgs.buildAcceptTx,
       },
     )
-
-    if (!taskArgs.skipPostDeploy) {
-      // Governor accepts ownership of contracts
-      const governor = (await graph.getNamedAccounts()).governor
-      const txs: ContractTransaction[] = []
-      for (const contract of GraphNetworkGovernedContractNameList) {
-        const tx = await acceptOwnership(graph.contracts, governor, { contractName: contract })
-        if (tx) {
-          txs.push()
-        }
-      }
-      await Promise.all(txs.map((tx) => tx.wait()))
-
-      // Governor unpauses the protocol
-      await setPausedProtocol(graph.contracts, governor, { paused: false })
-    }
   })

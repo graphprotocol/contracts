@@ -25,6 +25,7 @@ import { LibExponential } from '../../../build/types/LibExponential'
 import {
   DeployType,
   GraphNetworkContracts,
+  configureL1Bridge,
   deploy,
   deployGraphNetwork,
   helpers,
@@ -74,39 +75,19 @@ export class NetworkFixture {
   constructor(public provider: providers.Provider) {}
 
   async load(deployer: SignerWithAddress, l2Deploy?: boolean): Promise<GraphNetworkContracts> {
-    // Ensure we are auto mining
-    await helpers.setIntervalMining(0)
-    await helpers.setAutoMine(true)
-
-    // Deploy contracts
-    await deployGraphNetwork(
+    return await deployGraphNetwork(
       './addresses-local.json',
       l2Deploy ? './config/graph.arbitrum-hardhat.yml' : './config/graph.hardhat.yml',
       1337,
       deployer,
       this.provider,
       {
+        governor: deployer,
         skipConfirmation: true,
         forceDeploy: true,
         l2Deploy: l2Deploy,
       },
     )
-
-    const contracts = loadGraphNetworkContracts(
-      './addresses-local.json',
-      1337,
-      this.provider,
-      undefined,
-      {
-        l2Load: l2Deploy,
-      },
-    )
-
-    // Post deploy configuration
-    await contracts.GraphToken.connect(deployer).addMinter(deployer.address)
-    await contracts.Controller.connect(deployer).setPaused(false)
-
-    return contracts
   }
 
   async loadArbitrumL1Mocks(deployer: Signer): Promise<ArbitrumL1Mocks> {
@@ -133,6 +114,7 @@ export class NetworkFixture {
     mockL2GNSAddress: string,
     mockL2StakingAddress: string,
   ): Promise<any> {
+    // await configureL1Bridge(undefined,)
     // First configure the Arbitrum bridge mocks
     await arbitrumMocks.bridgeMock.connect(deployer).setInbox(arbitrumMocks.inboxMock.address, true)
     await arbitrumMocks.bridgeMock
