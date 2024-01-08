@@ -103,10 +103,18 @@ export const deployContractAndSave: DeployAddressBookFunction = async (
     args: args,
   })
 
+  const constructorArgs = args.map((e) => {
+    if (Array.isArray(e)) {
+      return e.map((e) => e.toString())
+    } else {
+      return e.toString()
+    }
+  })
+
   // Save address entry
   addressBook.setEntry(name, {
     address: deployResult.contract.address,
-    constructorArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
+    constructorArgs: constructorArgs,
     creationCodeHash: deployResult.creationCodeHash,
     runtimeCodeHash: deployResult.runtimeCodeHash,
     txHash: deployResult.txHash,

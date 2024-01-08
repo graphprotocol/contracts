@@ -14,9 +14,11 @@ export type AddressBookJson<
   ContractName extends string = string,
 > = Record<ChainId, Record<ContractName, AddressBookEntry>>
 
+export type ConstructorArg = string | Array<string>
+
 export type AddressBookEntry = {
   address: string
-  constructorArgs?: Array<string>
+  constructorArgs?: Array<ConstructorArg>
   initArgs?: Array<string>
   proxy?: boolean
   implementation?: AddressBookEntry
