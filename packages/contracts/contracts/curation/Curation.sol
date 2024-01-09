@@ -340,6 +340,8 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
         override
         returns (uint256, uint256)
     {
+        // NOTE: We're aware that this function rounds down and tax can be 0 for small amounts
+        // of tokens but since minimumCurationDeposit is 1 GRT tax will always be greater than 0.
         uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
         uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
         return (signalOut, curationTax);

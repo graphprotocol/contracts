@@ -469,6 +469,47 @@ describe('L2Curation', () => {
         .mint(subgraphDeploymentID, tokensToDeposit, expectedSignal.add(1))
       await expect(tx).revertedWith('Slippage protection')
     })
+
+    it('should pay a minimum of 1 wei GRT in tax when depositing small amounts', async function () {
+      // Set minimum curation deposit
+      await contracts.Curation.connect(governor).setMinimumCurationDeposit('1')
+
+      // Set curation tax to 1%
+      await contracts.Curation.connect(governor).setCurationTaxPercentage(10000)
+
+      // Deposit a small amount where tax would be less than 1 wei
+      const tokensToDeposit = '99'
+
+      const expectedTokens = '98'
+      const expectedSignal = '98'
+      const expectedTax = 1
+
+      const tx = contracts.Curation.connect(curator).mint(
+        subgraphDeploymentID,
+        tokensToDeposit,
+        expectedSignal,
+      )
+
+      await expect(tx)
+        .emit(contracts.Curation, 'Signalled')
+        .withArgs(
+          curator.address,
+          subgraphDeploymentID,
+          tokensToDeposit,
+          expectedSignal,
+          expectedTax,
+        )
+
+      const burnTx = contracts.Curation.connect(curator).burn(
+        subgraphDeploymentID,
+        expectedSignal,
+        expectedTokens,
+      )
+
+      await expect(burnTx)
+        .emit(contracts.Curation, 'Burned')
+        .withArgs(curator.address, subgraphDeploymentID, expectedTokens, expectedSignal)
+    })
   })
 
   describe('curate tax free (from GNS)', async function () {
