@@ -43,11 +43,11 @@ contract SubgraphAvailabilityManager is Governed {
 
     /// @notice Mapping of current nonce to subgraph deployment ID to oracle index to timestamp of last deny vote
     /// currentNonce => subgraphDeploymentId => oracleIndex => timestamp
-    mapping(uint256 => mapping(bytes32 => mapping(uint256 => uint256))) public lastDenyVote;
+    mapping(uint256 => mapping(bytes32 => uint256[NUM_ORACLES])) public lastDenyVote;
 
     /// @notice Mapping of  current nonce to subgraph deployment ID to oracle index to timestamp of last allow vote
     /// currentNonce => subgraphDeploymentId => oracleIndex => timestamp
-    mapping(uint256 => mapping(bytes32 => mapping(uint256 => uint256))) public lastAllowVote;
+    mapping(uint256 => mapping(bytes32 => uint256[NUM_ORACLES])) public lastAllowVote;
 
     // -- Events --
 
@@ -195,7 +195,7 @@ contract SubgraphAvailabilityManager is Governed {
         uint256 timestamp = block.timestamp;
 
         // corresponding votes based on _deny for a subgraph deployment
-        mapping(uint256 => uint256) storage lastVoteForSubgraph = _deny
+        uint256[NUM_ORACLES] storage lastVoteForSubgraph = _deny
             ? lastDenyVote[currentNonce][_subgraphDeploymentID]
             : lastAllowVote[currentNonce][_subgraphDeploymentID];
         lastVoteForSubgraph[_oracleIndex] = timestamp;
@@ -222,7 +222,7 @@ contract SubgraphAvailabilityManager is Governed {
         uint256 voteTimeValidity = block.timestamp - voteTimeLimit;
 
         // corresponding votes based on _deny for a subgraph deployment
-        mapping(uint256 => uint256) storage lastVoteForSubgraph = _deny
+        uint256[NUM_ORACLES] storage lastVoteForSubgraph = _deny
             ? lastDenyVote[currentNonce][_subgraphDeploymentID]
             : lastAllowVote[currentNonce][_subgraphDeploymentID];
 
