@@ -31,4 +31,4 @@ jobs:
           pushd packages/${{ inputs.package }}
           yarn npm publish --tag ${{ inputs.tag }} --access public
         env:
-          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.GRAPHPROTOCOL_NPM_TOKEN }}

@@ -26,6 +26,9 @@ fi
 
 ### Main
 
+# Init address book
+echo {} > addresses-local.json
+
 mkdir -p reports
 
 # Run using the standalone evm instance

@@ -80,7 +80,7 @@ export class NetworkFixture {
 
     // Deploy contracts
     await deployGraphNetwork(
-      './addresses.json',
+      './addresses-local.json',
       l2Deploy ? './config/graph.arbitrum-hardhat.yml' : './config/graph.hardhat.yml',
       1337,
       deployer,
@@ -93,7 +93,7 @@ export class NetworkFixture {
     )
 
     const contracts = loadGraphNetworkContracts(
-      './addresses.json',
+      './addresses-local.json',
       1337,
       this.provider,
       undefined,
