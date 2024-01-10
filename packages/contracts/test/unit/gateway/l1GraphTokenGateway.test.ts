@@ -12,14 +12,7 @@ import { BridgeEscrow } from '../../../build/types/BridgeEscrow'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import {
-  helpers,
-  applyL1ToL2Alias,
-  toBN,
-  toGRT,
-  GraphNetworkContracts,
-  deployMockGraphNetwork,
-} from '@graphprotocol/sdk'
+import { helpers, applyL1ToL2Alias, toBN, toGRT, GraphNetworkContracts } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -84,7 +77,7 @@ describe('L1GraphTokenGateway', () => {
     ))
 
     // Deploy L2 mock
-    l2MockContracts = await deployMockGraphNetwork(true)
+    l2MockContracts = await fixture.loadMock(true)
     l2GRTMock = l2MockContracts.L2GraphToken as L2GraphToken
     l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
 

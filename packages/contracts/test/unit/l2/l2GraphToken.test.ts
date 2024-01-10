@@ -5,7 +5,7 @@ import { L2GraphToken } from '../../../build/types/L2GraphToken'
 
 import { grtTests } from '../lib/graphTokenTests'
 import { NetworkFixture } from '../lib/fixtures'
-import { toGRT, helpers, GraphNetworkContracts } from '@graphprotocol/sdk'
+import { toGRT, GraphNetworkContracts } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('L2GraphToken', () => {

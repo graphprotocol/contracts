@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { ethers, ContractTransaction, BigNumber } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
-import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
+import { NetworkFixture } from '../lib/fixtures'
 
 import { L2GNS } from '../../../build/types/L2GNS'
 import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
@@ -31,6 +31,7 @@ import {
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { IL2Staking } from '../../../build/types/IL2Staking'
+import { L1GNS, L1GraphTokenGateway, L1Staking } from '../../../build/types'
 
 const { HashZero } = ethers.constants
 
@@ -47,14 +48,13 @@ describe('L2GNS', () => {
   let attacker: SignerWithAddress
   let other: SignerWithAddress
   let governor: SignerWithAddress
-  let mockRouter: SignerWithAddress
-  let mockL1GRT: SignerWithAddress
-  let mockL1Gateway: SignerWithAddress
-  let mockL1GNS: SignerWithAddress
-  let mockL1Staking: SignerWithAddress
   let fixture: NetworkFixture
 
   let fixtureContracts: GraphNetworkContracts
+  let l1MockContracts: GraphNetworkContracts
+  let l1GRTMock: GraphToken
+  let l1GNSMock: L1GNS
+  let l1GRTGatewayMock: L1GraphTokenGateway
   let l2GraphTokenGateway: L2GraphTokenGateway
   let gns: L2GNS
   let curation: L2Curation
@@ -75,13 +75,13 @@ describe('L2GNS', () => {
     amount: BigNumber,
     callhookData: string,
   ): Promise<ContractTransaction> {
-    const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
+    const l1GRTGatewayMockL2Alias = await helpers.getL2SignerFromL1(l1GRTGatewayMock.address)
     // Eth for gas:
-    await helpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
+    await helpers.setBalance(await l1GRTGatewayMockL2Alias.getAddress(), parseEther('1'))
 
     const tx = l2GraphTokenGateway
-      .connect(mockL1GatewayL2Alias)
-      .finalizeInboundTransfer(mockL1GRT.address, from, to, amount, callhookData)
+      .connect(l1GRTGatewayMockL2Alias)
+      .finalizeInboundTransfer(l1GRTMock.address, from, to, amount, callhookData)
     return tx
   }
 
@@ -103,7 +103,7 @@ describe('L2GNS', () => {
       ['uint8', 'uint256', 'address'],
       [toBN(0), l1SubgraphId, me.address],
     )
-    await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+    await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookData)
 
     const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
     await gns
@@ -118,11 +118,12 @@ describe('L2GNS', () => {
 
   before(async function () {
     newSubgraph0 = buildSubgraph()
-    ;[me, attacker, other, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
-      await graph.getTestAccounts()
+    ;[me, attacker, other] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
+
+    // Deploy L2
     fixtureContracts = await fixture.load(governor, true)
     l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
     gns = fixtureContracts.L2GNS as L2GNS
@@ -130,16 +131,19 @@ describe('L2GNS', () => {
     curation = fixtureContracts.L2Curation as L2Curation
     grt = fixtureContracts.GraphToken as GraphToken
 
+    // Deploy L1 mock
+    l1MockContracts = await fixture.loadMock(false)
+    l1GRTMock = l1MockContracts.GraphToken as GraphToken
+    l1GNSMock = l1MockContracts.L1GNS as L1GNS
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
+
+    // Deploy L2 arbitrum bridge
+    await fixture.loadL2ArbitrumBridge(governor)
+
+    // Configure L2 bridge
+    await fixture.configureL2Bridge(governor, fixtureContracts, l1MockContracts)
+
     await grt.connect(governor).mint(me.address, toGRT('10000'))
-    await fixture.configureL2Bridge(
-      governor,
-      fixtureContracts,
-      mockRouter.address,
-      mockL1GRT.address,
-      mockL1Gateway.address,
-      mockL1GNS.address,
-      mockL1Staking.address,
-    )
   })
 
   beforeEach(async function () {
@@ -261,7 +265,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      const tx = gns.connect(me).onTokenTransfer(mockL1GNS.address, curatedTokens, callhookData)
+      const tx = gns.connect(me).onTokenTransfer(l1GNSMock.address, curatedTokens, callhookData)
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
@@ -281,7 +285,7 @@ describe('L2GNS', () => {
         [toBN(0), l1SubgraphId, me.address],
       )
       const tx = gatewayFinalizeTransfer(
-        mockL1GNS.address,
+        l1GNSMock.address,
         gns.address,
         curatedTokens,
         callhookData,
@@ -291,7 +295,7 @@ describe('L2GNS', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1GNS.address, gns.address, curatedTokens)
+        .withArgs(l1GRTMock.address, l1GNSMock.address, gns.address, curatedTokens)
       await expect(tx)
         .emit(gns, 'SubgraphReceivedFromL1')
         .withArgs(l1SubgraphId, l2SubgraphId, me.address, curatedTokens)
@@ -321,7 +325,7 @@ describe('L2GNS', () => {
         [toBN(0), l1SubgraphId, me.address],
       )
       const tx = gatewayFinalizeTransfer(
-        mockL1GNS.address,
+        l1GNSMock.address,
         gns.address,
         curatedTokens,
         callhookData,
@@ -331,7 +335,7 @@ describe('L2GNS', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1GNS.address, gns.address, curatedTokens)
+        .withArgs(l1GRTMock.address, l1GNSMock.address, gns.address, curatedTokens)
       await expect(tx)
         .emit(gns, 'SubgraphReceivedFromL1')
         .withArgs(l1SubgraphId, l2SubgraphId, me.address, curatedTokens)
@@ -371,7 +375,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+      await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookData)
       // Calculate expected signal before minting
       const expectedSignal = await curation.tokensToSignalNoTax(
         newSubgraph0.subgraphDeploymentID,
@@ -447,7 +451,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+      await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookData)
 
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
@@ -478,7 +482,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+      await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookData)
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
         .connect(other)
@@ -525,7 +529,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+      await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookData)
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
 
       // Calculate expected signal before minting
@@ -576,7 +580,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+      await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookData)
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       const tx = gns
         .connect(me)
@@ -590,7 +594,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookData)
+      await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookData)
       const l2SubgraphId = await gns.getAliasedL2SubgraphID(l1SubgraphId)
       await gns
         .connect(me)
@@ -614,9 +618,9 @@ describe('L2GNS', () => {
   })
   describe('claiming a curator balance with a message from L1 (onTokenTransfer)', function () {
     it('assigns a curator balance to a beneficiary', async function () {
-      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
+      const l1GNSMockL2Alias = await helpers.getL2SignerFromL1(l1GNSMock.address)
       // Eth for gas:
-      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -635,7 +639,7 @@ describe('L2GNS', () => {
         [toBN(1), l1SubgraphId, other.address],
       )
       const tx = await gatewayFinalizeTransfer(
-        mockL1GNS.address,
+        l1GNSMock.address,
         gns.address,
         newCuratorTokens,
         callhookData,
@@ -655,9 +659,9 @@ describe('L2GNS', () => {
       expect(l2NewCuratorSignal).eq(expectedNewCuratorSignal)
     })
     it('adds the signal to any existing signal for the beneficiary', async function () {
-      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
+      const l1GNSMockL2Alias = await helpers.getL2SignerFromL1(l1GNSMock.address)
       // Eth for gas:
-      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -680,7 +684,7 @@ describe('L2GNS', () => {
         [toBN(1), l1SubgraphId, other.address],
       )
       const tx = await gatewayFinalizeTransfer(
-        mockL1GNS.address,
+        l1GNSMock.address,
         gns.address,
         newCuratorTokens,
         callhookData,
@@ -710,7 +714,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(1), l1SubgraphId, me.address],
       )
-      const tx = gns.connect(me).onTokenTransfer(mockL1GNS.address, toGRT('1'), callhookData)
+      const tx = gns.connect(me).onTokenTransfer(l1GNSMock.address, toGRT('1'), callhookData)
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
@@ -731,9 +735,9 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('ONLY_L1_GNS_THROUGH_BRIDGE')
     })
     it('if a subgraph does not exist, it returns the tokens to the beneficiary', async function () {
-      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
+      const l1GNSMockL2Alias = await helpers.getL2SignerFromL1(l1GNSMock.address)
       // Eth for gas:
-      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId } = await defaultL1SubgraphParams()
 
@@ -743,7 +747,7 @@ describe('L2GNS', () => {
       )
       const curatorTokensBefore = await grt.balanceOf(me.address)
       const gnsBalanceBefore = await grt.balanceOf(gns.address)
-      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      const tx = gatewayFinalizeTransfer(l1GNSMock.address, gns.address, toGRT('1'), callhookData)
       await expect(tx)
         .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
         .withArgs(l1SubgraphId, me.address, toGRT('1'))
@@ -757,9 +761,9 @@ describe('L2GNS', () => {
     it('for an L2-native subgraph, it sends the tokens to the beneficiary', async function () {
       // This should never really happen unless there's a clash in subgraph IDs (which should
       // also never happen), but we test it anyway to ensure it's a well-defined behavior
-      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
+      const l1GNSMockL2Alias = await helpers.getL2SignerFromL1(l1GNSMock.address)
       // Eth for gas:
-      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
       const l2Subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
 
@@ -769,7 +773,7 @@ describe('L2GNS', () => {
       )
       const curatorTokensBefore = await grt.balanceOf(me.address)
       const gnsBalanceBefore = await grt.balanceOf(gns.address)
-      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      const tx = gatewayFinalizeTransfer(l1GNSMock.address, gns.address, toGRT('1'), callhookData)
       await expect(tx)
         .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
         .withArgs(l2Subgraph.id, me.address, toGRT('1'))
@@ -781,16 +785,16 @@ describe('L2GNS', () => {
       expect(gnsBalanceAfter).eq(gnsBalanceBefore)
     })
     it('if a subgraph transfer was not finished, it returns the tokens to the beneficiary', async function () {
-      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
+      const l1GNSMockL2Alias = await helpers.getL2SignerFromL1(l1GNSMock.address)
       // Eth for gas:
-      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens } = await defaultL1SubgraphParams()
       const callhookDataSG = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
       )
-      await gatewayFinalizeTransfer(mockL1GNS.address, gns.address, curatedTokens, callhookDataSG)
+      await gatewayFinalizeTransfer(l1GNSMock.address, gns.address, curatedTokens, callhookDataSG)
 
       // At this point the SG exists, but transfer is not finished
 
@@ -800,7 +804,7 @@ describe('L2GNS', () => {
       )
       const curatorTokensBefore = await grt.balanceOf(me.address)
       const gnsBalanceBefore = await grt.balanceOf(gns.address)
-      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      const tx = gatewayFinalizeTransfer(l1GNSMock.address, gns.address, toGRT('1'), callhookData)
       await expect(tx)
         .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
         .withArgs(l1SubgraphId, me.address, toGRT('1'))
@@ -853,7 +857,7 @@ describe('L2GNS', () => {
       const curatorTokensBefore = await grt.balanceOf(me.address)
       const gnsBalanceBefore = await grt.balanceOf(gns.address)
       const tx = gatewayFinalizeTransfer(
-        mockL1GNS.address,
+        l1GNSMock.address,
         gns.address,
         curatorTokens,
         callhookData,
@@ -870,9 +874,9 @@ describe('L2GNS', () => {
     })
 
     it('if a subgraph was deprecated after transfer, it returns the tokens to the beneficiary', async function () {
-      const mockL1GNSL2Alias = await helpers.getL2SignerFromL1(mockL1GNS.address)
+      const l1GNSMockL2Alias = await helpers.getL2SignerFromL1(l1GNSMock.address)
       // Eth for gas:
-      await helpers.setBalance(await mockL1GNSL2Alias.getAddress(), parseEther('1'))
+      await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
       const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
         await defaultL1SubgraphParams()
@@ -893,7 +897,7 @@ describe('L2GNS', () => {
       )
       const curatorTokensBefore = await grt.balanceOf(me.address)
       const gnsBalanceBefore = await grt.balanceOf(gns.address)
-      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      const tx = gatewayFinalizeTransfer(l1GNSMock.address, gns.address, toGRT('1'), callhookData)
       await expect(tx)
         .emit(gns, 'CuratorBalanceReturnedToBeneficiary')
         .withArgs(l1SubgraphId, me.address, toGRT('1'))
@@ -914,7 +918,7 @@ describe('L2GNS', () => {
         ['uint8', 'uint256', 'address'],
         [toBN(2), toBN(1337), me.address],
       )
-      const tx = gatewayFinalizeTransfer(mockL1GNS.address, gns.address, toGRT('1'), callhookData)
+      const tx = gatewayFinalizeTransfer(l1GNSMock.address, gns.address, toGRT('1'), callhookData)
       await expect(tx).revertedWith('INVALID_CODE')
     })
   })

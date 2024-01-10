@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { ethers, ContractTransaction, BigNumber, Event, Wallet } from 'ethers'
+import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
 import { SubgraphDeploymentID, formatGRT } from '@graphprotocol/common-ts'
 
@@ -10,7 +10,6 @@ import { Curation } from '../../build/types/Curation'
 
 import { NetworkFixture } from './lib/fixtures'
 import { Controller } from '../../build/types/Controller'
-import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { L1GNS } from '../../build/types/L1GNS'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import {
@@ -35,7 +34,6 @@ import {
   deploy,
   DeployType,
   loadContractAt,
-  deployMockGraphNetwork,
   GraphNetworkContracts,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -241,7 +239,7 @@ describe('L1GNS', () => {
     await fixture.loadL1ArbitrumBridge(governor)
 
     // Deploy L2 mock
-    l2MockContracts = await deployMockGraphNetwork(true)
+    l2MockContracts = await fixture.loadMock(true)
     l2GNSMock = l2MockContracts.L2GNS as L2GNS
     l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
 

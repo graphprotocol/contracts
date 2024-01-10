@@ -17,6 +17,7 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { L1GNS, L1GraphTokenGateway, L1Staking } from '../../../build/types'
 
 const { AddressZero } = ethers.constants
 
@@ -29,16 +30,16 @@ describe('L2Staking', () => {
   const graph = hre.graph()
   let me: SignerWithAddress
   let other: SignerWithAddress
-  let another: SignerWithAddress
   let governor: SignerWithAddress
-  let mockRouter: SignerWithAddress
-  let mockL1GRT: SignerWithAddress
-  let mockL1Gateway: SignerWithAddress
-  let mockL1GNS: SignerWithAddress
-  let mockL1Staking: SignerWithAddress
+
   let fixture: NetworkFixture
 
   let fixtureContracts: GraphNetworkContracts
+  let l1MockContracts: GraphNetworkContracts
+  let l1GRTMock: GraphToken
+  let l1StakingMock: L1Staking
+  let l1GNSMock: L1GNS
+  let l1GRTGatewayMock: L1GraphTokenGateway
   let l2GraphTokenGateway: L2GraphTokenGateway
   let staking: IL2Staking
   let grt: GraphToken
@@ -67,40 +68,45 @@ describe('L2Staking', () => {
     amount: BigNumber,
     callhookData: string,
   ): Promise<ContractTransaction> {
-    const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
+    const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(l1GRTGatewayMock.address)
     // Eth for gas:
     await helpers.setBalance(await mockL1GatewayL2Alias.getAddress(), parseEther('1'))
 
     const tx = l2GraphTokenGateway
       .connect(mockL1GatewayL2Alias)
-      .finalizeInboundTransfer(mockL1GRT.address, from, to, amount, callhookData)
+      .finalizeInboundTransfer(l1GRTMock.address, from, to, amount, callhookData)
     return tx
   }
 
   before(async function () {
-    ;[me, other, another, mockRouter, mockL1GRT, mockL1Gateway, mockL1GNS, mockL1Staking] =
-      await graph.getTestAccounts()
+    ;[me, other] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
+
+    // Deploy L2
     fixtureContracts = await fixture.load(governor, true)
     grt = fixtureContracts.GraphToken as GraphToken
     staking = fixtureContracts.Staking as IL2Staking
     l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
 
+    // Deploy L1 mock
+    l1MockContracts = await fixture.loadMock(false)
+    l1GRTMock = l1MockContracts.GraphToken as GraphToken
+    l1StakingMock = l1MockContracts.L1Staking as L1Staking
+    l1GNSMock = l1MockContracts.L1GNS as L1GNS
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
+
+    // Deploy L2 arbitrum bridge
+    await fixture.loadL2ArbitrumBridge(governor)
+
+    // Configure L2 bridge
+    await fixture.configureL2Bridge(governor, fixtureContracts, l1MockContracts)
+
     await grt.connect(governor).mint(me.address, tokens1m)
     await grt.connect(me).approve(staking.address, tokens1m)
     await grt.connect(governor).mint(other.address, tokens1m)
     await grt.connect(other).approve(staking.address, tokens1m)
-    await fixture.configureL2Bridge(
-      governor,
-      fixtureContracts,
-      mockRouter.address,
-      mockL1GRT.address,
-      mockL1Gateway.address,
-      mockL1GNS.address,
-      mockL1Staking.address,
-    )
   })
 
   beforeEach(async function () {
@@ -128,7 +134,7 @@ describe('L2Staking', () => {
         ['uint8', 'bytes'],
         [toBN(0), functionData], // code = 1 means RECEIVE_INDEXER_CODE
       )
-      const tx = staking.connect(me).onTokenTransfer(mockL1GNS.address, tokens100k, callhookData)
+      const tx = staking.connect(me).onTokenTransfer(l1GNSMock.address, tokens100k, callhookData)
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1Staking', async function () {
@@ -150,7 +156,7 @@ describe('L2Staking', () => {
         [toBN(0), functionData], // code = 1 means RECEIVE_INDEXER_CODE
       )
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         tokens100k,
         callhookData,
@@ -158,7 +164,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, tokens100k)
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, tokens100k)
       await expect(tx).emit(staking, 'StakeDeposited').withArgs(me.address, tokens100k)
       expect(await staking.getIndexerStakedTokens(me.address)).to.equal(tokens100k)
       const delegationPool = await staking.delegationPools(me.address)
@@ -173,13 +179,13 @@ describe('L2Staking', () => {
         [toBN(0), functionData], // code = 1 means RECEIVE_INDEXER_CODE
       )
       await gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         tokens100k,
         callhookData,
       )
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         tokens100k,
         callhookData,
@@ -187,7 +193,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, tokens100k)
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, tokens100k)
       await expect(tx).emit(staking, 'StakeDeposited').withArgs(me.address, tokens100k)
       expect(await staking.getIndexerStakedTokens(me.address)).to.equal(tokens100k.add(tokens100k))
     })
@@ -201,7 +207,7 @@ describe('L2Staking', () => {
       await staking.connect(me).stake(tokens100k)
       await staking.connect(me).setDelegationParameters(1000, 1000, 1000)
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         tokens100k,
         callhookData,
@@ -209,7 +215,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, tokens100k)
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, tokens100k)
       await expect(tx).emit(staking, 'StakeDeposited').withArgs(me.address, tokens100k)
       expect(await staking.getIndexerStakedTokens(me.address)).to.equal(tokens100k.add(tokens100k))
       const delegationPool = await staking.delegationPools(me.address)
@@ -232,7 +238,7 @@ describe('L2Staking', () => {
         [toBN(1), functionData], // code = 1 means RECEIVE_DELEGATION_CODE
       )
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         tokens10k,
         callhookData,
@@ -240,7 +246,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, tokens10k)
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, tokens10k)
       const expectedShares = tokens10k
       await expect(tx)
         .emit(staking, 'StakeDelegated')
@@ -262,7 +268,7 @@ describe('L2Staking', () => {
         [toBN(1), functionData], // code = 1 means RECEIVE_DELEGATION_CODE
       )
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         tokens10k,
         callhookData,
@@ -270,7 +276,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, tokens10k)
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, tokens10k)
       const expectedNewShares = tokens10k
       const expectedTotalShares = tokens10k.mul(2)
       await expect(tx)
@@ -307,7 +313,7 @@ describe('L2Staking', () => {
       )
       const delegatorGRTBalanceBefore = await grt.balanceOf(other.address)
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         toBN(1), // Less than 1 share!
         callhookData,
@@ -315,7 +321,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, toBN(1))
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, toBN(1))
       const delegation = await staking.getDelegation(me.address, other.address)
       await expect(tx)
         .emit(staking, 'TransferredDelegationReturnedToDelegator')
@@ -350,7 +356,7 @@ describe('L2Staking', () => {
       )
       const delegatorGRTBalanceBefore = await grt.balanceOf(other.address)
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         toGRT('0.1'), // Less than 1 GRT!
         callhookData,
@@ -358,7 +364,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, toGRT('0.1'))
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, toGRT('0.1'))
       const delegation = await staking.getDelegation(me.address, other.address)
       await expect(tx)
         .emit(staking, 'TransferredDelegationReturnedToDelegator')
@@ -385,7 +391,7 @@ describe('L2Staking', () => {
       )
       const delegatorGRTBalanceBefore = await grt.balanceOf(other.address)
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         toGRT('0.1'),
         callhookData,
@@ -393,7 +399,7 @@ describe('L2Staking', () => {
 
       await expect(tx)
         .emit(l2GraphTokenGateway, 'DepositFinalized')
-        .withArgs(mockL1GRT.address, mockL1Staking.address, staking.address, toGRT('0.1'))
+        .withArgs(l1GRTMock.address, l1StakingMock.address, staking.address, toGRT('0.1'))
 
       const delegation = await staking.getDelegation(me.address, other.address)
       await expect(tx)
@@ -412,7 +418,7 @@ describe('L2Staking', () => {
       // code 2 does not exist:
       const callhookData = defaultAbiCoder.encode(['uint8', 'bytes'], [toBN(2), '0x12345678'])
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         toGRT('1'),
         callhookData,
@@ -424,7 +430,7 @@ describe('L2Staking', () => {
       // so we test it anyway to ensure it's a well-defined behavior.
       const callhookData = defaultAbiCoder.encode(['address', 'uint128'], [AddressZero, toBN(2)])
       const tx = gatewayFinalizeTransfer(
-        mockL1Staking.address,
+        l1StakingMock.address,
         staking.address,
         toGRT('1'),
         callhookData,

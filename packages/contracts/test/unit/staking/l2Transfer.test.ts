@@ -16,7 +16,6 @@ import {
   DeployType,
   GraphNetworkContracts,
   deploy,
-  deployMockGraphNetwork,
   deriveChannelKey,
   helpers,
   randomHexBytes,
@@ -96,7 +95,7 @@ describe('L1Staking:L2Transfer', () => {
     await fixture.loadL1ArbitrumBridge(governor)
 
     // Deploy L2 mock
-    l2MockContracts = await deployMockGraphNetwork(true)
+    l2MockContracts = await fixture.loadMock(true)
     l2StakingMock = l2MockContracts.L2Staking as L2Staking
     l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
 

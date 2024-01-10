@@ -26,8 +26,10 @@ import {
   DeployType,
   GraphNetworkContracts,
   configureL1Bridge,
+  configureL2Bridge,
   deploy,
   deployGraphNetwork,
+  deployMockGraphNetwork,
   helpers,
   loadGraphNetworkContracts,
 } from '@graphprotocol/sdk'
@@ -91,6 +93,10 @@ export class NetworkFixture {
     )
   }
 
+  async loadMock(l2Deploy: boolean): Promise<GraphNetworkContracts> {
+    return await deployMockGraphNetwork(l2Deploy)
+  }
+
   async loadL1ArbitrumBridge(deployer: SignerWithAddress): Promise<helpers.L1ArbitrumMocks> {
     return await helpers.deployL1MockBridge(
       deployer,
@@ -99,13 +105,12 @@ export class NetworkFixture {
     )
   }
 
-  async createL2BridgeMocks(): Promise<L2BridgeMocks> {
-    return {
-      l2GRTMock: Wallet.createRandom(),
-      l2GRTGatewayMock: Wallet.createRandom(),
-      l2GNSMock: Wallet.createRandom(),
-      l2StakingMock: Wallet.createRandom(),
-    }
+  async loadL2ArbitrumBridge(deployer: SignerWithAddress): Promise<helpers.L2ArbitrumMocks> {
+    return await helpers.deployL2MockBridge(
+      deployer,
+      'arbitrum-addresses-local.json',
+      this.provider,
+    )
   }
 
   async configureL1Bridge(
@@ -125,32 +130,18 @@ export class NetworkFixture {
   }
 
   async configureL2Bridge(
-    deployer: Signer,
+    deployer: SignerWithAddress,
     l2FixtureContracts: GraphNetworkContracts,
-    mockRouterAddress: string,
-    mockL1GRTAddress: string,
-    mockL1GatewayAddress: string,
-    mockL1GNSAddress: string,
-    mockL1StakingAddress: string,
+    l1MockContracts: GraphNetworkContracts,
   ): Promise<any> {
-    // Configure the L2 GRT
-    // Configure the gateway
-    await l2FixtureContracts.L2GraphToken.connect(deployer).setGateway(
-      l2FixtureContracts.L2GraphTokenGateway.address,
-    )
-    await l2FixtureContracts.L2GraphToken.connect(deployer).setL1Address(mockL1GRTAddress)
-    // Configure the gateway
-    await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setL2Router(mockRouterAddress)
-    await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setL1TokenAddress(
-      mockL1GRTAddress,
-    )
-    await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setL1CounterpartAddress(
-      mockL1GatewayAddress,
-    )
-    await l2FixtureContracts.GNS.connect(deployer).setCounterpartGNSAddress(mockL1GNSAddress)
-    await l2FixtureContracts.Staking.connect(deployer).setCounterpartStakingAddress(
-      mockL1StakingAddress,
-    )
+    await configureL2Bridge(l2FixtureContracts, deployer, {
+      l1GRTAddress: l1MockContracts.GraphToken.address,
+      l1GRTGatewayAddress: l1MockContracts.L1GraphTokenGateway.address,
+      l1GNSAddress: l1MockContracts.L1GNS.address,
+      l1StakingAddress: l1MockContracts.L1Staking.address,
+      arbAddressBookPath: './arbitrum-addresses-local.json',
+      chainId: 412346,
+    })
     await l2FixtureContracts.L2GraphTokenGateway.connect(deployer).setPaused(false)
   }
 

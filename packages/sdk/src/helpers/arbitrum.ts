@@ -16,6 +16,10 @@ export interface L1ArbitrumMocks {
   routerMock: Wallet
 }
 
+export interface L2ArbitrumMocks {
+  routerMock: Wallet
+}
+
 export async function deployL1MockBridge(
   deployer: SignerWithAddress,
   arbitrumAddressBook: string,
@@ -65,6 +69,42 @@ export async function deployL1MockBridge(
     bridgeMock: bridgeMock.connect(provider),
     inboxMock: inboxMock.connect(provider),
     outboxMock: outboxMock.connect(provider),
+    routerMock: routerMock.connect(provider),
+  }
+}
+
+export async function deployL2MockBridge(
+  deployer: SignerWithAddress,
+  arbitrumAddressBook: string,
+  provider: providers.Provider,
+): Promise<L2ArbitrumMocks> {
+  // "deploy" router - set dummy code so that it appears as a contract
+  const routerMock = Wallet.createRandom()
+  await setCode(routerMock.address, '0x1234')
+
+  // Update address book
+  const deployment = fs.existsSync(arbitrumAddressBook)
+    ? JSON.parse(fs.readFileSync(arbitrumAddressBook, 'utf-8'))
+    : {}
+  const addressBook = {
+    '1337': {
+      L1GatewayRouter: {
+        address: deployment['1337']?.L1GatewayRouter?.address,
+      },
+      IInbox: {
+        address: deployment['1337']?.IInbox?.address,
+      },
+    },
+    '412346': {
+      L2GatewayRouter: {
+        address: routerMock.address,
+      },
+    },
+  }
+
+  fs.writeFileSync(arbitrumAddressBook, JSON.stringify(addressBook))
+
+  return {
     routerMock: routerMock.connect(provider),
   }
 }
