@@ -12,8 +12,9 @@ import { IRewardsManager } from "../rewards/IRewardsManager.sol";
  * @dev Manages the availability of subgraphs by allowing oracles to vote on whether
  * a subgraph should be denied rewards or not. When enough oracles have voted to deny or
  * allow rewards for a subgraph, it calls the RewardsManager Contract to set the correct
- * state. The number of oracles and the execution threshold are set at deployment time.
- * Only governance can set the oracles.
+ * state. The oracles and the execution threshold are set at deployment time.
+ * Only governance can update the oracles and voteTimeLimit.
+ * Governor can transfer ownership to a new governor.
  */
 contract SubgraphAvailabilityManager is Governed {
     using SafeMathUpgradeable for uint256;
@@ -41,12 +42,12 @@ contract SubgraphAvailabilityManager is Governed {
     /// @notice Array of oracle addresses
     address[NUM_ORACLES] public oracles;
 
-    /// @notice Mapping of current nonce to subgraph deployment ID to oracle index to timestamp of last deny vote
-    /// currentNonce => subgraphDeploymentId => oracleIndex => timestamp
+    /// @notice Mapping of current nonce to subgraph deployment ID to an array of timestamps of last deny vote
+    /// currentNonce => subgraphDeploymentId => timestamp[oracleIndex]
     mapping(uint256 => mapping(bytes32 => uint256[NUM_ORACLES])) public lastDenyVote;
 
-    /// @notice Mapping of  current nonce to subgraph deployment ID to oracle index to timestamp of last allow vote
-    /// currentNonce => subgraphDeploymentId => oracleIndex => timestamp
+    /// @notice Mapping of  current nonce to subgraph deployment ID to an array of timestamp of last allow vote
+    /// currentNonce => subgraphDeploymentId => timestamp[oracleIndex]
     mapping(uint256 => mapping(bytes32 => uint256[NUM_ORACLES])) public lastAllowVote;
 
     // -- Events --
@@ -87,6 +88,7 @@ contract SubgraphAvailabilityManager is Governed {
      * @param _rewardsManager Address of the RewardsManager contract
      * @param _executionThreshold Number of votes required to execute a deny or allow call to the RewardsManager
      * @param _voteTimeLimit Vote time limit in seconds
+     * @param _oracles Array of oracle addresses, must be NUM_ORACLES in length.
      */
     constructor(
         address _governor,
