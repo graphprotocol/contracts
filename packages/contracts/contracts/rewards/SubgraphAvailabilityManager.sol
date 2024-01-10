@@ -34,7 +34,7 @@ contract SubgraphAvailabilityManager is Governed {
 
     /// @dev Nonce for generating votes on subgraph deployment IDs.
     /// Increased whenever oracles or voteTimeLimit change, to invalidate old votes.
-    uint256 private currentNonce;
+    uint256 public currentNonce;
 
     /// @notice Time limit for a vote to be valid
     uint256 public voteTimeLimit;
