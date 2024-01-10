@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
+import { ethers, ContractTransaction, BigNumber, Event, Wallet } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
 import { SubgraphDeploymentID, formatGRT } from '@graphprotocol/common-ts'
 
@@ -8,7 +8,7 @@ import { LegacyGNSMock } from '../../build/types/LegacyGNSMock'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Curation } from '../../build/types/Curation'
 
-import { ArbitrumL1Mocks, NetworkFixture } from './lib/fixtures'
+import { NetworkFixture } from './lib/fixtures'
 import { Controller } from '../../build/types/Controller'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
 import { L1GNS } from '../../build/types/L1GNS'
@@ -35,9 +35,11 @@ import {
   deploy,
   DeployType,
   loadContractAt,
+  deployMockGraphNetwork,
+  GraphNetworkContracts,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { SubgraphNFT } from '../../build/types'
+import { L2GNS, L2GraphTokenGateway, SubgraphNFT } from '../../build/types'
 
 const { AddressZero, HashZero } = ethers.constants
 
@@ -52,23 +54,20 @@ describe('L1GNS', () => {
   let other: SignerWithAddress
   let another: SignerWithAddress
   let governor: SignerWithAddress
-  let mockRouter: SignerWithAddress
-  let mockL2GRT: SignerWithAddress
-  let mockL2Gateway: SignerWithAddress
-  let mockL2GNS: SignerWithAddress
-  let mockL2Staking: SignerWithAddress
 
   let fixture: NetworkFixture
+  let l2MockContracts: GraphNetworkContracts
+
+  let l2GNSMock: L2GNS
+  let l2GRTGatewayMock: L2GraphTokenGateway
 
   let gns: L1GNS
   let legacyGNSMock: LegacyGNSMock
   let grt: GraphToken
   let curation: Curation
   let controller: Controller
-  let proxyAdmin: GraphProxyAdmin
   let subgraphNFT: SubgraphNFT
   let l1GraphTokenGateway: L1GraphTokenGateway
-  let arbitrumMocks: ArbitrumL1Mocks
 
   const tokens1000 = toGRT('1000')
   const tokens10000 = toGRT('10000')
@@ -221,32 +220,33 @@ describe('L1GNS', () => {
     await legacyGNSMock.connect(governor).syncAllContracts()
     await legacyGNSMock.connect(governor).approveAll()
     await l1GraphTokenGateway.connect(governor).addToCallhookAllowlist(legacyGNSMock.address)
-    await legacyGNSMock.connect(governor).setCounterpartGNSAddress(mockL2GNS.address)
+    await legacyGNSMock.connect(governor).setCounterpartGNSAddress(l2GNSMock.address)
   }
 
   before(async function () {
-    ;[
-      me,
-      other,
-      governor,
-      another,
-      mockRouter,
-      mockL2GRT,
-      mockL2Gateway,
-      mockL2GNS,
-      mockL2Staking,
-    ] = await graph.getTestAccounts()
-    // Dummy code on the mock router so that it appears as a contract
-    await helpers.setCode(mockRouter.address, '0x1234')
+    ;[me, other, governor, another] = await graph.getTestAccounts()
+
     fixture = new NetworkFixture(graph.provider)
+
+    // Deploy L1
     const fixtureContracts = await fixture.load(governor)
     grt = fixtureContracts.GraphToken as GraphToken
     curation = fixtureContracts.Curation as Curation
     gns = fixtureContracts.GNS as L1GNS
     controller = fixtureContracts.Controller as Controller
-    proxyAdmin = fixtureContracts.GraphProxyAdmin as GraphProxyAdmin
     l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
     subgraphNFT = fixtureContracts.SubgraphNFT as SubgraphNFT
+
+    // Deploy L1 arbitrum bridge
+    await fixture.loadL1ArbitrumBridge(governor)
+
+    // Deploy L2 mock
+    l2MockContracts = await deployMockGraphNetwork(true)
+    l2GNSMock = l2MockContracts.L2GNS as L2GNS
+    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
+
+    // Configure graph bridge
+    await fixture.configureL1Bridge(governor, fixtureContracts, l2MockContracts)
 
     newSubgraph0 = buildSubgraph()
     newSubgraph1 = buildSubgraph()
@@ -267,18 +267,6 @@ describe('L1GNS', () => {
     // Deploying a GNS mock with support for legacy subgraphs
     await deployLegacyGNSMock()
     await grt.connect(me).approve(legacyGNSMock.address, tokens100000)
-
-    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor)
-    await fixture.configureL1Bridge(
-      governor,
-      arbitrumMocks,
-      fixtureContracts,
-      mockRouter.address,
-      mockL2GRT.address,
-      mockL2Gateway.address,
-      mockL2GNS.address,
-      mockL2Staking.address,
-    )
   })
 
   beforeEach(async function () {
@@ -1113,13 +1101,13 @@ describe('L1GNS', () => {
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           gns.address,
-          mockL2GNS.address,
+          l2GNSMock.address,
           expectedSentToL2,
           expectedCallhookData,
         )
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(gns.address, mockL2Gateway.address, toBN(1), expectedL2Data)
+          .withArgs(gns.address, l2GRTGatewayMock.address, toBN(1), expectedL2Data)
       })
       it('sends tokens and calldata for a legacy subgraph to L2 through the GRT bridge', async function () {
         const seqID = toBN('2')
@@ -1160,13 +1148,13 @@ describe('L1GNS', () => {
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           legacyGNSMock.address,
-          mockL2GNS.address,
+          l2GNSMock.address,
           expectedSentToL2,
           expectedCallhookData,
         )
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(legacyGNSMock.address, mockL2Gateway.address, toBN(1), expectedL2Data)
+          .withArgs(legacyGNSMock.address, l2GRTGatewayMock.address, toBN(1), expectedL2Data)
       })
       it('rejects calls from someone who is not the subgraph owner', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()
@@ -1365,7 +1353,7 @@ describe('L1GNS', () => {
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           gns.address,
-          mockL2GNS.address,
+          l2GNSMock.address,
           curatorTokens,
           expectedCallhookData,
         )
@@ -1390,7 +1378,7 @@ describe('L1GNS', () => {
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(gns.address, mockL2Gateway.address, toBN('2'), expectedL2Data)
+          .withArgs(gns.address, l2GRTGatewayMock.address, toBN('2'), expectedL2Data)
         await expect(tx)
           .emit(gns, 'CuratorBalanceSentToL2')
           .withArgs(subgraph0.id, other.address, another.address, curatorTokens)
@@ -1407,7 +1395,7 @@ describe('L1GNS', () => {
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           gns.address,
-          mockL2GNS.address,
+          l2GNSMock.address,
           curatorTokens,
           expectedCallhookData,
         )
@@ -1432,7 +1420,7 @@ describe('L1GNS', () => {
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(gns.address, mockL2Gateway.address, toBN('2'), expectedL2Data)
+          .withArgs(gns.address, l2GRTGatewayMock.address, toBN('2'), expectedL2Data)
 
         const tx2 = gns
           .connect(other)
@@ -1505,7 +1493,7 @@ describe('L1GNS', () => {
         const expectedL2Data1 = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           gns.address,
-          mockL2GNS.address,
+          l2GNSMock.address,
           curator1Tokens,
           expectedCallhookData1,
         )
@@ -1530,7 +1518,7 @@ describe('L1GNS', () => {
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(gns.address, mockL2Gateway.address, toBN('2'), expectedL2Data1)
+          .withArgs(gns.address, l2GRTGatewayMock.address, toBN('2'), expectedL2Data1)
 
         // Accept slight numerical errors given how we compute the amount of tokens to send
         const curator2TokensUpdated = (await gns.subgraphs(subgraph0.id)).withdrawableGRT
@@ -1538,7 +1526,7 @@ describe('L1GNS', () => {
         const expectedL2Data2 = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           gns.address,
-          mockL2GNS.address,
+          l2GNSMock.address,
           curator2TokensUpdated,
           expectedCallhookData2,
         )
@@ -1557,7 +1545,7 @@ describe('L1GNS', () => {
         // seqNum (third argument in the event) is 3 now
         await expect(tx2)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(gns.address, mockL2Gateway.address, toBN('3'), expectedL2Data2)
+          .withArgs(gns.address, l2GRTGatewayMock.address, toBN('3'), expectedL2Data2)
       })
       it('rejects calls for a subgraph that was not sent to L2', async function () {
         const subgraph0 = await publishAndCurateOnSubgraph()

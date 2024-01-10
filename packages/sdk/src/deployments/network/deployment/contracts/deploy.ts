@@ -24,10 +24,11 @@ import type { AddressBook } from '../../../lib/address-book'
 import { GraphNetworkAddressBook } from '../address-book'
 import { isContractDeployed } from '../../../lib/deploy/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { Contract, ethers } from 'ethers'
+import { Contract, Wallet, ethers } from 'ethers'
 import { acceptOwnership } from '../../actions/governed'
 import { setPausedProtocol } from '../../actions/pause'
 import { GraphNetworkContracts, loadGraphNetworkContracts } from './load'
+import { setCode } from '../../../../helpers/code'
 
 export async function deployGraphNetwork(
   addressBookPath: string,
@@ -220,6 +221,24 @@ export async function deployGraphNetwork(
   )
 
   return loadedContracts
+}
+
+export async function deployMockGraphNetwork(l2Deploy: boolean) {
+  // Contract list
+  const contractList: GraphNetworkContractName[] = [
+    ...GraphNetworkSharedContractNameList.filter((c) => c !== 'AllocationExchange'),
+  ]
+  contractList.push(...(l2Deploy ? GraphNetworkL2ContractNameList : GraphNetworkL1ContractNameList))
+  contractList.push('AllocationExchange')
+
+  const contracts: any = {}
+  for (const name of contractList) {
+    const fake = Wallet.createRandom()
+    await setCode(fake.address, '0x1234')
+    contracts[name] = new Contract(fake.address, [], fake)
+  }
+
+  return contracts as GraphNetworkContracts // :eyes:
 }
 
 export const deploy = async (

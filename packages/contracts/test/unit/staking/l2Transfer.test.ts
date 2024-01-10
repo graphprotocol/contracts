@@ -10,12 +10,13 @@ import { L1GraphTokenGateway } from '../../../build/types/L1GraphTokenGateway'
 import { L1GraphTokenLockTransferToolMock } from '../../../build/types/L1GraphTokenLockTransferToolMock'
 import { L1GraphTokenLockTransferToolBadMock } from '../../../build/types/L1GraphTokenLockTransferToolBadMock'
 
-import { ArbitrumL1Mocks, NetworkFixture } from '../lib/fixtures'
+import { NetworkFixture } from '../lib/fixtures'
 
 import {
   DeployType,
   GraphNetworkContracts,
   deploy,
+  deployMockGraphNetwork,
   deriveChannelKey,
   helpers,
   randomHexBytes,
@@ -23,32 +24,29 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { L2GraphTokenGateway, L2Staking } from '../../../build/types'
 
 const { AddressZero } = constants
 
 describe('L1Staking:L2Transfer', () => {
   const graph = hre.graph()
-  let me: SignerWithAddress
   let governor: SignerWithAddress
   let indexer: SignerWithAddress
-  let slasher: SignerWithAddress
   let l2Indexer: SignerWithAddress
   let delegator: SignerWithAddress
   let l2Delegator: SignerWithAddress
-  let mockRouter: SignerWithAddress
-  let mockL2GRT: SignerWithAddress
-  let mockL2Gateway: SignerWithAddress
-  let mockL2GNS: SignerWithAddress
-  let mockL2Staking: SignerWithAddress
 
   let fixture: NetworkFixture
   let fixtureContracts: GraphNetworkContracts
+  let l2MockContracts: GraphNetworkContracts
+
+  let l2StakingMock: L2Staking
+  let l2GRTGatewayMock: L2GraphTokenGateway
 
   let grt: GraphToken
   let staking: IL1Staking
   let controller: IController
   let l1GraphTokenGateway: L1GraphTokenGateway
-  let arbitrumMocks: ArbitrumL1Mocks
   let l1GraphTokenLockTransferTool: L1GraphTokenLockTransferToolMock
   let l1GraphTokenLockTransferToolBad: L1GraphTokenLockTransferToolBadMock
 
@@ -82,41 +80,28 @@ describe('L1Staking:L2Transfer', () => {
   }
 
   before(async function () {
-    ;[
-      me,
-      indexer,
-      slasher,
-      delegator,
-      l2Indexer,
-      mockRouter,
-      mockL2GRT,
-      mockL2Gateway,
-      mockL2GNS,
-      mockL2Staking,
-      l2Delegator,
-    ] = await graph.getTestAccounts()
+    ;[indexer, delegator, l2Indexer, l2Delegator] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
+
+    // Deploy L1
     fixtureContracts = await fixture.load(governor)
     grt = fixtureContracts.GraphToken as GraphToken
     staking = fixtureContracts.L1Staking as unknown as IL1Staking
     l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
     controller = fixtureContracts.Controller as IController
 
-    // Dummy code on the mock router so that it appears as a contract
-    await helpers.setCode(mockRouter.address, '0x1234')
-    arbitrumMocks = await fixture.loadArbitrumL1Mocks(governor)
-    await fixture.configureL1Bridge(
-      governor,
-      arbitrumMocks,
-      fixtureContracts,
-      mockRouter.address,
-      mockL2GRT.address,
-      mockL2Gateway.address,
-      mockL2GNS.address,
-      mockL2Staking.address,
-    )
+    // Deploy L1 arbitrum bridge
+    await fixture.loadL1ArbitrumBridge(governor)
+
+    // Deploy L2 mock
+    l2MockContracts = await deployMockGraphNetwork(true)
+    l2StakingMock = l2MockContracts.L2Staking as L2Staking
+    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
+
+    // Configure graph bridge
+    await fixture.configureL1Bridge(governor, fixtureContracts, l2MockContracts)
 
     l1GraphTokenLockTransferTool = (
       await deploy(DeployType.Deploy, governor, {
@@ -200,14 +185,14 @@ describe('L1Staking:L2Transfer', () => {
       const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
         grt.address,
         staking.address,
-        mockL2Staking.address,
+        l2StakingMock.address,
         amountToSend,
         expectedCallhookData,
       )
 
       await expect(tx)
         .emit(l1GraphTokenGateway, 'TxToL2')
-        .withArgs(staking.address, mockL2Gateway.address, toBN(expectedSeqNum), expectedL2Data)
+        .withArgs(staking.address, l2GRTGatewayMock.address, toBN(expectedSeqNum), expectedL2Data)
     }
 
     beforeEach(async function () {
@@ -448,14 +433,14 @@ describe('L1Staking:L2Transfer', () => {
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           staking.address,
-          mockL2Staking.address,
+          l2StakingMock.address,
           amountToSend,
           expectedCallhookData,
         )
 
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(staking.address, mockL2Gateway.address, toBN(1), expectedL2Data)
+          .withArgs(staking.address, l2GRTGatewayMock.address, toBN(1), expectedL2Data)
         expect(await graph.provider.getBalance(l1GraphTokenLockTransferTool.address)).to.equal(
           oldTransferToolEthBalance.sub(maxSubmissionCost).sub(gasPriceBid.mul(maxGas)),
         )
@@ -733,7 +718,7 @@ describe('L1Staking:L2Transfer', () => {
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           staking.address,
-          mockL2Staking.address,
+          l2StakingMock.address,
           actualDelegation,
           expectedCallhookData,
         )
@@ -753,7 +738,7 @@ describe('L1Staking:L2Transfer', () => {
         // seqNum is 2 because the first bridge call was in transferStakeToL2
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(staking.address, mockL2Gateway.address, toBN(2), expectedL2Data)
+          .withArgs(staking.address, l2GRTGatewayMock.address, toBN(2), expectedL2Data)
         await expect(tx)
           .emit(staking, 'DelegationTransferredToL2')
           .withArgs(
@@ -935,7 +920,7 @@ describe('L1Staking:L2Transfer', () => {
         const expectedL2Data = await l1GraphTokenGateway.getOutboundCalldata(
           grt.address,
           staking.address,
-          mockL2Staking.address,
+          l2StakingMock.address,
           actualDelegation,
           expectedCallhookData,
         )
@@ -954,7 +939,7 @@ describe('L1Staking:L2Transfer', () => {
         // seqNum is 2 because the first bridge call was in transferStakeToL2
         await expect(tx)
           .emit(l1GraphTokenGateway, 'TxToL2')
-          .withArgs(staking.address, mockL2Gateway.address, toBN(2), expectedL2Data)
+          .withArgs(staking.address, l2GRTGatewayMock.address, toBN(2), expectedL2Data)
         await expect(tx)
           .emit(staking, 'DelegationTransferredToL2')
           .withArgs(

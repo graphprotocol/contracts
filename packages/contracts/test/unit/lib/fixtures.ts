@@ -1,5 +1,5 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import { Signer, providers } from 'ethers'
+import { Signer, Wallet, providers } from 'ethers'
 
 import { BridgeMock } from '../../../build/types/BridgeMock'
 import { InboxMock } from '../../../build/types/InboxMock'
@@ -64,10 +64,11 @@ export interface L2FixtureContracts {
   l2GraphTokenGateway: L2GraphTokenGateway
 }
 
-export interface ArbitrumL1Mocks {
-  bridgeMock: BridgeMock
-  inboxMock: InboxMock
-  outboxMock: OutboxMock
+export interface L2BridgeMocks {
+  l2GRTMock: Wallet
+  l2GRTGatewayMock: Wallet
+  l2GNSMock: Wallet
+  l2StakingMock: Wallet
 }
 
 export class NetworkFixture {
@@ -90,66 +91,36 @@ export class NetworkFixture {
     )
   }
 
-  async loadArbitrumL1Mocks(deployer: Signer): Promise<ArbitrumL1Mocks> {
-    const bridgeMock = (await deploy(DeployType.Deploy, deployer, { name: 'BridgeMock' }))
-      .contract as BridgeMock
-    const inboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'InboxMock' }))
-      .contract as InboxMock
-    const outboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'OutboxMock' }))
-      .contract as OutboxMock
+  async loadL1ArbitrumBridge(deployer: SignerWithAddress): Promise<helpers.L1ArbitrumMocks> {
+    return await helpers.deployL1MockBridge(
+      deployer,
+      'arbitrum-addresses-local.json',
+      this.provider,
+    )
+  }
+
+  async createL2BridgeMocks(): Promise<L2BridgeMocks> {
     return {
-      bridgeMock,
-      inboxMock,
-      outboxMock,
+      l2GRTMock: Wallet.createRandom(),
+      l2GRTGatewayMock: Wallet.createRandom(),
+      l2GNSMock: Wallet.createRandom(),
+      l2StakingMock: Wallet.createRandom(),
     }
   }
 
   async configureL1Bridge(
-    deployer: Signer,
-    arbitrumMocks: ArbitrumL1Mocks,
+    deployer: SignerWithAddress,
     l1FixtureContracts: GraphNetworkContracts,
-    mockRouterAddress: string,
-    mockL2GRTAddress: string,
-    mockL2GatewayAddress: string,
-    mockL2GNSAddress: string,
-    mockL2StakingAddress: string,
+    l2MockContracts: GraphNetworkContracts,
   ): Promise<any> {
-    // await configureL1Bridge(undefined,)
-    // First configure the Arbitrum bridge mocks
-    await arbitrumMocks.bridgeMock.connect(deployer).setInbox(arbitrumMocks.inboxMock.address, true)
-    await arbitrumMocks.bridgeMock
-      .connect(deployer)
-      .setOutbox(arbitrumMocks.outboxMock.address, true)
-    await arbitrumMocks.inboxMock.connect(deployer).setBridge(arbitrumMocks.bridgeMock.address)
-    await arbitrumMocks.outboxMock.connect(deployer).setBridge(arbitrumMocks.bridgeMock.address)
-
-    // Configure the gateway
-    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setArbitrumAddresses(
-      arbitrumMocks.inboxMock.address,
-      mockRouterAddress,
-    )
-    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setL2TokenAddress(
-      mockL2GRTAddress,
-    )
-    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setL2CounterpartAddress(
-      mockL2GatewayAddress,
-    )
-    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setEscrowAddress(
-      l1FixtureContracts.BridgeEscrow.address,
-    )
-    await l1FixtureContracts.BridgeEscrow.connect(deployer).approveAll(
-      l1FixtureContracts.L1GraphTokenGateway.address,
-    )
-    await l1FixtureContracts.GNS.connect(deployer).setCounterpartGNSAddress(mockL2GNSAddress)
-    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).addToCallhookAllowlist(
-      l1FixtureContracts.GNS.address,
-    )
-    await l1FixtureContracts.Staking.connect(deployer).setCounterpartStakingAddress(
-      mockL2StakingAddress,
-    )
-    await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).addToCallhookAllowlist(
-      l1FixtureContracts.Staking.address,
-    )
+    await configureL1Bridge(l1FixtureContracts, deployer, {
+      l2GRTAddress: l2MockContracts.L2GraphToken.address,
+      l2GRTGatewayAddress: l2MockContracts.L2GraphTokenGateway.address,
+      l2GNSAddress: l2MockContracts.L2GNS.address,
+      l2StakingAddress: l2MockContracts.L2Staking.address,
+      arbAddressBookPath: './arbitrum-addresses-local.json',
+      chainId: 1337,
+    })
     await l1FixtureContracts.L1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 

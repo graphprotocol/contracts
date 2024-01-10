@@ -13,7 +13,11 @@ export { DeployType } from './lib/types/deploy'
 // Graph Network Contracts
 export { GraphNetworkAddressBook } from './network/deployment/address-book'
 export { loadGraphNetworkContracts } from './network/deployment/contracts/load'
-export { deployGraphNetwork, deploy } from './network/deployment/contracts/deploy'
+export {
+  deployGraphNetwork,
+  deployMockGraphNetwork,
+  deploy,
+} from './network/deployment/contracts/deploy'
 export {
   isGraphNetworkContractName,
   GraphNetworkContractNameList,
