@@ -13,7 +13,7 @@
     "addresses.json"
   ],
   "dependencies": {
-    "@graphprotocol/sdk": "workspace:^0.3.0",
+    "@graphprotocol/sdk": "workspace:^0.4.0",
     "console-table-printer": "^2.11.1"
   },
   "devDependencies": {
