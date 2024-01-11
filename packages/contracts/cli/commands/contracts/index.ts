@@ -7,7 +7,6 @@ import { gnsCommand } from './gns'
 import { graphTokenCommand } from './graphToken'
 import { stakingCommand } from './staking'
 import { anyCommand } from './any'
-import { governanceCommand } from './governance'
 
 import { disputeManagerCommand } from './disputeManager'
 
@@ -24,7 +23,6 @@ export const contractsCommand = {
       .command(stakingCommand)
       .command(anyCommand)
       .command(disputeManagerCommand)
-      .command(governanceCommand)
   },
   handler: (): void => {
     yargs.showHelp()
