@@ -11,6 +11,11 @@ import type {
 import type { Provider } from '@ethersproject/providers'
 import type { ContractParam } from '../types/contract'
 
+class WrappedContract {
+  // The meta-class properties
+  [key: string]: ContractFunction | any
+}
+
 /**
  * Modifies a contract connect function to return a contract wrapped with {@link wrapCalls}
  *
@@ -45,7 +50,7 @@ export function getWrappedConnect(
  * @returns the wrapped contract
  */
 export function wrapCalls(contract: Contract, contractName: string): Contract {
-  const wrappedContract = lodash.cloneDeep(contract)
+  const wrappedContract = lodash.cloneDeep(contract) as WrappedContract
 
   for (const fn of Object.keys(contract.functions)) {
     const call: ContractFunction<ContractTransaction> = contract.functions[fn]
@@ -60,13 +65,11 @@ export function wrapCalls(contract: Contract, contractName: string): Contract {
       return tx
     }
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     wrappedContract[fn] = override
     wrappedContract.functions[fn] = override
   }
 
-  return wrappedContract
+  return wrappedContract as Contract
 }
 
 function logContractCall(
