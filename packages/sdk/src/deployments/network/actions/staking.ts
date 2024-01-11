@@ -48,6 +48,10 @@ export const allocateFrom: GraphNetworkAction<{
   const metadata = ethers.constants.HashZero
 
   console.log(`\nAllocating ${amount} tokens on ${allocationId}...`)
+  let extraArgs: ethers.Overrides = {}
+  if (process.env.CI) {
+    extraArgs.gasLimit = BigNumber.from('400000')
+  }
   const tx = await contracts.Staking.connect(indexer).allocateFrom(
     indexer.address,
     subgraphDeploymentID,
@@ -55,6 +59,7 @@ export const allocateFrom: GraphNetworkAction<{
     allocationId,
     metadata,
     proof,
+    extraArgs
   )
   await tx.wait()
 }

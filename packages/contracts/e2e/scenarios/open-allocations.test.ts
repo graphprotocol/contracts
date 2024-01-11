@@ -35,7 +35,7 @@ describe('Open allocations', () => {
   })
 
   describe('Allocations', () => {
-    it(`allocatons should be open`, async function () {
+    it(`allocations should be open`, async function () {
       const allocations = indexerFixtures.map((i) => i.allocations).flat()
       for (const allocation of allocations) {
         const state = await Staking.getAllocationState(allocation.signer.address)
