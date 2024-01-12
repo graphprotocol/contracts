@@ -1,7 +1,7 @@
 import { DeployType, GraphNetworkAddressBook, confirm, deploy } from '@graphprotocol/sdk'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 
-graphTask('contract:deploy', 'Deploy a contract')
+greTask('contract:deploy', 'Deploy a contract')
   .addPositionalParam('contract', 'Name of the contract to deploy')
   .addPositionalParam(
     'init',

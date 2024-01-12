@@ -3,7 +3,7 @@ import * as types from 'hardhat/internal/core/params/argumentTypes'
 import { submitSourcesToSourcify } from './sourcify'
 import { isFullyQualifiedName, parseFullyQualifiedName } from 'hardhat/utils/contract-names'
 import { TASK_COMPILE } from 'hardhat/builtin-tasks/task-names'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import fs from 'fs'
 import path from 'path'
 import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
@@ -32,7 +32,7 @@ task('sourcify', 'Verifies contract on sourcify')
     })
   })
 
-graphTask('sourcifyAll', 'Verifies all contracts on sourcify').setAction(async (_args, hre) => {
+greTask('sourcifyAll', 'Verifies all contracts on sourcify').setAction(async (_args, hre) => {
   const chainId = hre.network.config.chainId
   const chainName = hre.network.name
 
@@ -68,7 +68,7 @@ graphTask('sourcifyAll', 'Verifies all contracts on sourcify').setAction(async (
   }
 })
 
-graphTask('verifyAll', 'Verifies all contracts on etherscan').setAction(async (args, hre) => {
+greTask('verifyAll', 'Verifies all contracts on etherscan').setAction(async (args, hre) => {
   const chainId = hre.network.config.chainId
   const chainName = hre.network.name
 

@@ -1,9 +1,9 @@
 import { BigNumber } from 'ethers'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { sendToL2 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-graphTask('bridge:send-to-l2', 'Bridge GRT tokens from L1 to L2')
+greTask('bridge:send-to-l2', 'Bridge GRT tokens from L1 to L2')
   .addParam('amount', 'Amount of tokens to bridge')
   .addOptionalParam('sender', 'Address of the sender. L1 deployer if empty.')
   .addOptionalParam('recipient', 'Receiving address in L2. Same to L1 address if empty.')

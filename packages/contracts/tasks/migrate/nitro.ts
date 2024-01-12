@@ -1,10 +1,10 @@
 import { subtask, task } from 'hardhat/config'
 import fs from 'fs'
 import { execSync } from 'child_process'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { helpers } from '@graphprotocol/sdk'
 
-graphTask(
+greTask(
   'migrate:nitro:fund-accounts',
   'Funds protocol accounts on Arbitrum Nitro testnodes',
 ).setAction(async (taskArgs, hre) => {

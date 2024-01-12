@@ -1,10 +1,10 @@
 import { ethers } from 'ethers'
 import { Table } from 'console-table-printer'
 import { L2ToL1MessageStatus } from '@arbitrum/sdk'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { getL2ToL1MessageStatus } from '@graphprotocol/sdk'
 
-graphTask('bridge:withdrawals', 'List withdrawals initiated on L2GraphTokenGateway')
+greTask('bridge:withdrawals', 'List withdrawals initiated on L2GraphTokenGateway')
   .addOptionalParam('startBlock', 'Start block for the search')
   .addOptionalParam('endBlock', 'End block for the search')
   .setAction(async (taskArgs, hre) => {

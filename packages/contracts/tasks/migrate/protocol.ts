@@ -5,10 +5,10 @@ import {
   deployGraphNetwork,
   setPausedProtocol,
 } from '@graphprotocol/sdk'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { ContractTransaction } from 'ethers'
 
-graphTask('migrate', 'Deploy protocol contracts')
+greTask('migrate', 'Deploy protocol contracts')
   .addFlag('skipConfirmation', 'Skip confirmation prompt on write actions')
   .addFlag('skipPostDeploy', 'Skip accepting ownership and unpausing protocol after deploying')
   .addFlag('force', 'Deploy contract even if its already deployed')

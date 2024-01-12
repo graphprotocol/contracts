@@ -4,7 +4,7 @@ import glob from 'glob'
 import fs from 'fs'
 import { runScriptWithHardhat } from 'hardhat/internal/util/scripts-runner'
 import { isGraphL1ChainId } from '@graphprotocol/sdk'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 
 const CONFIG_TESTS = 'test/e2e/deployment/config/**/*.test.ts'
 const INIT_TESTS = 'test/e2e/deployment/init/**/*.test.ts'
@@ -33,7 +33,7 @@ const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironmen
   }
 }
 
-graphTask('e2e', 'Run all e2e tests')
+greTask('e2e', 'Run all e2e tests')
   .addFlag('skipBridge', 'Skip bridge tests')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     let testFiles = [
@@ -54,7 +54,7 @@ graphTask('e2e', 'Run all e2e tests')
     })
   })
 
-graphTask('e2e:config', 'Run deployment configuration e2e tests').setAction(
+greTask('e2e:config', 'Run deployment configuration e2e tests').setAction(
   async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(CONFIG_TESTS).found
 
@@ -68,7 +68,7 @@ graphTask('e2e:config', 'Run deployment configuration e2e tests').setAction(
   },
 )
 
-graphTask('e2e:init', 'Run deployment initialization e2e tests').setAction(
+greTask('e2e:init', 'Run deployment initialization e2e tests').setAction(
   async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(INIT_TESTS).found
 
@@ -82,7 +82,7 @@ graphTask('e2e:init', 'Run deployment initialization e2e tests').setAction(
   },
 )
 
-graphTask('e2e:scenario', 'Run scenario scripts and e2e tests')
+greTask('e2e:scenario', 'Run scenario scripts and e2e tests')
   .addPositionalParam('scenario', 'Name of the scenario to run')
   .addFlag('skipScript', "Don't run scenario script")
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
@@ -118,7 +118,7 @@ graphTask('e2e:scenario', 'Run scenario scripts and e2e tests')
     }
   })
 
-graphTask('e2e:upgrade', 'Run upgrade tests')
+greTask('e2e:upgrade', 'Run upgrade tests')
   .addPositionalParam('upgrade', 'Name of the upgrade to run')
   .addFlag('post', 'Wether to run pre/post upgrade scripts')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {

@@ -1,7 +1,7 @@
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { configureL1Bridge, configureL2Bridge, setPausedBridge } from '@graphprotocol/sdk'
 
-graphTask('migrate:bridge', 'Configure and unpause bridge')
+greTask('migrate:bridge', 'Configure and unpause bridge')
   .addOptionalParam(
     'arbitrumAddressBook',
     'The path to the address book file for Arbitrum deployments',

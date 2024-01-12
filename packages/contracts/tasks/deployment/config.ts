@@ -6,9 +6,9 @@ import {
   writeConfig,
   confirm,
 } from '@graphprotocol/sdk'
-import { graphTask } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 
-graphTask('update-config', 'Update graph config parameters with onchain data')
+greTask('update-config', 'Update graph config parameters with onchain data')
   .addFlag('dryRun', "Only print the changes, don't write them to the config file")
   .addFlag('skipConfirmation', 'Skip confirmation prompt on write actions.')
   .setAction(async (taskArgs, hre) => {

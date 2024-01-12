@@ -5,7 +5,7 @@ function grePrefix(text: string): string {
   return `[GRE] ${text}`
 }
 
-export function graphTask(
+export function greTask(
   name: string,
   description?: string | undefined,
   action?: ActionType<unknown> | undefined,
