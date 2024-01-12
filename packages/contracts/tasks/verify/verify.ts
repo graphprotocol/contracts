@@ -7,7 +7,7 @@ import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 import fs from 'fs'
 import path from 'path'
 import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
-import { getContractConfig } from '@graphprotocol/sdk'
+import { getContractConfig, readConfig } from '@graphprotocol/sdk'
 
 task('sourcify', 'Verifies contract on sourcify')
   .addPositionalParam('address', 'Address of the smart contract to verify', undefined, types.string)
@@ -94,20 +94,16 @@ task('verifyAll', 'Verifies all contracts on etherscan')
     }
 
     console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook, graphConfig, getDeployer } = hre.graph({
+    const { addressBook, getDeployer } = hre.graph({
       addressBook: args.addressBook,
       graphConfig: args.graphConfig,
     })
-
+    const graphConfig = readConfig(args.graphConfig, false)
+    const deployer = (await getDeployer()).address
     for (const contractName of addressBook.listEntries()) {
       console.log(`\n> Verifying contract ${contractName}...`)
 
-      const contractConfig = getContractConfig(
-        graphConfig,
-        addressBook,
-        contractName,
-        (await getDeployer()).address,
-      )
+      const contractConfig = getContractConfig(graphConfig, addressBook, contractName, deployer)
       const contractPath = getContractPath(contractName)
       const constructorParams = contractConfig.params.map((p) => p.value.toString())
 
