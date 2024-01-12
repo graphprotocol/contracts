@@ -1,27 +1,14 @@
-import { task } from 'hardhat/config'
-
 import { DeployType, GraphNetworkAddressBook, confirm, deploy } from '@graphprotocol/sdk'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { graphTask } from '@graphprotocol/sdk/gre'
 
-task('contract:deploy', 'Deploy a contract')
+graphTask('contract:deploy', 'Deploy a contract')
   .addPositionalParam('contract', 'Name of the contract to deploy')
   .addPositionalParam(
     'init',
     'Initialization arguments for the contract constructor. Provide arguments as comma-separated values',
   )
-  .addParam(
-    'addressBook',
-    GRE_TASK_PARAMS.addressBook.description,
-    GRE_TASK_PARAMS.addressBook.default,
-  )
-  .addParam(
-    'graphConfig',
-    GRE_TASK_PARAMS.graphConfig.description,
-    GRE_TASK_PARAMS.graphConfig.default,
-  )
   .addParam('deployType', 'Choose deploy, deploy-save, deploy-with-proxy, deploy-with-proxy-save')
-  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addFlag('skipConfirmation', GRE_TASK_PARAMS.skipConfirmation.description)
+  .addFlag('skipConfirmation', 'Skip confirmation prompt on write actions')
   .addFlag('buildAcceptTx', '...')
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)

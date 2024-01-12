@@ -1,5 +1,3 @@
-import { task } from 'hardhat/config'
-
 import {
   GraphChainId,
   GraphNetworkGovernedContractNameList,
@@ -7,24 +5,13 @@ import {
   deployGraphNetwork,
   setPausedProtocol,
 } from '@graphprotocol/sdk'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { graphTask } from '@graphprotocol/sdk/gre'
 import { ContractTransaction } from 'ethers'
 
-task('migrate', 'Deploy protocol contracts')
-  .addParam(
-    'addressBook',
-    GRE_TASK_PARAMS.addressBook.description,
-    GRE_TASK_PARAMS.addressBook.default,
-  )
-  .addParam(
-    'graphConfig',
-    GRE_TASK_PARAMS.graphConfig.description,
-    GRE_TASK_PARAMS.graphConfig.default,
-  )
-  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addFlag('skipConfirmation', GRE_TASK_PARAMS.skipConfirmation.description)
+graphTask('migrate', 'Deploy protocol contracts')
+  .addFlag('skipConfirmation', 'Skip confirmation prompt on write actions')
   .addFlag('skipPostDeploy', 'Skip accepting ownership and unpausing protocol after deploying')
-  .addFlag('force', GRE_TASK_PARAMS.force.description)
+  .addFlag('force', 'Deploy contract even if its already deployed')
   .addFlag('buildAcceptTx', '...')
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)

@@ -1,11 +1,10 @@
-import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment, TaskArguments } from 'hardhat/types'
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 import glob from 'glob'
 import fs from 'fs'
 import { runScriptWithHardhat } from 'hardhat/internal/util/scripts-runner'
 import { isGraphL1ChainId } from '@graphprotocol/sdk'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { graphTask } from '@graphprotocol/sdk/gre'
 
 const CONFIG_TESTS = 'test/e2e/deployment/config/**/*.test.ts'
 const INIT_TESTS = 'test/e2e/deployment/init/**/*.test.ts'
@@ -34,11 +33,7 @@ const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironmen
   }
 }
 
-task('e2e', 'Run all e2e tests')
-  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
+graphTask('e2e', 'Run all e2e tests')
   .addFlag('skipBridge', 'Skip bridge tests')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     let testFiles = [
@@ -59,12 +54,8 @@ task('e2e', 'Run all e2e tests')
     })
   })
 
-task('e2e:config', 'Run deployment configuration e2e tests')
-  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
-  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+graphTask('e2e:config', 'Run deployment configuration e2e tests').setAction(
+  async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(CONFIG_TESTS).found
 
     // Disable secure accounts, we don't need them for this task
@@ -74,14 +65,11 @@ task('e2e:config', 'Run deployment configuration e2e tests')
     await hre.run(TASK_TEST, {
       testFiles: files,
     })
-  })
+  },
+)
 
-task('e2e:init', 'Run deployment initialization e2e tests')
-  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
-  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+graphTask('e2e:init', 'Run deployment initialization e2e tests').setAction(
+  async (args, hre: HardhatRuntimeEnvironment) => {
     const files = new glob.GlobSync(INIT_TESTS).found
 
     // Disable secure accounts, we don't need them for this task
@@ -91,15 +79,11 @@ task('e2e:init', 'Run deployment initialization e2e tests')
     await hre.run(TASK_TEST, {
       testFiles: files,
     })
-  })
+  },
+)
 
-task('e2e:scenario', 'Run scenario scripts and e2e tests')
+graphTask('e2e:scenario', 'Run scenario scripts and e2e tests')
   .addPositionalParam('scenario', 'Name of the scenario to run')
-  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
-  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
   .addFlag('skipScript', "Don't run scenario script")
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphConfig(args, hre)
@@ -134,15 +118,9 @@ task('e2e:scenario', 'Run scenario scripts and e2e tests')
     }
   })
 
-task('e2e:upgrade', 'Run upgrade tests')
+graphTask('e2e:upgrade', 'Run upgrade tests')
   .addPositionalParam('upgrade', 'Name of the upgrade to run')
-  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addFlag('fork', 'Enable fork behavior on GRE')
   .addFlag('post', 'Wether to run pre/post upgrade scripts')
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
-  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphConfig(args, hre)
     await runUpgrade(args, hre, args.post ? 'post' : 'pre')

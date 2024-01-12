@@ -1,23 +1,12 @@
-import { task } from 'hardhat/config'
 import { BigNumber } from 'ethers'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { graphTask } from '@graphprotocol/sdk/gre'
 import { sendToL2 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-export const TASK_BRIDGE_TO_L2 = 'bridge:send-to-l2'
-
-task(TASK_BRIDGE_TO_L2, 'Bridge GRT tokens from L1 to L2')
+graphTask('bridge:send-to-l2', 'Bridge GRT tokens from L1 to L2')
   .addParam('amount', 'Amount of tokens to bridge')
   .addOptionalParam('sender', 'Address of the sender. L1 deployer if empty.')
   .addOptionalParam('recipient', 'Receiving address in L2. Same to L1 address if empty.')
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
-  .addOptionalParam(
-    'arbitrumAddressBook',
-    GRE_TASK_PARAMS.arbitrumAddressBook.description,
-    GRE_TASK_PARAMS.arbitrumAddressBook.default,
-  )
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
   .addOptionalParam(
     'deploymentFile',
     'Nitro testnode deployment file. Must specify if using nitro test nodes.',

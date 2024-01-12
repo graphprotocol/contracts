@@ -5,7 +5,6 @@
 //    npx hardhat e2e:scenario send-grt-to-l2 --network <network> --graph-config config/graph.<network>.yml
 
 import hre from 'hardhat'
-import { TASK_BRIDGE_TO_L2 } from '../../../tasks/bridge/to-l2'
 import { getBridgeFixture } from './fixtures/bridge'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 import { ethers } from 'ethers'
@@ -21,7 +20,7 @@ async function main() {
 
   // == Send GRT to L2 accounts
   for (const account of bridgeFixture.accountsToFund) {
-    await hre.run(TASK_BRIDGE_TO_L2, {
+    await hre.run('bridge:send-to-l2', {
       ...graphOpts,
       amount: ethers.utils.formatEther(account.amount),
       sender: bridgeFixture.funder.address,
