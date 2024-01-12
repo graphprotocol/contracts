@@ -36,10 +36,12 @@ export function getAddressBookPath(
 ): string {
   logDebug('== Getting address book path')
   logDebug(`Graph base dir: ${hre.config.paths.graph}`)
-  logDebug(`1) opts.addressBookPath: ${opts.addressBook}`)
-  logDebug(`2) hre.config.graph.addressBook: ${hre.config.graph?.addressBook}`)
+  logDebug(`1) opts.addressBook: ${opts.addressBook}`)
+  logDebug(`2) hre.network.config.addressBook: ${hre.network.config?.addressBook}`)
+  logDebug(`3) hre.config.graph.addressBook: ${hre.config.graph?.addressBook}`)
 
-  let addressBookPath = opts.addressBook ?? hre.config.graph?.addressBook
+  let addressBookPath =
+    opts.addressBook ?? hre.network.config?.addressBook ?? hre.config.graph?.addressBook
 
   if (addressBookPath === undefined) {
     throw new GREPluginError('Must set a an addressBook path!')

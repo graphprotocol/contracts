@@ -21,18 +21,22 @@ declare module 'hardhat/types/config' {
 
   export interface HardhatNetworkConfig {
     graphConfig?: string
+    addressBook?: string
   }
 
   export interface HardhatNetworkUserConfig {
     graphConfig?: string
+    addressBook?: string
   }
 
   export interface HttpNetworkConfig {
     graphConfig?: string
+    addressBook?: string
   }
 
   export interface HttpNetworkUserConfig {
     graphConfig?: string
+    addressBook?: string
   }
 
   export interface ProjectPathsConfig {
