@@ -1,7 +1,0 @@
-{
-  "description": "Compound is an open-source protocol for algorithmic, efficient Money Markets on the Ethereum blockchain.",
-  "displayName": "Compound",
-  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmeMR3qK7wfAuSns4PpdFVZZcsCoLa7wEPQbrZTBQNKGWq",
-  "codeRepository": "https://github.com/graphprotocol/compound-V2-subgraph",
-  "website": "https://compound.finance/"
-}
