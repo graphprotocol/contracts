@@ -45,6 +45,10 @@ import { IL2Staking } from '../build/types/IL2Staking'
 import { Interface } from 'ethers/lib/utils'
 import { loadArtifact } from './artifacts'
 
+class WrappedContract {
+  // The meta-class properties
+  [key: string]: ContractFunction | any
+}
 export interface NetworkContracts {
   EpochManager: EpochManager
   DisputeManager: DisputeManager
@@ -160,7 +164,7 @@ function getWrappedConnect(
 // Returns a contract with wrapped calls
 // The wrapper will run the tx, wait for confirmation and log the details
 function wrapCalls(contract: Contract, contractName: string): Contract {
-  const wrappedContract = lodash.cloneDeep(contract)
+  const wrappedContract = lodash.cloneDeep(contract) as WrappedContract
 
   for (const fn of Object.keys(contract.functions)) {
     const call: ContractFunction<ContractTransaction> = contract.functions[fn]
@@ -179,7 +183,7 @@ function wrapCalls(contract: Contract, contractName: string): Contract {
     wrappedContract[fn] = override
   }
 
-  return wrappedContract
+  return wrappedContract as Contract
 }
 
 function logContractCall(
