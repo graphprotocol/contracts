@@ -740,13 +740,10 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
             return _tokens;
         }
 
-        // Total after the tax
-        uint256 totalWithoutOwnerTax = uint256(MAX_PPM)
-            .sub(_curationTaxPercentage)
-            .mul(_tokens)
-            .div(MAX_PPM);
         // Tax on the total bonding curve funds
-        uint256 taxOnOriginal = _tokens.sub(totalWithoutOwnerTax);
+        uint256 taxOnOriginal = _tokens.mul(_curationTaxPercentage).div(MAX_PPM);
+        // Total after the tax
+        uint256 totalWithoutOwnerTax = _tokens.sub(taxOnOriginal);
         // The portion of tax that the owner will pay
         uint256 ownerTax = taxOnOriginal.mul(ownerTaxPercentage).div(MAX_PPM);
 
