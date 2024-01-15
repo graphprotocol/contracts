@@ -3,7 +3,6 @@ import { BigNumber } from 'ethers'
 import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
 import { sendToL2 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { TASK_NITRO_SETUP_SDK } from '../deployment/nitro'
 
 export const TASK_BRIDGE_TO_L2 = 'bridge:send-to-l2'
 
@@ -30,7 +29,7 @@ task(TASK_BRIDGE_TO_L2, 'Bridge GRT tokens from L1 to L2')
     // If local, add nitro test node networks to sdk
     if (taskArgs.deploymentFile) {
       console.log('> Adding nitro test node network to sdk')
-      await hre.run(TASK_NITRO_SETUP_SDK, { deploymentFile: taskArgs.deploymentFile })
+      await hre.run('migrate:nitro:register', { deploymentFile: taskArgs.deploymentFile })
     }
 
     // Get the sender, use L1 deployer if not provided

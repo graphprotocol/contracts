@@ -1,12 +1,12 @@
 import hre from 'hardhat'
 import { expect, use } from 'chai'
-import { constants, ContractTransaction, Signer, utils } from 'ethers'
+import { constants, ContractTransaction, Signer, utils, Wallet } from 'ethers'
 
 import { L2GraphToken } from '../../../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
 import { CallhookReceiverMock } from '../../../build/types/CallhookReceiverMock'
 
-import { L2FixtureContracts, NetworkFixture } from '../lib/fixtures'
+import { NetworkFixture } from '../lib/fixtures'
 
 import { FakeContract, smock } from '@defi-wonderland/smock'
 
@@ -15,6 +15,7 @@ use(smock.matchers)
 import { RewardsManager } from '../../../build/types/RewardsManager'
 import { DeployType, GraphNetworkContracts, deploy, helpers, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { GraphToken, L1GraphTokenGateway } from '../../../build/types'
 
 const { AddressZero } = constants
 
@@ -25,16 +26,16 @@ describe('L2GraphTokenGateway', () => {
   let tokenSender: SignerWithAddress
   let l1Receiver: SignerWithAddress
   let l2Receiver: SignerWithAddress
-  let mockRouter: SignerWithAddress
-  let mockL1GRT: SignerWithAddress
-  let mockL1Gateway: SignerWithAddress
   let pauseGuardian: SignerWithAddress
-  let mockL1GNS: SignerWithAddress
-  let mockL1Staking: SignerWithAddress
   let fixture: NetworkFixture
   let arbSysMock: FakeContract
 
   let fixtureContracts: GraphNetworkContracts
+  let l1MockContracts: GraphNetworkContracts
+  let l1GRTMock: GraphToken
+  let l1GRTGatewayMock: L1GraphTokenGateway
+  let routerMock: Wallet
+
   let grt: L2GraphToken
   let l2GraphTokenGateway: L2GraphTokenGateway
   let callhookReceiverMock: CallhookReceiverMock
@@ -48,25 +49,24 @@ describe('L2GraphTokenGateway', () => {
   )
 
   before(async function () {
-    ;[
-      me,
-      governor,
-      tokenSender,
-      l1Receiver,
-      mockRouter,
-      mockL1GRT,
-      mockL1Gateway,
-      l2Receiver,
-      pauseGuardian,
-      mockL1GNS,
-      mockL1Staking,
-    ] = await graph.getTestAccounts()
+    ;[me, governor, tokenSender, l1Receiver, l2Receiver, pauseGuardian] =
+      await graph.getTestAccounts()
 
     fixture = new NetworkFixture(graph.provider)
+
+    // Deploy L2
     fixtureContracts = await fixture.load(governor, true)
     grt = fixtureContracts.GraphToken as L2GraphToken
     l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
     rewardsManager = fixtureContracts.RewardsManager as RewardsManager
+
+    // Deploy L2 arbitrum bridge
+    ;({ routerMock } = await fixture.loadL2ArbitrumBridge(governor))
+
+    // Deploy L1 mock
+    l1MockContracts = await fixture.loadMock(false)
+    l1GRTMock = l1MockContracts.GraphToken as GraphToken
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
 
     callhookReceiverMock = (
       await deploy(DeployType.Deploy, governor, {
@@ -74,8 +74,9 @@ describe('L2GraphTokenGateway', () => {
       })
     ).contract as CallhookReceiverMock
 
-    // Give some funds to the token sender
+    // Give some funds to the token sender and router mock
     await grt.connect(governor).mint(tokenSender.address, senderTokens)
+    await helpers.setBalance(routerMock.address, utils.parseEther('1'))
   })
 
   beforeEach(async function () {
@@ -129,25 +130,25 @@ describe('L2GraphTokenGateway', () => {
 
     describe('setL2Router', function () {
       it('is not callable by addreses that are not the governor', async function () {
-        const tx = l2GraphTokenGateway.connect(tokenSender).setL2Router(mockRouter.address)
+        const tx = l2GraphTokenGateway.connect(tokenSender).setL2Router(routerMock.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets router address', async function () {
-        const tx = l2GraphTokenGateway.connect(governor).setL2Router(mockRouter.address)
-        await expect(tx).emit(l2GraphTokenGateway, 'L2RouterSet').withArgs(mockRouter.address)
-        expect(await l2GraphTokenGateway.l2Router()).eq(mockRouter.address)
+        const tx = l2GraphTokenGateway.connect(governor).setL2Router(routerMock.address)
+        await expect(tx).emit(l2GraphTokenGateway, 'L2RouterSet').withArgs(routerMock.address)
+        expect(await l2GraphTokenGateway.l2Router()).eq(routerMock.address)
       })
     })
 
     describe('setL1TokenAddress', function () {
       it('is not callable by addreses that are not the governor', async function () {
-        const tx = l2GraphTokenGateway.connect(tokenSender).setL1TokenAddress(mockL1GRT.address)
+        const tx = l2GraphTokenGateway.connect(tokenSender).setL1TokenAddress(l1GRTMock.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets l2GRT', async function () {
-        const tx = l2GraphTokenGateway.connect(governor).setL1TokenAddress(mockL1GRT.address)
-        await expect(tx).emit(l2GraphTokenGateway, 'L1TokenAddressSet').withArgs(mockL1GRT.address)
-        expect(await l2GraphTokenGateway.l1GRT()).eq(mockL1GRT.address)
+        const tx = l2GraphTokenGateway.connect(governor).setL1TokenAddress(l1GRTMock.address)
+        await expect(tx).emit(l2GraphTokenGateway, 'L1TokenAddressSet').withArgs(l1GRTMock.address)
+        expect(await l2GraphTokenGateway.l1GRT()).eq(l1GRTMock.address)
       })
     })
 
@@ -155,17 +156,17 @@ describe('L2GraphTokenGateway', () => {
       it('is not callable by addreses that are not the governor', async function () {
         const tx = l2GraphTokenGateway
           .connect(tokenSender)
-          .setL1CounterpartAddress(mockL1Gateway.address)
+          .setL1CounterpartAddress(l1GRTGatewayMock.address)
         await expect(tx).revertedWith('Only Controller governor')
       })
       it('sets L1Counterpart', async function () {
         const tx = l2GraphTokenGateway
           .connect(governor)
-          .setL1CounterpartAddress(mockL1Gateway.address)
+          .setL1CounterpartAddress(l1GRTGatewayMock.address)
         await expect(tx)
           .emit(l2GraphTokenGateway, 'L1CounterpartAddressSet')
-          .withArgs(mockL1Gateway.address)
-        expect(await l2GraphTokenGateway.l1Counterpart()).eq(mockL1Gateway.address)
+          .withArgs(l1GRTGatewayMock.address)
+        expect(await l2GraphTokenGateway.l1Counterpart()).eq(l1GRTGatewayMock.address)
       })
     })
     describe('Pausable behavior', () => {
@@ -178,23 +179,17 @@ describe('L2GraphTokenGateway', () => {
       it('cannot be paused if some state variables are not set', async function () {
         let tx = l2GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).revertedWith('L2_ROUTER_NOT_SET')
-        await l2GraphTokenGateway.connect(governor).setL2Router(mockRouter.address)
+        await l2GraphTokenGateway.connect(governor).setL2Router(routerMock.address)
         tx = l2GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).revertedWith('L1_COUNTERPART_NOT_SET')
-        await l2GraphTokenGateway.connect(governor).setL1CounterpartAddress(mockL1Gateway.address)
+        await l2GraphTokenGateway
+          .connect(governor)
+          .setL1CounterpartAddress(l1GRTGatewayMock.address)
         tx = l2GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).revertedWith('L1_GRT_NOT_SET')
       })
       it('can be paused and unpaused by the governor', async function () {
-        await fixture.configureL2Bridge(
-          governor,
-          fixtureContracts,
-          mockRouter.address,
-          mockL1GRT.address,
-          mockL1Gateway.address,
-          mockL1GNS.address,
-          mockL1Staking.address,
-        )
+        await fixture.configureL2Bridge(governor, fixtureContracts, l1MockContracts)
         let tx = l2GraphTokenGateway.connect(governor).setPaused(true)
         await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(true)
         await expect(await l2GraphTokenGateway.paused()).eq(true)
@@ -217,15 +212,7 @@ describe('L2GraphTokenGateway', () => {
             .withArgs(currentPauseGuardian, pauseGuardian.address)
         })
         it('allows a pause guardian to pause and unpause', async function () {
-          await fixture.configureL2Bridge(
-            governor,
-            fixtureContracts,
-            mockRouter.address,
-            mockL1GRT.address,
-            mockL1Gateway.address,
-            mockL1GNS.address,
-            mockL1Staking.address,
-          )
+          await fixture.configureL2Bridge(governor, fixtureContracts, l1MockContracts)
           await l2GraphTokenGateway.connect(governor).setPauseGuardian(pauseGuardian.address)
           let tx = l2GraphTokenGateway.connect(pauseGuardian).setPaused(true)
           await expect(tx).emit(l2GraphTokenGateway, 'PauseChanged').withArgs(true)
@@ -243,7 +230,7 @@ describe('L2GraphTokenGateway', () => {
       const tx = l2GraphTokenGateway
         .connect(signer)
         ['outboundTransfer(address,address,uint256,bytes)'](
-          mockL1GRT.address,
+          l1GRTMock.address,
           l1Receiver.address,
           toGRT('10'),
           data,
@@ -252,7 +239,7 @@ describe('L2GraphTokenGateway', () => {
       await expect(tx)
         .emit(l2GraphTokenGateway, 'WithdrawalInitiated')
         .withArgs(
-          mockL1GRT.address,
+          l1GRTMock.address,
           tokenSender.address,
           l1Receiver.address,
           expectedId,
@@ -262,7 +249,7 @@ describe('L2GraphTokenGateway', () => {
 
       // Should use the L1 Gateway's interface, but both come from ITokenGateway
       const calldata = l2GraphTokenGateway.interface.encodeFunctionData('finalizeInboundTransfer', [
-        mockL1GRT.address,
+        l1GRTMock.address,
         tokenSender.address,
         l1Receiver.address,
         toGRT('10'),
@@ -270,31 +257,23 @@ describe('L2GraphTokenGateway', () => {
       ])
       await expect(tx)
         .emit(l2GraphTokenGateway, 'TxToL1')
-        .withArgs(tokenSender.address, mockL1Gateway.address, 1, calldata)
+        .withArgs(tokenSender.address, l1GRTGatewayMock.address, 1, calldata)
 
       // For some reason the call count doesn't work properly,
       // and each function call is counted 12 times.
       // Possibly related to https://github.com/defi-wonderland/smock/issues/85 ?
       //expect(arbSysMock.sendTxToL1).to.have.been.calledOnce
-      expect(arbSysMock.sendTxToL1).to.have.been.calledWith(mockL1Gateway.address, calldata)
+      expect(arbSysMock.sendTxToL1).to.have.been.calledWith(l1GRTGatewayMock.address, calldata)
       const senderBalance = await grt.balanceOf(tokenSender.address)
       await expect(senderBalance).eq(toGRT('990'))
     }
     before(async function () {
-      await fixture.configureL2Bridge(
-        governor,
-        fixtureContracts,
-        mockRouter.address,
-        mockL1GRT.address,
-        mockL1Gateway.address,
-        mockL1GNS.address,
-        mockL1Staking.address,
-      )
+      await fixture.configureL2Bridge(governor, fixtureContracts, l1MockContracts)
     })
 
     describe('calculateL2TokenAddress', function () {
       it('returns the L2 token address', async function () {
-        expect(await l2GraphTokenGateway.calculateL2TokenAddress(mockL1GRT.address)).eq(grt.address)
+        expect(await l2GraphTokenGateway.calculateL2TokenAddress(l1GRTMock.address)).eq(grt.address)
       })
       it('returns the zero address if the input is any other address', async function () {
         expect(await l2GraphTokenGateway.calculateL2TokenAddress(tokenSender.address)).eq(
@@ -325,14 +304,14 @@ describe('L2GraphTokenGateway', () => {
           ['address', 'bytes'],
           [tokenSender.address, defaultData],
         )
-        await testValidOutboundTransfer(mockRouter, routerEncodedData)
+        await testValidOutboundTransfer(routerMock, routerEncodedData)
       })
       it('reverts when called with nonempty calldata', async function () {
         await grt.connect(tokenSender).approve(l2GraphTokenGateway.address, toGRT('10'))
         const tx = l2GraphTokenGateway
           .connect(tokenSender)
           ['outboundTransfer(address,address,uint256,bytes)'](
-            mockL1GRT.address,
+            l1GRTMock.address,
             l1Receiver.address,
             toGRT('10'),
             defaultDataWithNotEmptyCallHookData,
@@ -344,7 +323,7 @@ describe('L2GraphTokenGateway', () => {
         const tx = l2GraphTokenGateway
           .connect(tokenSender)
           ['outboundTransfer(address,address,uint256,bytes)'](
-            mockL1GRT.address,
+            l1GRTMock.address,
             l1Receiver.address,
             toGRT('1001'),
             defaultData,
@@ -359,17 +338,17 @@ describe('L2GraphTokenGateway', () => {
         to?: string,
       ): Promise<ContractTransaction> {
         to = to ?? l2Receiver.address
-        const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
+        const l1GRTGatewayMockL2Alias = await helpers.getL2SignerFromL1(l1GRTGatewayMock.address)
         await me.sendTransaction({
-          to: await mockL1GatewayL2Alias.getAddress(),
+          to: await l1GRTGatewayMockL2Alias.getAddress(),
           value: utils.parseUnits('1', 'ether'),
         })
         const tx = l2GraphTokenGateway
-          .connect(mockL1GatewayL2Alias)
-          .finalizeInboundTransfer(mockL1GRT.address, tokenSender.address, to, toGRT('10'), data)
+          .connect(l1GRTGatewayMockL2Alias)
+          .finalizeInboundTransfer(l1GRTMock.address, tokenSender.address, to, toGRT('10'), data)
         await expect(tx)
           .emit(l2GraphTokenGateway, 'DepositFinalized')
-          .withArgs(mockL1GRT.address, tokenSender.address, to, toGRT('10'))
+          .withArgs(l1GRTMock.address, tokenSender.address, to, toGRT('10'))
 
         await expect(tx).emit(grt, 'BridgeMinted').withArgs(to, toGRT('10'))
 
@@ -385,7 +364,7 @@ describe('L2GraphTokenGateway', () => {
         const tx = l2GraphTokenGateway
           .connect(tokenSender)
           .finalizeInboundTransfer(
-            mockL1GRT.address,
+            l1GRTMock.address,
             tokenSender.address,
             l2Receiver.address,
             toGRT('10'),
@@ -394,10 +373,11 @@ describe('L2GraphTokenGateway', () => {
         await expect(tx).revertedWith('ONLY_COUNTERPART_GATEWAY')
       })
       it('reverts when called by an account that is the gateway but without the L2 alias', async function () {
+        const impersonatedGateway = await helpers.impersonateAccount(l1GRTGatewayMock.address)
         const tx = l2GraphTokenGateway
-          .connect(mockL1Gateway)
+          .connect(impersonatedGateway)
           .finalizeInboundTransfer(
-            mockL1GRT.address,
+            l1GRTMock.address,
             tokenSender.address,
             l2Receiver.address,
             toGRT('10'),
@@ -424,15 +404,15 @@ describe('L2GraphTokenGateway', () => {
           ['uint256', 'uint256'],
           [toBN('0'), toBN('42')],
         )
-        const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
+        const l1GRTGatewayMockL2Alias = await helpers.getL2SignerFromL1(l1GRTGatewayMock.address)
         await me.sendTransaction({
-          to: await mockL1GatewayL2Alias.getAddress(),
+          to: await l1GRTGatewayMockL2Alias.getAddress(),
           value: utils.parseUnits('1', 'ether'),
         })
         const tx = l2GraphTokenGateway
-          .connect(mockL1GatewayL2Alias)
+          .connect(l1GRTGatewayMockL2Alias)
           .finalizeInboundTransfer(
-            mockL1GRT.address,
+            l1GRTMock.address,
             tokenSender.address,
             callhookReceiverMock.address,
             toGRT('10'),
@@ -442,16 +422,16 @@ describe('L2GraphTokenGateway', () => {
       })
       it('reverts if trying to call a callhook in a contract that does not implement onTokenTransfer', async function () {
         const callHookData = utils.defaultAbiCoder.encode(['uint256'], [toBN('0')])
-        const mockL1GatewayL2Alias = await helpers.getL2SignerFromL1(mockL1Gateway.address)
+        const l1GRTGatewayMockL2Alias = await helpers.getL2SignerFromL1(l1GRTGatewayMock.address)
         await me.sendTransaction({
-          to: await mockL1GatewayL2Alias.getAddress(),
+          to: await l1GRTGatewayMockL2Alias.getAddress(),
           value: utils.parseUnits('1', 'ether'),
         })
         // RewardsManager does not implement onTokenTransfer, so this will fail
         const tx = l2GraphTokenGateway
-          .connect(mockL1GatewayL2Alias)
+          .connect(l1GRTGatewayMockL2Alias)
           .finalizeInboundTransfer(
-            mockL1GRT.address,
+            l1GRTMock.address,
             tokenSender.address,
             rewardsManager.address,
             toGRT('10'),

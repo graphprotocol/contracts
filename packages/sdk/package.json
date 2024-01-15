@@ -1,16 +1,16 @@
 {
   "name": "@graphprotocol/sdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "TypeScript based SDK to interact with The Graph protocol contracts",
   "main": "build/index.js",
   "types": "src/index.ts",
   "exports": {
     ".": {
-      "default": "./build/index.js",
+      "default": "./src/index.ts",
       "types": "./src/index.ts"
     },
     "./gre": {
-      "default": "./build/gre/index.js",
+      "default": "./src/gre/index.ts",
       "types": "./src/gre/index.ts"
     }
   },
