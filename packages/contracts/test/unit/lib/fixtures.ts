@@ -89,6 +89,7 @@ export class NetworkFixture {
         skipConfirmation: true,
         forceDeploy: true,
         l2Deploy: l2Deploy,
+        enableTxLogging: false,
       },
     )
   }
