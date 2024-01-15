@@ -29,6 +29,7 @@ import { acceptOwnership } from '../../actions/governed'
 import { setPausedProtocol } from '../../actions/pause'
 import { GraphNetworkContracts, loadGraphNetworkContracts } from './load'
 import { setCode } from '../../../../helpers/code'
+import { logContractCall, logContractReceipt } from '../../../lib/contracts/log'
 
 export async function deployGraphNetwork(
   addressBookPath: string,
@@ -42,6 +43,7 @@ export async function deployGraphNetwork(
     forceDeploy?: boolean
     buildAcceptTx?: boolean
     l2Deploy?: boolean
+    enableTxLogging?: boolean
   },
 ): Promise<GraphNetworkContracts | undefined> {
   // Opts
@@ -50,6 +52,7 @@ export async function deployGraphNetwork(
   const forceDeploy = opts?.forceDeploy ?? false
   const buildAcceptTx = opts?.buildAcceptTx ?? false
   const l2Deploy = opts?.l2Deploy ?? false
+  const enableTxLogging = opts?.enableTxLogging ?? true
 
   // Snapshot deployer
   const beforeDeployerNonce = await deployer.getTransactionCount()
@@ -151,7 +154,12 @@ export async function deployGraphNetwork(
           const params = loadCallParams(call.params, addressBook, deployer.address)
           logDebug(`- Params: ${params.join(', ')}`)
           const overrides = process.env.CI ? { gasLimit: 2_000_000 } : {}
-          await entry.contract.contract.connect(deployer).functions[call.fn](...params, overrides)
+          const response: ContractTransaction = await entry.contract.contract
+            .connect(deployer)
+            .functions[call.fn](...params, overrides)
+          logContractCall(response, entry.name, call.fn, params)
+          const receipt = await entry.contract.contract.provider.waitForTransaction(response.hash)
+          logContractReceipt(receipt)
         } catch (error) {
           // TODO: can we clean this up?
           // Fallback for StakingExtension methods
@@ -184,6 +192,7 @@ export async function deployGraphNetwork(
   ////////////////////////////////////////
   const loadedContracts = loadGraphNetworkContracts(addressBookPath, chainId, provider, undefined, {
     l2Load: l2Deploy,
+    enableTxLogging: enableTxLogging,
   })
 
   ////////////////////////////////////////

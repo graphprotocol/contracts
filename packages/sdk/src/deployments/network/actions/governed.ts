@@ -33,6 +33,8 @@ export const acceptOwnership: GraphNetworkAction<
     console.log(`No pending governor for ${contract.address}`)
     return
   }
+  console.log(pendingGovernor)
+  console.log(signer.address)
 
   if (pendingGovernor === signer.address) {
     console.log(`Accepting ownership of ${contract.address}`)
