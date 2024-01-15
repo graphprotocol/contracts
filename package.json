@@ -19,6 +19,7 @@
     "test": "yarn workspaces foreach --all --parallel --verbose --interlaced run test"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.27.1",
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
     "husky": "^8.0.3"
