@@ -92,8 +92,8 @@ Scenarios are defined by an optional script and a test file:
 - Optional ts script
    - The objective of this script is to perform actions on the protocol to advance it's state to the desired one.
    - Should follow hardhat script convention.
-   - Should be named e2e/scenarios/{scenario-name}.ts.
+   - Should be named test/e2e/scenarios/{scenario-name}.ts.
    - They run before the test file.
 - Test file
-   - Should be named e2e/scenarios/{scenario-name}.test.ts.
+   - Should be named test/e2e/scenarios/{scenario-name}.test.ts.
    - Standard chai/mocha/hardhat/ethers test file.

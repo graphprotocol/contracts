@@ -8,12 +8,5 @@
     "resolveJsonModule": true,
     "esModuleInterop": true
   },
-  "include": [
-    "hardhat.config.ts",
-    "index.d.ts",
-    "scripts/**/*.ts",
-    "test/**/*.ts",
-    "tasks/**/*.ts",
-    "e2e/**/*.ts"
-  ]
+  "include": ["hardhat.config.ts", "index.d.ts", "scripts/**/*.ts", "test/**/*.ts", "tasks/**/*.ts"]
 }
