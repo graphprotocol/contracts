@@ -31,7 +31,7 @@ import {
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { IL2Staking } from '../../../build/types/IL2Staking'
-import { L1GNS, L1GraphTokenGateway, L1Staking } from '../../../build/types'
+import { L1GNS, L1GraphTokenGateway } from '../../../build/types'
 
 const { HashZero } = ethers.constants
 
