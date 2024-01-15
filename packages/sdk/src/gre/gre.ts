@@ -51,7 +51,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     logDebug('== Features')
 
     // Tx logging
-    const enableTxLogging = opts.enableTxLogging ?? false
+    const enableTxLogging = opts.enableTxLogging ?? true
     logDebug(`Tx logging: ${enableTxLogging ? 'enabled' : 'disabled'}`)
 
     // Secure accounts
@@ -205,7 +205,11 @@ function buildGraphNetworkEnvironment(
       config.defaults = getDefaults(config, isHHL1)
       return config
     }),
-    contracts: lazyObject(() => loadGraphNetworkContracts(addressBookPath, chainId, provider)),
+    contracts: lazyObject(() =>
+      loadGraphNetworkContracts(addressBookPath, chainId, provider, undefined, {
+        enableTxLogging,
+      }),
+    ),
     getWallets: lazyFunction(() => () => getWallets()),
     getWallet: lazyFunction(() => (address: string) => getWallet(address)),
     getDeployer: lazyFunction(

@@ -1,19 +1,17 @@
-import fs from 'fs'
 import lodash from 'lodash'
 
-import type {
-  Contract,
-  ContractFunction,
-  ContractReceipt,
-  ContractTransaction,
-  Signer,
-} from 'ethers'
+import type { Contract, ContractFunction, ContractTransaction, Signer } from 'ethers'
 import type { Provider } from '@ethersproject/providers'
 import type { ContractParam } from '../types/contract'
+import { logContractCall, logContractReceipt } from './log'
 
 class WrappedContract {
   // The meta-class properties
   [key: string]: ContractFunction | any
+}
+
+function isContractTransaction(call: ContractTransaction | any): call is ContractTransaction {
+  return typeof call === 'object' && (call as ContractTransaction).hash !== undefined
 }
 
 /**
@@ -53,16 +51,24 @@ export function wrapCalls(contract: Contract, contractName: string): Contract {
   const wrappedContract = lodash.cloneDeep(contract) as WrappedContract
 
   for (const fn of Object.keys(contract.functions)) {
-    const call: ContractFunction<ContractTransaction> = contract.functions[fn]
-    const override = async (...args: Array<ContractParam>): Promise<ContractTransaction> => {
-      // Make the call
-      const tx = await call(...args)
-      logContractCall(tx, contractName, fn, args)
+    const call = contract.functions[fn]
+    const override = async (...args: Array<ContractParam>): Promise<ContractTransaction | any> => {
+      const response = await call(...args)
 
-      // Wait for confirmation
-      const receipt = await contract.provider.waitForTransaction(tx.hash)
-      logContractReceipt(tx, receipt)
-      return tx
+      // If it's a read only call, return the response
+      if (!isContractTransaction(response)) {
+        return Array.isArray(response) && response.length === 1 ? response[0] : response
+      }
+
+      // Otherwise it's a tx, log the details
+      logContractCall(response, contractName, fn, args)
+
+      // And wait for confirmation
+      const receipt = await contract.provider.waitForTransaction(response.hash)
+      logContractReceipt(receipt)
+
+      // Finally return the tx response
+      return response
     }
 
     wrappedContract[fn] = override
@@ -70,39 +76,4 @@ export function wrapCalls(contract: Contract, contractName: string): Contract {
   }
 
   return wrappedContract as Contract
-}
-
-function logContractCall(
-  tx: ContractTransaction,
-  contractName: string,
-  fn: string,
-  args: Array<ContractParam>,
-) {
-  const msg: string[] = []
-  msg.push(`> Sent transaction ${contractName}.${fn}`)
-  msg.push(`   sender: ${tx.from}`)
-  msg.push(`   contract: ${tx.to}`)
-  msg.push(`   params: [ ${args} ]`)
-  msg.push(`   txHash: ${tx.hash}`)
-
-  logToConsoleAndFile(msg)
-}
-
-function logContractReceipt(tx: ContractTransaction, receipt: ContractReceipt) {
-  const msg: string[] = []
-  msg.push(
-    receipt.status ? `✔ Transaction succeeded: ${tx.hash}` : `✖ Transaction failed: ${tx.hash}`,
-  )
-
-  logToConsoleAndFile(msg)
-}
-
-function logToConsoleAndFile(msg: string[]) {
-  const isoDate = new Date().toISOString()
-  const fileName = `tx-${isoDate.substring(0, 10)}.log`
-
-  msg.map((line) => {
-    console.log(line)
-    fs.appendFileSync(fileName, `[${isoDate}] ${line}\n`)
-  })
 }

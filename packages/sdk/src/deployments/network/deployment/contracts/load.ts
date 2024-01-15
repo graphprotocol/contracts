@@ -105,7 +105,7 @@ export function loadGraphNetworkContracts(
   opts?: {
     enableTxLogging?: boolean
     strictAssert?: boolean
-    l2Load: boolean
+    l2Load?: boolean
   },
 ): GraphNetworkContracts {
   artifactsPath = artifactsPath ?? getArtifactsPath()
@@ -117,7 +117,7 @@ export function loadGraphNetworkContracts(
     addressBook,
     artifactsPath,
     signerOrProvider,
-    opts?.enableTxLogging ?? false,
+    opts?.enableTxLogging ?? true,
     GraphNetworkOptionalContractNameList as unknown as GraphNetworkContractName[], // This is ugly but safe
   )
 
@@ -144,7 +144,7 @@ export function loadGraphNetworkContracts(
       addressBook,
       artifactsPath,
       signerOrProvider,
-      opts?.enableTxLogging ?? false,
+      opts?.enableTxLogging ?? true,
       new Contract(
         staking.address,
         mergeABIs(

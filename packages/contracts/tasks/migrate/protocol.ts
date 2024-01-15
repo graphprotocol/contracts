@@ -1,12 +1,5 @@
-import {
-  GraphChainId,
-  GraphNetworkGovernedContractNameList,
-  acceptOwnership,
-  deployGraphNetwork,
-  setPausedProtocol,
-} from '@graphprotocol/sdk'
+import { GraphChainId, deployGraphNetwork } from '@graphprotocol/sdk'
 import { greTask } from '@graphprotocol/sdk/gre'
-import { ContractTransaction } from 'ethers'
 
 greTask('migrate', 'Deploy protocol contracts')
   .addFlag('skipConfirmation', 'Skip confirmation prompt on write actions')
@@ -29,20 +22,4 @@ greTask('migrate', 'Deploy protocol contracts')
         buildAcceptTx: taskArgs.buildAcceptTx,
       },
     )
-
-    if (!taskArgs.skipPostDeploy) {
-      // Governor accepts ownership of contracts
-      const governor = (await graph.getNamedAccounts()).governor
-      const txs: ContractTransaction[] = []
-      for (const contract of GraphNetworkGovernedContractNameList) {
-        const tx = await acceptOwnership(graph.contracts, governor, { contractName: contract })
-        if (tx) {
-          txs.push()
-        }
-      }
-      await Promise.all(txs.map((tx) => tx.wait()))
-
-      // Governor unpauses the protocol
-      await setPausedProtocol(graph.contracts, governor, { paused: false })
-    }
   })
