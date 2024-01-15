@@ -1,19 +1,19 @@
 import { subtask, task } from 'hardhat/config'
 import fs from 'fs'
 import { execSync } from 'child_process'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { helpers } from '@graphprotocol/sdk'
 
-task('migrate:nitro:fund-accounts', 'Funds protocol accounts on Arbitrum Nitro testnodes')
-  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .setAction(async (taskArgs, hre) => {
-    const graph = hre.graph(taskArgs)
-    await helpers.fundLocalAccounts(
-      [await graph.getDeployer(), ...(await graph.getAllAccounts())],
-      graph.provider,
-    )
-  })
+greTask(
+  'migrate:nitro:fund-accounts',
+  'Funds protocol accounts on Arbitrum Nitro testnodes',
+).setAction(async (taskArgs, hre) => {
+  const graph = hre.graph(taskArgs)
+  await helpers.fundLocalAccounts(
+    [await graph.getDeployer(), ...(await graph.getAllAccounts())],
+    graph.provider,
+  )
+})
 
 // Arbitrum SDK does not support Nitro testnodes out of the box
 // This adds the testnodes to the SDK configuration

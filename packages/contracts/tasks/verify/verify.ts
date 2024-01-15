@@ -3,7 +3,7 @@ import * as types from 'hardhat/internal/core/params/argumentTypes'
 import { submitSourcesToSourcify } from './sourcify'
 import { isFullyQualifiedName, parseFullyQualifiedName } from 'hardhat/utils/contract-names'
 import { TASK_COMPILE } from 'hardhat/builtin-tasks/task-names'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import fs from 'fs'
 import path from 'path'
 import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
@@ -32,108 +32,91 @@ task('sourcify', 'Verifies contract on sourcify')
     })
   })
 
-task('sourcifyAll', 'Verifies all contracts on sourcify')
-  .addParam(
-    'addressBook',
-    GRE_TASK_PARAMS.addressBook.description,
-    GRE_TASK_PARAMS.addressBook.default,
-  )
-  .setAction(async (_args, hre) => {
-    const chainId = hre.network.config.chainId
-    const chainName = hre.network.name
+greTask('sourcifyAll', 'Verifies all contracts on sourcify').setAction(async (_args, hre) => {
+  const chainId = hre.network.config.chainId
+  const chainName = hre.network.name
 
-    if (!chainId || !chainName) {
-      throw new Error('Cannot verify contracts without a network')
-    }
-    console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook } = hre.graph({ addressBook: _args.addressBook })
+  if (!chainId || !chainName) {
+    throw new Error('Cannot verify contracts without a network')
+  }
+  console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
+  const { addressBook } = hre.graph({ addressBook: _args.addressBook })
 
-    for (const contractName of addressBook.listEntries()) {
-      console.log(`\n> Verifying contract ${contractName}...`)
+  for (const contractName of addressBook.listEntries()) {
+    console.log(`\n> Verifying contract ${contractName}...`)
 
-      const contractPath = getContractPath(contractName)
-      if (contractPath) {
-        const contract = addressBook.getEntry(contractName)
-        if (contract.implementation) {
-          console.log('Contract is upgradeable, verifying proxy...')
+    const contractPath = getContractPath(contractName)
+    if (contractPath) {
+      const contract = addressBook.getEntry(contractName)
+      if (contract.implementation) {
+        console.log('Contract is upgradeable, verifying proxy...')
 
-          await hre.run('sourcify', {
-            address: contract.address,
-            contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
-          })
-        }
-
-        // Verify implementation
         await hre.run('sourcify', {
-          address: contract.implementation?.address ?? contract.address,
-          contract: `${contractPath}:${contractName}`,
+          address: contract.address,
+          contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
         })
-      } else {
-        console.log(`Contract ${contractName} not found.`)
       }
+
+      // Verify implementation
+      await hre.run('sourcify', {
+        address: contract.implementation?.address ?? contract.address,
+        contract: `${contractPath}:${contractName}`,
+      })
+    } else {
+      console.log(`Contract ${contractName} not found.`)
     }
+  }
+})
+
+greTask('verifyAll', 'Verifies all contracts on etherscan').setAction(async (args, hre) => {
+  const chainId = hre.network.config.chainId
+  const chainName = hre.network.name
+
+  if (!chainId || !chainName) {
+    throw new Error('Cannot verify contracts without a network')
+  }
+
+  console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
+  const { addressBook, getDeployer } = hre.graph({
+    addressBook: args.addressBook,
+    graphConfig: args.graphConfig,
   })
+  const graphConfig = readConfig(args.graphConfig, false)
+  const deployer = (await getDeployer()).address
+  for (const contractName of addressBook.listEntries()) {
+    console.log(`\n> Verifying contract ${contractName}...`)
 
-task('verifyAll', 'Verifies all contracts on etherscan')
-  .addParam(
-    'addressBook',
-    GRE_TASK_PARAMS.addressBook.description,
-    GRE_TASK_PARAMS.addressBook.default,
-  )
-  .addParam(
-    'graphConfig',
-    GRE_TASK_PARAMS.graphConfig.description,
-    GRE_TASK_PARAMS.graphConfig.default,
-  )
-  .setAction(async (args, hre) => {
-    const chainId = hre.network.config.chainId
-    const chainName = hre.network.name
+    const contractConfig = getContractConfig(graphConfig, addressBook, contractName, deployer)
+    const contractPath = getContractPath(contractName)
+    const constructorParams = contractConfig.params.map((p) => p.value.toString())
 
-    if (!chainId || !chainName) {
-      throw new Error('Cannot verify contracts without a network')
-    }
+    if (contractPath) {
+      const contract = addressBook.getEntry(contractName)
 
-    console.log(`> Verifying all contracts on chain ${chainName}[${chainId}]...`)
-    const { addressBook, getDeployer } = hre.graph({
-      addressBook: args.addressBook,
-      graphConfig: args.graphConfig,
-    })
-    const graphConfig = readConfig(args.graphConfig, false)
-    const deployer = (await getDeployer()).address
-    for (const contractName of addressBook.listEntries()) {
-      console.log(`\n> Verifying contract ${contractName}...`)
+      if (contract.implementation) {
+        console.log('Contract is upgradeable, verifying proxy...')
+        const proxyAdmin = addressBook.getEntry('GraphProxyAdmin')
 
-      const contractConfig = getContractConfig(graphConfig, addressBook, contractName, deployer)
-      const contractPath = getContractPath(contractName)
-      const constructorParams = contractConfig.params.map((p) => p.value.toString())
-
-      if (contractPath) {
-        const contract = addressBook.getEntry(contractName)
-
-        if (contract.implementation) {
-          console.log('Contract is upgradeable, verifying proxy...')
-          const proxyAdmin = addressBook.getEntry('GraphProxyAdmin')
-
-          // Verify proxy
-          await safeVerify(hre, {
-            address: contract.address,
-            contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
-            constructorArgsParams: [contract.implementation.address, proxyAdmin.address],
-          })
-        }
-
-        // Verify implementation
-        console.log('Verifying implementation...')
+        // Verify proxy
         await safeVerify(hre, {
-          address: contract.implementation?.address ?? contract.address,
-          contract: `${contractPath}:${contractName}`,
-          constructorArgsParams: contract.implementation ? [] : constructorParams,
+          address: contract.address,
+          contract: 'contracts/upgrades/GraphProxy.sol:GraphProxy',
+          constructorArgsParams: [contract.implementation.address, proxyAdmin.address],
         })
-      } else {
-        console.log(`Contract ${contractName} not found.`)
       }
+
+      // Verify implementation
+      console.log('Verifying implementation...')
+      await safeVerify(hre, {
+        address: contract.implementation?.address ?? contract.address,
+        contract: `${contractPath}:${contractName}`,
+        constructorArgsParams: contract.implementation ? [] : constructorParams,
+      })
+    } else {
+      console.log(`Contract ${contractName} not found.`)
     }
-  })
+  }
+})
 
 // etherscan API throws errors if the contract is already verified
 async function safeVerify(hre: HardhatRuntimeEnvironment, taskArguments: any): Promise<void> {

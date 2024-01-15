@@ -1,20 +1,8 @@
-import { task } from 'hardhat/config'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { DeployType, GraphNetworkAddressBook, deploy } from '@graphprotocol/sdk'
 
-task('contract:upgrade', 'Upgrades a contract')
+greTask('contract:upgrade', 'Upgrades a contract')
   .addParam('contract', 'Name of the contract to upgrade')
-  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
-  .addOptionalParam(
-    'graphConfig',
-    GRE_TASK_PARAMS.graphConfig.description,
-    GRE_TASK_PARAMS.graphConfig.default,
-  )
-  .addOptionalParam(
-    'addressBook',
-    GRE_TASK_PARAMS.addressBook.description,
-    GRE_TASK_PARAMS.addressBook.default,
-  )
   .addOptionalVariadicPositionalParam(
     'init',
     'Initialization arguments for the contract constructor',

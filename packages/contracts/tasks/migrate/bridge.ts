@@ -1,18 +1,12 @@
-import { task } from 'hardhat/config'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { configureL1Bridge, configureL2Bridge, setPausedBridge } from '@graphprotocol/sdk'
 
-task('migrate:bridge', 'Configure and unpause bridge')
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
+greTask('migrate:bridge', 'Configure and unpause bridge')
   .addOptionalParam(
     'arbitrumAddressBook',
-    GRE_TASK_PARAMS.arbitrumAddressBook.description,
-    GRE_TASK_PARAMS.arbitrumAddressBook.default,
+    'The path to the address book file for Arbitrum deployments',
+    './arbitrum-addresses.json',
   )
-  .addOptionalParam('graphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addFlag('disableSecureAccounts', 'Disable secure accounts on GRE')
   .setAction(async (taskArgs, hre) => {
     const graph = hre.graph(taskArgs)
     const { governor: l1Governor } = await graph.l1.getNamedAccounts()
