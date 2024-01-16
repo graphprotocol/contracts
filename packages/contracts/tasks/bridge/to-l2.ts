@@ -5,7 +5,10 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 greTask('bridge:send-to-l2', 'Bridge GRT tokens from L1 to L2')
   .addParam('amount', 'Amount of tokens to bridge')
-  .addOptionalParam('sender', 'Address of the sender. L1 deployer if empty.')
+  .addOptionalParam(
+    'sender',
+    'Address of the sender, must be managed by the provider node. L1 deployer if empty.',
+  )
   .addOptionalParam('recipient', 'Receiving address in L2. Same to L1 address if empty.')
   .addOptionalParam(
     'deploymentFile',
