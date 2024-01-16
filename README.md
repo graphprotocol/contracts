@@ -65,21 +65,38 @@ $ yarn
 $ yarn build
 ```
 
-### Versioning a package 
+### Versioning and publishing packages
 
-To version a package, run the following command from the root of the repository:
+We use [changesets](https://github.com/changesets/changesets) to manage package versioning, this ensures that all packages are versioned together in a consistent manner and helps with generating changelogs.
+
+#### Step 1: Creating a changeset
+
+A changeset is a file that describes the changes that have been made to the packages in the repository. To create a changeset, run the following command from the root of the repository:
 
 ```bash
-# Change directory to the package you want to version
-$ cd packages/<package-name>
-
-# Bump the version
-$ yarn version <major|minor|patch>
+$ yarn changeset
 ```
 
-__Note on cross referenced packages__: Bumping the version of a package that is cross referenced by another package will automatically bump the dependency version in the other package. For example, if you bump the version of `sdk` from `0.0.1` to `0.0.2`, the required version of `sdk` in the `contracts` package will automatically be bumped to `0.0.2`. Depending on the nature of the change you might need to bump (and publish) a new version of the `contracts` package as well.
+Changeset files are stored in the `.changeset` directory until they are packaged into a release. You can commit these files and even merge them into your main branch without publishing a release.
 
-### Publishing a package
+#### Step 2: Creating a package release
+
+When you are ready to create a new package release, run the following command to package all changesets, this will also bump package versions and dependencies:
+
+```bash
+$ yarn changeset version
+```
+
+### Step 3: Tagging the release
+
+After creating a package release, you will need to tag the release commit with the version number. To do this, run the following command from the root of the repository:
+
+```bash
+$ yarn changeset tag
+$ git push --follow-tags
+```
+
+#### Step 4: Publishing a package release
 
 Packages are published and distributed via NPM. To publish a package, run the following command from the root of the repository:
 
