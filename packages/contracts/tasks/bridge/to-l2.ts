@@ -22,14 +22,10 @@ greTask('bridge:send-to-l2', 'Bridge GRT tokens from L1 to L2')
     }
 
     // Get the sender, use L1 deployer if not provided
-    const l1Deployer = await graph.l1.getDeployer()
-    const sender: string = taskArgs.sender ?? l1Deployer.address
-
-    const signer = await SignerWithAddress.create(graph.l1.provider.getSigner(sender))
-    if (!signer) {
-      throw new Error(`No wallet found for address ${sender}`)
-    }
-    console.log(`> Using wallet ${signer.address}`)
+    const sender = taskArgs.sender
+      ? await SignerWithAddress.create(graph.l1.provider.getSigner(taskArgs.sender))
+      : await graph.l1.getDeployer()
+    console.log(`> Using wallet ${sender.address}`)
 
     // Patch sendToL2 opts
     taskArgs.l2Provider = graph.l2.provider
@@ -40,7 +36,7 @@ greTask('bridge:send-to-l2', 'Bridge GRT tokens from L1 to L2')
       taskArgs.maxGas = BigNumber.from('400000')
     }
 
-    await sendToL2(graph.contracts, signer, {
+    await sendToL2(graph.contracts, sender, {
       l2Provider: graph.l2.provider,
       amount: taskArgs.amount,
       recipient: taskArgs.recipient,
