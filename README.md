@@ -89,6 +89,8 @@ $ yarn changeset version
 
 ### Step 3: Tagging the release
 
+__Note__: this step is meant to be run on the main branch.
+
 After creating a package release, you will need to tag the release commit with the version number. To do this, run the following command from the root of the repository:
 
 ```bash
@@ -97,6 +99,8 @@ $ git push --follow-tags
 ```
 
 #### Step 4: Publishing a package release
+
+__Note__: this step is meant to be run on the main branch.
 
 Packages are published and distributed via NPM. To publish a package, run the following command from the root of the repository:
 
