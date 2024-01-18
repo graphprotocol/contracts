@@ -836,7 +836,7 @@ describe('Staking:Allocation', () => {
       // Update rebate parameters, α = 0, λ = 1
       await staking.connect(governor).setRebateParameters(0, 1, 1, 1)
 
-      // Succesive collections
+      // Successive collections
       // Indexer gets 100% of the query fees
       // Parameters changed so now they are under-rebated and should get more than the available amount but we cap it
       // Distributed amount will never catch up due to the initial collection which was less than 100%

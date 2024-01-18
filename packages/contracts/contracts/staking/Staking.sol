@@ -1013,7 +1013,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Send rewards to the appropiate destination.
+     * @dev Send rewards to the appropriate destination.
      * @param _graphToken Graph token
      * @param _amount Number of rewards tokens
      * @param _beneficiary Address of the beneficiary of rewards

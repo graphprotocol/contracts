@@ -667,7 +667,7 @@ describe('L1GNS', () => {
       it('should transfer signal from one curator to another', async function () {
         await transferSignal(subgraph.id, other, another, otherNSignal)
       })
-      it('should fail when transfering to zero address', async function () {
+      it('should fail when transferring to zero address', async function () {
         const tx = gns
           .connect(other)
           .transferSignal(subgraph.id, ethers.constants.AddressZero, otherNSignal)
