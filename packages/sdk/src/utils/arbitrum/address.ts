@@ -1,3 +1,4 @@
+import { hexZeroPad } from 'ethers/lib/utils'
 import { toBN } from '../units'
 
 // Adapted from:
@@ -8,5 +9,5 @@ export const applyL1ToL2Alias = (l1Address: string): string => {
   const l2AddressAsNumber = l1AddressAsNumber.add(offset)
 
   const mask = toBN(2).pow(160)
-  return l2AddressAsNumber.mod(mask).toHexString()
+  return hexZeroPad(l2AddressAsNumber.mod(mask).toHexString(), 20)
 }
