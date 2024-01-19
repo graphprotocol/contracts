@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 6.1.3
+
+### Patch Changes
+
+- Ensure globbing is enabled in prepack
+
 ## 6.1.2
 
 ### Patch Changes
