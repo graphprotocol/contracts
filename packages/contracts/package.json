@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -85,7 +85,7 @@
     "yargs": "^17.0.0"
   },
   "scripts": {
-    "prepublishOnly": "scripts/prepublish",
+    "prepack": "scripts/prepack",
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",

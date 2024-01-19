@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 6.1.1
+
+### Patch Changes
+
+- Use prepack to correctly prepare outputs for the published package
+
 ## 6.1.0
 
 ### Minor Changes
