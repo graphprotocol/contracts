@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 6.1.2
+
+### Patch Changes
+
+- Correctly pass ts file list to tsc in prepack
+
 ## 6.1.1
 
 ### Patch Changes
