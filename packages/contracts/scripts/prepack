@@ -3,6 +3,7 @@
 TYPECHAIN_DIR=dist/types
 
 set -eo pipefail
+set +o noglob
 
 # Build contracts
 yarn clean
