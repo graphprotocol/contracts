@@ -9,15 +9,11 @@ yarn clean
 yarn build
 
 # Refresh distribution folder
-rm -rf dist && mkdir -p dist/types/_src
+rm -rf dist && mkdir -p ${TYPECHAIN_DIR}
 cp -R build/abis/ dist/abis
-cp -R build/types/ dist/types/_src
-
-### Build Typechain bindings
+cp -R build/types/ ${TYPECHAIN_DIR}
 
 # Build and create TS declarations
-tsc -d ${TYPECHAIN_DIR}/_src/*.ts --outdir ${TYPECHAIN_DIR} --esModuleInterop
-# Copy back sources
-cp ${TYPECHAIN_DIR}/_src/*.ts ${TYPECHAIN_DIR}
-# Delete temporary src dir
-rm -rf ${TYPECHAIN_DIR}/_src
+pushd ${TYPECHAIN_DIR}
+ls *.ts **/*.ts | xargs tsc --esModuleInterop
+popd
