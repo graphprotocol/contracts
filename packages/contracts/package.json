@@ -85,7 +85,7 @@
     "yargs": "^17.0.0"
   },
   "scripts": {
-    "prepublishOnly": "scripts/prepublish",
+    "prepack": "scripts/prepack",
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
