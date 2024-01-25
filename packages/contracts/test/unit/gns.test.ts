@@ -420,6 +420,11 @@ describe('L1GNS', () => {
         await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
       })
 
+      it('should publish a new version on an existing subgraph when curation tax percentage is zero', async function () {
+        await curation.connect(governor).setCurationTaxPercentage(0)
+        await publishNewVersion(me, subgraph.id, newSubgraph1, gns, curation)
+      })
+
       it('should publish a new version on an existing subgraph with no current signal', async function () {
         const emptySignalSubgraph = await publishNewSubgraph(
           me,
