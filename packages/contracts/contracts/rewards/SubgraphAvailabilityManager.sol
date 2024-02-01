@@ -54,16 +54,23 @@ contract SubgraphAvailabilityManager is Governed {
 
     /**
      * @dev Emitted when an oracle is set
+     * @param index Index of the oracle
+     * @param oracle Address of the oracle
      */
     event OracleSet(uint256 indexed index, address indexed oracle);
 
     /**
      * @dev Emitted when the vote time limit is set
+     * @param voteTimeLimit Vote time limit in seconds
      */
     event VoteTimeLimitSet(uint256 voteTimeLimit);
 
     /**
      * @dev Emitted when an oracle votes to deny or allow a subgraph
+     * @param subgraphDeploymentID Subgraph deployment ID
+     * @param deny True to deny, false to allow
+     * @param oracleIndex Index of the oracle voting
+     * @param timestamp Timestamp of the vote
      */
     event OracleVote(
         bytes32 indexed subgraphDeploymentID,
