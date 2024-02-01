@@ -2,8 +2,6 @@
 
 pragma solidity ^0.7.6;
 
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-
 import { Governed } from "../governance/Governed.sol";
 import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 
@@ -17,8 +15,6 @@ import { IRewardsManager } from "../rewards/IRewardsManager.sol";
  * Governor can transfer ownership to a new governor.
  */
 contract SubgraphAvailabilityManager is Governed {
-    using SafeMathUpgradeable for uint256;
-
     // -- Immutable --
 
     /// @notice Number of oracles
@@ -106,14 +102,11 @@ contract SubgraphAvailabilityManager is Governed {
     ) {
         require(_governor != address(0), "SAM: governor must be set");
         require(_rewardsManager != address(0), "SAM: rewardsManager must be set");
-        require(
-            _executionThreshold >= NUM_ORACLES.div(2).add(1),
-            "SAM: executionThreshold too low"
-        );
+        require(_executionThreshold >= (NUM_ORACLES / 2) + 1, "SAM: executionThreshold too low");
         require(_executionThreshold <= NUM_ORACLES, "SAM: executionThreshold too high");
 
         // Oracles should not be address zero
-        for (uint256 i = 0; i < _oracles.length; i++) {
+        for (uint256 i; i < _oracles.length; i++) {
             address oracle = _oracles[i];
             require(oracle != address(0), "SAM: oracle cannot be address zero");
             oracles[i] = oracle;
@@ -183,7 +176,7 @@ contract SubgraphAvailabilityManager is Governed {
         uint256 _oracleIndex
     ) external onlyOracle(_oracleIndex) {
         require(_subgraphDeploymentID.length == _deny.length, "!length");
-        for (uint256 i = 0; i < _subgraphDeploymentID.length; i++) {
+        for (uint256 i; i < _subgraphDeploymentID.length; i++) {
             _vote(_subgraphDeploymentID[i], _deny[i], _oracleIndex);
         }
     }
@@ -226,7 +219,7 @@ contract SubgraphAvailabilityManager is Governed {
      * @return True if execution threshold is reached
      */
     function checkVotes(bytes32 _subgraphDeploymentID, bool _deny) public view returns (bool) {
-        uint256 votes = 0;
+        uint256 votes;
 
         // timeframe for a vote to be valid
         uint256 voteTimeValidity = block.timestamp - voteTimeLimit;
@@ -236,7 +229,7 @@ contract SubgraphAvailabilityManager is Governed {
             ? lastDenyVote[currentNonce][_subgraphDeploymentID]
             : lastAllowVote[currentNonce][_subgraphDeploymentID];
 
-        for (uint256 i = 0; i < NUM_ORACLES; i++) {
+        for (uint256 i; i < NUM_ORACLES; i++) {
             // check if vote is within the vote time limit
             if (lastVoteForSubgraph[i] > voteTimeValidity) {
                 votes++;
