@@ -103,6 +103,7 @@ contract SubgraphAvailabilityManager is Governed {
             _executionThreshold >= NUM_ORACLES.div(2).add(1),
             "SAM: executionThreshold too low"
         );
+        require(_executionThreshold <= NUM_ORACLES, "SAM: executionThreshold too high");
 
         // Oracles should not be address zero
         for (uint256 i = 0; i < _oracles.length; i++) {
