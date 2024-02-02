@@ -25,9 +25,6 @@ interface IRewardsManager {
 
     function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external;
 
-    function setDeniedMany(bytes32[] calldata _subgraphDeploymentID, bool[] calldata _deny)
-        external;
-
     function isDenied(bytes32 _subgraphDeploymentID) external view returns (bool);
 
     // -- Getters --
