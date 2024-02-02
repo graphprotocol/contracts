@@ -203,6 +203,12 @@ contract SubgraphAvailabilityManager is Governed {
             : lastAllowVote[currentNonce][_subgraphDeploymentID];
         lastVoteForSubgraph[_oracleIndex] = timestamp;
 
+        // clear opposite vote for a subgraph deployment if it exists
+        uint256[NUM_ORACLES] storage oppositeVoteForSubgraph = _deny
+            ? lastAllowVote[currentNonce][_subgraphDeploymentID]
+            : lastDenyVote[currentNonce][_subgraphDeploymentID];
+        oppositeVoteForSubgraph[_oracleIndex] = 0;
+
         emit OracleVote(_subgraphDeploymentID, _deny, _oracleIndex, timestamp);
 
         // check if execution threshold is reached, if it is call the RewardsManager
