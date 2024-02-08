@@ -1,0 +1,300 @@
+{
+  "data": {
+    "subgraphs": [
+      {
+        "id": "HXFFyPyPtUrBC78p2bntnQu7rXPKo79GA5wQQ2YxLtTE",
+        "owner": {
+          "id": "0x4bb4c1b0745ef7b4642feeccd0740dec417ca0a0"
+        },
+        "subgraphNumber": "3"
+      },
+      {
+        "id": "2Kr8drrtxmCN7vbpD6NYHSkNTNBv5pQRVtSNi4m4UvRF",
+        "owner": {
+          "id": "0xbeb1faa6e7e39c7d9bdab03a7a362fe9d73d7c61"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "2qdAX71bB2DfXbNKgpTv3b5gY4EnfYNQVpL71o7e7nEz",
+        "owner": {
+          "id": "0xefe232372e2e30951fa90d7a800d5938eedc935d"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "ba7J1xjrWGhVk5Hbonf42Fv6B9MZdzs6pN3nzeRfYzY",
+        "owner": {
+          "id": "0xadafc1e419d03c84661b00c022ecd0101f190172"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "HJxHihBy3o1na3FDuMBPXL9ytwgP64wu3wDWZGWst3w2",
+        "owner": {
+          "id": "0x33d0d63a1f0da691b283aedd29875afeaf98e6ba"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "Druh8CtrwDPwwWNdG2FPEZUeR3XP39BzvJ6QW2cZUX1N",
+        "owner": {
+          "id": "0x9f9b34c201efe888b02fdcab52422199957a0407"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "DncWyiEVwDE7RDgDgbWupaqwLvnKC78xHVyRCc6Ys6M4",
+        "owner": {
+          "id": "0x33d0d63a1f0da691b283aedd29875afeaf98e6ba"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "6N1FHPcJ1sQCBzmWrrNntLibGRvGHJiWWFRY7LJcmtHJ",
+        "owner": {
+          "id": "0x9f9b34c201efe888b02fdcab52422199957a0407"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "okz4sT96je97dMiAJtPYmkBwDN9rov9mcMYTPskGtrq",
+        "owner": {
+          "id": "0x534a9ac3d3401f80800375680bded6a84137d296"
+        },
+        "subgraphNumber": "4"
+      },
+      {
+        "id": "HNWN5ymGqWGpvBbYFRyebhdGeSac3CDEssY3dpoMKgdK",
+        "owner": {
+          "id": "0xa508c16666c5b8981fa46eb32784fccc01942a71"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "Gv1rewdMuEeDQ9sWsWMjJfwKWrTxo5e19vgxr1br7Ut4",
+        "owner": {
+          "id": "0x673b6e9fe607f6ddf4a4f25b386b846c5c82995e"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "GNpbzUsp352dYJwP7jEL7yRJqA7uf4zfoLAHk5PiMMJu",
+        "owner": {
+          "id": "0xde0c83462a75036b74928865941b97d83a4bc994"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "Fzw1DXaBaSeBAqg4R6qa8KZDTp7j1jpNhfAP9fpHkCGb",
+        "owner": {
+          "id": "0x9e795fc1c644ecad8031ed52856fd64b65a678ac"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "FTTVbaL4HBzjhzgstyLEhN3WrjEMDB8owqfLARNtJ2FX",
+        "owner": {
+          "id": "0xefe232372e2e30951fa90d7a800d5938eedc935d"
+        },
+        "subgraphNumber": "4"
+      },
+      {
+        "id": "EtGRQWQruHSy9sZUHwX4FKXQPT3p15xsV6Bx3Pt5LMHU",
+        "owner": {
+          "id": "0x03c65e533cc73cc65cd71a0cb65efa4b11e74c22"
+        },
+        "subgraphNumber": "3"
+      },
+      {
+        "id": "EsEnqMt8GrWXSWjdkTphcauCRvcyC1eC4U9sdBRZEB84",
+        "owner": {
+          "id": "0x5991a31ab4095cb5470a5bd532e02568393b06d5"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "E1vew3qN9voUJCmkPWUubQBBppiBuC2f3T2Exh2CsyDH",
+        "owner": {
+          "id": "0xefe232372e2e30951fa90d7a800d5938eedc935d"
+        },
+        "subgraphNumber": "2"
+      },
+      {
+        "id": "Dz55sRXXemD3QUos3orXQWm5GQs3ACECGDbE86ZVsyrG",
+        "owner": {
+          "id": "0x03c65e533cc73cc65cd71a0cb65efa4b11e74c22"
+        },
+        "subgraphNumber": "4"
+      },
+      {
+        "id": "DSpmdAKr3pzkcU5R6NgreBsYabdkY9C5ocBbP9Sk4FAA",
+        "owner": {
+          "id": "0x5ca1ea5549e4e7cb64ae35225e11865d2572b3f9"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "CvkpgHJW4ApYwYX831M8GpN472FbnhGKjdL2ERT5wie9",
+        "owner": {
+          "id": "0x9d196973c0c5bd65ccfb797a2c23eb5c1faba7ab"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "BM3vXF5bRFy4NRYrYirEnkfNsi3veUetKrqvqxmwMPSP",
+        "owner": {
+          "id": "0x03c65e533cc73cc65cd71a0cb65efa4b11e74c22"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "B39LecV8UELFUxULRswPhcifsZWJ6qaLL29cGYMcCK4s",
+        "owner": {
+          "id": "0x534a9ac3d3401f80800375680bded6a84137d296"
+        },
+        "subgraphNumber": "3"
+      },
+      {
+        "id": "A4xtyhChUywTCww37fFBtjd1poY2kHtMNu2fwKuxSSB",
+        "owner": {
+          "id": "0xa508c16666c5b8981fa46eb32784fccc01942a71"
+        },
+        "subgraphNumber": "2"
+      },
+      {
+        "id": "9xL1fnWqqQ4QjC9Z33hTXkgPBZAHU14Tzqzf5mEtDbxM",
+        "owner": {
+          "id": "0xefe232372e2e30951fa90d7a800d5938eedc935d"
+        },
+        "subgraphNumber": "3"
+      },
+      {
+        "id": "9js1z4GHLYQuGQ6yGs9SdcCRUDTCXBLKY7e37KFUKRre",
+        "owner": {
+          "id": "0x69aa76325b4890f0fa9b44f4d99d56f3834738b4"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "9EjsLLp4Ti39xUfZE1Xzz6bjwuzJSc3tVb3FvYxugq65",
+        "owner": {
+          "id": "0x03c65e533cc73cc65cd71a0cb65efa4b11e74c22"
+        },
+        "subgraphNumber": "2"
+      },
+      {
+        "id": "8mteqsnKePqyqAXVb6e6KkcBqJpR3tjwPacgP1jSmxSE",
+        "owner": {
+          "id": "0x5991a31ab4095cb5470a5bd532e02568393b06d5"
+        },
+        "subgraphNumber": "3"
+      },
+      {
+        "id": "7Y8ZaLST7xYVcVZsVRiRw2xhnDe9C62nLmLQpxffPVj",
+        "owner": {
+          "id": "0xefe232372e2e30951fa90d7a800d5938eedc935d"
+        },
+        "subgraphNumber": "6"
+      },
+      {
+        "id": "7fspzcqYDgVF1gV7VxyA2k833EmhYqnsgRvXk9YAEPT4",
+        "owner": {
+          "id": "0xa508c16666c5b8981fa46eb32784fccc01942a71"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "7Ew6SQmN1Xdjk5YEonqYAaT1v2HikNa92VZUQPpJ2QvX",
+        "owner": {
+          "id": "0x534a9ac3d3401f80800375680bded6a84137d296"
+        },
+        "subgraphNumber": "5"
+      },
+      {
+        "id": "6SVLBaaAcujGWswitHpLixkgjQVZugrQHj8AihGJgFgD",
+        "owner": {
+          "id": "0xfcb576bc8ee187945fa00f0daa7bbe9c1b51b0c9"
+        },
+        "subgraphNumber": "2"
+      },
+      {
+        "id": "6bsUMv2twT2SA9RCToCBDXfStADVvDh2nvEmSuX4F8kc",
+        "owner": {
+          "id": "0x0b1302c23d9eb4b42a74cbefc4f9b3081ff1bf18"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "6AmTt2V2PQiKJuHF6X1ySjJpNTuwzvUTmUQRYL74eFxT",
+        "owner": {
+          "id": "0xefe232372e2e30951fa90d7a800d5938eedc935d"
+        },
+        "subgraphNumber": "5"
+      },
+      {
+        "id": "5vhK8XAGXiK4zwGPcN2C63TjhAHtqyqoUcS6RGR5H86i",
+        "owner": {
+          "id": "0x673b6e9fe607f6ddf4a4f25b386b846c5c82995e"
+        },
+        "subgraphNumber": "3"
+      },
+      {
+        "id": "5qyjWvZ1FLwAsBeJvPuyvhBddJDavKYyyjdXQZ28REAJ",
+        "owner": {
+          "id": "0xf556322b497b475d535d0d4048f56c092a0ea3ad"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "57MzWCjGmKWrUYGHgEVne3ieFCXnwAUHKKDLXm4mJPJb",
+        "owner": {
+          "id": "0x03c65e533cc73cc65cd71a0cb65efa4b11e74c22"
+        },
+        "subgraphNumber": "6"
+      },
+      {
+        "id": "4MQwNPuso8ABKHhddwUmJCaPqg2w4Vst6B2pPr21Ygn9",
+        "owner": {
+          "id": "0xefe232372e2e30951fa90d7a800d5938eedc935d"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "47BEnfQFYjURYjD8r2JNoFjXkYHTqJ3xfcnrKUrbnTiq",
+        "owner": {
+          "id": "0x534a9ac3d3401f80800375680bded6a84137d296"
+        },
+        "subgraphNumber": "2"
+      },
+      {
+        "id": "3zULJJdf5s9d87rn5aDgoT4pE5Uih3z6SAEumXy1dQqv",
+        "owner": {
+          "id": "0x03c65e533cc73cc65cd71a0cb65efa4b11e74c22"
+        },
+        "subgraphNumber": "1"
+      },
+      {
+        "id": "3sHuzLagq1T5yYrsctLtz7QdcNAGsdsodHk7j3g2mrVV",
+        "owner": {
+          "id": "0x03c65e533cc73cc65cd71a0cb65efa4b11e74c22"
+        },
+        "subgraphNumber": "5"
+      },
+      {
+        "id": "3caWu7riX9kGBe2zmXVc4V8vQQ5U1c3QAjzeSGNT7Jo",
+        "owner": {
+          "id": "0x072e829ff4e1c9bdb95acaf947f8ec262ecdf92f"
+        },
+        "subgraphNumber": "0"
+      },
+      {
+        "id": "2qbnVdk8RfatovF1sogHzH1eZ52DoziY6d7qR5KHzk8X",
+        "owner": {
+          "id": "0xc320812b4bbb7f2369ee1316fd703de403ad0d2e"
+        },
+        "subgraphNumber": "0"
+      }
+    ]
+  }
+}
