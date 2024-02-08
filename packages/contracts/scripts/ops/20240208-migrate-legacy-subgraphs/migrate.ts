@@ -45,7 +45,12 @@ async function main() {
         subgraph.metadataHash,
       )
       const receipt = await tx.wait()
-      console.log(receipt.status ? `   ✔ Migration succeeded!` : `   ✖ Migration failed!`)
+      if (receipt.status == 1) {
+        console.log(`   ✔ Migration succeeded!`)
+      } else {
+        console.log(`   ✖ Migration failed!`)
+        console.log(receipt)
+      }
     } catch (error) {
       console.log(error)
     }
