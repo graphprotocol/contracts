@@ -13,7 +13,7 @@ async function main() {
       await graph.contracts.L1GNS.connect(deployer).estimateGas.migrateLegacySubgraph(
         subgraph.owner.id,
         subgraph.subgraphNumber,
-        ethers.constants.HashZero,
+        subgraph.metadataHash,
       ),
     )
   }, Promise.resolve(BigNumber.from(0)))
@@ -21,10 +21,13 @@ async function main() {
   const cost = ethers.utils.formatEther(gasEstimate.mul(gasPrice))
 
   // Ask for confirmation
-  await confirm(
-    `This script will migrate ${data.data.subgraphs.length} legacy subgraphs, with an approximate cost of ${cost} Ξ. Are you sure you want to continue?`,
-    false,
+  if (
+    !(await confirm(
+      `This script will migrate ${data.data.subgraphs.length} legacy subgraphs, with an approximate cost of ${cost} Ξ. Are you sure you want to continue?`,
+      false,
+    ))
   )
+    return
 
   // do it
   for (const subgraph of data.data.subgraphs) {
@@ -39,7 +42,7 @@ async function main() {
       const tx = await graph.contracts.L1GNS.connect(deployer).migrateLegacySubgraph(
         subgraph.owner.id,
         subgraph.subgraphNumber,
-        ethers.constants.HashZero,
+        subgraph.metadataHash,
       )
       const receipt = await tx.wait()
       console.log(receipt.status ? `   ✔ Migration succeeded!` : `   ✖ Migration failed!`)
