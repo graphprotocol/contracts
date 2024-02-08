@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers'
 import { solidityKeccak256 } from 'ethers/lib/utils'
-import { randomHexBytes } from './bytes'
+import { base58ToHex, randomHexBytes } from './bytes'
 
 export interface PublishSubgraph {
   subgraphDeploymentID: string
@@ -35,4 +35,9 @@ export const buildSubgraph = (): PublishSubgraph => {
     versionMetadata: randomHexBytes(),
     subgraphMetadata: randomHexBytes(),
   }
+}
+
+export const subgraphIdToHex = (id: string): string => {
+  id = id.startsWith('Qm') ? id : `Qm${id}`
+  return `0x${base58ToHex(id).slice(6)}`
 }
