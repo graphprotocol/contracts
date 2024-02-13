@@ -1835,7 +1835,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@graphprotocol/contracts@workspace:^6.0.0, @graphprotocol/contracts@workspace:packages/contracts":
+"@graphprotocol/contracts@workspace:^6.2.0, @graphprotocol/contracts@workspace:packages/contracts":
   version: 0.0.0-use.local
   resolution: "@graphprotocol/contracts@workspace:packages/contracts"
   dependencies:
@@ -1843,7 +1843,7 @@ __metadata:
     "@defi-wonderland/smock": "npm:^2.0.7"
     "@ethersproject/experimental": "npm:^5.6.0"
     "@graphprotocol/common-ts": "npm:^1.8.3"
-    "@graphprotocol/sdk": "workspace:^0.4.0"
+    "@graphprotocol/sdk": "workspace:^0.5.0"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@nomiclabs/hardhat-etherscan": "npm:^3.1.7"
     "@nomiclabs/hardhat-waffle": "npm:2.0.3"
@@ -1922,14 +1922,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@graphprotocol/sdk@workspace:^0.4.0, @graphprotocol/sdk@workspace:packages/sdk":
+"@graphprotocol/sdk@workspace:^0.5.0, @graphprotocol/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@graphprotocol/sdk@workspace:packages/sdk"
   dependencies:
     "@arbitrum/sdk": "npm:^3.1.12"
     "@ethersproject/experimental": "npm:^5.7.0"
     "@graphprotocol/common-ts": "npm:^2.0.7"
-    "@graphprotocol/contracts": "workspace:^6.0.0"
+    "@graphprotocol/contracts": "workspace:^6.2.0"
     "@nomicfoundation/hardhat-network-helpers": "npm:^1.0.9"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@types/chai": "npm:^4.3.9"
