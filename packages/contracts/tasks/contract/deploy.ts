@@ -3,7 +3,7 @@ import { greTask } from '@graphprotocol/sdk/gre'
 
 greTask('contract:deploy', 'Deploy a contract')
   .addPositionalParam('contract', 'Name of the contract to deploy')
-  .addPositionalParam(
+  .addOptionalPositionalParam(
     'init',
     'Initialization arguments for the contract constructor. Provide arguments as comma-separated values',
   )
@@ -35,7 +35,7 @@ greTask('contract:deploy', 'Deploy a contract')
       deployer,
       {
         name: taskArgs.contract,
-        args: taskArgs.init.split(',') || [],
+        args: taskArgs.init?.split(',') || [],
       },
       new GraphNetworkAddressBook(taskArgs.addressBook, graph.chainId),
     )
