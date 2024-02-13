@@ -1,5 +1,18 @@
 # @graphprotocol/contracts
 
+## 6.2.0
+
+### Minor Changes
+
+- Update implementation addresses with GGP 31, 34 and 35
+
+### Patch Changes
+
+- 554af2c: feat(utils): add utility to parse subgraph ids
+- Updated dependencies [554af2c]
+- Updated dependencies [c5641c5]
+  - @graphprotocol/sdk@0.5.0
+
 ## 6.1.3
 
 ### Patch Changes
