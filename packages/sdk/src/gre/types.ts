@@ -40,6 +40,7 @@ export interface GraphNetworkEnvironment {
   addressBook: GraphNetworkAddressBook
   getNamedAccounts: () => Promise<NamedAccounts>
   getTestAccounts: () => Promise<SignerWithAddress[]>
+  getAllAccounts: () => Promise<SignerWithAddress[]>
   getDeployer: () => Promise<SignerWithAddress>
   getWallets: () => Promise<Wallet[]>
   getWallet: (address: string) => Promise<Wallet>

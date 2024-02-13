@@ -59,7 +59,6 @@ contracts:
     calls:
       - fn: "addMinter"
         minter: "${{RewardsManager.address}}"
-      - fn: "renounceMinter"
       - fn: "transferOwnership"
         owner: *governor
   L2Curation:

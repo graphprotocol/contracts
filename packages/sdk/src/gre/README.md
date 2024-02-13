@@ -7,6 +7,7 @@ GRE is a hardhat plugin that extends hardhat's runtime environment to inject add
 - Provides a simple interface to interact with protocol contracts
 - Exposes protocol configuration via graph config file and address book
 - Provides account management methods for convenience
+- Detailed logging of transactions to file
 - Multichain! Supports both L1 and L2 layers of the protocol simultaneously
 - Integrates seamlessly with [hardhat-secure-accounts](https://www.npmjs.com/package/hardhat-secure-accounts)
 - Convenience method to create tasks that use GRE
@@ -129,16 +130,16 @@ The priority for the address book is:
 
 GRE accepts a few parameters when being initialized. When using GRE in the context of a hardhat task these parameters would typically be configured as task options. 
 
-In order to simplify the creation of hardhat tasks that will make use of GRE and would require several options to be defined we provide a convenience method: `graphTask`. This is a drop in replacement for hardhat's `task` that includes GRE related boilerplate, you can still customize the task as you would do with `task`.
+In order to simplify the creation of hardhat tasks that will make use of GRE and would require several options to be defined we provide a convenience method: `greTask`. This is a drop in replacement for hardhat's `task` that includes GRE related boilerplate, you can still customize the task as you would do with `task`.
 
  you avoid having to define GRE's options on all of your tasks.
 
 Here is an example of a task using this convenience method:
 
 ```ts
-import { graphTask } from '../../gre/gre'
+import { greTask } from '../../gre/gre'
 
-graphTask('hello-world', 'Say hi!', async (args, hre) => {
+greTask('hello-world', 'Say hi!', async (args, hre) => {
   console.log('hello world')
   const graph = hre.graph(args)
 })
@@ -154,6 +155,7 @@ OPTIONS:
 
   --address-book                Path to the address book file.
   --disable-secure-accounts     Disable secure accounts.
+  --enable-tx-logging           Enable transaction logging.
   --graph-config                Path to the graph config file for the network specified using --network.
   --l1-graph-config             Path to the graph config file for the L1 network.
   --l2-graph-config             Path to the graph config file for the L2 network.
@@ -162,6 +164,27 @@ hello-world: Say hi!
 
 For global options help run: hardhat help
 ```
+
+### Transaction Logging
+
+By default all transactions executed via GRE will be logged to a file. The file will be created on the first transaction with the following convention `tx-<yyyy-mm-dd>.log`. Here is a sample log file:
+
+```
+[2024-01-15T14:33:26.747Z] > Sending transaction: GraphToken.addMinter
+[2024-01-15T14:33:26.747Z]    = Sender: 0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1
+[2024-01-15T14:33:26.747Z]    = Contract: 0x428aAe4Fa354c21600b6ec0077F2a6855C7dcbC8
+[2024-01-15T14:33:26.747Z]    = Params: [ 0x05eA50dc2C0389117A067D393e0395ACc32c53b6 ]
+[2024-01-15T14:33:26.747Z]    = TxHash: 0xa9096e5f9f9a2208202ac3a8b895561dc3f781fa7e19350b0855098a08d193f7
+[2024-01-15T14:33:26.750Z]    ✔ Transaction succeeded!
+[2024-01-15T14:33:26.777Z] > Sending transaction: GraphToken.renounceMinter
+[2024-01-15T14:33:26.777Z]    = Sender: 0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1
+[2024-01-15T14:33:26.777Z]    = Contract: 0x428aAe4Fa354c21600b6ec0077F2a6855C7dcbC8
+[2024-01-15T14:33:26.777Z]    = Params: [  ]
+[2024-01-15T14:33:26.777Z]    = TxHash: 0x48233b256a1f98cb3fecc3dd48d7f7c0175042142e1ca7b9b1f9fc91169bb588
+[2024-01-15T14:33:26.780Z]    ✔ Transaction succeeded!
+```
+
+If you want to disable transaction logging you can do so by setting the `enableTxLogging` option to `false` when initializing GRE: ```g=graph({ disableSecureAccounts: true })```
 
 ## API
 

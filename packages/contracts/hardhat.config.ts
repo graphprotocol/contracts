@@ -28,7 +28,7 @@ const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
   require('@graphprotocol/sdk/gre')
-  ;['contracts', 'bridge', 'deployment', 'verify', 'e2e'].forEach((folder) => {
+  ;['contract', 'bridge', 'deployment', 'migrate', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
@@ -119,7 +119,7 @@ const DEFAULT_L2_TEST_MNEMONIC =
 const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
-    tests: './test',
+    tests: './test/unit',
     artifacts: './build/contracts',
   },
   solidity: {
@@ -162,6 +162,8 @@ const config: HardhatUserConfig = {
       url: 'http://127.0.0.1:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
+      graphConfig: 'config/graph.localhost.yml',
+      addressBook: 'addresses-local.json',
     },
     localnitrol1: {
       chainId: 1337,
@@ -178,8 +180,8 @@ const config: HardhatUserConfig = {
   },
   graph: {
     addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
-    l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.localhost.yml',
-    l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-localhost.yml',
+    l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.mainnet.yml',
+    l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-one.yml',
     fork: process.env.FORK === 'true',
     disableSecureAccounts: process.env.DISABLE_SECURE_ACCOUNTS === 'true',
   },

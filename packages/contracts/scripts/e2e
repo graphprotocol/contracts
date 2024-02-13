@@ -45,23 +45,17 @@ if [[ "$L1_NETWORK" == "$L2_NETWORK" ]]; then
 fi
 
 ### > SCRIPT AUX FUNCTIONS <
-function pre_deploy() {
-  local NETWORK=$1
-  local GRAPH_CONFIG=$2
-
-  # Create named accounts
-  npx hardhat migrate:accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --disable-secure-accounts
-
-  # Fund accounts if using nitro test nodes
-  if [[ "$NETWORK" == *"localnitro"* ]]; then
-    npx hardhat nitro:fund-accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --disable-secure-accounts
-  fi
-}
-
 function deploy() {
   local NETWORK=$1
   local GRAPH_CONFIG=$2
   local ADDRESS_BOOK=$3
+  
+  echo "Deploying protocol on $NETWORK"
+  
+  # Fund accounts if using nitro test nodes
+  if [[ "$NETWORK" == *"localnitro"* ]]; then
+    npx hardhat migrate:nitro:fund-accounts --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --disable-secure-accounts
+  fi
 
   # Deploy protocol
   npx hardhat migrate \
@@ -73,18 +67,6 @@ function deploy() {
     --address-book "$ADDRESS_BOOK"
 }
 
-function post_deploy () {
-  local NETWORK=$1
-  local GRAPH_CONFIG=$2
-  local ADDRESS_BOOK=$3
-
-  # Governor to accept contracts ownership 
-  npx hardhat migrate:ownership --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
-  
-  # Unpause the protocol
-  npx hardhat migrate:unpause:protocol --network "$NETWORK" --graph-config "$GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
-}
-
 function configure_bridge () {
   local L1_NETWORK=$1
   local L1_GRAPH_CONFIG=$2
@@ -94,29 +76,12 @@ function configure_bridge () {
   local ARBITRUM_ADDRESS_BOOK=$6
   local ARBITRUM_DEPLOYMENT_FILE=$7
 
-  # These settings are only used for CLI bridge commands
-  # so we keep them here to avoid confusion with hardhat based tasks
-  local L1_CHAIN_ID=${L1_CHAIN_ID:-"1337"}
-  local L2_CHAIN_ID=${L2_CHAIN_ID:-"412346"}
-
-  local L1_RPC=${L1_RPC:-"http://127.0.0.1:8545"}
-  local L2_RPC=${L2_RPC:-"http://127.0.0.1:8547"}
-
-  local L1_MNEMONIC=${L1_MNEMONIC:-"myth like bonus scare over problem client lizard pioneer submit female collect"}
-  local L2_MNEMONIC=${L2_MNEMONIC:-"urge never interest human any economy gentle canvas anxiety pave unlock find"}
-
   # Copy required arbitrum contract addresses to the local arbitrum address book
   if [[ "$L1_NETWORK" == *"localnitro"* ]]; then
-    npx hardhat nitro:address-book-setup --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK"
+    npx hardhat migrate:nitro:address-book --deployment-file "$ARBITRUM_DEPLOYMENT_FILE" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK"
   fi
 
-  # Configure the bridge
-  npx hardhat bridge:configure:l1 --network "$L1_NETWORK" --graph-config "$L1_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK" --disable-secure-accounts
-  npx hardhat bridge:configure:l2 --network "$L2_NETWORK" --graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK" --disable-secure-accounts
-  
-  # Unpause the bridge
-  npx hardhat migrate:unpause:bridge --network "$L2_NETWORK" --graph-config "$L2_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
-  npx hardhat migrate:unpause:bridge --network "$L1_NETWORK" --graph-config "$L1_GRAPH_CONFIG" --address-book "$ADDRESS_BOOK" --disable-secure-accounts
+  npx hardhat migrate:bridge --network "$L1_NETWORK" --l1-graph-config "$L1_GRAPH_CONFIG" --l2-graph-config "$L2_GRAPH_CONFIG"  --address-book "$ADDRESS_BOOK" --arbitrum-address-book "$ARBITRUM_ADDRESS_BOOK" --disable-secure-accounts
 }
 
 function test_e2e () {
@@ -188,18 +153,12 @@ fi
 ## DEPLOY
 # Deploy L1
 if [[ -n "$L1_NETWORK" ]]; then
-  echo "Deploying L1 protocol"
-  pre_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG"
   deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
-  post_deploy "$L1_NETWORK" "$L1_GRAPH_CONFIG" "$ADDRESS_BOOK"
 fi
 
 # Deploy L2
 if [[ -n "$L2_NETWORK" ]]; then
-  echo "Deploying L2 protocol"
-  pre_deploy "$L2_NETWORK" "$L2_GRAPH_CONFIG"
   deploy "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
-  post_deploy "$L2_NETWORK" "$L2_GRAPH_CONFIG" "$ADDRESS_BOOK"
 fi
 
 # Configure bridge

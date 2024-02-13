@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "6.0.0",
+  "version": "6.2.0",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -13,7 +13,7 @@
     "addresses.json"
   ],
   "dependencies": {
-    "@graphprotocol/sdk": "workspace:^0.3.0",
+    "@graphprotocol/sdk": "workspace:^0.5.0",
     "console-table-printer": "^2.11.1"
   },
   "devDependencies": {
@@ -85,14 +85,12 @@
     "yargs": "^17.0.0"
   },
   "scripts": {
-    "prepublishOnly": "scripts/prepublish",
+    "prepack": "scripts/prepack",
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
-    "deploy": "yarn predeploy && yarn build && yarn predeploy && hardhat migrate",
-    "deploy-localhost": "yarn deploy --force --network localhost --graph-config config/graph.localhost.yml",
-    "deploy-goerli": "yarn deploy --force --network goerli --graph-config config/graph.goerli.yml",
-    "deploy-arbitrum-goerli": "yarn deploy --force --network arbitrum-goerli --graph-config config/graph.arbitrum-goerli.yml",
+    "deploy": "yarn predeploy && yarn build && hardhat migrate",
+    "deploy-localhost": "yarn build && hardhat migrate --force --skip-confirmation --disable-secure-accounts --network localhost --graph-config config/graph.localhost.yml --address-book addresses-local.json",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
     "test:e2e": "scripts/e2e",

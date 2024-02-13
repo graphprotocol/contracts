@@ -1,9 +1,9 @@
 import { Contract, Signer, providers } from 'ethers'
-import { getWrappedConnect, wrapCalls } from './tx-log'
 import { AddressBook } from '../address-book'
 import { loadArtifact } from '../deploy/artifacts'
 
 import type { ContractList } from '../types/contract'
+import { getWrappedConnect, wrapCalls } from './wrap'
 
 /**
  * Loads a contract instance for a given contract name and address

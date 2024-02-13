@@ -29,7 +29,7 @@ import "./IInbox.sol";
 import "./IOutbox.sol";
 
 /// @notice L1 utility contract to assist with L1 <=> L2 interactions
-/// @dev this is an abstract contract instead of library so the functions can be easily overriden when testing
+/// @dev this is an abstract contract instead of library so the functions can be easily overridden when testing
 abstract contract L1ArbitrumMessenger {
     event TxToL2(address indexed _from, address indexed _to, uint256 indexed _seqNum, bytes _data);
 

@@ -9,7 +9,7 @@ on:
     paths:
       - packages/contracts/contracts/**
       - packages/contracts/config/**
-      - packages/contracts/e2e/**
+      - packages/contracts/test/e2e/**
       - packages/contracts/tasks/**
       - packages/contracts/scripts/**
       - packages/contracts/hardhat.config.ts
@@ -18,7 +18,7 @@ on:
     paths:
       - packages/contracts/contracts/**
       - packages/contracts/config/**
-      - packages/contracts/e2e/**
+      - packages/contracts/test/e2e/**
       - packages/contracts/tasks/**
       - packages/contracts/scripts/**
       - packages/contracts/hardhat.config.ts

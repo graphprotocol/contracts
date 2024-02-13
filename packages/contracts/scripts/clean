@@ -8,7 +8,6 @@ echo "Cleaning flattened contracts..."
 
 FLATTENED_FILES=(
     "$OUT_DIR/Controller.sol"
-    "$OUT_DIR/GraphGovernance.sol"
     "$OUT_DIR/GNS.sol"
     "$OUT_DIR/ServiceRegistry.sol"
     "$OUT_DIR/Curation.sol"
