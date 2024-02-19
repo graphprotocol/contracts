@@ -21,6 +21,8 @@ cached/
 # Build artifacts
 dist/
 build/
+typechain/
+typechain-types/
 
 # Ignore solc bin output
 bin/
