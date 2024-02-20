@@ -400,8 +400,14 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
         override
         returns (uint256, uint256)
     {
-        uint256 curationTax = _tokensIn.mul(uint256(curationTaxPercentage)).div(MAX_PPM);
-        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, _tokensIn.sub(curationTax));
+        // Calculate tokens after tax first, subtract that from the tokens in
+        // to get the curation tax to avoid rounding down to zero.
+        uint256 tokensAfterCurationTax = uint256(MAX_PPM)
+            .sub(curationTaxPercentage)
+            .mul(_tokensIn)
+            .div(MAX_PPM);
+        uint256 curationTax = _tokensIn.sub(tokensAfterCurationTax);
+        uint256 signalOut = _tokensToSignal(_subgraphDeploymentID, tokensAfterCurationTax);
         return (signalOut, curationTax);
     }
 
