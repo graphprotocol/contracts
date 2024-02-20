@@ -197,11 +197,15 @@ contract SubgraphAvailabilityManager is Governed {
     ) private {
         uint256 timestamp = block.timestamp;
 
-        // corresponding votes based on _deny for a subgraph deployment
-        uint256[NUM_ORACLES] storage lastVoteForSubgraph = _deny
-            ? lastDenyVote[currentNonce][_subgraphDeploymentID]
-            : lastAllowVote[currentNonce][_subgraphDeploymentID];
-        lastVoteForSubgraph[_oracleIndex] = timestamp;
+        if (_deny) {
+            lastDenyVote[currentNonce][_subgraphDeploymentID][_oracleIndex] = timestamp;
+            // clear opposite vote for a subgraph deployment if it exists
+            lastAllowVote[currentNonce][_subgraphDeploymentID][_oracleIndex] = 0;
+        } else {
+            lastAllowVote[currentNonce][_subgraphDeploymentID][_oracleIndex] = timestamp;
+            // clear opposite vote for a subgraph deployment if it exists
+            lastDenyVote[currentNonce][_subgraphDeploymentID][_oracleIndex] = 0;
+        }
 
         emit OracleVote(_subgraphDeploymentID, _deny, _oracleIndex, timestamp);
 

@@ -329,6 +329,31 @@ describe('SubgraphAvailabilityManager', () => {
       // previous votes are no longer valid
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.false
     })
+
+    it('clears opposite vote when voting', async () => {
+      const denied = true
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, denied, 0)
+      await subgraphAvailabilityManager.connect(oracleTwo).vote(subgraphDeploymentID1, denied, 1)
+      await subgraphAvailabilityManager.connect(oracleThree).vote(subgraphDeploymentID1, denied, 2)
+
+      // 3/5 oracles vote denied = true so subgraph is denied
+      expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.true
+
+      // oracleOne changes its vote to denied = false
+      await subgraphAvailabilityManager.connect(oracleOne).vote(subgraphDeploymentID1, false, 0)
+
+      // last deny vote should be 0 for oracleOne
+      expect(
+        await subgraphAvailabilityManager.lastDenyVote(0, subgraphDeploymentID1, 0),
+      ).to.be.equal(0)
+
+      // executionThreshold isn't met now since oracleOne changed its vote
+      expect(await subgraphAvailabilityManager.checkVotes(subgraphDeploymentID1, denied)).to.be
+        .false
+
+      // subgraph is still denied in rewards manager because only one oracle changed its vote
+      expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.true
+    })
   })
 
   describe('vote many', async () => {
