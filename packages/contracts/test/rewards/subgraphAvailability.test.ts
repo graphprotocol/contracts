@@ -151,6 +151,15 @@ describe('SubgraphAvailabilityManager', () => {
         }),
       ).to.be.revertedWith('SAM: executionThreshold too low')
     })
+
+    it('should revert if executionThreshold is too high', async () => {
+      await expect(
+        deploy(DeployType.Deploy, governor, {
+          name: 'SubgraphAvailabilityManager',
+          args: [governor.address, rewardsManager.address, '6', voteTimeLimit, oracles],
+        }),
+      ).to.be.revertedWith('SAM: executionThreshold too high')
+    })
   })
 
   describe('initializer', () => {
