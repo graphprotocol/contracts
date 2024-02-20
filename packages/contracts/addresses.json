@@ -648,10 +648,10 @@
       "txHash": "0x8f856e2090af3243349199f7991e01b1c28de7b70b0185d2370d8ada5ce9c97b",
       "proxy": true,
       "implementation": {
-        "address": "0x8B27fbE0707282caB55DA023D0986407B066e0D0",
-        "creationCodeHash": "0x2287d9023bf7d91e688e1eb029eff7657ef3b87e37b5222b01fd50985d0928f9",
-        "runtimeCodeHash": "0xd799b2b74e9634d6b6ef15b5710409264bed04a60f9519b9d8f05ac183199d16",
-        "txHash": "0xeadc5b37c51c163612010d53c12dd685656aff8e65e353efd1b299f71d949a44"
+        "address": "0x41Ad970e071aadbE098c17aDFCff2fF3105456Ae",
+        "creationCodeHash": "0x2c7b48c311e8f0cb03513d4ca4c0010132d7402f1aabb1dd65f28cdcf07255ba",
+        "runtimeCodeHash": "0xa750bd231f2b1ec9ffaeef4de79eddbde8aca9bdbf4c9125424eea644bf27aff",
+        "txHash": "0x7b03bc16b3af6a650ff866311b1f580936e8b7264ddb4c6348fb824c508d1dcb"
       }
     },
     "SubgraphNFTDescriptor": {
@@ -705,12 +705,12 @@
       "txHash": "0xa33c0d58ddaed7e3f7381a33e3d5f63e39219863019f00d54ce2fd2446076ac7",
       "proxy": true,
       "implementation": {
-        "address": "0xE8a896DEf5D3EC99CEC612D66A50C8cEca2818eE",
-        "creationCodeHash": "0x1795a2c86bb7ed09f75a3ed87db200b84c4383b46e0c37fff1ae2d42bc109339",
-        "runtimeCodeHash": "0x98642f0bf1fae2e7b10a5781f6470b3fac6d3dae5e2e6eb5db8598eeb1821bae",
-        "txHash": "0x7ee950c43ddd0c21c100e7fae038fc3d1ca58fc9c4048573782ebfb73d99ce75",
+        "address": "0x4a886d3E44C7731Dcf888Da704CA5C51ed63DfC8",
+        "creationCodeHash": "0xa9796308a637b0bfe091f32c1019e4db8efe4bab80788c052fa334e6810c3a98",
+        "runtimeCodeHash": "0x19d3491cab54b2aae04d05525a532200e946ce9b55573b58f2e3e1606b4514be",
+        "txHash": "0xc3235306a51c20b28a8b05da69859e03a081a84c9914156c79da07dcc45b3b4e",
         "libraries": {
-          "LibExponential": "0xdfea1e3f60b80fac01f222566886f30acc4a861c"
+          "LibExponential": "0x208f638d8804e4ccc874ec39e240feea3dc289ee"
         }
       }
     },
@@ -785,11 +785,11 @@
       "address": "0xa9AEb1c6f14f4244547B9a0946C485DA99047638"
     },
     "StakingExtension": {
-      "address": "0x76ABD73cae3b3d02A57A7919DFC9E4b708714040",
+      "address": "0x3bE385576d7C282070Ad91BF94366de9f9ba3571",
       "constructorArgs": [],
-      "creationCodeHash": "0x7ae74140871330ecabb7040182dc8288c2c84693393a519230036f39c2281138",
-      "runtimeCodeHash": "0x4994aa74e9e29c36a8158af690a245ccd1cf4d955223e5fcb1ca62810b37ed57",
-      "txHash": "0x2327ee82c64b6809749dd2e1178f04461fd6c519c97e2f750bb70bc9e39fad7f"
+      "creationCodeHash": "0xbfc20ab9b880712ab90b5dec9d2a14c724b0bf7c20f02ede8ea76610bd41b6ef",
+      "runtimeCodeHash": "0xd7fdd744c7a88993435a2978876b1e4341c5e0fb4d611011bb56e8738ab2485d",
+      "txHash": "0xcc449d1ca1007fba76b25e987ea0d39164acf4027c10c40bd669ede1c65dc569"
     }
   },
   "421613": {
