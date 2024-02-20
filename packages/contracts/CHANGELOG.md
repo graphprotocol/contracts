@@ -1,5 +1,12 @@
 # @graphprotocol/contracts
 
+## 6.2.1
+
+### Patch Changes
+
+- Round up when calculating curation tax
+- Round up when calculating consecutive stake thawing periods
+
 ## 6.2.0
 
 ### Minor Changes
