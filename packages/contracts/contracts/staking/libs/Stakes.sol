@@ -73,7 +73,7 @@ library Stakes {
         // Take into account period averaging for multiple unstake requests
         uint256 lockingPeriod = _period;
         if (stake.tokensLocked > 0) {
-            lockingPeriod = MathUtils.weightedAverage(
+            lockingPeriod = MathUtils.weightedAverageRoundingUp(
                 MathUtils.diffOrZero(stake.tokensLockedUntil, block.number), // Remaining thawing period
                 stake.tokensLocked, // Weighted by remaining unstaked tokens
                 _period, // Thawing period
