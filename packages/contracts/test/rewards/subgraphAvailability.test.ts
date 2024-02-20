@@ -283,6 +283,12 @@ describe('SubgraphAvailabilityManager', () => {
         .to.emit(rewardsManager, 'RewardsDenylistUpdated')
         .withArgs(subgraphDeploymentID1, tx.blockNumber)
 
+      // check events order
+      const receipt = await tx.wait()
+      expect(receipt.events[0].event).to.be.equal('OracleVote')
+      const rewardsManangerEvent = rewardsManager.interface.parseLog(receipt.logs[1]).name
+      expect(rewardsManangerEvent).to.be.equal('RewardsDenylistUpdated')
+
       // check that subgraph is denied
       expect(await rewardsManager.isDenied(subgraphDeploymentID1)).to.be.true
 

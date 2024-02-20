@@ -210,12 +210,12 @@ contract SubgraphAvailabilityManager is Governed {
             : lastAllowVote[currentNonce][_subgraphDeploymentID];
         lastVoteForSubgraph[_oracleIndex] = timestamp;
 
+        emit OracleVote(_subgraphDeploymentID, _deny, _oracleIndex, timestamp);
+
         // check if execution threshold is reached, if it is call the RewardsManager
         if (checkVotes(_subgraphDeploymentID, _deny)) {
             rewardsManager.setDenied(_subgraphDeploymentID, _deny);
         }
-
-        emit OracleVote(_subgraphDeploymentID, _deny, _oracleIndex, timestamp);
     }
 
     /**
