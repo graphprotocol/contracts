@@ -101,7 +101,7 @@ interface IHorizonStaking {
     ) external;
 
     // initiate a thawing to remove tokens from a provision
-    function thaw(bytes32 provisionId, uint256 tokens) external returns (bytes32);
+    function thaw(bytes32 provisionId, uint256 tokens) external returns (bytes32 thawRequestId);
 
     // moves thawed stake from a provision back into the provider's available stake
     function deprovision(bytes32 thawRequestId) external;
@@ -119,8 +119,8 @@ interface IHorizonStaking {
     function undelegate(
         address serviceProvider,
         uint256 tokens,
-        bytes32[] provisions
-    ) external returns (bytes32[]);
+        bytes32[] calldata provisions
+    ) external returns (bytes32 thawRequestId);
 
     // slash a service provider
     function slash(
@@ -130,28 +130,28 @@ interface IHorizonStaking {
     ) external;
 
     // set the Service Provider's preferred provisions to be force thawed
-    function setForceThawProvisions(bytes32[] provisions);
+    function setForceThawProvisions(bytes32[] calldata provisions) external;
 
     // total staked tokens to the provider
     // `ServiceProvider.tokensStaked + DelegationPool.serviceProvider.tokens`
-    function getStake(address serviceProvider) public view returns (uint256 tokens);
+    function getStake(address serviceProvider) external view returns (uint256 tokens);
 
     // staked tokens that are currently not provisioned, aka idle stake
     // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
-    function getIdleStake(address serviceProvider) public view returns (uint256 tokens);
+    function getIdleStake(address serviceProvider) external view returns (uint256 tokens);
 
     // staked tokens the provider can provision before hitting the delegation cap
     // `ServiceProvider.tokensStaked * Staking.delegationRatio - Provision.tokensProvisioned`
-    function getCapacity(address serviceProvider) public view returns (uint256);
+    function getCapacity(address serviceProvider) external view returns (uint256 tokens);
 
     // provisioned tokens that are not being used
     // `Provision.tokens - Provision.tokensThawing`
-    function getTokensAvailable(bytes32 provision) public view returns (uint256 tokens);
+    function getTokensAvailable(bytes32 provision) external view returns (uint256 tokens);
 
     function getServiceProvider(address serviceProvider)
-        public
+        external
         view
         returns (ServiceProvider memory);
 
-    function getProvision(bytes32 provision) public view returns (Provision memory);
+    function getProvision(bytes32 provision) external view returns (Provision memory);
 }
