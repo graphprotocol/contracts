@@ -8,7 +8,8 @@
   "packageManager": "yarn@4.0.2",
   "workspaces": [
     "packages/contracts",
-    "packages/sdk"
+    "packages/sdk",
+    "packages/token-distribution"
   ],
   "scripts": {
     "postinstall": "husky install",

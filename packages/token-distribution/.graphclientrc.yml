@@ -1,0 +1,21 @@
+sources:
+  - name: graph-network
+    handler:
+      graphql:
+        endpoint: https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet
+        retry: 5
+
+  - name: token-distribution
+    handler:
+      graphql:
+        endpoint: https://api.thegraph.com/subgraphs/name/graphprotocol/token-distribution
+        retry: 5
+    transforms:
+      - autoPagination:
+          validateSchema: true
+
+documents:
+  - ops/queries/account.graphql
+  - ops/queries/curators.graphql
+  - ops/queries/network.graphql
+  - ops/queries/tokenLockWallets.graphql
