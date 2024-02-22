@@ -1,0 +1,17 @@
+query GraphAccount($accountId: ID!, $blockNumber: Int) {
+  graphAccount(id: $accountId, block: { number: $blockNumber }) {
+    id
+    indexer {
+      stakedTokens
+    }
+    curator {
+      totalSignalledTokens
+      totalUnsignalledTokens
+    }
+    delegator {
+      totalStakedTokens
+      totalUnstakedTokens
+      totalRealizedRewards
+    }
+  }
+}

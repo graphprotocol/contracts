@@ -21,6 +21,7 @@ cached/
 # Build artifacts
 dist/
 build/
+deployments/hardhat/
 
 # Ignore solc bin output
 bin/
@@ -43,3 +44,9 @@ addresses-fork.json
 
 # Keys
 .keystore
+
+# Graph client
+.graphclient
+
+tx-builder-*.json
+!tx-builder-template.json
