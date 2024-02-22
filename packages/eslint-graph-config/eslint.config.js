@@ -1,9 +1,9 @@
 // This file only exists to enable linting on index.js
-const config = require('./index.js')
+const config = require('./index')
 const globals = require('globals')
 
 module.exports = [
-  ...config,
+  ...config.default,
   {
     // Additional configuration just for this package
     // since it's a commonjs module and not an ES module
@@ -13,8 +13,6 @@ module.exports = [
       },
     },
     rules: {
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-var-requires': 'off',
     },

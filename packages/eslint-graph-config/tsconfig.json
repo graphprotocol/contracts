@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["index.js", "eslint.config.js"]
+  "include": ["index.ts", "typings/**/*.d.ts", "eslint.config.js"]
 }

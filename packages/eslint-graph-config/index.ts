@@ -1,13 +1,11 @@
-// @ts-check
+import eslint from '@eslint/js'
+import globals from 'globals'
+import noOnlyTests from 'eslint-plugin-no-only-tests'
+import noSecrets from 'eslint-plugin-no-secrets'
+import stylistic from '@stylistic/eslint-plugin'
+import tseslint from 'typescript-eslint'
 
-const eslint = require('@eslint/js')
-const noOnlyTests = require('eslint-plugin-no-only-tests')
-const noSecrets = require('eslint-plugin-no-secrets')
-const stylistic = require('@stylistic/eslint-plugin')
-const tseslint = require('typescript-eslint')
-
-// console.log(import.meta.dirname)
-module.exports = tseslint.config(
+export default tseslint.config(
   // Base eslint configuration
   eslint.configs.recommended,
 
@@ -19,6 +17,9 @@ module.exports = tseslint.config(
       parserOptions: {
         project: ['../*/tsconfig.json', 'tsconfig.json'],
         tsconfigRootDir: __dirname,
+      },
+      globals: {
+        ...globals.node,
       },
     },
   },
@@ -32,7 +33,7 @@ module.exports = tseslint.config(
       'no-only-tests': noOnlyTests,
       'no-secrets': noSecrets,
     },
-    ignores: ['dist', 'node_modules', 'coverage', 'build'],
+    ignores: ['dist/*', 'node_modules/*', 'build/*'],
     rules: {
       'prefer-const': 'warn',
       '@typescript-eslint/no-inferrable-types': 'warn',

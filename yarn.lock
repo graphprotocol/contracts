@@ -5525,13 +5525,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/eslint@npm:^8.56.2":
+"@types/eslint@npm:*, @types/eslint@npm:^8.56.2":
   version: 8.56.2
   resolution: "@types/eslint@npm:8.56.2"
   dependencies:
     "@types/estree": "npm:*"
     "@types/json-schema": "npm:*"
   checksum: e33ca87a30a9454ba9943e1270ac759996f5fe598a1c1afbaec1d1e7346a339e20bf2a9d81f177067116bbaa6cfa4f748993cb338f57978ae862ad38ffae56fe
+  languageName: node
+  linkType: hard
+
+"@types/eslint__js@npm:^8.42.3":
+  version: 8.42.3
+  resolution: "@types/eslint__js@npm:8.42.3"
+  dependencies:
+    "@types/eslint": "npm:*"
+  checksum: ccc5180b92155929a089ffb03ed62625216dcd5e46dd3197c6f82370ce8b52c7cb9df66c06b0a3017995409e023bc9eafe5a3f009e391960eacefaa1b62d9a56
   languageName: node
   linkType: hard
 
@@ -11131,6 +11140,7 @@ __metadata:
   resolution: "eslint-graph-config@workspace:packages/eslint-graph-config"
   dependencies:
     "@stylistic/eslint-plugin": "npm:^1.6.2"
+    "@types/eslint__js": "npm:^8.42.3"
     "@types/node": "npm:^20.11.19"
     eslint: "npm:^8.56.0"
     eslint-plugin-no-only-tests: "npm:^3.1.0"
