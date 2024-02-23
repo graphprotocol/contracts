@@ -5,7 +5,9 @@
   "main": "index.js",
   "author": "The Graph Team",
   "license": "GPL-2.0-or-later",
-  "devDependencies": {
+  "peerDependencies": {
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.3.1",
     "solhint": "^4.1.1"
   }
 }
