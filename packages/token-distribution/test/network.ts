@@ -1,4 +1,4 @@
-import { providers, utils, BigNumber, Contract, Signer } from 'ethers'
+import { BigNumber, Contract, providers, Signer, utils } from 'ethers'
 import { deployments, ethers, network, waffle } from 'hardhat'
 
 // Plugins
@@ -33,7 +33,7 @@ export interface Account {
 export const provider = (): providers.JsonRpcProvider => waffle.provider
 
 export const getAccounts = async (): Promise<Account[]> => {
-  const accounts = []
+  const accounts: Account[] = []
   const signers: Signer[] = await ethers.getSigners()
   for (const signer of signers) {
     accounts.push({ signer, address: await signer.getAddress() })
@@ -48,23 +48,23 @@ export const getChainID = (): Promise<number> => {
   }
   return provider()
     .getNetwork()
-    .then((r) => r.chainId)
+    .then(r => r.chainId)
 }
 
 export const latestBlockNum = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
 export const latestBlock = async (): Promise<providers.Block> => provider().getBlock(await provider().getBlockNumber())
-export const latestBlockTime = async (): Promise<number> => latestBlock().then((block) => block.timestamp)
+export const latestBlockTime = async (): Promise<number> => latestBlock().then(block => block.timestamp)
 
 export const advanceBlock = (): Promise<void> => {
-  return provider().send('evm_mine', [])
+  return provider().send('evm_mine', []) as Promise<void>
 }
 
 export const advanceBlockTo = async (blockNumber: string | number | BigNumber): Promise<void> => {
   const target = typeof blockNumber === 'number' || typeof blockNumber === 'string' ? toBN(blockNumber) : blockNumber
   const currentBlock = await latestBlockNum()
   const start = Date.now()
-  let notified
-  if (target.lt(currentBlock)) throw Error(`Target block #(${target}) is lower than current block #(${currentBlock})`)
+  let notified: boolean
+  if (target.lt(currentBlock)) throw Error(`Target block #(${target.toString()}) is lower than current block #(${currentBlock.toString()})`)
   while ((await latestBlockNum()).lt(target)) {
     if (!notified && Date.now() - start >= 5000) {
       notified = true
@@ -81,8 +81,8 @@ export const advanceBlocks = async (blocks: string | number | BigNumber): Promis
   await advanceBlockTo(toBlock)
 }
 
-export const advanceTime = async (time: number): Promise<any> => {
-  return provider().send('evm_increaseTime', [time])
+export const advanceTime = async (time: number): Promise<void> => {
+  return provider().send('evm_increaseTime', [time]) as Promise<void>
 }
 
 export const advanceTimeAndBlock = async (time: number): Promise<BigNumber> => {
@@ -91,5 +91,5 @@ export const advanceTimeAndBlock = async (time: number): Promise<BigNumber> => {
   return latestBlockNum()
 }
 
-export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', [])
-export const evmRevert = async (id: number): Promise<boolean> => provider().send('evm_revert', [id])
+export const evmSnapshot = async (): Promise<number> => provider().send('evm_snapshot', []) as Promise<number>
+export const evmRevert = async (id: number): Promise<boolean> => provider().send('evm_revert', [id]) as Promise<boolean>

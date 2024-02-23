@@ -1,26 +1,27 @@
 import { constants, Wallet } from 'ethers'
-import { expect } from 'chai'
 import { deployments, ethers } from 'hardhat'
+import { expect } from 'chai'
 
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
 import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-import { L2GraphTokenLockWallet } from '../build/typechain/contracts/L2GraphTokenLockWallet'
 import { L2GraphTokenLockManager } from '../build/typechain/contracts/L2GraphTokenLockManager'
-import { StakingMock } from '../build/typechain/contracts/StakingMock'
+import { L2GraphTokenLockWallet } from '../build/typechain/contracts/L2GraphTokenLockWallet'
 import { Staking__factory } from '@graphprotocol/contracts/dist/types/factories/Staking__factory'
+import { StakingMock } from '../build/typechain/contracts/StakingMock'
 
-import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
-import { advanceTimeAndBlock, getAccounts, getContract, toGRT, Account } from './network'
+import { Account, advanceTimeAndBlock, getAccounts, getContract, toGRT } from './network'
 import { defaultAbiCoder, keccak256 } from 'ethers/lib/utils'
+import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
+import { DeployOptions } from 'hardhat-deploy/types'
 import { Staking } from '@graphprotocol/contracts'
 
 const { AddressZero } = constants
 
 // Fixture
 const setupTest = deployments.createFixture(async ({ deployments }) => {
-  const { deploy } = deployments
+  const deploy = (name: string, options: DeployOptions) => deployments.deploy(name, options)
   const [deployer, , l1TransferToolMock, gateway] = await getAccounts()
 
   // Start from a fresh snapshot
@@ -101,11 +102,11 @@ describe('L2GraphTokenLockManager', () => {
   }
 
   before(async function () {
-    ;[deployer, beneficiary, l1TransferToolMock, gateway, l1TokenLock] = await getAccounts()
+    [deployer, beneficiary, l1TransferToolMock, gateway, l1TokenLock] = await getAccounts()
   })
 
   beforeEach(async () => {
-    ;({ grt, tokenLockManager, staking, tokenLockImplementation } = await setupTest())
+    ({ grt, tokenLockManager, staking, tokenLockImplementation } = await setupTest())
 
     // Setup authorized functions in Manager
     await authProtocolFunctions(tokenLockManager, staking.address)
@@ -116,7 +117,7 @@ describe('L2GraphTokenLockManager', () => {
 
   describe('TokenLockManager standard behavior', function () {
     it('reverts if initialized with empty token', async function () {
-      const { deploy } = deployments
+      const deploy = (name: string, options: DeployOptions) => deployments.deploy(name, options)
 
       const d = deploy('L2GraphTokenLockManager', {
         from: deployer.address,

@@ -1,19 +1,20 @@
-import { expect } from 'chai'
-import { constants, BigNumber } from 'ethers'
-import { deployments } from 'hardhat'
 import 'hardhat-deploy'
+import { BigNumber, constants } from 'ethers'
+import { deployments } from 'hardhat'
+import { expect } from 'chai'
 
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 import { GraphTokenLockSimple } from '../build/typechain/contracts/GraphTokenLockSimple'
+import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 
-import { createScheduleScenarios, defaultInitArgs, TokenLockParameters, Revocability } from './config'
-import { advanceTimeAndBlock, getAccounts, getContract, toBN, toGRT, Account } from './network'
+import { Account, advanceTimeAndBlock, getAccounts, getContract, toBN, toGRT } from './network'
+import { createScheduleScenarios, defaultInitArgs, Revocability, TokenLockParameters } from './config'
+import { DeployOptions } from 'hardhat-deploy/types'
 
 const { AddressZero } = constants
 
 // Fixture
 const setupTest = deployments.createFixture(async ({ deployments }) => {
-  const { deploy } = deployments
+  const deploy = (name: string, options: DeployOptions) => deployments.deploy(name, options)
   const [deployer] = await getAccounts()
 
   // Start from a fresh snapshot
@@ -61,9 +62,9 @@ const advanceToReleasable = async (tokenLock: GraphTokenLockSimple) => {
     tokenLock.vestingCliffTime(),
     tokenLock.releaseStartTime(),
     tokenLock.startTime(),
-  ]).then((values) => values.map((e) => e.toNumber()))
+  ]).then(values => values.map(e => e.toNumber()))
   const time = Math.max(...values)
-  moveToTime(tokenLock, BigNumber.from(time), 60)
+  await moveToTime(tokenLock, BigNumber.from(time), 60)
 }
 
 const forEachPeriod = async (tokenLock: GraphTokenLockSimple, fn) => {
@@ -125,12 +126,12 @@ describe('GraphTokenLockSimple', () => {
   }
 
   before(async function () {
-    ;[deployer, beneficiary1, beneficiary2] = await getAccounts()
+    [deployer, beneficiary1, beneficiary2] = await getAccounts()
   })
 
-  describe('Init', async function () {
+  describe('Init', function () {
     it('Reject initialize with non-set revocability option', async function () {
-      ;({ grt, tokenLock } = await setupTest())
+      ({ grt, tokenLock } = await setupTest())
 
       const args = defaultInitArgs(deployer, beneficiary1, grt, toGRT('1000'))
       const tx = tokenLock
@@ -151,10 +152,10 @@ describe('GraphTokenLockSimple', () => {
     })
   })
 
-  createScheduleScenarios().forEach(async function (schedule) {
+  createScheduleScenarios().forEach(function (schedule) {
     describe('> Test scenario', function () {
       beforeEach(async function () {
-        ;({ grt, tokenLock } = await setupTest())
+        ({ grt, tokenLock } = await setupTest())
 
         const staticArgs = {
           owner: deployer.address,
@@ -243,7 +244,7 @@ describe('GraphTokenLockSimple', () => {
           })
         })
 
-        describe('periodDuration()', async function () {
+        describe('periodDuration()', function () {
           it('should match init parameters', async function () {
             const periodDuration = toBN(initArgs.endTime - initArgs.startTime).div(initArgs.periods)
             expect(await tokenLock.periodDuration()).eq(periodDuration)
@@ -300,7 +301,7 @@ describe('GraphTokenLockSimple', () => {
 
         describe('vestedAmount()', function () {
           it('should be fully vested if non-revocable', async function () {
-            const revocable = await tokenLock.revocable()
+            const revocable: Revocability = await tokenLock.revocable()
             const vestedAmount = await tokenLock.vestedAmount()
             if (revocable === Revocability.Disabled) {
               expect(vestedAmount).eq(await tokenLock.managedAmount())
@@ -324,7 +325,8 @@ describe('GraphTokenLockSimple', () => {
               // Before cliff no vested tokens
               if (cliffTime.gt(0) && currentTime.lt(cliffTime)) {
                 expectedAmount = BigNumber.from(0)
-              } else {
+              }
+              else {
                 // After last period we expect to have all managed tokens available
                 if (passedPeriods.lt(initArgs.periods)) {
                   expectedAmount = passedPeriods.mul(amountPerPeriod)

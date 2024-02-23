@@ -1,19 +1,20 @@
-import { constants, BigNumber, Wallet } from 'ethers'
-import { expect } from 'chai'
+import { BigNumber, constants, Wallet } from 'ethers'
 import { deployments, ethers } from 'hardhat'
+import { expect } from 'chai'
 
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-import { GraphTokenLockWallet } from '../build/typechain/contracts/GraphTokenLockWallet'
 import { GraphTokenLockManager } from '../build/typechain/contracts/GraphTokenLockManager'
+import { GraphTokenLockWallet } from '../build/typechain/contracts/GraphTokenLockWallet'
+import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 import { StakingMock } from '../build/typechain/contracts/StakingMock'
 
 import { Staking__factory } from '@graphprotocol/contracts/dist/types/factories/Staking__factory'
 
+import { Account, advanceBlocks, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
-import { advanceTimeAndBlock, getAccounts, getContract, toGRT, Account, randomHexBytes, advanceBlocks } from './network'
+import { DeployOptions } from 'hardhat-deploy/types'
 
 const { AddressZero, MaxUint256 } = constants
 
@@ -32,7 +33,7 @@ const moveToTime = async (tokenLock: GraphTokenLockWallet, target: BigNumber, bu
 
 // Fixture
 const setupTest = deployments.createFixture(async ({ deployments }) => {
-  const { deploy } = deployments
+  const deploy = (name: string, options: DeployOptions) => deployments.deploy(name, options)
   const [deployer] = await getAccounts()
 
   // Start from a fresh snapshot
@@ -93,22 +94,6 @@ describe('GraphTokenLockWallet', () => {
 
   let initArgs: TokenLockParameters
 
-  async function getState(tokenLock) {
-    const beneficiaryAddress = await tokenLock.beneficiary()
-    const ownerAddress = await tokenLock.owner()
-    return {
-      beneficiaryBalance: await grt.balanceOf(beneficiaryAddress),
-      contractBalance: await grt.balanceOf(tokenLock.address),
-      ownerBalance: await grt.balanceOf(ownerAddress),
-      releasableAmount: await tokenLock.releasableAmount(),
-      releasedAmount: await tokenLock.releasedAmount(),
-      revokedAmount: await tokenLock.revokedAmount(),
-      surplusAmount: await tokenLock.surplusAmount(),
-      managedAmount: await tokenLock.managedAmount(),
-      usedAmount: await tokenLock.usedAmount(),
-    }
-  }
-
   const initWithArgs = async (args: TokenLockParameters): Promise<GraphTokenLockWallet> => {
     const tx = await tokenLockManager.createTokenLockWallet(
       args.owner,
@@ -127,11 +112,11 @@ describe('GraphTokenLockWallet', () => {
   }
 
   before(async function () {
-    ;[deployer, beneficiary, hacker] = await getAccounts()
+    [deployer, beneficiary, hacker] = await getAccounts()
   })
 
   beforeEach(async () => {
-    ;({ grt, tokenLockManager, staking } = await setupTest())
+    ({ grt, tokenLockManager, staking } = await setupTest())
 
     // Setup authorized functions in Manager
     await authProtocolFunctions(tokenLockManager, staking.address)
@@ -155,7 +140,7 @@ describe('GraphTokenLockWallet', () => {
 
   describe('TokenLockManager', function () {
     it('revert if init with empty token', async function () {
-      const { deploy } = deployments
+      const deploy = (name: string, options: DeployOptions) => deployments.deploy(name, options)
 
       const d = deploy('GraphTokenLockManager', {
         from: deployer.address,
