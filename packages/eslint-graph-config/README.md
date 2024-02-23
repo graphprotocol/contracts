@@ -21,6 +21,28 @@ const config = require('eslint-graph-config')
 module.exports = config.default
   ```
 
+**Recommended config for existing projects**
+The default configuration is quite strict specially with the usage of `any` and it's derivatives. For existing projects with a codebase that was developed with more lenient guidelines migrating to this configuration can be a bit overwhelming. 
+
+You can customize your `eslint.config.js` file to disable some rules and make the transition easier. For example, you can create a `eslint.config.js` file with the following content:
+
+```javascript
+const config = require('eslint-graph-config')
+
+module.exports = [
+  ...config.default,
+  {
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+]
+```
+
 ## Tooling
 
 This package uses the following tools:
