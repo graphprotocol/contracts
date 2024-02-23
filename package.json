@@ -10,6 +10,7 @@
     "packages/contracts",
     "packages/eslint-graph-config",
     "packages/sdk",
+    "packages/solhint-graph-config",
     "packages/token-distribution"
   ],
   "scripts": {
