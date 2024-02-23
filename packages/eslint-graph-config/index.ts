@@ -5,13 +5,18 @@ import noSecrets from 'eslint-plugin-no-secrets'
 import stylistic from '@stylistic/eslint-plugin'
 import tseslint from 'typescript-eslint'
 
-export default tseslint.config(
+export default [
   // Base eslint configuration
   eslint.configs.recommended,
 
   // Enable linting with type information
   // https://typescript-eslint.io/getting-started/typed-linting
   ...tseslint.configs.recommendedTypeChecked,
+
+  // Formatting and stylistic rules
+  stylistic.configs['recommended-flat'],
+
+  // Custom config
   {
     languageOptions: {
       parserOptions: {
@@ -22,13 +27,6 @@ export default tseslint.config(
         ...globals.node,
       },
     },
-  },
-
-  // Formatting and stylistic rules
-  stylistic.configs['recommended-flat'],
-
-  // Custom rules
-  {
     plugins: {
       'no-only-tests': noOnlyTests,
       'no-secrets': noSecrets,
@@ -48,4 +46,4 @@ export default tseslint.config(
         }],
     },
   },
-)
+]
