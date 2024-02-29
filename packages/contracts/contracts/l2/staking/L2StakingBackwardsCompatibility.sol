@@ -4,36 +4,21 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { Staking } from "../../staking/Staking.sol";
+import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.sol";
 import { IL2StakingBase } from "./IL2StakingBase.sol";
 import { IL2Staking } from "./IL2Staking.sol";
-import { Stakes } from "../../staking/libs/Stakes.sol";
-
+import { IHorizonStaking } from "./IHorizonStaking.sol";
 /**
  * @title L2Staking contract
  * @dev This contract is the L2 variant of the Staking contract. It adds a function
  * to receive an indexer's stake or delegation from L1. Note that this contract inherits Staking,
  * which uses a StakingExtension contract to implement the full IStaking interface through delegatecalls.
  */
-contract L2Staking is Staking, IL2StakingBase {
+contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibility, IL2StakingBase {
     using SafeMath for uint256;
-    using Stakes for Stakes.Indexer;
 
     /// @dev Minimum amount of tokens that can be delegated
     uint256 private constant MINIMUM_DELEGATION = 1e18;
-
-    /**
-     * @dev Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
-     * gets `shares` for the delegation pool proportionally to the tokens staked.
-     * This is copied from IStakingExtension, but we can't inherit from it because we
-     * don't implement the full interface here.
-     */
-    event StakeDelegated(
-        address indexed indexer,
-        address indexed delegator,
-        uint256 tokens,
-        uint256 shares
-    );
 
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
@@ -98,12 +83,7 @@ contract L2Staking is Staking, IL2StakingBase {
     ) internal {
         address _indexer = _indexerData.indexer;
         // Deposit tokens into the indexer stake
-        __stakes[_indexer].deposit(_amount);
-
-        // Initialize the delegation pool the first time
-        if (__delegationPools[_indexer].updatedAtBlock == 0) {
-            _setDelegationParameters(_indexer, MAX_PPM, MAX_PPM);
-        }
+        __serviceProviders[_indexer].tokensStaked = __serviceProviders[_indexer].tokensStaked.add(_amount);
 
         emit StakeDeposited(_indexer, _amount);
     }
@@ -145,7 +125,7 @@ contract L2Staking is Staking, IL2StakingBase {
             // Update the individual delegation
             delegation.shares = delegation.shares.add(shares);
 
-            emit StakeDelegated(
+            emit IHorisonStaking.StakeDelegated(
                 _delegationData.indexer,
                 _delegationData.delegator,
                 _amount,
