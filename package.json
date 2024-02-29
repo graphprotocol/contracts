@@ -8,7 +8,9 @@
   "packageManager": "yarn@4.0.2",
   "workspaces": [
     "packages/contracts",
+    "packages/eslint-graph-config",
     "packages/sdk",
+    "packages/solhint-graph-config",
     "packages/token-distribution"
   ],
   "scripts": {
