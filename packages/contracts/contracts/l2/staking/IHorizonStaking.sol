@@ -21,24 +21,65 @@ interface IHorizonStaking is IHorizonStakingTypes {
      */
     event SetOperator(address indexed serviceProvider, address indexed operator, bool allowed);
 
+    /**
+     * @dev Emitted when a service provider provisions staked tokens to a verifier
+     */
+    event ProvisionCreated(
+        bytes32 indexed provisionId,
+        address indexed serviceProvider,
+        uint256 tokens,
+        address indexed verifier,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    );
+
+    /**
+     * @dev Emitted when a service provider increases the tokens in a provision
+     */
+    event ProvisionIncreased(bytes32 indexed provisionId, uint256 tokens);
+
+    /**
+     * @dev Emitted when a service provider initiates a thawing request
+     */
+    event ProvisionThawInitiated(
+        bytes32 indexed provisionId,
+        uint256 tokens,
+        bytes32 indexed thawRequestId
+    );
+
+    /**
+     * @dev Emitted when a service provider removes tokens from a provision after thawing
+     */
+    event ProvisionThawFulfilled(
+        bytes32 indexed provisionId,
+        uint256 tokens,
+        bytes32 indexed thawRequestId
+    );
+
     // whitelist/deny a verifier
     function allowVerifier(address _verifier) external;
+
     function denyVerifier(address _verifier) external;
 
     // deposit stake
     function stake(uint256 _tokens) external;
+
     function stakeTo(address _serviceProvider, uint256 _tokens) external;
 
     // create a provision
     function provision(
+        address _serviceProvider,
         uint256 _tokens,
         address _verifier,
-        uint256 _maxVerifierCut,
-        uint256 _thawingPeriod
-    ) external;
+        uint32 _maxVerifierCut,
+        uint64 _thawingPeriod
+    ) external returns (bytes32);
 
     // initiate a thawing to remove tokens from a provision
     function thaw(bytes32 _provisionId, uint256 _tokens) external returns (bytes32);
+
+    // add more tokens from idle stake to an existing provision
+    function addToProvision(bytes32 _provisionId, uint256 _tokens) external;
 
     // moves thawed stake from a provision back into the provider's available stake
     function deprovision(bytes32 _thawRequestId) external;

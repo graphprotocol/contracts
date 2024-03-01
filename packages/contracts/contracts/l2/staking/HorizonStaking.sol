@@ -13,6 +13,11 @@ import { MathUtils } from "../../staking/libs/MathUtils.sol";
 contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     using SafeMath for uint256;
 
+    /// Maximum value that can be set as the maxVerifierCut in a provision.
+    /// It is equivalent to 50% in parts-per-million, to protect delegators from
+    /// service providers using a malicious verifier.
+    uint32 public constant MAX_MAX_VERIFIER_CUT = 500000; // 50%
+
     /**
      * @notice Allow verifier for stake provisions.
      * After calling this, and a timelock period, the service provider will
@@ -64,12 +69,40 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
 
     // create a provision
     function provision(
+        address _serviceProvider,
         uint256 _tokens,
         address _verifier,
-        uint256 _maxVerifierCut,
-        uint256 _thawingPeriod
-    ) external override {
-        // TODO
+        uint32 _maxVerifierCut,
+        uint64 _thawingPeriod
+    ) external override returns (bytes32) {
+        require(_isAuth(_serviceProvider), "!auth");
+        require(_tokens > 0, "!tokens");
+        require(getCapacity(_serviceProvider) >= _tokens, "insufficient capacity");
+        require(_maxVerifierCut <= MAX_MAX_VERIFIER_CUT, "maxVerifierCut too high");
+        require(_thawingPeriod <= maxThawingPeriod, "thawingPeriod too high");
+        require(verifierAllowlist[_serviceProvider][_verifier] > 0, "verifier not allowed");
+        require(
+            block.timestamp >= verifierAllowlist[_serviceProvider][_verifier].add(verifierTimelock),
+            "verifier timelock"
+        );
+
+        return
+            _createProvision(_serviceProvider, _tokens, _verifier, _maxVerifierCut, _thawingPeriod);
+    }
+
+    // add more tokens from idle stake to an existing provision
+    function addToProvision(bytes32 _provisionId, uint256 _tokens) external override {
+        Provision storage prov = provisions[_provisionId];
+        address serviceProvider = prov.serviceProvider;
+        require(_isAuth(serviceProvider), "!auth");
+        require(_tokens > 0, "!tokens");
+        require(getCapacity(serviceProvider) >= _tokens, "insufficient capacity");
+
+        prov.tokens = prov.tokens.add(_tokens);
+        __serviceProviders[serviceProvider].tokensProvisioned = __serviceProviders[serviceProvider]
+            .tokensProvisioned
+            .add(_tokens);
+        emit ProvisionIncreased(_provisionId, _tokens);
     }
 
     // initiate a thawing to remove tokens from a provision
@@ -119,14 +152,15 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     }
 
     // set the Service Provider's preferred provisions to be force thawed
-    function setForceThawProvisions(bytes32[] calldata provisions) external override {
-
-    }
+    function setForceThawProvisions(bytes32[] calldata provisions) external override {}
 
     // total staked tokens to the provider
     // `ServiceProvider.tokensStaked + DelegationPool.serviceProvider.tokens`
     function getStake(address serviceProvider) public view override returns (uint256 tokens) {
-        return __serviceProviders[serviceProvider].tokensStaked.add(__delegationPools[serviceProvider].tokens);
+        return
+            __serviceProviders[serviceProvider].tokensStaked.add(
+                __delegationPools[serviceProvider].tokens
+            );
     }
 
     // staked tokens that are currently not provisioned, aka idle stake
@@ -138,10 +172,15 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     // staked tokens the provider can provision before hitting the delegation cap
     // `ServiceProvider.tokensStaked * Staking.delegationRatio - ServiceProvider.tokensProvisioned`
     function getCapacity(address _serviceProvider) public view override returns (uint256) {
-        return MathUtils.min(
-            getStake(_serviceProvider),
-            __serviceProviders[_serviceProvider].tokensStaked.mul(uint256(__delegationRatio).add(1))
-        ).sub(__serviceProviders[_serviceProvider].tokensProvisioned);
+        return
+            MathUtils
+                .min(
+                    getStake(_serviceProvider),
+                    __serviceProviders[_serviceProvider].tokensStaked.mul(
+                        uint256(__delegationRatio).add(1)
+                    )
+                )
+                .sub(__serviceProviders[_serviceProvider].tokensProvisioned);
     }
 
     // provisioned tokens that are not being used
@@ -154,16 +193,17 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         public
         view
         override
-        returns (ServiceProvider memory) {
-            ServiceProvider memory sp;
-            ServiceProviderInternal storage spInternal = __serviceProviders[serviceProvider];
-            sp.tokensStaked = spInternal.tokensStaked;
-            sp.tokensProvisioned = spInternal.tokensProvisioned;
-            sp.tokensRequestedThaw = spInternal.tokensRequestedThaw;
-            sp.tokensFulfilledThaw = spInternal.tokensFulfilledThaw;
-            sp.forceThawProvisions = spInternal.forceThawProvisions;
-            return sp;
-        }
+        returns (ServiceProvider memory)
+    {
+        ServiceProvider memory sp;
+        ServiceProviderInternal storage spInternal = __serviceProviders[serviceProvider];
+        sp.tokensStaked = spInternal.tokensStaked;
+        sp.tokensProvisioned = spInternal.tokensProvisioned;
+        sp.tokensRequestedThaw = spInternal.tokensRequestedThaw;
+        sp.tokensFulfilledThaw = spInternal.tokensFulfilledThaw;
+        sp.forceThawProvisions = spInternal.forceThawProvisions;
+        return sp;
+    }
 
     function getProvision(bytes32 _provisionId) public view override returns (Provision memory) {
         return provisions[_provisionId];
@@ -179,6 +219,38 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         __operatorAuth[msg.sender][_operator] = _allowed;
         emit SetOperator(msg.sender, _operator, _allowed);
     }
+
+    /**
+     * @dev Creates a provision
+     */
+    function _createProvision(
+        address _serviceProvider,
+        uint256 _tokens,
+        address _verifier,
+        uint32 _maxVerifierCut,
+        uint64 _thawingPeriod
+    ) internal returns (bytes32) {
+        ServiceProviderInternal storage sp = __serviceProviders[_serviceProvider];
+        bytes32 provisionId = keccak256(abi.encodePacked(_serviceProvider, sp.nextProvisionNonce));
+        ++sp.nextProvisionNonce;
+        provisions[provisionId] = Provision({
+            serviceProvider: _serviceProvider,
+            tokens: _tokens,
+            tokensThawing: 0,
+            createdAt: uint64(block.timestamp),
+            verifier: _verifier,
+            maxVerifierCut: _maxVerifierCut,
+            thawingPeriod: _thawingPeriod
+        });
+        sp.tokensProvisioned = sp.tokensProvisioned.add(_tokens);
+
+        emit ProvisionCreated(
+            provisionId,
+            _serviceProvider,
+            _tokens,
+            _verifier,
+            _maxVerifierCut,
+            _thawingPeriod
+        );
+    }
 }
-
-

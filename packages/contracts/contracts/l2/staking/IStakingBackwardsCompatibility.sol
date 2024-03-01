@@ -12,7 +12,6 @@ pragma abicoder v2;
  * that includes the full functionality.
  */
 interface IStakingBackwardsCompatibility {
-
     /**
      * @dev Emitted when `delegator` delegated `tokens` to the `serviceProvider`, the delegator
      * gets `shares` for the delegation pool proportionally to the tokens staked.

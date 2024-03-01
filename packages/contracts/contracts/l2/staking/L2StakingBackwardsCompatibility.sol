@@ -8,6 +8,7 @@ import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.s
 import { IL2StakingBase } from "./IL2StakingBase.sol";
 import { IL2Staking } from "./IL2Staking.sol";
 import { IHorizonStaking } from "./IHorizonStaking.sol";
+
 /**
  * @title L2Staking contract
  * @dev This contract is the L2 variant of the Staking contract. It adds a function
@@ -83,9 +84,7 @@ contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibility, IL2St
     ) internal {
         address _indexer = _indexerData.indexer;
         // Deposit tokens into the indexer stake
-        __serviceProviders[_indexer].tokensStaked = __serviceProviders[_indexer].tokensStaked.add(_amount);
-
-        emit StakeDeposited(_indexer, _amount);
+        _stake(_indexer, _amount);
     }
 
     /**

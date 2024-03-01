@@ -28,7 +28,12 @@ import { IStakingBackwardsCompatibility } from "./IStakingBackwardsCompatibility
  * Note that this contract delegates part of its functionality to a StakingExtension contract.
  * This is due to the 24kB contract size limit on Ethereum.
  */
-abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, GraphUpgradeable, Multicall, IStakingBackwardsCompatibility {
+abstract contract StakingBackwardsCompatibility is
+    HorizonStakingV1Storage,
+    GraphUpgradeable,
+    Multicall,
+    IStakingBackwardsCompatibility
+{
     using SafeMath for uint256;
 
     /// @dev 100% in parts per million
@@ -234,7 +239,12 @@ abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, Grap
      * @param _serviceProvider Address of the service provider
      * @return True if operator is allowed for indexer, false otherwise
      */
-    function isOperator(address _operator, address _serviceProvider) public view override returns (bool) {
+    function isOperator(address _operator, address _serviceProvider)
+        public
+        view
+        override
+        returns (bool)
+    {
         return __operatorAuth[_serviceProvider][_operator];
     }
 
@@ -298,13 +308,15 @@ abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, Grap
             }
 
             // Free allocated tokens from use
-            __serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated =  __serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated.sub(alloc.tokens);
+            __serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated = __serviceProviders[
+                alloc.indexer
+            ].__DEPRECATED_tokensAllocated.sub(alloc.tokens);
 
             // Track total allocations per subgraph
             // Used for rewards calculations
-            __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] = __DEPRECATED_subgraphAllocations[
+            __DEPRECATED_subgraphAllocations[
                 alloc.subgraphDeploymentID
-            ].sub(alloc.tokens);
+            ] = __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID].sub(alloc.tokens);
         }
 
         emit AllocationClosed(
@@ -354,7 +366,9 @@ abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, Grap
         uint256 delegationRewards = 0;
         DelegationPool storage pool = __delegationPools[_indexer];
         if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
-            uint256 indexerCut = uint256(pool.__DEPRECATED_indexingRewardCut).mul(_tokens).div(MAX_PPM);
+            uint256 indexerCut = uint256(pool.__DEPRECATED_indexingRewardCut).mul(_tokens).div(
+                MAX_PPM
+            );
             delegationRewards = _tokens.sub(indexerCut);
             pool.tokens = pool.tokens.add(delegationRewards);
         }
@@ -504,7 +518,7 @@ abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, Grap
      * @param _indexer Indexer address
      * @return True if the caller is authorized to operate on behalf of the indexer
      */
-    function _isAuth(address _indexer) private view returns (bool) {
+    function _isAuth(address _indexer) internal view returns (bool) {
         return msg.sender == _indexer || isOperator(msg.sender, _indexer) == true;
     }
 
@@ -535,7 +549,9 @@ abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, Grap
      */
     function _stake(address _serviceProvider, uint256 _tokens) internal {
         // Deposit tokens into the indexer stake
-        __serviceProviders[_serviceProvider].tokensStaked = __serviceProviders[_serviceProvider].tokensStaked.add(_tokens);
+        __serviceProviders[_serviceProvider].tokensStaked = __serviceProviders[_serviceProvider]
+            .tokensStaked
+            .add(_tokens);
 
         emit StakeDeposited(_serviceProvider, _tokens);
     }

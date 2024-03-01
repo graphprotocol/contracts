@@ -32,6 +32,8 @@ interface IHorizonStakingTypes {
         uint256 tokensFulfilledThaw;
         // provisions that take priority for undelegation force thawing
         bytes32[] forceThawProvisions;
+        // Next nonce to be used to generate provision IDs
+        uint256 nextProvisionNonce;
     }
 
     struct DelegationPool {
@@ -81,6 +83,7 @@ interface IHorizonStakingTypes {
         uint256 tokensFulfilledThaw;
         // provisions that take priority for undelegation force thawing
         bytes32[] forceThawProvisions;
+        // Next nonce to be used to generate provision IDs
+        uint256 nextProvisionNonce;
     }
-
 }
