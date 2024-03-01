@@ -10,15 +10,13 @@ import { Multicall } from "../../base/Multicall.sol";
 import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../../utils/TokenUtils.sol";
 import { IGraphToken } from "../../token/IGraphToken.sol";
-import { IStakingBase } from "../../staking/IStakingBase.sol";
-import { StakingV5Storage } from "../../staking/StakingStorage.sol";
+import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 import { MathUtils } from "../../staking/libs/MathUtils.sol";
 import { Managed } from "../../governance/Managed.sol";
 import { ICuration } from "../../curation/ICuration.sol";
 import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
 import { LibExponential } from "../../staking/libs/Exponential.sol";
-import { IStakingData } from "../../staking/IStakingData.sol";
-import { IStakingBase } from "../../staking/IStakingBase.sol";
+import { IStakingBackwardsCompatibility } from "./IStakingBackwardsCompatibility.sol";
 
 /**
  * @title Base Staking contract
@@ -30,7 +28,7 @@ import { IStakingBase } from "../../staking/IStakingBase.sol";
  * Note that this contract delegates part of its functionality to a StakingExtension contract.
  * This is due to the 24kB contract size limit on Ethereum.
  */
-abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgradeable, Multicall {
+abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, GraphUpgradeable, Multicall, IStakingBackwardsCompatibility {
     using SafeMath for uint256;
 
     /// @dev 100% in parts per million
@@ -75,8 +73,8 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
         require(_allocationID != address(0), "!alloc");
 
         // Allocation must exist
-        IStakingBase.AllocationState allocState = _getAllocationState(_allocationID);
-        require(allocState != IStakingBase.AllocationState.Null, "!collect");
+        AllocationState allocState = _getAllocationState(_allocationID);
+        require(allocState != AllocationState.Null, "!collect");
 
         // If the query fees are zero, we don't want to revert
         // but we also don't need to do anything, so just return
@@ -84,7 +82,7 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
             return;
         }
 
-        IStakingData.Allocation storage alloc = __DEPRECATED_allocations[_allocationID];
+        Allocation storage alloc = __DEPRECATED_allocations[_allocationID];
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
 
         uint256 queryFees = _tokens; // Tokens collected from the channel
@@ -182,7 +180,7 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
      * @return True if allocationID already used
      */
     function isAllocation(address _allocationID) external view override returns (bool) {
-        return _getAllocationState(_allocationID) != IStakingBase.AllocationState.Null;
+        return _getAllocationState(_allocationID) != AllocationState.Null;
     }
 
     /**
@@ -195,7 +193,7 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
         external
         view
         override
-        returns (IStakingData.Allocation memory)
+        returns (Allocation memory)
     {
         return __DEPRECATED_allocations[_allocationID];
     }
@@ -204,13 +202,13 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
      * @notice Return the current state of an allocation
      * @dev TODO: Remove after Horizon transition period
      * @param _allocationID Allocation identifier
-     * @return IStakingBase.AllocationState enum with the state of the allocation
+     * @return AllocationState enum with the state of the allocation
      */
     function getAllocationState(address _allocationID)
         external
         view
         override
-        returns (IStakingBase.AllocationState)
+        returns (AllocationState)
     {
         return _getAllocationState(_allocationID);
     }
@@ -230,6 +228,17 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
     }
 
     /**
+     * @notice Return true if operator is allowed for the service provider.
+     * @dev TODO: Move to HorizonStaking after the transition period
+     * @param _operator Address of the operator
+     * @param _serviceProvider Address of the service provider
+     * @return True if operator is allowed for indexer, false otherwise
+     */
+    function isOperator(address _operator, address _serviceProvider) public view override returns (bool) {
+        return __operatorAuth[_serviceProvider][_operator];
+    }
+
+    /**
      * @notice Get the total amount of tokens staked by the indexer.
      * @param _indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
@@ -239,150 +248,12 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
     }
 
     /**
-     * @notice Deposit tokens on the Indexer stake, on behalf of the Indexer.
-     * The amount staked must be over the minimumIndexerStake.
+     * @notice Getter that returns if an indexer has any stake.
      * @param _indexer Address of the indexer
-     * @param _tokens Amount of tokens to stake
+     * @return True if indexer has staked tokens
      */
-    function stakeTo(address _indexer, uint256 _tokens) public override notPartialPaused {
-        require(_tokens > 0, "!tokens");
-
-        // Transfer tokens to stake from caller to this contract
-        TokenUtils.pullTokens(graphToken(), msg.sender, _tokens);
-
-        // Stake the transferred tokens
-        _stake(_indexer, _tokens);
-    }
-
-    /**
-     * @notice Set the delegation parameters for the caller.
-     * @param _indexingRewardCut Percentage of indexing rewards left for the indexer
-     * @param _queryFeeCut Percentage of query fees left for the indexer
-     */
-    function setDelegationParameters(
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
-        uint32 // _cooldownBlocks, deprecated
-    ) public override {
-        _setDelegationParameters(msg.sender, _indexingRewardCut, _queryFeeCut);
-    }
-
-    /**
-     * @notice Get the total amount of tokens available to use in allocations.
-     * This considers the indexer stake and delegated tokens according to delegation ratio
-     * @param _indexer Address of the indexer
-     * @return Amount of tokens available to allocate including delegation
-     */
-    function getIndexerCapacity(address _indexer) public view override returns (uint256) {
-        Stakes.Indexer memory indexerStake = __stakes[_indexer];
-        uint256 tokensDelegated = __delegationPools[_indexer].tokens;
-
-        uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(
-            uint256(__delegationRatio)
-        );
-        uint256 tokensDelegatedCapacity = MathUtils.min(tokensDelegated, tokensDelegatedCap);
-
-        return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
-    }
-
-    /**
-     * @notice Return true if operator is allowed for indexer.
-     * @param _operator Address of the operator
-     * @param _indexer Address of the indexer
-     * @return True if operator is allowed for indexer, false otherwise
-     */
-    function isOperator(address _operator, address _indexer) public view override returns (bool) {
-        return __operatorAuth[_indexer][_operator];
-    }
-
-    /**
-     * @dev Internal: Set the minimum indexer stake required.
-     * @param _minimumIndexerStake Minimum indexer stake
-     */
-    function _setMinimumIndexerStake(uint256 _minimumIndexerStake) private {
-        require(_minimumIndexerStake > 0, "!minimumIndexerStake");
-        __minimumIndexerStake = _minimumIndexerStake;
-        emit ParameterUpdated("minimumIndexerStake");
-    }
-
-    /**
-     * @dev Internal: Set the thawing period for unstaking.
-     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
-     */
-    function _setThawingPeriod(uint32 _thawingPeriod) private {
-        require(_thawingPeriod > 0, "!thawingPeriod");
-        __thawingPeriod = _thawingPeriod;
-        emit ParameterUpdated("thawingPeriod");
-    }
-
-    /**
-     * @dev Internal: Set the curation percentage of query fees sent to curators.
-     * @param _percentage Percentage of query fees sent to curators
-     */
-    function _setCurationPercentage(uint32 _percentage) private {
-        // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, ">percentage");
-        __curationPercentage = _percentage;
-        emit ParameterUpdated("curationPercentage");
-    }
-
-    /**
-     * @dev Internal: Set a protocol percentage to burn when collecting query fees.
-     * @param _percentage Percentage of query fees to burn as protocol fee
-     */
-    function _setProtocolPercentage(uint32 _percentage) private {
-        // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, ">percentage");
-        __protocolPercentage = _percentage;
-        emit ParameterUpdated("protocolPercentage");
-    }
-
-    /**
-     * @dev Internal: Set the max time allowed for indexers stake on allocations.
-     * @param _maxAllocationEpochs Allocation duration limit in epochs
-     */
-    function _setMaxAllocationEpochs(uint32 _maxAllocationEpochs) private {
-        __maxAllocationEpochs = _maxAllocationEpochs;
-        emit ParameterUpdated("maxAllocationEpochs");
-    }
-
-    /**
-     * @dev Set the rebate parameters.
-     * @param _alphaNumerator Numerator of `alpha` in the rebates function
-     * @param _alphaDenominator Denominator of `alpha` in the rebates function
-     * @param _lambdaNumerator Numerator of `lambda` in the rebates function
-     * @param _lambdaDenominator Denominator of `lambda` in the rebates function
-     */
-    function _setRebateParameters(
-        uint32 _alphaNumerator,
-        uint32 _alphaDenominator,
-        uint32 _lambdaNumerator,
-        uint32 _lambdaDenominator
-    ) private {
-        require(_alphaDenominator > 0, "!alphaDenominator");
-        require(_lambdaNumerator > 0, "!lambdaNumerator");
-        require(_lambdaDenominator > 0, "!lambdaDenominator");
-        __alphaNumerator = _alphaNumerator;
-        __alphaDenominator = _alphaDenominator;
-        __lambdaNumerator = _lambdaNumerator;
-        __lambdaDenominator = _lambdaDenominator;
-        emit ParameterUpdated("rebateParameters");
-    }
-
-
-    /**
-     * @dev Withdraw indexer tokens once the thawing period has passed.
-     * @param _indexer Address of indexer to withdraw funds from
-     */
-    function _withdraw(address _indexer) private {
-        // Get tokens available for withdraw and update balance
-        uint256 tokensToWithdraw = __stakes[_indexer].withdrawTokens();
-        require(tokensToWithdraw > 0, "!tokens");
-
-        // Return tokens to the indexer
-        TokenUtils.pushTokens(graphToken(), _indexer, tokensToWithdraw);
-
-        emit StakeWithdrawn(_indexer, tokensToWithdraw);
+    function hasStake(address _indexer) external view override returns (bool) {
+        return __serviceProviders[_indexer].tokensStaked > 0;
     }
 
     /**
@@ -392,11 +263,11 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
      */
     function _closeAllocation(address _allocationID, bytes32 _poi) private {
         // Allocation must exist and be active
-        IStakingBase.AllocationState allocState = _getAllocationState(_allocationID);
-        require(allocState == IStakingBase.AllocationState.Active, "!active");
+        AllocationState allocState = _getAllocationState(_allocationID);
+        require(allocState == AllocationState.Active, "!active");
 
         // Get allocation
-        IStakingData.Allocation memory alloc = __allocations[_allocationID];
+        Allocation memory alloc = __DEPRECATED_allocations[_allocationID];
 
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = epochManager().currentEpoch();
@@ -408,12 +279,12 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
         bool isIndexer = _isAuth(alloc.indexer);
-        if (epochs <= __maxAllocationEpochs || alloc.tokens == 0) {
+        if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
             require(isIndexer, "!auth");
         }
 
         // Close the allocation
-        __allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
+        __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         // -- Rewards Distribution --
 
@@ -427,11 +298,11 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
             }
 
             // Free allocated tokens from use
-            __stakes[alloc.indexer].unallocate(alloc.tokens);
+            __serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated =  __serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated.sub(alloc.tokens);
 
             // Track total allocations per subgraph
             // Used for rewards calculations
-            __subgraphAllocations[alloc.subgraphDeploymentID] = __subgraphAllocations[
+            __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] = __DEPRECATED_subgraphAllocations[
                 alloc.subgraphDeploymentID
             ].sub(alloc.tokens);
         }
@@ -461,8 +332,8 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
     {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = __delegationPools[_indexer];
-        if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
-            uint256 indexerCut = uint256(pool.queryFeeCut).mul(_tokens).div(MAX_PPM);
+        if (pool.tokens > 0 && pool.__DEPRECATED_queryFeeCut < MAX_PPM) {
+            uint256 indexerCut = uint256(pool.__DEPRECATED_queryFeeCut).mul(_tokens).div(MAX_PPM);
             delegationRewards = _tokens.sub(indexerCut);
             pool.tokens = pool.tokens.add(delegationRewards);
         }
@@ -482,8 +353,8 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
     {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = __delegationPools[_indexer];
-        if (pool.tokens > 0 && pool.indexingRewardCut < MAX_PPM) {
-            uint256 indexerCut = uint256(pool.indexingRewardCut).mul(_tokens).div(MAX_PPM);
+        if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
+            uint256 indexerCut = uint256(pool.__DEPRECATED_indexingRewardCut).mul(_tokens).div(MAX_PPM);
             delegationRewards = _tokens.sub(indexerCut);
             pool.tokens = pool.tokens.add(delegationRewards);
         }
@@ -640,19 +511,32 @@ abstract contract StakingBackwardsCompatibility is StakingV5Storage, GraphUpgrad
     /**
      * @dev Return the current state of an allocation
      * @param _allocationID Allocation identifier
-     * @return IStakingBase.AllocationState enum with the state of the allocation
+     * @return AllocationState enum with the state of the allocation
      */
-    function _getAllocationState(address _allocationID) private view returns (IStakingBase.AllocationState) {
-        Allocation storage alloc = __allocations[_allocationID];
+    function _getAllocationState(address _allocationID) private view returns (AllocationState) {
+        Allocation storage alloc = __DEPRECATED_allocations[_allocationID];
 
         if (alloc.indexer == address(0)) {
-            return IStakingBase.AllocationState.Null;
+            return AllocationState.Null;
         }
 
         if (alloc.createdAtEpoch != 0 && alloc.closedAtEpoch == 0) {
-            return IStakingBase.AllocationState.Active;
+            return AllocationState.Active;
         }
 
-        return IStakingBase.AllocationState.Closed;
+        return AllocationState.Closed;
+    }
+
+    /**
+     * @dev Stake tokens on the service provider.
+     * TODO: Move to HorizonStaking after the transition period
+     * @param _serviceProvider Address of staking party
+     * @param _tokens Amount of tokens to stake
+     */
+    function _stake(address _serviceProvider, uint256 _tokens) internal {
+        // Deposit tokens into the indexer stake
+        __serviceProviders[_serviceProvider].tokensStaked = __serviceProviders[_serviceProvider].tokensStaked.add(_tokens);
+
+        emit StakeDeposited(_serviceProvider, _tokens);
     }
 }

@@ -3,9 +3,12 @@
 pragma solidity 0.7.6;
 pragma abicoder v2;
 
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
 import { IHorizonStaking } from "./IHorizonStaking.sol";
-import { StakingV5Storage } from "../../staking/StakingStorage.sol";
 import { L2StakingBackwardsCompatibility } from "./L2StakingBackwardsCompatibility.sol";
+import { TokenUtils } from "../../utils/TokenUtils.sol";
+import { MathUtils } from "../../staking/libs/MathUtils.sol";
 
 contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     using SafeMath for uint256;
@@ -99,11 +102,11 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     function undelegate(
         address serviceProvider,
         uint256 tokens,
-        bytes32[] provisions
-    ) external override returns (bytes32[]) {
+        bytes32[] calldata provisions
+    ) external override returns (bytes32[] memory) {
         // TODO
-        bytes32[] memory thawRequests = [];
-        return new thawRequests;
+        bytes32[] memory thawRequests;
+        return thawRequests;
     }
 
     // slash a service provider
@@ -111,22 +114,24 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         bytes32 provisionId,
         uint256 tokens,
         uint256 verifierAmount
-    ) external;
+    ) external override {
+        // TODO
+    }
 
     // set the Service Provider's preferred provisions to be force thawed
-    function setForceThawProvisions(bytes32[] provisions) external override {
+    function setForceThawProvisions(bytes32[] calldata provisions) external override {
 
     }
 
     // total staked tokens to the provider
     // `ServiceProvider.tokensStaked + DelegationPool.serviceProvider.tokens`
-    function getStake(address serviceProvider) public view returns (uint256 tokens) {
-        return __serviceProviders[serviceProvider].tokensStaked.add(delegationPools[serviceProvider].tokens);
+    function getStake(address serviceProvider) public view override returns (uint256 tokens) {
+        return __serviceProviders[serviceProvider].tokensStaked.add(__delegationPools[serviceProvider].tokens);
     }
 
     // staked tokens that are currently not provisioned, aka idle stake
     // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
-    function getIdleStake(address serviceProvider) public view returns (uint256 tokens) {
+    function getIdleStake(address serviceProvider) public view override returns (uint256 tokens) {
         return getStake(serviceProvider).sub(__serviceProviders[serviceProvider].tokensProvisioned);
     }
 
@@ -148,6 +153,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     function getServiceProvider(address serviceProvider)
         public
         view
+        override
         returns (ServiceProvider memory) {
             ServiceProvider memory sp;
             ServiceProviderInternal storage spInternal = __serviceProviders[serviceProvider];
@@ -159,7 +165,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
             return sp;
         }
 
-    function getProvision(bytes32 _provisionId) public view returns (Provision memory) {
+    function getProvision(bytes32 _provisionId) public view override returns (Provision memory) {
         return provisions[_provisionId];
     }
 
@@ -172,36 +178,6 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         require(_operator != msg.sender, "operator == sender");
         __operatorAuth[msg.sender][_operator] = _allowed;
         emit SetOperator(msg.sender, _operator, _allowed);
-    }
-
-    /**
-     * @notice Getter that returns if an indexer has any stake.
-     * @param _serviceProvider Address of the indexer
-     * @return True if indexer has staked tokens
-     */
-    function hasStake(address _serviceProvider) external view override returns (bool) {
-        return __serviceProviders[_serviceProvider].tokensStaked > 0;
-    }
-
-    /**
-     * @notice Get the total amount of tokens staked by the service provider (without delegation).
-     * @param _serviceProvider Address of the indexer
-     * @return Amount of tokens staked by the indexer
-     */
-    function getIndexerStakedTokens(address _serviceProvider) external view override returns (uint256) {
-        return __serviceProviders[_serviceProvider].tokensStaked;
-    }
-
-    /**
-     * @dev Stake tokens on the service provider.
-     * @param _serviceProvider Address of staking party
-     * @param _tokens Amount of tokens to stake
-     */
-    function _stake(address _serviceProvider, uint256 _tokens) internal {
-        // Deposit tokens into the indexer stake
-        __serviceProviders[_serviceProvider].tokensStaked = __serviceProviders[_serviceProvider].tokensStaked.add(_tokens);
-
-        emit StakeDeposited(_serviceProvider, _tokens);
     }
 }
 

@@ -125,7 +125,7 @@ contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibility, IL2St
             // Update the individual delegation
             delegation.shares = delegation.shares.add(shares);
 
-            emit IHorisonStaking.StakeDelegated(
+            emit StakeDelegated(
                 _delegationData.indexer,
                 _delegationData.delegator,
                 _amount,

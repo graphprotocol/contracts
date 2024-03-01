@@ -7,20 +7,19 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 
 interface IHorizonStaking is IHorizonStakingTypes {
     /**
-     * @dev Emitted when `delegator` delegated `tokens` to the `serviceProvider`, the delegator
-     * gets `shares` for the delegation pool proportionally to the tokens staked.
+     * @dev Emitted when serviceProvider allows a verifier
      */
-    event StakeDelegated(
-        address indexed serviceProvider,
-        address indexed delegator,
-        uint256 tokens,
-        uint256 shares
-    );
+    event VerifierAllowed(address indexed serviceProvider, address indexed verifier);
 
     /**
-     * @dev Emitted when `serviceProvider` stakes `tokens` amount.
+     * @dev Emitted when serviceProvider denies a verifier
      */
-    event StakeDeposited(address indexed serviceProvider, uint256 tokens);
+    event VerifierDenied(address indexed serviceProvider, address indexed verifier);
+
+    /**
+     * @dev Emitted when an operator is allowed or denied by a service provider
+     */
+    event SetOperator(address indexed serviceProvider, address indexed operator, bool allowed);
 
     // whitelist/deny a verifier
     function allowVerifier(address _verifier) external;
@@ -28,6 +27,7 @@ interface IHorizonStaking is IHorizonStakingTypes {
 
     // deposit stake
     function stake(uint256 _tokens) external;
+    function stakeTo(address _serviceProvider, uint256 _tokens) external;
 
     // create a provision
     function provision(
@@ -56,8 +56,8 @@ interface IHorizonStaking is IHorizonStakingTypes {
     function undelegate(
         address _serviceProvider,
         uint256 _tokens,
-        bytes32[] _provisions
-    ) external returns (bytes32[]);
+        bytes32[] calldata _provisions
+    ) external returns (bytes32[] memory);
 
     // slash a service provider
     function slash(
@@ -67,7 +67,7 @@ interface IHorizonStaking is IHorizonStakingTypes {
     ) external;
 
     // set the Service Provider's preferred provisions to be force thawed
-    function setForceThawProvisions(bytes32[] _provisions) external;
+    function setForceThawProvisions(bytes32[] calldata _provisions) external;
 
     // total staked tokens to the provider
     // `ServiceProvider.tokensStaked + DelegationPool.serviceProvider.tokens`
@@ -91,4 +91,11 @@ interface IHorizonStaking is IHorizonStakingTypes {
         returns (ServiceProvider memory);
 
     function getProvision(bytes32 _provisionId) external view returns (Provision memory);
+
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller.
+     * @param _operator Address to authorize or unauthorize
+     * @param _allowed Whether the operator is authorized or not
+     */
+    function setOperator(address _operator, bool _allowed) external;
 }
