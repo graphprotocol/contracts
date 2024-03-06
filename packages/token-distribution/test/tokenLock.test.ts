@@ -325,8 +325,7 @@ describe('GraphTokenLockSimple', () => {
               // Before cliff no vested tokens
               if (cliffTime.gt(0) && currentTime.lt(cliffTime)) {
                 expectedAmount = BigNumber.from(0)
-              }
-              else {
+              } else {
                 // After last period we expect to have all managed tokens available
                 if (passedPeriods.lt(initArgs.periods)) {
                   expectedAmount = passedPeriods.mul(amountPerPeriod)

@@ -44,6 +44,7 @@ export default [
           ignoreCase: true,
           allowSeparatedGroups: true,
         }],
+      '@stylistic/brace-style': ['error', '1tbs'],
     },
   },
 ]
