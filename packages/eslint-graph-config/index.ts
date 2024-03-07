@@ -31,7 +31,6 @@ export default [
       'no-only-tests': noOnlyTests,
       'no-secrets': noSecrets,
     },
-    ignores: ['dist/*', 'node_modules/*', 'build/*'],
     rules: {
       'prefer-const': 'warn',
       '@typescript-eslint/no-inferrable-types': 'warn',
@@ -46,5 +45,8 @@ export default [
         }],
       '@stylistic/brace-style': ['error', '1tbs'],
     },
+  },
+  {
+    ignores: ['**/dist/*', '**/node_modules/*', '**/build/*', '**/cache/*', '**/.graphclient/*'],
   },
 ]
