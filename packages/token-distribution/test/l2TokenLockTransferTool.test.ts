@@ -1,26 +1,27 @@
+import { deployments, ethers, upgrades } from 'hardhat'
 import { constants } from 'ethers'
 import { expect } from 'chai'
-import { deployments, ethers, upgrades } from 'hardhat'
 
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
 import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-import { L2GraphTokenLockWallet } from '../build/typechain/contracts/L2GraphTokenLockWallet'
 import { L2GraphTokenLockManager } from '../build/typechain/contracts/L2GraphTokenLockManager'
-import { L2TokenGatewayMock } from '../build/typechain/contracts/L2TokenGatewayMock'
 import { L2GraphTokenLockTransferTool } from '../build/typechain/contracts/L2GraphTokenLockTransferTool'
 import { L2GraphTokenLockTransferTool__factory } from '../build/typechain/contracts/factories/L2GraphTokenLockTransferTool__factory'
+import { L2GraphTokenLockWallet } from '../build/typechain/contracts/L2GraphTokenLockWallet'
+import { L2TokenGatewayMock } from '../build/typechain/contracts/L2TokenGatewayMock'
 
-import { defaultInitArgs, TokenLockParameters } from './config'
-import { getAccounts, getContract, toGRT, Account, toBN } from './network'
+import { Account, getAccounts, getContract, toBN, toGRT } from './network'
 import { defaultAbiCoder, keccak256 } from 'ethers/lib/utils'
+import { defaultInitArgs, TokenLockParameters } from './config'
+import { DeployOptions } from 'hardhat-deploy/types'
 
 const { AddressZero } = constants
 
 // Fixture
 const setupTest = deployments.createFixture(async ({ deployments }) => {
-  const { deploy } = deployments
+  const deploy = (name: string, options: DeployOptions) => deployments.deploy(name, options)
   const [deployer, , l1TransferToolMock, l1GRTMock] = await getAccounts()
 
   // Start from a fresh snapshot
@@ -69,7 +70,7 @@ const setupTest = deployments.createFixture(async ({ deployments }) => {
   return {
     grt: grt as GraphTokenMock,
     gateway: gateway as L2TokenGatewayMock,
-    tokenLockTransferTool: tokenLockTransferTool as L2GraphTokenLockTransferTool,
+    tokenLockTransferTool: tokenLockTransferTool,
     tokenLockImplementation: tokenLockWallet as L2GraphTokenLockWallet,
     tokenLockManager: tokenLockManager as L2GraphTokenLockManager,
   }
@@ -153,11 +154,11 @@ describe('L2GraphTokenLockTransferTool', () => {
   }
 
   before(async function () {
-    ;[deployer, beneficiary, l1TransferToolMock, l1GRTMock, l1TokenLock] = await getAccounts()
+    [deployer, beneficiary, l1TransferToolMock, l1GRTMock, l1TokenLock] = await getAccounts()
   })
 
   beforeEach(async () => {
-    ;({ grt, gateway, tokenLockTransferTool, tokenLockImplementation, tokenLockManager } = await setupTest())
+    ({ grt, gateway, tokenLockTransferTool, tokenLockImplementation, tokenLockManager } = await setupTest())
 
     // Setup authorized functions in Manager
     await authProtocolFunctions(tokenLockManager, tokenLockTransferTool.address)

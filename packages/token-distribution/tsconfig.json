@@ -9,7 +9,9 @@
     "esModuleInterop": true
   },
   "exclude": ["dist", "node_modules"],
-  "files": [
+  "include": [
+    "eslint.config.js",
+    "prettier.config.js",
     "./hardhat.config.ts",
     "./scripts/**/*.ts",
     "./deploy/**/*.ts",

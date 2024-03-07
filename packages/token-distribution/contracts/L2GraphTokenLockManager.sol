@@ -136,7 +136,10 @@ contract L2GraphTokenLockManager is GraphTokenLockManager, ICallhookReceiver {
      * @return Hash of the initialization calldata
      * @return Address of the created contract
      */
-    function _deployFromL1(bytes32 _salt, TransferredWalletData memory _walletData) internal returns (bytes32, address) {
+    function _deployFromL1(
+        bytes32 _salt,
+        TransferredWalletData memory _walletData
+    ) internal returns (bytes32, address) {
         bytes memory initializer = _encodeInitializer(_walletData);
         address contractAddress = _deployProxy2(_salt, masterCopy, initializer);
         return (keccak256(initializer), contractAddress);
