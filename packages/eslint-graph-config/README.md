@@ -40,6 +40,12 @@ module.exports = [
       '@typescript-eslint/no-unsafe-argument': 'off',
     },
   },
+  {
+    ignores: [
+      'library/*',                // ignore its contents
+      '!node_modules/mylibrary/'  // unignore `node_modules/mylibrary` directory
+    ]
+  }
 ]
 ```
 
