@@ -32,10 +32,7 @@ contract Controller is Governed, Pausable, IController {
      * @dev Check if the caller is the governor or pause guardian.
      */
     modifier onlyGovernorOrGuardian() {
-        require(
-            msg.sender == governor || msg.sender == pauseGuardian,
-            "Only Governor or Guardian can call"
-        );
+        require(msg.sender == governor || msg.sender == pauseGuardian, "Only Governor or Guardian can call");
         _;
     }
 
@@ -53,11 +50,7 @@ contract Controller is Governed, Pausable, IController {
      * @param _id Contract id (keccak256 hash of contract name)
      * @param _contractAddress Contract address
      */
-    function setContractProxy(bytes32 _id, address _contractAddress)
-        external
-        override
-        onlyGovernor
-    {
+    function setContractProxy(bytes32 _id, address _contractAddress) external override onlyGovernor {
         require(_contractAddress != address(0), "Contract address must be set");
         _registry[_id] = _contractAddress;
         emit SetContractProxy(_id, _contractAddress);

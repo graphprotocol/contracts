@@ -212,12 +212,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         uint32 _lambdaNumerator,
         uint32 _lambdaDenominator
     ) external override onlyGovernor {
-        _setRebateParameters(
-            _alphaNumerator,
-            _alphaDenominator,
-            _lambdaNumerator,
-            _lambdaDenominator
-        );
+        _setRebateParameters(_alphaNumerator, _alphaDenominator, _lambdaNumerator, _lambdaDenominator);
     }
 
     /**
@@ -384,12 +379,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
 
             // -- Collect curation fees --
             // Only if the subgraph deployment is curated
-            curationFees = _collectCurationFees(
-                graphToken,
-                subgraphDeploymentID,
-                queryFees,
-                __curationPercentage
-            );
+            curationFees = _collectCurationFees(graphToken, subgraphDeploymentID, queryFees, __curationPercentage);
             queryFees = queryFees.sub(curationFees);
 
             // -- Process rebate reward --
@@ -478,12 +468,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _allocationID Address used as allocation identifier
      * @return Allocation data
      */
-    function getAllocation(address _allocationID)
-        external
-        view
-        override
-        returns (Allocation memory)
-    {
+    function getAllocation(address _allocationID) external view override returns (Allocation memory) {
         return __allocations[_allocationID];
     }
 
@@ -492,12 +477,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
      */
-    function getAllocationState(address _allocationID)
-        external
-        view
-        override
-        returns (AllocationState)
-    {
+    function getAllocationState(address _allocationID) external view override returns (AllocationState) {
         return _getAllocationState(_allocationID);
     }
 
@@ -506,12 +486,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _subgraphDeploymentID Deployment ID for the subgraph
      * @return Total tokens allocated to subgraph
      */
-    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) external view override returns (uint256) {
         return __subgraphAllocations[_subgraphDeploymentID];
     }
 
@@ -563,9 +538,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         Stakes.Indexer memory indexerStake = __stakes[_indexer];
         uint256 tokensDelegated = __delegationPools[_indexer].tokens;
 
-        uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(
-            uint256(__delegationRatio)
-        );
+        uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(__delegationRatio));
         uint256 tokensDelegatedCapacity = MathUtils.min(tokensDelegated, tokensDelegatedCap);
 
         return indexerStake.tokensAvailableWithDelegation(tokensDelegatedCapacity);
@@ -661,11 +634,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _indexingRewardCut Percentage of indexing rewards left for delegators
      * @param _queryFeeCut Percentage of query fees left for delegators
      */
-    function _setDelegationParameters(
-        address _indexer,
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut
-    ) internal {
+    function _setDelegationParameters(address _indexer, uint32 _indexingRewardCut, uint32 _queryFeeCut) internal {
         // Incentives must be within bounds
         require(_queryFeeCut <= MAX_PPM, ">queryFeeCut");
         require(_indexingRewardCut <= MAX_PPM, ">indexingRewardCut");
@@ -690,10 +659,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      */
     function _stake(address _indexer, uint256 _tokens) internal {
         // Ensure minimum stake
-        require(
-            __stakes[_indexer].tokensSecureStake().add(_tokens) >= __minimumIndexerStake,
-            "!minimumIndexerStake"
-        );
+        require(__stakes[_indexer].tokensSecureStake().add(_tokens) >= __minimumIndexerStake, "!minimumIndexerStake");
 
         // Deposit tokens into the indexer stake
         __stakes[_indexer].deposit(_tokens);
@@ -750,10 +716,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         bytes32 digest = ECDSA.toEthSignedMessageHash(messageHash);
         require(ECDSA.recover(digest, _proof) == _allocationID, "!proof");
 
-        require(
-            __stakes[_indexer].tokensSecureStake() >= __minimumIndexerStake,
-            "!minimumIndexerStake"
-        );
+        require(__stakes[_indexer].tokensSecureStake() >= __minimumIndexerStake, "!minimumIndexerStake");
         if (_tokens > 0) {
             // Needs to have free capacity not used for other purposes to allocate
             require(getIndexerCapacity(_indexer) >= _tokens, "!capacity");
@@ -784,9 +747,9 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
 
             // Track total allocations per subgraph
             // Used for rewards calculations
-            __subgraphAllocations[alloc.subgraphDeploymentID] = __subgraphAllocations[
-                alloc.subgraphDeploymentID
-            ].add(alloc.tokens);
+            __subgraphAllocations[alloc.subgraphDeploymentID] = __subgraphAllocations[alloc.subgraphDeploymentID].add(
+                alloc.tokens
+            );
         }
 
         emit AllocationCreated(
@@ -845,9 +808,9 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
 
             // Track total allocations per subgraph
             // Used for rewards calculations
-            __subgraphAllocations[alloc.subgraphDeploymentID] = __subgraphAllocations[
-                alloc.subgraphDeploymentID
-            ].sub(alloc.tokens);
+            __subgraphAllocations[alloc.subgraphDeploymentID] = __subgraphAllocations[alloc.subgraphDeploymentID].sub(
+                alloc.tokens
+            );
         }
 
         emit AllocationClosed(
@@ -869,10 +832,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of delegation rewards
      */
-    function _collectDelegationQueryRewards(address _indexer, uint256 _tokens)
-        private
-        returns (uint256)
-    {
+    function _collectDelegationQueryRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = __delegationPools[_indexer];
         if (pool.tokens > 0 && pool.queryFeeCut < MAX_PPM) {
@@ -890,10 +850,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of delegation rewards
      */
-    function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens)
-        private
-        returns (uint256)
-    {
+    function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
         DelegationPool storage pool = __delegationPools[_indexer];
         if (pool.tokens > 0 && pool.indexingRewardCut < MAX_PPM) {
@@ -929,10 +886,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
             // Calculate the tokens after curation fees first, and subtact that,
             // to prevent curation fees from rounding down to zero
-            uint256 tokensAfterCurationFees = uint256(MAX_PPM)
-                .sub(_curationPercentage)
-                .mul(_tokens)
-                .div(MAX_PPM);
+            uint256 tokensAfterCurationFees = uint256(MAX_PPM).sub(_curationPercentage).mul(_tokens).div(MAX_PPM);
             uint256 curationFees = _tokens.sub(tokensAfterCurationFees);
             if (curationFees > 0) {
                 // Transfer and call collect()
@@ -954,11 +908,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _percentage Percentage of tokens to burn as tax
      * @return Amount of tax charged
      */
-    function _collectTax(
-        IGraphToken _graphToken,
-        uint256 _tokens,
-        uint256 _percentage
-    ) private returns (uint256) {
+    function _collectTax(IGraphToken _graphToken, uint256 _tokens, uint256 _percentage) private returns (uint256) {
         // Calculate tokens after tax first, and subtract that,
         // to prevent the tax from rounding down to zero
         uint256 tokensAfterTax = uint256(MAX_PPM).sub(_percentage).mul(_tokens).div(MAX_PPM);
@@ -1004,12 +954,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         uint256 indexerRewards = totalRewards.sub(delegationRewards);
 
         // Send the indexer rewards
-        _sendRewards(
-            graphToken(),
-            indexerRewards,
-            _indexer,
-            __rewardsDestination[_indexer] == address(0)
-        );
+        _sendRewards(graphToken(), indexerRewards, _indexer, __rewardsDestination[_indexer] == address(0));
     }
 
     /**
@@ -1019,12 +964,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @param _beneficiary Address of the beneficiary of rewards
      * @param _restake Whether to restake or not
      */
-    function _sendRewards(
-        IGraphToken _graphToken,
-        uint256 _amount,
-        address _beneficiary,
-        bool _restake
-    ) private {
+    function _sendRewards(IGraphToken _graphToken, uint256 _amount, address _beneficiary, bool _restake) private {
         if (_amount == 0) return;
 
         if (_restake) {
@@ -1033,11 +973,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
             address destination = __rewardsDestination[_beneficiary];
-            TokenUtils.pushTokens(
-                _graphToken,
-                destination == address(0) ? _beneficiary : destination,
-                _amount
-            );
+            TokenUtils.pushTokens(_graphToken, destination == address(0) ? _beneficiary : destination, _amount);
         }
     }
 

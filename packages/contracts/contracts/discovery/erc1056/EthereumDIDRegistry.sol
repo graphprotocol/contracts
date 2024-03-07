@@ -62,21 +62,13 @@ contract EthereumDIDRegistry {
         return signer;
     }
 
-    function validDelegate(
-        address identity,
-        bytes32 delegateType,
-        address delegate
-    ) public view returns (bool) {
+    function validDelegate(address identity, bytes32 delegateType, address delegate) public view returns (bool) {
         uint256 validity = delegates[identity][keccak256(abi.encode(delegateType))][delegate];
         /* solium-disable-next-line security/no-block-members*/
         return (validity > block.timestamp);
     }
 
-    function changeOwner(
-        address identity,
-        address actor,
-        address newOwner
-    ) internal onlyOwner(identity, actor) {
+    function changeOwner(address identity, address actor, address newOwner) internal onlyOwner(identity, actor) {
         owners[identity] = newOwner;
         emit DIDOwnerChanged(identity, newOwner, changed[identity]);
         changed[identity] = block.number;
@@ -86,13 +78,7 @@ contract EthereumDIDRegistry {
         changeOwner(identity, msg.sender, newOwner);
     }
 
-    function changeOwnerSigned(
-        address identity,
-        uint8 sigV,
-        bytes32 sigR,
-        bytes32 sigS,
-        address newOwner
-    ) public {
+    function changeOwnerSigned(address identity, uint8 sigV, bytes32 sigR, bytes32 sigS, address newOwner) public {
         bytes32 hash = keccak256(
             abi.encodePacked(
                 bytes1(0x19),
@@ -115,9 +101,7 @@ contract EthereumDIDRegistry {
         uint256 validity
     ) internal onlyOwner(identity, actor) {
         /* solium-disable-next-line security/no-block-members*/
-        delegates[identity][keccak256(abi.encode(delegateType))][delegate] =
-            block.timestamp +
-            validity;
+        delegates[identity][keccak256(abi.encode(delegateType))][delegate] = block.timestamp + validity;
         emit DIDDelegateChanged(
             identity,
             delegateType,
@@ -129,12 +113,7 @@ contract EthereumDIDRegistry {
         changed[identity] = block.number;
     }
 
-    function addDelegate(
-        address identity,
-        bytes32 delegateType,
-        address delegate,
-        uint256 validity
-    ) public {
+    function addDelegate(address identity, bytes32 delegateType, address delegate, uint256 validity) public {
         addDelegate(identity, msg.sender, delegateType, delegate, validity);
     }
 
@@ -160,13 +139,7 @@ contract EthereumDIDRegistry {
                 validity
             )
         );
-        addDelegate(
-            identity,
-            checkSignature(identity, sigV, sigR, sigS, hash),
-            delegateType,
-            delegate,
-            validity
-        );
+        addDelegate(identity, checkSignature(identity, sigV, sigR, sigS, hash), delegateType, delegate, validity);
     }
 
     function revokeDelegate(
@@ -178,21 +151,11 @@ contract EthereumDIDRegistry {
         /* solium-disable-next-line security/no-block-members*/
         delegates[identity][keccak256(abi.encode(delegateType))][delegate] = block.timestamp;
         /* solium-disable-next-line security/no-block-members*/
-        emit DIDDelegateChanged(
-            identity,
-            delegateType,
-            delegate,
-            block.timestamp,
-            changed[identity]
-        );
+        emit DIDDelegateChanged(identity, delegateType, delegate, block.timestamp, changed[identity]);
         changed[identity] = block.number;
     }
 
-    function revokeDelegate(
-        address identity,
-        bytes32 delegateType,
-        address delegate
-    ) public {
+    function revokeDelegate(address identity, bytes32 delegateType, address delegate) public {
         revokeDelegate(identity, msg.sender, delegateType, delegate);
     }
 
@@ -216,12 +179,7 @@ contract EthereumDIDRegistry {
                 delegate
             )
         );
-        revokeDelegate(
-            identity,
-            checkSignature(identity, sigV, sigR, sigS, hash),
-            delegateType,
-            delegate
-        );
+        revokeDelegate(identity, checkSignature(identity, sigV, sigR, sigS, hash), delegateType, delegate);
     }
 
     function setAttribute(
@@ -232,22 +190,11 @@ contract EthereumDIDRegistry {
         uint256 validity
     ) internal onlyOwner(identity, actor) {
         /* solium-disable-next-line security/no-block-members*/
-        emit DIDAttributeChanged(
-            identity,
-            name,
-            value,
-            block.timestamp + validity,
-            changed[identity]
-        );
+        emit DIDAttributeChanged(identity, name, value, block.timestamp + validity, changed[identity]);
         changed[identity] = block.number;
     }
 
-    function setAttribute(
-        address identity,
-        bytes32 name,
-        bytes memory value,
-        uint256 validity
-    ) public {
+    function setAttribute(address identity, bytes32 name, bytes memory value, uint256 validity) public {
         setAttribute(identity, msg.sender, name, value, validity);
     }
 
@@ -273,13 +220,7 @@ contract EthereumDIDRegistry {
                 validity
             )
         );
-        setAttribute(
-            identity,
-            checkSignature(identity, sigV, sigR, sigS, hash),
-            name,
-            value,
-            validity
-        );
+        setAttribute(identity, checkSignature(identity, sigV, sigR, sigS, hash), name, value, validity);
     }
 
     function revokeAttribute(
@@ -292,11 +233,7 @@ contract EthereumDIDRegistry {
         changed[identity] = block.number;
     }
 
-    function revokeAttribute(
-        address identity,
-        bytes32 name,
-        bytes memory value
-    ) public {
+    function revokeAttribute(address identity, bytes32 name, bytes memory value) public {
         revokeAttribute(identity, msg.sender, name, value);
     }
 

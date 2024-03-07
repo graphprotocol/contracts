@@ -65,11 +65,7 @@ library Stakes {
      * @param _tokens Amount of tokens to unstake
      * @param _period Period in blocks that need to pass before withdrawal
      */
-    function lockTokens(
-        Stakes.Indexer storage stake,
-        uint256 _tokens,
-        uint256 _period
-    ) internal {
+    function lockTokens(Stakes.Indexer storage stake, uint256 _tokens, uint256 _period) internal {
         // Take into account period averaging for multiple unstake requests
         uint256 lockingPeriod = _period;
         if (stake.tokensLocked > 0) {
@@ -158,11 +154,10 @@ library Stakes {
      * @param _delegatedCapacity Amount of tokens used from delegators to calculate availability
      * @return Token amount
      */
-    function tokensAvailableWithDelegation(Stakes.Indexer memory stake, uint256 _delegatedCapacity)
-        internal
-        pure
-        returns (uint256)
-    {
+    function tokensAvailableWithDelegation(
+        Stakes.Indexer memory stake,
+        uint256 _delegatedCapacity
+    ) internal pure returns (uint256) {
         uint256 tokensCapacity = stake.tokensStaked.add(_delegatedCapacity);
         uint256 _tokensUsed = stake.tokensUsed();
         // If more tokens are used than the current capacity, the indexer is overallocated.

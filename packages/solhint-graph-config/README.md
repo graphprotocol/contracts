@@ -25,7 +25,7 @@ Run `solhint` with `node_modules/solhint-graph-config/index.js` as the configura
 
 {
   "scripts": {
-    "lint": "solhint --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js"
+    "lint": "solhint --fix --noPrompt contracts/**/*.sol --config node_modules/solhint-graph-config/index.js"
   }
 }
 

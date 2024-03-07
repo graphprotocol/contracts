@@ -39,12 +39,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
     }
 
     /// Emitted when an incoming transfer is finalized, i.e. tokens were deposited from L1 to L2
-    event DepositFinalized(
-        address indexed l1Token,
-        address indexed from,
-        address indexed to,
-        uint256 amount
-    );
+    event DepositFinalized(address indexed l1Token, address indexed from, address indexed to, uint256 amount);
 
     /// Emitted when an outbound transfer is initiated, i.e. tokens are being withdrawn from L2 back to L1
     event WithdrawalInitiated(
@@ -68,10 +63,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
      * gateway on L1.
      */
     modifier onlyL1Counterpart() {
-        require(
-            msg.sender == AddressAliasHelper.applyL1ToL2Alias(l1Counterpart),
-            "ONLY_COUNTERPART_GATEWAY"
-        );
+        require(msg.sender == AddressAliasHelper.applyL1ToL2Alias(l1Counterpart), "ONLY_COUNTERPART_GATEWAY");
         _;
     }
 
@@ -216,13 +208,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger, Reentran
             0,
             outboundCalldata.from,
             l1Counterpart,
-            getOutboundCalldata(
-                _l1Token,
-                outboundCalldata.from,
-                _to,
-                _amount,
-                outboundCalldata.extraData
-            )
+            getOutboundCalldata(_l1Token, outboundCalldata.from, _to, _amount, outboundCalldata.extraData)
         );
 
         // we don't need to track exitNums (b/c we have no fast exits) so we always use 0

@@ -39,9 +39,7 @@ interface IL1StakingBase {
      * @dev This function can only be called by the governor.
      * @param _l1GraphTokenLockTransferTool Address of the L1GraphTokenLockTransferTool contract
      */
-    function setL1GraphTokenLockTransferTool(
-        IL1GraphTokenLockTransferTool _l1GraphTokenLockTransferTool
-    ) external;
+    function setL1GraphTokenLockTransferTool(IL1GraphTokenLockTransferTool _l1GraphTokenLockTransferTool) external;
 
     /**
      * @notice Send an indexer's stake to L2.

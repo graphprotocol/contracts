@@ -171,11 +171,7 @@ contract InboxMock is IInbox {
      * @param _messageData Encoded message data
      * @return Message number returned by the bridge
      */
-    function _deliverMessage(
-        uint8 _kind,
-        address _sender,
-        bytes memory _messageData
-    ) internal returns (uint256) {
+    function _deliverMessage(uint8 _kind, address _sender, bytes memory _messageData) internal returns (uint256) {
         uint256 msgNum = deliverToBridge(_kind, _sender, keccak256(_messageData));
         emit InboxMessageDelivered(msgNum, _messageData);
         return msgNum;
@@ -188,11 +184,7 @@ contract InboxMock is IInbox {
      * @param _messageDataHash keccak256 hash of the encoded message data
      * @return Message number returned by the bridge
      */
-    function deliverToBridge(
-        uint8 _kind,
-        address _sender,
-        bytes32 _messageDataHash
-    ) internal returns (uint256) {
+    function deliverToBridge(uint8 _kind, address _sender, bytes32 _messageDataHash) internal returns (uint256) {
         return bridge.deliverMessageToInbox{ value: msg.value }(_kind, _sender, _messageDataHash);
     }
 }

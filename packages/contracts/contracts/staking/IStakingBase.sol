@@ -380,8 +380,5 @@ interface IStakingBase is IStakingData {
      * @param _subgraphDeploymentID Deployment ID for the subgraph
      * @return Total tokens allocated to subgraph
      */
-    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID)
-        external
-        view
-        returns (uint256);
+    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
 }
