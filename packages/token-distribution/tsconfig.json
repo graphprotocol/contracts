@@ -10,6 +10,7 @@
   },
   "exclude": ["dist", "node_modules"],
   "include": [
+    ".solcover.js",
     "eslint.config.js",
     "prettier.config.js",
     "./hardhat.config.ts",
