@@ -1,6 +1,7 @@
+/* eslint-disable no-secrets/no-secrets */
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { ethers, ContractTransaction, BigNumber } from 'ethers'
+import { BigNumber, ContractTransaction, ethers } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -125,17 +126,17 @@ describe('L2GNS', () => {
 
     // Deploy L2
     fixtureContracts = await fixture.load(governor, true)
-    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
-    gns = fixtureContracts.L2GNS as L2GNS
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway
+    gns = fixtureContracts.L2GNS
     staking = fixtureContracts.L2Staking as unknown as IL2Staking
-    curation = fixtureContracts.L2Curation as L2Curation
+    curation = fixtureContracts.L2Curation
     grt = fixtureContracts.GraphToken as GraphToken
 
     // Deploy L1 mock
     l1MockContracts = await fixture.loadMock(false)
     l1GRTMock = l1MockContracts.GraphToken as GraphToken
-    l1GNSMock = l1MockContracts.L1GNS as L1GNS
-    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
+    l1GNSMock = l1MockContracts.L1GNS
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway
 
     // Deploy L2 arbitrum bridge
     await fixture.loadL2ArbitrumBridge(governor)
@@ -155,7 +156,7 @@ describe('L2GNS', () => {
   })
 
   // Adapted from the L1 GNS tests but allowing curating to a pre-curated subgraph deployment
-  describe('publishNewVersion', async function () {
+  describe('publishNewVersion', function () {
     let subgraph: Subgraph
 
     beforeEach(async () => {
@@ -369,8 +370,8 @@ describe('L2GNS', () => {
 
   describe('finishing a subgraph transfer from L1', function () {
     it('publishes the transferred subgraph and mints signal with no tax', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
@@ -415,8 +416,8 @@ describe('L2GNS', () => {
         .withArgs(l2SubgraphId, me.address, expectedNSignal, expectedSignal, curatedTokens)
     })
     it('protects the owner against a rounding attack', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       const collectTokens = curatedTokens.mul(20)
 
       await staking.connect(governor).setCurationPercentage(100000)
@@ -476,8 +477,8 @@ describe('L2GNS', () => {
       await expect(tx).emit(gns, 'SubgraphL2TransferFinalized').withArgs(l2SubgraphId)
     })
     it('cannot be called by someone other than the subgraph owner', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
@@ -523,8 +524,8 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('INVALID_SUBGRAPH')
     })
     it('accepts calls to a pre-curated subgraph deployment', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       const callhookData = defaultAbiCoder.encode(
         ['uint8', 'uint256', 'address'],
         [toBN(0), l1SubgraphId, me.address],
@@ -622,8 +623,8 @@ describe('L2GNS', () => {
       // Eth for gas:
       await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
@@ -663,8 +664,8 @@ describe('L2GNS', () => {
       // Eth for gas:
       await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
@@ -702,8 +703,8 @@ describe('L2GNS', () => {
       expect(l2CuratorBalance).eq(prevSignal.add(expectedNewCuratorSignal))
     })
     it('cannot be called by someone other than the L2GraphTokenGateway', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
@@ -718,8 +719,8 @@ describe('L2GNS', () => {
       await expect(tx).revertedWith('ONLY_GATEWAY')
     })
     it('rejects calls if the L1 sender is not the L1GNS', async function () {
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,
@@ -878,8 +879,8 @@ describe('L2GNS', () => {
       // Eth for gas:
       await helpers.setBalance(await l1GNSMockL2Alias.getAddress(), parseEther('1'))
 
-      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata } =
-        await defaultL1SubgraphParams()
+      const { l1SubgraphId, curatedTokens, subgraphMetadata, versionMetadata }
+        = await defaultL1SubgraphParams()
       await transferMockSubgraphFromL1(
         l1SubgraphId,
         curatedTokens,

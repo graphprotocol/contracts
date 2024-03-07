@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber } from 'ethers'
+import { BigNumber, constants } from 'ethers'
 
 import { EpochManager } from '../../../build/types/EpochManager'
 import { GraphToken } from '../../../build/types/GraphToken'
@@ -8,8 +8,8 @@ import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
-  GraphNetworkContracts,
   deriveChannelKey,
+  GraphNetworkContracts,
   helpers,
   randomHexBytes,
   toBN,
@@ -183,13 +183,13 @@ describe('Staking::Delegation', () => {
   }
 
   before(async function () {
-    ;[me, delegator, delegator2, governor, indexer, indexer2, assetHolder] =
-      await graph.getTestAccounts()
+    [me, delegator, delegator2, governor, indexer, indexer2, assetHolder]
+      = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    epochManager = contracts.EpochManager as EpochManager
+    epochManager = contracts.EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
 

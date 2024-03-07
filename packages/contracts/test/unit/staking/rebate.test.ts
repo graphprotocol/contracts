@@ -4,7 +4,7 @@ import { BigNumber, Contract } from 'ethers'
 
 import { LibExponential } from '../../../build/types/LibExponential'
 
-import { formatGRT, helpers, isGraphL1ChainId, toGRT } from '@graphprotocol/sdk'
+import { formatGRT, isGraphL1ChainId, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { NetworkFixture } from '../lib/fixtures'
 
@@ -94,6 +94,7 @@ export function exponentialRebates(
   }
 
   const exponent = (lambda * stake) / fees
+  // eslint-disable-next-line no-secrets/no-secrets
   // LibExponential.MAX_EXPONENT = 15
   if (exponent > 15) {
     return fees
@@ -163,7 +164,7 @@ describe('Staking:rebates', () => {
     }
   }
 
-  async function testRebateParameters(fn, testCases) {
+  function testRebateParameters(fn, testCases) {
     // *** Exponential rebates ***
     // Typical alpha and lambda
     it('alpha 1 - lambda 0.6', async function () {
@@ -209,7 +210,7 @@ describe('Staking:rebates', () => {
   }
 
   before(async function () {
-    ;({ governor } = await graph.getNamedAccounts())
+    ({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     await fixture.load(governor)
 

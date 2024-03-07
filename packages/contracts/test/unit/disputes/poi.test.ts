@@ -11,19 +11,18 @@ import { NetworkFixture } from '../lib/fixtures'
 
 import { MAX_PPM } from './common'
 import {
-  helpers,
   deriveChannelKey,
+  GraphNetworkContracts,
+  helpers,
   randomHexBytes,
   toBN,
   toGRT,
-  GraphNetworkContracts,
 } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { keccak256 } = utils
 
-describe('DisputeManager:POI', async () => {
-  let other: SignerWithAddress
+describe('DisputeManager:POI', () => {
   let governor: SignerWithAddress
   let arbitrator: SignerWithAddress
   let indexer: SignerWithAddress
@@ -95,13 +94,13 @@ describe('DisputeManager:POI', async () => {
   }
 
   before(async function () {
-    ;[other, indexer, fisherman, assetHolder, rewardsDestination] = await graph.getTestAccounts()
+    [indexer, fisherman, assetHolder, rewardsDestination] = await graph.getTestAccounts()
     ;({ governor, arbitrator } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    disputeManager = contracts.DisputeManager as DisputeManager
-    epochManager = contracts.EpochManager as EpochManager
+    disputeManager = contracts.DisputeManager
+    epochManager = contracts.EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
 

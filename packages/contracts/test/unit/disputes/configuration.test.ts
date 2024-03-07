@@ -15,7 +15,6 @@ const MAX_PPM = 1000000
 describe('DisputeManager:Config', () => {
   let me: SignerWithAddress
   let governor: SignerWithAddress
-  let slasher: SignerWithAddress
   let arbitrator: SignerWithAddress
 
   const graph = hre.graph()
@@ -26,12 +25,12 @@ describe('DisputeManager:Config', () => {
   let disputeManager: DisputeManager
 
   before(async function () {
-    ;[me, slasher] = await graph.getTestAccounts()
+    [me] = await graph.getTestAccounts()
     ;({ governor, arbitrator } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    disputeManager = contracts.DisputeManager as DisputeManager
+    disputeManager = contracts.DisputeManager
   })
 
   beforeEach(async function () {

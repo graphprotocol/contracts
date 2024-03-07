@@ -43,11 +43,11 @@ describe('AllocationExchange', () => {
 
   const graph = hre.graph()
 
-  async function createVoucher(
+  function createVoucher(
     allocationID: string,
     amount: BigNumber,
     signerKey: string,
-  ): Promise<Voucher> {
+  ): Voucher {
     const messageHash = solidityKeccak256(['address', 'uint256'], [allocationID, amount])
     const messageHashBytes = arrayify(messageHash)
     const key = new SigningKey(signerKey)
@@ -60,16 +60,16 @@ describe('AllocationExchange', () => {
   }
 
   before(async function () {
-    ;[indexer] = await graph.getTestAccounts()
+    [indexer] = await graph.getTestAccounts()
     ;({ governor, allocationExchangeOwner } = await graph.getNamedAccounts())
     authority = Wallet.createRandom()
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    allocationExchange = contracts.AllocationExchange as AllocationExchange
+    allocationExchange = contracts.AllocationExchange
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
-    epochManager = contracts.EpochManager as EpochManager
+    epochManager = contracts.EpochManager
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')
@@ -211,7 +211,7 @@ describe('AllocationExchange', () => {
 
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount
-      const voucher = await createVoucher(allocationID, actualAmount, authority.privateKey)
+      const voucher = createVoucher(allocationID, actualAmount, authority.privateKey)
       const tx = allocationExchange.connect(allocationExchangeOwner).redeem(voucher)
       await expect(tx)
         .emit(allocationExchange, 'AllocationRedeemed')
@@ -233,7 +233,7 @@ describe('AllocationExchange', () => {
 
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount
-      const voucher = await createVoucher(allocationID, actualAmount, authority.privateKey)
+      const voucher = createVoucher(allocationID, actualAmount, authority.privateKey)
 
       // First redeem
       await allocationExchange.connect(allocationExchangeOwner).redeem(voucher)
@@ -256,7 +256,7 @@ describe('AllocationExchange', () => {
 
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount
-      const voucher = await createVoucher(allocationID, actualAmount, authority.privateKey)
+      const voucher = createVoucher(allocationID, actualAmount, authority.privateKey)
       const tx = allocationExchange.connect(allocationExchangeOwner).redeem(voucher)
       await expect(tx).revertedWith('!collect')
     })
@@ -264,7 +264,7 @@ describe('AllocationExchange', () => {
     it('reject redeem voucher not signed by the authority', async function () {
       // Initiate a withdrawal
       const actualAmount = toGRT('2000') // <- withdraw amount
-      const voucher = await createVoucher(
+      const voucher = createVoucher(
         randomAddress(),
         actualAmount,
         Wallet.createRandom().privateKey, // <-- signed by anon
@@ -276,14 +276,14 @@ describe('AllocationExchange', () => {
     it('reject redeem voucher with empty amount', async function () {
       // Initiate a withdrawal
       const actualAmount = toGRT('0') // <- withdraw amount
-      const voucher = await createVoucher(randomAddress(), actualAmount, authority.privateKey)
+      const voucher = createVoucher(randomAddress(), actualAmount, authority.privateKey)
       const tx = allocationExchange.connect(allocationExchangeOwner).redeem(voucher)
       await expect(tx).revertedWith('Exchange: zero tokens voucher')
     })
 
     it('reject redeem voucher with invalid signature', async function () {
       const actualAmount = toGRT('2000') // <- withdraw amount
-      const voucher = await createVoucher(randomAddress(), actualAmount, authority.privateKey)
+      const voucher = createVoucher(randomAddress(), actualAmount, authority.privateKey)
       voucher.signature = '0x1234'
       const tx = allocationExchange.connect(allocationExchangeOwner).redeem(voucher)
       await expect(tx).revertedWith('Exchange: invalid signature')

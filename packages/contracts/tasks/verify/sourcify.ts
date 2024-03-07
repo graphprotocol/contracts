@@ -1,3 +1,4 @@
+/* eslint-disable no-secrets/no-secrets */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios'
 import FormData from 'form-data'
@@ -43,7 +44,7 @@ export async function submitSourcesToSourcify(
       return
     }
   } catch (e) {
-    console.error(((e as any).response && JSON.stringify((e as any).response.data)) || e)
+    console.error(((e).response && JSON.stringify((e).response.data)) || e)
   }
 
   console.log(`verifying ${contract.name} (${contract.address} on chain ${chainId}) ...`)
@@ -72,6 +73,6 @@ export async function submitSourcesToSourcify(
       console.error(` => contract ${contract.name} is not verified`)
     }
   } catch (e) {
-    console.error(((e as any).response && JSON.stringify((e as any).response.data)) || e)
+    console.error(((e).response && JSON.stringify((e).response.data)) || e)
   }
 }

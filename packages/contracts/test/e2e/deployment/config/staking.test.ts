@@ -5,7 +5,7 @@ import { getItemValue, isGraphL2ChainId } from '@graphprotocol/sdk'
 describe('Staking configuration', () => {
   const {
     graphConfig,
-    contracts: { Staking, Controller, DisputeManager, AllocationExchange },
+    contracts: { Staking, Controller, DisputeManager },
     chainId,
   } = hre.graph()
   let contractName: string

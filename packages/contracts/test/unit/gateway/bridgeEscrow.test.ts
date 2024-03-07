@@ -25,13 +25,13 @@ describe('BridgeEscrow', () => {
   const nTokens = toGRT('1000')
 
   before(async function () {
-    ;[tokenReceiver, spender] = await graph.getTestAccounts()
+    [tokenReceiver, spender] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     grt = contracts.GraphToken as GraphToken
-    bridgeEscrow = contracts.BridgeEscrow as BridgeEscrow
+    bridgeEscrow = contracts.BridgeEscrow
 
     // Give some funds to the Escrow
     await grt.connect(governor).mint(bridgeEscrow.address, nTokens)
@@ -69,7 +69,7 @@ describe('BridgeEscrow', () => {
       const tx = bridgeEscrow.connect(tokenReceiver).revokeAll(spender.address)
       await expect(tx).revertedWith('Only Controller governor')
     })
-    it("revokes a spender's permission to transfer GRT held by the contract", async function () {
+    it('revokes a spender\'s permission to transfer GRT held by the contract', async function () {
       await bridgeEscrow.connect(governor).approveAll(spender.address)
       await bridgeEscrow.connect(governor).revokeAll(spender.address)
       // We shouldn't be able to transfer _anything_

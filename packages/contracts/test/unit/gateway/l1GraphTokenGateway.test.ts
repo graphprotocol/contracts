@@ -12,7 +12,7 @@ import { BridgeEscrow } from '../../../build/types/BridgeEscrow'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import { helpers, applyL1ToL2Alias, toBN, toGRT, GraphNetworkContracts } from '@graphprotocol/sdk'
+import { applyL1ToL2Alias, GraphNetworkContracts, helpers, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -60,7 +60,7 @@ describe('L1GraphTokenGateway', () => {
   )
 
   before(async function () {
-    ;[tokenSender, l2Receiver] = await graph.getTestAccounts()
+    [tokenSender, l2Receiver] = await graph.getTestAccounts()
     ;({ governor, pauseGuardian } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
@@ -68,8 +68,8 @@ describe('L1GraphTokenGateway', () => {
     // Deploy L1
     fixtureContracts = await fixture.load(governor)
     grt = fixtureContracts.GraphToken as GraphToken
-    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
-    bridgeEscrow = fixtureContracts.BridgeEscrow as BridgeEscrow
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway
+    bridgeEscrow = fixtureContracts.BridgeEscrow
 
     // Deploy L1 arbitrum bridge
     ;({ bridgeMock, inboxMock, outboxMock, routerMock } = await fixture.loadL1ArbitrumBridge(
@@ -78,8 +78,8 @@ describe('L1GraphTokenGateway', () => {
 
     // Deploy L2 mock
     l2MockContracts = await fixture.loadMock(true)
-    l2GRTMock = l2MockContracts.L2GraphToken as L2GraphToken
-    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
+    l2GRTMock = l2MockContracts.L2GraphToken
+    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway
 
     // Give some funds to the token sender/router mock
     await grt.connect(governor).mint(tokenSender.address, senderTokens)
@@ -286,10 +286,10 @@ describe('L1GraphTokenGateway', () => {
         await fixture.configureL1Bridge(governor, fixtureContracts, l2MockContracts)
         let tx = l1GraphTokenGateway.connect(governor).setPaused(true)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
-        await expect(await l1GraphTokenGateway.paused()).eq(true)
+        expect(await l1GraphTokenGateway.paused()).eq(true)
         tx = l1GraphTokenGateway.connect(governor).setPaused(false)
         await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
-        await expect(await l1GraphTokenGateway.paused()).eq(false)
+        expect(await l1GraphTokenGateway.paused()).eq(false)
       })
       describe('setPauseGuardian', function () {
         it('cannot be called by someone other than governor', async function () {
@@ -310,10 +310,10 @@ describe('L1GraphTokenGateway', () => {
           await l1GraphTokenGateway.connect(governor).setPauseGuardian(pauseGuardian.address)
           let tx = l1GraphTokenGateway.connect(pauseGuardian).setPaused(true)
           await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(true)
-          await expect(await l1GraphTokenGateway.paused()).eq(true)
+          expect(await l1GraphTokenGateway.paused()).eq(true)
           tx = l1GraphTokenGateway.connect(pauseGuardian).setPaused(false)
           await expect(tx).emit(l1GraphTokenGateway, 'PauseChanged').withArgs(false)
-          await expect(await l1GraphTokenGateway.paused()).eq(false)
+          expect(await l1GraphTokenGateway.paused()).eq(false)
         })
       })
     })

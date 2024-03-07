@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber, PopulatedTransaction, Contract } from 'ethers'
+import { BigNumber, constants, Contract, PopulatedTransaction } from 'ethers'
 
 import { Curation } from '../../../build/types/Curation'
 import { EpochManager } from '../../../build/types/EpochManager'
@@ -10,8 +10,8 @@ import { LibExponential } from '../../../build/types/LibExponential'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
-  GraphNetworkContracts,
   deriveChannelKey,
+  GraphNetworkContracts,
   helpers,
   isGraphL1ChainId,
   randomHexBytes,
@@ -84,7 +84,6 @@ describe('Staking:Allocation', () => {
   let governor: SignerWithAddress
   let indexer: SignerWithAddress
   let delegator: SignerWithAddress
-  let slasher: SignerWithAddress
   let assetHolder: SignerWithAddress
 
   let fixture: NetworkFixture
@@ -171,7 +170,7 @@ describe('Staking:Allocation', () => {
       allocationID?: string
       expectEvent?: boolean
     } = {},
-  ): Promise<{ queryRebates: BigNumber; queryFeesBurnt: BigNumber }> => {
+  ): Promise<{ queryRebates: BigNumber, queryFeesBurnt: BigNumber }> => {
     const expectEvent = options.expectEvent ?? true
     const alloID = options.allocationID ?? allocationID
     const alloStateBefore = await staking.getAllocationState(alloID)
@@ -201,8 +200,8 @@ describe('Staking:Allocation', () => {
 
     const queryFees = tokensToCollect.sub(protocolFees).sub(curationFees)
 
-    const [alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator] =
-      await Promise.all([
+    const [alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator]
+      = await Promise.all([
         staking.alphaNumerator(),
         staking.alphaDenominator(),
         staking.lambdaNumerator(),
@@ -367,13 +366,13 @@ describe('Staking:Allocation', () => {
   // -- Tests --
 
   before(async function () {
-    ;[me, indexer, delegator, slasher, assetHolder] = await graph.getTestAccounts()
+    [me, indexer, delegator, assetHolder] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     curation = contracts.Curation as Curation
-    epochManager = contracts.EpochManager as EpochManager
+    epochManager = contracts.EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
 
@@ -624,7 +623,7 @@ describe('Staking:Allocation', () => {
         `> with ${toPercentage(params.curationPercentage)}% curationFees, ${toPercentage(
           params.protocolPercentage,
         )}% protocolTax and ${toPercentage(params.queryFeeCut)}% queryFeeCut`,
-        async function () {
+        function () {
           beforeEach(async function () {
             // Set a protocol fee percentage
             await staking.connect(governor).setProtocolPercentage(params.protocolPercentage)
@@ -860,7 +859,7 @@ describe('Staking:Allocation', () => {
     })
 
     for (const tokensToAllocate of [toBN(100), toBN(0)]) {
-      context(`> with ${tokensToAllocate} allocated tokens`, async function () {
+      context(`> with ${tokensToAllocate.toString()} allocated tokens`, function () {
         beforeEach(async function () {
           // Advance to next epoch to avoid creating the allocation
           // right at the epoch boundary, which would mess up the tests.
@@ -994,7 +993,7 @@ describe('Staking:Allocation', () => {
             ].map(({ allocationID, poi }) =>
               staking.connect(indexer).populateTransaction.closeAllocation(allocationID, poi),
             ),
-          ).then((e) => e.map((e: PopulatedTransaction) => e.data))
+          ).then(e => e.map((e: PopulatedTransaction) => e.data))
           await staking.connect(indexer).multicall(requests)
         })
       })
@@ -1029,7 +1028,7 @@ describe('Staking:Allocation', () => {
             metadata,
             await newChannelKey.generateProof(indexer.address),
           ),
-      ]).then((e) => e.map((e: PopulatedTransaction) => e.data))
+      ]).then(e => e.map((e: PopulatedTransaction) => e.data))
       await staking.connect(indexer).multicall(requests)
     })
   })

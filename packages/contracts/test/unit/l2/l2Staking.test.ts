@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { ethers, ContractTransaction, BigNumber } from 'ethers'
+import { BigNumber, ContractTransaction, ethers } from 'ethers'
 import { defaultAbiCoder, parseEther } from 'ethers/lib/utils'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -9,8 +9,8 @@ import { IL2Staking } from '../../../build/types/IL2Staking'
 import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
 import { GraphToken } from '../../../build/types/GraphToken'
 import {
-  GraphNetworkContracts,
   deriveChannelKey,
+  GraphNetworkContracts,
   helpers,
   randomHexBytes,
   toBN,
@@ -79,7 +79,7 @@ describe('L2Staking', () => {
   }
 
   before(async function () {
-    ;[me, other] = await graph.getTestAccounts()
+    [me, other] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
@@ -88,14 +88,14 @@ describe('L2Staking', () => {
     fixtureContracts = await fixture.load(governor, true)
     grt = fixtureContracts.GraphToken as GraphToken
     staking = fixtureContracts.Staking as IL2Staking
-    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway
 
     // Deploy L1 mock
     l1MockContracts = await fixture.loadMock(false)
     l1GRTMock = l1MockContracts.GraphToken as GraphToken
-    l1StakingMock = l1MockContracts.L1Staking as L1Staking
-    l1GNSMock = l1MockContracts.L1GNS as L1GNS
-    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
+    l1StakingMock = l1MockContracts.L1Staking
+    l1GNSMock = l1MockContracts.L1GNS
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway
 
     // Deploy L2 arbitrum bridge
     await fixture.loadL2ArbitrumBridge(governor)

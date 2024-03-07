@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 import hre from 'hardhat'
 import { Contract, ethers } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { helpers, randomHexBytes, AllocationState } from '@graphprotocol/sdk'
+import { AllocationState, helpers, randomHexBytes } from '@graphprotocol/sdk'
 
 import removedABI from './abis/staking'
 import allocations from './fixtures/allocations'
@@ -32,7 +32,7 @@ describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
 
   describe('> Allocation state transitions', () => {
     it('Null allocations should remain Null', async function () {
-      for (const allocation of allocations.filter((a) => a.state === AllocationState.Null)) {
+      for (const allocation of allocations.filter(a => a.state === AllocationState.Null)) {
         await expect(Staking.getAllocationState(allocation.id)).to.eventually.equal(
           AllocationState.Null,
         )
@@ -40,7 +40,7 @@ describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
     })
 
     it('Active allocations should remain Active', async function () {
-      for (const allocation of allocations.filter((a) => a.state === AllocationState.Active)) {
+      for (const allocation of allocations.filter(a => a.state === AllocationState.Active)) {
         await expect(Staking.getAllocationState(allocation.id)).to.eventually.equal(
           AllocationState.Active,
         )
@@ -48,7 +48,7 @@ describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
     })
 
     it('Closed allocations should remain Closed', async function () {
-      for (const allocation of allocations.filter((a) => a.state === AllocationState.Closed)) {
+      for (const allocation of allocations.filter(a => a.state === AllocationState.Closed)) {
         await expect(Staking.getAllocationState(allocation.id)).to.eventually.equal(
           AllocationState.Closed,
         )
@@ -56,7 +56,7 @@ describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
     })
 
     it('Finalized allocations should transition to Closed', async function () {
-      for (const allocation of allocations.filter((a) => a.state === AllocationState.Finalized)) {
+      for (const allocation of allocations.filter(a => a.state === AllocationState.Finalized)) {
         await expect(Staking.getAllocationState(allocation.id)).to.eventually.equal(
           AllocationState.Closed,
         )
@@ -64,7 +64,7 @@ describe('[AFTER UPGRADE] Exponential rebates upgrade', () => {
     })
 
     it('Claimed allocations should transition to Closed', async function () {
-      for (const allocation of allocations.filter((a) => a.state === AllocationState.Claimed)) {
+      for (const allocation of allocations.filter(a => a.state === AllocationState.Claimed)) {
         await expect(Staking.getAllocationState(allocation.id)).to.eventually.equal(
           AllocationState.Closed,
         )

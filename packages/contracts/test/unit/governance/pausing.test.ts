@@ -1,6 +1,5 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants } from 'ethers'
 
 import { Controller } from '../../../build/types/Controller'
 import { IStaking } from '../../../build/types/IStaking'
@@ -31,14 +30,13 @@ describe('Pausing', () => {
     await expect(tx).emit(controller, 'PauseChanged').withArgs(setValue)
     expect(await controller.paused()).eq(setValue)
   }
-  const AddressZero = constants.AddressZero
   before(async function () {
-    ;[me] = await graph.getTestAccounts()
+    [me] = await graph.getTestAccounts()
     ;({ governor, pauseGuardian: guardian } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     staking = contracts.Staking as IStaking
-    controller = contracts.Controller as Controller
+    controller = contracts.Controller
   })
 
   beforeEach(async function () {

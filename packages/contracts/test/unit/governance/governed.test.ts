@@ -16,7 +16,7 @@ describe('Governed', () => {
   let governed: Governed
 
   beforeEach(async function () {
-    ;[me, governor] = await graph.getTestAccounts()
+    [me, governor] = await graph.getTestAccounts()
 
     const factory = await ethers.getContractFactory('GovernedMock')
     governed = (await factory.connect(governor).deploy()) as Governed

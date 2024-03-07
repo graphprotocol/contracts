@@ -4,7 +4,7 @@ import { BigNumber } from 'ethers'
 
 import { EpochManager } from '../../build/types/EpochManager'
 
-import { DeployType, deploy, helpers, toBN } from '@graphprotocol/sdk'
+import { deploy, DeployType, helpers, toBN } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('EpochManager', () => {
@@ -18,7 +18,7 @@ describe('EpochManager', () => {
   const epochLength: BigNumber = toBN('3')
 
   before(async function () {
-    ;[me, governor] = await graph.getTestAccounts()
+    [me, governor] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
   })
 
@@ -31,7 +31,7 @@ describe('EpochManager', () => {
       },
       graph.addressBook,
     )
-    const { contract: proxyAdmin } = await deploy(
+    await deploy(
       DeployType.DeployAndSave,
       governor,
       {

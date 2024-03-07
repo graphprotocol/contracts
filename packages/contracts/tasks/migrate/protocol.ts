@@ -1,4 +1,4 @@
-import { GraphChainId, deployGraphNetwork } from '@graphprotocol/sdk'
+import { deployGraphNetwork, GraphChainId } from '@graphprotocol/sdk'
 import { greTask } from '@graphprotocol/sdk/gre'
 
 greTask('migrate', 'Deploy protocol contracts')

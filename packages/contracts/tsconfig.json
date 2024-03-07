@@ -8,5 +8,14 @@
     "resolveJsonModule": true,
     "esModuleInterop": true
   },
-  "include": ["hardhat.config.ts", "index.d.ts", "scripts/**/*.ts", "test/**/*.ts", "tasks/**/*.ts"]
+  "include": [
+    ".solcover.js",
+    "truffle.js",
+    "eslint.config.js",
+    "hardhat.config.ts", 
+    "index.d.ts", 
+    "scripts/**/*.ts", 
+    "test/**/*.ts", 
+    "tasks/**/*.ts"
+  ]
 }

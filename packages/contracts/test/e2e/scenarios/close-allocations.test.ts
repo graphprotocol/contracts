@@ -23,10 +23,10 @@ describe('Close allocations', () => {
     let openAllocations: AllocationFixture[] = []
     let closedAllocations: AllocationFixture[] = []
 
-    before(async () => {
-      allocations = indexerFixtures.map((i) => i.allocations).flat()
-      openAllocations = allocations.filter((a) => !a.close)
-      closedAllocations = allocations.filter((a) => a.close)
+    before(() => {
+      allocations = indexerFixtures.map(i => i.allocations).flat()
+      openAllocations = allocations.filter(a => !a.close)
+      closedAllocations = allocations.filter(a => a.close)
     })
 
     it(`some allocatons should be open`, async function () {

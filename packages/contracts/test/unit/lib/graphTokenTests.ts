@@ -1,10 +1,10 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber, Signature, ethers, Wallet } from 'ethers'
+import { BigNumber, constants, ethers, Signature, Wallet } from 'ethers'
 
 import { L2GraphToken } from '../../../build/types/L2GraphToken'
 import { GraphToken } from '../../../build/types/GraphToken'
-import { toBN, toGRT, helpers, Permit, signPermit, GraphNetworkContracts } from '@graphprotocol/sdk'
+import { GraphNetworkContracts, Permit, signPermit, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { NetworkFixture } from './fixtures'
 
@@ -72,7 +72,7 @@ export function grtTests(isL2: boolean): void {
   }
 
   before(async function () {
-    ;({ governor } = await graph.getNamedAccounts())
+    ({ governor } = await graph.getNamedAccounts())
     me = new ethers.Wallet(mePrivateKey, graph.provider)
     other = new ethers.Wallet(otherPrivateKey, graph.provider)
 
@@ -176,7 +176,7 @@ export function grtTests(isL2: boolean): void {
   })
 
   describe('mint', function () {
-    describe('mint', async function () {
+    describe('mint', function () {
       it('reject mint if not minter', async function () {
         const tx = grt.connect(me).mint(me.address, toGRT('100'))
         await expect(tx).revertedWith('Only minter can call')
@@ -203,7 +203,7 @@ export function grtTests(isL2: boolean): void {
         expect(await grt.isMinter(me.address)).eq(true)
       })
 
-      describe('mint', async function () {
+      describe('mint', function () {
         it('should mint', async function () {
           const beforeTokens = await grt.balanceOf(me.address)
 

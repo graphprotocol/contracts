@@ -1,9 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-import { Signer, Wallet, providers } from 'ethers'
+import { providers, Wallet } from 'ethers'
 
-import { BridgeMock } from '../../../build/types/BridgeMock'
-import { InboxMock } from '../../../build/types/InboxMock'
-import { OutboxMock } from '../../../build/types/OutboxMock'
 import { Controller } from '../../../build/types/Controller'
 import { DisputeManager } from '../../../build/types/DisputeManager'
 import { EpochManager } from '../../../build/types/EpochManager'
@@ -23,15 +20,12 @@ import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../../build/types/L2GraphToken'
 import { LibExponential } from '../../../build/types/LibExponential'
 import {
-  DeployType,
-  GraphNetworkContracts,
   configureL1Bridge,
   configureL2Bridge,
-  deploy,
   deployGraphNetwork,
   deployMockGraphNetwork,
+  GraphNetworkContracts,
   helpers,
-  loadGraphNetworkContracts,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 

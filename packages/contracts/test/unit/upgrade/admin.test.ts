@@ -10,7 +10,7 @@ import { IStaking } from '../../../build/types/IStaking'
 import { NetworkFixture } from '../lib/fixtures'
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { DeployType, GraphNetworkContracts, deploy, loadContractAt } from '@graphprotocol/sdk'
+import { deploy, DeployType, GraphNetworkContracts, loadContractAt } from '@graphprotocol/sdk'
 
 const { ethers } = hre
 const { AddressZero } = ethers.constants
@@ -29,12 +29,12 @@ describe('Upgrades', () => {
   let stakingProxy: GraphProxy
 
   before(async function () {
-    ;[me, governor] = await graph.getTestAccounts()
+    [me, governor] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     staking = contracts.Staking as IStaking
-    proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
+    proxyAdmin = contracts.GraphProxyAdmin
     curation = contracts.Curation as Curation
     stakingProxy = loadContractAt('GraphProxy', staking.address, undefined, governor) as GraphProxy
 
@@ -59,7 +59,7 @@ describe('Upgrades', () => {
 
         it('reject get admin from other than the ProxyAdmin', async function () {
           await expect(stakingProxy.connect(governor).admin()).revertedWith(
-            "function selector was not recognized and there's no fallback function",
+            'function selector was not recognized and there\'s no fallback function',
           )
         })
       })
@@ -72,7 +72,7 @@ describe('Upgrades', () => {
 
         it('reject get implementation from other than the ProxyAdmin', async function () {
           await expect(stakingProxy.implementation()).revertedWith(
-            "function selector was not recognized and there's no fallback function",
+            'function selector was not recognized and there\'s no fallback function',
           )
         })
       })
@@ -87,7 +87,7 @@ describe('Upgrades', () => {
 
         it('reject get pending implementation from other than the ProxyAdmin', async function () {
           await expect(stakingProxy.connect(governor).pendingImplementation()).revertedWith(
-            "function selector was not recognized and there's no fallback function",
+            'function selector was not recognized and there\'s no fallback function',
           )
         })
       })
@@ -134,7 +134,7 @@ describe('Upgrades', () => {
         // Due to the transparent proxy we should not be able to upgrade from other than the proxy admin
         const tx = stakingProxy.connect(governor).upgradeTo(newImplementationAddress)
         await expect(tx).revertedWith(
-          "function selector was not recognized and there's no fallback function",
+          'function selector was not recognized and there\'s no fallback function',
         )
       })
     })
@@ -144,7 +144,7 @@ describe('Upgrades', () => {
         // Due to the transparent proxy we should not be able to accept upgrades from other than the proxy admin
         const tx = stakingProxy.connect(governor).acceptUpgrade()
         await expect(tx).revertedWith(
-          "function selector was not recognized and there's no fallback function",
+          'function selector was not recognized and there\'s no fallback function',
         )
       })
     })
@@ -185,7 +185,7 @@ describe('Upgrades', () => {
           .connect(governor)
           .changeProxyAdmin(staking.address, otherProxyAdmin.address)
         await expect(tx).revertedWith(
-          "function selector was not recognized and there's no fallback function",
+          'function selector was not recognized and there\'s no fallback function',
         )
       })
 
@@ -202,7 +202,7 @@ describe('Upgrades', () => {
         // Due to the transparent proxy we should not be able to set admin from other than the proxy admin
         const tx = stakingProxy.connect(governor).setAdmin(me.address)
         await expect(tx).revertedWith(
-          "function selector was not recognized and there's no fallback function",
+          'function selector was not recognized and there\'s no fallback function',
         )
       })
     })

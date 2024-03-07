@@ -9,7 +9,7 @@ describe('[L2] L2Curation configuration', () => {
     contracts: { Controller, L2Curation, GraphCurationToken },
   } = graph
 
-  before(async function () {
+  before(function () {
     if (isGraphL1ChainId(graph.chainId)) this.skip()
   })
 

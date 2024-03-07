@@ -60,7 +60,7 @@ describe('Controller configuration', () => {
     expect(pauseGuardian).eq(namedAccounts.pauseGuardian.address)
   })
 
-  describe('proxy contract', async function () {
+  describe('proxy contract', function () {
     const proxyContracts = isGraphL1ChainId(graph.chainId) ? l1ProxyContracts : l2ProxyContracts
     for (const contract of proxyContracts) {
       it(`${contract} should match deployed`, async function () {

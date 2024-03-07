@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getBridgeFixture, BridgeFixture } from './fixtures/bridge'
+import { BridgeFixture, getBridgeFixture } from './fixtures/bridge'
 
 describe('Bridge GRT to L2', () => {
   const graph = hre.graph()

@@ -8,7 +8,7 @@ import hre from 'hardhat'
 import { getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
 import { getCuratorFixtures } from './fixtures/curators'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
-import { helpers, publishNewSubgraph, mintSignal, setGRTBalances } from '@graphprotocol/sdk'
+import { helpers, mintSignal, publishNewSubgraph, setGRTBalances } from '@graphprotocol/sdk'
 
 async function main() {
   const graphOpts = getGREOptsFromArgv()
@@ -26,8 +26,8 @@ async function main() {
       balance: subgraphOwnerFixture.ethBalance,
     },
   ]
-  curatorFixtures.map((c) => ethBalances.push({ address: c.signer.address, balance: c.ethBalance }))
-  const grtBalances = curatorFixtures.map((c) => ({
+  curatorFixtures.map(c => ethBalances.push({ address: c.signer.address, balance: c.ethBalance }))
+  const grtBalances = curatorFixtures.map(c => ({
     address: c.signer.address,
     balance: c.grtBalance,
   }))
@@ -45,7 +45,7 @@ async function main() {
       deploymentId: subgraph.deploymentId,
       chainId: graph.chainId,
     })
-    const subgraphData = subgraphFixtures.find((s) => s.deploymentId === subgraph.deploymentId)
+    const subgraphData = subgraphFixtures.find(s => s.deploymentId === subgraph.deploymentId)
     if (subgraphData) subgraphData.subgraphId = id
   }
 
@@ -53,7 +53,7 @@ async function main() {
   console.log('\n== Signaling subgraphs')
   for (const curator of curatorFixtures) {
     for (const subgraph of curator.subgraphs) {
-      const subgraphData = subgraphFixtures.find((s) => s.deploymentId === subgraph.deploymentId)
+      const subgraphData = subgraphFixtures.find(s => s.deploymentId === subgraph.deploymentId)
       if (subgraphData)
         await mintSignal(graph.contracts, curator.signer, {
           subgraphId: subgraphData.subgraphId,

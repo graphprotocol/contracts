@@ -7,7 +7,7 @@
 import hre from 'hardhat'
 import { getIndexerFixtures } from './fixtures/indexers'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
-import { helpers, allocateFrom, stake, setGRTBalances } from '@graphprotocol/sdk'
+import { allocateFrom, helpers, setGRTBalances, stake } from '@graphprotocol/sdk'
 
 async function main() {
   const graphOpts = getGREOptsFromArgv()
@@ -15,11 +15,11 @@ async function main() {
   const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
 
   const deployer = await graph.getDeployer()
-  const indexerETHBalances = indexerFixtures.map((i) => ({
+  const indexerETHBalances = indexerFixtures.map(i => ({
     address: i.signer.address,
     balance: i.ethBalance,
   }))
-  const indexerGRTBalances = indexerFixtures.map((i) => ({
+  const indexerGRTBalances = indexerFixtures.map(i => ({
     address: i.signer.address,
     balance: i.grtBalance,
   }))

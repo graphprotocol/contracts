@@ -3,7 +3,7 @@ import hre from 'hardhat'
 import { recreatePreviousSubgraphId } from '@graphprotocol/sdk'
 import { BigNumber } from 'ethers'
 import { CuratorFixture, getCuratorFixtures } from './fixtures/curators'
-import { SubgraphFixture, getSubgraphFixtures, getSubgraphOwner } from './fixtures/subgraphs'
+import { getSubgraphFixtures, getSubgraphOwner, SubgraphFixture } from './fixtures/subgraphs'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 let curatorFixtures: CuratorFixture[]
@@ -55,7 +55,7 @@ describe('Publish subgraphs', () => {
 
         let totalSignal: BigNumber = BigNumber.from(0)
         for (const curator of curatorFixtures) {
-          const _subgraph = curator.subgraphs.find((s) => s.deploymentId === subgraph.deploymentId)
+          const _subgraph = curator.subgraphs.find(s => s.deploymentId === subgraph.deploymentId)
           if (_subgraph) {
             totalSignal = totalSignal.add(_subgraph.signal)
           }

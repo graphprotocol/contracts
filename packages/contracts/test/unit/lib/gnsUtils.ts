@@ -7,7 +7,7 @@ import { expect } from 'chai'
 import { L2Curation } from '../../../build/types/L2Curation'
 import { GraphToken } from '../../../build/types/GraphToken'
 import { L2GraphToken } from '../../../build/types/L2GraphToken'
-import { PublishSubgraph, Subgraph, buildSubgraphId, toBN } from '@graphprotocol/sdk'
+import { buildSubgraphId, PublishSubgraph, Subgraph, toBN } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 // Entities
@@ -77,7 +77,8 @@ export const publishNewSubgraph = async (
   const owner = await gns.ownerOf(subgraphID)
   expect(owner).eq(account.address)
 
-  return { ...subgraph, id: subgraphID }
+  // TODO: properly type this
+  return { ...subgraph, id: subgraphID } as unknown as Subgraph
 }
 
 export const publishNewVersion = async (
@@ -134,7 +135,7 @@ export const publishNewVersion = async (
 
   // Only emits this event if there was actual signal to upgrade
   if (beforeSubgraph.nSignal.gt(0)) {
-    txResult
+    await txResult
       .emit(gns, 'SubgraphUpgraded')
       .withArgs(subgraphID, newVSignalEstimate, totalAdjustedUp, newSubgraph.subgraphDeploymentID)
   }

@@ -19,7 +19,8 @@ greTask(
 // This adds the testnodes to the SDK configuration
 subtask('migrate:nitro:register', 'Adds nitro testnodes to SDK config')
   .addParam('deploymentFile', 'The testnode deployment file to use', 'localNetwork.json')
-  .setAction(async (taskArgs) => {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  .setAction(async (taskArgs): Promise<void> => {
     helpers.addLocalNetwork(taskArgs.deploymentFile)
   })
 
@@ -29,6 +30,7 @@ subtask('migrate:nitro:deployment-file', 'Fetches nitro deployment file from a l
     'Path to the file where to deployment file will be saved',
     'localNetwork.json',
   )
+  // eslint-disable-next-line @typescript-eslint/require-await
   .setAction(async (taskArgs) => {
     console.log(`Attempting to fetch deployment file from testnode...`)
 
@@ -53,7 +55,7 @@ task('migrate:nitro:address-book', 'Write arbitrum addresses to address book')
     const deployment = JSON.parse(fs.readFileSync(taskArgs.deploymentFile, 'utf-8'))
 
     const addressBook = {
-      '1337': {
+      1337: {
         L1GatewayRouter: {
           address: deployment.l2Network.tokenBridge.l1GatewayRouter,
         },
@@ -61,7 +63,7 @@ task('migrate:nitro:address-book', 'Write arbitrum addresses to address book')
           address: deployment.l2Network.ethBridge.inbox,
         },
       },
-      '412346': {
+      412346: {
         L2GatewayRouter: {
           address: deployment.l2Network.tokenBridge.l2GatewayRouter,
         },

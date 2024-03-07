@@ -6,7 +6,7 @@ describe('[L2] GraphToken initialization', () => {
   const graph = hre.graph()
   const { GraphToken } = graph.contracts
 
-  before(async function () {
+  before(function () {
     if (isGraphL1ChainId(graph.chainId)) this.skip()
   })
 

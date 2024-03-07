@@ -31,7 +31,7 @@ function loadTasks() {
   ;['contract', 'bridge', 'deployment', 'migrate', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
-      .filter((pth) => pth.includes('.ts'))
+      .filter(pth => pth.includes('.ts'))
       .forEach((task) => {
         require(`${tasksPath}/${task}`)
       })
@@ -110,11 +110,11 @@ function setupNetworkProviders(hardhatConfig) {
 
 // Config
 
-const DEFAULT_TEST_MNEMONIC =
-  'myth like bonus scare over problem client lizard pioneer submit female collect'
+const DEFAULT_TEST_MNEMONIC
+  = 'myth like bonus scare over problem client lizard pioneer submit female collect'
 
-const DEFAULT_L2_TEST_MNEMONIC =
-  'urge never interest human any economy gentle canvas anxiety pave unlock find'
+const DEFAULT_L2_TEST_MNEMONIC
+  = 'urge never interest human any economy gentle canvas anxiety pave unlock find'
 
 const config: HardhatUserConfig = {
   paths: {
@@ -233,8 +233,8 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
   },
   defender: {
-    apiKey: process.env.DEFENDER_API_KEY!,
-    apiSecret: process.env.DEFENDER_API_SECRET!,
+    apiKey: process.env.DEFENDER_API_KEY,
+    apiSecret: process.env.DEFENDER_API_SECRET,
   },
 }
 

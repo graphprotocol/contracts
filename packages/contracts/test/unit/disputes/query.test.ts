@@ -10,25 +10,24 @@ import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 
-import { Dispute, createQueryDisputeID, encodeAttestation, MAX_PPM } from './common'
+import { createQueryDisputeID, Dispute, encodeAttestation, MAX_PPM } from './common'
 import {
-  helpers,
   deriveChannelKey,
+  GraphNetworkContracts,
+  helpers,
   randomHexBytes,
   toBN,
   toGRT,
-  GraphNetworkContracts,
 } from '@graphprotocol/sdk'
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-const { AddressZero, HashZero } = constants
+const { HashZero } = constants
 
 const NON_EXISTING_DISPUTE_ID = randomHexBytes()
 
-describe('DisputeManager:Query', async () => {
+describe('DisputeManager:Query', () => {
   let me: SignerWithAddress
-  let other: SignerWithAddress
   let governor: SignerWithAddress
   let arbitrator: SignerWithAddress
   let indexer: SignerWithAddress
@@ -129,14 +128,14 @@ describe('DisputeManager:Query', async () => {
   }
 
   before(async function () {
-    ;[me, other, indexer, indexer2, fisherman, fisherman2, assetHolder, rewardsDestination] =
-      await graph.getTestAccounts()
+    [me, indexer, indexer2, fisherman, fisherman2, assetHolder, rewardsDestination]
+      = await graph.getTestAccounts()
     ;({ governor, arbitrator } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    disputeManager = contracts.DisputeManager as DisputeManager
-    epochManager = contracts.EpochManager as EpochManager
+    disputeManager = contracts.DisputeManager
+    epochManager = contracts.EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
 
@@ -388,7 +387,7 @@ describe('DisputeManager:Query', async () => {
           })
         })
 
-        describe('reject a dispute', async function () {
+        describe('reject a dispute', function () {
           it('reject to reject a dispute if not the arbitrator', async function () {
             const tx = disputeManager.connect(me).rejectDispute(dispute.id)
             await expect(tx).revertedWith('Caller is not the Arbitrator')
@@ -417,7 +416,7 @@ describe('DisputeManager:Query', async () => {
           })
         })
 
-        describe('draw a dispute', async function () {
+        describe('draw a dispute', function () {
           it('reject to draw a dispute if not the arbitrator', async function () {
             const tx = disputeManager.connect(me).drawDispute(dispute.id)
             await expect(tx).revertedWith('Caller is not the Arbitrator')

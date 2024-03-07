@@ -88,7 +88,7 @@ greTask('verifyAll', 'Verifies all contracts on etherscan').setAction(async (arg
 
     const contractConfig = getContractConfig(graphConfig, addressBook, contractName, deployer)
     const contractPath = getContractPath(contractName)
-    const constructorParams = contractConfig.params.map((p) => p.value.toString())
+    const constructorParams = contractConfig.params.map(p => p.value.toString())
 
     if (contractPath) {
       const contract = addressBook.getEntry(contractName)
@@ -119,7 +119,7 @@ greTask('verifyAll', 'Verifies all contracts on etherscan').setAction(async (arg
 })
 
 // etherscan API throws errors if the contract is already verified
-async function safeVerify(hre: HardhatRuntimeEnvironment, taskArguments: any): Promise<void> {
+async function safeVerify(hre: HardhatRuntimeEnvironment, taskArguments: unknown): Promise<void> {
   try {
     await hre.run('verify', taskArguments)
   } catch (error) {
@@ -129,7 +129,7 @@ async function safeVerify(hre: HardhatRuntimeEnvironment, taskArguments: any): P
 
 function getContractPath(contract: string): string | undefined {
   const files = readDirRecursive('contracts/')
-  return files.find((f) => path.basename(f) === `${contract}.sol`)
+  return files.find(f => path.basename(f) === `${contract}.sol`)
 }
 
 function readDirRecursive(dir: string, allFiles: string[] = []) {

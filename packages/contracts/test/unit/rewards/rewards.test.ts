@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber } from 'ethers'
+import { BigNumber, constants } from 'ethers'
 import { BigNumber as BN } from 'bignumber.js'
 
 import { NetworkFixture } from '../lib/fixtures'
@@ -12,13 +12,13 @@ import { RewardsManager } from '../../../build/types/RewardsManager'
 import { IStaking } from '../../../build/types/IStaking'
 
 import {
-  helpers,
+  deriveChannelKey,
   formatGRT,
+  GraphNetworkContracts,
+  helpers,
   randomHexBytes,
   toBN,
   toGRT,
-  deriveChannelKey,
-  GraphNetworkContracts,
 } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -102,7 +102,7 @@ describe('Rewards', () => {
       return this.accruedByElapsed(nBlocks)
     }
 
-    async accruedByElapsed(nBlocks: BigNumber | number) {
+    accruedByElapsed(nBlocks: BigNumber | number) {
       const n = getRewardsPerSignal(
         new BN(ISSUANCE_PER_BLOCK.toString()),
         new BN(nBlocks.toString()),
@@ -133,17 +133,17 @@ describe('Rewards', () => {
   }
 
   before(async function () {
-    ;[delegator, curator1, curator2, indexer1, indexer2, oracle, assetHolder] =
-      await graph.getTestAccounts()
+    [delegator, curator1, curator2, indexer1, indexer2, oracle, assetHolder]
+      = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     grt = contracts.GraphToken as GraphToken
     curation = contracts.Curation as Curation
-    epochManager = contracts.EpochManager as EpochManager
+    epochManager = contracts.EpochManager
     staking = contracts.Staking as IStaking
-    rewardsManager = contracts.RewardsManager as RewardsManager
+    rewardsManager = contracts.RewardsManager
 
     // 200 GRT per block
     await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
@@ -231,7 +231,7 @@ describe('Rewards', () => {
     })
   })
 
-  context('issuing rewards', async function () {
+  context('issuing rewards', function () {
     beforeEach(async function () {
       // 5% minute rate (4 blocks)
       await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
@@ -327,8 +327,8 @@ describe('Rewards', () => {
         await tracker2.snapshot()
 
         // Calculate rewards
-        const rewardsPerSignal1 = await tracker1.accumulated
-        const rewardsPerSignal2 = await tracker2.accumulated
+        const rewardsPerSignal1 = tracker1.accumulated
+        const rewardsPerSignal2 = tracker2.accumulated
         const expectedRewardsSG1 = rewardsPerSignal1.mul(signalled1).div(WeiPerEther)
         const expectedRewardsSG2 = rewardsPerSignal2.mul(signalled2).div(WeiPerEther)
 
@@ -994,7 +994,7 @@ describe('Rewards', () => {
     it('collect query fees with two subgraphs and one allocation', async function () {
       async function getRewardsAccrual(subgraphs) {
         const [sg1, sg2] = await Promise.all(
-          subgraphs.map((sg) => rewardsManager.getAccRewardsForSubgraph(sg)),
+          subgraphs.map(sg => rewardsManager.getAccRewardsForSubgraph(sg)),
         )
         return {
           sg1,
@@ -1016,14 +1016,14 @@ describe('Rewards', () => {
       }
 
       // snapshot block before any accrual (we substract 1 because accrual starts after the first mint happens)
-      const b1 = await epochManager.blockNum().then((x) => x.toNumber() - 1)
+      const b1 = await epochManager.blockNum().then(x => x.toNumber() - 1)
 
       // allocate
       const tokensToAllocate = toGRT('12500')
       await staking
         .connect(indexer1)
         .multicall([
-          await staking.populateTransaction.stake(tokensToAllocate).then((tx) => tx.data),
+          await staking.populateTransaction.stake(tokensToAllocate).then(tx => tx.data),
           await staking.populateTransaction
             .allocateFrom(
               indexer1.address,
@@ -1033,7 +1033,7 @@ describe('Rewards', () => {
               metadata,
               await channelKey1.generateProof(indexer1.address),
             )
-            .then((tx) => tx.data),
+            .then(tx => tx.data),
         ])
 
       // move time fwd
@@ -1047,7 +1047,7 @@ describe('Rewards', () => {
 
       await helpers.mine()
       const accrual = await getRewardsAccrual(subgraphs)
-      const b2 = await epochManager.blockNum().then((x) => x.toNumber())
+      const b2 = await epochManager.blockNum().then(x => x.toNumber())
 
       // round comparison because there is a small precision error due to dividing and accrual per signal
       expect(toRound(accrual.all)).eq(toRound(ISSUANCE_PER_BLOCK.mul(b2 - b1)))

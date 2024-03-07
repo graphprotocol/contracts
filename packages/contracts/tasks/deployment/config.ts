@@ -1,15 +1,15 @@
 import {
+  confirm,
   GraphNetworkConfigContractList,
   GraphNetworkConfigGeneralParams,
   updateContractParams,
   updateGeneralParams,
   writeConfig,
-  confirm,
 } from '@graphprotocol/sdk'
 import { greTask } from '@graphprotocol/sdk/gre'
 
 greTask('update-config', 'Update graph config parameters with onchain data')
-  .addFlag('dryRun', "Only print the changes, don't write them to the config file")
+  .addFlag('dryRun', 'Only print the changes, don\'t write them to the config file')
   .addFlag('skipConfirmation', 'Skip confirmation prompt on write actions.')
   .setAction(async (taskArgs, hre) => {
     const networkName = hre.network.name
