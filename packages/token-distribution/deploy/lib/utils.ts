@@ -12,10 +12,10 @@ export const askConfirm = async (message: string) => {
     type: 'confirm',
     message,
   })
-  return res.confirm
+  return res.confirm ? res.confirm as boolean : false
 }
 
-export const promptContractAddress = async (name: string, logger: Consola): Promise<string|null> => {
+export const promptContractAddress = async (name: string, logger: Consola): Promise<string | null> => {
   const res1 = await inquirer.prompt({
     name: 'contract',
     type: 'input',
@@ -37,5 +37,5 @@ export const getDeploymentName = async (defaultName: string): Promise<string> =>
     default: defaultName,
     message: 'Save deployment as?',
   })
-  return res['deployment-name']
+  return res['deployment-name'] as string
 }

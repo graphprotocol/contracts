@@ -80,6 +80,7 @@ function setupNetworkConfig(config) {
 
 // Env
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 extendEnvironment(async (hre) => {
   const accounts = await hre.ethers.getSigners()
   try {
@@ -152,7 +153,6 @@ const config = {
     },
   },
   etherscan: {
-    //url: process.env.ETHERSCAN_API_URL,
     apiKey: process.env.ETHERSCAN_API_KEY,
     customChains: [
       {
@@ -163,7 +163,7 @@ const config = {
           browserURL: 'https://sepolia.arbiscan.io',
         },
       },
-    ]
+    ],
   },
   typechain: {
     outDir: 'build/typechain/contracts',

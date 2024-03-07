@@ -1,5 +1,4 @@
 import consola from 'consola'
-import { utils } from 'ethers'
 
 import '@nomiclabs/hardhat-ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
@@ -18,8 +17,6 @@ const artifacts = new Artifacts(ARTIFACTS_PATH)
 const l2TransferToolAbi = artifacts.readArtifactSync('L2GraphTokenLockTransferTool').abi
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer } = await hre.getNamedAccounts()
-
   // -- Graph Token --
 
   // Get the addresses we will use
@@ -40,12 +37,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     logger.warn('No L1 GRT address provided')
     process.exit(1)
   }
-  
+
   // Deploy the L2GraphTokenLockTransferTool with a proxy.
   // hardhat-deploy doesn't get along with constructor arguments in the implementation
   // combined with an OpenZeppelin transparent proxy, so we need to do this using
   // the OpenZeppelin hardhat-upgrades tooling, and save the deployment manually.
-  
+
   // TODO modify this to use upgradeProxy if a deployment already exists?
   logger.info('Deploying L2GraphTokenLockTransferTool proxy...')
   const transferToolFactory = await ethers.getContractFactory('L2GraphTokenLockTransferTool')

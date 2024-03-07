@@ -3,7 +3,7 @@ import { utils } from 'ethers'
 
 import '@nomiclabs/hardhat-ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { DeployFunction } from 'hardhat-deploy/types'
+import { DeployFunction, DeployOptions } from 'hardhat-deploy/types'
 
 import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 import { askConfirm, getDeploymentName, promptContractAddress } from './lib/utils'
@@ -14,7 +14,7 @@ const { parseEther, formatEther } = utils
 const logger = consola.create({})
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deploy } = hre.deployments
+  const deploy = (name: string, options: DeployOptions) => hre.deployments.deploy(name, options)
   const { deployer } = await hre.getNamedAccounts()
 
   // -- Graph Token --

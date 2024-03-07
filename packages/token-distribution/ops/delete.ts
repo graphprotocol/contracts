@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { prettyEnv, askConfirm, waitTransaction } from './create'
+import { askConfirm, prettyEnv, waitTransaction } from './create'
 import consola from 'consola'
 import { TxBuilder } from './tx-builder'
 
