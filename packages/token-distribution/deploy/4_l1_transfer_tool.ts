@@ -1,5 +1,4 @@
 import consola from 'consola'
-import { utils } from 'ethers'
 
 import '@nomiclabs/hardhat-ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
@@ -50,12 +49,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     owner = deployer
     logger.warn(`No owner address provided, will use the deployer address as owner: ${owner}`)
   }
-  
+
   // Deploy the L1GraphTokenLockTransferTool with a proxy.
   // hardhat-deploy doesn't get along with constructor arguments in the implementation
   // combined with an OpenZeppelin transparent proxy, so we need to do this using
   // the OpenZeppelin hardhat-upgrades tooling, and save the deployment manually.
-  
+
   // TODO modify this to use upgradeProxy if a deployment already exists?
   logger.info('Deploying L1GraphTokenLockTransferTool proxy...')
   const transferToolFactory = await ethers.getContractFactory('L1GraphTokenLockTransferTool')

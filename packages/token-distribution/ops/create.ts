@@ -2,7 +2,7 @@ import PQueue from 'p-queue'
 import fs from 'fs'
 import consola from 'consola'
 import inquirer from 'inquirer'
-import { utils, BigNumber, Event, ContractTransaction, ContractReceipt, Contract, ContractFactory } from 'ethers'
+import { BigNumber, Contract, ContractFactory, ContractReceipt, ContractTransaction, Event, utils } from 'ethers'
 
 import { NonceManager } from '@ethersproject/experimental'
 import { task } from 'hardhat/config'
@@ -47,7 +47,7 @@ export const askConfirm = async () => {
     type: 'confirm',
     message: `Are you sure you want to proceed?`,
   })
-  return res.confirm
+  return res.confirm ? res.confirm as boolean : false
 }
 
 const isValidAddress = (address: string) => {
@@ -68,10 +68,10 @@ export const isValidAddressOrFail = (address: string) => {
 
 const loadDeployData = (filepath: string): TokenLockConfigEntry[] => {
   const data = fs.readFileSync(filepath, 'utf8')
-  const entries = data.split('\n').map((e) => e.trim())
+  const entries = data.split('\n').map(e => e.trim())
   entries.shift() // remove the title from the csv
   return entries
-    .filter((entryData) => !!entryData)
+    .filter(entryData => !!entryData)
     .map((entryData) => {
       const entry = entryData.split(',')
       return {
@@ -89,9 +89,9 @@ const loadDeployData = (filepath: string): TokenLockConfigEntry[] => {
 
 const loadResultData = (filepath: string): TokenLockConfigEntry[] => {
   const data = fs.readFileSync(filepath, 'utf8')
-  const entries = data.split('\n').map((e) => e.trim())
+  const entries = data.split('\n').map(e => e.trim())
   return entries
-    .filter((entryData) => !!entryData)
+    .filter(entryData => !!entryData)
     .map((entryData) => {
       const entry = entryData.split(',')
       return {
@@ -246,7 +246,7 @@ const populateEntries = async (
   tokenAddress: string,
   ownerAddress: string,
 ) => {
-  const results = []
+  const results: TokenLockConfigEntry[] = []
   for (const entry of entries) {
     entry.owner = ownerAddress
     entry.salt = await calculateSalt(hre, entry, managerAddress, tokenAddress)
@@ -323,7 +323,7 @@ task('create-token-locks', 'Create token lock contracts from file')
     entries = await populateEntries(hre, entries, manager.address, tokenAddress, taskArgs.ownerAddress)
 
     // Filter out already deployed ones
-    entries = entries.filter((entry) => !deployedEntries.find((deployedEntry) => deployedEntry.salt === entry.salt))
+    entries = entries.filter(entry => !deployedEntries.find(deployedEntry => deployedEntry.salt === entry.salt))
     logger.success(`Total of ${entries.length} entries after removing already deployed. All good!`)
     if (entries.length === 0) {
       logger.warn('Nothing new to deploy')
@@ -378,7 +378,7 @@ task('create-token-locks', 'Create token lock contracts from file')
       const queue = new PQueue({ concurrency: 6 })
 
       for (const entry of entries) {
-        queue.add(async () => {
+        await queue.add(async () => {
           logger.log('')
           logger.info(`Creating contract...`)
           logger.log(prettyConfigEntry(entry))

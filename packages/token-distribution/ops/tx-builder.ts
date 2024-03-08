@@ -1,8 +1,22 @@
 import fs from 'fs'
 import path from 'path'
 
+export interface BuilderTx {
+  to: string
+  data: string
+  value: number | string
+  contractMethod?: null
+  contractInputsValues?: null
+}
+
+interface TxBuilderContents {
+  createdAt: number
+  chainId: string
+  transactions: BuilderTx[]
+}
+
 export class TxBuilder {
-  contents: any
+  contents: TxBuilderContents
   outputFile: string
 
   constructor(chainId: string, _template?: string) {
@@ -20,7 +34,7 @@ export class TxBuilder {
     this.contents.chainId = chainId
   }
 
-  addTx(tx: any) {
+  addTx(tx: BuilderTx) {
     this.contents.transactions.push({ ...tx, contractMethod: null, contractInputsValues: null })
   }
 
