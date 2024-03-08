@@ -34,16 +34,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@arbitrum/sdk@npm:^3.1.12, @arbitrum/sdk@npm:^3.1.13":
-  version: 3.3.0
-  resolution: "@arbitrum/sdk@npm:3.3.0"
+"@arbitrum/sdk@npm:~3.1.13":
+  version: 3.1.13
+  resolution: "@arbitrum/sdk@npm:3.1.13"
   dependencies:
     "@ethersproject/address": "npm:^5.0.8"
     "@ethersproject/bignumber": "npm:^5.1.1"
     "@ethersproject/bytes": "npm:^5.0.8"
     async-mutex: "npm:^0.4.0"
     ethers: "npm:^5.1.0"
-  checksum: 4b5b7563a1a469c040d7be4dd8eecd210551fb47f68f41babd86c351d143234501682d8466d59b28289350b81fd76ad5dbb82bcf8582d74a99fa52ef7f25aab4
+  checksum: d314665b9a7e18a9854071f40105053d0b267c74f3b09367a072778333255571523138702d5b2212a7d5b5b4eaf210afd5a6cb7582a4e00c77d3a5af76d4275b
   languageName: node
   linkType: hard
 
@@ -2621,7 +2621,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@graphprotocol/contracts@workspace:packages/contracts"
   dependencies:
-    "@arbitrum/sdk": "npm:^3.1.13"
+    "@arbitrum/sdk": "npm:~3.1.13"
     "@defi-wonderland/smock": "npm:^2.0.7"
     "@ethersproject/experimental": "npm:^5.6.0"
     "@graphprotocol/common-ts": "npm:^1.8.3"
@@ -2704,7 +2704,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@graphprotocol/sdk@workspace:packages/sdk"
   dependencies:
-    "@arbitrum/sdk": "npm:^3.1.12"
+    "@arbitrum/sdk": "npm:~3.1.13"
     "@ethersproject/experimental": "npm:^5.7.0"
     "@graphprotocol/common-ts": "npm:^2.0.7"
     "@graphprotocol/contracts": "workspace:^6.2.0"
