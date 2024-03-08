@@ -34,7 +34,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@arbitrum/sdk@npm:^3.0.0, @arbitrum/sdk@npm:^3.1.12":
+"@arbitrum/sdk@npm:^3.1.12, @arbitrum/sdk@npm:^3.1.13":
   version: 3.3.0
   resolution: "@arbitrum/sdk@npm:3.3.0"
   dependencies:
@@ -2621,7 +2621,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@graphprotocol/contracts@workspace:packages/contracts"
   dependencies:
-    "@arbitrum/sdk": "npm:^3.0.0"
+    "@arbitrum/sdk": "npm:^3.1.13"
     "@defi-wonderland/smock": "npm:^2.0.7"
     "@ethersproject/experimental": "npm:^5.6.0"
     "@graphprotocol/common-ts": "npm:^1.8.3"

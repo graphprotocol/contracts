@@ -55,8 +55,7 @@ task('migrate:nitro:address-book', 'Write arbitrum addresses to address book')
     const deployment = JSON.parse(fs.readFileSync(taskArgs.deploymentFile, 'utf-8'))
 
     const addressBook = {
-      // eslint-disable-next-line @stylistic/quote-props
-      '1337': {
+      1337: {
         L1GatewayRouter: {
           address: deployment.l2Network.tokenBridge.l1GatewayRouter,
         },
@@ -64,8 +63,7 @@ task('migrate:nitro:address-book', 'Write arbitrum addresses to address book')
           address: deployment.l2Network.ethBridge.inbox,
         },
       },
-      // eslint-disable-next-line @stylistic/quote-props
-      '412346': {
+      412346: {
         L2GatewayRouter: {
           address: deployment.l2Network.tokenBridge.l2GatewayRouter,
         },
