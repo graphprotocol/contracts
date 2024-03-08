@@ -1,4 +1,4 @@
-name: E2E
+name: E2E - packages/contracts
 
 env:
   CI: true
@@ -41,4 +41,5 @@ jobs:
           sed -i'' -e 's/^\(.*dev.period.*\)/# \1/' docker-compose.yaml
           ./test-node.bash --init --batchposters 0 --redundantsequencers 0 --detach
           popd
+          pushd packages/contracts
           L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 yarn test:e2e
