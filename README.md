@@ -21,7 +21,7 @@
   <a href="#packages">Packages</a> •
   <a href="#development">Development</a> •
   <a href="#documentation">Docs</a> •
-  <a href="#contributing">Contributing</a> •
+  <a href="#contributing">Contributing</a> 
   <a href="#security">Security</a> •
   <a href="#license">License</a>
 </p>
