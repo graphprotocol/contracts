@@ -4,15 +4,8 @@ import { NamedAccounts } from '@graphprotocol/sdk/gre'
 
 describe('RewardsManager configuration', () => {
   const {
-    getNamedAccounts,
-    contracts: { RewardsManager, Controller },
+    contracts: { RewardsManager, Controller, SubgraphAvailabilityManager },
   } = hre.graph()
-
-  let namedAccounts: NamedAccounts
-
-  before(async () => {
-    namedAccounts = await getNamedAccounts()
-  })
 
   it('should be controlled by Controller', async function () {
     const controller = await RewardsManager.controller()
@@ -21,6 +14,6 @@ describe('RewardsManager configuration', () => {
 
   it('should allow subgraph availability oracle to deny rewards', async function () {
     const availabilityOracle = await RewardsManager.subgraphAvailabilityOracle()
-    expect(availabilityOracle).eq(namedAccounts.availabilityOracle.address)
+    expect(availabilityOracle).eq(SubgraphAvailabilityManager.address)
   })
 })

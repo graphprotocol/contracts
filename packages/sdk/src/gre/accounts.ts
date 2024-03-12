@@ -13,7 +13,6 @@ const namedAccountList: AccountNames[] = [
   'arbitrator',
   'governor',
   'authority',
-  'availabilityOracle',
   'pauseGuardian',
   'allocationExchangeOwner',
 ]

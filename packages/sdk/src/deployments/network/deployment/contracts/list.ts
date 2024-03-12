@@ -13,7 +13,6 @@ export const GraphNetworkSharedContractNameList = [
   'RewardsManager',
   'DisputeManager',
   'AllocationExchange',
-  'SubgraphAvailabilityManager',
 ] as const
 export const GraphNetworkOptionalContractNameList = [
   'IENS',
@@ -35,6 +34,7 @@ export const GraphNetworkL2ContractNameList = [
   'L2GNS',
   'L2Staking',
   'L2GraphTokenGateway',
+  'SubgraphAvailabilityManager',
 ] as const
 
 export const GraphNetworkContractNameList = [
