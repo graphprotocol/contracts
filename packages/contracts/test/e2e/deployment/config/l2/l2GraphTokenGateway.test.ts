@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { SimpleAddressBook, isGraphL1ChainId } from '@graphprotocol/sdk'
+import { isGraphL1ChainId, SimpleAddressBook } from '@graphprotocol/sdk'
 
 describe('[L2] L2GraphTokenGateway configuration', function () {
   const graph = hre.graph()
@@ -33,7 +33,7 @@ describe('[L2] L2GraphTokenGateway configuration', function () {
     expect(l1Counterpart).eq(graph.l1.contracts.L1GraphTokenGateway.address)
   })
 
-  it("l2Router should match Arbitrum's router address", async function () {
+  it('l2Router should match Arbitrum\'s router address', async function () {
     const l2Router = await L2GraphTokenGateway.l2Router()
 
     // TODO: is there a cleaner way to get the router address?

@@ -34,11 +34,11 @@ describe('ServiceRegistry', () => {
   }
 
   before(async function () {
-    ;[governor, indexer, operator] = await graph.getTestAccounts()
+    [governor, indexer, operator] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    serviceRegistry = contracts.ServiceRegistry as ServiceRegistry
+    serviceRegistry = contracts.ServiceRegistry
     staking = contracts.Staking as IStaking
   })
 

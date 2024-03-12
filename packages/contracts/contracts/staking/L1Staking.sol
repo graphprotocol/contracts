@@ -31,10 +31,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * transfer of stake/delegation for vesting lock wallets.
      */
     receive() external payable {
-        require(
-            msg.sender == address(l1GraphTokenLockTransferTool),
-            "Only transfer tool can send ETH"
-        );
+        require(msg.sender == address(l1GraphTokenLockTransferTool), "Only transfer tool can send ETH");
     }
 
     /**
@@ -73,19 +70,8 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable override notPartialPaused {
-        require(
-            msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
-            "INVALID_ETH_AMOUNT"
-        );
-        _transferStakeToL2(
-            msg.sender,
-            _l2Beneficiary,
-            _amount,
-            _maxGas,
-            _gasPriceBid,
-            _maxSubmissionCost,
-            msg.value
-        );
+        require(msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)), "INVALID_ETH_AMOUNT");
+        _transferStakeToL2(msg.sender, _l2Beneficiary, _amount, _maxGas, _gasPriceBid, _maxSubmissionCost, msg.value);
     }
 
     /**
@@ -118,15 +104,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 ethAmount = _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid));
         l1GraphTokenLockTransferTool.pullETH(msg.sender, ethAmount);
         require(address(this).balance == balance.add(ethAmount), "ETH TRANSFER FAILED");
-        _transferStakeToL2(
-            msg.sender,
-            l2Beneficiary,
-            _amount,
-            _maxGas,
-            _gasPriceBid,
-            _maxSubmissionCost,
-            ethAmount
-        );
+        _transferStakeToL2(msg.sender, l2Beneficiary, _amount, _maxGas, _gasPriceBid, _maxSubmissionCost, ethAmount);
     }
 
     /**
@@ -152,10 +130,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _gasPriceBid,
         uint256 _maxSubmissionCost
     ) external payable override notPartialPaused {
-        require(
-            msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)),
-            "INVALID_ETH_AMOUNT"
-        );
+        require(msg.value == _maxSubmissionCost.add(_gasPriceBid.mul(_maxGas)), "INVALID_ETH_AMOUNT");
         _transferDelegationToL2(
             msg.sender,
             _indexer,
@@ -216,11 +191,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
      * and can be withdrawn with `withdrawDelegated()` immediately after calling this.
      * @param _indexer Address of the indexer (in L1, before transferring to L2)
      */
-    function unlockDelegationToTransferredIndexer(address _indexer)
-        external
-        override
-        notPartialPaused
-    {
+    function unlockDelegationToTransferredIndexer(address _indexer) external override notPartialPaused {
         require(
             indexerTransferredToL2[_indexer] != address(0) && __stakes[_indexer].tokensStaked == 0,
             "indexer not transferred"
@@ -269,10 +240,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
 
         require(_l2Beneficiary != address(0), "l2Beneficiary == 0");
         if (indexerTransferredToL2[_indexer] != address(0)) {
-            require(
-                indexerTransferredToL2[_indexer] == _l2Beneficiary,
-                "l2Beneficiary != previous"
-            );
+            require(indexerTransferredToL2[_indexer] == _l2Beneficiary, "l2Beneficiary != previous");
         } else {
             indexerTransferredToL2[_indexer] = _l2Beneficiary;
             require(_amount >= __minimumIndexerStake, "!minimumIndexerStake sent");
@@ -292,10 +260,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         } else {
             // require that the indexer has enough stake to cover all allocations
             uint256 tokensDelegatedCap = indexerStake.tokensStaked.mul(uint256(__delegationRatio));
-            uint256 tokensDelegatedCapacity = MathUtils.min(
-                delegationPool.tokens,
-                tokensDelegatedCap
-            );
+            uint256 tokensDelegatedCapacity = MathUtils.min(delegationPool.tokens, tokensDelegatedCap);
             require(
                 indexerStake.tokensUsed() <= indexerStake.tokensStaked.add(tokensDelegatedCapacity),
                 "! allocation capacity"
@@ -310,14 +275,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             abi.encode(functionData)
         );
 
-        _sendTokensAndMessageToL2Staking(
-            _amount,
-            _maxGas,
-            _gasPriceBid,
-            _maxSubmissionCost,
-            _ethAmount,
-            extraData
-        );
+        _sendTokensAndMessageToL2Staking(_amount, _maxGas, _gasPriceBid, _maxSubmissionCost, _ethAmount, extraData);
 
         emit IndexerStakeTransferredToL2(_indexer, _l2Beneficiary, _amount);
     }
@@ -369,10 +327,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             IL2Staking.ReceiveDelegationData memory functionData;
             functionData.indexer = indexerTransferredToL2[_indexer];
             functionData.delegator = _l2Beneficiary;
-            extraData = abi.encode(
-                uint8(IL2Staking.L1MessageCodes.RECEIVE_DELEGATION_CODE),
-                abi.encode(functionData)
-            );
+            extraData = abi.encode(uint8(IL2Staking.L1MessageCodes.RECEIVE_DELEGATION_CODE), abi.encode(functionData));
         }
 
         _sendTokensAndMessageToL2Staking(

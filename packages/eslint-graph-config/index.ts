@@ -36,7 +36,7 @@ export default [
       '@typescript-eslint/no-inferrable-types': 'warn',
       '@typescript-eslint/no-empty-function': 'warn',
       'no-only-tests/no-only-tests': 'error',
-      'no-secrets/no-secrets': 'error',
+      'no-secrets/no-secrets': ['error', { tolerance: 4.1 }],
       'sort-imports': [
         'warn', {
           memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
@@ -44,6 +44,18 @@ export default [
           allowSeparatedGroups: true,
         }],
       '@stylistic/brace-style': ['error', '1tbs'],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          args: 'all',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
   {

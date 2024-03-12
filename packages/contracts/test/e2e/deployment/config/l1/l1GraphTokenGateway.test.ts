@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { SimpleAddressBook, isGraphL2ChainId } from '@graphprotocol/sdk'
+import { isGraphL2ChainId, SimpleAddressBook } from '@graphprotocol/sdk'
 
 describe('[L1] L1GraphTokenGateway configuration', function () {
   const graph = hre.graph()
@@ -38,7 +38,7 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
     expect(escrow).eq(graph.l1.contracts.BridgeEscrow.address)
   })
 
-  it("inbox should match Arbitrum's Inbox address", async function () {
+  it('inbox should match Arbitrum\'s Inbox address', async function () {
     const inbox = await L1GraphTokenGateway.inbox()
     const arbitrumAddressBook = process.env.ARBITRUM_ADDRESS_BOOK ?? 'arbitrum-addresses-local.json'
     const arbAddressBook = new SimpleAddressBook(arbitrumAddressBook, graph.l1.chainId)
@@ -47,7 +47,7 @@ describe('[L1] L1GraphTokenGateway configuration', function () {
     expect(inbox.toLowerCase()).eq(arbIInbox.address.toLowerCase())
   })
 
-  it("l1Router should match Arbitrum's router address", async function () {
+  it('l1Router should match Arbitrum\'s router address', async function () {
     const l1Router = await L1GraphTokenGateway.l1Router()
     const arbitrumAddressBook = process.env.ARBITRUM_ADDRESS_BOOK ?? 'arbitrum-addresses-local.json'
     const arbAddressBook = new SimpleAddressBook(arbitrumAddressBook, graph.l1.chainId)

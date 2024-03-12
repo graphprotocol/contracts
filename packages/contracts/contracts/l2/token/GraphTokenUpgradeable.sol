@@ -30,21 +30,16 @@ abstract contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20Burn
 
     /// @dev Hash of the EIP-712 Domain type
     bytes32 private immutable DOMAIN_TYPE_HASH =
-        keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
-        );
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
     /// @dev Hash of the EIP-712 Domain name
     bytes32 private immutable DOMAIN_NAME_HASH = keccak256("Graph Token");
     /// @dev Hash of the EIP-712 Domain version
     bytes32 private immutable DOMAIN_VERSION_HASH = keccak256("0");
     /// @dev EIP-712 Domain salt
-    bytes32 private immutable DOMAIN_SALT =
-        0xe33842a7acd1d5a1d28f25a931703e5605152dc48d64dc4716efdae1f5659591; // Randomly generated salt
+    bytes32 private immutable DOMAIN_SALT = 0xe33842a7acd1d5a1d28f25a931703e5605152dc48d64dc4716efdae1f5659591; // Randomly generated salt
     /// @dev Hash of the EIP-712 permit type
     bytes32 private immutable PERMIT_TYPEHASH =
-        keccak256(
-            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-        );
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     // -- State --
 
@@ -94,9 +89,7 @@ abstract contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20Burn
             abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
-                keccak256(
-                    abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces[_owner], _deadline)
-                )
+                keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces[_owner], _deadline))
             )
         );
 

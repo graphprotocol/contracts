@@ -11,7 +11,7 @@ const INIT_TESTS = 'test/e2e/deployment/init/**/*.test.ts'
 
 // Built-in test & run tasks don't support GRE arguments
 // so we pass them by overriding GRE config object
-const setGraphConfig = async (args: TaskArguments, hre: HardhatRuntimeEnvironment) => {
+const setGraphConfig = (args: TaskArguments, hre: HardhatRuntimeEnvironment) => {
   const greArgs = [
     'graphConfig',
     'l1GraphConfig',
@@ -42,7 +42,7 @@ greTask('e2e', 'Run all e2e tests')
     ]
 
     if (args.skipBridge) {
-      testFiles = testFiles.filter((file) => !/l1|l2/.test(file))
+      testFiles = testFiles.filter(file => !/l1|l2/.test(file))
     }
 
     // Disable secure accounts, we don't need them for this task
@@ -84,7 +84,7 @@ greTask('e2e:init', 'Run deployment initialization e2e tests').setAction(
 
 greTask('e2e:scenario', 'Run scenario scripts and e2e tests')
   .addPositionalParam('scenario', 'Name of the scenario to run')
-  .addFlag('skipScript', "Don't run scenario script")
+  .addFlag('skipScript', 'Don\'t run scenario script')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     setGraphConfig(args, hre)
 
@@ -126,7 +126,8 @@ greTask('e2e:upgrade', 'Run upgrade tests')
     await runUpgrade(args, hre, args.post ? 'post' : 'pre')
   })
 
-async function runUpgrade(args: any, hre: HardhatRuntimeEnvironment, type: 'pre' | 'post') {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runUpgrade(args: { [key: string]: any }, hre: HardhatRuntimeEnvironment, type: 'pre' | 'post') {
   const script = `test/e2e/upgrades/${args.upgrade}/${type}-upgrade.ts`
   const test = `test/e2e/upgrades/${args.upgrade}/${type}-upgrade.test.ts`
 

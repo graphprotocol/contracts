@@ -18,11 +18,7 @@ contract CallhookReceiverMock is ICallhookReceiver {
      * @param _amount Amount of tokens that were transferred
      * @param _data ABI-encoded callhook data
      */
-    function onTokenTransfer(
-        address _from,
-        uint256 _amount,
-        bytes calldata _data
-    ) external override {
+    function onTokenTransfer(address _from, uint256 _amount, bytes calldata _data) external override {
         uint256 foo;
         uint256 bar;
         (foo, bar) = abi.decode(_data, (uint256, uint256));

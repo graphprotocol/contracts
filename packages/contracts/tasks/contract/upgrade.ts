@@ -1,5 +1,5 @@
 import { greTask } from '@graphprotocol/sdk/gre'
-import { DeployType, GraphNetworkAddressBook, deploy } from '@graphprotocol/sdk'
+import { deploy, DeployType, GraphNetworkAddressBook } from '@graphprotocol/sdk'
 
 greTask('contract:upgrade', 'Upgrades a contract')
   .addParam('contract', 'Name of the contract to upgrade')

@@ -16,18 +16,18 @@ interface TeamMember {
 
 export const teamAddresses: Array<TeamMember> = []
 
-async function main() {
+function main() {
   const data = fs.readFileSync('indexers.csv', 'utf8')
-  const entries = data.split('\n').map((e) => e.trim())
+  const entries = data.split('\n').map(e => e.trim())
   for (const entry of entries) {
     if (!entry) continue
 
-    const [name, address] = entry.split(',').map((e) => e.trim())
+    const [name, address] = entry.split(',').map(e => e.trim())
 
     // Verify address
     try {
       getAddress(address.trim())
-    } catch (err) {
+    } catch (_) {
       console.log('Invalid', name, address)
       process.exit(1)
     }

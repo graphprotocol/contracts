@@ -1,4 +1,4 @@
-import { DeployType, GraphNetworkAddressBook, confirm, deploy } from '@graphprotocol/sdk'
+import { confirm, deploy, DeployType, GraphNetworkAddressBook } from '@graphprotocol/sdk'
 import { greTask } from '@graphprotocol/sdk/gre'
 
 greTask('contract:deploy', 'Deploy a contract')

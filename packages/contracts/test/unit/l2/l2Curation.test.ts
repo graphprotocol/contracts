@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { utils, BigNumber, Event, Signer, constants } from 'ethers'
+import { BigNumber, constants, Event, Signer, utils } from 'ethers'
 
 import { L2Curation } from '../../../build/types/L2Curation'
 import { GraphToken } from '../../../build/types/GraphToken'
@@ -11,12 +11,12 @@ import { GNS } from '../../../build/types/GNS'
 import { parseEther } from 'ethers/lib/utils'
 import {
   formatGRT,
+  GraphNetworkContracts,
+  helpers,
   randomAddress,
   randomHexBytes,
   toBN,
   toGRT,
-  helpers,
-  GraphNetworkContracts,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -25,7 +25,7 @@ const { AddressZero } = constants
 const MAX_PPM = 1000000
 
 const chunkify = (total: BigNumber, maxChunks = 10): Array<BigNumber> => {
-  const chunks = []
+  const chunks: BigNumber[] = []
   while (total.gt(0) && maxChunks > 0) {
     const m = 1000000
     const p = Math.floor(Math.random() * m)
@@ -55,12 +55,12 @@ describe('L2Curation:Config', () => {
   let curation: L2Curation
 
   before(async function () {
-    ;[me] = await graph.getTestAccounts()
+    [me] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor, true)
-    curation = contracts.L2Curation as L2Curation
+    curation = contracts.L2Curation
   })
 
   beforeEach(async function () {
@@ -189,8 +189,8 @@ describe('L2Curation', () => {
       }
       const minSupply = signalAmountForMinimumCuration
       return (
-        (await calcLinearBondingCurve(minSupply, minDeposit, depositAmount.sub(minDeposit))) +
-        toFloat(minSupply)
+        (await calcLinearBondingCurve(minSupply, minDeposit, depositAmount.sub(minDeposit)))
+        + toFloat(minSupply)
       )
     }
     // Calculate bonding curve in the test
@@ -343,13 +343,13 @@ describe('L2Curation', () => {
 
   before(async function () {
     // Use stakingMock so we can call collect
-    ;[me, curator, stakingMock] = await graph.getTestAccounts()
+    [me, curator, stakingMock] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor, true)
     curation = contracts.Curation as L2Curation
     grt = contracts.GraphToken as GraphToken
-    controller = contracts.Controller as Controller
+    controller = contracts.Controller
     gns = contracts.GNS as GNS
 
     gnsImpersonator = await helpers.impersonateAccount(gns.address)
@@ -427,7 +427,7 @@ describe('L2Curation', () => {
     })
   })
 
-  describe('curate', async function () {
+  describe('curate', function () {
     it('reject deposit below minimum tokens required', async function () {
       // Set the minimum to a value greater than 1 so that we can test
       await curation.connect(governor).setMinimumCurationDeposit(toBN('2'))
@@ -512,7 +512,7 @@ describe('L2Curation', () => {
     })
   })
 
-  describe('curate tax free (from GNS)', async function () {
+  describe('curate tax free (from GNS)', function () {
     it('can not be called by anyone other than GNS', async function () {
       const tokensToDeposit = await curation.minimumCurationDeposit()
       const tx = curation.connect(curator).mintTaxFree(subgraphDeploymentID, tokensToDeposit)
@@ -555,8 +555,8 @@ describe('L2Curation', () => {
     })
   })
 
-  describe('collect', async function () {
-    context('> not curated', async function () {
+  describe('collect', function () {
+    context('> not curated', function () {
       it('reject collect tokens distributed to the curation pool', async function () {
         // Source of tokens must be the staking for this to work
         await controller
@@ -569,7 +569,7 @@ describe('L2Curation', () => {
       })
     })
 
-    context('> curated', async function () {
+    context('> curated', function () {
       beforeEach(async function () {
         await curation.connect(curator).mint(subgraphDeploymentID, toGRT('1000'), 0)
       })
@@ -645,7 +645,7 @@ describe('L2Curation', () => {
     })
   })
 
-  describe('burn', async function () {
+  describe('burn', function () {
     beforeEach(async function () {
       await curation.connect(curator).mint(subgraphDeploymentID, tokensToDeposit, 0)
     })
@@ -724,7 +724,7 @@ describe('L2Curation', () => {
     })
   })
 
-  describe('conservation', async function () {
+  describe('conservation', function () {
     it('should match multiple deposits and redeems back to initial state', async function () {
       this.timeout(60000) // increase timeout for test runner
 
@@ -761,7 +761,7 @@ describe('L2Curation', () => {
     })
   })
 
-  describe('multiple minting', async function () {
+  describe('multiple minting', function () {
     it('should mint the same signal every time due to the flat bonding curve', async function () {
       const tokensToDepositMany = [
         toGRT('1000'), // should mint if we start with number above minimum deposit

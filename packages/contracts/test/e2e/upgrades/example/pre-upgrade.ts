@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/require-await */
+// REMOVE the above lines
+
 import hre from 'hardhat'
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 

@@ -6,7 +6,7 @@ describe('[L1] BridgeEscrow configuration', function () {
   const graph = hre.graph()
   const { Controller, BridgeEscrow } = graph.contracts
 
-  before(async function () {
+  before(function () {
     if (isGraphL2ChainId(graph.chainId)) this.skip()
   })
 

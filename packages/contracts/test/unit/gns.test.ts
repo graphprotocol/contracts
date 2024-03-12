@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { ethers, ContractTransaction, BigNumber, Event } from 'ethers'
+import { BigNumber, ContractTransaction, ethers, Event } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
-import { SubgraphDeploymentID, formatGRT } from '@graphprotocol/common-ts'
+import { formatGRT, SubgraphDeploymentID } from '@graphprotocol/common-ts'
 
 import { LegacyGNSMock } from '../../build/types/LegacyGNSMock'
 import { GraphToken } from '../../build/types/GraphToken'
@@ -14,27 +14,27 @@ import { L1GNS } from '../../build/types/L1GNS'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import {
   AccountDefaultName,
+  burnSignal,
   createDefaultName,
+  deprecateSubgraph,
+  mintSignal,
   publishNewSubgraph,
   publishNewVersion,
-  mintSignal,
-  deprecateSubgraph,
-  burnSignal,
 } from './lib/gnsUtils'
 import {
-  PublishSubgraph,
-  Subgraph,
   buildLegacySubgraphId,
   buildSubgraph,
   buildSubgraphId,
-  randomHexBytes,
-  helpers,
-  toGRT,
-  toBN,
   deploy,
   DeployType,
-  loadContractAt,
   GraphNetworkContracts,
+  helpers,
+  loadContractAt,
+  PublishSubgraph,
+  randomHexBytes,
+  Subgraph,
+  toBN,
+  toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { L2GNS, L2GraphTokenGateway, SubgraphNFT } from '../../build/types'
@@ -125,8 +125,8 @@ describe('L1GNS', () => {
     }
     // Calculate bonding curve in the test
     return (
-      toFloat(supply) *
-      ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (reserveRatio / 1000000) - 1)
+      toFloat(supply)
+      * ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (reserveRatio / 1000000) - 1)
     )
   }
 
@@ -190,8 +190,7 @@ describe('L1GNS', () => {
 
     return tx
   }
-
-  const deployLegacyGNSMock = async (): Promise<any> => {
+  const deployLegacyGNSMock = async (): Promise<void> => {
     const { contract: subgraphDescriptor } = await deploy(DeployType.Deploy, governor, {
       name: 'SubgraphNFTDescriptor',
     })
@@ -222,7 +221,7 @@ describe('L1GNS', () => {
   }
 
   before(async function () {
-    ;[me, other, governor, another] = await graph.getTestAccounts()
+    [me, other, governor, another] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture(graph.provider)
 
@@ -231,17 +230,17 @@ describe('L1GNS', () => {
     grt = fixtureContracts.GraphToken as GraphToken
     curation = fixtureContracts.Curation as Curation
     gns = fixtureContracts.GNS as L1GNS
-    controller = fixtureContracts.Controller as Controller
-    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
-    subgraphNFT = fixtureContracts.SubgraphNFT as SubgraphNFT
+    controller = fixtureContracts.Controller
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway
+    subgraphNFT = fixtureContracts.SubgraphNFT
 
     // Deploy L1 arbitrum bridge
     await fixture.loadL1ArbitrumBridge(governor)
 
     // Deploy L2 mock
     l2MockContracts = await fixture.loadMock(true)
-    l2GNSMock = l2MockContracts.L2GNS as L2GNS
-    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
+    l2GNSMock = l2MockContracts.L2GNS
+    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway
 
     // Configure graph bridge
     await fixture.configureL1Bridge(governor, fixtureContracts, l2MockContracts)
@@ -275,7 +274,7 @@ describe('L1GNS', () => {
     await fixture.tearDown()
   })
 
-  describe('Configuration', async function () {
+  describe('Configuration', function () {
     describe('setOwnerTaxPercentage', function () {
       const newValue = 10
 
@@ -384,7 +383,7 @@ describe('L1GNS', () => {
       })
     })
 
-    describe('publishNewSubgraph', async function () {
+    describe('publishNewSubgraph', function () {
       it('should publish a new subgraph and first version with it', async function () {
         await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
       })
@@ -403,7 +402,7 @@ describe('L1GNS', () => {
       })
     })
 
-    describe('publishNewVersion', async function () {
+    describe('publishNewVersion', function () {
       let subgraph: Subgraph
 
       beforeEach(async () => {
@@ -548,7 +547,7 @@ describe('L1GNS', () => {
         expect(await gns.subgraphSignal(subgraph.id)).eq(expectedSignal)
       })
     })
-    describe('deprecateSubgraph', async function () {
+    describe('deprecateSubgraph', function () {
       let subgraph: Subgraph
 
       beforeEach(async () => {
@@ -586,8 +585,8 @@ describe('L1GNS', () => {
     })
   })
 
-  describe('Curating on names', async function () {
-    describe('mintSignal()', async function () {
+  describe('Curating on names', function () {
+    describe('mintSignal()', function () {
       it('should deposit into the name signal curve', async function () {
         const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
         await mintSignal(other, subgraph.id, tokens10000, gns, curation)
@@ -617,7 +616,7 @@ describe('L1GNS', () => {
       })
     })
 
-    describe('burnSignal()', async function () {
+    describe('burnSignal()', function () {
       let subgraph: Subgraph
 
       beforeEach(async () => {
@@ -659,7 +658,7 @@ describe('L1GNS', () => {
       })
     })
 
-    describe('transferSignal()', async function () {
+    describe('transferSignal()', function () {
       let subgraph: Subgraph
       let otherNSignal: BigNumber
 
@@ -695,7 +694,7 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('GNS: Curator transfer amount exceeds balance')
       })
     })
-    describe('withdraw()', async function () {
+    describe('withdraw()', function () {
       let subgraph: Subgraph
 
       beforeEach(async () => {
@@ -727,7 +726,7 @@ describe('L1GNS', () => {
       })
     })
 
-    describe('multiple minting', async function () {
+    describe('multiple minting', function () {
       it('should mint less signal every time due to the bonding curve', async function () {
         const tokensToDepositMany = [
           toGRT('1000'), // should mint if we start with number above minimum deposit

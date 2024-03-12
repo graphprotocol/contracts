@@ -27,10 +27,7 @@ library MathUtils {
         uint256 valueB,
         uint256 weightB
     ) internal pure returns (uint256) {
-        return
-            valueA.mul(weightA).add(valueB.mul(weightB)).add(weightA.add(weightB).sub(1)).div(
-                weightA.add(weightB)
-            );
+        return valueA.mul(weightA).add(valueB.mul(weightB)).add(weightA.add(weightB).sub(1)).div(weightA.add(weightB));
     }
 
     /**

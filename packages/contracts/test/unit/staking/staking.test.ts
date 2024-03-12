@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
-import { constants, BigNumber, Event } from 'ethers'
+import { BigNumber, constants, Event } from 'ethers'
 
 import { GraphToken } from '../../../build/types/GraphToken'
 import { IStaking } from '../../../build/types/IStaking'
@@ -8,8 +8,8 @@ import { IStaking } from '../../../build/types/IStaking'
 import { NetworkFixture } from '../lib/fixtures'
 
 import {
-  GraphNetworkContracts,
   deriveChannelKey,
+  GraphNetworkContracts,
   helpers,
   randomHexBytes,
   toBN,
@@ -84,7 +84,7 @@ describe('Staking:Stakes', () => {
   }
 
   before(async function () {
-    ;[me, indexer, slasher, fisherman] = await graph.getTestAccounts()
+    [me, indexer, slasher, fisherman] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
@@ -242,7 +242,6 @@ describe('Staking:Stakes', () => {
       it('should always increase the thawing period on subsequent unstakes', async function () {
         const tokensToUnstake = toGRT('10')
         const tokensToUnstakeSecondTime = toGRT('0.000001')
-        const thawingPeriod = toBN(await staking.thawingPeriod())
 
         // Unstake (1)
         const tx1 = await staking.connect(indexer).unstake(tokensToUnstake)
@@ -252,9 +251,6 @@ describe('Staking:Stakes', () => {
 
         // Move forward before the tokens are unlocked for withdrawal
         await helpers.mineUpTo(tokensLockedUntil1.sub(5))
-
-        // Calculate locking time for tokens taking into account the previous unstake request
-        const currentBlock = await helpers.latestBlock()
 
         // Ensure at least 1 block is added (i.e. the weighted average rounds up)
         const expectedLockedUntil = tokensLockedUntil1.add(1)

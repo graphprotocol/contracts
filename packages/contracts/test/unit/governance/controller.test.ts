@@ -25,14 +25,14 @@ describe('Managed', () => {
   let controller: Controller
 
   before(async function () {
-    ;[me, mockController, newMockEpochManager] = await graph.getTestAccounts()
+    [me, mockController, newMockEpochManager] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
     // We just run the fixures to set up a contract with  Managed, as this
     // is cleaner and easier for us to test
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    epochManager = contracts.EpochManager as EpochManager
-    controller = contracts.Controller as Controller
+    epochManager = contracts.EpochManager
+    controller = contracts.Controller
   })
 
   beforeEach(async function () {

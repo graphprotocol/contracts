@@ -54,10 +54,7 @@ library LibExponential {
         }
 
         // Compute `1 - alpha * exp ^(-exponent)`
-        int256 factor = LibFixedMath.sub(
-            LibFixedMath.one(),
-            LibFixedMath.mul(alpha, LibFixedMath.exp(-exponent))
-        );
+        int256 factor = LibFixedMath.sub(LibFixedMath.one(), LibFixedMath.mul(alpha, LibFixedMath.exp(-exponent)));
 
         // Weight the fees by the factor
         return LibFixedMath.uintMul(factor, fees);

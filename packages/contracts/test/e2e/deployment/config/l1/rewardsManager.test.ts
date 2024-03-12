@@ -6,7 +6,7 @@ describe('[L1] RewardsManager configuration', () => {
   const graph = hre.graph()
   const { RewardsManager } = graph.contracts
 
-  before(async function () {
+  before(function () {
     if (isGraphL2ChainId(graph.chainId)) this.skip()
   })
 

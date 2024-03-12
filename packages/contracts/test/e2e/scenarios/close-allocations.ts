@@ -9,7 +9,7 @@
 import hre from 'hardhat'
 import { getIndexerFixtures } from './fixtures/indexers'
 
-import { helpers, closeAllocation } from '@graphprotocol/sdk'
+import { closeAllocation, helpers } from '@graphprotocol/sdk'
 
 import { getGREOptsFromArgv } from '@graphprotocol/sdk/gre'
 
@@ -18,7 +18,7 @@ async function main() {
   const graph = hre.graph(graphOpts)
   const indexerFixtures = getIndexerFixtures(await graph.getTestAccounts())
 
-  const ethBalances = indexerFixtures.map((i) => ({
+  const ethBalances = indexerFixtures.map(i => ({
     address: i.signer.address,
     balance: i.ethBalance,
   }))
@@ -37,7 +37,7 @@ async function main() {
   console.log('\n== Close allocations')
 
   for (const indexer of indexerFixtures) {
-    for (const allocation of indexer.allocations.filter((a) => a.close)) {
+    for (const allocation of indexer.allocations.filter(a => a.close)) {
       await closeAllocation(graph.contracts, indexer.signer, {
         allocationId: allocation.signer.address,
       })

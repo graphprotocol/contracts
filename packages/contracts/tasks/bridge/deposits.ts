@@ -4,6 +4,13 @@ import { Table } from 'console-table-printer'
 import { L1ToL2MessageStatus } from '@arbitrum/sdk'
 import { getL1ToL2MessageStatus } from '@graphprotocol/sdk'
 
+interface PrintEvent {
+  blockNumber: string
+  tx: string
+  amount: string
+  status: string
+}
+
 greTask('bridge:deposits', 'List deposits initiated on L1GraphTokenGateway')
   .addOptionalParam('startBlock', 'Start block for the search')
   .addOptionalParam('endBlock', 'End block for the search')
@@ -21,7 +28,7 @@ greTask('bridge:deposits', 'List deposits initiated on L1GraphTokenGateway')
     const events = await Promise.all(
       (
         await gateway.queryFilter(gateway.filters.DepositInitiated(), startBlock, endBlock)
-      ).map(async (e) => ({
+      ).map(async e => ({
         blockNumber: `${e.blockNumber} (${new Date(
           (await graph.l1.provider.getBlock(e.blockNumber)).timestamp * 1000,
         ).toLocaleString()})`,
@@ -48,7 +55,7 @@ greTask('bridge:deposits', 'List deposits initiated on L1GraphTokenGateway')
     printEvents(events)
   })
 
-function printEvents(events: any[]) {
+function printEvents(events: PrintEvent[]) {
   const tablePrinter = new Table({
     charLength: { '🚧': 2, '✅': 2, '⚠️': 1, '⌛': 2, '❌': 2 },
     columns: [
@@ -64,7 +71,7 @@ function printEvents(events: any[]) {
     ],
   })
 
-  events.map((e) => tablePrinter.addRow(e))
+  events.map(e => tablePrinter.addRow(e))
   tablePrinter.printTable()
 }
 

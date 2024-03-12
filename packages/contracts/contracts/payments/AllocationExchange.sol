@@ -31,7 +31,7 @@ contract AllocationExchange is Governed {
 
     // -- Constants --
 
-    uint256 private constant MAX_UINT256 = 2**256 - 1;
+    uint256 private constant MAX_UINT256 = 2 ** 256 - 1;
     uint256 private constant SIGNATURE_LENGTH = 65;
 
     // -- State --
@@ -56,12 +56,7 @@ contract AllocationExchange is Governed {
      * @param _governor Account capable of withdrawing funds and setting the authority
      * @param _authority Account that can sign the vouchers that this contract will redeem
      */
-    constructor(
-        IGraphToken _graphToken,
-        IStaking _staking,
-        address _governor,
-        address _authority
-    ) {
+    constructor(IGraphToken _graphToken, IStaking _staking, address _governor, address _authority) {
         require(_governor != address(0), "Exchange: governor must be set");
         Governed._initialize(_governor);
 
@@ -148,10 +143,7 @@ contract AllocationExchange is Governed {
         require(_voucher.signature.length == SIGNATURE_LENGTH, "Exchange: invalid signature");
 
         // Already redeemed check
-        require(
-            !allocationsRedeemed[_voucher.allocationID],
-            "Exchange: allocation already redeemed"
-        );
+        require(!allocationsRedeemed[_voucher.allocationID], "Exchange: allocation already redeemed");
 
         // Signature check
         bytes32 messageHash = keccak256(abi.encodePacked(_voucher.allocationID, _voucher.amount));

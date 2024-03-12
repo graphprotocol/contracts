@@ -23,7 +23,7 @@ describe('Curation:Config', () => {
   const defaults = graph.graphConfig.defaults
 
   before(async function () {
-    ;[me] = await graph.getTestAccounts()
+    [me] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)

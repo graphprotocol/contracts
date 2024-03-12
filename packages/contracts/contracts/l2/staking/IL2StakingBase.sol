@@ -10,9 +10,5 @@ import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
  * @dev Note it includes only the L2-specific functionality, not the full IStaking interface.
  */
 interface IL2StakingBase is ICallhookReceiver {
-    event TransferredDelegationReturnedToDelegator(
-        address indexed indexer,
-        address indexed delegator,
-        uint256 amount
-    );
+    event TransferredDelegationReturnedToDelegator(address indexed indexer, address indexed delegator, uint256 amount);
 }

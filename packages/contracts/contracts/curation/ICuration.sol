@@ -56,11 +56,7 @@ interface ICuration {
      * @param _tokensOutMin Expected minimum amount of tokens to receive
      * @return Tokens returned
      */
-    function burn(
-        bytes32 _subgraphDeploymentID,
-        uint256 _signalIn,
-        uint256 _tokensOutMin
-    ) external returns (uint256);
+    function burn(bytes32 _subgraphDeploymentID, uint256 _signalIn, uint256 _tokensOutMin) external returns (uint256);
 
     /**
      * @notice Assign Graph Tokens collected as curation fees to the curation pool reserve.
@@ -84,10 +80,7 @@ interface ICuration {
      * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal owned by a curator for the subgraph deployment
      */
-    function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID)
-        external
-        view
-        returns (uint256);
+    function getCuratorSignal(address _curator, bytes32 _subgraphDeploymentID) external view returns (uint256);
 
     /**
      * @notice Get the amount of signal in a curation pool.
@@ -111,10 +104,7 @@ interface ICuration {
      * @return Amount of signal that can be bought
      * @return Amount of tokens that will be burned as curation tax
      */
-    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        external
-        view
-        returns (uint256, uint256);
+    function tokensToSignal(bytes32 _subgraphDeploymentID, uint256 _tokensIn) external view returns (uint256, uint256);
 
     /**
      * @notice Calculate number of tokens to get when burning signal from a curation pool.
@@ -122,10 +112,7 @@ interface ICuration {
      * @param _signalIn Amount of signal to burn
      * @return Amount of tokens to get for the specified amount of signal
      */
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
-        external
-        view
-        returns (uint256);
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn) external view returns (uint256);
 
     /**
      * @notice Tax charged when curators deposit funds.

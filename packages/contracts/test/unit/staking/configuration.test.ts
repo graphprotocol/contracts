@@ -7,7 +7,7 @@ import { IStaking } from '../../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import { GraphProxyAdmin } from '../../../build/types/GraphProxyAdmin'
-import { DeployType, GraphNetworkContracts, deploy, toBN, toGRT } from '@graphprotocol/sdk'
+import { deploy, DeployType, GraphNetworkContracts, toBN, toGRT } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { AddressZero } = constants
@@ -16,12 +16,10 @@ const MAX_PPM = toBN('1000000')
 
 describe('Staking:Config', () => {
   const graph = hre.graph()
-  const defaults = graph.graphConfig.defaults
 
   let me: SignerWithAddress
   let other: SignerWithAddress
   let governor: SignerWithAddress
-  let slasher: SignerWithAddress
 
   let fixture: NetworkFixture
 
@@ -30,13 +28,13 @@ describe('Staking:Config', () => {
   let proxyAdmin: GraphProxyAdmin
 
   before(async function () {
-    ;[me, other, slasher] = await graph.getTestAccounts()
+    [me, other] = await graph.getTestAccounts()
     ;({ governor } = await graph.getNamedAccounts())
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     staking = contracts.Staking as IStaking
-    proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
+    proxyAdmin = contracts.GraphProxyAdmin
   })
 
   beforeEach(async function () {

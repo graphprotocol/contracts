@@ -18,7 +18,7 @@
   "author": "tomas@edgeandnode.com",
   "license": "MIT",
   "dependencies": {
-    "@arbitrum/sdk": "^3.1.12",
+    "@arbitrum/sdk": "~3.1.13",
     "@ethersproject/experimental": "^5.7.0",
     "@graphprotocol/common-ts": "^2.0.7",
     "@graphprotocol/contracts": "workspace:^6.2.0",

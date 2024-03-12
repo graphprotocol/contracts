@@ -11,6 +11,7 @@ async function main() {
   // Make the deployer an asset holder
   const deployer = await graph.getDeployer()
   const { governor } = await graph.getNamedAccounts()
+  // @ts-expect-error asset holder existed back then
   await Staking.connect(governor).setAssetHolder(deployer.address, true)
 
   // Get some funds on the deployer
