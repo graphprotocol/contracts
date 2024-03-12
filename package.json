@@ -11,6 +11,7 @@
     "packages/eslint-graph-config",
     "packages/sdk",
     "packages/solhint-graph-config",
+    "packages/subgraph-service",
     "packages/token-distribution"
   ],
   "scripts": {
