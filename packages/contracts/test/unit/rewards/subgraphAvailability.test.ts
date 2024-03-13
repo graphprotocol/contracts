@@ -6,8 +6,8 @@ import { ethers } from 'hardhat'
 
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-import { SubgraphAvailabilityManager } from '../../build/types/SubgraphAvailabilityManager'
-import { IRewardsManager } from '../../build/types/IRewardsManager'
+import { SubgraphAvailabilityManager } from '../../../build/types/SubgraphAvailabilityManager'
+import { IRewardsManager } from '../../../build/types/IRewardsManager'
 
 import { NetworkFixture } from '../lib/fixtures'
 
