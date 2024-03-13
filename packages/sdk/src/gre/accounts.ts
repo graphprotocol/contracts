@@ -53,7 +53,7 @@ export async function getTestAccounts(
 ): Promise<SignerWithAddress[]> {
   // Get list of privileged accounts we don't want as test accounts
   const namedAccounts = await getNamedAccounts(provider, graphConfigPath)
-  const blacklist = namedAccountList.reduce((accounts, name) => {
+  const blacklist = namedAccountList.reduce((accounts: string[], name) => {
     const account = namedAccounts[name]
     if (account) {
       accounts.push(account.address)
