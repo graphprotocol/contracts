@@ -21,18 +21,11 @@ const namedAccountList: AccountNames[] = [
 export async function getNamedAccounts(
   provider: EthersProviderWrapper,
   graphConfigPath: string,
-  impersonate?: boolean,
 ): Promise<NamedAccounts> {
   const namedAccounts = namedAccountList.reduce(
     async (accountsPromise, name) => {
       const accounts = await accountsPromise
       const address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
-
-      // If we are impersonating, we need to set the balance of the account
-      if (impersonate) {
-        await provider.send('hardhat_impersonateAccount', [address])
-        await provider.send('hardhat_setBalance', [address, '0x56BC75E2D63100000']) // 100 ETH
-      }
       accounts[name] = await SignerWithAddress.create(provider.getSigner(address))
       return accounts
     },
@@ -68,6 +61,15 @@ export async function getTestAccounts(
   return signers.filter((s) => {
     return !blacklist.includes(s.address)
   })
+}
+
+export async function getAllAccounts(
+  provider: EthersProviderWrapper,
+): Promise<SignerWithAddress[]> {
+  const accounts = await provider.listAccounts()
+  return await Promise.all(
+    accounts.map(async (account) => await SignerWithAddress.create(provider.getSigner(account))),
+  )
 }
 
 export async function getWallets(

@@ -12,10 +12,7 @@ contract L1GraphTokenLockTransferToolBadMock {
 
     // Sends 1 wei less than requested
     function pullETH(address _l1Wallet, uint256 _amount) external {
-        require(
-            l2WalletAddress[_l1Wallet] != address(0),
-            "L1GraphTokenLockTransferToolMock: unknown L1 wallet"
-        );
+        require(l2WalletAddress[_l1Wallet] != address(0), "L1GraphTokenLockTransferToolMock: unknown L1 wallet");
         (bool success, ) = payable(msg.sender).call{ value: _amount - 1 }("");
         require(success, "L1GraphTokenLockTransferToolMock: ETH pull failed");
     }

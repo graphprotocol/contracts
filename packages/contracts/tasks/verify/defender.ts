@@ -7,7 +7,7 @@ import type { VerificationResponse } from '@openzeppelin/hardhat-defender/dist/v
 import { GraphNetworkContractName, isGraphNetworkContractName } from '@graphprotocol/sdk'
 
 async function main(
-  args: { referenceUrl?: string; contracts: GraphNetworkContractName[] },
+  args: { referenceUrl?: string, contracts: GraphNetworkContractName[] },
   hre: HRE,
 ) {
   const { referenceUrl, contracts } = args
@@ -15,16 +15,16 @@ async function main(
   const summaryPath = process.env.GITHUB_STEP_SUMMARY
   if (summaryPath) appendFileSync(summaryPath, `# Contracts deployment verification\n\n`)
 
-  const workflowUrl =
-    referenceUrl ||
-    process.env.WORKFLOW_URL ||
-    execSync(`git config --get remote.origin.url`).toString().trim()
+  const workflowUrl
+    = referenceUrl
+    || process.env.WORKFLOW_URL
+    || execSync(`git config --get remote.origin.url`).toString().trim()
   const addressBook = graph().addressBook
   const errs = []
 
   for (const contractName of contracts) {
     if (!isGraphNetworkContractName(contractName)) {
-      throw new Error(`Invalid contract name: ${contractName}`)
+      throw new Error(`Invalid contract name: ${contractName as string}`)
     }
     const entry = addressBook.getEntry(contractName)
     if (!entry || entry.address === constants.AddressZero) {
@@ -49,7 +49,7 @@ async function main(
       if (response.matchType === 'NO_MATCH') {
         errs.push([contractName, { message: `No bytecode match.` }])
       }
-    } catch (err: any) {
+    } catch (err) {
       if (summaryPath) {
         appendFileSync(
           summaryPath,

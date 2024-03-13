@@ -14,19 +14,20 @@ library MathUtils {
     /**
      * @dev Calculates the weighted average of two values pondering each of these
      * values based on configured weights. The contribution of each value N is
-     * weightN/(weightA + weightB).
+     * weightN/(weightA + weightB). The calculation rounds up to ensure the result
+     * is always greater than the smallest of the two values.
      * @param valueA The amount for value A
      * @param weightA The weight to use for value A
      * @param valueB The amount for value B
      * @param weightB The weight to use for value B
      */
-    function weightedAverage(
+    function weightedAverageRoundingUp(
         uint256 valueA,
         uint256 weightA,
         uint256 valueB,
         uint256 weightB
     ) internal pure returns (uint256) {
-        return valueA.mul(weightA).add(valueB.mul(weightB)).div(weightA.add(weightB));
+        return valueA.mul(weightA).add(valueB.mul(weightB)).add(weightA.add(weightB).sub(1)).div(weightA.add(weightB));
     }
 
     /**

@@ -207,10 +207,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * @param _l2IssuancePerBlock New issuancePerBlock that has been set in L2
      * @param _updateBlockNum L1 Block number at which issuancePerBlock was updated in L2
      */
-    function updateL2MintAllowance(uint256 _l2IssuancePerBlock, uint256 _updateBlockNum)
-        external
-        onlyGovernor
-    {
+    function updateL2MintAllowance(uint256 _l2IssuancePerBlock, uint256 _updateBlockNum) external onlyGovernor {
         require(_updateBlockNum < block.number, "BLOCK_MUST_BE_PAST");
         require(_updateBlockNum > lastL2MintAllowanceUpdateBlock, "BLOCK_MUST_BE_INCREMENTING");
         accumulatedL2MintAllowanceSnapshot = accumulatedL2MintAllowanceAtBlock(_updateBlockNum);
@@ -290,30 +287,15 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
             {
                 bytes memory extraData;
                 (from, maxSubmissionCost, extraData) = _parseOutboundData(_data);
-                require(
-                    extraData.length == 0 || callhookAllowlist[msg.sender] == true,
-                    "CALL_HOOK_DATA_NOT_ALLOWED"
-                );
+                require(extraData.length == 0 || callhookAllowlist[msg.sender] == true, "CALL_HOOK_DATA_NOT_ALLOWED");
                 require(maxSubmissionCost != 0, "NO_SUBMISSION_COST");
                 outboundCalldata = getOutboundCalldata(_l1Token, from, _to, _amount, extraData);
             }
             {
-                L2GasParams memory gasParams = L2GasParams(
-                    maxSubmissionCost,
-                    _maxGas,
-                    _gasPriceBid
-                );
+                L2GasParams memory gasParams = L2GasParams(maxSubmissionCost, _maxGas, _gasPriceBid);
                 // transfer tokens to escrow
                 token.transferFrom(from, escrow, _amount);
-                seqNum = sendTxToL2(
-                    inbox,
-                    l2Counterpart,
-                    from,
-                    msg.value,
-                    0,
-                    gasParams,
-                    outboundCalldata
-                );
+                seqNum = sendTxToL2(inbox, l2Counterpart, from, msg.value, 0, gasParams, outboundCalldata);
             }
         }
         emit DepositInitiated(_l1Token, from, _to, seqNum, _amount);
@@ -425,15 +407,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * @return Base ether value required to keep retryable ticket alive
      * @return Additional data sent to L2
      */
-    function _parseOutboundData(bytes calldata _data)
-        private
-        view
-        returns (
-            address,
-            uint256,
-            bytes memory
-        )
-    {
+    function _parseOutboundData(bytes calldata _data) private view returns (address, uint256, bytes memory) {
         address from;
         uint256 maxSubmissionCost;
         bytes memory extraData;

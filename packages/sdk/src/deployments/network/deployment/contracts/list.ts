@@ -52,3 +52,10 @@ export function isGraphNetworkContractName(name: unknown): name is GraphNetworkC
     GraphNetworkContractNameList.includes(name as GraphNetworkContractName)
   )
 }
+
+export const GraphNetworkGovernedContractNameList: GraphNetworkContractName[] = [
+  'GraphToken',
+  'Controller',
+  'GraphProxyAdmin',
+  'SubgraphNFT',
+]

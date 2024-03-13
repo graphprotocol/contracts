@@ -28,11 +28,7 @@ contract LegacyGNSMock is L1GNS {
      * @param subgraphID Subgraph ID
      * @return subgraphDeploymentID Subgraph deployment ID
      */
-    function getSubgraphDeploymentID(uint256 subgraphID)
-        external
-        view
-        returns (bytes32 subgraphDeploymentID)
-    {
+    function getSubgraphDeploymentID(uint256 subgraphID) external view returns (bytes32 subgraphDeploymentID) {
         IGNS.SubgraphData storage subgraph = _getSubgraphData(subgraphID);
         subgraphDeploymentID = subgraph.subgraphDeploymentID;
     }

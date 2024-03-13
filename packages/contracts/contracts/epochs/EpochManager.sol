@@ -93,10 +93,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
         uint256 currentBlock = blockNum();
 
         require(_block < currentBlock, "Can only retrieve past block hashes");
-        require(
-            currentBlock < 256 || _block >= currentBlock - 256,
-            "Can only retrieve hashes for last 256 blocks"
-        );
+        require(currentBlock < 256 || _block >= currentBlock - 256, "Can only retrieve hashes for last 256 blocks");
 
         return blockhash(_block);
     }

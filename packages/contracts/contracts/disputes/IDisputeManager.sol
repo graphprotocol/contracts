@@ -74,18 +74,14 @@ interface IDisputeManager {
 
     // -- Dispute --
 
-    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit)
-        external
-        returns (bytes32);
+    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external returns (bytes32);
 
     function createQueryDisputeConflict(
         bytes calldata _attestationData1,
         bytes calldata _attestationData2
     ) external returns (bytes32, bytes32);
 
-    function createIndexingDispute(address _allocationID, uint256 _deposit)
-        external
-        returns (bytes32);
+    function createIndexingDispute(address _allocationID, uint256 _deposit) external returns (bytes32);
 
     function acceptDispute(bytes32 _disputeID) external;
 

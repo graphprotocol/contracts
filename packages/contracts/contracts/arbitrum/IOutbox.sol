@@ -51,8 +51,7 @@ interface IOutbox {
 
     function l2ToL1OutputId() external view returns (bytes32);
 
-    function processOutgoingMessages(bytes calldata sendsData, uint256[] calldata sendLengths)
-        external;
+    function processOutgoingMessages(bytes calldata sendsData, uint256[] calldata sendLengths) external;
 
     function outboxEntryExists(uint256 batchNum) external view returns (bool);
 }

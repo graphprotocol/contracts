@@ -1,0 +1,25 @@
+query CuratorWallets($blockNumber: Int, $first: Int) {
+  tokenLockWallets(
+    block: { number: $blockNumber }
+    where: { periods: 16, startTime: 1608224400, endTime: 1734454800, revocable: Disabled }
+    first: $first
+    orderBy: blockNumberCreated
+  ) {
+    id
+    beneficiary
+    managedAmount
+    periods
+    startTime
+    endTime
+    revocable
+    releaseStartTime
+    vestingCliffTime
+    initHash
+    txHash
+    manager
+    tokensReleased
+    tokensWithdrawn
+    tokensRevoked
+    blockNumberCreated
+  }
+}

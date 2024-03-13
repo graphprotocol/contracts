@@ -32,12 +32,7 @@ interface IStakingExtension is IStakingData {
      * @dev Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
      * gets `shares` for the delegation pool proportionally to the tokens staked.
      */
-    event StakeDelegated(
-        address indexed indexer,
-        address indexed delegator,
-        uint256 tokens,
-        uint256 shares
-    );
+    event StakeDelegated(address indexed indexer, address indexed delegator, uint256 tokens, uint256 shares);
 
     /**
      * @dev Emitted when `delegator` undelegated `tokens` from `indexer`.
@@ -54,22 +49,13 @@ interface IStakingExtension is IStakingData {
     /**
      * @dev Emitted when `delegator` withdrew delegated `tokens` from `indexer`.
      */
-    event StakeDelegatedWithdrawn(
-        address indexed indexer,
-        address indexed delegator,
-        uint256 tokens
-    );
+    event StakeDelegatedWithdrawn(address indexed indexer, address indexed delegator, uint256 tokens);
 
     /**
      * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
      * Tracks `reward` amount of tokens given to `beneficiary`.
      */
-    event StakeSlashed(
-        address indexed indexer,
-        uint256 tokens,
-        uint256 reward,
-        address beneficiary
-    );
+    event StakeSlashed(address indexed indexer, uint256 tokens, uint256 reward, address beneficiary);
 
     /**
      * @dev Emitted when `caller` set `slasher` address as `allowed` to slash stakes.
@@ -139,12 +125,7 @@ interface IStakingExtension is IStakingData {
      * @param _reward Amount of reward tokens to send to a beneficiary
      * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
      */
-    function slash(
-        address _indexer,
-        uint256 _tokens,
-        uint256 _reward,
-        address _beneficiary
-    ) external;
+    function slash(address _indexer, uint256 _tokens, uint256 _reward, address _beneficiary) external;
 
     /**
      * @notice Return the delegation from a delegator to an indexer.
@@ -152,10 +133,7 @@ interface IStakingExtension is IStakingData {
      * @param _delegator Address of the delegator
      * @return Delegation data
      */
-    function getDelegation(address _indexer, address _delegator)
-        external
-        view
-        returns (Delegation memory);
+    function getDelegation(address _indexer, address _delegator) external view returns (Delegation memory);
 
     /**
      * @notice Return whether the delegator has delegated to the indexer.
@@ -170,10 +148,7 @@ interface IStakingExtension is IStakingData {
      * @param _delegation Delegation of tokens from delegator to indexer
      * @return Amount of tokens to withdraw
      */
-    function getWithdraweableDelegatedTokens(Delegation memory _delegation)
-        external
-        view
-        returns (uint256);
+    function getWithdraweableDelegatedTokens(Delegation memory _delegation) external view returns (uint256);
 
     /**
      * @notice Getter for the delegationRatio, i.e. the delegation capacity multiplier:
@@ -313,8 +288,5 @@ interface IStakingExtension is IStakingData {
      * @param _allocationID Allocation ID for which to query the allocation information
      * @return The specified allocation, as an IStakingData.Allocation struct
      */
-    function allocations(address _allocationID)
-        external
-        view
-        returns (IStakingData.Allocation memory);
+    function allocations(address _allocationID) external view returns (IStakingData.Allocation memory);
 }

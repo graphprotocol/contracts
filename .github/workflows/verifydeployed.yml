@@ -36,8 +36,8 @@ jobs:
         with:
           name: contract-artifacts
           path: |
-            build
-            cache/*.json
+            packages/contracts/build
+            packages/contracts/cache/*.json
   
   verify:
     name: Verify deployments
@@ -54,7 +54,7 @@ jobs:
           name: contract-artifacts
 
       - name: Verify contracts on Defender
-        run: yarn hardhat --network ${{ inputs.network }} verify-defender ${{ inputs.contracts }}
+        run: cd packages/contracts && yarn hardhat --network ${{ inputs.network }} verify-defender ${{ inputs.contracts }}
         env:
           DEFENDER_API_KEY: "${{ secrets.DEFENDER_API_KEY }}"
           DEFENDER_API_SECRET: "${{ secrets.DEFENDER_API_SECRET }}"

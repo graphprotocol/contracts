@@ -82,11 +82,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @dev This function is only callable by the governor
      * @param _delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
      */
-    function setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod)
-        external
-        override
-        onlyGovernor
-    {
+    function setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) external override onlyGovernor {
         _setDelegationUnbondingPeriod(_delegationUnbondingPeriod);
     }
 
@@ -107,12 +103,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _tokens Amount of tokens to delegate
      * @return Amount of shares issued from the delegation pool
      */
-    function delegate(address _indexer, uint256 _tokens)
-        external
-        override
-        notPartialPaused
-        returns (uint256)
-    {
+    function delegate(address _indexer, uint256 _tokens) external override notPartialPaused returns (uint256) {
         address delegator = msg.sender;
 
         // Transfer tokens to delegate to this contract
@@ -128,12 +119,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _shares Amount of shares to return and undelegate tokens
      * @return Amount of tokens returned for the shares of the delegation pool
      */
-    function undelegate(address _indexer, uint256 _shares)
-        external
-        override
-        notPartialPaused
-        returns (uint256)
-    {
+    function undelegate(address _indexer, uint256 _shares) external override notPartialPaused returns (uint256) {
         return _undelegate(msg.sender, _indexer, _shares);
     }
 
@@ -143,12 +129,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _indexer Withdraw available tokens delegated to indexer
      * @param _newIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
      */
-    function withdrawDelegated(address _indexer, address _newIndexer)
-        external
-        override
-        notPaused
-        returns (uint256)
-    {
+    function withdrawDelegated(address _indexer, address _newIndexer) external override notPaused returns (uint256) {
         return _withdrawDelegated(msg.sender, _indexer, _newIndexer);
     }
 
@@ -211,12 +192,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _delegator Address of the delegator
      * @return Delegation data
      */
-    function getDelegation(address _indexer, address _delegator)
-        external
-        view
-        override
-        returns (Delegation memory)
-    {
+    function getDelegation(address _indexer, address _delegator) external view override returns (Delegation memory) {
         return __delegationPools[_indexer].delegators[_delegator];
     }
 
@@ -254,12 +230,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _indexer Address of the indexer for which to query the delegation pool
      * @return Delegation pool as a DelegationPoolReturn struct
      */
-    function delegationPools(address _indexer)
-        external
-        view
-        override
-        returns (DelegationPoolReturn memory)
-    {
+    function delegationPools(address _indexer) external view override returns (DelegationPoolReturn memory) {
         DelegationPool storage pool = __delegationPools[_indexer];
         return
             DelegationPoolReturn(
@@ -289,12 +260,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _maybeOperator The address that may or may not be an operator
      * @return True if the operator is authorized to operate on behalf of the indexer
      */
-    function operatorAuth(address _indexer, address _maybeOperator)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function operatorAuth(address _indexer, address _maybeOperator) external view override returns (bool) {
         return __operatorAuth[_indexer][_maybeOperator];
     }
 
@@ -304,12 +270,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _subgraphDeploymentId The subgraph deployment for which to query the allocations
      * @return The amount of tokens allocated to the subgraph deployment
      */
-    function subgraphAllocations(bytes32 _subgraphDeploymentId)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function subgraphAllocations(bytes32 _subgraphDeploymentId) external view override returns (uint256) {
         return __subgraphAllocations[_subgraphDeploymentId];
     }
 
@@ -418,12 +379,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _allocationID Allocation ID for which to query the allocation information
      * @return The specified allocation, as an IStakingData.Allocation struct
      */
-    function allocations(address _allocationID)
-        external
-        view
-        override
-        returns (IStakingData.Allocation memory)
-    {
+    function allocations(address _allocationID) external view override returns (IStakingData.Allocation memory) {
         return __allocations[_allocationID];
     }
 
@@ -442,12 +398,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _delegation Delegation of tokens from delegator to indexer
      * @return Amount of tokens to withdraw
      */
-    function getWithdraweableDelegatedTokens(Delegation memory _delegation)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getWithdraweableDelegatedTokens(Delegation memory _delegation) public view override returns (uint256) {
         // There must be locked tokens and period passed
         uint256 currentEpoch = epochManager().currentEpoch();
         if (_delegation.tokensLockedUntil > 0 && currentEpoch >= _delegation.tokensLockedUntil) {
@@ -495,11 +446,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _tokens Amount of tokens to delegate
      * @return Amount of shares issued of the delegation pool
      */
-    function _delegate(
-        address _delegator,
-        address _indexer,
-        uint256 _tokens
-    ) private returns (uint256) {
+    function _delegate(address _delegator, address _indexer, uint256 _tokens) private returns (uint256) {
         // Only allow delegations over a minimum, to prevent rounding attacks
         require(_tokens >= MINIMUM_DELEGATION, "!minimum-delegation");
         // Only delegate to non-empty address
@@ -516,9 +463,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
         uint256 delegatedTokens = _tokens.sub(delegationTax);
 
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0)
-            ? delegatedTokens
-            : delegatedTokens.mul(pool.shares).div(pool.tokens);
+        uint256 shares = (pool.tokens == 0) ? delegatedTokens : delegatedTokens.mul(pool.shares).div(pool.tokens);
         require(shares > 0, "!shares");
 
         // Update the delegation pool
@@ -540,11 +485,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _shares Amount of shares to return and undelegate tokens
      * @return Amount of tokens returned for the shares of the delegation pool
      */
-    function _undelegate(
-        address _delegator,
-        address _indexer,
-        uint256 _shares
-    ) private returns (uint256) {
+    function _undelegate(address _delegator, address _indexer, uint256 _shares) private returns (uint256) {
         // Can only undelegate a non-zero amount of shares
         require(_shares > 0, "!shares");
 
@@ -581,17 +522,9 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
             require(remainingDelegation >= MINIMUM_DELEGATION, "!minimum-delegation");
         }
         delegation.tokensLocked = delegation.tokensLocked.add(tokens);
-        delegation.tokensLockedUntil = epochManager().currentEpoch().add(
-            __delegationUnbondingPeriod
-        );
+        delegation.tokensLockedUntil = epochManager().currentEpoch().add(__delegationUnbondingPeriod);
 
-        emit StakeDelegatedLocked(
-            _indexer,
-            _delegator,
-            tokens,
-            _shares,
-            delegation.tokensLockedUntil
-        );
+        emit StakeDelegatedLocked(_indexer, _delegator, tokens, _shares, delegation.tokensLockedUntil);
 
         return tokens;
     }
@@ -642,11 +575,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * @param _percentage Percentage of tokens to burn as tax
      * @return Amount of tax charged
      */
-    function _collectTax(
-        IGraphToken _graphToken,
-        uint256 _tokens,
-        uint256 _percentage
-    ) private returns (uint256) {
+    function _collectTax(IGraphToken _graphToken, uint256 _tokens, uint256 _percentage) private returns (uint256) {
         uint256 tax = uint256(_percentage).mul(_tokens).div(MAX_PPM);
         TokenUtils.burnTokens(_graphToken, tax); // Burn tax if any
         return tax;

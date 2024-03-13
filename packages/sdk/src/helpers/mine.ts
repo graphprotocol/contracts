@@ -18,10 +18,16 @@ export async function mineUpTo(blockNumber: string | number | BigNumber): Promis
 
 export async function setAutoMine(autoMine: boolean): Promise<void> {
   const hre = await import('hardhat')
-  return hre.network.provider.send('evm_setAutomine', [autoMine])
+
+  // This allows the dynamic import to work on both ts and js
+  const network = hre.network ?? hre.default.network
+  return network.provider.send('evm_setAutomine', [autoMine])
 }
 
 export async function setIntervalMining(interval: number): Promise<void> {
   const hre = await import('hardhat')
-  return hre.network.provider.send('evm_setIntervalMining', [interval])
+
+  // This allows the dynamic import to work on both ts and js
+  const network = hre.network ?? hre.default.network
+  return network.provider.send('evm_setIntervalMining', [interval])
 }

@@ -38,12 +38,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Emitted when rewards are assigned to an indexer.
      */
-    event RewardsAssigned(
-        address indexed indexer,
-        address indexed allocationID,
-        uint256 epoch,
-        uint256 amount
-    );
+    event RewardsAssigned(address indexed indexer, address indexed allocationID, uint256 epoch, uint256 amount);
 
     /**
      * @dev Emitted when rewards are denied to an indexer.
@@ -58,10 +53,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Modifiers --
 
     modifier onlySubgraphAvailabilityOracle() {
-        require(
-            msg.sender == address(subgraphAvailabilityOracle),
-            "Caller must be the subgraph availability oracle"
-        );
+        require(msg.sender == address(subgraphAvailabilityOracle), "Caller must be the subgraph availability oracle");
         _;
     }
 
@@ -103,11 +95,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @dev Sets the subgraph oracle allowed to denegate distribution of rewards to subgraphs.
      * @param _subgraphAvailabilityOracle Address of the subgraph availability oracle
      */
-    function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle)
-        external
-        override
-        onlyGovernor
-    {
+    function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle) external override onlyGovernor {
         subgraphAvailabilityOracle = _subgraphAvailabilityOracle;
         emit ParameterUpdated("subgraphAvailabilityOracle");
     }
@@ -120,8 +108,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external override {
         // Caller can be the SAO or the governor
         require(
-            msg.sender == address(subgraphAvailabilityOracle) ||
-                msg.sender == controller.getGovernor(),
+            msg.sender == address(subgraphAvailabilityOracle) || msg.sender == controller.getGovernor(),
             "Not authorized"
         );
         minimumSubgraphSignal = _minimumSubgraphSignal;
@@ -136,11 +123,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny Whether to set the subgraph as denied for claiming rewards or not
      */
-    function setDenied(bytes32 _subgraphDeploymentID, bool _deny)
-        external
-        override
-        onlySubgraphAvailabilityOracle
-    {
+    function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external override onlySubgraphAvailabilityOracle {
         _setDenied(_subgraphDeploymentID, _deny);
     }
 
@@ -216,12 +199,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards for subgraph
      */
-    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) public view override returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         // Get tokens signalled on the subgraph
@@ -229,10 +207,9 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
 
         // Only accrue rewards if over a threshold
         uint256 newRewards = (subgraphSignalledTokens >= minimumSubgraphSignal) // Accrue new rewards since last snapshot
-            ? getAccRewardsPerSignal()
-                .sub(subgraph.accRewardsPerSignalSnapshot)
-                .mul(subgraphSignalledTokens)
-                .div(FIXED_POINT_SCALING_FACTOR)
+            ? getAccRewardsPerSignal().sub(subgraph.accRewardsPerSignalSnapshot).mul(subgraphSignalledTokens).div(
+                FIXED_POINT_SCALING_FACTOR
+            )
             : 0;
         return subgraph.accRewardsForSubgraph.add(newRewards);
     }
@@ -243,12 +220,9 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @return Accumulated rewards per allocated token for the subgraph
      * @return Accumulated rewards for subgraph
      */
-    function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID)
-        public
-        view
-        override
-        returns (uint256, uint256)
-    {
+    function getAccRewardsPerAllocatedToken(
+        bytes32 _subgraphDeploymentID
+    ) public view override returns (uint256, uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
 
         uint256 accRewardsForSubgraph = getAccRewardsForSubgraph(_subgraphDeploymentID);
@@ -257,20 +231,15 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             subgraph.accRewardsForSubgraphSnapshot
         );
 
-        uint256 subgraphAllocatedTokens = staking().getSubgraphAllocatedTokens(
-            _subgraphDeploymentID
-        );
+        uint256 subgraphAllocatedTokens = staking().getSubgraphAllocatedTokens(_subgraphDeploymentID);
         if (subgraphAllocatedTokens == 0) {
             return (0, accRewardsForSubgraph);
         }
 
-        uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph
-            .mul(FIXED_POINT_SCALING_FACTOR)
-            .div(subgraphAllocatedTokens);
-        return (
-            subgraph.accRewardsPerAllocatedToken.add(newRewardsPerAllocatedToken),
-            accRewardsForSubgraph
+        uint256 newRewardsPerAllocatedToken = newRewardsForSubgraph.mul(FIXED_POINT_SCALING_FACTOR).div(
+            subgraphAllocatedTokens
         );
+        return (subgraph.accRewardsPerAllocatedToken.add(newRewardsPerAllocatedToken), accRewardsForSubgraph);
     }
 
     // -- Updates --
@@ -294,11 +263,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards for subgraph
      */
-    function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID)
-        external
-        override
-        returns (uint256)
-    {
+    function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID) external override returns (uint256) {
         // Called since `total signalled GRT` will change
         updateAccRewardsPerSignal();
 
@@ -317,16 +282,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards per allocated token for a subgraph
      */
-    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID)
-        public
-        override
-        returns (uint256)
-    {
+    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) public override returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
-        (
-            uint256 accRewardsPerAllocatedToken,
-            uint256 accRewardsForSubgraph
-        ) = getAccRewardsPerAllocatedToken(_subgraphDeploymentID);
+        (uint256 accRewardsPerAllocatedToken, uint256 accRewardsForSubgraph) = getAccRewardsPerAllocatedToken(
+            _subgraphDeploymentID
+        );
         subgraph.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
         subgraph.accRewardsForSubgraphSnapshot = accRewardsForSubgraph;
         return subgraph.accRewardsPerAllocatedToken;
@@ -345,15 +305,8 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
 
         IStaking.Allocation memory alloc = staking().getAllocation(_allocationID);
 
-        (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(
-            alloc.subgraphDeploymentID
-        );
-        return
-            _calcRewards(
-                alloc.tokens,
-                alloc.accRewardsPerAllocatedToken,
-                accRewardsPerAllocatedToken
-            );
+        (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(alloc.subgraphDeploymentID);
+        return _calcRewards(alloc.tokens, alloc.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
     }
 
     /**
@@ -385,9 +338,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         require(msg.sender == address(staking), "Caller must be the staking contract");
 
         IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
-        uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(
-            alloc.subgraphDeploymentID
-        );
+        uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(alloc.subgraphDeploymentID);
 
         // Do not do rewards on denied subgraph deployments ID
         if (isDenied(alloc.subgraphDeploymentID)) {
@@ -396,11 +347,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         }
 
         // Calculate rewards accrued by this allocation
-        uint256 rewards = _calcRewards(
-            alloc.tokens,
-            alloc.accRewardsPerAllocatedToken,
-            accRewardsPerAllocatedToken
-        );
+        uint256 rewards = _calcRewards(alloc.tokens, alloc.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
         if (rewards > 0) {
             // Mint directly to staking contract for the reward amount
             // The staking contract will do bookkeeping of the reward and

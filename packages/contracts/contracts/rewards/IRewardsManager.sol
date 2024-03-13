@@ -33,15 +33,9 @@ interface IRewardsManager {
 
     function getAccRewardsPerSignal() external view returns (uint256);
 
-    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID)
-        external
-        view
-        returns (uint256);
+    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
-    function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID)
-        external
-        view
-        returns (uint256, uint256);
+    function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID) external view returns (uint256, uint256);
 
     function getRewards(address _allocationID) external view returns (uint256);
 

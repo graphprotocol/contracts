@@ -1,7 +1,0 @@
-{
-  "description": "A secure & decentralized way to address resources on and off the blockchain using simple, human-readable names. Access domains and transfer history.",
-  "displayName": "ENS",
-  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmUqD4MMAXQvbNX3FbWNP43gmDFFdQPmQrn8CT9kNEb7Rs",
-  "codeRepository": "https://github.com/ensdomains/ens-subgraph",
-  "website": "https://ens.domains/"
-}

@@ -8,7 +8,10 @@
   "packageManager": "yarn@4.0.2",
   "workspaces": [
     "packages/contracts",
-    "packages/sdk"
+    "packages/eslint-graph-config",
+    "packages/sdk",
+    "packages/solhint-graph-config",
+    "packages/token-distribution"
   ],
   "scripts": {
     "postinstall": "husky install",
@@ -19,6 +22,7 @@
     "test": "yarn workspaces foreach --all --parallel --verbose --interlaced run test"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.27.1",
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
     "husky": "^8.0.3"

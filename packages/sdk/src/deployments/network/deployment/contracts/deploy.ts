@@ -13,17 +13,23 @@ import {
   type GraphNetworkContractName,
   GraphNetworkL1ContractNameList,
   GraphNetworkL2ContractNameList,
+  GraphNetworkGovernedContractNameList,
 } from './list'
 import { getContractConfig, loadCallParams, readConfig } from '../../../lib/config'
 import { logDebug } from '../../../logger'
 
-import type { Signer, providers } from 'ethers'
+import type { ContractTransaction, Signer, providers } from 'ethers'
 import type { DeployData, DeployResult } from '../../../lib/types/deploy'
 import type { AddressBook } from '../../../lib/address-book'
 import { GraphNetworkAddressBook } from '../address-book'
 import { isContractDeployed } from '../../../lib/deploy/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { Contract, ethers } from 'ethers'
+import { Contract, Wallet, ethers } from 'ethers'
+import { acceptOwnership } from '../../actions/governed'
+import { setPausedProtocol } from '../../actions/pause'
+import { GraphNetworkContracts, loadGraphNetworkContracts } from './load'
+import { setCode } from '../../../../helpers/code'
+import { logContractCall, logContractReceipt } from '../../../lib/contracts/log'
 
 export async function deployGraphNetwork(
   addressBookPath: string,
@@ -32,16 +38,21 @@ export async function deployGraphNetwork(
   deployer: SignerWithAddress,
   provider: providers.Provider,
   opts?: {
+    governor?: SignerWithAddress
     skipConfirmation?: boolean
     forceDeploy?: boolean
     buildAcceptTx?: boolean
     l2Deploy?: boolean
+    enableTxLogging?: boolean
   },
-) {
+): Promise<GraphNetworkContracts | undefined> {
   // Opts
+  const governor = opts?.governor ?? undefined
   const skipConfirmation = opts?.skipConfirmation ?? false
   const forceDeploy = opts?.forceDeploy ?? false
   const buildAcceptTx = opts?.buildAcceptTx ?? false
+  const l2Deploy = opts?.l2Deploy ?? false
+  const enableTxLogging = opts?.enableTxLogging ?? true
 
   // Snapshot deployer
   const beforeDeployerNonce = await deployer.getTransactionCount()
@@ -56,10 +67,10 @@ export async function deployGraphNetwork(
   const contractList: GraphNetworkContractName[] = [
     ...GraphNetworkSharedContractNameList.filter((c) => c !== 'AllocationExchange'),
   ]
-  if (!opts?.l2Deploy && isGraphL1ChainId(chainId)) {
+  if (!l2Deploy && isGraphL1ChainId(chainId)) {
     contractList.push(...GraphNetworkL1ContractNameList)
   }
-  if (opts?.l2Deploy || isGraphL2ChainId(chainId)) {
+  if (l2Deploy || isGraphL2ChainId(chainId)) {
     contractList.push(...GraphNetworkL2ContractNameList)
   }
   contractList.push('AllocationExchange')
@@ -143,7 +154,12 @@ export async function deployGraphNetwork(
           const params = loadCallParams(call.params, addressBook, deployer.address)
           logDebug(`- Params: ${params.join(', ')}`)
           const overrides = process.env.CI ? { gasLimit: 2_000_000 } : {}
-          await entry.contract.contract.connect(deployer).functions[call.fn](...params, overrides)
+          const response: ContractTransaction = await entry.contract.contract
+            .connect(deployer)
+            .functions[call.fn](...params, overrides)
+          logContractCall(response, entry.name, call.fn, params)
+          const receipt = await entry.contract.contract.provider.waitForTransaction(response.hash)
+          logContractReceipt(receipt)
         } catch (error) {
           // TODO: can we clean this up?
           // Fallback for StakingExtension methods
@@ -170,6 +186,31 @@ export async function deployGraphNetwork(
   } else {
     logDebug('Nothing to do')
   }
+
+  ////////////////////////////////////////
+  // Load contracts
+  ////////////////////////////////////////
+  const loadedContracts = loadGraphNetworkContracts(addressBookPath, chainId, provider, undefined, {
+    l2Load: l2Deploy,
+    enableTxLogging: enableTxLogging,
+  })
+
+  ////////////////////////////////////////
+  // Post deploy
+  ////////////////////////////////////////
+  // If a governor was provided, accept ownership of contracts and unpause the protocol
+  if (governor) {
+    const txs: ContractTransaction[] = []
+    for (const contract of GraphNetworkGovernedContractNameList) {
+      const tx = await acceptOwnership(loadedContracts, governor, { contractName: contract })
+      if (tx) {
+        txs.push()
+      }
+    }
+    await Promise.all(txs.map((tx) => tx.wait()))
+    await setPausedProtocol(loadedContracts, governor, { paused: false })
+  }
+
   ////////////////////////////////////////
   // Print summary
   ////////////////////////////////////////
@@ -187,6 +228,26 @@ export async function deployGraphNetwork(
       ethers.constants.EtherSymbol
     } ${spent}`,
   )
+
+  return loadedContracts
+}
+
+export async function deployMockGraphNetwork(l2Deploy: boolean) {
+  // Contract list
+  const contractList: GraphNetworkContractName[] = [
+    ...GraphNetworkSharedContractNameList.filter((c) => c !== 'AllocationExchange'),
+  ]
+  contractList.push(...(l2Deploy ? GraphNetworkL2ContractNameList : GraphNetworkL1ContractNameList))
+  contractList.push('AllocationExchange')
+
+  const contracts: any = {}
+  for (const name of contractList) {
+    const fake = Wallet.createRandom()
+    await setCode(fake.address, '0x1234')
+    contracts[name] = new Contract(fake.address, [], fake)
+  }
+
+  return contracts as GraphNetworkContracts // :eyes:
 }
 
 export const deploy = async (

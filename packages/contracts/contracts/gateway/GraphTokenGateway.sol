@@ -19,10 +19,7 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
      * @dev Check if the caller is the Controller's governor or this contract's pause guardian.
      */
     modifier onlyGovernorOrGuardian() {
-        require(
-            msg.sender == controller.getGovernor() || msg.sender == pauseGuardian,
-            "Only Governor or Guardian"
-        );
+        require(msg.sender == controller.getGovernor() || msg.sender == pauseGuardian, "Only Governor or Guardian");
         _;
     }
 

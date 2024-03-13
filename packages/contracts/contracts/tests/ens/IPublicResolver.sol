@@ -4,9 +4,5 @@ pragma solidity ^0.7.6;
 interface IPublicResolver {
     function text(bytes32 node, string calldata key) external view returns (string memory);
 
-    function setText(
-        bytes32 node,
-        string calldata key,
-        string calldata value
-    ) external;
+    function setText(bytes32 node, string calldata key, string calldata value) external;
 }

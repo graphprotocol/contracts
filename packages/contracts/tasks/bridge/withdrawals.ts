@@ -1,21 +1,17 @@
-import { task } from 'hardhat/config'
 import { ethers } from 'ethers'
 import { Table } from 'console-table-printer'
 import { L2ToL1MessageStatus } from '@arbitrum/sdk'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { getL2ToL1MessageStatus } from '@graphprotocol/sdk'
 
-export const TASK_BRIDGE_WITHDRAWALS = 'bridge:withdrawals'
+interface PrintEvent {
+  blockNumber: string
+  tx: string
+  amount: string
+  status: string
+}
 
-task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway')
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
-  .addOptionalParam(
-    'arbitrumAddressBook',
-    GRE_TASK_PARAMS.arbitrumAddressBook.description,
-    GRE_TASK_PARAMS.arbitrumAddressBook.default,
-  )
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
+greTask('bridge:withdrawals', 'List withdrawals initiated on L2GraphTokenGateway')
   .addOptionalParam('startBlock', 'Start block for the search')
   .addOptionalParam('endBlock', 'End block for the search')
   .setAction(async (taskArgs, hre) => {
@@ -32,7 +28,7 @@ task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway
     const events = await Promise.all(
       (
         await gateway.queryFilter(gateway.filters.WithdrawalInitiated(), startBlock, endBlock)
-      ).map(async (e) => ({
+      ).map(async e => ({
         blockNumber: `${e.blockNumber} (${new Date(
           (await graph.l2.provider.getBlock(e.blockNumber)).timestamp * 1000,
         ).toLocaleString()})`,
@@ -59,7 +55,7 @@ task(TASK_BRIDGE_WITHDRAWALS, 'List withdrawals initiated on L2GraphTokenGateway
     printEvents(events)
   })
 
-function printEvents(events: any[]) {
+function printEvents(events: PrintEvent[]) {
   const tablePrinter = new Table({
     charLength: { '🚧': 2, '✅': 2, '⚠️': 1, '❌': 2 },
     columns: [
@@ -75,7 +71,7 @@ function printEvents(events: any[]) {
     ],
   })
 
-  events.map((e) => tablePrinter.addRow(e))
+  events.map(e => tablePrinter.addRow(e))
   tablePrinter.printTable()
 }
 

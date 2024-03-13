@@ -1,7 +1,0 @@
-{
-  "description": "Origin is a protocol for creating peer-to-peer marketplaces using the Ethereum blockchain and IPFS.",
-  "displayName": "Origin",
-  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmdNkVFiDjStPhCgQfnLUg8agwCK5yQQfmfivyeJJHDeDf",
-  "codeRepository": "https://github.com/graphprotocol/origin-subgraph",
-  "website": "https://www.originprotocol.com/en"
-}

@@ -8,7 +8,6 @@ echo "Flattening contracts..."
 
 FILES=(
     "contracts/governance/Controller.sol"
-    "contracts/governance/GraphGovernance.sol"
     "contracts/discovery/GNS.sol"
     "contracts/discovery/ServiceRegistry.sol"
     "contracts/curation/Curation.sol"

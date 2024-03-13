@@ -1,0 +1,20 @@
+#!/bin/bash
+
+TYPECHAIN_DIR=dist/types
+
+set -eo pipefail
+set +o noglob
+
+# Build contracts
+yarn clean
+yarn build
+
+# Refresh distribution folder
+rm -rf dist && mkdir -p ${TYPECHAIN_DIR}
+cp -R build/abis/ dist/abis
+cp -R build/types/ ${TYPECHAIN_DIR}
+
+# Build and create TS declarations
+pushd ${TYPECHAIN_DIR}
+ls *.ts **/*.ts | xargs tsc --esModuleInterop
+popd
