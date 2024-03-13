@@ -2,7 +2,12 @@ general:
   arbitrator: &arbitrator "0x4237154FE0510FdE3575656B60c68a01B9dCDdF8" # Arbitration Council
   governor: &governor "0x1257227a2ECA34834940110f7B5e341A5143A2c4" # Graph Council
   authority: &authority "0x12B8D08b116E1E3cc29eE9Cf42bB0AA8129C3215" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0x7694a48065f063a767a962610C6717c59F36b445" # Subgraph Availability Oracle
+  availabilityOracles: &availabilityOracles # Subgraph Availability Oracles
+  - "0x7694a48065f063a767a962610C6717c59F36b445"
+  - "0x7694a48065f063a767a962610C6717c59F36b445"
+  - "0x7694a48065f063a767a962610C6717c59F36b445"
+  - "0x7694a48065f063a767a962610C6717c59F36b445"
+  - "0x7694a48065f063a767a962610C6717c59F36b445"
   pauseGuardian: &pauseGuardian "0x601060e0DC5349AA55EC73df5A58cB0FC1cD2e3C" # Protocol pause guardian
   allocationExchangeOwner: &allocationExchangeOwner "0xbD38F7b67a591A5cc7D642e1026E5095B819d952" # Allocation Exchange owner
 
@@ -132,7 +137,7 @@ contracts:
       - fn: "setIssuancePerBlock"
         issuancePerBlock: "6036500000000000000" # per block increase of total supply, blocks in a year = 365*60*60*24/12
       - fn: "setSubgraphAvailabilityOracle"
-        subgraphAvailabilityOracle: *availabilityOracle
+        subgraphAvailabilityOracle: "${{SubgraphAvailabilityManager.address}}"
       - fn: "syncAllContracts"
   AllocationExchange:
     init:
@@ -152,11 +157,8 @@ contracts:
         pauseGuardian: *pauseGuardian
   SubgraphAvailabilityManager:
     init:
-      governor: "${{Env.deployer}}"
+      governor: *governor
       rewardsManager: "${{RewardsManager.address}}"
       executionThreshold: 5
       voteTimeLimit: 300
-      oracles: [*availabilityOracle, *availabilityOracle, *availabilityOracle, *availabilityOracle, *availabilityOracle]
-    calls:
-      - fn: "transferOwnership"
-        owner: *governor
+      oracles: *availabilityOracles

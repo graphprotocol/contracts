@@ -41,6 +41,7 @@ import type {
   L2GNS,
   L2Curation,
   StakingExtension,
+  SubgraphAvailabilityManager,
 } from '@graphprotocol/contracts'
 import { ContractList } from '../../../lib/types/contract'
 import { loadArtifact } from '../../../lib/deploy/artifacts'
@@ -63,6 +64,7 @@ export interface GraphNetworkContracts extends ContractList<GraphNetworkContract
   GraphCurationToken: GraphCurationToken
   StakingExtension: StakingExtension
   IENS?: IENS
+  SubgraphAvailabilityManager: SubgraphAvailabilityManager
 
   // Only L1
   L1GraphToken?: GraphToken
