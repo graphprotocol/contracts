@@ -6,6 +6,7 @@ import { randomHexBytes } from '../../../utils/bytes'
 
 import type { GraphNetworkAction } from './types'
 import type { GraphNetworkContracts } from '../deployment/contracts/load'
+import { ChannelKey } from '../../../utils'
 
 export const stake: GraphNetworkAction<{ amount: BigNumber }> = async (
   contracts: GraphNetworkContracts,
@@ -28,23 +29,18 @@ export const stake: GraphNetworkAction<{ amount: BigNumber }> = async (
 }
 
 export const allocateFrom: GraphNetworkAction<{
-  allocationSigner: SignerWithAddress
+  channelKey: ChannelKey
   subgraphDeploymentID: string
   amount: BigNumber
 }> = async (
   contracts: GraphNetworkContracts,
   indexer: SignerWithAddress,
-  args: { allocationSigner: SignerWithAddress; subgraphDeploymentID: string; amount: BigNumber },
+  args: { channelKey: ChannelKey; subgraphDeploymentID: string; amount: BigNumber },
 ): Promise<void> => {
-  const { allocationSigner, subgraphDeploymentID, amount } = args
+  const { channelKey, subgraphDeploymentID, amount } = args
 
-  const allocationId = allocationSigner.address
-  const messageHash = ethers.utils.solidityKeccak256(
-    ['address', 'address'],
-    [indexer.address, allocationId],
-  )
-  const messageHashBytes = ethers.utils.arrayify(messageHash)
-  const proof = await allocationSigner.signMessage(messageHashBytes)
+  const allocationId = channelKey.address
+  const proof = await channelKey.generateProof(indexer.address)
   const metadata = ethers.constants.HashZero
 
   console.log(`\nAllocating ${amount} tokens on ${allocationId}...`)
@@ -59,7 +55,7 @@ export const allocateFrom: GraphNetworkAction<{
     allocationId,
     metadata,
     proof,
-    extraArgs
+    extraArgs,
   )
   await tx.wait()
 }
