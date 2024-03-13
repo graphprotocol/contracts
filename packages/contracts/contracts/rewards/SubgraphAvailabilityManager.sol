@@ -68,12 +68,7 @@ contract SubgraphAvailabilityManager is Governed {
      * @param oracleIndex Index of the oracle voting
      * @param timestamp Timestamp of the vote
      */
-    event OracleVote(
-        bytes32 indexed subgraphDeploymentID,
-        bool deny,
-        uint256 indexed oracleIndex,
-        uint256 timestamp
-    );
+    event OracleVote(bytes32 indexed subgraphDeploymentID, bool deny, uint256 indexed oracleIndex, uint256 timestamp);
 
     // -- Modifiers --
 
@@ -155,11 +150,7 @@ contract SubgraphAvailabilityManager is Governed {
      * @param _deny True to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
      */
-    function vote(
-        bytes32 _subgraphDeploymentID,
-        bool _deny,
-        uint256 _oracleIndex
-    ) external onlyOracle(_oracleIndex) {
+    function vote(bytes32 _subgraphDeploymentID, bool _deny, uint256 _oracleIndex) external onlyOracle(_oracleIndex) {
         _vote(_subgraphDeploymentID, _deny, _oracleIndex);
     }
 
@@ -190,11 +181,7 @@ contract SubgraphAvailabilityManager is Governed {
      * @param _deny True to deny, false to allow
      * @param _oracleIndex Index of the oracle voting
      */
-    function _vote(
-        bytes32 _subgraphDeploymentID,
-        bool _deny,
-        uint256 _oracleIndex
-    ) private {
+    function _vote(bytes32 _subgraphDeploymentID, bool _deny, uint256 _oracleIndex) private {
         uint256 timestamp = block.timestamp;
 
         if (_deny) {
