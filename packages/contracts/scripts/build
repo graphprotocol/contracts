@@ -1,6 +1,16 @@
 #!/bin/bash
 
+TYPECHAIN_DIR=dist/types
+
 set -eo pipefail
 
-# Build
+# Build contracts
+yarn clean
 yarn compile
+
+# Refresh distribution folder
+rm -rf dist && mkdir -p ${TYPECHAIN_DIR}
+cp -R build/abis/ dist/abis
+cp -R build/types/ ${TYPECHAIN_DIR}
+
+tsc --esModuleInterop
