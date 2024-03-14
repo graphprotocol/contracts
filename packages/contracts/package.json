@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "6.2.1",
+  "version": "7.0.0",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -75,13 +75,13 @@
     "solidity-coverage": "^0.7.16",
     "ts-node": "^10.9.1",
     "typechain": "^5.0.0",
-    "typescript": "^4.7.4",
+    "typescript": "^5.2.2",
     "winston": "^3.3.3",
     "yaml": "^1.10.2",
     "yargs": "^17.0.0"
   },
   "scripts": {
-    "prepack": "scripts/prepack",
+    "prepack": "SKIP_LOAD=true scripts/build",
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",

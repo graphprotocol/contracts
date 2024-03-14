@@ -1,5 +1,11 @@
 # @graphprotocol/sdk
 
+## 0.5.1
+
+### Patch Changes
+
+- Bump contracts dependency
+
 ## 0.5.0
 
 ### Minor Changes

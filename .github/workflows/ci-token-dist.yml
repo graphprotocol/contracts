@@ -23,4 +23,6 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup
       - name: Run tests
-        run: yarn test
+        run: |
+          pushd packages/token-distribution
+          yarn test
