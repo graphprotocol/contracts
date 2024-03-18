@@ -14,6 +14,5 @@ extendEnvironment(greExtendEnvironment)
 
 // Exports
 export * from './types'
-export { graphTask } from './tasks/task'
-export { GRE_TASK_PARAMS } from './tasks/defaults'
+export { greTask as greTask } from './task'
 export { getGREOptsFromArgv } from './helpers/argv'

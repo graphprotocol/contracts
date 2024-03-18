@@ -28,10 +28,10 @@ const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
 function loadTasks() {
   require('@graphprotocol/sdk/gre')
-  ;['contracts', 'bridge', 'deployment', 'verify', 'e2e'].forEach((folder) => {
+  ;['contract', 'bridge', 'deployment', 'migrate', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
-      .filter((pth) => pth.includes('.ts'))
+      .filter(pth => pth.includes('.ts'))
       .forEach((task) => {
         require(`${tasksPath}/${task}`)
       })
@@ -110,16 +110,16 @@ function setupNetworkProviders(hardhatConfig) {
 
 // Config
 
-const DEFAULT_TEST_MNEMONIC =
-  'myth like bonus scare over problem client lizard pioneer submit female collect'
+const DEFAULT_TEST_MNEMONIC
+  = 'myth like bonus scare over problem client lizard pioneer submit female collect'
 
-const DEFAULT_L2_TEST_MNEMONIC =
-  'urge never interest human any economy gentle canvas anxiety pave unlock find'
+const DEFAULT_L2_TEST_MNEMONIC
+  = 'urge never interest human any economy gentle canvas anxiety pave unlock find'
 
 const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
-    tests: './test',
+    tests: './test/unit',
     artifacts: './build/contracts',
   },
   solidity: {
@@ -162,6 +162,8 @@ const config: HardhatUserConfig = {
       url: 'http://127.0.0.1:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
+      graphConfig: 'config/graph.localhost.yml',
+      addressBook: 'addresses-local.json',
     },
     localnitrol1: {
       chainId: 1337,
@@ -178,8 +180,8 @@ const config: HardhatUserConfig = {
   },
   graph: {
     addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
-    l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.localhost.yml',
-    l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-localhost.yml',
+    l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.mainnet.yml',
+    l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-one.yml',
     fork: process.env.FORK === 'true',
     disableSecureAccounts: process.env.DISABLE_SECURE_ACCOUNTS === 'true',
   },
@@ -231,8 +233,8 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
   },
   defender: {
-    apiKey: process.env.DEFENDER_API_KEY!,
-    apiSecret: process.env.DEFENDER_API_SECRET!,
+    apiKey: process.env.DEFENDER_API_KEY,
+    apiSecret: process.env.DEFENDER_API_SECRET,
   },
 }
 

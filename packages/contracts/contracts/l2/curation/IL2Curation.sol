@@ -14,9 +14,7 @@ interface IL2Curation {
      * @param _tokensIn Amount of Graph Tokens to deposit
      * @return Signal minted
      */
-    function mintTaxFree(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        external
-        returns (uint256);
+    function mintTaxFree(bytes32 _subgraphDeploymentID, uint256 _tokensIn) external returns (uint256);
 
     /**
      * @notice Calculate amount of signal that can be bought with tokens in a curation pool,
@@ -25,10 +23,7 @@ interface IL2Curation {
      * @param _tokensIn Amount of tokens used to mint signal
      * @return Amount of signal that can be bought
      */
-    function tokensToSignalNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        external
-        view
-        returns (uint256);
+    function tokensToSignalNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn) external view returns (uint256);
 
     /**
      * @notice Calculate the amount of tokens that would be recovered if minting signal with
@@ -38,8 +33,8 @@ interface IL2Curation {
      * @param _tokensIn Amount of tokens used to mint signal
      * @return Amount of tokens that would be recovered after minting and burning signal
      */
-    function tokensToSignalToTokensNoTax(bytes32 _subgraphDeploymentID, uint256 _tokensIn)
-        external
-        view
-        returns (uint256);
+    function tokensToSignalToTokensNoTax(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokensIn
+    ) external view returns (uint256);
 }

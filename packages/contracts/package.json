@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "6.0.0",
+  "version": "6.2.1",
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"
@@ -13,11 +13,11 @@
     "addresses.json"
   ],
   "dependencies": {
-    "@graphprotocol/sdk": "workspace:^0.3.0",
+    "@graphprotocol/sdk": "workspace:^0.5.0",
     "console-table-printer": "^2.11.1"
   },
   "devDependencies": {
-    "@arbitrum/sdk": "^3.0.0",
+    "@arbitrum/sdk": "~3.1.13",
     "@defi-wonderland/smock": "^2.0.7",
     "@ethersproject/experimental": "^5.6.0",
     "@graphprotocol/common-ts": "^1.8.3",
@@ -42,8 +42,6 @@
     "@types/sinon-chai": "^3.2.12",
     "@types/winston": "^2.4.4",
     "@types/yargs": "^16.0.0",
-    "@typescript-eslint/eslint-plugin": "^4.0.0",
-    "@typescript-eslint/parser": "^4.0.0",
     "@urql/core": "^2.1.3",
     "arbos-precompiles": "^1.0.2",
     "bignumber.js": "^9.0.0",
@@ -51,10 +49,8 @@
     "chai-as-promised": "^7.1.1",
     "cli-table": "^0.3.6",
     "dotenv": "^9.0.0",
-    "eslint": "^7.24.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-no-only-tests": "^2.4.0",
-    "eslint-plugin-prettier": "^3.4.0",
+    "eslint": "^8.57.0",
+    "eslint-graph-config": "workspace:^0.0.1",
     "ethereum-waffle": "^3.2.0",
     "ethers": "^5.7.2",
     "form-data": "^4.0.0",
@@ -72,10 +68,10 @@
     "isomorphic-fetch": "^3.0.0",
     "lint-staged": "^10.5.4",
     "p-queue": "^6.6.1",
-    "prettier": "^2.2.1",
-    "prettier-plugin-solidity": "1.0.0-beta.19",
-    "solhint": "^3.3.6",
-    "solhint-plugin-prettier": "^0.0.5",
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.3.1",
+    "solhint": "^4.1.1",
+    "solhint-graph-config": "workspace:^0.0.1",
     "solidity-coverage": "^0.7.16",
     "ts-node": "^10.9.1",
     "typechain": "^5.0.0",
@@ -85,14 +81,12 @@
     "yargs": "^17.0.0"
   },
   "scripts": {
-    "prepublishOnly": "scripts/prepublish",
+    "prepack": "scripts/prepack",
     "build": "SKIP_LOAD=true scripts/build",
     "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile",
-    "deploy": "yarn predeploy && yarn build && yarn predeploy && hardhat migrate",
-    "deploy-localhost": "yarn deploy --force --network localhost --graph-config config/graph.localhost.yml",
-    "deploy-goerli": "yarn deploy --force --network goerli --graph-config config/graph.goerli.yml",
-    "deploy-arbitrum-goerli": "yarn deploy --force --network arbitrum-goerli --graph-config config/graph.arbitrum-goerli.yml",
+    "deploy": "yarn predeploy && yarn build && hardhat migrate",
+    "deploy-localhost": "yarn build && hardhat migrate --force --skip-confirmation --disable-secure-accounts --network localhost --graph-config config/graph.localhost.yml --address-book addresses-local.json",
     "predeploy": "scripts/predeploy",
     "test": "scripts/test",
     "test:e2e": "scripts/e2e",
@@ -100,14 +94,8 @@
     "test:coverage": "scripts/coverage",
     "test:upgrade": "scripts/upgrade",
     "lint": "yarn lint:ts && yarn lint:sol",
-    "lint:fix": "yarn lint:ts:fix && yarn lint:sol:fix",
-    "lint:ts": "eslint '**/*.{js,ts}'",
-    "lint:ts:fix": "yarn prettier:ts && eslint '**/*.{js,ts}' --fix",
-    "lint:sol": "solhint 'contracts/**/*.sol'",
-    "lint:sol:fix": "yarn prettier:sol && solhint --fix 'contracts/**/*.sol'",
-    "prettier": "yarn prettier:ts && yarn prettier:sol",
-    "prettier:ts": "prettier --write '**/*.{js,ts,json}'",
-    "prettier:sol": "prettier --write 'contracts/**/*.sol'",
+    "lint:ts": "eslint '**/*.{js,ts}' --fix",
+    "lint:sol": "prettier --write 'contracts/**/*.sol' && solhint --fix --noPrompt contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "analyze": "scripts/analyze",
     "myth": "scripts/myth",
     "flatten": "scripts/flatten && scripts/clean",
@@ -117,16 +105,16 @@
   },
   "lint-staged": {
     "contracts/**/*.sol": [
-      "yarn lint:sol:fix"
+      "yarn lint:sol"
     ],
     "**/*.ts": [
-      "yarn lint:ts:fix"
+      "yarn lint:ts"
     ],
     "**/*.js": [
-      "yarn lint:ts:fix"
+      "yarn lint:ts"
     ],
     "**/*.json": [
-      "yarn lint:ts:fix"
+      "yarn lint:ts"
     ]
   },
   "repository": {

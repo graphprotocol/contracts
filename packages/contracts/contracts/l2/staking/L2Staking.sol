@@ -28,12 +28,7 @@ contract L2Staking is Staking, IL2StakingBase {
      * This is copied from IStakingExtension, but we can't inherit from it because we
      * don't implement the full interface here.
      */
-    event StakeDelegated(
-        address indexed indexer,
-        address indexed delegator,
-        uint256 tokens,
-        uint256 shares
-    );
+    event StakeDelegated(address indexed indexer, address indexed delegator, uint256 tokens, uint256 shares);
 
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
@@ -92,10 +87,7 @@ contract L2Staking is Staking, IL2StakingBase {
      * @param _amount Amount of tokens that were transferred
      * @param _indexerData struct containing the indexer's address
      */
-    function _receiveIndexerStake(
-        uint256 _amount,
-        IL2Staking.ReceiveIndexerStakeData memory _indexerData
-    ) internal {
+    function _receiveIndexerStake(uint256 _amount, IL2Staking.ReceiveIndexerStakeData memory _indexerData) internal {
         address _indexer = _indexerData.indexer;
         // Deposit tokens into the indexer stake
         __stakes[_indexer].deposit(_amount);
@@ -116,10 +108,7 @@ contract L2Staking is Staking, IL2StakingBase {
      * @param _amount Amount of tokens that were transferred
      * @param _delegationData struct containing the delegator's address and the indexer's address
      */
-    function _receiveDelegation(
-        uint256 _amount,
-        IL2Staking.ReceiveDelegationData memory _delegationData
-    ) internal {
+    function _receiveDelegation(uint256 _amount, IL2Staking.ReceiveDelegationData memory _delegationData) internal {
         // Get the delegation pool of the indexer
         DelegationPool storage pool = __delegationPools[_delegationData.indexer];
         Delegation storage delegation = pool.delegators[_delegationData.delegator];
@@ -132,11 +121,7 @@ contract L2Staking is Staking, IL2StakingBase {
             // or if the amount is under the minimum delegation (which could be part of a rounding attack),
             // return the tokens to the delegator
             graphToken().transfer(_delegationData.delegator, _amount);
-            emit TransferredDelegationReturnedToDelegator(
-                _delegationData.indexer,
-                _delegationData.delegator,
-                _amount
-            );
+            emit TransferredDelegationReturnedToDelegator(_delegationData.indexer, _delegationData.delegator, _amount);
         } else {
             // Update the delegation pool
             pool.tokens = pool.tokens.add(_amount);
@@ -145,12 +130,7 @@ contract L2Staking is Staking, IL2StakingBase {
             // Update the individual delegation
             delegation.shares = delegation.shares.add(shares);
 
-            emit StakeDelegated(
-                _delegationData.indexer,
-                _delegationData.delegator,
-                _amount,
-                shares
-            );
+            emit StakeDelegated(_delegationData.indexer, _delegationData.delegator, _amount, shares);
         }
     }
 }

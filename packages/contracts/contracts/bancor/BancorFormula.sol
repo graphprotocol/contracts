@@ -324,9 +324,7 @@ contract BancorFormula {
         uint256 _amount
     ) public view returns (uint256) {
         // validate input
-        require(
-            _supply > 0 && _reserveBalance > 0 && _totalRatio > 1 && _totalRatio <= MAX_RATIO * 2
-        );
+        require(_supply > 0 && _reserveBalance > 0 && _totalRatio > 1 && _totalRatio <= MAX_RATIO * 2);
 
         // special case for 0 amount
         if (_amount == 0) return 0;
@@ -364,11 +362,7 @@ contract BancorFormula {
     ) public view returns (uint256) {
         // validate input
         require(
-            _supply > 0 &&
-                _reserveBalance > 0 &&
-                _totalRatio > 1 &&
-                _totalRatio <= MAX_RATIO * 2 &&
-                _amount <= _supply
+            _supply > 0 && _reserveBalance > 0 && _totalRatio > 1 && _totalRatio <= MAX_RATIO * 2 && _amount <= _supply
         );
 
         // special case for 0 amount
@@ -407,12 +401,7 @@ contract BancorFormula {
      *     This functions assumes that "_expN < 2 ^ 256 / log(MAX_NUM - 1)", otherwise the multiplication should be replaced with a "safeMul".
      *     Since we rely on unsigned-integer arithmetic and "base < 1" ==> "log(base) < 0", this function does not support "_baseN < _baseD".
      */
-    function power(
-        uint256 _baseN,
-        uint256 _baseD,
-        uint32 _expN,
-        uint32 _expD
-    ) internal view returns (uint256, uint8) {
+    function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal view returns (uint256, uint8) {
         require(_baseN < MAX_NUM);
 
         uint256 baseLog;
@@ -428,10 +417,7 @@ contract BancorFormula {
             return (optimalExp(baseLogTimesExp), MAX_PRECISION);
         } else {
             uint8 precision = findPositionInMaxExpArray(baseLogTimesExp);
-            return (
-                generalExp(baseLogTimesExp >> (MAX_PRECISION - precision), precision),
-                precision
-            );
+            return (generalExp(baseLogTimesExp >> (MAX_PRECISION - precision), precision), precision);
         }
     }
 
@@ -642,37 +628,21 @@ contract BancorFormula {
 
         z = y = x - FIXED_1;
         w = (y * y) / FIXED_1;
-        res +=
-            (z * (0x100000000000000000000000000000000 - y)) /
-            0x100000000000000000000000000000000;
+        res += (z * (0x100000000000000000000000000000000 - y)) / 0x100000000000000000000000000000000;
         z = (z * w) / FIXED_1; // add y^01 / 01 - y^02 / 02
-        res +=
-            (z * (0x0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - y)) /
-            0x200000000000000000000000000000000;
+        res += (z * (0x0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - y)) / 0x200000000000000000000000000000000;
         z = (z * w) / FIXED_1; // add y^03 / 03 - y^04 / 04
-        res +=
-            (z * (0x099999999999999999999999999999999 - y)) /
-            0x300000000000000000000000000000000;
+        res += (z * (0x099999999999999999999999999999999 - y)) / 0x300000000000000000000000000000000;
         z = (z * w) / FIXED_1; // add y^05 / 05 - y^06 / 06
-        res +=
-            (z * (0x092492492492492492492492492492492 - y)) /
-            0x400000000000000000000000000000000;
+        res += (z * (0x092492492492492492492492492492492 - y)) / 0x400000000000000000000000000000000;
         z = (z * w) / FIXED_1; // add y^07 / 07 - y^08 / 08
-        res +=
-            (z * (0x08e38e38e38e38e38e38e38e38e38e38e - y)) /
-            0x500000000000000000000000000000000;
+        res += (z * (0x08e38e38e38e38e38e38e38e38e38e38e - y)) / 0x500000000000000000000000000000000;
         z = (z * w) / FIXED_1; // add y^09 / 09 - y^10 / 10
-        res +=
-            (z * (0x08ba2e8ba2e8ba2e8ba2e8ba2e8ba2e8b - y)) /
-            0x600000000000000000000000000000000;
+        res += (z * (0x08ba2e8ba2e8ba2e8ba2e8ba2e8ba2e8b - y)) / 0x600000000000000000000000000000000;
         z = (z * w) / FIXED_1; // add y^11 / 11 - y^12 / 12
-        res +=
-            (z * (0x089d89d89d89d89d89d89d89d89d89d89 - y)) /
-            0x700000000000000000000000000000000;
+        res += (z * (0x089d89d89d89d89d89d89d89d89d89d89 - y)) / 0x700000000000000000000000000000000;
         z = (z * w) / FIXED_1; // add y^13 / 13 - y^14 / 14
-        res +=
-            (z * (0x088888888888888888888888888888888 - y)) /
-            0x800000000000000000000000000000000; // add y^15 / 15 - y^16 / 16
+        res += (z * (0x088888888888888888888888888888888 - y)) / 0x800000000000000000000000000000000; // add y^15 / 15 - y^16 / 16
 
         return res;
     }

@@ -1,0 +1,26 @@
+name: CI - packages/token-distribution
+
+env:
+  CI: true
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - packages/token-distribution/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/token-distribution/**
+  workflow_dispatch:
+
+jobs:
+  test-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Run tests
+        run: yarn test

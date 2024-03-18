@@ -1,0 +1,36 @@
+name: CI - packages/contracts
+
+env:
+  CI: true
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - packages/contracts/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/contracts/**
+  workflow_dispatch:
+
+jobs:
+  test-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Run tests
+        run: |
+          pushd packages/contracts
+          yarn test:coverage
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./packages/contracts/coverage.json
+          flags: unittests
+          name: graphprotocol-contracts
+          fail_ci_if_error: true

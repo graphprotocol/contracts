@@ -14,8 +14,7 @@ abstract contract GraphProxyStorage {
      * This is the keccak-256 hash of "eip1967.proxy.implementation" subtracted by 1, and is
      * validated in the constructor.
      */
-    bytes32 internal constant IMPLEMENTATION_SLOT =
-        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+    bytes32 internal constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     /**
      * @dev Storage slot with the address of the pending implementation.
@@ -30,8 +29,7 @@ abstract contract GraphProxyStorage {
      * This is the keccak-256 hash of "eip1967.proxy.admin" subtracted by 1, and is
      * validated in the constructor.
      */
-    bytes32 internal constant ADMIN_SLOT =
-        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+    bytes32 internal constant ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     /**
      * @dev Emitted when pendingImplementation is changed.
@@ -45,10 +43,7 @@ abstract contract GraphProxyStorage {
      * @dev Emitted when pendingImplementation is accepted,
      * which means contract implementation is updated.
      */
-    event ImplementationUpdated(
-        address indexed oldImplementation,
-        address indexed newImplementation
-    );
+    event ImplementationUpdated(address indexed oldImplementation, address indexed newImplementation);
 
     /**
      * @dev Emitted when the admin account has changed.

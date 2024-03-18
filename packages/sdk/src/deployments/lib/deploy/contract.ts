@@ -10,6 +10,7 @@ import type {
   DeployFunction,
   DeployAddressBookFunction,
 } from '../types/deploy'
+import { logContractDeploy, logContractDeployReceipt } from '../contracts/log'
 
 /**
  * Deploys a contract
@@ -59,15 +60,13 @@ export const deployContract: DeployFunction = async (
   const factory = getContractFactory(name, libraries)
   const contract = await factory.connect(sender).deploy(...args)
   const txHash = contract.deployTransaction.hash
-  logInfo(`> Deploy ${name}, txHash: ${txHash}`)
-  await sender.provider.waitForTransaction(txHash)
+  logContractDeploy(contract.deployTransaction, name, args)
+  const receipt = await sender.provider.waitForTransaction(txHash)
 
   // Receipt
   const creationCodeHash = hashHexString(factory.bytecode)
   const runtimeCodeHash = hashHexString(await sender.provider.getCode(contract.address))
-  logInfo(`= CreationCodeHash: ${creationCodeHash}`)
-  logInfo(`= RuntimeCodeHash: ${runtimeCodeHash}`)
-  logInfo(`${name} has been deployed to address: ${contract.address}`)
+  logContractDeployReceipt(receipt, creationCodeHash, runtimeCodeHash)
 
   return { contract, creationCodeHash, runtimeCodeHash, txHash, libraries }
 }
@@ -103,10 +102,18 @@ export const deployContractAndSave: DeployAddressBookFunction = async (
     args: args,
   })
 
+  const constructorArgs = args.map((e) => {
+    if (Array.isArray(e)) {
+      return e.map((e) => e.toString())
+    } else {
+      return e.toString()
+    }
+  })
+
   // Save address entry
   addressBook.setEntry(name, {
     address: deployResult.contract.address,
-    constructorArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
+    constructorArgs: constructorArgs,
     creationCodeHash: deployResult.creationCodeHash,
     runtimeCodeHash: deployResult.runtimeCodeHash,
     txHash: deployResult.txHash,

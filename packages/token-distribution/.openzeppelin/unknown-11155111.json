@@ -1,0 +1,135 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xBbfAaA4A754931757B925AC0DDCcf97EB08e2895",
+    "txHash": "0x39364dc94694446616735d46554b5b5a937a7ec904deffee7aec9e9213c6fc12"
+  },
+  "proxies": [
+    {
+      "address": "0x543F8BFFb65c46091B4eEF4b1c394dFa43C4b065",
+      "txHash": "0x73d09cc6f92b3c97de26d3049db72a41249e0772d45c24c3818bce3344de8070",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "cd6b1adc749eb68d0f47e7a8ff7b7c183afb072ac1de568f0c8b991a4e6388d0": {
+      "address": "0xDB47924Ad61D5C64D7921E9D0cb049Fb404A2DFB",
+      "txHash": "0xcab1656794d9a5e19e396214c5a4a687dd7e1b48197237d6778001e5510bd70c",
+      "layout": {
+        "solcVersion": "0.7.3",
+        "storage": [
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "Ownable",
+            "src": "contracts/Ownable.sol:19"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "Ownable",
+            "src": "contracts/Ownable.sol:22"
+          },
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol:25"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "51",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol:30"
+          },
+          {
+            "label": "l2LockManager",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_mapping(t_address,t_address)",
+            "contract": "L1GraphTokenLockTransferTool",
+            "src": "contracts/L1GraphTokenLockTransferTool.sol:50"
+          },
+          {
+            "label": "l2WalletOwner",
+            "offset": 0,
+            "slot": "53",
+            "type": "t_mapping(t_address,t_address)",
+            "contract": "L1GraphTokenLockTransferTool",
+            "src": "contracts/L1GraphTokenLockTransferTool.sol:53"
+          },
+          {
+            "label": "l2WalletAddress",
+            "offset": 0,
+            "slot": "54",
+            "type": "t_mapping(t_address,t_address)",
+            "contract": "L1GraphTokenLockTransferTool",
+            "src": "contracts/L1GraphTokenLockTransferTool.sol:56"
+          },
+          {
+            "label": "tokenLockETHBalances",
+            "offset": 0,
+            "slot": "55",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "L1GraphTokenLockTransferTool",
+            "src": "contracts/L1GraphTokenLockTransferTool.sol:59"
+          },
+          {
+            "label": "l2Beneficiary",
+            "offset": 0,
+            "slot": "56",
+            "type": "t_mapping(t_address,t_address)",
+            "contract": "L1GraphTokenLockTransferTool",
+            "src": "contracts/L1GraphTokenLockTransferTool.sol:62"
+          },
+          {
+            "label": "l2WalletAddressSetManually",
+            "offset": 0,
+            "slot": "57",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "L1GraphTokenLockTransferTool",
+            "src": "contracts/L1GraphTokenLockTransferTool.sol:66"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        }
+      }
+    }
+  }
+}

@@ -76,7 +76,7 @@ FORK=true npx hardhat e2e:upgrade "$UPGRADE_NAME" \
 
 # Run upgrade
 print_separator "Upgrading contract"
-FORK=true npx hardhat contracts:upgrade \
+FORK=true npx hardhat contract:upgrade \
   --network localhost \
   --graph-config "${GRAPH_CONFIG}" \
   --address-book addresses-fork.json \

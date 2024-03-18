@@ -1,24 +1,15 @@
-import { task } from 'hardhat/config'
 import { BigNumber } from 'ethers'
-import { GRE_TASK_PARAMS } from '@graphprotocol/sdk/gre'
+import { greTask } from '@graphprotocol/sdk/gre'
 import { sendToL2 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { TASK_NITRO_SETUP_SDK } from '../deployment/nitro'
 
-export const TASK_BRIDGE_TO_L2 = 'bridge:send-to-l2'
-
-task(TASK_BRIDGE_TO_L2, 'Bridge GRT tokens from L1 to L2')
+greTask('bridge:send-to-l2', 'Bridge GRT tokens from L1 to L2')
   .addParam('amount', 'Amount of tokens to bridge')
-  .addOptionalParam('sender', 'Address of the sender. L1 deployer if empty.')
-  .addOptionalParam('recipient', 'Receiving address in L2. Same to L1 address if empty.')
-  .addOptionalParam('addressBook', GRE_TASK_PARAMS.addressBook.description)
   .addOptionalParam(
-    'arbitrumAddressBook',
-    GRE_TASK_PARAMS.arbitrumAddressBook.description,
-    GRE_TASK_PARAMS.arbitrumAddressBook.default,
+    'sender',
+    'Address of the sender, must be managed by the provider node. L1 deployer if empty.',
   )
-  .addOptionalParam('l1GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
-  .addOptionalParam('l2GraphConfig', GRE_TASK_PARAMS.graphConfig.description)
+  .addOptionalParam('recipient', 'Receiving address in L2. Same to L1 address if empty.')
   .addOptionalParam(
     'deploymentFile',
     'Nitro testnode deployment file. Must specify if using nitro test nodes.',
@@ -30,18 +21,14 @@ task(TASK_BRIDGE_TO_L2, 'Bridge GRT tokens from L1 to L2')
     // If local, add nitro test node networks to sdk
     if (taskArgs.deploymentFile) {
       console.log('> Adding nitro test node network to sdk')
-      await hre.run(TASK_NITRO_SETUP_SDK, { deploymentFile: taskArgs.deploymentFile })
+      await hre.run('migrate:nitro:register', { deploymentFile: taskArgs.deploymentFile })
     }
 
     // Get the sender, use L1 deployer if not provided
-    const l1Deployer = await graph.l1.getDeployer()
-    const sender: string = taskArgs.sender ?? l1Deployer.address
-
-    const signer = await SignerWithAddress.create(graph.l1.provider.getSigner(sender))
-    if (!signer) {
-      throw new Error(`No wallet found for address ${sender}`)
-    }
-    console.log(`> Using wallet ${signer.address}`)
+    const sender = taskArgs.sender
+      ? await SignerWithAddress.create(graph.l1.provider.getSigner(taskArgs.sender))
+      : await graph.l1.getDeployer()
+    console.log(`> Using wallet ${sender.address}`)
 
     // Patch sendToL2 opts
     taskArgs.l2Provider = graph.l2.provider
@@ -52,7 +39,7 @@ task(TASK_BRIDGE_TO_L2, 'Bridge GRT tokens from L1 to L2')
       taskArgs.maxGas = BigNumber.from('400000')
     }
 
-    await sendToL2(graph.contracts, signer, {
+    await sendToL2(graph.contracts, sender, {
       l2Provider: graph.l2.provider,
       amount: taskArgs.amount,
       recipient: taskArgs.recipient,

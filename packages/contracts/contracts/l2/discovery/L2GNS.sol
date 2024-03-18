@@ -91,10 +91,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         bytes calldata _data
     ) external override notPartialPaused onlyL2Gateway {
         require(_from == counterpartGNSAddress, "ONLY_L1_GNS_THROUGH_BRIDGE");
-        (uint8 code, uint256 l1SubgraphID, address beneficiary) = abi.decode(
-            _data,
-            (uint8, uint256, address)
-        );
+        (uint8 code, uint256 l1SubgraphID, address beneficiary) = abi.decode(_data, (uint8, uint256, address));
 
         if (code == uint8(L1MessageCodes.RECEIVE_SUBGRAPH_CODE)) {
             _receiveSubgraphFromL1(l1SubgraphID, beneficiary, _amount);
@@ -138,10 +135,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         {
             // This can't revert because the bridge ensures that _tokensIn is > 0,
             // and the minimum curation in L2 is 1 wei GRT
-            uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(
-                _subgraphDeploymentID,
-                tokens
-            );
+            uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(_subgraphDeploymentID, tokens);
             roundingError = tokens.sub(tokensAfter).mul(MAX_PPM).div(tokens);
         }
         if (roundingError <= MAX_ROUNDING_ERROR) {
@@ -151,11 +145,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             emit SubgraphUpgraded(_l2SubgraphID, vSignal, tokens, _subgraphDeploymentID);
         } else {
             graphToken().transfer(msg.sender, tokens);
-            emit CuratorBalanceReturnedToBeneficiary(
-                getUnaliasedL1SubgraphID(_l2SubgraphID),
-                msg.sender,
-                tokens
-            );
+            emit CuratorBalanceReturnedToBeneficiary(getUnaliasedL1SubgraphID(_l2SubgraphID), msg.sender, tokens);
             emit SubgraphUpgraded(_l2SubgraphID, vSignal, 0, _subgraphDeploymentID);
         }
 
@@ -209,31 +199,18 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         if (subgraphData.nSignal != 0) {
             // Burn all version signal in the name pool for tokens (w/no slippage protection)
             // Sell all signal from the old deployment
-            uint256 tokens = curation.burn(
-                subgraphData.subgraphDeploymentID,
-                subgraphData.vSignal,
-                0
-            );
+            uint256 tokens = curation.burn(subgraphData.subgraphDeploymentID, subgraphData.vSignal, 0);
 
             // Take the owner cut of the curation tax, add it to the total
             // Upgrade is only callable by the owner, we assume then that msg.sender = owner
             address subgraphOwner = msg.sender;
-            uint256 tokensWithTax = _chargeOwnerTax(
-                tokens,
-                subgraphOwner,
-                curation.curationTaxPercentage()
-            );
+            uint256 tokensWithTax = _chargeOwnerTax(tokens, subgraphOwner, curation.curationTaxPercentage());
 
             // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
             // Buy all signal from the new deployment
             (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, 0);
 
-            emit SubgraphUpgraded(
-                _subgraphID,
-                subgraphData.vSignal,
-                tokensWithTax,
-                _subgraphDeploymentID
-            );
+            emit SubgraphUpgraded(_subgraphID, subgraphData.vSignal, tokensWithTax, _subgraphDeploymentID);
         }
 
         // Update target deployment
@@ -256,12 +233,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _l2SubgraphID L2 subgraph ID
      * @return L1subgraph ID
      */
-    function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID)
-        public
-        pure
-        override
-        returns (uint256)
-    {
+    function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID) public pure override returns (uint256) {
         return _l2SubgraphID - SUBGRAPH_ID_ALIAS_OFFSET;
     }
 
@@ -273,11 +245,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _subgraphOwner Owner of the subgraph
      * @param _tokens Tokens to be deposited in the subgraph
      */
-    function _receiveSubgraphFromL1(
-        uint256 _l1SubgraphID,
-        address _subgraphOwner,
-        uint256 _tokens
-    ) internal {
+    function _receiveSubgraphFromL1(uint256 _l1SubgraphID, address _subgraphOwner, uint256 _tokens) internal {
         uint256 l2SubgraphID = getAliasedL2SubgraphID(_l1SubgraphID);
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
         IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[l2SubgraphID];
@@ -307,11 +275,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _curator Curator address
      * @param _tokensIn The amount of tokens the nameCurator wants to deposit
      */
-    function _mintSignalFromL1(
-        uint256 _l1SubgraphID,
-        address _curator,
-        uint256 _tokensIn
-    ) internal {
+    function _mintSignalFromL1(uint256 _l1SubgraphID, address _curator, uint256 _tokensIn) internal {
         uint256 l2SubgraphID = getAliasedL2SubgraphID(_l1SubgraphID);
         IL2GNS.SubgraphL2TransferData storage transferData = subgraphL2TransferData[l2SubgraphID];
         SubgraphData storage subgraphData = _getSubgraphData(l2SubgraphID);
@@ -321,10 +285,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
         if (transferData.l2Done && !subgraphData.disabled) {
             // This can't revert because the bridge ensures that _tokensIn is > 0,
             // and the minimum curation in L2 is 1 wei GRT
-            uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(
-                subgraphData.subgraphDeploymentID,
-                _tokensIn
-            );
+            uint256 tokensAfter = curation.tokensToSignalToTokensNoTax(subgraphData.subgraphDeploymentID, _tokensIn);
             roundingError = _tokensIn.sub(tokensAfter).mul(MAX_PPM).div(_tokensIn);
         }
         // If subgraph transfer wasn't finished, we should send the tokens to the curator
@@ -339,9 +300,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             // Update pools
             subgraphData.vSignal = subgraphData.vSignal.add(vSignal);
             subgraphData.nSignal = subgraphData.nSignal.add(nSignal);
-            subgraphData.curatorNSignal[_curator] = subgraphData.curatorNSignal[_curator].add(
-                nSignal
-            );
+            subgraphData.curatorNSignal[_curator] = subgraphData.curatorNSignal[_curator].add(nSignal);
 
             emit SignalMinted(l2SubgraphID, _curator, nSignal, vSignal, _tokensIn);
             emit CuratorBalanceReceived(_l1SubgraphID, l2SubgraphID, _curator, _tokensIn);
@@ -355,12 +314,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
-    function _getSubgraphData(uint256 _subgraphID)
-        internal
-        view
-        override
-        returns (SubgraphData storage)
-    {
+    function _getSubgraphData(uint256 _subgraphID) internal view override returns (SubgraphData storage) {
         // Return new subgraph type
         return subgraphs[_subgraphID];
     }

@@ -60,10 +60,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
         require(!subgraphTransferredToL2[_subgraphID], "ALREADY_DONE");
-        require(
-            msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)),
-            "INVALID_ETH_VALUE"
-        );
+        require(msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)), "INVALID_ETH_VALUE");
 
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
         // This is just like onlySubgraphAuth, but we want it to run after the subgraphTransferredToL2 check
@@ -71,11 +68,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
         require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
         subgraphTransferredToL2[_subgraphID] = true;
 
-        uint256 curationTokens = curation().burn(
-            subgraphData.subgraphDeploymentID,
-            subgraphData.vSignal,
-            0
-        );
+        uint256 curationTokens = curation().burn(subgraphData.subgraphDeploymentID, subgraphData.vSignal, 0);
         subgraphData.disabled = true;
         subgraphData.vSignal = 0;
 
@@ -93,19 +86,9 @@ contract L1GNS is GNS, L1GNSV1Storage {
         subgraphData.nSignal = totalSignal.sub(ownerNSignal);
         subgraphData.withdrawableGRT = curationTokens.sub(tokensForL2);
 
-        bytes memory extraData = abi.encode(
-            uint8(IL2GNS.L1MessageCodes.RECEIVE_SUBGRAPH_CODE),
-            _subgraphID,
-            _l2Owner
-        );
+        bytes memory extraData = abi.encode(uint8(IL2GNS.L1MessageCodes.RECEIVE_SUBGRAPH_CODE), _subgraphID, _l2Owner);
 
-        _sendTokensAndMessageToL2GNS(
-            tokensForL2,
-            _maxGas,
-            _gasPriceBid,
-            _maxSubmissionCost,
-            extraData
-        );
+        _sendTokensAndMessageToL2GNS(tokensForL2, _maxGas, _gasPriceBid, _maxSubmissionCost, extraData);
 
         subgraphData.__DEPRECATED_reserveRatio = 0;
         _burnNFT(_subgraphID);
@@ -138,10 +121,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 _maxSubmissionCost
     ) external payable notPartialPaused {
         require(subgraphTransferredToL2[_subgraphID], "!TRANSFERRED");
-        require(
-            msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)),
-            "INVALID_ETH_VALUE"
-        );
+        require(msg.value == _maxSubmissionCost.add(_maxGas.mul(_gasPriceBid)), "INVALID_ETH_VALUE");
         // The Arbitrum bridge will check this too, we just check here for an early exit
         require(_maxSubmissionCost != 0, "NO_SUBMISSION_COST");
 
@@ -165,13 +145,7 @@ contract L1GNS is GNS, L1GNSV1Storage {
         subgraphData.withdrawableGRT = withdrawableGRT.sub(tokensForL2);
 
         // Send the tokens and data to L2 using the L1GraphTokenGateway
-        _sendTokensAndMessageToL2GNS(
-            tokensForL2,
-            _maxGas,
-            _gasPriceBid,
-            _maxSubmissionCost,
-            extraData
-        );
+        _sendTokensAndMessageToL2GNS(tokensForL2, _maxGas, _gasPriceBid, _maxSubmissionCost, extraData);
         emit CuratorBalanceSentToL2(_subgraphID, msg.sender, _beneficiary, tokensForL2);
     }
 

@@ -5,7 +5,14 @@ import { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'har
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 
 import { GraphNetworkAddressBook, readConfig, loadGraphNetworkContracts } from '..'
-import { getDeployer, getNamedAccounts, getTestAccounts, getWallet, getWallets } from './accounts'
+import {
+  getAllAccounts,
+  getDeployer,
+  getNamedAccounts,
+  getTestAccounts,
+  getWallet,
+  getWallets,
+} from './accounts'
 import { getAddressBookPath, getChains, getDefaultProviders, getGraphConfigPaths } from './config'
 import { getSecureAccountsProvider } from './providers'
 import { logDebug, logWarn } from './helpers/logger'
@@ -44,7 +51,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     logDebug('== Features')
 
     // Tx logging
-    const enableTxLogging = opts.enableTxLogging ?? false
+    const enableTxLogging = opts.enableTxLogging ?? true
     logDebug(`Tx logging: ${enableTxLogging ? 'enabled' : 'disabled'}`)
 
     // Secure accounts
@@ -198,7 +205,11 @@ function buildGraphNetworkEnvironment(
       config.defaults = getDefaults(config, isHHL1)
       return config
     }),
-    contracts: lazyObject(() => loadGraphNetworkContracts(addressBookPath, chainId, provider)),
+    contracts: lazyObject(() =>
+      loadGraphNetworkContracts(addressBookPath, chainId, provider, undefined, {
+        enableTxLogging,
+      }),
+    ),
     getWallets: lazyFunction(() => () => getWallets()),
     getWallet: lazyFunction(() => (address: string) => getWallet(address)),
     getDeployer: lazyFunction(
@@ -209,12 +220,14 @@ function buildGraphNetworkEnvironment(
         getNamedAccounts(
           fork ? provider : await getUpdatedProvider('getNamedAccounts'),
           graphConfigPath,
-          fork,
         ),
     ),
     getTestAccounts: lazyFunction(
       () => async () =>
         getTestAccounts(await getUpdatedProvider('getTestAccounts'), graphConfigPath),
+    ),
+    getAllAccounts: lazyFunction(
+      () => async () => getAllAccounts(await getUpdatedProvider('getAllAccounts')),
     ),
   }
 }

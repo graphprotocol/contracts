@@ -47,13 +47,8 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
      */
     constructor(address _impl, address _admin) {
         assert(ADMIN_SLOT == bytes32(uint256(keccak256("eip1967.proxy.admin")) - 1));
-        assert(
-            IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)
-        );
-        assert(
-            PENDING_IMPLEMENTATION_SLOT ==
-                bytes32(uint256(keccak256("eip1967.proxy.pendingImplementation")) - 1)
-        );
+        assert(IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1));
+        assert(PENDING_IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.proxy.pendingImplementation")) - 1));
 
         _setAdmin(_admin);
         _setPendingImplementation(_impl);

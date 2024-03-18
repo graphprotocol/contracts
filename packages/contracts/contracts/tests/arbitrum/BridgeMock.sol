@@ -33,14 +33,7 @@ contract BridgeMock is IBridge {
     ) external payable override returns (uint256) {
         messageIndex = messageIndex + 1;
         inboxAccs.push(keccak256(abi.encodePacked(inbox, _kind, _sender, _messageDataHash)));
-        emit MessageDelivered(
-            messageIndex,
-            inboxAccs[messageIndex - 1],
-            msg.sender,
-            _kind,
-            _sender,
-            _messageDataHash
-        );
+        emit MessageDelivered(messageIndex, inboxAccs[messageIndex - 1], msg.sender, _kind, _sender, _messageDataHash);
         return messageIndex;
     }
 

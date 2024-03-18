@@ -17,4 +17,4 @@ runs:
       run: yarn --immutable
     - name: Build
       shell: bash
-      run: yarn build
+      run: yarn build || yarn build

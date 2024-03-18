@@ -1,0 +1,28 @@
+{
+  "name": "eslint-graph-config",
+  "version": "0.0.1",
+  "description": "Linting and formatting rules for The Graph's TypeScript projects",
+  "main": "index.js",
+  "author": "The Graph Team",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "clean": "rm -rf index.js",
+    "lint": "eslint '**/*.{js,ts}' --ignore-pattern index.js --fix",
+    "build": "yarn clean && tsc"
+  },
+  "dependencies": {
+    "@stylistic/eslint-plugin": "^1.6.2",
+    "eslint": "^8.56.0",
+    "eslint-plugin-no-only-tests": "^3.1.0",
+    "eslint-plugin-no-secrets": "^0.8.9",
+    "typescript-eslint": "^7.0.2"
+  },
+  "devDependencies": {
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^20.11.19",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "eslint": "^8.56.0"
+  }
+}

@@ -25,8 +25,7 @@ interface IRewardsManager {
 
     function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external;
 
-    function setDeniedMany(bytes32[] calldata _subgraphDeploymentID, bool[] calldata _deny)
-        external;
+    function setDeniedMany(bytes32[] calldata _subgraphDeploymentID, bool[] calldata _deny) external;
 
     function isDenied(bytes32 _subgraphDeploymentID) external view returns (bool);
 
@@ -36,15 +35,9 @@ interface IRewardsManager {
 
     function getAccRewardsPerSignal() external view returns (uint256);
 
-    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID)
-        external
-        view
-        returns (uint256);
+    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
-    function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID)
-        external
-        view
-        returns (uint256, uint256);
+    function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID) external view returns (uint256, uint256);
 
     function getRewards(address _allocationID) external view returns (uint256);
 

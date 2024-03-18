@@ -24,7 +24,7 @@ const UPGRADEABLE_CONTRACTS: UpgradeableContract[] = [
 ]
 
 task('test:upgrade-setup', 'Deploy contracts using an OZ proxy').setAction(
-  async (taskArgs, hre) => {
+  async (_, hre) => {
     const contractAddresses = {}
     for (const upgradeableContract of UPGRADEABLE_CONTRACTS) {
       // Deploy libraries

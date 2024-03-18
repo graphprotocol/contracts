@@ -1,8 +1,0 @@
-{
-  "codeRepository": "github.com/origin-dev",
-  "description": "Origin dev",
-  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmQyA3o9G72wcAKfGhQSFkspCLMRXUtyidxNCc4tJjCwTW",
-  "name": "Origin dev",
-  "website": "https://origin-dev.io",
-  "isOrganization": true
-}

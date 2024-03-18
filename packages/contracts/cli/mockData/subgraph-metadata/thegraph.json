@@ -1,7 +1,0 @@
-{
-  "description": "Scalable queries for a decentralized future.",
-  "displayName": "The Graph",
-  "image": "https://api.thegraph.com/ipfs/api/v0/cat?arg=QmTFK5DZc58XrTqhuuDTYoaq29ndnwoHX5TAW1bZr5EMpq",
-  "codeRepository": "https://github.com/graphprotocol/graph-network-subgraph",
-  "website": "https://thegraph.com/"
-}

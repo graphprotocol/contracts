@@ -86,10 +86,7 @@ contract GraphProxyAdmin is Governed {
      * @param _implementation Address of the implementation accepting the proxy.
      * @param _proxy Address of the proxy being accepted.
      */
-    function acceptProxy(GraphUpgradeable _implementation, IGraphProxy _proxy)
-        external
-        onlyGovernor
-    {
+    function acceptProxy(GraphUpgradeable _implementation, IGraphProxy _proxy) external onlyGovernor {
         _implementation.acceptProxy(_proxy);
     }
 

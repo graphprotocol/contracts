@@ -114,11 +114,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
      * @param _tokenId ID of the NFT
      * @param _subgraphMetadata IPFS hash for the metadata
      */
-    function setSubgraphMetadata(uint256 _tokenId, bytes32 _subgraphMetadata)
-        external
-        override
-        onlyMinter
-    {
+    function setSubgraphMetadata(uint256 _tokenId, bytes32 _subgraphMetadata) external override onlyMinter {
         require(_exists(_tokenId), "ERC721Metadata: URI set of nonexistent token");
         _subgraphMetadataHashes[_tokenId] = _subgraphMetadata;
         emit SubgraphMetadataUpdated(_tokenId, _subgraphMetadata);
@@ -127,24 +123,13 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     // -- NFT display --
 
     /// @inheritdoc ERC721
-    function tokenURI(uint256 _tokenId)
-        public
-        view
-        override(ERC721, ISubgraphNFT)
-        returns (string memory)
-    {
+    function tokenURI(uint256 _tokenId) public view override(ERC721, ISubgraphNFT) returns (string memory) {
         require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
 
         // Delegates rendering of the metadata to the token descriptor if existing
         // This allows for some flexibility in adapting the token URI
         if (address(tokenDescriptor) != address(0)) {
-            return
-                tokenDescriptor.tokenURI(
-                    minter,
-                    _tokenId,
-                    baseURI(),
-                    _subgraphMetadataHashes[_tokenId]
-                );
+            return tokenDescriptor.tokenURI(minter, _tokenId, baseURI(), _subgraphMetadataHashes[_tokenId]);
         }
 
         // Default token URI

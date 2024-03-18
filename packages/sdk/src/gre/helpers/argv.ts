@@ -11,7 +11,7 @@ export function getGREOptsFromArgv(): GraphRuntimeEnvironmentOptions {
     graphConfig: getArgv(1),
     l1GraphConfig: getArgv(2),
     l2GraphConfig: getArgv(3),
-    disableSecureAccounts: getArgv(4),
-    fork: getArgv(5),
+    disableSecureAccounts: getArgv(4) === 'true',
+    fork: getArgv(5) === 'true',
   }
 }
