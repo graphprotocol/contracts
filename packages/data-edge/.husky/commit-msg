@@ -1,0 +1,4 @@
+#!/bin/sh
+cd packages/contracts
+
+npx --no-install commitlint --edit ""
