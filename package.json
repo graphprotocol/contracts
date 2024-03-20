@@ -11,7 +11,8 @@
     "packages/eslint-graph-config",
     "packages/sdk",
     "packages/solhint-graph-config",
-    "packages/token-distribution"
+    "packages/token-distribution",
+    "packages/data-edge"
   ],
   "scripts": {
     "postinstall": "husky install",

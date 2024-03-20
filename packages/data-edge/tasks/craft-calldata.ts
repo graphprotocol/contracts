@@ -1,6 +1,6 @@
-import { task } from 'hardhat/config'
 import '@nomiclabs/hardhat-ethers'
 import { Contract } from 'ethers'
+import { task } from 'hardhat/config'
 
 const baseABI = [
   {

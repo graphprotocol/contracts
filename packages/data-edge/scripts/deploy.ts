@@ -16,14 +16,14 @@ async function main() {
   // The address the Contract WILL have once mined
   console.log(`> deployer: ${await contract.signer.getAddress()}`)
   console.log(`> contract: ${contract.address}`)
-  console.log(`> tx: ${tx.hash} nonce:${tx.nonce} limit: ${tx.gasLimit} gas: ${tx.gasPrice.toNumber() / 1e9} (gwei)`)
+  console.log(`> tx: ${tx.hash} nonce:${tx.nonce} limit: ${tx.gasLimit.toString()} gas: ${tx.gasPrice.toNumber() / 1e9} (gwei)`)
 
   // The contract is NOT deployed yet; we must wait until it is mined
   await contract.deployed()
   console.log(`Done!`)
 
   // Update addresses.json
-  const chainId = (network.config.chainId as number).toString()
+  const chainId = (network.config.chainId).toString()
   if (!addresses[chainId]) {
     addresses[chainId] = {}
   }

@@ -1,4 +1,0 @@
-#!/bin/sh
-cd packages/contracts
-
-yarn lint

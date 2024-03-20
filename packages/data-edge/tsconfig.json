@@ -9,7 +9,7 @@
     "esModuleInterop": true
   },
   "exclude": ["dist", "node_modules"],
-  "files": [
+  "include": [
     "./hardhat.config.ts",
     "./scripts/**/*.ts",
     "./test/**/*.ts",
@@ -17,6 +17,8 @@
     "node_modules/@nomiclabs/hardhat-etherscan/dist/src/type-extensions.d.ts",
     "node_modules/@nomiclabs/hardhat-waffle/dist/src/type-extensions.d.ts",
     "node_modules/@typechain/hardhat/dist/type-extensions.d.ts",
-    "./index.d.ts"
+    "./index.d.ts",
+    "eslint.config.js",
+    ".solcover.js"
   ]
 }

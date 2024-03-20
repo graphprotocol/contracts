@@ -4,3 +4,7 @@
 # contracts
 cd packages/contracts
 npx --no-install lint-staged
+
+# data-edge
+cd ../data-edge
+npx --no-install lint-staged
