@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 7.0.0
+
+### Major Changes
+
+- 9686ce1: Add Horizon staking interface
+
 ## 6.2.1
 
 ### Patch Changes
