@@ -5,6 +5,7 @@
   "directories": {
     "test": "test"
   },
+  "main": "dist/types/index.js",
   "types": "build/types/index.d.ts",
   "files": [
     "dist/**/*",
