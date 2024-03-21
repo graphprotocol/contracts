@@ -7,10 +7,11 @@ set -eo pipefail
 # Build contracts
 yarn clean
 yarn compile
+tsc
 
-# Refresh distribution folder
-rm -rf dist && mkdir -p ${TYPECHAIN_DIR}
+# Copy types and abis to distribution folder
+cp -R build/types/* dist/build/types
 cp -R build/abis/ dist/abis
-cp -R build/types/ ${TYPECHAIN_DIR}
 
-tsc --esModuleInterop
+# Move compiled types ts
+mv dist/build/types dist/types
