@@ -8,11 +8,11 @@
   "packageManager": "yarn@4.0.2",
   "workspaces": [
     "packages/contracts",
+    "packages/data-edge",
     "packages/eslint-graph-config",
     "packages/sdk",
     "packages/solhint-graph-config",
-    "packages/token-distribution",
-    "packages/data-edge"
+    "packages/token-distribution"
   ],
   "scripts": {
     "postinstall": "husky install",

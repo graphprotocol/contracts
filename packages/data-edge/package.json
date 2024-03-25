@@ -38,12 +38,6 @@
       "prettier --write"
     ]
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "pre-push": "git diff HEAD --quiet && yarn lint && yarn test"
-    }
-  },
   "author": "The Graph Team",
   "license": "GPL-2.0-or-later",
   "devDependencies": {
