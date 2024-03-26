@@ -1,10 +1,20 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.4.0 <0.9.0;
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.8.25;
 
-import {Test} from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import {IHorizonStaking} from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import {ISubgraphService} from "./ISubgraphService.sol";
+import {SubgraphServiceV1Storage} from "./SubgraphServiceStorage.sol";
 
-contract SimpleTest is Test {
-    function test() external pure returns (uint256) {
-        return 42;
+contract SubgraphService is SubgraphServiceV1Storage, ISubgraphService {
+    function register(address provisionId, string calldata url, string calldata geohash, uint256 delegatorQueryFeeCut)
+        external
+        override
+    {
+        // Get provision from Staking contract
+        // Validate provision parameters meet DS requirements
     }
+
+    function _register(address provisionId, string calldata url, string calldata geohash, uint256 delegatorQueryFeeCut)
+        internal
+    {}
 }

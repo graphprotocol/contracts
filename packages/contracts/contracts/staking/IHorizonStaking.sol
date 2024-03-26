@@ -3,10 +3,6 @@
 pragma solidity >=0.7.6 <0.9.0;
 pragma abicoder v2;
 
-interface Test {
-    function test() external returns (uint256);
-}
-
 interface IHorizonStaking {
     struct Provision {
         // Service provider that created the provision
