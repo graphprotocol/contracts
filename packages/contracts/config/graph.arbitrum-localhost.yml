@@ -150,3 +150,13 @@ contracts:
       - fn: "syncAllContracts"
       - fn: "setPauseGuardian"
         pauseGuardian: *pauseGuardian
+  SubgraphAvailabilityManager:
+    init:
+      governor: "${{Env.deployer}}"
+      rewardsManager: "${{RewardsManager.address}}"
+      executionThreshold: 5
+      voteTimeLimit: 300
+      oracles: [*availabilityOracle, *availabilityOracle, *availabilityOracle, *availabilityOracle, *availabilityOracle]
+    calls:
+      - fn: "transferOwnership"
+        owner: *governor
