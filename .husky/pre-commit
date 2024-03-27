@@ -2,5 +2,11 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # contracts
-cd packages/contracts
+pushd packages/contracts
 npx --no-install lint-staged
+popd
+
+# subgraph service
+pushd packages/subgraph-service
+npx --no-install lint-staged
+popd

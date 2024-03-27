@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.7.6;
+pragma solidity >=0.7.6 <0.9.0;
 pragma abicoder v2;
 
 interface IHorizonStaking {
@@ -93,12 +93,7 @@ interface IHorizonStaking {
     function stake(uint256 tokens) external;
 
     // create a provision
-    function provision(
-        uint256 tokens,
-        address verifier,
-        uint256 maxVerifierCut,
-        uint256 thawingPeriod
-    ) external;
+    function provision(uint256 tokens, address verifier, uint256 maxVerifierCut, uint256 thawingPeriod) external;
 
     // initiate a thawing to remove tokens from a provision
     function thaw(bytes32 provisionId, uint256 tokens) external returns (bytes32 thawRequestId);
@@ -123,11 +118,7 @@ interface IHorizonStaking {
     ) external returns (bytes32 thawRequestId);
 
     // slash a service provider
-    function slash(
-        bytes32 provisionId,
-        uint256 tokens,
-        uint256 verifierAmount
-    ) external;
+    function slash(address serviceProvider, uint256 tokens, uint256 reward, address rewardsDestination) external;
 
     // set the Service Provider's preferred provisions to be force thawed
     function setForceThawProvisions(bytes32[] calldata provisions) external;
@@ -148,10 +139,15 @@ interface IHorizonStaking {
     // `Provision.tokens - Provision.tokensThawing`
     function getTokensAvailable(bytes32 provision) external view returns (uint256 tokens);
 
-    function getServiceProvider(address serviceProvider)
-        external
-        view
-        returns (ServiceProvider memory);
+    function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory);
 
-    function getProvision(bytes32 provision) external view returns (Provision memory);
+    function getProvision(address serviceProvider, address verifier) external view returns (Provision memory);
+
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @param _operator The address to check for auth
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param _verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool);
 }

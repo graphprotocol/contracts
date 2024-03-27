@@ -1,0 +1,3 @@
+[submodule "packages/subgraph-service/lib/forge-std"]
+	path = packages/subgraph-service/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

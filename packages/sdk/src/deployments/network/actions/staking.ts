@@ -48,7 +48,7 @@ export const allocateFrom: GraphNetworkAction<{
   const metadata = ethers.constants.HashZero
 
   console.log(`\nAllocating ${amount} tokens on ${allocationId}...`)
-  let extraArgs: ethers.Overrides = {}
+  const extraArgs: ethers.Overrides = {}
   if (process.env.CI) {
     extraArgs.gasLimit = BigNumber.from('400000')
   }
@@ -59,7 +59,7 @@ export const allocateFrom: GraphNetworkAction<{
     allocationId,
     metadata,
     proof,
-    extraArgs
+    extraArgs,
   )
   await tx.wait()
 }

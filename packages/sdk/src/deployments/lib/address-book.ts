@@ -33,7 +33,7 @@ export abstract class AddressBook<
    * @throws AssertionError if the target file is not a valid address book
    * @throws Error if the target file does not exist
    */
-  constructor(_file: string, _chainId: number, strictAssert: boolean = false) {
+  constructor(_file: string, _chainId: number, strictAssert = false) {
     this.strictAssert = strictAssert
     this.file = _file
     if (!fs.existsSync(this.file)) throw new Error(`Address book path provided does not exist!`)
