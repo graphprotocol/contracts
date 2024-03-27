@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.24;
 
 interface ISubgraphService {
-    // register as a provider in the data service
-    function register(address provisionId, string calldata url, string calldata geohash, uint256 delegatorQueryFeeCut)
-        external;
+    struct Indexer {
+        uint256 registeredAt;
+        string url;
+        string geoHash;
+        // tokens being used as slashable stake
+        uint256 tokensUsed;
+        // tokens collected so far from the scalar escrow
+        uint256 tokensCollected;
+    }
 
-    // register as a provider in the data service, create the required provision first
-    // function provisionAndRegister(
-    //     uint256 tokens,
-    //     string calldata url,
-    //     string calldata geohash,
-    //     uint256 delegatorQueryFeeCut
-    // ) external;
+    // register as a provider in the data service
+    function register(address serviceProvider, string calldata url, string calldata geohash) external;
+
+    function slash(address serviceProvider, uint256 tokensSlash, uint256 tokensRewards) external;
 }

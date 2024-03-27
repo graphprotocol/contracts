@@ -2756,6 +2756,7 @@ __metadata:
     "@nomicfoundation/hardhat-network-helpers": "npm:^1.0.0"
     "@nomicfoundation/hardhat-toolbox": "npm:^4.0.0"
     "@nomicfoundation/hardhat-verify": "npm:^2.0.0"
+    "@openzeppelin/contracts": "npm:^5.0.2"
     "@typechain/ethers-v6": "npm:^0.5.0"
     "@typechain/hardhat": "npm:^9.0.0"
     "@types/chai": "npm:^4.2.0"
@@ -2768,6 +2769,10 @@ __metadata:
     hardhat: "npm:^2.20.1"
     hardhat-gas-reporter: "npm:^1.0.8"
     lint-staged: "npm:^15.2.2"
+    prettier: "npm:^3.2.5"
+    prettier-plugin-solidity: "npm:^1.3.1"
+    solhint: "npm:^4.5.2"
+    solhint-graph-config: "workspace:^0.0.1"
     solidity-coverage: "npm:^0.8.0"
     ts-node: "npm:>=8.0.0"
     typechain: "npm:^8.3.0"
@@ -4804,6 +4809,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@openzeppelin/contracts@npm:^5.0.2":
+  version: 5.0.2
+  resolution: "@openzeppelin/contracts@npm:5.0.2"
+  checksum: d042661db7bb2f3a4b9ef30bba332e86ac20907d171f2ebfccdc9255cc69b62786fead8d6904b8148a8f26946bc7c15eead91b95f75db0c193a99d52e528663e
+  languageName: node
+  linkType: hard
+
 "@openzeppelin/defender-admin-client@npm:^1.46.0":
   version: 1.54.1
   resolution: "@openzeppelin/defender-admin-client@npm:1.54.1"
@@ -6695,7 +6707,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"antlr4@npm:^4.11.0":
+"antlr4@npm:^4.11.0, antlr4@npm:^4.13.1-patch-1":
   version: 4.13.1
   resolution: "antlr4@npm:4.13.1"
   checksum: f92191677cf277e9c65806bcc40e0d844838203047e3d50cb2628cdda3052500dad0827f9308fc46283935786b0e6bc2986beb47cdd9b1ac88b5258d1b311294
@@ -20865,6 +20877,38 @@ __metadata:
   bin:
     solhint: solhint.js
   checksum: b4bdb21bdc13f7ba3436d571a30cae6cb8dfb58ab1387df8bef25eeca25c8fbb3f625c49a5dddea41f8361aaeb4d8e2e9f986f580663ddd4574fd3d5de5f66c9
+  languageName: node
+  linkType: hard
+
+"solhint@npm:^4.5.2":
+  version: 4.5.2
+  resolution: "solhint@npm:4.5.2"
+  dependencies:
+    "@solidity-parser/parser": "npm:^0.18.0"
+    ajv: "npm:^6.12.6"
+    antlr4: "npm:^4.13.1-patch-1"
+    ast-parents: "npm:^0.0.1"
+    chalk: "npm:^4.1.2"
+    commander: "npm:^10.0.0"
+    cosmiconfig: "npm:^8.0.0"
+    fast-diff: "npm:^1.2.0"
+    glob: "npm:^8.0.3"
+    ignore: "npm:^5.2.4"
+    js-yaml: "npm:^4.1.0"
+    latest-version: "npm:^7.0.0"
+    lodash: "npm:^4.17.21"
+    pluralize: "npm:^8.0.0"
+    prettier: "npm:^2.8.3"
+    semver: "npm:^7.5.2"
+    strip-ansi: "npm:^6.0.1"
+    table: "npm:^6.8.1"
+    text-table: "npm:^0.2.0"
+  dependenciesMeta:
+    prettier:
+      optional: true
+  bin:
+    solhint: solhint.js
+  checksum: a54cc8df54ed711ca6be783b9291eb9e838f518f236d4df05c6ef412ead6a21f4a5bf3bace62ca7d2ed69f4566d5289db4c8c93e0c5e23ac91401904e1f1f312
   languageName: node
   linkType: hard
 
