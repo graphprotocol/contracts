@@ -7,18 +7,28 @@ interface IHorizonStakingTypes {
     struct Provision {
         // Service provider that created the provision
         address serviceProvider;
-        // tokens in the provision
+        // service provider tokens in the provision
         uint256 tokens;
-        // tokens that are being thawed (and will stop being slashable soon)
+        // service provider tokens that are being thawed (and will stop being slashable soon)
         uint256 tokensThawing;
-        // timestamp of provision creation
-        uint64 createdAt;
-        // authority to slash the provision
-        address verifier;
+        // delegated tokens in the provision
+        uint256 delegatedTokens;
+        // delegated tokens that are being thawed (and will stop being slashable soon)
+        uint256 delegatedTokensThawing;
+        // shares that represent the delegated tokens that are being thawed
+        uint256 delegatedSharesThawing;
         // max amount that can be taken by the verifier when slashing, expressed in parts-per-million of the amount slashed
         uint32 maxVerifierCut;
         // time, in seconds, tokens must thaw before being withdrawn
         uint64 thawingPeriod;
+        bytes32 firstThawRequestId;
+        bytes32 lastThawRequestId;
+        uint256 nThawRequests;
+        // The effective delegator fee cuts for each (data-service-defined) fee type
+        // This is in PPM and is the cut taken by the indexer from the fees that correspond to delegators
+        // (based on stake vs delegated stake proportion).
+        // The cuts are applied in GraphPayments so apply to all data services that use it.
+        mapping(uint256 => uint32) delegationFeeCuts;
     }
 
     struct ServiceProvider {
@@ -26,14 +36,8 @@ interface IHorizonStakingTypes {
         uint256 tokensStaked;
         // tokens used in a provision
         uint256 tokensProvisioned;
-        // tokens that initiated a thawing in any one of the provider's provisions
-        uint256 tokensRequestedThaw;
-        // tokens that have been removed from any one of the provider's provisions after thawing
-        uint256 tokensFulfilledThaw;
-        // provisions that take priority for undelegation force thawing
-        bytes32[] forceThawProvisions;
-        // Next nonce to be used to generate provision IDs
-        uint256 nextProvisionNonce;
+        // Next nonce to be used to generate thaw request IDs
+        uint256 nextThawRequestNonce;
     }
 
     struct DelegationPool {
@@ -50,19 +54,17 @@ interface IHorizonStakingTypes {
         uint256 shares; // Shares owned by a delegator in the pool
         uint256 __DEPRECATED_tokensLocked; // Tokens locked for undelegation
         uint256 __DEPRECATED_tokensLockedUntil; // Epoch when locked tokens can be withdrawn
+        bytes32 firstThawRequestId;
+        bytes32 lastThawRequestId;
+        uint256 nThawRequests;
+        uint256 nextThawRequestNonce;
     }
 
     struct ThawRequest {
-        // tokens that are being thawed by this request
-        uint256 tokens;
-        // the provision id to which this request corresponds to
-        bytes32 provisionId;
-        // the address that initiated the thaw request, allowed to remove the funds once thawed
-        address owner;
+        // shares that represent the tokens being thawed
+        uint256 shares;
         // the timestamp when the thawed funds can be removed from the provision
         uint64 thawingUntil;
-        // the value of `ServiceProvider.tokensRequestedThaw` the moment the thaw request is created
-        uint256 tokensRequestedThawSnapshot;
     }
 
     // the new "Indexer" struct
@@ -77,13 +79,7 @@ interface IHorizonStakingTypes {
         uint256 __DEPRECATED_tokensLockedUntil;
         // tokens used in a provision
         uint256 tokensProvisioned;
-        // tokens that initiated a thawing in any one of the provider's provisions
-        uint256 tokensRequestedThaw;
-        // tokens that have been removed from any one of the provider's provisions after thawing
-        uint256 tokensFulfilledThaw;
-        // provisions that take priority for undelegation force thawing
-        bytes32[] forceThawProvisions;
-        // Next nonce to be used to generate provision IDs
-        uint256 nextProvisionNonce;
+        // Next nonce to be used to generate thaw request IDs
+        uint256 nextThawRequestNonce;
     }
 }

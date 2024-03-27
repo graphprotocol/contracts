@@ -15,6 +15,8 @@ interface IStakingBackwardsCompatibility {
     /**
      * @dev Emitted when `delegator` delegated `tokens` to the `serviceProvider`, the delegator
      * gets `shares` for the delegation pool proportionally to the tokens staked.
+     * This event is here for backwards compatibility, the tokens are delegated
+     * on the subgraph data service provision.
      */
     event StakeDelegated(
         address indexed serviceProvider,
@@ -81,6 +83,12 @@ interface IStakingBackwardsCompatibility {
         uint256 queryRebates,
         uint256 delegationRewards
     );
+
+    /**
+     * @dev Emitted when `indexer` set `operator` access in the legacy contract,
+     * which now means only for the subgraph data service.
+     */
+    event SetOperator(address indexed indexer, address indexed operator, bool allowed);
 
     /**
      * @dev Possible states an allocation can be.
@@ -176,4 +184,13 @@ interface IStakingBackwardsCompatibility {
         external
         view
         returns (uint256);
+
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @dev They might be the service provider, a global operator or a verifier-specific operator.
+     * @param _operator The address to check for auth
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param _verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool);
 }

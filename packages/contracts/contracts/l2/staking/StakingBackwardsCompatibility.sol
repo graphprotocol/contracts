@@ -39,6 +39,29 @@ abstract contract StakingBackwardsCompatibility is
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
+    address public immutable subgraphDataServiceAddress;
+
+    constructor(address _subgraphDataServiceAddress) {
+        subgraphDataServiceAddress = _subgraphDataServiceAddress;
+    }
+
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @param _operator The address to check for auth
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param _verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) public view override returns (bool) {
+        if (_operator == _serviceProvider) {
+            return true;
+        }
+        if (_verifier == subgraphDataServiceAddress) {
+            return legacyOperatorAuth[_serviceProvider][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+        } else {
+            return operatorAuth[_serviceProvider][_verifier][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+        }
+    }
+
     /**
      * @notice Set the address of the counterpart (L1 or L2) staking contract.
      * @dev This function can only be called by the governor.
@@ -158,7 +181,7 @@ abstract contract StakingBackwardsCompatibility is
                     graphToken,
                     queryRebates,
                     alloc.indexer,
-                    __rewardsDestination[alloc.indexer] == address(0)
+                    rewardsDestination[alloc.indexer] == address(0)
                 );
             }
         }
@@ -233,8 +256,8 @@ abstract contract StakingBackwardsCompatibility is
     }
 
     /**
-     * @notice Return true if operator is allowed for the service provider.
-     * @dev TODO: Move to HorizonStaking after the transition period
+     * @notice (Legacy) Return true if operator is allowed for the service provider on the subgraph data service.
+     * @dev TODO: Delete after the transition period
      * @param _operator Address of the operator
      * @param _serviceProvider Address of the service provider
      * @return True if operator is allowed for indexer, false otherwise
@@ -245,7 +268,7 @@ abstract contract StakingBackwardsCompatibility is
         override
         returns (bool)
     {
-        return __operatorAuth[_serviceProvider][_operator];
+        return legacyOperatorAuth[_serviceProvider][_operator];
     }
 
     /**
@@ -254,7 +277,7 @@ abstract contract StakingBackwardsCompatibility is
      * @return Amount of tokens staked by the indexer
      */
     function getIndexerStakedTokens(address _indexer) external view override returns (uint256) {
-        return __serviceProviders[_indexer].tokensStaked;
+        return serviceProviders[_indexer].tokensStaked;
     }
 
     /**
@@ -263,7 +286,7 @@ abstract contract StakingBackwardsCompatibility is
      * @return True if indexer has staked tokens
      */
     function hasStake(address _indexer) external view override returns (bool) {
-        return __serviceProviders[_indexer].tokensStaked > 0;
+        return serviceProviders[_indexer].tokensStaked > 0;
     }
 
     /**
@@ -288,7 +311,7 @@ abstract contract StakingBackwardsCompatibility is
         // Anyone is allowed to close ONLY under two concurrent conditions
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
-        bool isIndexer = _isAuth(alloc.indexer);
+        bool isIndexer = isOperator(alloc.indexer, subgraphDataServiceAddress);
         if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
             require(isIndexer, "!auth");
         }
@@ -308,7 +331,7 @@ abstract contract StakingBackwardsCompatibility is
             }
 
             // Free allocated tokens from use
-            __serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated = __serviceProviders[
+            serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated = serviceProviders[
                 alloc.indexer
             ].__DEPRECATED_tokensAllocated.sub(alloc.tokens);
 
@@ -343,7 +366,7 @@ abstract contract StakingBackwardsCompatibility is
         returns (uint256)
     {
         uint256 delegationRewards = 0;
-        DelegationPool storage pool = __delegationPools[_indexer];
+        DelegationPool storage pool = legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && pool.__DEPRECATED_queryFeeCut < MAX_PPM) {
             uint256 indexerCut = uint256(pool.__DEPRECATED_queryFeeCut).mul(_tokens).div(MAX_PPM);
             delegationRewards = _tokens.sub(indexerCut);
@@ -364,7 +387,7 @@ abstract contract StakingBackwardsCompatibility is
         returns (uint256)
     {
         uint256 delegationRewards = 0;
-        DelegationPool storage pool = __delegationPools[_indexer];
+        DelegationPool storage pool = legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
             uint256 indexerCut = uint256(pool.__DEPRECATED_indexingRewardCut).mul(_tokens).div(
                 MAX_PPM
@@ -479,7 +502,7 @@ abstract contract StakingBackwardsCompatibility is
             graphToken(),
             indexerRewards,
             _indexer,
-            __rewardsDestination[_indexer] == address(0)
+            rewardsDestination[_indexer] == address(0)
         );
     }
 
@@ -503,7 +526,7 @@ abstract contract StakingBackwardsCompatibility is
             _stake(_beneficiary, _amount);
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
-            address destination = __rewardsDestination[_beneficiary];
+            address destination = rewardsDestination[_beneficiary];
             TokenUtils.pushTokens(
                 _graphToken,
                 destination == address(0) ? _beneficiary : destination,
@@ -512,15 +535,6 @@ abstract contract StakingBackwardsCompatibility is
         }
     }
 
-    /**
-     * @dev Check if the caller is authorized to operate on behalf of
-     * an indexer (i.e. the caller is the indexer or an operator)
-     * @param _indexer Indexer address
-     * @return True if the caller is authorized to operate on behalf of the indexer
-     */
-    function _isAuth(address _indexer) internal view returns (bool) {
-        return msg.sender == _indexer || isOperator(msg.sender, _indexer) == true;
-    }
 
     /**
      * @dev Return the current state of an allocation
@@ -549,7 +563,7 @@ abstract contract StakingBackwardsCompatibility is
      */
     function _stake(address _serviceProvider, uint256 _tokens) internal {
         // Deposit tokens into the indexer stake
-        __serviceProviders[_serviceProvider].tokensStaked = __serviceProviders[_serviceProvider]
+        serviceProviders[_serviceProvider].tokensStaked = serviceProviders[_serviceProvider]
             .tokensStaked
             .add(_tokens);
 

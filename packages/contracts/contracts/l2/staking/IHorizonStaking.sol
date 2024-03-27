@@ -17,18 +17,22 @@ interface IHorizonStaking is IHorizonStakingTypes {
     event VerifierDenied(address indexed serviceProvider, address indexed verifier);
 
     /**
-     * @dev Emitted when an operator is allowed or denied by a service provider
+     * @dev Emitted when an operator is allowed or denied by a service provider for a particular data service
      */
-    event SetOperator(address indexed serviceProvider, address indexed operator, bool allowed);
+    event OperatorSet(address indexed serviceProvider, address indexed operator, address verifier, bool allowed);
+
+    /**
+     * @dev Emitted when a global operator (for all data services) is allowed or denied by a service provider
+     */
+    event GlobalOperatorSet(address indexed serviceProvider, address indexed operator, bool allowed);
 
     /**
      * @dev Emitted when a service provider provisions staked tokens to a verifier
      */
     event ProvisionCreated(
-        bytes32 indexed provisionId,
         address indexed serviceProvider,
-        uint256 tokens,
         address indexed verifier,
+        uint256 tokens,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     );
@@ -36,13 +40,15 @@ interface IHorizonStaking is IHorizonStakingTypes {
     /**
      * @dev Emitted when a service provider increases the tokens in a provision
      */
-    event ProvisionIncreased(bytes32 indexed provisionId, uint256 tokens);
+    event ProvisionIncreased(address indexed serviceProvider,
+        address indexed verifier, uint256 tokens);
 
     /**
-     * @dev Emitted when a service provider initiates a thawing request
+     * @dev Emitted when a thawing request is initiated by a service provider
      */
     event ProvisionThawInitiated(
-        bytes32 indexed provisionId,
+        address indexed serviceProvider,
+        address indexed verifier,
         uint256 tokens,
         bytes32 indexed thawRequestId
     );
@@ -51,7 +57,8 @@ interface IHorizonStaking is IHorizonStakingTypes {
      * @dev Emitted when a service provider removes tokens from a provision after thawing
      */
     event ProvisionThawFulfilled(
-        bytes32 indexed provisionId,
+        address indexed serviceProvider,
+        address indexed verifier,
         uint256 tokens,
         bytes32 indexed thawRequestId
     );
@@ -66,77 +73,83 @@ interface IHorizonStaking is IHorizonStakingTypes {
 
     function stakeTo(address _serviceProvider, uint256 _tokens) external;
 
+    // can be called by anyone if the indexer has provisioned stake to this verifier
+    function stakeToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external;
+
     // create a provision
     function provision(
         address _serviceProvider,
-        uint256 _tokens,
         address _verifier,
+        uint256 _tokens,
         uint32 _maxVerifierCut,
         uint64 _thawingPeriod
-    ) external returns (bytes32);
+    ) external;
 
     // initiate a thawing to remove tokens from a provision
-    function thaw(bytes32 _provisionId, uint256 _tokens) external returns (bytes32);
+    function thaw(address _serviceProvider, address _verifier, uint256 _tokens) external returns (bytes32);
 
     // add more tokens from idle stake to an existing provision
-    function addToProvision(bytes32 _provisionId, uint256 _tokens) external;
+    function addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external;
 
     // moves thawed stake from a provision back into the provider's available stake
-    function deprovision(bytes32 _thawRequestId) external;
+    function deprovision(address _serviceProvider, address _verifier, uint256 _tokens) external;
 
     // moves thawed stake from one provision into another provision
-    function reprovision(bytes32 _thawRequestId, bytes32 _provisionId) external;
+    function reprovision(address _serviceProvider, address _oldVerifier, address _newVerifier, uint256 _tokens) external;
 
     // moves thawed stake back to the owner's account - stake is removed from the protocol
-    function withdraw(bytes32 _thawRequestId) external;
+    function withdraw(address _serviceProvider, uint256 _tokens) external;
 
-    // delegate tokens to a provider
-    function delegate(address _serviceProvider, uint256 _tokens) external;
+    // // delegate tokens to a provider on a data service
+    // function delegate(address _serviceProvider, address _verifier, uint256 _tokens) external;
 
-    // undelegate tokens
-    function undelegate(
-        address _serviceProvider,
-        uint256 _tokens,
-        bytes32[] calldata _provisions
-    ) external returns (bytes32[] memory);
+    // // undelegate tokens from a provision
+    // function undelegate(
+    //     address _serviceProvider,
+    //     address _verifier,
+    //     uint256 _tokens
+    // ) external;
 
     // slash a service provider
     function slash(
         bytes32 _provisionId,
         uint256 _tokens,
-        uint256 _verifierAmount
+        uint256 _verifierCutAmount,
+        address _verifierCutDestination
     ) external;
 
-    // set the Service Provider's preferred provisions to be force thawed
-    function setForceThawProvisions(bytes32[] calldata _provisions) external;
-
     // total staked tokens to the provider
-    // `ServiceProvider.tokensStaked + DelegationPool.serviceProvider.tokens`
+    // `ServiceProvider.tokensStaked
     function getStake(address _serviceProvider) external view returns (uint256 tokens);
 
     // staked tokens that are currently not provisioned, aka idle stake
     // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
     function getIdleStake(address _serviceProvider) external view returns (uint256 tokens);
 
-    // staked tokens the provider can provision before hitting the delegation cap
-    // `ServiceProvider.tokensStaked * Staking.delegationRatio - Provision.tokensProvisioned`
-    function getCapacity(address _serviceProvider) external view returns (uint256);
-
     // provisioned tokens that are not being used
     // `Provision.tokens - Provision.tokensThawing`
-    function getTokensAvailable(bytes32 _provisionId) external view returns (uint256 tokens);
+    function getTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256 tokens);
+
+    function getThawedTokens(address _serviceProvider, address _verifier) external view returns (uint256);
 
     function getServiceProvider(address _serviceProvider)
         external
         view
         returns (ServiceProvider memory);
 
-    function getProvision(bytes32 _provisionId) external view returns (Provision memory);
+    function getProvision(address _serviceProvider, address _verifier) external view returns (Provision memory);
 
     /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller.
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a specific verifier / data service.
      * @param _operator Address to authorize or unauthorize
      * @param _allowed Whether the operator is authorized or not
      */
-    function setOperator(address _operator, bool _allowed) external;
+    function setOperator(address _operator, address _verifier, bool _allowed) external;
+
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller on all provisions.
+     * @param _operator Address to authorize or unauthorize
+     * @param _allowed Whether the operator is authorized or not
+     */
+    function setGlobalOperator(address _operator, address _verifier, bool _allowed) external;
 }

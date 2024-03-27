@@ -52,7 +52,7 @@ contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     uint32 internal __DEPRECATED_alphaDenominator;
 
     /// @dev Service provider stakes : serviceProviderAddress => ServiceProvider
-    mapping(address => ServiceProviderInternal) internal __serviceProviders;
+    mapping(address => ServiceProviderInternal) internal serviceProviders;
 
     /// @dev Allocations : allocationID => Allocation
     /// Deprecated, now applied on the SubgraphService
@@ -76,7 +76,7 @@ contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     /// @dev Set the delegation capacity multiplier defined by the delegation ratio
     /// If delegation ratio is 100, and an Indexer has staked 5 GRT,
     /// then they can use up to 500 GRT from the delegated stake
-    uint32 internal __delegationRatio;
+    uint32 internal delegationRatio;
 
     /// @dev Time in blocks an indexer needs to wait to change delegation parameters (deprecated)
     uint32 internal __DEPRECATED_delegationParametersCooldown; // solhint-disable-line var-name-mixedcase
@@ -91,12 +91,13 @@ contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     uint32 internal __DEPRECATED_delegationTaxPercentage;
 
     /// @dev Delegation pools : serviceProvider => DelegationPool
-    mapping(address => DelegationPool) internal __delegationPools;
+    /// These are for the subgraph data service.
+    mapping(address => DelegationPool) internal legacyDelegationPools;
 
     // -- Operators --
 
-    /// @dev Operator auth : indexer => operator => is authorized
-    mapping(address => mapping(address => bool)) internal __operatorAuth;
+    /// @dev Legacy operator auth : indexer => operator => is authorized
+    mapping(address => mapping(address => bool)) internal legacyOperatorAuth;
 
     // -- Asset Holders --
 
@@ -106,7 +107,7 @@ contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     /// @dev Destination of accrued rewards : beneficiary => rewards destination
     /// Data services may optionally use this to determine where to send a service provider's
     /// fees or rewards, or restake them if this is empty.
-    mapping(address => address) internal __rewardsDestination;
+    mapping(address => address) internal rewardsDestination;
 
     /// @dev Address of the counterpart Staking contract on L1/L2
     address internal counterpartStakingAddress;
@@ -118,20 +119,19 @@ contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     uint32 internal __DEPRECATED_lambdaDenominator;
 
     /// Verifier allowlist by service provider
-    /// 0: not allowed
-    /// any other value: verifier allowed at this timestamp
-    /// serviceProvider => verifier => timestamp
-    mapping(address => mapping(address => uint256)) public verifierAllowlist;
-
-    /// Time in seconds an indexer must wait before they are allowed to create provisions for new verifiers
-    uint256 public verifierTimelock;
-
-    /// Time in seconds a delegator must wait since delegating before they are allowed to undelegate
-    uint256 public undelegateTimelock;
+    /// serviceProvider => verifier => allowed
+    mapping(address => mapping(address => bool)) public verifierAllowlist;
 
     /// Maximum thawing period, in seconds, for a provision
     uint64 public maxThawingPeriod;
 
     /// @dev Provisions from each service provider for each data service
-    mapping(bytes32 => Provision) internal provisions;
+    /// ServiceProvider => Verifier => Provision
+    mapping(address => mapping(address => Provision)) internal provisions;
+
+    mapping(bytes32 => ThawRequest) internal thawRequests;
+
+    mapping(address => bool) internal globalOperatorAuth;
+
+    mapping(address => mapping(address => bool)) internal operatorAuth;
 }

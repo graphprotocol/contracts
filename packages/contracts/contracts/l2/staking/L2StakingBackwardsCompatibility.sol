@@ -29,6 +29,8 @@ contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibility, IL2St
         _;
     }
 
+    constructor(address _subgraphDataServiceAddress) StakingBackwardsCompatibility(_subgraphDataServiceAddress) {}
+
     /**
      * @notice Receive ETH into the L2Staking contract: this will always revert
      * @dev This function is only here to prevent ETH from being sent to the contract
@@ -100,7 +102,7 @@ contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibility, IL2St
         IL2Staking.ReceiveDelegationData memory _delegationData
     ) internal {
         // Get the delegation pool of the indexer
-        DelegationPool storage pool = __delegationPools[_delegationData.indexer];
+        DelegationPool storage pool = legacyDelegationPools[_delegationData.indexer];
         Delegation storage delegation = pool.delegators[_delegationData.delegator];
 
         // Calculate shares to issue (without applying any delegation tax)
