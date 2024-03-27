@@ -9,6 +9,8 @@ interface IHorizonStaking {
         address serviceProvider;
         // tokens in the provision
         uint256 tokens;
+        // delegated tokens in the provision
+        uint256 delegatedTokens;
         // tokens that are being thawed (and will stop being slashable soon)
         uint256 tokensThawing;
         // timestamp of provision creation
@@ -93,7 +95,7 @@ interface IHorizonStaking {
     function stake(uint256 tokens) external;
 
     // create a provision
-    function provision(uint256 tokens, address verifier, uint256 maxVerifierCut, uint256 thawingPeriod) external;
+    function provision(uint256 tokens, address verifier, uint32 maxVerifierCut, uint64 thawingPeriod) external;
 
     // initiate a thawing to remove tokens from a provision
     function thaw(bytes32 provisionId, uint256 tokens) external returns (bytes32 thawRequestId);
@@ -141,5 +143,5 @@ interface IHorizonStaking {
 
     function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory);
 
-    function getProvision(bytes32 provision) external view returns (Provision memory);
+    function getProvision(address serviceProvider, address verifier) external view returns (Provision memory);
 }

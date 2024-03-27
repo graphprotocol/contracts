@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.24;
 
 import {IHorizonStaking} from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import {ISubgraphService} from "./ISubgraphService.sol";
@@ -17,4 +17,7 @@ contract SubgraphService is SubgraphServiceV1Storage, ISubgraphService {
     function _register(address provisionId, string calldata url, string calldata geohash, uint256 delegatorQueryFeeCut)
         internal
     {}
+
+    function getAllocation(address allocationID) external view returns (Allocation memory) {}
+    function slash(address serviceProvider, uint256 slashAmount, uint256 rewardsAmount) external {}
 }
