@@ -17,4 +17,7 @@ contract SubgraphServiceV1Storage {
 
     /// @notice Service providers registered in the data service
     mapping(address indexer => ISubgraphService.Indexer details) public indexers;
+
+    /// @notice List of locked stake claims to be released to service providers
+    mapping(bytes32 id => ISubgraphService.StakeClaim claim) public claims;
 }

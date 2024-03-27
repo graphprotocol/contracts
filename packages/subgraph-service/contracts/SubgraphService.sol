@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import { ISubgraphService } from "./ISubgraphService.sol";
 import { IDisputeManager } from "./IDisputeManager.sol";
+import { ITAPVerifier } from "./ITAPVerifier.sol";
 
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 
@@ -22,6 +23,7 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
     event StakingSet(address staking);
     event DisputeManagerSet(address disputeManager);
     event MinimumProvisionTokensSet(uint256 minimumProvisionTokens);
+    event StakeReleased(address serviceProvider, uint256 tokens, uint256 releaseAt);
 
     modifier onlyAuthorized(address serviceProvider) {
         if (!staking.isAuthorized(msg.sender, serviceProvider, address(this))) {
@@ -72,8 +74,54 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
             url,
             geohash,
             0, // tokensUsed
-            0 // tokensCollected
+            0, // tokensCollected
+            bytes32(0), // stakeClaimHead
+            bytes32(0) // stakeClaimTail
         );
+    }
+
+    function redeem(
+        ITAPVerifier.SignedRAV memory rav,
+        address serviceProvider
+    ) external override returns (uint256 queryFees) {
+        // check the stake claims list
+        // TODO: derive serviceProvider from RAV
+        _release(serviceProvider, 0);
+        // post rav to tap verifier
+        // get provision and do stake checks
+        // calculate delta and lock stake
+        // call GraphPayments to collect fees
+    }
+
+    // release tokens from a stake claim
+    function release(address serviceProvider, uint256 length) external override {
+        _release(serviceProvider, length);
+    }
+
+    /// @notice Release expired stake claims for a service provider
+    /// @param n The number of stake claims to release, or 0 to release all
+    function _release(address serviceProvider, uint256 n) internal {
+        bool releaseAll = n == 0;
+
+        // check the stake claims list
+        bytes32 tail = indexers[serviceProvider].stakeClaimTail;
+        while (tail != bytes32(0) && (releaseAll || n > 0)) {
+            StakeClaim memory claim = claims[tail];
+            if (block.timestamp >= claim.releaseAt) {
+                // Release stake
+                Indexer storage indexer = indexers[serviceProvider];
+                indexer.tokensUsed -= claim.tokens;
+                emit StakeReleased(serviceProvider, claim.tokens, claim.releaseAt);
+
+                // Update list and refresh pointer
+                tail = claim.nextClaim;
+                indexers[serviceProvider].stakeClaimTail = claim.nextClaim;
+                delete claims[tail];
+                if (!releaseAll) n--;
+            } else {
+                break;
+            }
+        }
     }
 
     function slash(address serviceProvider, uint256 tokens, uint256 reward) external override onlyDisputeManager {
