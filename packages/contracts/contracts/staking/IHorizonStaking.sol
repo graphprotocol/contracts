@@ -118,7 +118,7 @@ interface IHorizonStaking {
     ) external returns (bytes32 thawRequestId);
 
     // slash a service provider
-    function slash(bytes32 provisionId, uint256 tokens, uint256 verifierAmount) external;
+    function slash(address serviceProvider, uint256 tokens, uint256 reward, address rewardsDestination) external;
 
     // set the Service Provider's preferred provisions to be force thawed
     function setForceThawProvisions(bytes32[] calldata provisions) external;

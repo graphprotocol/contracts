@@ -15,5 +15,5 @@ interface ISubgraphService {
     // register as a provider in the data service
     function register(address serviceProvider, string calldata url, string calldata geohash) external;
 
-    function slash(address serviceProvider, uint256 tokensSlash, uint256 tokensRewards) external;
+    function slash(address serviceProvider, uint256 tokens, uint256 reward) external;
 }

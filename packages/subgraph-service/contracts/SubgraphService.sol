@@ -76,7 +76,9 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
         );
     }
 
-    function slash(address serviceProvider, uint256 tokensSlash, uint256 tokensRewards) external override onlyOwner {}
+    function slash(address serviceProvider, uint256 tokens, uint256 reward) external override onlyDisputeManager {
+        staking.slash(serviceProvider, tokens, reward, address(disputeManager));
+    }
 
     function setDisputeManager(address _disputeManager) external onlyOwner {
         _setDisputeManager(_disputeManager);
