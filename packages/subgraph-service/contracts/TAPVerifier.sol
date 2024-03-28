@@ -11,7 +11,6 @@ import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
  */
 contract TAPVerifier is ITAPVerifier, EIP712 {
     error TAPVerifierInvalidCaller(address sender, address expected);
-    error TAPVerifierInvalidSignature();
 
     // --- EIP 712 ---
     bytes32 private constant RAV_TYPEHASH =
@@ -32,10 +31,6 @@ contract TAPVerifier is ITAPVerifier, EIP712 {
     function verify(SignedRAV calldata signedRAV) external view returns (address) {
         if (signedRAV.rav.dataService != msg.sender) {
             revert TAPVerifierInvalidCaller(msg.sender, signedRAV.rav.dataService);
-        }
-        address signer = recover(signedRAV);
-        if (signer == address(0)) {
-            revert TAPVerifierInvalidSignature();
         }
         return recover(signedRAV);
     }

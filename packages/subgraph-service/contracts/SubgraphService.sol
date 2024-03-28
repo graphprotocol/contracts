@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
@@ -13,7 +15,12 @@ import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 
-abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Storage, ISubgraphService {
+// TODO: contract needs to be upgradeable and pausable
+contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService, EIP712 {
+    // --- EIP 712 ---
+    bytes32 private immutable ALLOCATION_PROOF_TYPEHASH =
+        keccak256("AllocationIdProof(address indexer,address allocationId)");
+
     error SubgraphServiceNotAuthorized(address caller, address serviceProvider, address service);
     error SubgraphServiceNotDisputeManager(address caller, address disputeManager);
     error SubgraphServiceAlreadyRegistered();
@@ -26,6 +33,7 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
     error SubgraphServiceInsufficientTokens(uint256 tokensAvailable, uint256 requiredTokensAvailable);
     error SubgraphServiceStakeClaimNotFound(bytes32 claimId);
     error SubgraphServiceCannotReleaseStake(uint256 tokensUsed, uint256 tokensClaim);
+    error SubgraphServiceInvalidAllocationProof(address signer, address allocationId);
 
     event GraphContractsSet(address staking, address escrow, address payments);
     event DisputeManagerSet(address disputeManager);
@@ -50,13 +58,15 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
     }
 
     constructor(
+        string memory name,
+        string memory version,
         address _staking,
         address _escrow,
         address _payments,
         address _disputeManager,
         address _tapVerifier,
         uint256 _minimumProvisionTokens
-    ) {
+    ) EIP712(name, version) Ownable(msg.sender) {
         // TODO: some address validation here, not zero, etc
         staking = IHorizonStaking(_staking);
         escrow = IGraphEscrow(_escrow);
@@ -191,6 +201,23 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
         staking.slash(serviceProvider, tokens, reward, address(disputeManager));
     }
 
+    function allocate(
+        address indexer,
+        bytes32 subgraphDeploymentId,
+        uint256 tokens,
+        address allocationId,
+        bytes32 metadata,
+        bytes calldata proof
+    ) external override onlyAuthorized(indexer) {
+        // Caller must prove that they own the private key for the allocationId address
+        // The proof is an EIP712 signed message of (indexer,allocationId)
+        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
+        address signer = ECDSA.recover(digest, proof);
+        if (signer != allocationId) {
+            revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
+        }
+    }
+
     function setDisputeManager(address _disputeManager) external onlyOwner {
         _setDisputeManager(_disputeManager);
     }
@@ -233,6 +260,7 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
         }
         return claim;
     }
+
     /// @notice Checks if the service provider has a valid provision for the data service in the staking contract
     /// @param serviceProvider The address of the service provider
     function _checkProvision(address serviceProvider) internal view {

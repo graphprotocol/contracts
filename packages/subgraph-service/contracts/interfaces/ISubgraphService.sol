@@ -44,4 +44,13 @@ interface ISubgraphService {
     function redeem(ITAPVerifier.SignedRAV calldata rav) external returns (uint256 queryFees);
 
     function release(address serviceProvider, uint256 count) external;
+
+    function allocate(
+        address serviceProvider,
+        bytes32 subgraphDeploymentId,
+        uint256 tokens,
+        address allocationId,
+        bytes32 metadata,
+        bytes calldata proof
+    ) external;
 }
