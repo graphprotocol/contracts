@@ -31,7 +31,9 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
     event DisputeManagerSet(address disputeManager);
     event TAPVerifierSet(address tapVerifier);
     event MinimumProvisionTokensSet(uint256 minimumProvisionTokens);
+    event StakeLocked(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 unlockTimestamp);
     event StakeReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
+    event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
 
     modifier onlyAuthorized(address serviceProvider) {
         if (!staking.isAuthorized(msg.sender, serviceProvider, address(this))) {
@@ -126,11 +128,12 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
 
         // lock stake for economic security
         bytes32 claimId = _buildStakeClaimId(serviceProvider, indexer.stakeClaimNonce);
+        uint256 unlockTimestamp = block.timestamp + disputeManager.getDisputePeriod();
         claims[claimId] = StakeClaim({
             indexer: serviceProvider,
             tokens: tokensToLock,
             createdAt: block.timestamp,
-            releaseAt: block.timestamp + disputeManager.getDisputePeriod(),
+            releaseAt: unlockTimestamp,
             nextClaim: bytes32(0)
         });
 
@@ -139,9 +142,13 @@ abstract contract SubgraphService is Ownable(msg.sender), SubgraphServiceV1Stora
         indexer.stakeClaimNonce += 1;
         indexer.tokensUsed += tokensToLock;
 
+        emit StakeLocked(serviceProvider, claimId, tokensToLock, unlockTimestamp);
+
         // call GraphPayments to collect fees
         tokensCollected[serviceProvider][payer] = tokens;
         payments.collect(payer, serviceProvider, tokensToCollect);
+
+        emit QueryFeesRedeemed(serviceProvider, payer, tokensToCollect);
     }
 
     // release tokens from a stake claim
