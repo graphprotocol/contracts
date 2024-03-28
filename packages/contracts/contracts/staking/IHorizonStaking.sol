@@ -137,7 +137,7 @@ interface IHorizonStaking {
 
     // provisioned tokens that are not being used
     // `Provision.tokens - Provision.tokensThawing`
-    function getTokensAvailable(bytes32 provision) external view returns (uint256 tokens);
+    function getTokensAvailable(address serviceProvider, address verifier) external view returns (uint256 tokens);
 
     function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory);
 
