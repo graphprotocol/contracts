@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-3.0-or-later
+=======
+// SPDX-License-Identifier: GPL-2.0-or-later
+>>>>>>> c470b251 (chore: horizon dispute manager WIP)
 pragma solidity ^0.8.24;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
