@@ -50,6 +50,7 @@ interface IHorizonStaking is IHorizonStakingTypes {
         address indexed serviceProvider,
         address indexed verifier,
         uint256 tokens,
+        uint64 thawingUntil,
         bytes32 indexed thawRequestId
     );
 
@@ -110,9 +111,8 @@ interface IHorizonStaking is IHorizonStakingTypes {
     //     uint256 _tokens
     // ) external;
 
-    // slash a service provider
     function slash(
-        bytes32 _provisionId,
+        address _serviceProvider,
         uint256 _tokens,
         uint256 _verifierCutAmount,
         address _verifierCutDestination
@@ -151,5 +151,12 @@ interface IHorizonStaking is IHorizonStakingTypes {
      * @param _operator Address to authorize or unauthorize
      * @param _allowed Whether the operator is authorized or not
      */
-    function setGlobalOperator(address _operator, address _verifier, bool _allowed) external;
+    function setGlobalOperator(address _operator, bool _allowed) external;
+
+    /**
+     * @notice Check if an operator is authorized for the caller on all their allowlisted verifiers and global stake.
+     * @param _operator The address to check for auth
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     */
+    function isGlobalAuthorized(address _operator, address _serviceProvider) external view returns (bool);
 }

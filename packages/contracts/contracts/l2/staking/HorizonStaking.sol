@@ -75,6 +75,14 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         _stake(_serviceProvider, _tokens);
     }
 
+    // can be called by anyone if the indexer has provisioned stake to this verifier
+    function stakeToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external override notPartialPaused {
+        Provision storage prov = provisions[_serviceProvider][_verifier];
+        require(prov.tokens > 0, "!provision");
+        stakeTo(_serviceProvider, _tokens);
+        _addToProvision(_serviceProvider, _verifier, _tokens);
+    }
+
     // create a provision
     function provision(
         address _serviceProvider,
@@ -82,26 +90,22 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         uint256 _tokens,
         uint32 _maxVerifierCut,
         uint64 _thawingPeriod
-    ) external override {
+    ) external override notPartialPaused {
         require(isAuthorized(msg.sender, _serviceProvider, _verifier), "!auth");
-        require(_tokens >= MIN_PROVISION_SIZE, "!tokens");
         require(getIdleStake(_serviceProvider) >= _tokens, "insufficient capacity");
-        require(_maxVerifierCut <= MAX_MAX_VERIFIER_CUT, "maxVerifierCut too high");
-        require(_thawingPeriod <= maxThawingPeriod, "thawingPeriod too high");
         require(verifierAllowlist[_serviceProvider][_verifier], "verifier not allowed");
 
-        return
-            _createProvision(_serviceProvider, _tokens, _verifier, _maxVerifierCut, _thawingPeriod);
+        _createProvision(_serviceProvider, _tokens, _verifier, _maxVerifierCut, _thawingPeriod);
     }
 
     // add more tokens from idle stake to an existing provision
-    function addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external override {
+    function addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external override notPartialPaused {
         require(isAuthorized(msg.sender, _serviceProvider, _verifier), "!auth");
         _addToProvision(_serviceProvider, _verifier, _tokens);
     }
 
     // initiate a thawing to remove tokens from a provision
-    function thaw(address _serviceProvider, address _verifier, uint256 _tokens) external override returns (bytes32) {
+    function thaw(address _serviceProvider, address _verifier, uint256 _tokens) external override notPartialPaused returns (bytes32) {
         require(isAuthorized(msg.sender, _serviceProvider, _verifier), "!auth");
         require(_tokens > 0, "!tokens");
         Provision storage prov = provisions[_serviceProvider][_verifier];
@@ -114,16 +118,16 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         prov.tokensThawing = prov.tokensThawing.add(_tokens);
 
         thawRequest.shares = prov.sharesThawing.mul(_tokens).div(prov.tokensThawing);
-        thawRequest.thawingUntil = uint64(block.timestamp).add(prov.thawingPeriod);
+        thawRequest.thawingUntil = uint64(block.timestamp.add(uint256(prov.thawingPeriod)));
         prov.sharesThawing = prov.sharesThawing.add(thawRequest.shares);
 
         require(prov.nThawRequests < MAX_THAW_REQUESTS, "max thaw requests");
         if (prov.nThawRequests == 0) {
-            prov.firstThawRequest = thawRequestId;
+            prov.firstThawRequestId = thawRequestId;
         } else {
-            thawRequests[prov.lastThawRequest].next = thawRequestId;
+            thawRequests[prov.lastThawRequestId].next = thawRequestId;
         }
-        prov.lastThawRequest = thawRequestId;
+        prov.lastThawRequestId = thawRequestId;
         prov.nThawRequests += 1;
 
         emit ProvisionThawInitiated(_serviceProvider, _verifier, _tokens, thawRequest.thawingUntil, thawRequestId);
@@ -141,7 +145,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         if (prov.nThawRequests == 0) {
             return 0;
         }
-        bytes32 thawRequestId = prov.firstThawRequest;
+        bytes32 thawRequestId = prov.firstThawRequestId;
         uint256 tokens = 0;
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = thawRequests[thawRequestId];
@@ -156,7 +160,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     }
 
     // moves thawed stake from a provision back into the provider's available stake
-    function deprovision(address _serviceProvider, address _verifier, uint256 _tokens) external override {
+    function deprovision(address _serviceProvider, address _verifier, uint256 _tokens) external override notPartialPaused {
         require(isAuthorized(msg.sender, _serviceProvider, _verifier), "!auth");
         require(_tokens > 0, "!tokens");
         ServiceProviderInternal storage serviceProvider = serviceProviders[_serviceProvider];
@@ -165,7 +169,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     }
 
     // moves thawed stake from one provision into another provision
-    function reprovision(address _serviceProvider, address _oldVerifier, address _newVerifier, uint256 _tokens) external override {
+    function reprovision(address _serviceProvider, address _oldVerifier, address _newVerifier, uint256 _tokens) external override notPartialPaused {
         require(isAuthorized(msg.sender, _serviceProvider, _oldVerifier), "!auth");
         require(isAuthorized(msg.sender, _serviceProvider, _newVerifier), "!auth");
         require(_tokens > 0, "!tokens");
@@ -176,7 +180,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
 
     // moves idle stake back to the owner's account - stake is removed from the protocol
     // global operators are allowed to call this but stake is always sent to the service provider's address
-    function withdraw(address _serviceProvider, uint256 _tokens) external override {
+    function withdraw(address _serviceProvider, uint256 _tokens) external override notPaused {
         require(isGlobalAuthorized(msg.sender, _serviceProvider), "!auth");
         require(_tokens > 0, "!tokens");
         require(getIdleStake(_serviceProvider) >= _tokens, "insufficient idle stake");
@@ -192,7 +196,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         uint256 _tokens,
         uint256 _verifierCutAmount,
         address _verifierCutDestination
-    ) external override {
+    ) external override notPartialPaused {
         address verifier = msg.sender;
         Provision storage prov = provisions[_serviceProvider][verifier];
         require(prov.tokens >= _tokens, "insufficient tokens in provision");
@@ -279,7 +283,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
      * @param _operator Address to authorize or unauthorize
      * @param _allowed Whether the operator is authorized or not
      */
-    function setGlobalOperator(address _operator, address _verifier, bool _allowed) external override {
+    function setGlobalOperator(address _operator, bool _allowed) external override {
         require(_operator != msg.sender, "operator == sender");
         globalOperatorAuth[msg.sender][_operator] = _allowed;
         emit GlobalOperatorSet(msg.sender, _operator, _allowed);
@@ -303,18 +307,26 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         address _verifier,
         uint32 _maxVerifierCut,
         uint64 _thawingPeriod
-    ) internal returns (bytes32) {
-        ServiceProviderInternal storage sp = serviceProviders[_serviceProvider];
+    ) internal {
+        require(_tokens >= MIN_PROVISION_SIZE, "!tokens");
+        require(_maxVerifierCut <= MAX_MAX_VERIFIER_CUT, "maxVerifierCut too high");
+        require(_thawingPeriod <= maxThawingPeriod, "thawingPeriod too high");
         provisions[_serviceProvider][_verifier] = Provision({
-            serviceProvider: _serviceProvider,
             tokens: _tokens,
-            sharesThawing: 0,
             tokensThawing: 0,
-            createdAt: uint64(block.timestamp),
-            verifier: _verifier,
+            sharesThawing: 0,
+            delegatedTokens: 0,
+            delegatedTokensThawing: 0,
+            delegatedSharesThawing: 0,
             maxVerifierCut: _maxVerifierCut,
-            thawingPeriod: _thawingPeriod
+            thawingPeriod: _thawingPeriod,
+            firstThawRequestId: bytes32(0),
+            lastThawRequestId: bytes32(0),
+            nThawRequests: 0,
+            delegationFeeCuts: new uint32[](0)
         });
+        
+        ServiceProviderInternal storage sp = serviceProviders[_serviceProvider];
         sp.tokensProvisioned = sp.tokensProvisioned.add(_tokens);
 
         emit ProvisionCreated(
@@ -333,14 +345,14 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         uint256 tokensThawing = prov.tokensThawing;
         while (tokensRemaining > 0) {
             require(prov.nThawRequests > 0, "not enough thawed tokens");
-            bytes32 thawRequestId = prov.firstThawRequest;
+            bytes32 thawRequestId = prov.firstThawRequestId;
             ThawRequest storage thawRequest = thawRequests[thawRequestId];
             require(thawRequest.thawingUntil <= block.timestamp, "thawing period not over");
             uint256 thawRequestTokens = thawRequest.shares.mul(tokensThawing).div(sharesThawing);
             if (thawRequestTokens <= tokensRemaining) {
                 tokensRemaining = tokensRemaining.sub(thawRequestTokens);
                 delete thawRequests[thawRequestId];
-                prov.firstThawRequest = thawRequest.next;
+                prov.firstThawRequestId = thawRequest.next;
                 prov.nThawRequests -= 1;
                 tokensThawing = tokensThawing.sub(thawRequestTokens);
                 sharesThawing = sharesThawing.sub(thawRequest.shares);

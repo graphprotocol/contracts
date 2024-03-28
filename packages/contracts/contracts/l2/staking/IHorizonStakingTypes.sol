@@ -5,12 +5,12 @@ pragma abicoder v2;
 
 interface IHorizonStakingTypes {
     struct Provision {
-        // Service provider that created the provision
-        address serviceProvider;
         // service provider tokens in the provision
         uint256 tokens;
         // service provider tokens that are being thawed (and will stop being slashable soon)
         uint256 tokensThawing;
+        // shares representing the thawing tokens
+        uint256 sharesThawing;
         // delegated tokens in the provision
         uint256 delegatedTokens;
         // delegated tokens that are being thawed (and will stop being slashable soon)
@@ -28,7 +28,7 @@ interface IHorizonStakingTypes {
         // This is in PPM and is the cut taken by the indexer from the fees that correspond to delegators
         // (based on stake vs delegated stake proportion).
         // The cuts are applied in GraphPayments so apply to all data services that use it.
-        mapping(uint256 => uint32) delegationFeeCuts;
+        uint32[] delegationFeeCuts;
     }
 
     struct ServiceProvider {
@@ -65,6 +65,8 @@ interface IHorizonStakingTypes {
         uint256 shares;
         // the timestamp when the thawed funds can be removed from the provision
         uint64 thawingUntil;
+        // id of the next thaw request in the linked list
+        bytes32 next;
     }
 
     // the new "Indexer" struct
