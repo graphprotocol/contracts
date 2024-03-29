@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../../contracts/disputes/IDisputeManager.sol";
+import "../../contracts/disputes/ISubgraphDisputeManager.sol";
 
 contract QueryDisputeSignUtils {
     bytes32 internal DOMAIN_SEPARATOR;
@@ -22,7 +22,7 @@ contract QueryDisputeSignUtils {
         );
     }
 
-    function getReceiptDataHash(IDisputeManager.Receipt memory _receipt)
+    function getReceiptDataHash(ISubgraphDisputeManager.Receipt memory _receipt)
         public
         pure
         returns (bytes32)
@@ -38,7 +38,7 @@ contract QueryDisputeSignUtils {
     }
 
     // computes the hash of the fully encoded EIP-712 message for the domain, which can be used to recover the signer
-    function getMessageHash(IDisputeManager.Receipt memory _receipt)
+    function getMessageHash(ISubgraphDisputeManager.Receipt memory _receipt)
         public
         view
         returns (bytes32)

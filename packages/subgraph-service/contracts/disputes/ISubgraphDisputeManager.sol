@@ -3,7 +3,7 @@
 pragma solidity ^0.8.24;
 pragma abicoder v2;
 
-interface IDisputeManager {
+interface ISubgraphDisputeManager {
     // -- Dispute --
 
     enum DisputeType {

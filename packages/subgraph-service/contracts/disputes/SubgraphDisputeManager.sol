@@ -8,12 +8,12 @@ import "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 
-import "./DisputeManagerStorage.sol";
-import "./IDisputeManager.sol";
+import "./SubgraphDisputeManagerStorage.sol";
+import "./ISubgraphDisputeManager.sol";
 import "../ISubgraphService.sol";
 
 /*
- * @title DisputeManager
+ * @title SubgraphDisputeManager
  * @notice Provides a way to align the incentives of participants by having slashing as deterrent
  * for incorrect behaviour.
  *
@@ -35,7 +35,7 @@ import "../ISubgraphService.sol";
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
  */
-contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
+contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDisputeManager {
     ISubgraphService private immutable subgraphService;
     IHorizonStaking private immutable staking;
     IGraphToken private immutable graphToken;
@@ -148,7 +148,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
 
     modifier onlyPendingDispute(bytes32 _disputeID) {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
-        require(disputes[_disputeID].status == IDisputeManager.DisputeStatus.Pending, "Dispute must be pending");
+        require(disputes[_disputeID].status == ISubgraphDisputeManager.DisputeStatus.Pending, "Dispute must be pending");
         _;
     }
 
@@ -496,7 +496,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
             _deposit,
             0, // no related dispute,
             DisputeType.QueryDispute,
-            IDisputeManager.DisputeStatus.Pending,
+            ISubgraphDisputeManager.DisputeStatus.Pending,
             block.timestamp
         );
 
@@ -558,7 +558,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
             _deposit,
             0,
             DisputeType.IndexingDispute,
-            IDisputeManager.DisputeStatus.Pending,
+            ISubgraphDisputeManager.DisputeStatus.Pending,
             block.timestamp
         );
 
@@ -585,7 +585,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
         Dispute storage dispute = disputes[_disputeID];
 
         // store the dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Accepted;
+        dispute.status = ISubgraphDisputeManager.DisputeStatus.Accepted;
 
         // Slash
         uint256 tokensToReward = _slashServiceProvider(dispute.serviceProvider, _slashAmount);
@@ -609,7 +609,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
         Dispute storage dispute = disputes[_disputeID];
 
         // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Rejected;
+        dispute.status = ISubgraphDisputeManager.DisputeStatus.Rejected;
 
         // Handle conflicting dispute if any
         require(
@@ -637,7 +637,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
         _drawDisputeInConflict(dispute);
 
         // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Drawn;
+        dispute.status = ISubgraphDisputeManager.DisputeStatus.Drawn;
 
         emit DisputeDrawn(_disputeID, dispute.serviceProvider, dispute.fisherman, dispute.deposit);
     }
@@ -650,7 +650,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
      */
     function cancelDispute(bytes32 _disputeID) external override onlyFisherman(_disputeID) {
         Dispute storage dispute = disputes[_disputeID];
-        require(dispute.status == IDisputeManager.DisputeStatus.Pending, "Dispute must be pending");
+        require(dispute.status == ISubgraphDisputeManager.DisputeStatus.Pending, "Dispute must be pending");
         // Check if dispute period has finished
         require(block.timestamp > dispute.createdAt + disputePeriod, "Dispute period has not finished");
 
@@ -661,7 +661,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
         _cancelDisputeInConflict(dispute);
 
         // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Cancelled;
+        dispute.status = ISubgraphDisputeManager.DisputeStatus.Cancelled;
     }
 
     /**
@@ -672,7 +672,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
     function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
         bytes32 relatedID = _dispute.relatedDisputeID;
         // this is so the check returns false when rejecting the related dispute.
-        return relatedID != 0 && disputes[relatedID].status == IDisputeManager.DisputeStatus.Pending;
+        return relatedID != 0 && disputes[relatedID].status == ISubgraphDisputeManager.DisputeStatus.Pending;
     }
 
     /**
@@ -684,7 +684,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
         if (_isDisputeInConflict(_dispute)) {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             Dispute storage relatedDispute = disputes[relatedDisputeID];
-            relatedDispute.status = IDisputeManager.DisputeStatus.Drawn;
+            relatedDispute.status = ISubgraphDisputeManager.DisputeStatus.Drawn;
             return true;
         }
         return false;
@@ -699,7 +699,7 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
         if (_isDisputeInConflict(_dispute)) {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             Dispute storage relatedDispute = disputes[relatedDisputeID];
-            relatedDispute.status = IDisputeManager.DisputeStatus.Cancelled;
+            relatedDispute.status = ISubgraphDisputeManager.DisputeStatus.Cancelled;
             return true;
         }
         return false;

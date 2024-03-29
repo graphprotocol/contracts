@@ -6,8 +6,8 @@ import "forge-std/Test.sol";
 import "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 
-import "../contracts/disputes/DisputeManager.sol";
-import "../contracts/disputes/IDisputeManager.sol";
+import "../contracts/disputes/SubgraphDisputeManager.sol";
+import "../contracts/disputes/ISubgraphDisputeManager.sol";
 
 // Mocks
 
@@ -17,7 +17,7 @@ import "./mocks/MockHorizonStaking.sol";
 import "./utils/QueryDisputeSignUtils.sol";
 
 contract DisputeManagerTest is Test {
-    DisputeManager disputeManager;
+    SubgraphDisputeManager disputeManager;
 
     address arbitrator;
     
@@ -59,7 +59,7 @@ contract DisputeManagerTest is Test {
         subgraphService = new MockSubgraphService(address(graphToken));
         staking = new MockHorizonStaking();
 
-        disputeManager = new DisputeManager(
+        disputeManager = new SubgraphDisputeManager(
             subgraphService,
             staking,
             graphToken,
@@ -94,7 +94,7 @@ contract DisputeManagerTest is Test {
     }
 
     function createQueryDispute(uint256 tokens) private returns (bytes32 disputeID) {
-        IDisputeManager.Receipt memory receipt = IDisputeManager.Receipt({
+        ISubgraphDisputeManager.Receipt memory receipt = ISubgraphDisputeManager.Receipt({
             requestCID: keccak256(abi.encodePacked("Request CID")),
             responseCID: keccak256(abi.encodePacked("Response CID")),
             subgraphDeploymentID: keccak256(abi.encodePacked("Subgraph Deployment ID"))
@@ -116,13 +116,13 @@ contract DisputeManagerTest is Test {
         bytes32 subgraphDeploymentID2
     ) private view returns (bytes memory attestationData1, bytes memory attestationData2) {
         bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
-        IDisputeManager.Receipt memory receipt1 = IDisputeManager.Receipt({
+        ISubgraphDisputeManager.Receipt memory receipt1 = ISubgraphDisputeManager.Receipt({
             requestCID: requestCID,
             responseCID: responseCID1,
             subgraphDeploymentID: subgraphDeploymentID1
         });
 
-        IDisputeManager.Receipt memory receipt2 = IDisputeManager.Receipt({
+        ISubgraphDisputeManager.Receipt memory receipt2 = ISubgraphDisputeManager.Receipt({
             requestCID: requestCID,
             responseCID: responseCID2,
             subgraphDeploymentID: subgraphDeploymentID2
@@ -133,7 +133,7 @@ contract DisputeManagerTest is Test {
         return (_attestationData1, _attestationData2);
     }
 
-    function createAtestationData(IDisputeManager.Receipt memory receipt, uint256 signer) private view returns (bytes memory attestationData) {
+    function createAtestationData(ISubgraphDisputeManager.Receipt memory receipt, uint256 signer) private view returns (bytes memory attestationData) {
         bytes32 digest = queryDisputeSignUtils.getMessageHash(receipt);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
         
@@ -300,10 +300,10 @@ contract DisputeManagerTest is Test {
         assertEq(graphToken.balanceOf(fisherman), 500 ether, "Fisherman should receive 50% of slashed tokens.");
         assertEq(graphToken.balanceOf(serviceProvider), 5000 ether, "Service provider should have 5000 GRT slashed.");
 
-        (, , , , , IDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
-        (, , , , , IDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
-        assertTrue(status1 == IDisputeManager.DisputeStatus.Accepted, "Dispute 1 should be accepted.");
-        assertTrue(status2 == IDisputeManager.DisputeStatus.Rejected, "Dispute 2 should be rejected.");
+        (, , , , , ISubgraphDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
+        (, , , , , ISubgraphDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
+        assertTrue(status1 == ISubgraphDisputeManager.DisputeStatus.Accepted, "Dispute 1 should be accepted.");
+        assertTrue(status2 == ISubgraphDisputeManager.DisputeStatus.Rejected, "Dispute 2 should be rejected.");
     }
 
     function test_RevertIf_CallerIsNotArbitrator_AcceptDispute() public {
@@ -370,10 +370,10 @@ contract DisputeManagerTest is Test {
 
         assertEq(graphToken.balanceOf(serviceProvider), 10000 ether, "There's no slashing to the service provider.");
 
-        (, , , , , IDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
-        (, , , , , IDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
-        assertTrue(status1 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 1 should be cancelled.");
-        assertTrue(status2 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 2 should be cancelled.");
+        (, , , , , ISubgraphDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
+        (, , , , , ISubgraphDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
+        assertTrue(status1 == ISubgraphDisputeManager.DisputeStatus.Cancelled, "Dispute 1 should be cancelled.");
+        assertTrue(status2 == ISubgraphDisputeManager.DisputeStatus.Cancelled, "Dispute 2 should be cancelled.");
     }
 
     function test_RevertIf_CallerIsNotFisherman_CancelDispute() public {
@@ -422,10 +422,10 @@ contract DisputeManagerTest is Test {
 
         assertEq(graphToken.balanceOf(serviceProvider), 10000 ether, "There's no slashing to the service provider.");
 
-        (, , , , , IDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
-        (, , , , , IDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
-        assertTrue(status1 == IDisputeManager.DisputeStatus.Drawn, "Dispute 1 should be drawn.");
-        assertTrue(status2 == IDisputeManager.DisputeStatus.Drawn, "Dispute 2 should be drawn.");
+        (, , , , , ISubgraphDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
+        (, , , , , ISubgraphDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
+        assertTrue(status1 == ISubgraphDisputeManager.DisputeStatus.Drawn, "Dispute 1 should be drawn.");
+        assertTrue(status2 == ISubgraphDisputeManager.DisputeStatus.Drawn, "Dispute 2 should be drawn.");
     }
 
     function test_RevertIf_CallerIsNotArbitrator_DrawDispute() public {
