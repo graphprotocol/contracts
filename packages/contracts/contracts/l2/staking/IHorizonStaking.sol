@@ -122,6 +122,8 @@ interface IHorizonStaking is IHorizonStakingTypes {
         uint256 tokens
     );
 
+    event DelegationSlashingEnabled(bool enabled);
+
     // whitelist/deny a verifier
     function allowVerifier(address _verifier) external;
 
@@ -280,4 +282,6 @@ interface IHorizonStaking is IHorizonStakingTypes {
      * a global lock. After that, unstake() will also withdraw.
      */
     function withdrawLocked(address _serviceProvider) external;
+
+    function setDelegationSlashingEnabled(bool _enabled) external;
 }

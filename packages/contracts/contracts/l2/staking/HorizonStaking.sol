@@ -651,6 +651,17 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, thawedTokens);
     }
 
+    function setDelegationSlashingEnabled(bool _enabled) external override onlyGovernor {
+        delegationSlashingEnabled = _enabled;
+        emit DelegationSlashingEnabled(_enabled);
+    }
+
+    // To be called at the end of the transition period, to set the deprecated thawing period to 0
+    function clearThawingPeriod() external override onlyGovernor {
+        __DEPRECATED_thawingPeriod = 0;
+        emit ParameterUpdated("thawingPeriod");
+    }
+
     /**
      * @dev Withdraw indexer tokens once the thawing period has passed.
      * @param _indexer Address of indexer to withdraw funds from
