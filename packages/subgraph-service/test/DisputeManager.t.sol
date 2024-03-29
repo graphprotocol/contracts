@@ -14,7 +14,6 @@ import "../contracts/disputes/ISubgraphDisputeManager.sol";
 import "./mocks/MockGRTToken.sol";
 import "./mocks/MockSubgraphService.sol";
 import "./mocks/MockHorizonStaking.sol";
-import "./utils/QueryDisputeSignUtils.sol";
 
 contract DisputeManagerTest is Test {
     SubgraphDisputeManager disputeManager;
@@ -38,8 +37,6 @@ contract DisputeManagerTest is Test {
     MockGRTToken graphToken;
     MockSubgraphService subgraphService;
     MockHorizonStaking staking;
-
-    QueryDisputeSignUtils queryDisputeSignUtils;
 
     // Setup
 
@@ -69,8 +66,6 @@ contract DisputeManagerTest is Test {
             fishermanRewardPercentage,
             maxSlashingPercentage
         );
-
-        queryDisputeSignUtils = new QueryDisputeSignUtils(address(disputeManager));
     }
 
     // Helper functions
@@ -134,7 +129,7 @@ contract DisputeManagerTest is Test {
     }
 
     function createAtestationData(ISubgraphDisputeManager.Receipt memory receipt, uint256 signer) private view returns (bytes memory attestationData) {
-        bytes32 digest = queryDisputeSignUtils.getMessageHash(receipt);
+        bytes32 digest = disputeManager.encodeHashReceipt(receipt);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
         
         return abi.encodePacked(receipt.requestCID, receipt.responseCID, receipt.subgraphDeploymentID, r, s, v);
