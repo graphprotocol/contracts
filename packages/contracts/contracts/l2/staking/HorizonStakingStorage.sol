@@ -129,6 +129,14 @@ contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     /// ServiceProvider => Verifier => Provision
     mapping(address => mapping(address => Provision)) internal provisions;
 
+    /// @dev Delegation fee cuts for each service provider on each provision, by fee type:
+    /// ServiceProvider => Verifier => Fee Type => Fee Cut.
+    /// This is the effective delegator fee cuts for each (data-service-defined) fee type (e.g. indexing fees, query fees).
+    /// This is in PPM and is the cut taken by the indexer from the fees that correspond to delegators.
+    /// (based on stake vs delegated stake proportion).
+    /// The cuts are applied in GraphPayments so apply to all data services that use it.
+    mapping(address => mapping(address => mapping(uint256 => uint256))) public delegationFeeCut;
+
     mapping(bytes32 => ThawRequest) internal thawRequests;
 
     // indexer => operator => authorized
@@ -136,4 +144,10 @@ contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
 
     // indexer => verifier => operator => authorized
     mapping(address => mapping(address => mapping(address => bool))) internal operatorAuth;
+
+    // governance enables or disables delegation slashing with this flag
+    bool public delegationSlashingEnabled;
+
+    // delegation pools for each service provider and verifier
+    mapping(address => mapping(address => DelegationPool)) internal delegationPools;
 }

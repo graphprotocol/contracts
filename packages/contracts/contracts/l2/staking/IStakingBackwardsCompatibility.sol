@@ -46,6 +46,16 @@ interface IStakingBackwardsCompatibility {
     event StakeDeposited(address indexed serviceProvider, uint256 tokens);
 
     /**
+     * @dev Emitted when `serviceProvider` withdraws `tokens` amount.
+     */
+    event StakeWithdrawn(address indexed serviceProvider, uint256 tokens);
+
+    /**
+     * @dev Emitted when `serviceProvider` locks `tokens` amount until `until`.
+     */
+    event StakeLocked(address indexed serviceProvider, uint256 tokens, uint256 until);
+
+    /**
      * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
@@ -192,5 +202,9 @@ interface IStakingBackwardsCompatibility {
      * @param _serviceProvider The service provider on behalf of whom they're claiming to act
      * @param _verifier The verifier / data service on which they're claiming to act
      */
-    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool);
+    function isAuthorized(
+        address _operator,
+        address _serviceProvider,
+        address _verifier
+    ) external view returns (bool);
 }

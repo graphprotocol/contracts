@@ -39,10 +39,10 @@ abstract contract StakingBackwardsCompatibility is
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
-    address public immutable subgraphDataServiceAddress;
+    address public immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
     constructor(address _subgraphDataServiceAddress) {
-        subgraphDataServiceAddress = _subgraphDataServiceAddress;
+        SUBGRAPH_DATA_SERVICE_ADDRESS = _subgraphDataServiceAddress;
     }
 
     /**
@@ -51,14 +51,22 @@ abstract contract StakingBackwardsCompatibility is
      * @param _serviceProvider The service provider on behalf of whom they're claiming to act
      * @param _verifier The verifier / data service on which they're claiming to act
      */
-    function isAuthorized(address _operator, address _serviceProvider, address _verifier) public view override returns (bool) {
+    function isAuthorized(
+        address _operator,
+        address _serviceProvider,
+        address _verifier
+    ) public view override returns (bool) {
         if (_operator == _serviceProvider) {
             return true;
         }
-        if (_verifier == subgraphDataServiceAddress) {
-            return legacyOperatorAuth[_serviceProvider][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            return
+                legacyOperatorAuth[_serviceProvider][_operator] ||
+                globalOperatorAuth[_serviceProvider][_operator];
         } else {
-            return operatorAuth[_serviceProvider][_verifier][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+            return
+                operatorAuth[_serviceProvider][_verifier][_operator] ||
+                globalOperatorAuth[_serviceProvider][_operator];
         }
     }
 
@@ -311,7 +319,7 @@ abstract contract StakingBackwardsCompatibility is
         // Anyone is allowed to close ONLY under two concurrent conditions
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
-        bool isIndexer = isOperator(alloc.indexer, subgraphDataServiceAddress);
+        bool isIndexer = isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
         if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
             require(isIndexer, "!auth");
         }
@@ -534,7 +542,6 @@ abstract contract StakingBackwardsCompatibility is
             );
         }
     }
-
 
     /**
      * @dev Return the current state of an allocation

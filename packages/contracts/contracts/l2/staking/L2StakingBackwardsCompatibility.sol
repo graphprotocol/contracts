@@ -29,7 +29,9 @@ contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibility, IL2St
         _;
     }
 
-    constructor(address _subgraphDataServiceAddress) StakingBackwardsCompatibility(_subgraphDataServiceAddress) {}
+    constructor(address _subgraphDataServiceAddress)
+        StakingBackwardsCompatibility(_subgraphDataServiceAddress)
+    {}
 
     /**
      * @notice Receive ETH into the L2Staking contract: this will always revert

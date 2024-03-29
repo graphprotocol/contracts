@@ -11,12 +11,6 @@ interface IHorizonStakingTypes {
         uint256 tokensThawing;
         // shares representing the thawing tokens
         uint256 sharesThawing;
-        // delegated tokens in the provision
-        uint256 delegatedTokens;
-        // delegated tokens that are being thawed (and will stop being slashable soon)
-        uint256 delegatedTokensThawing;
-        // shares that represent the delegated tokens that are being thawed
-        uint256 delegatedSharesThawing;
         // max amount that can be taken by the verifier when slashing, expressed in parts-per-million of the amount slashed
         uint32 maxVerifierCut;
         // time, in seconds, tokens must thaw before being withdrawn
@@ -24,11 +18,6 @@ interface IHorizonStakingTypes {
         bytes32 firstThawRequestId;
         bytes32 lastThawRequestId;
         uint256 nThawRequests;
-        // The effective delegator fee cuts for each (data-service-defined) fee type
-        // This is in PPM and is the cut taken by the indexer from the fees that correspond to delegators
-        // (based on stake vs delegated stake proportion).
-        // The cuts are applied in GraphPayments so apply to all data services that use it.
-        uint32[] delegationFeeCuts;
     }
 
     struct ServiceProvider {
@@ -48,6 +37,8 @@ interface IHorizonStakingTypes {
         uint256 tokens; // Total tokens as pool reserves
         uint256 shares; // Total shares minted in the pool
         mapping(address => Delegation) delegators; // Mapping of delegator => Delegation
+        uint256 tokensThawing; // Tokens thawing in the pool
+        uint256 sharesThawing; // Shares representing the thawing tokens
     }
 
     struct Delegation {
