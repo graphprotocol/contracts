@@ -2,8 +2,6 @@
 pragma solidity ^0.8.24;
 pragma abicoder v2;
 
-import "forge-std/console.sol";
-
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
@@ -659,6 +657,9 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
         // Return deposit to the fisherman
         TokenUtils.pushTokens(graphToken, dispute.fisherman, dispute.deposit);
 
+        // resolve related dispute if any
+        _cancelDisputeInConflict(dispute);
+
         // store dispute status
         dispute.status = IDisputeManager.DisputeStatus.Cancelled;
     }
@@ -684,6 +685,21 @@ contract DisputeManager is DisputeManagerV1Storage, IDisputeManager {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             Dispute storage relatedDispute = disputes[relatedDisputeID];
             relatedDispute.status = IDisputeManager.DisputeStatus.Drawn;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @dev Cancel the conflicting dispute if there is any for the one passed to this function.
+     * @param _dispute Dispute
+     * @return True if cancelled
+     */
+    function _cancelDisputeInConflict(Dispute memory _dispute) private returns (bool) {
+        if (_isDisputeInConflict(_dispute)) {
+            bytes32 relatedDisputeID = _dispute.relatedDisputeID;
+            Dispute storage relatedDispute = disputes[relatedDisputeID];
+            relatedDispute.status = IDisputeManager.DisputeStatus.Cancelled;
             return true;
         }
         return false;
