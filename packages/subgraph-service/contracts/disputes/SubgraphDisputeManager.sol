@@ -37,7 +37,7 @@ import { ISubgraphService } from "../ISubgraphService.sol";
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
  */
-contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDisputeManager {
+contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISubgraphDisputeManager {
     ISubgraphService private immutable subgraphService;
     IHorizonStaking private immutable staking;
     IGraphToken private immutable graphToken;
@@ -51,6 +51,8 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
     bytes32 private constant RECEIPT_TYPE_HASH =
         keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
+
+    // -- Errors --
 
     // -- Constants --
 
@@ -194,7 +196,7 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
         uint32 _maxSlashingPercentage
-    ) {
+    ) Ownable(msg.sender) {
         subgraphService = _subgraphService;
         staking = _staking;
         graphToken = _graphToken;
@@ -224,8 +226,7 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator The address of the arbitration contract or party
      */
-    function setArbitrator(address _arbitrator) external override {
-        // TODO: onlyGovernor
+    function setArbitrator(address _arbitrator) external override onlyOwner {
         _setArbitrator(_arbitrator);
     }
 
@@ -265,8 +266,7 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
-    function setMinimumDeposit(uint256 _minimumDeposit) external override {
-        // TODO: onlyGovernor
+    function setMinimumDeposit(uint256 _minimumDeposit) external override onlyOwner {
         _setMinimumDeposit(_minimumDeposit);
     }
 
@@ -286,8 +286,7 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @notice Update the reward percentage to `_percentage`
      * @param _percentage Reward as a percentage of serviceProvider stake
      */
-    function setFishermanRewardPercentage(uint32 _percentage) external override {
-        // TODO: onlyGovernor
+    function setFishermanRewardPercentage(uint32 _percentage) external override onlyOwner {
         _setFishermanRewardPercentage(_percentage);
     }
 
@@ -307,8 +306,7 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @dev Set the maximum percentage that can be used for slashing service providers.
      * @param _maxSlashingPercentage Max percentage slashing for disputes
      */
-    function setMaxSlashingPercentage(uint32 _maxSlashingPercentage) external override {
-        // TODO: onlyGovernor
+    function setMaxSlashingPercentage(uint32 _maxSlashingPercentage) external override onlyOwner {
         _setMaxSlashingPercentage(_maxSlashingPercentage);
     }
 
