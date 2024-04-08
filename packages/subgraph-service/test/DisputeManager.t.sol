@@ -4,9 +4,8 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
-import "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 
-import "../contracts/disputes/SubgraphDisputeManager.sol";
+import { SubgraphDisputeManager } from "../contracts/disputes/SubgraphDisputeManager.sol";
 import "../contracts/disputes/ISubgraphDisputeManager.sol";
 
 // Mocks

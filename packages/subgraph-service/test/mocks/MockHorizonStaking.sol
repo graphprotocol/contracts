@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 
 contract MockHorizonStaking is IHorizonStaking {
     mapping (address verifier => mapping (address serviceProvider => IHorizonStaking.Provision provision)) public _provisions;
@@ -52,7 +52,7 @@ contract MockHorizonStaking is IHorizonStaking {
     ) external returns (bytes32 thawRequestId) {}
 
     // slash a service provider
-    function slash(bytes32 provisionId, uint256 tokens, uint256 verifierAmount) external {}
+    function slash(address serviceProvider, uint256 tokens, uint256 reward, address rewardsDestination) external {}
 
     // set the Service Provider's preferred provisions to be force thawed
     function setForceThawProvisions(bytes32[] calldata provisions) external {}
@@ -71,11 +71,19 @@ contract MockHorizonStaking is IHorizonStaking {
 
     // provisioned tokens that are not being used
     // `Provision.tokens - Provision.tokensThawing`
-    function getTokensAvailable(bytes32 _provision) external view returns (uint256 tokens) {}
+    function getTokensAvailable(address serviceProvider, address verifier) external view returns (uint256 tokens) {}
 
     function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {}
 
     function getProvision(address serviceProvider, address verifier) external view returns (Provision memory) {
         return _provisions[verifier][serviceProvider];
     }
+
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @param _operator The address to check for auth
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param _verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool) {}
 }
