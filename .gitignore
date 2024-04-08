@@ -21,6 +21,8 @@ cached/
 # Build artifacts
 dist/
 build/
+typechain/
+typechain-types/
 deployments/hardhat/
 
 # Ignore solc bin output
@@ -45,6 +47,8 @@ addresses-fork.json
 # Keys
 .keystore
 
+# Forge artifacts
+cache_forge
 # Graph client
 .graphclient
 

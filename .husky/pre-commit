@@ -10,3 +10,8 @@ popd
 pushd packages/data-edge
 npx --no-install lint-staged
 popd
+
+# graph horizon
+pushd packages/horizon
+npx --no-install lint-staged
+popd

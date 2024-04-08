@@ -4,6 +4,8 @@ runs:
   using: composite
 
   steps:
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
     - name: Enable corepack for modern yarn
       shell: bash
       run: corepack enable
