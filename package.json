@@ -9,6 +9,7 @@
   "workspaces": [
     "packages/contracts",
     "packages/eslint-graph-config",
+    "packages/horizon",
     "packages/sdk",
     "packages/solhint-graph-config",
     "packages/token-distribution"

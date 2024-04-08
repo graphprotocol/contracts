@@ -2,5 +2,11 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # contracts
-cd packages/contracts
+pushd packages/contracts
 npx --no-install lint-staged
+popd
+
+# graph horizon
+pushd packages/horizon
+npx --no-install lint-staged
+popd
