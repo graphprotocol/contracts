@@ -15,8 +15,12 @@ interface ISubgraphService {
     }
 
     // register as a provider in the data service
-    function register(address provisionId, string calldata url, string calldata geohash, uint256 delegatorQueryFeeCut)
-        external;
+    function register(
+        address provisionId,
+        string calldata url,
+        string calldata geohash,
+        uint256 delegatorQueryFeeCut
+    ) external;
 
     // register as a provider in the data service, create the required provision first
     // function provisionAndRegister(

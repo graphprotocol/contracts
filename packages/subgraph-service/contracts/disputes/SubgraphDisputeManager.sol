@@ -2,15 +2,17 @@
 pragma solidity ^0.8.24;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
-import "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-import "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "./SubgraphDisputeManagerStorage.sol";
-import "./ISubgraphDisputeManager.sol";
-import "../ISubgraphService.sol";
+import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+
+import { SubgraphDisputeManagerV1Storage } from "./SubgraphDisputeManagerStorage.sol";
+import { ISubgraphDisputeManager } from "./ISubgraphDisputeManager.sol";
+import { ISubgraphService } from "../ISubgraphService.sol";
 
 /*
  * @title SubgraphDisputeManager
@@ -106,7 +108,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      */
     event DisputeAccepted(
-        bytes32 indexed disputeID, address indexed serviceProvider, address indexed fisherman, uint256 tokens
+        bytes32 indexed disputeID,
+        address indexed serviceProvider,
+        address indexed fisherman,
+        uint256 tokens
     );
 
     /**
@@ -114,7 +119,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * The event emits the amount `tokens` burned from the fisherman deposit.
      */
     event DisputeRejected(
-        bytes32 indexed disputeID, address indexed serviceProvider, address indexed fisherman, uint256 tokens
+        bytes32 indexed disputeID,
+        address indexed serviceProvider,
+        address indexed fisherman,
+        uint256 tokens
     );
 
     /**
@@ -122,7 +130,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      */
     event DisputeDrawn(
-        bytes32 indexed disputeID, address indexed serviceProvider, address indexed fisherman, uint256 tokens
+        bytes32 indexed disputeID,
+        address indexed serviceProvider,
+        address indexed fisherman,
+        uint256 tokens
     );
 
     /**
@@ -148,7 +159,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
 
     modifier onlyPendingDispute(bytes32 _disputeID) {
         require(isDisputeCreated(_disputeID), "Dispute does not exist");
-        require(disputes[_disputeID].status == ISubgraphDisputeManager.DisputeStatus.Pending, "Dispute must be pending");
+        require(
+            disputes[_disputeID].status == ISubgraphDisputeManager.DisputeStatus.Pending,
+            "Dispute must be pending"
+        );
         _;
     }
 
@@ -195,7 +209,12 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
         // EIP-712 domain separator
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
-                DOMAIN_TYPE_HASH, DOMAIN_NAME_HASH, DOMAIN_VERSION_HASH, _getChainID(), address(this), DOMAIN_SALT
+                DOMAIN_TYPE_HASH,
+                DOMAIN_NAME_HASH,
+                DOMAIN_VERSION_HASH,
+                _getChainID(),
+                address(this),
+                DOMAIN_SALT
             )
         );
     }
@@ -338,17 +357,21 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @return Message hash used to sign the receipt
      */
     function encodeHashReceipt(Receipt memory _receipt) public view override returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(
-                "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                DOMAIN_SEPARATOR,
-                keccak256(
-                    abi.encode(
-                        RECEIPT_TYPE_HASH, _receipt.requestCID, _receipt.responseCID, _receipt.subgraphDeploymentID
-                    ) // EIP 712-encoded message hash
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
+                    DOMAIN_SEPARATOR,
+                    keccak256(
+                        abi.encode(
+                            RECEIPT_TYPE_HASH,
+                            _receipt.requestCID,
+                            _receipt.responseCID,
+                            _receipt.subgraphDeploymentID
+                        ) // EIP 712-encoded message hash
+                    )
                 )
-            )
-        );
+            );
     }
 
     /**
@@ -358,17 +381,13 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @param _attestation2 Attestation
      * @return True if the two attestations are conflicting
      */
-    function areConflictingAttestations(Attestation memory _attestation1, Attestation memory _attestation2)
-        public
-        pure
-        override
-        returns (bool)
-    {
-        return (
-            _attestation1.requestCID == _attestation2.requestCID
-                && _attestation1.subgraphDeploymentID == _attestation2.subgraphDeploymentID
-                && _attestation1.responseCID != _attestation2.responseCID
-        );
+    function areConflictingAttestations(
+        Attestation memory _attestation1,
+        Attestation memory _attestation2
+    ) public pure override returns (bool) {
+        return (_attestation1.requestCID == _attestation2.requestCID &&
+            _attestation1.subgraphDeploymentID == _attestation2.subgraphDeploymentID &&
+            _attestation1.responseCID != _attestation2.responseCID);
     }
 
     /**
@@ -396,18 +415,18 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @param _attestationData Attestation bytes submitted by the fisherman
      * @param _deposit Amount of tokens staked as deposit
      */
-    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit)
-        external
-        override
-        returns (bytes32)
-    {
+    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external override returns (bytes32) {
         // Get funds from submitter
         _pullSubmitterDeposit(_deposit);
 
         // Create a dispute
-        return _createQueryDisputeWithAttestation(
-            msg.sender, _deposit, _parseAttestation(_attestationData), _attestationData
-        );
+        return
+            _createQueryDisputeWithAttestation(
+                msg.sender,
+                _deposit,
+                _parseAttestation(_attestationData),
+                _attestationData
+            );
     }
 
     /**
@@ -422,11 +441,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @param _attestationData2 Second attestation data submitted
      * @return DisputeID1, DisputeID2
      */
-    function createQueryDisputeConflict(bytes calldata _attestationData1, bytes calldata _attestationData2)
-        external
-        override
-        returns (bytes32, bytes32)
-    {
+    function createQueryDisputeConflict(
+        bytes calldata _attestationData1,
+        bytes calldata _attestationData2
+    ) external override returns (bytes32, bytes32) {
         address fisherman = msg.sender;
 
         // Parse each attestation
@@ -501,7 +519,12 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
         );
 
         emit QueryDisputeCreated(
-            disputeID, serviceProvider, _fisherman, _deposit, _attestation.subgraphDeploymentID, _attestationData
+            disputeID,
+            serviceProvider,
+            _fisherman,
+            _deposit,
+            _attestation.subgraphDeploymentID,
+            _attestationData
         );
 
         return disputeID;
@@ -529,10 +552,11 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationID Allocation disputed
      */
-    function _createIndexingDisputeWithAllocation(address _fisherman, uint256 _deposit, address _allocationID)
-        private
-        returns (bytes32)
-    {
+    function _createIndexingDisputeWithAllocation(
+        address _fisherman,
+        uint256 _deposit,
+        address _allocationID
+    ) private returns (bytes32) {
         // Create a disputeID
         bytes32 disputeID = keccak256(abi.encodePacked(_allocationID));
 
@@ -576,12 +600,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @param _disputeID ID of the dispute to be accepted
      * @param _slashAmount Amount of tokens to slash from the service provider
      */
-    function acceptDispute(bytes32 _disputeID, uint256 _slashAmount)
-        external
-        override
-        onlyArbitrator
-        onlyPendingDispute(_disputeID)
-    {
+    function acceptDispute(
+        bytes32 _disputeID,
+        uint256 _slashAmount
+    ) external override onlyArbitrator onlyPendingDispute(_disputeID) {
         Dispute storage dispute = disputes[_disputeID];
 
         // store the dispute status
@@ -613,7 +635,8 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
 
         // Handle conflicting dispute if any
         require(
-            !_isDisputeInConflict(dispute), "Dispute for conflicting attestation, must accept the related ID to reject"
+            !_isDisputeInConflict(dispute),
+            "Dispute for conflicting attestation, must accept the related ID to reject"
         );
 
         // Burn the fisherman's deposit
@@ -723,10 +746,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      * @param _serviceProvider Address of the service provider
      * @param _slashAmount Amount of tokens to slash from the service provider
      */
-    function _slashServiceProvider(address _serviceProvider, uint256 _slashAmount)
-        private
-        returns (uint256 rewardsAmount)
-    {
+    function _slashServiceProvider(
+        address _serviceProvider,
+        uint256 _slashAmount
+    ) private returns (uint256 rewardsAmount) {
         // Get slashable amount for serviceProvider
         IHorizonStaking.Provision memory provision = staking.getProvision(_serviceProvider, address(subgraphService));
         uint256 totalProvisionTokens = provision.tokens + provision.delegatedTokens; // slashable tokens
@@ -752,8 +775,11 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
      */
     function _recoverAttestationSigner(Attestation memory _attestation) private view returns (address) {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Receipt memory receipt =
-            Receipt(_attestation.requestCID, _attestation.responseCID, _attestation.subgraphDeploymentID);
+        Receipt memory receipt = Receipt(
+            _attestation.requestCID,
+            _attestation.responseCID,
+            _attestation.subgraphDeploymentID
+        );
         bytes32 messageHash = encodeHashReceipt(receipt);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
@@ -782,8 +808,10 @@ contract SubgraphDisputeManager is SubgraphDisputeManagerV1Storage, ISubgraphDis
         require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
 
         // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) =
-            abi.decode(_data, (bytes32, bytes32, bytes32));
+        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
+            _data,
+            (bytes32, bytes32, bytes32)
+        );
 
         // Decode signature
         // Signature is expected to be in the order defined in the Attestation struct

@@ -73,10 +73,10 @@ interface ISubgraphDisputeManager {
 
     function encodeHashReceipt(Receipt memory _receipt) external view returns (bytes32);
 
-    function areConflictingAttestations(Attestation memory _attestation1, Attestation memory _attestation2)
-        external
-        pure
-        returns (bool);
+    function areConflictingAttestations(
+        Attestation memory _attestation1,
+        Attestation memory _attestation2
+    ) external pure returns (bool);
 
     function getAttestationServiceProvider(Attestation memory _attestation) external view returns (address);
 
@@ -84,9 +84,10 @@ interface ISubgraphDisputeManager {
 
     function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external returns (bytes32);
 
-    function createQueryDisputeConflict(bytes calldata _attestationData1, bytes calldata _attestationData2)
-        external
-        returns (bytes32, bytes32);
+    function createQueryDisputeConflict(
+        bytes calldata _attestationData1,
+        bytes calldata _attestationData2
+    ) external returns (bytes32, bytes32);
 
     function createIndexingDispute(address _allocationID, uint256 _deposit) external returns (bytes32);
 
