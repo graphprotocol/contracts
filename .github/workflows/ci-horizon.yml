@@ -1,0 +1,30 @@
+name: CI - packages/horizon
+
+env:
+  CI: true
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - packages/horizon/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/horizon/**
+  workflow_dispatch:
+
+jobs:
+  test-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Run tests
+        run: |
+          pushd packages/horizon
+          yarn test
