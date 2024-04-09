@@ -1,0 +1,3 @@
+[submodule "packages/horizon/lib/forge-std"]
+	path = packages/horizon/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
