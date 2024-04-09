@@ -4,9 +4,15 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { MockGRTToken } from "./MockGRTToken.sol";
 
 contract MockHorizonStaking is IHorizonStaking {
     mapping (address verifier => mapping (address serviceProvider => IHorizonStaking.Provision provision)) public _provisions;
+    MockGRTToken public grtToken;
+
+    constructor(address _grtTokenAddress) {
+        grtToken = MockGRTToken(_grtTokenAddress);
+    }
 
     // whitelist/deny a verifier
     function allowVerifier(address verifier, bool allow) external {}
@@ -52,7 +58,10 @@ contract MockHorizonStaking is IHorizonStaking {
     ) external returns (bytes32 thawRequestId) {}
 
     // slash a service provider
-    function slash(address serviceProvider, uint256 tokens, uint256 reward, address rewardsDestination) external {}
+    function slash(address serviceProvider, uint256 tokens, uint256 reward, address rewardsDestination) external {
+        grtToken.mint(rewardsDestination, reward);
+        grtToken.burnFrom(serviceProvider, tokens);
+    }
 
     // set the Service Provider's preferred provisions to be force thawed
     function setForceThawProvisions(bytes32[] calldata provisions) external {}
@@ -85,5 +94,7 @@ contract MockHorizonStaking is IHorizonStaking {
      * @param _serviceProvider The service provider on behalf of whom they're claiming to act
      * @param _verifier The verifier / data service on which they're claiming to act
      */
-    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool) {}
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool) {
+        return true;
+    }
 }

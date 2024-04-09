@@ -3,24 +3,29 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 
-import { SubgraphDisputeManager } from "../contracts/disputes/SubgraphDisputeManager.sol";
-import "../contracts/disputes/ISubgraphDisputeManager.sol";
+import { SubgraphDisputeManager } from "../contracts/SubgraphDisputeManager.sol";
+import { ISubgraphDisputeManager } from "../contracts/interfaces/ISubgraphDisputeManager.sol";
+
+import { SubgraphService } from "../contracts/SubgraphService.sol";
 
 // Mocks
 
 import "./mocks/MockGRTToken.sol";
-import "./mocks/MockSubgraphService.sol";
 import "./mocks/MockHorizonStaking.sol";
 
 contract DisputeManagerTest is Test {
+    bytes32 private immutable ALLOCATION_PROOF_TYPEHASH =
+        keccak256("AllocationIdProof(address indexer,address allocationId)");
+
     SubgraphDisputeManager disputeManager;
 
     address arbitrator;
     
-    uint256 serviceProviderPrivateKey;
-    address serviceProvider;
+    uint256 indexerPrivateKey;
+    address indexer;
     
     uint256 fishermanPrivateKey;
     address fisherman;
@@ -34,7 +39,7 @@ contract DisputeManagerTest is Test {
     uint32 maxSlashingPercentage = 500000; // 50%
     
     MockGRTToken graphToken;
-    MockSubgraphService subgraphService;
+    SubgraphService subgraphService;
     MockHorizonStaking staking;
 
     // Setup
@@ -42,8 +47,8 @@ contract DisputeManagerTest is Test {
     function setUp() public {
         arbitrator = address(0xA1);
 
-        serviceProviderPrivateKey = 0xB1;
-        serviceProvider = vm.addr(serviceProviderPrivateKey);
+        indexerPrivateKey = 0xB1;
+        indexer = vm.addr(indexerPrivateKey);
         
         fishermanPrivateKey = 0xC1;
         fisherman = vm.addr(fishermanPrivateKey);
@@ -52,29 +57,52 @@ contract DisputeManagerTest is Test {
         allocationID = vm.addr(allocationIDPrivateKey);
 
         graphToken = new MockGRTToken();
-        subgraphService = new MockSubgraphService(address(graphToken));
-        staking = new MockHorizonStaking();
+        staking = new MockHorizonStaking(address(graphToken));
+        address escrow = address(0xE1);
+        address payments = address(0xE2);
+        address tapVerifier = address(0xE3);
 
         disputeManager = new SubgraphDisputeManager(
-            subgraphService,
-            staking,
-            graphToken,
+            address(staking),
+            address(graphToken),
             arbitrator,
             disputePeriod,
             minimumDeposit,
             fishermanRewardPercentage,
             maxSlashingPercentage
         );
+
+        subgraphService = new SubgraphService(
+            "SubgraphService",
+            "1",
+            address(staking),
+            escrow,
+            payments,
+            address(disputeManager),
+            tapVerifier,
+            1000 ether
+        );
+
+        disputeManager.setSubgraphService(address(subgraphService));
     }
 
     // Helper functions
 
     function createProvisionAndAllocate(address _allocationID, uint256 tokens) private {
-        vm.startPrank(serviceProvider);
-        graphToken.mint(serviceProvider, tokens);
+        vm.startPrank(indexer);
+        graphToken.mint(indexer, tokens);
         staking.provision(tokens, address(subgraphService), 500000, 0);
         bytes32 subgraphDeployment = keccak256(abi.encodePacked("Subgraph Deployment ID"));
-        subgraphService.allocate(serviceProvider, subgraphDeployment, tokens, _allocationID);
+        bytes32 digest = subgraphService.encodeProof(indexer, _allocationID);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
+        subgraphService.allocate(
+            indexer,
+            subgraphDeployment,
+            tokens,
+            _allocationID,
+            keccak256(abi.encodePacked("metadata")),
+            abi.encodePacked(r, s, v)
+        );
         vm.stopPrank();
     }
 
@@ -184,7 +212,6 @@ contract DisputeManagerTest is Test {
         vm.startPrank(otherFisherman);
         graphToken.mint(otherFisherman, tokens);
         graphToken.approve(address(disputeManager), tokens);
-        // SubgraphDisputeManagerDisputeAlreadyCreated(bytes32 disputeID);
         bytes memory expectedError = abi.encodeWithSignature("SubgraphDisputeManagerDisputeAlreadyCreated(bytes32)", disputeID);
         vm.expectRevert(expectedError);
         disputeManager.createIndexingDispute(allocationID, tokens);
@@ -207,7 +234,7 @@ contract DisputeManagerTest is Test {
         vm.startPrank(fisherman);
         graphToken.mint(fisherman, tokens);
         graphToken.approve(address(disputeManager), tokens);
-        bytes memory expectedError = abi.encodeWithSignature("SubgraphDisputeManagerServiceProviderNotFound(address)", allocationID);
+        bytes memory expectedError = abi.encodeWithSignature("SubgraphDisputeManagerIndexerNotFound(address)", allocationID);
         vm.expectRevert(expectedError);
         disputeManager.createIndexingDispute(allocationID, tokens);
         vm.stopPrank();
@@ -280,7 +307,7 @@ contract DisputeManagerTest is Test {
         disputeManager.acceptDispute(disputeID, 5000 ether);
 
         assertEq(graphToken.balanceOf(fisherman), 700 ether, "Fisherman should receive 50% of slashed tokens.");
-        assertEq(graphToken.balanceOf(serviceProvider), 5000 ether, "Service provider should have 5000 GRT slashed.");
+        assertEq(graphToken.balanceOf(indexer), 5000 ether, "Service provider should have 5000 GRT slashed.");
     }
 
     function testAcceptQueryDispute() public {
@@ -291,7 +318,7 @@ contract DisputeManagerTest is Test {
         disputeManager.acceptDispute(disputeID, 5000 ether);
 
         assertEq(graphToken.balanceOf(fisherman), 700 ether, "Fisherman should receive 50% of slashed tokens.");
-        assertEq(graphToken.balanceOf(serviceProvider), 5000 ether, "Service provider should have 5000 GRT slashed.");
+        assertEq(graphToken.balanceOf(indexer), 5000 ether, "Service provider should have 5000 GRT slashed.");
     }
 
     function testAcceptQueryDisputeConflicting() public {
@@ -317,7 +344,7 @@ contract DisputeManagerTest is Test {
         disputeManager.acceptDispute(disputeID1, 5000 ether);
 
         assertEq(graphToken.balanceOf(fisherman), 500 ether, "Fisherman should receive 50% of slashed tokens.");
-        assertEq(graphToken.balanceOf(serviceProvider), 5000 ether, "Service provider should have 5000 GRT slashed.");
+        assertEq(graphToken.balanceOf(indexer), 5000 ether, "Service provider should have 5000 GRT slashed.");
 
         (, , , , , ISubgraphDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
         (, , , , , ISubgraphDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
@@ -360,7 +387,7 @@ contract DisputeManagerTest is Test {
         disputeManager.cancelDispute(disputeID);
 
         assertEq(graphToken.balanceOf(fisherman), 200 ether, "Fisherman should receive their deposit back.");
-        assertEq(graphToken.balanceOf(serviceProvider), 10000 ether, "There's no slashing to the service provider.");
+        assertEq(graphToken.balanceOf(indexer), 10000 ether, "There's no slashing to the indexer.");
     }
 
     function testCancelQueryDisputeConflicting() public {
@@ -388,7 +415,7 @@ contract DisputeManagerTest is Test {
         vm.prank(fisherman);
         disputeManager.cancelDispute(disputeID1);
 
-        assertEq(graphToken.balanceOf(serviceProvider), 10000 ether, "There's no slashing to the service provider.");
+        assertEq(graphToken.balanceOf(indexer), 10000 ether, "There's no slashing to the indexer.");
 
         (, , , , , ISubgraphDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
         (, , , , , ISubgraphDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
@@ -415,7 +442,7 @@ contract DisputeManagerTest is Test {
         disputeManager.drawDispute(disputeID);
 
         assertEq(graphToken.balanceOf(fisherman), 200 ether, "Fisherman should receive their deposit back.");
-        assertEq(graphToken.balanceOf(serviceProvider), 10000 ether, "There's no slashing to the service provider.");
+        assertEq(graphToken.balanceOf(indexer), 10000 ether, "There's no slashing to the indexer.");
     }
 
     function testDrawQueryDisputeConflicting() public {
@@ -440,7 +467,7 @@ contract DisputeManagerTest is Test {
         vm.prank(arbitrator);
         disputeManager.drawDispute(disputeID1);
 
-        assertEq(graphToken.balanceOf(serviceProvider), 10000 ether, "There's no slashing to the service provider.");
+        assertEq(graphToken.balanceOf(indexer), 10000 ether, "There's no slashing to the indexer.");
 
         (, , , , , ISubgraphDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
         (, , , , , ISubgraphDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);

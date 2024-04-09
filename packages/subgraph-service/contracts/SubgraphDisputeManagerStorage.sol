@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.24;
 
-import "./ISubgraphDisputeManager.sol";
+import "./interfaces/ISubgraphDisputeManager.sol";
 
 contract SubgraphDisputeManagerV1Storage {
     // -- State --

@@ -23,7 +23,7 @@ interface ISubgraphDisputeManager {
 
     // Disputes contain info necessary for the Arbitrator to verify and resolve
     struct Dispute {
-        address serviceProvider;
+        address indexer;
         address fisherman;
         uint256 deposit;
         bytes32 relatedDisputeID;
@@ -78,7 +78,7 @@ interface ISubgraphDisputeManager {
         Attestation memory _attestation2
     ) external pure returns (bool);
 
-    function getAttestationServiceProvider(Attestation memory _attestation) external view returns (address);
+    function getAttestationIndexer(Attestation memory _attestation) external view returns (address);
 
     // -- Dispute --
 

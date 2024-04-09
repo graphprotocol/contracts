@@ -11,8 +11,8 @@ import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHor
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 
 import { SubgraphDisputeManagerV1Storage } from "./SubgraphDisputeManagerStorage.sol";
-import { ISubgraphDisputeManager } from "./ISubgraphDisputeManager.sol";
-import { ISubgraphService } from "../ISubgraphService.sol";
+import { ISubgraphDisputeManager } from "./interfaces/ISubgraphDisputeManager.sol";
+import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 /*
  * @title SubgraphDisputeManager
@@ -24,12 +24,12 @@ import { ISubgraphService } from "../ISubgraphService.sol";
  * Query Disputes:
  * Graph nodes receive queries and return responses with signed receipts called attestations.
  * An attestation can be disputed if the consumer thinks the query response was invalid.
- * Service providers use the derived private key for an allocation to sign attestations.
+ * Indexers use the derived private key for an allocation to sign attestations.
  *
  * Indexing Disputes:
- * Service providers present a Proof of Indexing (POI) when they close allocations to prove
+ * Indexers present a Proof of Indexing (POI) when they close allocations to prove
  * they were indexing a subgraph. The Staking contract emits that proof with the format
- * keccak256(serviceProvider.address, POI).
+ * keccak256(indexer.address, POI).
  * Any challenger can dispute the validity of a POI by submitting a dispute to this contract
  * along with a deposit.
  *
@@ -38,10 +38,6 @@ import { ISubgraphService } from "../ISubgraphService.sol";
  * to a EOA or DAO.
  */
 contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISubgraphDisputeManager {
-    ISubgraphService private immutable subgraphService;
-    IHorizonStaking private immutable staking;
-    IGraphToken private immutable graphToken;
-
     // -- EIP-712  --
 
     bytes32 private constant DOMAIN_TYPE_HASH =
@@ -57,6 +53,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     error SubgraphDisputeManagerNotArbitrator();
     error SubgraphDisputeManagerNotFisherman();
     error SubgraphDisputeManagerArbitratorZeroAddress();
+    error SubgraphDisputeManagerSubgraphServiceZeroAddress();
     error SubgraphDisputeManagerDisputePeriodZero();
     error SubgraphDisputeManagerZeroTokens();
     error SubgraphDisputeManagerInvalidDispute(bytes32 disputeID);
@@ -70,7 +67,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     error SubgraphDisputeManagerDisputeAlreadyCreated(bytes32 disputeID);
     error SubgraphDisputeManagerDisputePeriodNotFinished();
     error SubgraphDisputeManagerMustAcceptRelatedDispute(bytes32 disputeID, bytes32 relatedDisputeID);
-    error SubgraphDisputeManagerServiceProviderNotFound(address allocationID);
+    error SubgraphDisputeManagerIndexerNotFound(address allocationID);
     error SubgraphDisputeManagerNonMatchingSubgraphDeployment(
         bytes32 subgraphDeploymentID1,
         bytes32 subgraphDeploymentID2
@@ -103,19 +100,28 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
 
     uint256 private constant MAX_PPM = 1000000; // 100% in parts per million
 
+    // -- Immutable variables --
+
+    IHorizonStaking public immutable staking;
+    IGraphToken public immutable graphToken;
+
+    // -- Mutable variables --
+
+    ISubgraphService public subgraphService;
+
     // -- Events --
 
     /// Emitted when a contract parameter has been updated
     event ParameterUpdated(string param);
 
     /**
-     * @dev Emitted when a query dispute is created for `subgraphDeploymentID` and `serviceProvider`
+     * @dev Emitted when a query dispute is created for `subgraphDeploymentID` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman and `attestation` submitted.
      */
     event QueryDisputeCreated(
         bytes32 indexed disputeID,
-        address indexed serviceProvider,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
         bytes32 subgraphDeploymentID,
@@ -123,50 +129,45 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     );
 
     /**
-     * @dev Emitted when an indexing dispute is created for `allocationID` and `serviceProvider`
+     * @dev Emitted when an indexing dispute is created for `allocationID` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman.
      */
     event IndexingDisputeCreated(
         bytes32 indexed disputeID,
-        address indexed serviceProvider,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
         address allocationID
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeID` to `serviceProvider` created by `fisherman`.
+     * @dev Emitted when arbitrator accepts a `disputeID` to `indexer` created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      */
     event DisputeAccepted(
         bytes32 indexed disputeID,
-        address indexed serviceProvider,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeID` for `serviceProvider` created by `fisherman`.
+     * @dev Emitted when arbitrator rejects a `disputeID` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
      */
     event DisputeRejected(
         bytes32 indexed disputeID,
-        address indexed serviceProvider,
+        address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeID` for `serviceProvider` created by `fisherman`.
+     * @dev Emitted when arbitrator draw a `disputeID` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      */
-    event DisputeDrawn(
-        bytes32 indexed disputeID,
-        address indexed serviceProvider,
-        address indexed fisherman,
-        uint256 tokens
-    );
+    event DisputeDrawn(bytes32 indexed disputeID, address indexed indexer, address indexed fisherman, uint256 tokens);
 
     /**
      * @dev Emitted when two disputes are in conflict to link them.
@@ -217,28 +218,25 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
 
     /**
      * @dev Initialize this contract.
-     * @param _subgraphService Address of subgraph service contract
      * @param _staking Address of staking contract
      * @param _graphToken Address of Graph token contract
      * @param _arbitrator Arbitrator role
      * @param _disputePeriod Dispute period in seconds
      * @param _minimumDeposit Minimum deposit required to create a Dispute
      * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (ppm)
-     * @param _maxSlashingPercentage Maximum percentage of serviceProvider stake that can be slashed (ppm)
+     * @param _maxSlashingPercentage Maximum percentage of indexer stake that can be slashed (ppm)
      */
     constructor(
-        ISubgraphService _subgraphService,
-        IHorizonStaking _staking,
-        IGraphToken _graphToken,
+        address _staking,
+        address _graphToken,
         address _arbitrator,
         uint64 _disputePeriod,
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
         uint32 _maxSlashingPercentage
     ) Ownable(msg.sender) {
-        subgraphService = _subgraphService;
-        staking = _staking;
-        graphToken = _graphToken;
+        staking = IHorizonStaking(_staking);
+        graphToken = IGraphToken(_graphToken);
 
         // Settings
         _setArbitrator(_arbitrator);
@@ -258,6 +256,28 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
                 DOMAIN_SALT
             )
         );
+    }
+
+    /**
+     * @dev Set the subgraph service address.
+     * @notice Update the subgraph service to `_subgraphService`
+     * @param _subgraphService The address of the subgraph service contract
+     */
+    function setSubgraphService(address _subgraphService) external onlyOwner {
+        _setSubgraphService(_subgraphService);
+    }
+
+    /**
+     * @dev Internal: Set the subgraph service address.
+     * @notice Update the subgraph service to `_subgraphService`
+     * @param _subgraphService The address of the subgraph service contract
+     */
+    function _setSubgraphService(address _subgraphService) private {
+        if (_subgraphService == address(0)) {
+            revert SubgraphDisputeManagerSubgraphServiceZeroAddress();
+        }
+        subgraphService = ISubgraphService(_subgraphService);
+        emit ParameterUpdated("subgraphService");
     }
 
     /**
@@ -329,7 +349,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     /**
      * @dev Set the percent reward that the fisherman gets when slashing occurs.
      * @notice Update the reward percentage to `_percentage`
-     * @param _percentage Reward as a percentage of serviceProvider stake
+     * @param _percentage Reward as a percentage of indexer stake
      */
     function setFishermanRewardPercentage(uint32 _percentage) external override onlyOwner {
         _setFishermanRewardPercentage(_percentage);
@@ -338,7 +358,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     /**
      * @dev Internal: Set the percent reward that the fisherman gets when slashing occurs.
      * @notice Update the reward percentage to `_percentage`
-     * @param _percentage Reward as a percentage of serviceProvider stake
+     * @param _percentage Reward as a percentage of indexer stake
      */
     function _setFishermanRewardPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
@@ -350,7 +370,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     }
 
     /**
-     * @dev Set the maximum percentage that can be used for slashing service providers.
+     * @dev Set the maximum percentage that can be used for slashing indexers.
      * @param _maxSlashingPercentage Max percentage slashing for disputes
      */
     function setMaxSlashingPercentage(uint32 _maxSlashingPercentage) external override onlyOwner {
@@ -358,7 +378,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     }
 
     /**
-     * @dev Internal: Set the maximum percentage that can be used for slashing service providers.
+     * @dev Internal: Set the maximum percentage that can be used for slashing indexers.
      * @param _maxSlashingPercentage Max percentage slashing for disputes
      */
     function _setMaxSlashingPercentage(uint32 _maxSlashingPercentage) private {
@@ -396,11 +416,11 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     }
 
     /**
-     * @dev Get the message hash that a service provider used to sign the receipt.
+     * @dev Get the message hash that a indexer used to sign the receipt.
      * Encodes a receipt using a domain separator, as described on
      * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
      * @notice Return the message hash used to sign the receipt
-     * @param _receipt Receipt returned by service provider and submitted by fisherman
+     * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
     function encodeHashReceipt(Receipt memory _receipt) public view override returns (bytes32) {
@@ -438,17 +458,17 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     }
 
     /**
-     * @dev Returns the serviceProvider that signed an attestation.
+     * @dev Returns the indexer that signed an attestation.
      * @param _attestation Attestation
-     * @return serviceProvider address
+     * @return indexer address
      */
-    function getAttestationServiceProvider(Attestation memory _attestation) public view override returns (address) {
-        // Get attestation signer. Service providers signs with the allocationID
+    function getAttestationIndexer(Attestation memory _attestation) public view override returns (address) {
+        // Get attestation signer. Indexers signs with the allocationID
         address allocationID = _recoverAttestationSigner(_attestation);
 
         ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(allocationID);
-        if (alloc.serviceProvider == address(0)) {
-            revert SubgraphDisputeManagerServiceProviderNotFound(allocationID);
+        if (alloc.indexer == address(0)) {
+            revert SubgraphDisputeManagerIndexerNotFound(allocationID);
         }
         if (alloc.subgraphDeploymentID != _attestation.subgraphDeploymentID) {
             revert SubgraphDisputeManagerNonMatchingSubgraphDeployment(
@@ -456,7 +476,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
                 _attestation.subgraphDeploymentID
             );
         }
-        return alloc.serviceProvider;
+        return alloc.indexer;
     }
 
     /**
@@ -482,7 +502,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
 
     /**
      * @dev Create query disputes for two conflicting attestations.
-     * A conflicting attestation is a proof presented by two different service providers
+     * A conflicting attestation is a proof presented by two different indexers
      * where for the same request on a subgraph the response is different.
      * For this type of dispute the submitter is not required to present a deposit
      * as one of the attestation is considered to be right.
@@ -546,11 +566,11 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         Attestation memory _attestation,
         bytes memory _attestationData
     ) private returns (bytes32) {
-        // Get the serviceProvider that signed the attestation
-        address serviceProvider = getAttestationServiceProvider(_attestation);
+        // Get the indexer that signed the attestation
+        address indexer = getAttestationIndexer(_attestation);
 
-        // The serviceProvider is disputable
-        IHorizonStaking.Provision memory provision = staking.getProvision(serviceProvider, address(subgraphService));
+        // The indexer is disputable
+        IHorizonStaking.Provision memory provision = staking.getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert SubgraphDisputeManagerZeroTokens();
         }
@@ -561,19 +581,19 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
                 _attestation.requestCID,
                 _attestation.responseCID,
                 _attestation.subgraphDeploymentID,
-                serviceProvider,
+                indexer,
                 _fisherman
             )
         );
 
-        // Only one dispute for a (serviceProvider, subgraphDeploymentID) at a time
+        // Only one dispute for a (indexer, subgraphDeploymentID) at a time
         if (isDisputeCreated(disputeID)) {
             revert SubgraphDisputeManagerDisputeAlreadyCreated(disputeID);
         }
 
         // Store dispute
         disputes[disputeID] = Dispute(
-            serviceProvider,
+            indexer,
             _fisherman,
             _deposit,
             0, // no related dispute,
@@ -584,7 +604,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
 
         emit QueryDisputeCreated(
             disputeID,
-            serviceProvider,
+            indexer,
             _fisherman,
             _deposit,
             _attestation.subgraphDeploymentID,
@@ -633,21 +653,20 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         // TODO: Check ISubgraphService for Allocation
         // TODO: Check ISubgraphService for getAllocation(...)
         ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(_allocationID);
-        address serviceProvider = alloc.serviceProvider;
-        if (serviceProvider == address(0)) {
-            revert SubgraphDisputeManagerServiceProviderNotFound(_allocationID);
+        address indexer = alloc.indexer;
+        if (indexer == address(0)) {
+            revert SubgraphDisputeManagerIndexerNotFound(_allocationID);
         }
 
-        // The serviceProvider must be disputable
-        // TODO: Check ISubgraphService for getServiceProviderStakedTokens(...)
-        IHorizonStaking.Provision memory provision = staking.getProvision(serviceProvider, address(subgraphService));
+        // The indexer must be disputable
+        IHorizonStaking.Provision memory provision = staking.getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert SubgraphDisputeManagerZeroTokens();
         }
 
         // Store dispute
         disputes[disputeID] = Dispute(
-            alloc.serviceProvider,
+            alloc.indexer,
             _fisherman,
             _deposit,
             0,
@@ -656,19 +675,19 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
             block.timestamp
         );
 
-        emit IndexingDisputeCreated(disputeID, alloc.serviceProvider, _fisherman, _deposit, _allocationID);
+        emit IndexingDisputeCreated(disputeID, alloc.indexer, _fisherman, _deposit, _allocationID);
 
         return disputeID;
     }
 
     /**
      * @dev The arbitrator accepts a dispute as being valid.
-     * This function will revert if the service provider is not slashable, whether because it does not have
+     * This function will revert if the indexer is not slashable, whether because it does not have
      * any stake available or the slashing percentage is configured to be zero. In those cases
      * a dispute must be resolved using drawDispute or rejectDispute.
      * @notice Accept a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be accepted
-     * @param _slashAmount Amount of tokens to slash from the service provider
+     * @param _slashAmount Amount of tokens to slash from the indexer
      */
     function acceptDispute(
         bytes32 _disputeID,
@@ -680,7 +699,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         dispute.status = ISubgraphDisputeManager.DisputeStatus.Accepted;
 
         // Slash
-        uint256 tokensToReward = _slashServiceProvider(dispute.serviceProvider, _slashAmount);
+        uint256 tokensToReward = _slashIndexer(dispute.indexer, _slashAmount);
 
         // Give the fisherman their reward and their deposit back
         TokenUtils.pushTokens(graphToken, dispute.fisherman, tokensToReward + dispute.deposit);
@@ -689,7 +708,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
             rejectDispute(dispute.relatedDisputeID);
         }
 
-        emit DisputeAccepted(_disputeID, dispute.serviceProvider, dispute.fisherman, dispute.deposit + tokensToReward);
+        emit DisputeAccepted(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit + tokensToReward);
     }
 
     /**
@@ -711,7 +730,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         // Burn the fisherman's deposit
         TokenUtils.burnTokens(graphToken, dispute.deposit);
 
-        emit DisputeRejected(_disputeID, dispute.serviceProvider, dispute.fisherman, dispute.deposit);
+        emit DisputeRejected(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
@@ -731,7 +750,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         // store dispute status
         dispute.status = ISubgraphDisputeManager.DisputeStatus.Drawn;
 
-        emit DisputeDrawn(_disputeID, dispute.serviceProvider, dispute.fisherman, dispute.deposit);
+        emit DisputeDrawn(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
@@ -816,17 +835,14 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     }
 
     /**
-     * @dev Make the subgraph service contract slash the service provider and reward the challenger.
+     * @dev Make the subgraph service contract slash the indexer and reward the challenger.
      * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
-     * @param _serviceProvider Address of the service provider
-     * @param _slashAmount Amount of tokens to slash from the service provider
+     * @param _indexer Address of the indexer
+     * @param _slashAmount Amount of tokens to slash from the indexer
      */
-    function _slashServiceProvider(
-        address _serviceProvider,
-        uint256 _slashAmount
-    ) private returns (uint256 rewardsAmount) {
-        // Get slashable amount for serviceProvider
-        IHorizonStaking.Provision memory provision = staking.getProvision(_serviceProvider, address(subgraphService));
+    function _slashIndexer(address _indexer, uint256 _slashAmount) private returns (uint256 rewardsAmount) {
+        // Get slashable amount for indexer
+        IHorizonStaking.Provision memory provision = staking.getProvision(_indexer, address(subgraphService));
         uint256 totalProvisionTokens = provision.tokens + provision.delegatedTokens; // slashable tokens
 
         // Get slash amount
@@ -840,11 +856,11 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         }
 
         // Rewards amount can only be extracted from service poriver tokens so
-        // we grab the minimum between the slash amount and service provider's tokens
+        // we grab the minimum between the slash amount and indexer's tokens
         uint256 maxRewardableTokens = Math.min(_slashAmount, provision.tokens);
         rewardsAmount = (fishermanRewardPercentage * maxRewardableTokens) / MAX_PPM;
 
-        subgraphService.slash(_serviceProvider, _slashAmount, rewardsAmount);
+        subgraphService.slash(_indexer, _slashAmount, rewardsAmount);
         return rewardsAmount;
     }
 
@@ -863,7 +879,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         bytes32 messageHash = encodeHashReceipt(receipt);
 
         // Obtain the signer of the fully-encoded EIP-712 message hash
-        // NOTE: The signer of the attestation is the service provider that served the request
+        // NOTE: The signer of the attestation is the indexer that served the request
         return ECDSA.recover(messageHash, abi.encodePacked(_attestation.r, _attestation.s, _attestation.v));
     }
 
