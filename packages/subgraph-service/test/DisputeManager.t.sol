@@ -17,9 +17,6 @@ import "./mocks/MockGRTToken.sol";
 import "./mocks/MockHorizonStaking.sol";
 
 contract DisputeManagerTest is Test {
-    bytes32 private immutable ALLOCATION_PROOF_TYPEHASH =
-        keccak256("AllocationIdProof(address indexer,address allocationId)");
-
     SubgraphDisputeManager disputeManager;
 
     address arbitrator;
