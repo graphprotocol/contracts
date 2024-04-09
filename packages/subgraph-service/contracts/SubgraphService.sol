@@ -211,11 +211,29 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
     ) external override onlyAuthorized(indexer) {
         // Caller must prove that they own the private key for the allocationId address
         // The proof is an EIP712 signed message of (indexer,allocationId)
-        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
+        bytes32 digest = encodeProof(indexer, allocationId);
         address signer = ECDSA.recover(digest, proof);
         if (signer != allocationId) {
             revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
         }
+
+        Allocation memory allocation = ISubgraphService.Allocation({
+            indexer: indexer,
+            subgraphDeploymentID: subgraphDeploymentId,
+            tokens: tokens,
+            createdAt: block.timestamp,
+            closedAt: 0,
+            accRewardsPerAllocatedToken: 0
+        });
+        allocations[allocationId] = allocation;
+    }
+
+    function getAllocation(address allocationId) external view returns (Allocation memory) {
+        return allocations[allocationId];
+    }
+
+    function encodeProof(address indexer, address allocationId) public view returns (bytes32) {
+        return _hashTypedDataV4(keccak256(abi.encode(ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
     }
 
     function setDisputeManager(address _disputeManager) external onlyOwner {

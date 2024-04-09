@@ -53,4 +53,8 @@ interface ISubgraphService {
         bytes32 metadata,
         bytes calldata proof
     ) external;
+
+    function getAllocation(address allocationID) external view returns (Allocation memory);
+
+    function encodeProof(address indexer, address allocationId) external view returns (bytes32);
 }
