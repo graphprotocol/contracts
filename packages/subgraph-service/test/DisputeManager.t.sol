@@ -176,7 +176,7 @@ contract DisputeManagerTest is Test {
 
     function test_RevertWhen_DisputeAlreadyCreated() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
         
         // Create another dispute with different fisherman
         address otherFisherman = address(0x5);
@@ -184,7 +184,9 @@ contract DisputeManagerTest is Test {
         vm.startPrank(otherFisherman);
         graphToken.mint(otherFisherman, tokens);
         graphToken.approve(address(disputeManager), tokens);
-        vm.expectRevert("Dispute already created");
+        // SubgraphDisputeManagerDisputeAlreadyCreated(bytes32 disputeID);
+        bytes memory expectedError = abi.encodeWithSignature("SubgraphDisputeManagerDisputeAlreadyCreated(bytes32)", disputeID);
+        vm.expectRevert(expectedError);
         disputeManager.createIndexingDispute(allocationID, tokens);
         vm.stopPrank();
     }
@@ -193,7 +195,8 @@ contract DisputeManagerTest is Test {
         // minimum deposit is 100 ether
         vm.startPrank(fisherman);
         graphToken.mint(fisherman, 50 ether);
-        vm.expectRevert("Dispute deposit is under minimum required");
+        bytes memory expectedError = abi.encodeWithSignature("SubgraphDisputeManagerInsufficientDeposit(uint256,uint256)", 50 ether, 100 ether);
+        vm.expectRevert(expectedError);
         disputeManager.createIndexingDispute(allocationID, 50 ether);
         vm.stopPrank();
     }
@@ -204,12 +207,14 @@ contract DisputeManagerTest is Test {
         vm.startPrank(fisherman);
         graphToken.mint(fisherman, tokens);
         graphToken.approve(address(disputeManager), tokens);
-        vm.expectRevert("Dispute allocation must exist");
+        bytes memory expectedError = abi.encodeWithSignature("SubgraphDisputeManagerServiceProviderNotFound(address)", allocationID);
+        vm.expectRevert(expectedError);
         disputeManager.createIndexingDispute(allocationID, tokens);
         vm.stopPrank();
     }
 
     function test_RevertIf_ConflictingAttestationsResponsesAreTheSame() public {
+        bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
         bytes32 responseCID = keccak256(abi.encodePacked("Response CID"));
         bytes32 subgraphDeploymentID = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
@@ -222,11 +227,22 @@ contract DisputeManagerTest is Test {
             );
 
         vm.prank(fisherman);
-        vm.expectRevert("Attestations must be in conflict");
+
+        bytes memory expectedError = abi.encodeWithSignature(
+            "SubgraphDisputeManagerNonConflictingAttestations(bytes32,bytes32,bytes32,bytes32,bytes32,bytes32)",
+            requestCID, 
+            responseCID, 
+            subgraphDeploymentID, 
+            requestCID, 
+            responseCID, 
+            subgraphDeploymentID
+        );
+        vm.expectRevert(expectedError);
         disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
     }
 
     function test_RevertIf_ConflictingAttestationsHaveDifferentSubgraph() public {
+        bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
         bytes32 subgraphDeploymentID1 = keccak256(abi.encodePacked("Subgraph Deployment ID 1"));
@@ -241,7 +257,16 @@ contract DisputeManagerTest is Test {
             );
 
         vm.prank(fisherman);
-        vm.expectRevert("Attestations must be in conflict");
+        bytes memory expectedError = abi.encodeWithSignature(
+            "SubgraphDisputeManagerNonConflictingAttestations(bytes32,bytes32,bytes32,bytes32,bytes32,bytes32)",
+            requestCID, 
+            responseCID1, 
+            subgraphDeploymentID1, 
+            requestCID, 
+            responseCID2, 
+            subgraphDeploymentID2
+        );
+        vm.expectRevert(expectedError);
         disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
     }
 
@@ -307,7 +332,7 @@ contract DisputeManagerTest is Test {
 
         // attempt to accept dispute as fisherman
         vm.prank(fisherman);
-        vm.expectRevert("Caller is not the Arbitrator");
+        vm.expectRevert(bytes4(keccak256("SubgraphDisputeManagerNotArbitrator()")));
         disputeManager.acceptDispute(disputeID, 5000 ether);
     }
 
@@ -317,7 +342,8 @@ contract DisputeManagerTest is Test {
 
         // max slashing percentage is 50%
         vm.prank(arbitrator);
-        vm.expectRevert("Slash amount exceeds maximum slashable amount");
+        bytes memory expectedError = abi.encodeWithSignature("SubgraphDisputeManagerInvalidSlashAmount(uint256)", 6000 ether);
+        vm.expectRevert(expectedError);
         disputeManager.acceptDispute(disputeID, 6000 ether);
     }
 
@@ -375,7 +401,7 @@ contract DisputeManagerTest is Test {
         bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
 
         vm.prank(arbitrator);
-        vm.expectRevert("Caller is not the Fisherman");
+        vm.expectRevert(bytes4(keccak256("SubgraphDisputeManagerNotFisherman()")));
         disputeManager.cancelDispute(disputeID);
     }
 
@@ -428,7 +454,7 @@ contract DisputeManagerTest is Test {
 
         // attempt to draw dispute as fisherman
         vm.prank(fisherman);
-        vm.expectRevert("Caller is not the Arbitrator");
+        vm.expectRevert(bytes4(keccak256("SubgraphDisputeManagerNotArbitrator()")));
         disputeManager.drawDispute(disputeID);
     }
 }

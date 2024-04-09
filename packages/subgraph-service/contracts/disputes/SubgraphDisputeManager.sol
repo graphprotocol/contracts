@@ -54,6 +54,36 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
 
     // -- Errors --
 
+    error SubgraphDisputeManagerNotArbitrator();
+    error SubgraphDisputeManagerNotFisherman();
+    error SubgraphDisputeManagerArbitratorZeroAddress();
+    error SubgraphDisputeManagerDisputePeriodZero();
+    error SubgraphDisputeManagerZeroTokens();
+    error SubgraphDisputeManagerInvalidDispute(bytes32 disputeID);
+    error SubgraphDisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
+    error SubgraphDisputeManagerInvalidFishermanReward(uint32 percentage);
+    error SubgraphDisputeManagerInvalidMaxSlashingPercentage(uint32 maxSlashingPercentage);
+    error SubgraphDisputeManagerInvalidSlashAmount(uint256 slashAmount);
+    error SubgraphDisputeManagerInvalidBytesLength(uint256 length, uint256 expectedLength);
+    error SubgraphDisputeManagerInvalidDisputeStatus(ISubgraphDisputeManager.DisputeStatus status);
+    error SubgraphDisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
+    error SubgraphDisputeManagerDisputeAlreadyCreated(bytes32 disputeID);
+    error SubgraphDisputeManagerDisputePeriodNotFinished();
+    error SubgraphDisputeManagerMustAcceptRelatedDispute(bytes32 disputeID, bytes32 relatedDisputeID);
+    error SubgraphDisputeManagerServiceProviderNotFound(address allocationID);
+    error SubgraphDisputeManagerNonMatchingSubgraphDeployment(
+        bytes32 subgraphDeploymentID1,
+        bytes32 subgraphDeploymentID2
+    );
+    error SubgraphDisputeManagerNonConflictingAttestations(
+        bytes32 requestCID1,
+        bytes32 responseCID1,
+        bytes32 subgraphDeploymentID1,
+        bytes32 requestCID2,
+        bytes32 responseCID2,
+        bytes32 subgraphDeploymentID2
+    );
+
     // -- Constants --
 
     // Attestation size is the sum of the receipt (96) + signature (65)
@@ -148,7 +178,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     // -- Modifiers --
 
     function _onlyArbitrator() internal view {
-        require(msg.sender == arbitrator, "Caller is not the Arbitrator");
+        if (msg.sender != arbitrator) {
+            revert SubgraphDisputeManagerNotArbitrator();
+        }
     }
 
     /**
@@ -160,17 +192,24 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     }
 
     modifier onlyPendingDispute(bytes32 _disputeID) {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-        require(
-            disputes[_disputeID].status == ISubgraphDisputeManager.DisputeStatus.Pending,
-            "Dispute must be pending"
-        );
+        if (!isDisputeCreated(_disputeID)) {
+            revert SubgraphDisputeManagerInvalidDispute(_disputeID);
+        }
+
+        if (disputes[_disputeID].status != ISubgraphDisputeManager.DisputeStatus.Pending) {
+            revert SubgraphDisputeManagerInvalidDisputeStatus(disputes[_disputeID].status);
+        }
         _;
     }
 
     modifier onlyFisherman(bytes32 _disputeID) {
-        require(isDisputeCreated(_disputeID), "Dispute does not exist");
-        require(msg.sender == disputes[_disputeID].fisherman, "Caller is not the Fisherman");
+        if (!isDisputeCreated(_disputeID)) {
+            revert SubgraphDisputeManagerInvalidDispute(_disputeID);
+        }
+
+        if (msg.sender != disputes[_disputeID].fisherman) {
+            revert SubgraphDisputeManagerNotFisherman();
+        }
         _;
     }
 
@@ -236,7 +275,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      * @param _arbitrator The address of the arbitration contract or party
      */
     function _setArbitrator(address _arbitrator) private {
-        require(_arbitrator != address(0), "Arbitrator must be set");
+        if (_arbitrator == address(0)) {
+            revert SubgraphDisputeManagerArbitratorZeroAddress();
+        }
         arbitrator = _arbitrator;
         emit ParameterUpdated("arbitrator");
     }
@@ -256,7 +297,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      * @param _disputePeriod Dispute period in seconds
      */
     function _setDisputePeriod(uint64 _disputePeriod) private {
-        require(_disputePeriod > 0, "Dispute period must be set");
+        if (_disputePeriod == 0) {
+            revert SubgraphDisputeManagerDisputePeriodZero();
+        }
         disputePeriod = _disputePeriod;
         emit ParameterUpdated("disputePeriod");
     }
@@ -276,7 +319,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
     function _setMinimumDeposit(uint256 _minimumDeposit) private {
-        require(_minimumDeposit > 0, "Minimum deposit must be set");
+        if (_minimumDeposit == 0) {
+            revert SubgraphDisputeManagerInvalidMinimumDeposit(_minimumDeposit);
+        }
         minimumDeposit = _minimumDeposit;
         emit ParameterUpdated("minimumDeposit");
     }
@@ -297,7 +342,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      */
     function _setFishermanRewardPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
-        require(_percentage <= MAX_PPM, "Reward percentage must be below or equal to MAX_PPM");
+        if (_percentage > MAX_PPM) {
+            revert SubgraphDisputeManagerInvalidFishermanReward(_percentage);
+        }
         fishermanRewardPercentage = _percentage;
         emit ParameterUpdated("fishermanRewardPercentage");
     }
@@ -316,7 +363,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      */
     function _setMaxSlashingPercentage(uint32 _maxSlashingPercentage) private {
         // Must be within 0% to 100% (inclusive)
-        require(_maxSlashingPercentage <= MAX_PPM, "Maximum slashing percentage must be below or equal to MAX_PPM");
+        if (_maxSlashingPercentage > MAX_PPM) {
+            revert SubgraphDisputeManagerInvalidMaxSlashingPercentage(_maxSlashingPercentage);
+        }
         maxSlashingPercentage = _maxSlashingPercentage;
         emit ParameterUpdated("maxSlashingPercentage");
     }
@@ -398,11 +447,15 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         address allocationID = _recoverAttestationSigner(_attestation);
 
         ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(allocationID);
-        require(alloc.serviceProvider != address(0), "serviceProvider cannot be found for the attestation");
-        require(
-            alloc.subgraphDeploymentID == _attestation.subgraphDeploymentID,
-            "Allocation and attestation subgraphDeploymentID must match"
-        );
+        if (alloc.serviceProvider == address(0)) {
+            revert SubgraphDisputeManagerServiceProviderNotFound(allocationID);
+        }
+        if (alloc.subgraphDeploymentID != _attestation.subgraphDeploymentID) {
+            revert SubgraphDisputeManagerNonMatchingSubgraphDeployment(
+                alloc.subgraphDeploymentID,
+                _attestation.subgraphDeploymentID
+            );
+        }
         return alloc.serviceProvider;
     }
 
@@ -450,7 +503,16 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         Attestation memory attestation2 = _parseAttestation(_attestationData2);
 
         // Test that attestations are conflicting
-        require(areConflictingAttestations(attestation1, attestation2), "Attestations must be in conflict");
+        if (!areConflictingAttestations(attestation2, attestation1)) {
+            revert SubgraphDisputeManagerNonConflictingAttestations(
+                attestation1.requestCID,
+                attestation1.responseCID,
+                attestation1.subgraphDeploymentID,
+                attestation2.requestCID,
+                attestation2.responseCID,
+                attestation2.subgraphDeploymentID
+            );
+        }
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
@@ -489,7 +551,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
 
         // The serviceProvider is disputable
         IHorizonStaking.Provision memory provision = staking.getProvision(serviceProvider, address(subgraphService));
-        require(provision.tokens > 0, "Dispute serviceProvider has no stake");
+        if (provision.tokens == 0) {
+            revert SubgraphDisputeManagerZeroTokens();
+        }
 
         // Create a disputeID
         bytes32 disputeID = keccak256(
@@ -503,7 +567,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         );
 
         // Only one dispute for a (serviceProvider, subgraphDeploymentID) at a time
-        require(!isDisputeCreated(disputeID), "Dispute already created");
+        if (isDisputeCreated(disputeID)) {
+            revert SubgraphDisputeManagerDisputeAlreadyCreated(disputeID);
+        }
 
         // Store dispute
         disputes[disputeID] = Dispute(
@@ -559,19 +625,25 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         bytes32 disputeID = keccak256(abi.encodePacked(_allocationID));
 
         // Only one dispute for an allocationID at a time
-        require(!isDisputeCreated(disputeID), "Dispute already created");
+        if (isDisputeCreated(disputeID)) {
+            revert SubgraphDisputeManagerDisputeAlreadyCreated(disputeID);
+        }
 
         // Allocation must exist
         // TODO: Check ISubgraphService for Allocation
         // TODO: Check ISubgraphService for getAllocation(...)
         ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(_allocationID);
         address serviceProvider = alloc.serviceProvider;
-        require(serviceProvider != address(0), "Dispute allocation must exist");
+        if (serviceProvider == address(0)) {
+            revert SubgraphDisputeManagerServiceProviderNotFound(_allocationID);
+        }
 
         // The serviceProvider must be disputable
         // TODO: Check ISubgraphService for getServiceProviderStakedTokens(...)
         IHorizonStaking.Provision memory provision = staking.getProvision(serviceProvider, address(subgraphService));
-        require(provision.tokens > 0, "Dispute serviceProvider has no stake");
+        if (provision.tokens == 0) {
+            revert SubgraphDisputeManagerZeroTokens();
+        }
 
         // Store dispute
         disputes[disputeID] = Dispute(
@@ -631,11 +703,10 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         // store dispute status
         dispute.status = ISubgraphDisputeManager.DisputeStatus.Rejected;
 
-        // Handle conflicting dispute if any
-        require(
-            !_isDisputeInConflict(dispute),
-            "Dispute for conflicting attestation, must accept the related ID to reject"
-        );
+        // For conflicting disputes, the related dispute must be accepted
+        if (_isDisputeInConflict(dispute)) {
+            revert SubgraphDisputeManagerMustAcceptRelatedDispute(_disputeID, dispute.relatedDisputeID);
+        }
 
         // Burn the fisherman's deposit
         TokenUtils.burnTokens(graphToken, dispute.deposit);
@@ -669,11 +740,15 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      * @notice Cancel a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be cancelled
      */
-    function cancelDispute(bytes32 _disputeID) external override onlyFisherman(_disputeID) {
+    function cancelDispute(
+        bytes32 _disputeID
+    ) external override onlyFisherman(_disputeID) onlyPendingDispute(_disputeID) {
         Dispute storage dispute = disputes[_disputeID];
-        require(dispute.status == ISubgraphDisputeManager.DisputeStatus.Pending, "Dispute must be pending");
+
         // Check if dispute period has finished
-        require(block.timestamp > dispute.createdAt + disputePeriod, "Dispute period has not finished");
+        if (block.timestamp <= dispute.createdAt + disputePeriod) {
+            revert SubgraphDisputeManagerDisputePeriodNotFinished();
+        }
 
         // Return deposit to the fisherman
         TokenUtils.pushTokens(graphToken, dispute.fisherman, dispute.deposit);
@@ -732,7 +807,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      */
     function _pullSubmitterDeposit(uint256 _deposit) private {
         // Ensure that fisherman has staked at least the minimum amount
-        require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
+        if (_deposit < minimumDeposit) {
+            revert SubgraphDisputeManagerInsufficientDeposit(_deposit, minimumDeposit);
+        }
 
         // Transfer tokens to deposit from fisherman to this contract
         TokenUtils.pullTokens(graphToken, msg.sender, _deposit);
@@ -754,8 +831,13 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
 
         // Get slash amount
         uint256 maxSlashAmount = (maxSlashingPercentage * totalProvisionTokens) / MAX_PPM;
-        require(_slashAmount > 0, "Dispute has zero tokens to slash");
-        require(_slashAmount <= maxSlashAmount, "Slash amount exceeds maximum slashable amount");
+        if (_slashAmount == 0) {
+            revert SubgraphDisputeManagerInvalidSlashAmount(_slashAmount);
+        }
+
+        if (_slashAmount > maxSlashAmount) {
+            revert SubgraphDisputeManagerInvalidSlashAmount(_slashAmount);
+        }
 
         // Rewards amount can only be extracted from service poriver tokens so
         // we grab the minimum between the slash amount and service provider's tokens
@@ -803,7 +885,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      */
     function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
         // Check attestation data length
-        require(_data.length == ATTESTATION_SIZE_BYTES, "Attestation must be 161 bytes long");
+        if (_data.length != ATTESTATION_SIZE_BYTES) {
+            revert SubgraphDisputeManagerInvalidBytesLength(_data.length, ATTESTATION_SIZE_BYTES);
+        }
 
         // Decode receipt
         (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
@@ -825,7 +909,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      * @return uint8 value
      */
     function _toUint8(bytes memory _bytes, uint256 _start) private pure returns (uint8) {
-        require(_bytes.length >= (_start + UINT8_BYTE_LENGTH), "Bytes: out of bounds");
+        if (_bytes.length < (_start + UINT8_BYTE_LENGTH)) {
+            revert SubgraphDisputeManagerInvalidBytesLength(_bytes.length, _start + UINT8_BYTE_LENGTH);
+        }
         uint8 tempUint;
 
         assembly {
@@ -840,7 +926,9 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      * @return bytes32 value
      */
     function _toBytes32(bytes memory _bytes, uint256 _start) private pure returns (bytes32) {
-        require(_bytes.length >= (_start + BYTES32_BYTE_LENGTH), "Bytes: out of bounds");
+        if (_bytes.length < (_start + BYTES32_BYTE_LENGTH)) {
+            revert SubgraphDisputeManagerInvalidBytesLength(_bytes.length, _start + BYTES32_BYTE_LENGTH);
+        }
         bytes32 tempBytes32;
 
         assembly {
