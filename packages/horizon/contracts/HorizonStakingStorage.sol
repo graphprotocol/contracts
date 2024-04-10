@@ -13,7 +13,7 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
  * variables that used to be public but are now internal, getters can be found on StakingExtension.sol.
  */
 // solhint-disable-next-line max-states-count
-contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
+abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     // -- Staking --
 
     /// @dev Minimum amount of tokens an indexer needs to stake.

@@ -161,9 +161,9 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         require(getProviderTokensAvailable(_serviceProvider, _verifier) >= _tokens, "insufficient tokens available");
         prov.tokensThawing = prov.tokensThawing + _tokens;
 
-        thawRequest.shares = prov.sharesThawing.mul(_tokens).div(prov.tokensThawing);
-        thawRequest.thawingUntil = uint64(block.timestamp.add(uint256(prov.thawingPeriod)));
-        prov.sharesThawing = prov.sharesThawing.add(thawRequest.shares);
+        thawRequest.shares = (prov.sharesThawing * _tokens) / prov.tokensThawing;
+        thawRequest.thawingUntil = uint64(block.timestamp + uint256(prov.thawingPeriod));
+        prov.sharesThawing = prov.sharesThawing + thawRequest.shares;
 
         require(prov.nThawRequests < MAX_THAW_REQUESTS, "max thaw requests");
         if (prov.nThawRequests == 0) {
@@ -194,7 +194,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = thawRequests[thawRequestId];
             if (thawRequest.thawingUntil <= block.timestamp) {
-                tokens += thawRequest.shares.mul(prov.tokensThawing).div(prov.sharesThawing);
+                tokens += (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
             } else {
                 break;
             }
@@ -213,7 +213,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         require(_tokens > 0, "!tokens");
         ServiceProviderInternal storage serviceProvider = serviceProviders[_serviceProvider];
         _fulfillThawRequests(_serviceProvider, _verifier, _tokens);
-        serviceProvider.tokensProvisioned = serviceProvider.tokensProvisioned.sub(_tokens);
+        serviceProvider.tokensProvisioned = serviceProvider.tokensProvisioned - _tokens;
     }
 
     // moves thawed stake from one provision into another provision
@@ -243,7 +243,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         // Check that the indexer's stake minus
         // TODO this is only needed until legacy allocations are closed,
         // so we should remove it after the transition period
-        require(stakedTokens.sub(_tokens) >= sp.__DEPRECATED_tokensAllocated, "!stake-avail");
+        require((stakedTokens - _tokens) >= sp.__DEPRECATED_tokensAllocated, "!stake-avail");
 
         // This is also only during the transition period: we need
         // to ensure tokens stay locked after closing legacy allocations.
@@ -251,7 +251,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         // and set the thawing period to 0.
         uint256 lockingPeriod = __DEPRECATED_thawingPeriod;
         if (lockingPeriod == 0) {
-            sp.tokensStaked = stakedTokens.sub(_tokens);
+            sp.tokensStaked = stakedTokens - _tokens;
             TokenUtils.pushTokens(_graphToken(), _serviceProvider, _tokens);
             emit StakeWithdrawn(_serviceProvider, _tokens);
         } else {
@@ -271,8 +271,8 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
             }
 
             // Update balances
-            sp.__DEPRECATED_tokensLocked = sp.__DEPRECATED_tokensLocked.add(_tokens);
-            sp.__DEPRECATED_tokensLockedUntil = block.number.add(lockingPeriod);
+            sp.__DEPRECATED_tokensLocked = sp.__DEPRECATED_tokensLocked + _tokens;
+            sp.__DEPRECATED_tokensLockedUntil = block.number + lockingPeriod;
             emit StakeLocked(_serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
         }
     }
@@ -294,29 +294,29 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         uint256 tokensToSlash = _tokens;
 
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
-        require(prov.tokens.mul(prov.maxVerifierCut).div(1e6) >= _verifierCutAmount, "verifier cut too high");
+        require((prov.tokens * prov.maxVerifierCut) / 1e6 >= _verifierCutAmount, "verifier cut too high");
         if (_verifierCutAmount > 0) {
             TokenUtils.pushTokens(_graphToken(), _verifierCutDestination, _verifierCutAmount);
             emit VerifierCutSent(_serviceProvider, verifier, _verifierCutDestination, _verifierCutAmount);
         }
         if (providerTokensSlashed > 0) {
             TokenUtils.burnTokens(_graphToken(), providerTokensSlashed);
-            uint256 provisionFractionSlashed = providerTokensSlashed.mul(FIXED_POINT_PRECISION).div(prov.tokens);
+            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
             // TODO check for rounding issues
-            prov.tokensThawing = prov.tokensThawing.mul(FIXED_POINT_PRECISION - provisionFractionSlashed).div(
-                FIXED_POINT_PRECISION
-            );
-            prov.tokens = prov.tokens.sub(providerTokensSlashed);
-            serviceProviders[_serviceProvider].tokensProvisioned = serviceProviders[_serviceProvider]
-                .tokensProvisioned
-                .sub(providerTokensSlashed);
-            serviceProviders[_serviceProvider].tokensStaked = serviceProviders[_serviceProvider].tokensStaked.sub(
-                providerTokensSlashed
-            );
+            prov.tokensThawing =
+                (prov.tokensThawing * (FIXED_POINT_PRECISION - provisionFractionSlashed)) /
+                (FIXED_POINT_PRECISION);
+            prov.tokens = prov.tokens - providerTokensSlashed;
+            serviceProviders[_serviceProvider].tokensProvisioned =
+                serviceProviders[_serviceProvider].tokensProvisioned -
+                providerTokensSlashed;
+            serviceProviders[_serviceProvider].tokensStaked =
+                serviceProviders[_serviceProvider].tokensStaked -
+                providerTokensSlashed;
             emit ProvisionSlashed(_serviceProvider, verifier, providerTokensSlashed);
         }
 
-        tokensToSlash = tokensToSlash.sub(providerTokensSlashed);
+        tokensToSlash = tokensToSlash - providerTokensSlashed;
         if (tokensToSlash > 0) {
             DelegationPool storage pool;
             if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
@@ -327,11 +327,11 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
             if (delegationSlashingEnabled) {
                 require(pool.tokens >= tokensToSlash, "insufficient delegated tokens");
                 TokenUtils.burnTokens(_graphToken(), tokensToSlash);
-                uint256 delegationFractionSlashed = tokensToSlash.mul(FIXED_POINT_PRECISION).div(pool.tokens);
-                pool.tokens = pool.tokens.sub(tokensToSlash);
-                pool.tokensThawing = pool.tokensThawing.mul(FIXED_POINT_PRECISION - delegationFractionSlashed).div(
-                    FIXED_POINT_PRECISION
-                );
+                uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION) / pool.tokens;
+                pool.tokens = pool.tokens - tokensToSlash;
+                pool.tokensThawing =
+                    (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
+                    FIXED_POINT_PRECISION;
                 emit DelegationSlashed(_serviceProvider, verifier, tokensToSlash);
             } else {
                 emit DelegationSlashingSkipped(_serviceProvider, verifier, tokensToSlash);
@@ -349,9 +349,9 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
     function getIdleStake(address serviceProvider) public view override returns (uint256 tokens) {
         return
-            serviceProviders[serviceProvider].tokensStaked.sub(serviceProviders[serviceProvider].tokensProvisioned).sub(
-                serviceProviders[serviceProvider].__DEPRECATED_tokensLocked
-            );
+            serviceProviders[serviceProvider].tokensStaked -
+            serviceProviders[serviceProvider].tokensProvisioned -
+            serviceProviders[serviceProvider].__DEPRECATED_tokensLocked;
     }
 
     // provisioned tokens from the service provider that are not being thawed
@@ -360,8 +360,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         address _serviceProvider,
         address _verifier
     ) public view override returns (uint256) {
-        return
-            provisions[_serviceProvider][_verifier].tokens.sub(provisions[_serviceProvider][_verifier].tokensThawing);
+        return provisions[_serviceProvider][_verifier].tokens - provisions[_serviceProvider][_verifier].tokensThawing;
     }
 
     // provisioned tokens from delegators that are not being thawed
@@ -372,14 +371,12 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     ) public view override returns (uint256) {
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             return
-                legacyDelegationPools[_serviceProvider].tokens.sub(
-                    legacyDelegationPools[_serviceProvider].tokensThawing
-                );
+                legacyDelegationPools[_serviceProvider].tokens -
+                (legacyDelegationPools[_serviceProvider].tokensThawing);
         }
         return
-            delegationPools[_serviceProvider][_verifier].tokens.sub(
-                delegationPools[_serviceProvider][_verifier].tokensThawing
-            );
+            delegationPools[_serviceProvider][_verifier].tokens -
+            (delegationPools[_serviceProvider][_verifier].tokensThawing);
     }
 
     // provisioned tokens that are not being thawed (including provider tokens and delegation)
@@ -476,23 +473,21 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         // Only allow delegations over a minimum, to prevent rounding attacks
         require(_tokens >= MINIMUM_DELEGATION, "!minimum-delegation");
         DelegationPool storage pool;
-        Delegation storage delegation = pool.delegators[msg.sender];
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             pool = legacyDelegationPools[_serviceProvider];
         } else {
             pool = delegationPools[_serviceProvider][_verifier];
         }
+        Delegation storage delegation = pool.delegators[msg.sender];
 
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0)
-            ? _tokens
-            : _tokens.mul(pool.shares).div(pool.tokens.sub(pool.tokensThawing));
+        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
         require(shares > 0, "!shares");
 
-        pool.tokens = pool.tokens.add(_tokens);
-        pool.shares = pool.shares.add(shares);
+        pool.tokens = pool.tokens + _tokens;
+        pool.shares = pool.shares + shares;
 
-        delegation.shares = delegation.shares.add(shares);
+        delegation.shares = delegation.shares + shares;
 
         emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens);
     }
@@ -510,15 +505,13 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         Delegation storage delegation = pool.delegators[msg.sender];
         require(delegation.shares >= _shares, "!shares-avail");
 
-        uint256 tokens = _shares.mul(pool.tokens.sub(pool.tokensThawing)).div(pool.shares);
+        uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
 
-        uint256 thawingShares = pool.tokensThawing == 0
-            ? tokens
-            : tokens.mul(pool.sharesThawing).div(pool.tokensThawing);
-        pool.tokensThawing = pool.tokensThawing.add(tokens);
+        uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
+        pool.tokensThawing = pool.tokensThawing + tokens;
 
-        pool.shares = pool.shares.sub(_shares);
-        delegation.shares = delegation.shares.sub(_shares);
+        pool.shares = pool.shares - _shares;
+        delegation.shares = delegation.shares - _shares;
 
         bytes32 thawRequestId = keccak256(
             abi.encodePacked(_serviceProvider, _verifier, msg.sender, delegation.nextThawRequestNonce)
@@ -527,7 +520,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         ThawRequest storage thawRequest = thawRequests[thawRequestId];
         thawRequest.shares = thawingShares;
         thawRequest.thawingUntil = uint64(
-            block.timestamp.add(uint256(provisions[_serviceProvider][_verifier].thawingPeriod))
+            block.timestamp + uint256(provisions[_serviceProvider][_verifier].thawingPeriod)
         );
         require(delegation.nThawRequests < MAX_THAW_REQUESTS, "max thaw requests");
         if (delegation.nThawRequests == 0) {
@@ -536,8 +529,9 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
             thawRequests[delegation.lastThawRequestId].next = thawRequestId;
         }
         delegation.lastThawRequestId = thawRequestId;
-        delegation.nThawRequests += 1;
-
+        unchecked {
+            delegation.nThawRequests += 1;
+        }
         emit TokensUndelegated(_serviceProvider, _verifier, msg.sender, tokens);
     }
 
@@ -562,10 +556,10 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = thawRequests[thawRequestId];
             if (thawRequest.thawingUntil <= block.timestamp) {
-                uint256 tokens = thawRequest.shares.mul(tokensThawing).div(sharesThawing);
-                tokensThawing = tokensThawing.sub(tokens);
-                sharesThawing = sharesThawing.sub(thawRequest.shares);
-                thawedTokens = thawedTokens.add(tokens);
+                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+                tokensThawing = tokensThawing - tokens;
+                sharesThawing = sharesThawing - thawRequest.shares;
+                thawedTokens = thawedTokens + tokens;
                 delete thawRequests[thawRequestId];
                 delegation.firstThawRequestId = thawRequest.next;
                 delegation.nThawRequests -= 1;
@@ -578,7 +572,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
             thawRequestId = thawRequest.next;
         }
 
-        pool.tokens = pool.tokens.sub(thawedTokens);
+        pool.tokens = pool.tokens - thawedTokens;
         pool.sharesThawing = sharesThawing;
         pool.tokensThawing = tokensThawing;
 
@@ -596,7 +590,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     }
 
     // To be called at the end of the transition period, to set the deprecated thawing period to 0
-    function clearThawingPeriod() external override onlyGovernor {
+    function clearThawingPeriod() external onlyGovernor {
         __DEPRECATED_thawingPeriod = 0;
         emit ParameterUpdated("thawingPeriod");
     }
@@ -616,7 +610,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         sp.__DEPRECATED_tokensLocked = 0;
         sp.__DEPRECATED_tokensLockedUntil = 0;
 
-        sp.tokensStaked = sp.tokensStaked.sub(tokensToWithdraw);
+        sp.tokensStaked = sp.tokensStaked - tokensToWithdraw;
 
         // Return tokens to the indexer
         TokenUtils.pushTokens(_graphToken(), _indexer, tokensToWithdraw);
@@ -649,7 +643,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         });
 
         ServiceProviderInternal storage sp = serviceProviders[_serviceProvider];
-        sp.tokensProvisioned = sp.tokensProvisioned.add(_tokens);
+        sp.tokensProvisioned = sp.tokensProvisioned + _tokens;
 
         emit ProvisionCreated(_serviceProvider, _verifier, _tokens, _maxVerifierCut, _thawingPeriod);
     }
@@ -664,23 +658,23 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
             bytes32 thawRequestId = prov.firstThawRequestId;
             ThawRequest storage thawRequest = thawRequests[thawRequestId];
             require(thawRequest.thawingUntil <= block.timestamp, "thawing period not over");
-            uint256 thawRequestTokens = thawRequest.shares.mul(tokensThawing).div(sharesThawing);
+            uint256 thawRequestTokens = (thawRequest.shares * tokensThawing) / sharesThawing;
             if (thawRequestTokens <= tokensRemaining) {
-                tokensRemaining = tokensRemaining.sub(thawRequestTokens);
+                tokensRemaining = tokensRemaining - thawRequestTokens;
                 delete thawRequests[thawRequestId];
                 prov.firstThawRequestId = thawRequest.next;
                 prov.nThawRequests -= 1;
-                tokensThawing = tokensThawing.sub(thawRequestTokens);
-                sharesThawing = sharesThawing.sub(thawRequest.shares);
+                tokensThawing = tokensThawing - thawRequestTokens;
+                sharesThawing = sharesThawing - thawRequest.shares;
                 if (prov.nThawRequests == 0) {
                     prov.lastThawRequestId = bytes32(0);
                 }
             } else {
                 // TODO check for potential rounding issues
-                uint256 sharesRemoved = tokensRemaining.mul(prov.sharesThawing).div(prov.tokensThawing);
-                thawRequest.shares = thawRequest.shares.sub(sharesRemoved);
-                tokensThawing = tokensThawing.sub(tokensRemaining);
-                sharesThawing = sharesThawing.sub(sharesRemoved);
+                uint256 sharesRemoved = (tokensRemaining * prov.sharesThawing) / prov.tokensThawing;
+                thawRequest.shares = thawRequest.shares - sharesRemoved;
+                tokensThawing = tokensThawing - tokensRemaining;
+                sharesThawing = sharesThawing - sharesRemoved;
             }
             emit ProvisionThawFulfilled(
                 _serviceProvider,
@@ -691,7 +685,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         }
         prov.sharesThawing = sharesThawing;
         prov.tokensThawing = tokensThawing;
-        prov.tokens = prov.tokens.sub(_tokens);
+        prov.tokens = prov.tokens - _tokens;
     }
 
     function _addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) internal {
@@ -699,14 +693,10 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         require(_tokens > 0, "!tokens");
         require(getIdleStake(_serviceProvider) >= _tokens, "insufficient capacity");
 
-        prov.tokens = prov.tokens.add(_tokens);
-        serviceProviders[_serviceProvider].tokensProvisioned = serviceProviders[_serviceProvider].tokensProvisioned.add(
-            _tokens
-        );
+        prov.tokens = prov.tokens + _tokens;
+        serviceProviders[_serviceProvider].tokensProvisioned =
+            serviceProviders[_serviceProvider].tokensProvisioned +
+            _tokens;
         emit ProvisionIncreased(_serviceProvider, _verifier, _tokens);
-    }
-
-    function _graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(GRAPH_TOKEN);
     }
 }

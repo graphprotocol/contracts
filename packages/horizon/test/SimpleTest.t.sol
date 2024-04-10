@@ -11,7 +11,7 @@ contract ContractTest is Test {
         simpleTest = new SimpleTest();
     }
 
-    function test_NumberIs42() public {
+    function test_NumberIs42() public view {
         assertEq(simpleTest.test(), 42);
     }
 }
