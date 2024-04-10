@@ -65,7 +65,7 @@ interface ISubgraphDisputeManager {
 
     // -- Getters --
 
-    function getVerifierCut() external view returns (uint256);
+    function getVerifierCut() external view returns (uint32);
 
     function getDisputePeriod() external view returns (uint64);
 

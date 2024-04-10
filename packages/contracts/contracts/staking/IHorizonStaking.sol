@@ -101,6 +101,9 @@ interface IHorizonStaking {
     // create a provision
     function provision(uint256 tokens, address verifier, uint32 maxVerifierCut, uint64 thawingPeriod) external;
 
+    // accept a provision
+    function acceptProvision(address serviceProvider) external;
+
     // initiate a thawing to remove tokens from a provision
     function thaw(bytes32 provisionId, uint256 tokens) external returns (bytes32 thawRequestId);
 

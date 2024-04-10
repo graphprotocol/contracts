@@ -6,29 +6,30 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
-import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
+import { ISubgraphDisputeManager } from "./interfaces/ISubgraphDisputeManager.sol";
 import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
+import { GraphDataService } from "./data-service/GraphDataService.sol";
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
+import { SubgraphServiceDirectory } from "./SubgraphServiceDirectory.sol";
 
 // TODO: contract needs to be upgradeable and pausable
-contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService, EIP712 {
+contract SubgraphService is
+    EIP712,
+    Ownable,
+    GraphDataService,
+    SubgraphServiceDirectory,
+    SubgraphServiceV1Storage,
+    ISubgraphService
+{
     // --- EIP 712 ---
     bytes32 private immutable ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
 
-    error SubgraphServiceNotAuthorized(address caller, address serviceProvider, address service);
-    error SubgraphServiceNotDisputeManager(address caller, address disputeManager);
     error SubgraphServiceAlreadyRegistered();
     error SubgraphServiceEmptyUrl();
-    error SubgraphServiceProvisionNotFound(address serviceProvider, address service);
-    error SubgraphServiceInvalidProvisionVerifierCut(uint256 verifierCut, uint256 maxVerifierCut);
-    error SubgraphServiceInvalidProvisionTokens(uint256 tokens, uint256 minimumProvisionTokens);
-    error SubgraphServiceInvalidProvisionThawingPeriod(uint64 thawingPeriod, uint64 disputePeriod);
     error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
     error SubgraphServiceInsufficientTokens(uint256 tokensAvailable, uint256 requiredTokensAvailable);
     error SubgraphServiceStakeClaimNotFound(bytes32 claimId);
@@ -43,39 +44,20 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
     event StakeReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
     event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
 
-    modifier onlyAuthorized(address serviceProvider) {
-        if (!staking.isAuthorized(msg.sender, serviceProvider, address(this))) {
-            revert SubgraphServiceNotAuthorized(msg.sender, serviceProvider, address(this));
-        }
-        _;
-    }
-
-    modifier onlyDisputeManager() {
-        if (msg.sender != address(disputeManager)) {
-            revert SubgraphServiceNotDisputeManager(msg.sender, address(disputeManager));
-        }
-        _;
-    }
-
     constructor(
         string memory name,
         string memory version,
-        address _staking,
-        address _escrow,
-        address _payments,
+        address _graphController,
         address _disputeManager,
         address _tapVerifier,
         uint256 _minimumProvisionTokens
-    ) EIP712(name, version) Ownable(msg.sender) {
-        // TODO: some address validation here, not zero, etc
-        staking = IHorizonStaking(_staking);
-        escrow = IGraphEscrow(_escrow);
-        payments = IGraphPayments(_payments);
-        emit GraphContractsSet(_staking, _escrow, _payments);
-
-        _setDisputeManager(_disputeManager);
-        _setTAPVerifier(_tapVerifier);
-        _setMinimumProvisionTokens(_minimumProvisionTokens);
+    )
+        EIP712(name, version)
+        Ownable(msg.sender)
+        GraphDataService(_graphController)
+        SubgraphServiceDirectory(_tapVerifier, _disputeManager)
+    {
+        _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
     }
 
     // TODO: implement provisionAndRegister convenience method
@@ -83,7 +65,7 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
         address serviceProvider,
         string calldata url,
         string calldata geohash
-    ) external override onlyAuthorized(serviceProvider) {
+    ) external override onlyProvisionAuthorized(serviceProvider) {
         // Must provide a URL
         if (bytes(url).length == 0) {
             revert SubgraphServiceEmptyUrl();
@@ -108,6 +90,9 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
             stakeClaimTail: bytes32(0),
             stakeClaimNonce: 0
         });
+
+        // Accept provision in staking contract
+        graphStaking.acceptProvision(serviceProvider);
     }
 
     function redeem(ITAPVerifier.SignedRAV calldata signedRAV) external override returns (uint256 queryFees) {
@@ -117,7 +102,7 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
 
         // post rav to tap verifier
         address signer = tapVerifier.verify(signedRAV);
-        address payer = escrow.getSender(signer);
+        address payer = graphEscrow.getSender(signer);
 
         // calculate delta
         uint256 tokens = signedRAV.rav.valueAggregate;
@@ -131,7 +116,7 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
         Indexer storage indexer = indexers[serviceProvider];
         uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
         uint256 requiredTokensAvailable = indexer.tokensUsed + tokensToLock;
-        uint256 tokensAvailable = staking.getTokensAvailable(serviceProvider, address(this));
+        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this));
         if (tokensAvailable < requiredTokensAvailable) {
             revert SubgraphServiceInsufficientTokens(tokensAvailable, requiredTokensAvailable);
         }
@@ -156,8 +141,9 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
 
         // call GraphPayments to collect fees
         tokensCollected[serviceProvider][payer] = tokens;
-        payments.collect(payer, serviceProvider, tokensToCollect);
+        graphPayments.collect(payer, serviceProvider, tokensToCollect);
 
+        // TODO: distribute curation fees?!
         emit QueryFeesRedeemed(serviceProvider, payer, tokensToCollect);
     }
 
@@ -198,7 +184,7 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
     }
 
     function slash(address serviceProvider, uint256 tokens, uint256 reward) external override onlyDisputeManager {
-        staking.slash(serviceProvider, tokens, reward, address(disputeManager));
+        graphStaking.slash(serviceProvider, tokens, reward, address(disputeManager));
     }
 
     function allocate(
@@ -208,7 +194,7 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
         address allocationId,
         bytes32 metadata,
         bytes calldata proof
-    ) external override onlyAuthorized(indexer) {
+    ) external override onlyProvisionAuthorized(indexer) {
         // Caller must prove that they own the private key for the allocationId address
         // The proof is an EIP712 signed message of (indexer,allocationId)
         bytes32 digest = encodeProof(indexer, allocationId);
@@ -236,41 +222,6 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
         return _hashTypedDataV4(keccak256(abi.encode(ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
     }
 
-    function setDisputeManager(address _disputeManager) external onlyOwner {
-        _setDisputeManager(_disputeManager);
-    }
-
-    function setMinimumProvisionTokens(uint256 _minimumProvisionTokens) external onlyOwner {
-        _setMinimumProvisionTokens(_minimumProvisionTokens);
-    }
-
-    function setTAPVerifier(address _tapVerifier) external onlyOwner {
-        _setTAPVerifier(_tapVerifier);
-    }
-
-    function _setDisputeManager(address _disputeManager) internal {
-        disputeManager = IDisputeManager(_disputeManager);
-        emit DisputeManagerSet(_disputeManager);
-    }
-
-    function _setTAPVerifier(address _tapVerifier) internal {
-        tapVerifier = ITAPVerifier(_tapVerifier);
-        emit TAPVerifierSet(_tapVerifier);
-    }
-
-    function _setMinimumProvisionTokens(uint256 _minimumProvisionTokens) internal {
-        minimumProvisionTokens = _minimumProvisionTokens;
-        emit MinimumProvisionTokensSet(minimumProvisionTokens);
-    }
-
-    function _getProvision(address serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
-        IHorizonStaking.Provision memory provision = staking.getProvision(serviceProvider, address(this));
-        if (provision.createdAt == 0) {
-            revert SubgraphServiceProvisionNotFound(serviceProvider, address(this));
-        }
-        return provision;
-    }
-
     function _getStakeClaim(bytes32 claimId) internal view returns (StakeClaim memory) {
         StakeClaim memory claim = claims[claimId];
         if (claim.createdAt == 0) {
@@ -279,31 +230,17 @@ contract SubgraphService is Ownable, SubgraphServiceV1Storage, ISubgraphService,
         return claim;
     }
 
-    /// @notice Checks if the service provider has a valid provision for the data service in the staking contract
-    /// @param serviceProvider The address of the service provider
-    function _checkProvision(address serviceProvider) internal view {
-        IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
-
-        // Ensure the provision meets the data service requirements
-        // ... it allows taking the verifier cut
-        uint256 verifierCut = disputeManager.getVerifierCut();
-        if (provision.maxVerifierCut >= verifierCut) {
-            revert SubgraphServiceInvalidProvisionVerifierCut(verifierCut, provision.maxVerifierCut);
-        }
-
-        // ... it has enough stake
-        if (provision.tokens < minimumProvisionTokens) {
-            revert SubgraphServiceInvalidProvisionTokens(provision.tokens, minimumProvisionTokens);
-        }
-
-        // ... it allows enough time for dispute resolution before service provider can withdraw funds
-        uint64 disputePeriod = disputeManager.getDisputePeriod();
-        if (provision.thawingPeriod >= disputePeriod) {
-            revert SubgraphServiceInvalidProvisionThawingPeriod(provision.thawingPeriod, disputePeriod);
-        }
-    }
-
     function _buildStakeClaimId(address serviceProvider, uint256 nonce) internal view returns (bytes32) {
         return keccak256(abi.encodePacked(address(this), serviceProvider, nonce));
+    }
+
+    function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
+        uint64 disputePeriod = disputeManager.getDisputePeriod();
+        return (disputePeriod, type(uint64).max);
+    }
+
+    function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
+        uint32 verifierCut = disputeManager.getVerifierCut();
+        return (verifierCut, type(uint32).max);
     }
 }

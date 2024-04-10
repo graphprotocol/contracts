@@ -394,7 +394,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
      * @dev Get the verifier cut.
      * @return Verifier cut in percentage (ppm)
      */
-    function getVerifierCut() external view returns (uint256) {
+    function getVerifierCut() external view returns (uint32) {
         return fishermanRewardPercentage;
     }
 
