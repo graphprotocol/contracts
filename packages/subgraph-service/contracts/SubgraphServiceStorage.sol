@@ -18,8 +18,5 @@ contract SubgraphServiceV1Storage {
     // tokens collected so far from the scalar escrow
     mapping(address indexer => mapping(address payer => uint256 tokens)) public tokensCollected;
 
-    /// @notice List of locked stake claims to be released to service providers
-    mapping(bytes32 claimId => ISubgraphService.StakeClaim claim) public claims;
-
     mapping(address allocationId => ISubgraphService.Allocation allocation) public allocations;
 }
