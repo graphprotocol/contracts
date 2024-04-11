@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-interface IDataServiceFees {
+import { IDataService } from "../IDataService.sol";
+
+interface IDataServiceFees is IDataService {
     struct FeesServiceProvider {
         uint256 tokensUsed;
         bytes32 stakeClaimHead;

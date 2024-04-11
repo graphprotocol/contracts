@@ -5,7 +5,7 @@ import { ITAPVerifier } from "../interfaces/ITAPVerifier.sol";
 import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
 
-contract Directory {
+abstract contract Directory {
     ITAPVerifier public immutable tapVerifier;
     IDisputeManager public immutable disputeManager;
     ISubgraphService public immutable subgraphService;

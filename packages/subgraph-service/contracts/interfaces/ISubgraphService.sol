@@ -2,8 +2,9 @@
 pragma solidity ^0.8.24;
 
 import { ITAPVerifier } from "./ITAPVerifier.sol";
+import { IDataServiceFees } from "../data-service/extensions/IDataServiceFees.sol";
 
-interface ISubgraphService {
+interface ISubgraphService is IDataServiceFees {
     struct Indexer {
         uint256 registeredAt;
         string url;
@@ -18,9 +19,6 @@ interface ISubgraphService {
         uint256 closedAt;
         uint256 accRewardsPerAllocatedToken;
     }
-
-    // register as a provider in the data service
-    function register(address serviceProvider, string calldata url, string calldata geohash) external;
 
     function slash(address serviceProvider, uint256 tokens, uint256 reward) external;
 

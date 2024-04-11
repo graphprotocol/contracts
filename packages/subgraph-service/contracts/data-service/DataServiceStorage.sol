@@ -19,4 +19,7 @@ contract DataServiceV1Storage {
 
     /// @notice The maximum verifier cut allowed to register a provision in the data service
     uint32 public maximumVerifierCut;
+
+    /// @dev Gap to allow adding variables in future upgrades
+    uint256[50] private __gap;
 }

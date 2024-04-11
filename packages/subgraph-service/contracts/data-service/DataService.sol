@@ -5,8 +5,9 @@ import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHor
 import { GraphDirectory } from "./GraphDirectory.sol";
 
 import { DataServiceV1Storage } from "./DataServiceStorage.sol";
+import { IDataService } from "./IDataService.sol";
 
-contract DataService is GraphDirectory, DataServiceV1Storage {
+abstract contract DataService is GraphDirectory, DataServiceV1Storage, IDataService {
     error GraphDataServiceNotAuthorized(address caller, address serviceProvider, address service);
     error GraphDataServiceProvisionNotFound(address serviceProvider, address service);
     error GraphDataServiceInvalidProvisionTokens(

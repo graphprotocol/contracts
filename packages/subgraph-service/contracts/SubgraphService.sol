@@ -16,8 +16,7 @@ import { Directory } from "./utils/Directory.sol";
 
 // TODO: contract needs to be upgradeable and pausable
 contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, SubgraphServiceV1Storage, ISubgraphService {
-    // --- EIP 712 ---
-    bytes32 private immutable ALLOCATION_PROOF_TYPEHASH =
+    bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
 
     error SubgraphServiceAlreadyRegistered();
@@ -28,14 +27,14 @@ contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, Subgrap
     event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
 
     constructor(
-        string memory name,
-        string memory version,
+        string memory eip712Name,
+        string memory eip712Version,
         address _graphController,
         address _disputeManager,
         address _tapVerifier,
         uint256 _minimumProvisionTokens
     )
-        EIP712(name, version)
+        EIP712(eip712Name, eip712Version)
         Ownable(msg.sender)
         DataServiceFees(_graphController)
         Directory(address(this), _tapVerifier, _disputeManager)
@@ -43,12 +42,12 @@ contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, Subgrap
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
     }
 
-    // TODO: implement provisionAndRegister convenience method
     function register(
         address serviceProvider,
-        string calldata url,
-        string calldata geohash
+        bytes calldata data
     ) external override onlyProvisionAuthorized(serviceProvider) {
+        (string memory url, string memory geohash) = abi.decode(data, (string, string));
+
         // Must provide a URL
         if (bytes(url).length == 0) {
             revert SubgraphServiceEmptyUrl();
@@ -62,8 +61,7 @@ contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, Subgrap
         // Ensure the service provider created a valid provision for the data service
         _checkProvision(serviceProvider);
 
-        // TODO: save delegator cut parameters
-        // Register the service provider
+        // Register the indexer
         indexers[serviceProvider] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
         feesServiceProviders[serviceProvider] = FeesServiceProvider({
             tokensUsed: 0,
@@ -141,7 +139,7 @@ contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, Subgrap
     }
 
     function encodeProof(address indexer, address allocationId) public view returns (bytes32) {
-        return _hashTypedDataV4(keccak256(abi.encode(ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
+        return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
     }
 
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {

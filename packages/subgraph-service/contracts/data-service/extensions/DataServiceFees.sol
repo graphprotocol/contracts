@@ -5,7 +5,7 @@ import { DataService } from "../DataService.sol";
 import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 import { IDataServiceFees } from "./IDataServiceFees.sol";
 
-contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
+abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     error GDSFeesClaimNotFound(bytes32 claimId);
     error GDSFeesInsufficientTokens(uint256 available, uint256 required);
     error GDSFeesCannotReleaseStake(uint256 tokensUsed, uint256 tokensClaim);
