@@ -11,7 +11,7 @@ import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 import { ISubgraphDisputeManager } from "./interfaces/ISubgraphDisputeManager.sol";
 import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
-import { GraphDataServiceFees } from "./data-service/extensions/GraphDataServiceFees.sol";
+import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 import { SubgraphServiceDirectory } from "./SubgraphServiceDirectory.sol";
 
@@ -19,7 +19,7 @@ import { SubgraphServiceDirectory } from "./SubgraphServiceDirectory.sol";
 contract SubgraphService is
     EIP712,
     Ownable,
-    GraphDataServiceFees,
+    DataServiceFees,
     SubgraphServiceDirectory,
     SubgraphServiceV1Storage,
     ISubgraphService
@@ -45,7 +45,7 @@ contract SubgraphService is
     )
         EIP712(name, version)
         Ownable(msg.sender)
-        GraphDataServiceFees(_graphController)
+        DataServiceFees(_graphController)
         SubgraphServiceDirectory(address(this), _tapVerifier, _disputeManager)
     {
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);

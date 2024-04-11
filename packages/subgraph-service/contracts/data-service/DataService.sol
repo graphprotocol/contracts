@@ -2,11 +2,11 @@
 pragma solidity ^0.8.24;
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-
 import { GraphDirectory } from "./GraphDirectory.sol";
-import { GraphDataServiceV1Storage } from "./GraphDataServiceStorage.sol";
 
-contract GraphDataService is GraphDirectory, GraphDataServiceV1Storage {
+import { DataServiceV1Storage } from "./DataServiceStorage.sol";
+
+contract DataService is GraphDirectory, DataServiceV1Storage {
     error GraphDataServiceNotAuthorized(address caller, address serviceProvider, address service);
     error GraphDataServiceProvisionNotFound(address serviceProvider, address service);
     error GraphDataServiceInvalidProvisionTokens(

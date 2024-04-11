@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { GraphDataService } from "../GraphDataService.sol";
-import { GraphDataServiceFeesV1Storage } from "./GDSFeesStorage.sol";
-import { IGraphDataServiceFees } from "./IGraphDataServiceFees.sol";
+import { DataService } from "../DataService.sol";
+import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
+import { IDataServiceFees } from "./IDataServiceFees.sol";
 
-contract GraphDataServiceFees is GraphDataService, GraphDataServiceFeesV1Storage, IGraphDataServiceFees {
+contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     error GDSFeesClaimNotFound(bytes32 claimId);
     error GDSFeesInsufficientTokens(uint256 available, uint256 required);
     error GDSFeesCannotReleaseStake(uint256 tokensUsed, uint256 tokensClaim);
@@ -13,7 +13,7 @@ contract GraphDataServiceFees is GraphDataService, GraphDataServiceFeesV1Storage
     event StakeLocked(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 unlockTimestamp);
     event StakeReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
 
-    constructor(address _controller) GraphDataService(_controller) {}
+    constructor(address _controller) DataService(_controller) {}
 
     function lockStake(address serviceProvider, uint256 tokens, uint256 unlockTimestamp) internal {
         // do stake checks

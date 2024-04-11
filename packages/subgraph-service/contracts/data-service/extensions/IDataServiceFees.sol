@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-interface IGraphDataServiceFees {
+interface IDataServiceFees {
     struct FeesServiceProvider {
         uint256 tokensUsed;
         bytes32 stakeClaimHead;
