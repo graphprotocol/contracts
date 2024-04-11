@@ -1,0 +1,20 @@
+pragma solidity >=0.6.12 <0.9.0;
+
+interface IL2StakingTypes {
+    /// @dev Message codes for the L1 -> L2 bridge callhook
+    enum L1MessageCodes {
+        RECEIVE_INDEXER_STAKE_CODE,
+        RECEIVE_DELEGATION_CODE
+    }
+
+    /// @dev Encoded message struct when receiving indexer stake through the bridge
+    struct ReceiveIndexerStakeData {
+        address indexer;
+    }
+
+    /// @dev Encoded message struct when receiving delegation through the bridge
+    struct ReceiveDelegationData {
+        address indexer;
+        address delegator;
+    }
+}
