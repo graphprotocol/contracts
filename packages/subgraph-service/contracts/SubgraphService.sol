@@ -8,7 +8,6 @@ import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
@@ -16,14 +15,7 @@ import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 import { Directory } from "./utils/Directory.sol";
 
 // TODO: contract needs to be upgradeable and pausable
-contract SubgraphService is
-    EIP712,
-    Ownable,
-    DataServiceFees,
-    SubgraphServiceDirectory,
-    SubgraphServiceV1Storage,
-    ISubgraphService
-{
+contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, SubgraphServiceV1Storage, ISubgraphService {
     // --- EIP 712 ---
     bytes32 private immutable ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
@@ -46,7 +38,7 @@ contract SubgraphService is
         EIP712(name, version)
         Ownable(msg.sender)
         DataServiceFees(_graphController)
-        SubgraphServiceDirectory(address(this), _tapVerifier, _disputeManager)
+        Directory(address(this), _tapVerifier, _disputeManager)
     {
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
     }
@@ -133,7 +125,7 @@ contract SubgraphService is
             revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
         }
 
-        Allocation memory allocation = ISubgraphService.Allocation({
+        Allocation memory allocation = Allocation({
             indexer: indexer,
             subgraphDeploymentID: subgraphDeploymentId,
             tokens: tokens,

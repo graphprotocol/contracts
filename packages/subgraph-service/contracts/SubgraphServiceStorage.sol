@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-import { ISubgraphDisputeManager } from "./interfaces/ISubgraphDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
-import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
-import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 
 contract SubgraphServiceV1Storage {
     // multiplier for how many tokens back collected query fees

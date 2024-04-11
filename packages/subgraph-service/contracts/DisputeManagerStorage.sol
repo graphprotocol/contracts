@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.24;
 
-import "./interfaces/ISubgraphDisputeManager.sol";
+import "./interfaces/IDisputeManager.sol";
 
-contract SubgraphDisputeManagerV1Storage {
+contract DisputeManagerV1Storage {
     // -- State --
 
     bytes32 internal DOMAIN_SEPARATOR;
@@ -28,5 +28,5 @@ contract SubgraphDisputeManagerV1Storage {
 
     // Disputes created : disputeID => Dispute
     // disputeID - check creation functions to see how disputeID is built
-    mapping(bytes32 disputeID => ISubgraphDisputeManager.Dispute dispute) public disputes;
+    mapping(bytes32 disputeID => IDisputeManager.Dispute dispute) public disputes;
 }

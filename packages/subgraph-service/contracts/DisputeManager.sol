@@ -13,9 +13,10 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { Directory } from "./utils/Directory.sol";
 
 /*
- * @title SubgraphDisputeManager
+ * @title DisputeManager
  * @notice Provides a way to align the incentives of participants by having slashing as deterrent
  * for incorrect behaviour.
  *
@@ -37,7 +38,7 @@ import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
  */
-contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISubgraphDisputeManager {
+contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     // -- EIP-712  --
 
     bytes32 private constant DOMAIN_TYPE_HASH =
@@ -62,7 +63,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     error SubgraphDisputeManagerInvalidMaxSlashingPercentage(uint32 maxSlashingPercentage);
     error SubgraphDisputeManagerInvalidSlashAmount(uint256 slashAmount);
     error SubgraphDisputeManagerInvalidBytesLength(uint256 length, uint256 expectedLength);
-    error SubgraphDisputeManagerInvalidDisputeStatus(ISubgraphDisputeManager.DisputeStatus status);
+    error SubgraphDisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
     error SubgraphDisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
     error SubgraphDisputeManagerDisputeAlreadyCreated(bytes32 disputeID);
     error SubgraphDisputeManagerDisputePeriodNotFinished();
@@ -197,7 +198,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
             revert SubgraphDisputeManagerInvalidDispute(_disputeID);
         }
 
-        if (disputes[_disputeID].status != ISubgraphDisputeManager.DisputeStatus.Pending) {
+        if (disputes[_disputeID].status != IDisputeManager.DisputeStatus.Pending) {
             revert SubgraphDisputeManagerInvalidDisputeStatus(disputes[_disputeID].status);
         }
         _;
@@ -598,7 +599,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
             _deposit,
             0, // no related dispute,
             DisputeType.QueryDispute,
-            ISubgraphDisputeManager.DisputeStatus.Pending,
+            IDisputeManager.DisputeStatus.Pending,
             block.timestamp
         );
 
@@ -671,7 +672,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
             _deposit,
             0,
             DisputeType.IndexingDispute,
-            ISubgraphDisputeManager.DisputeStatus.Pending,
+            IDisputeManager.DisputeStatus.Pending,
             block.timestamp
         );
 
@@ -696,7 +697,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         Dispute storage dispute = disputes[_disputeID];
 
         // store the dispute status
-        dispute.status = ISubgraphDisputeManager.DisputeStatus.Accepted;
+        dispute.status = IDisputeManager.DisputeStatus.Accepted;
 
         // Slash
         uint256 tokensToReward = _slashIndexer(dispute.indexer, _slashAmount);
@@ -720,7 +721,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         Dispute storage dispute = disputes[_disputeID];
 
         // store dispute status
-        dispute.status = ISubgraphDisputeManager.DisputeStatus.Rejected;
+        dispute.status = IDisputeManager.DisputeStatus.Rejected;
 
         // For conflicting disputes, the related dispute must be accepted
         if (_isDisputeInConflict(dispute)) {
@@ -748,7 +749,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         _drawDisputeInConflict(dispute);
 
         // store dispute status
-        dispute.status = ISubgraphDisputeManager.DisputeStatus.Drawn;
+        dispute.status = IDisputeManager.DisputeStatus.Drawn;
 
         emit DisputeDrawn(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
@@ -776,7 +777,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         _cancelDisputeInConflict(dispute);
 
         // store dispute status
-        dispute.status = ISubgraphDisputeManager.DisputeStatus.Cancelled;
+        dispute.status = IDisputeManager.DisputeStatus.Cancelled;
     }
 
     /**
@@ -787,7 +788,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
     function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
         bytes32 relatedID = _dispute.relatedDisputeID;
         // this is so the check returns false when rejecting the related dispute.
-        return relatedID != 0 && disputes[relatedID].status == ISubgraphDisputeManager.DisputeStatus.Pending;
+        return relatedID != 0 && disputes[relatedID].status == IDisputeManager.DisputeStatus.Pending;
     }
 
     /**
@@ -799,7 +800,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         if (_isDisputeInConflict(_dispute)) {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             Dispute storage relatedDispute = disputes[relatedDisputeID];
-            relatedDispute.status = ISubgraphDisputeManager.DisputeStatus.Drawn;
+            relatedDispute.status = IDisputeManager.DisputeStatus.Drawn;
             return true;
         }
         return false;
@@ -814,7 +815,7 @@ contract SubgraphDisputeManager is Ownable, SubgraphDisputeManagerV1Storage, ISu
         if (_isDisputeInConflict(_dispute)) {
             bytes32 relatedDisputeID = _dispute.relatedDisputeID;
             Dispute storage relatedDispute = disputes[relatedDisputeID];
-            relatedDispute.status = ISubgraphDisputeManager.DisputeStatus.Cancelled;
+            relatedDispute.status = IDisputeManager.DisputeStatus.Cancelled;
             return true;
         }
         return false;
