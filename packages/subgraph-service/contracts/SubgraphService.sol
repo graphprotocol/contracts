@@ -8,12 +8,12 @@ import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { ISubgraphDisputeManager } from "./interfaces/ISubgraphDisputeManager.sol";
+import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
-import { SubgraphServiceDirectory } from "./SubgraphServiceDirectory.sol";
+import { Directory } from "./utils/Directory.sol";
 
 // TODO: contract needs to be upgradeable and pausable
 contract SubgraphService is

@@ -10,8 +10,8 @@ import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 
-import { SubgraphDisputeManagerV1Storage } from "./SubgraphDisputeManagerStorage.sol";
-import { ISubgraphDisputeManager } from "./interfaces/ISubgraphDisputeManager.sol";
+import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
+import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 /*

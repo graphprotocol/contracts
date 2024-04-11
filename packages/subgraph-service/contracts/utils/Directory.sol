@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
-import { ISubgraphDisputeManager } from "./interfaces/ISubgraphDisputeManager.sol";
-import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { ITAPVerifier } from "../interfaces/ITAPVerifier.sol";
+import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
+import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
 
-contract SubgraphServiceDirectory {
+contract Directory {
     ITAPVerifier public immutable tapVerifier;
-    ISubgraphDisputeManager public immutable disputeManager;
+    IDisputeManager public immutable disputeManager;
     ISubgraphService public immutable subgraphService;
 
     event SubgraphServiceDirectoryInitialized(address subgraphService, address tapVerifier, address disputeManager);
@@ -23,7 +23,7 @@ contract SubgraphServiceDirectory {
     constructor(address _subgraphService, address _tapVerifier, address _disputeManager) {
         subgraphService = ISubgraphService(_subgraphService);
         tapVerifier = ITAPVerifier(_tapVerifier);
-        disputeManager = ISubgraphDisputeManager(_disputeManager);
+        disputeManager = IDisputeManager(_disputeManager);
 
         emit SubgraphServiceDirectoryInitialized(_subgraphService, _tapVerifier, _disputeManager);
     }
