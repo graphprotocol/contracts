@@ -26,7 +26,7 @@ interface IDisputeManager {
         address indexer;
         address fisherman;
         uint256 deposit;
-        bytes32 relatedDisputeID;
+        bytes32 relatedDisputeId;
         DisputeType disputeType;
         DisputeStatus status;
         uint256 createdAt;
@@ -38,14 +38,14 @@ interface IDisputeManager {
     struct Receipt {
         bytes32 requestCID;
         bytes32 responseCID;
-        bytes32 subgraphDeploymentID;
+        bytes32 subgraphDeploymentId;
     }
 
     // Attestation sent from the service provider in response to a request
     struct Attestation {
         bytes32 requestCID;
         bytes32 responseCID;
-        bytes32 subgraphDeploymentID;
+        bytes32 subgraphDeploymentId;
         bytes32 r;
         bytes32 s;
         uint8 v;
@@ -69,7 +69,7 @@ interface IDisputeManager {
 
     function getDisputePeriod() external view returns (uint64);
 
-    function isDisputeCreated(bytes32 _disputeID) external view returns (bool);
+    function isDisputeCreated(bytes32 _disputeId) external view returns (bool);
 
     function encodeHashReceipt(Receipt memory _receipt) external view returns (bytes32);
 
@@ -89,13 +89,13 @@ interface IDisputeManager {
         bytes calldata _attestationData2
     ) external returns (bytes32, bytes32);
 
-    function createIndexingDispute(address _allocationID, uint256 _deposit) external returns (bytes32);
+    function createIndexingDispute(address _allocationId, uint256 _deposit) external returns (bytes32);
 
-    function acceptDispute(bytes32 _disputeID, uint256 _slashAmount) external;
+    function acceptDispute(bytes32 _disputeId, uint256 _slashAmount) external;
 
-    function rejectDispute(bytes32 _disputeID) external;
+    function rejectDispute(bytes32 _disputeId) external;
 
-    function drawDispute(bytes32 _disputeID) external;
+    function drawDispute(bytes32 _disputeId) external;
 
-    function cancelDispute(bytes32 _disputeID) external;
+    function cancelDispute(bytes32 _disputeId) external;
 }

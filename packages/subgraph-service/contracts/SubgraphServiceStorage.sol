@@ -16,5 +16,6 @@ contract SubgraphServiceV1Storage {
     // tokens collected so far from the scalar escrow
     mapping(address indexer => mapping(address payer => uint256 tokens)) public tokensCollected;
 
+    mapping(address indexer => uint256 tokens) public provisionTrackerAllocations;
     mapping(address allocationId => ISubgraphService.Allocation allocation) public allocations;
 }

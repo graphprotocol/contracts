@@ -4,16 +4,15 @@ pragma solidity ^0.8.24;
 import { IDataService } from "../IDataService.sol";
 
 interface IDataServiceFees is IDataService {
-    struct FeesServiceProvider {
-        uint256 tokensUsed;
-        bytes32 stakeClaimHead;
-        bytes32 stakeClaimTail;
-        uint256 stakeClaimNonce;
+    struct StakeClaimsList {
+        bytes32 head;
+        bytes32 tail;
+        uint256 nonce;
     }
 
     /// A locked stake claim to be released to a service provider
     struct StakeClaim {
-        address indexer;
+        address serviceProvider;
         // tokens to be released with this claim
         uint256 tokens;
         uint256 createdAt;

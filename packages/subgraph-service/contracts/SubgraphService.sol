@@ -5,15 +5,17 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
+import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 
 import { DataService } from "./data-service/DataService.sol";
 import { DataServiceOwnable } from "./data-service/extensions/DataServiceOwnable.sol";
 import { DataServiceRescuable } from "./data-service/extensions/DataServiceRescuable.sol";
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
+import { ProvisionTracker } from "./data-service/utils/ProvisionTracker.sol";
 
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 import { Directory } from "./utils/Directory.sol";
 
 // TODO: contract needs to be upgradeable and pausable
@@ -27,6 +29,8 @@ contract SubgraphService is
     SubgraphServiceV1Storage,
     ISubgraphService
 {
+    using ProvisionTracker for mapping(address => uint256);
+
     uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
     bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
@@ -34,8 +38,25 @@ contract SubgraphService is
     error SubgraphServiceEmptyUrl();
     error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
     error SubgraphServiceInvalidAllocationProof(address signer, address allocationId);
-
+    error SubgraphServiceAllocationAlreadyExists(address allocationId);
+    error SubgraphServiceInvalidZeroAllocationId();
+    error SubgraphServiceAllocateInsufficientTokens(uint256 available, uint256 required);
+    error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
     event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
+
+    /**
+     * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
+     * during `epoch`.
+     * `allocationID` indexer derived address used to identify the allocation.
+     * `metadata` additional information related to the allocation.
+     */
+    event AllocationCreated(
+        address indexed indexer,
+        bytes32 indexed subgraphDeploymentId,
+        uint256 epoch,
+        uint256 tokens,
+        address indexed allocationId
+    );
 
     constructor(
         string memory eip712Name,
@@ -76,23 +97,27 @@ contract SubgraphService is
 
         // Register the indexer
         indexers[serviceProvider] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
-        feesServiceProviders[serviceProvider] = FeesServiceProvider({
-            tokensUsed: 0,
-            stakeClaimHead: bytes32(0),
-            stakeClaimTail: bytes32(0),
-            stakeClaimNonce: 0
-        });
 
         // Accept provision in staking contract
         graphStaking.acceptProvision(serviceProvider);
     }
 
-    function redeem(bytes calldata data) external override returns (uint256 feesCollected) {
-        ITAPVerifier.SignedRAV memory signedRAV = abi.decode(data, (ITAPVerifier.SignedRAV));
+    function redeem(
+        IGraphPayments.PaymentTypes feeType,
+        bytes calldata data
+    ) external override returns (uint256 feesCollected) {
+        if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
+            feesCollected = _redeemQueryFees(abi.decode(data, (ITAPVerifier.SignedRAV)));
+        } else {
+            revert SubgraphServiceInvalidPaymentType(feeType);
+        }
+    }
+
+    function _redeemQueryFees(ITAPVerifier.SignedRAV memory signedRAV) internal returns (uint256 feesCollected) {
         address serviceProvider = signedRAV.rav.serviceProvider;
 
         // release expired stake claims
-        releaseStake(serviceProvider, 0);
+        releaseStake(IGraphPayments.PaymentTypes.QueryFee, serviceProvider, 0);
 
         // validate RAV and calculate tokens to collect
         address payer = tapVerifier.verify(signedRAV);
@@ -106,7 +131,7 @@ contract SubgraphService is
         // lock stake as economic security for fees
         uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
         uint256 unlockTimestamp = block.timestamp + disputeManager.getDisputePeriod();
-        lockStake(serviceProvider, tokensToLock, unlockTimestamp);
+        lockStake(IGraphPayments.PaymentTypes.QueryFee, serviceProvider, tokensToLock, unlockTimestamp);
 
         // collect fees
         tokensCollected[serviceProvider][payer] = tokens;
@@ -128,9 +153,16 @@ contract SubgraphService is
         bytes32 subgraphDeploymentId,
         uint256 tokens,
         address allocationId,
-        bytes32 metadata,
         bytes calldata proof
     ) external override onlyProvisionAuthorized(indexer) {
+        if (allocationId == address(0)) {
+            revert SubgraphServiceInvalidZeroAllocationId();
+        }
+
+        if (allocations[allocationId].createdAt != 0) {
+            revert SubgraphServiceAllocationAlreadyExists(allocationId);
+        }
+
         // Caller must prove that they own the private key for the allocationId address
         // The proof is an EIP712 signed message of (indexer,allocationId)
         bytes32 digest = encodeProof(indexer, allocationId);
@@ -139,15 +171,24 @@ contract SubgraphService is
             revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
         }
 
+        // Check that the indexer has enough tokens available
+        provisionTrackerAllocations.lock(graphStaking, indexer, tokens);
+
         Allocation memory allocation = Allocation({
             indexer: indexer,
-            subgraphDeploymentID: subgraphDeploymentId,
+            subgraphDeploymentId: subgraphDeploymentId,
             tokens: tokens,
             createdAt: block.timestamp,
             closedAt: 0,
             accRewardsPerAllocatedToken: 0
         });
         allocations[allocationId] = allocation;
+
+        if (tokens > 0) {
+            // TODO: update subgraphAllocations for rewards
+        }
+
+        emit AllocationCreated(indexer, subgraphDeploymentId, allocation.createdAt, allocation.tokens, allocationId);
     }
 
     function getAllocation(address allocationId) external view returns (Allocation memory) {

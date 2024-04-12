@@ -4,72 +4,66 @@ pragma solidity ^0.8.24;
 import { DataService } from "../DataService.sol";
 import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 import { IDataServiceFees } from "./IDataServiceFees.sol";
+import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
+
+import { ProvisionTracker } from "../utils/ProvisionTracker.sol";
 
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
-    error GDSFeesClaimNotFound(bytes32 claimId);
-    error GDSFeesInsufficientTokens(uint256 available, uint256 required);
-    error GDSFeesCannotReleaseStake(uint256 tokensUsed, uint256 tokensClaim);
+    using ProvisionTracker for mapping(address => uint256);
 
-    event StakeLocked(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 unlockTimestamp);
-    event StakeReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
+    error DataServiceFeesClaimNotFound(bytes32 claimId);
 
-    function lockStake(address serviceProvider, uint256 tokens, uint256 unlockTimestamp) internal {
-        // do stake checks
-        FeesServiceProvider storage serviceProviderDetails = feesServiceProviders[serviceProvider];
-        uint256 requiredTokensAvailable = serviceProviderDetails.tokensUsed + tokens;
-        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this));
-        if (tokensAvailable < requiredTokensAvailable) {
-            revert GDSFeesInsufficientTokens(tokensAvailable, requiredTokensAvailable);
-        }
+    event StakeClaimLocked(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 unlockTimestamp);
+    event StakeClaimReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
 
-        // lock stake for economic security
-        bytes32 claimId = _buildStakeClaimId(serviceProvider, serviceProviderDetails.stakeClaimNonce);
+    function lockStake(
+        IGraphPayments.PaymentTypes feeType,
+        address serviceProvider,
+        uint256 tokens,
+        uint256 unlockTimestamp
+    ) internal {
+        provisionTracker[feeType].lock(graphStaking, serviceProvider, tokens);
+
+        StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];
+        bytes32 claimId = _buildStakeClaimId(serviceProvider, claimsList.nonce);
         claims[claimId] = StakeClaim({
-            indexer: serviceProvider,
+            serviceProvider: serviceProvider,
             tokens: tokens,
             createdAt: block.timestamp,
             releaseAt: unlockTimestamp,
             nextClaim: bytes32(0)
         });
 
-        claims[serviceProviderDetails.stakeClaimTail].nextClaim = claimId;
-        serviceProviderDetails.stakeClaimTail = claimId;
-        serviceProviderDetails.stakeClaimNonce += 1;
-        serviceProviderDetails.tokensUsed += tokens;
+        claims[claimsList.tail].nextClaim = claimId;
+        claimsList.tail = claimId;
+        claimsList.nonce += 1;
 
-        emit StakeLocked(serviceProvider, claimId, tokens, unlockTimestamp);
+        emit StakeClaimLocked(serviceProvider, claimId, tokens, unlockTimestamp);
     }
 
     /// @notice Release expired stake claims for a service provider
     /// @param n The number of stake claims to release, or 0 to release all
-    function releaseStake(address serviceProvider, uint256 n) public {
+    function releaseStake(IGraphPayments.PaymentTypes feeType, address serviceProvider, uint256 n) public {
         bool releaseAll = n == 0;
 
         // check the stake claims list
-        bytes32 head = feesServiceProviders[serviceProvider].stakeClaimHead;
+        // TODO: evaluate replacing with OZ DoubleEndedQueue
+        bytes32 head = claimsLists[feeType][serviceProvider].head;
         while (head != bytes32(0) && (releaseAll || n > 0)) {
             StakeClaim memory claim = _getStakeClaim(head);
 
             if (block.timestamp >= claim.releaseAt) {
                 // Release stake
-                FeesServiceProvider storage serviceProviderDetails = feesServiceProviders[serviceProvider];
-                if (claim.tokens > serviceProviderDetails.tokensUsed) {
-                    revert GDSFeesCannotReleaseStake(serviceProviderDetails.tokensUsed, claim.tokens);
-                }
-                serviceProviderDetails.tokensUsed -= claim.tokens;
+                provisionTracker[feeType].release(serviceProvider, claim.tokens);
 
                 // Update list and refresh pointer
-                serviceProviderDetails.stakeClaimHead = claim.nextClaim;
+                StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];
+                claimsList.head = claim.nextClaim;
                 delete claims[head];
-                head = serviceProviderDetails.stakeClaimHead;
+                head = claimsList.head;
                 if (!releaseAll) n--;
 
-                emit StakeReleased(
-                    serviceProvider,
-                    serviceProviderDetails.stakeClaimHead,
-                    claim.tokens,
-                    claim.releaseAt
-                );
+                emit StakeClaimReleased(serviceProvider, claimsList.head, claim.tokens, claim.releaseAt);
             } else {
                 break;
             }
@@ -79,7 +73,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     function _getStakeClaim(bytes32 claimId) private view returns (StakeClaim memory) {
         StakeClaim memory claim = claims[claimId];
         if (claim.createdAt == 0) {
-            revert GDSFeesClaimNotFound(claimId);
+            revert DataServiceFeesClaimNotFound(claimId);
         }
         return claim;
     }

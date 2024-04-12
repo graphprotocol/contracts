@@ -57,7 +57,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     error SubgraphDisputeManagerSubgraphServiceZeroAddress();
     error SubgraphDisputeManagerDisputePeriodZero();
     error SubgraphDisputeManagerZeroTokens();
-    error SubgraphDisputeManagerInvalidDispute(bytes32 disputeID);
+    error SubgraphDisputeManagerInvalidDispute(bytes32 disputeId);
     error SubgraphDisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
     error SubgraphDisputeManagerInvalidFishermanReward(uint32 percentage);
     error SubgraphDisputeManagerInvalidMaxSlashingPercentage(uint32 maxSlashingPercentage);
@@ -65,21 +65,21 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     error SubgraphDisputeManagerInvalidBytesLength(uint256 length, uint256 expectedLength);
     error SubgraphDisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
     error SubgraphDisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
-    error SubgraphDisputeManagerDisputeAlreadyCreated(bytes32 disputeID);
+    error SubgraphDisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
     error SubgraphDisputeManagerDisputePeriodNotFinished();
-    error SubgraphDisputeManagerMustAcceptRelatedDispute(bytes32 disputeID, bytes32 relatedDisputeID);
-    error SubgraphDisputeManagerIndexerNotFound(address allocationID);
+    error SubgraphDisputeManagerMustAcceptRelatedDispute(bytes32 disputeId, bytes32 relatedDisputeId);
+    error SubgraphDisputeManagerIndexerNotFound(address allocationId);
     error SubgraphDisputeManagerNonMatchingSubgraphDeployment(
-        bytes32 subgraphDeploymentID1,
-        bytes32 subgraphDeploymentID2
+        bytes32 subgraphDeploymentId1,
+        bytes32 subgraphDeploymentId2
     );
     error SubgraphDisputeManagerNonConflictingAttestations(
         bytes32 requestCID1,
         bytes32 responseCID1,
-        bytes32 subgraphDeploymentID1,
+        bytes32 subgraphDeploymentId1,
         bytes32 requestCID2,
         bytes32 responseCID2,
-        bytes32 subgraphDeploymentID2
+        bytes32 subgraphDeploymentId2
     );
 
     // -- Constants --
@@ -116,66 +116,66 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     event ParameterUpdated(string param);
 
     /**
-     * @dev Emitted when a query dispute is created for `subgraphDeploymentID` and `indexer`
+     * @dev Emitted when a query dispute is created for `subgraphDeploymentId` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman and `attestation` submitted.
      */
     event QueryDisputeCreated(
-        bytes32 indexed disputeID,
+        bytes32 indexed disputeId,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
-        bytes32 subgraphDeploymentID,
+        bytes32 subgraphDeploymentId,
         bytes attestation
     );
 
     /**
-     * @dev Emitted when an indexing dispute is created for `allocationID` and `indexer`
+     * @dev Emitted when an indexing dispute is created for `allocationId` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman.
      */
     event IndexingDisputeCreated(
-        bytes32 indexed disputeID,
+        bytes32 indexed disputeId,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
-        address allocationID
+        address allocationId
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeID` to `indexer` created by `fisherman`.
+     * @dev Emitted when arbitrator accepts a `disputeId` to `indexer` created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      */
     event DisputeAccepted(
-        bytes32 indexed disputeID,
+        bytes32 indexed disputeId,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeID` for `indexer` created by `fisherman`.
+     * @dev Emitted when arbitrator rejects a `disputeId` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
      */
     event DisputeRejected(
-        bytes32 indexed disputeID,
+        bytes32 indexed disputeId,
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeID` for `indexer` created by `fisherman`.
+     * @dev Emitted when arbitrator draw a `disputeId` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      */
-    event DisputeDrawn(bytes32 indexed disputeID, address indexed indexer, address indexed fisherman, uint256 tokens);
+    event DisputeDrawn(bytes32 indexed disputeId, address indexed indexer, address indexed fisherman, uint256 tokens);
 
     /**
      * @dev Emitted when two disputes are in conflict to link them.
      * This event will be emitted after each DisputeCreated event is emitted
      * for each of the individual disputes.
      */
-    event DisputeLinked(bytes32 indexed disputeID1, bytes32 indexed disputeID2);
+    event DisputeLinked(bytes32 indexed disputeId1, bytes32 indexed disputeId2);
 
     // -- Modifiers --
 
@@ -193,23 +193,23 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         _;
     }
 
-    modifier onlyPendingDispute(bytes32 _disputeID) {
-        if (!isDisputeCreated(_disputeID)) {
-            revert SubgraphDisputeManagerInvalidDispute(_disputeID);
+    modifier onlyPendingDispute(bytes32 _disputeId) {
+        if (!isDisputeCreated(_disputeId)) {
+            revert SubgraphDisputeManagerInvalidDispute(_disputeId);
         }
 
-        if (disputes[_disputeID].status != IDisputeManager.DisputeStatus.Pending) {
-            revert SubgraphDisputeManagerInvalidDisputeStatus(disputes[_disputeID].status);
+        if (disputes[_disputeId].status != IDisputeManager.DisputeStatus.Pending) {
+            revert SubgraphDisputeManagerInvalidDisputeStatus(disputes[_disputeId].status);
         }
         _;
     }
 
-    modifier onlyFisherman(bytes32 _disputeID) {
-        if (!isDisputeCreated(_disputeID)) {
-            revert SubgraphDisputeManagerInvalidDispute(_disputeID);
+    modifier onlyFisherman(bytes32 _disputeId) {
+        if (!isDisputeCreated(_disputeId)) {
+            revert SubgraphDisputeManagerInvalidDispute(_disputeId);
         }
 
-        if (msg.sender != disputes[_disputeID].fisherman) {
+        if (msg.sender != disputes[_disputeId].fisherman) {
             revert SubgraphDisputeManagerNotFisherman();
         }
         _;
@@ -252,7 +252,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
                 DOMAIN_TYPE_HASH,
                 DOMAIN_NAME_HASH,
                 DOMAIN_VERSION_HASH,
-                _getChainID(),
+                _getChainId(),
                 address(this),
                 DOMAIN_SALT
             )
@@ -409,11 +409,11 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
 
     /**
      * @dev Return whether a dispute exists or not.
-     * @notice Return if dispute with ID `_disputeID` exists
-     * @param _disputeID True if dispute already exists
+     * @notice Return if dispute with Id `_disputeId` exists
+     * @param _disputeId True if dispute already exists
      */
-    function isDisputeCreated(bytes32 _disputeID) public view override returns (bool) {
-        return disputes[_disputeID].status != DisputeStatus.Null;
+    function isDisputeCreated(bytes32 _disputeId) public view override returns (bool) {
+        return disputes[_disputeId].status != DisputeStatus.Null;
     }
 
     /**
@@ -435,7 +435,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
                             RECEIPT_TYPE_HASH,
                             _receipt.requestCID,
                             _receipt.responseCID,
-                            _receipt.subgraphDeploymentID
+                            _receipt.subgraphDeploymentId
                         ) // EIP 712-encoded message hash
                     )
                 )
@@ -444,7 +444,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
 
     /**
      * @dev Returns if two attestations are conflicting.
-     * Everything must match except for the responseID.
+     * Everything must match except for the responseId.
      * @param _attestation1 Attestation
      * @param _attestation2 Attestation
      * @return True if the two attestations are conflicting
@@ -454,7 +454,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         Attestation memory _attestation2
     ) public pure override returns (bool) {
         return (_attestation1.requestCID == _attestation2.requestCID &&
-            _attestation1.subgraphDeploymentID == _attestation2.subgraphDeploymentID &&
+            _attestation1.subgraphDeploymentId == _attestation2.subgraphDeploymentId &&
             _attestation1.responseCID != _attestation2.responseCID);
     }
 
@@ -464,17 +464,17 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * @return indexer address
      */
     function getAttestationIndexer(Attestation memory _attestation) public view override returns (address) {
-        // Get attestation signer. Indexers signs with the allocationID
-        address allocationID = _recoverAttestationSigner(_attestation);
+        // Get attestation signer. Indexers signs with the allocationId
+        address allocationId = _recoverAttestationSigner(_attestation);
 
-        ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(allocationID);
+        ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(allocationId);
         if (alloc.indexer == address(0)) {
-            revert SubgraphDisputeManagerIndexerNotFound(allocationID);
+            revert SubgraphDisputeManagerIndexerNotFound(allocationId);
         }
-        if (alloc.subgraphDeploymentID != _attestation.subgraphDeploymentID) {
+        if (alloc.subgraphDeploymentId != _attestation.subgraphDeploymentId) {
             revert SubgraphDisputeManagerNonMatchingSubgraphDeployment(
-                alloc.subgraphDeploymentID,
-                _attestation.subgraphDeploymentID
+                alloc.subgraphDeploymentId,
+                _attestation.subgraphDeploymentId
             );
         }
         return alloc.indexer;
@@ -511,7 +511,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * one will be automatically resolved.
      * @param _attestationData1 First attestation data submitted
      * @param _attestationData2 Second attestation data submitted
-     * @return DisputeID1, DisputeID2
+     * @return DisputeId1, DisputeId2
      */
     function createQueryDisputeConflict(
         bytes calldata _attestationData1,
@@ -528,26 +528,26 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             revert SubgraphDisputeManagerNonConflictingAttestations(
                 attestation1.requestCID,
                 attestation1.responseCID,
-                attestation1.subgraphDeploymentID,
+                attestation1.subgraphDeploymentId,
                 attestation2.requestCID,
                 attestation2.responseCID,
-                attestation2.subgraphDeploymentID
+                attestation2.subgraphDeploymentId
             );
         }
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
-        bytes32 dID1 = _createQueryDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
-        bytes32 dID2 = _createQueryDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
+        bytes32 dId1 = _createQueryDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
+        bytes32 dId2 = _createQueryDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
 
         // Store the linked disputes to be resolved
-        disputes[dID1].relatedDisputeID = dID2;
-        disputes[dID2].relatedDisputeID = dID1;
+        disputes[dId1].relatedDisputeId = dId2;
+        disputes[dId2].relatedDisputeId = dId1;
 
         // Emit event that links the two created disputes
-        emit DisputeLinked(dID1, dID2);
+        emit DisputeLinked(dId1, dId2);
 
-        return (dID1, dID2);
+        return (dId1, dId2);
     }
 
     /**
@@ -559,7 +559,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * @param _deposit Amount of tokens staked as deposit
      * @param _attestation Attestation struct parsed from bytes
      * @param _attestationData Attestation bytes submitted by the fisherman
-     * @return DisputeID
+     * @return DisputeId
      */
     function _createQueryDisputeWithAttestation(
         address _fisherman,
@@ -576,24 +576,24 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             revert SubgraphDisputeManagerZeroTokens();
         }
 
-        // Create a disputeID
-        bytes32 disputeID = keccak256(
+        // Create a disputeId
+        bytes32 disputeId = keccak256(
             abi.encodePacked(
                 _attestation.requestCID,
                 _attestation.responseCID,
-                _attestation.subgraphDeploymentID,
+                _attestation.subgraphDeploymentId,
                 indexer,
                 _fisherman
             )
         );
 
-        // Only one dispute for a (indexer, subgraphDeploymentID) at a time
-        if (isDisputeCreated(disputeID)) {
-            revert SubgraphDisputeManagerDisputeAlreadyCreated(disputeID);
+        // Only one dispute for a (indexer, subgraphDeploymentId) at a time
+        if (isDisputeCreated(disputeId)) {
+            revert SubgraphDisputeManagerDisputeAlreadyCreated(disputeId);
         }
 
         // Store dispute
-        disputes[disputeID] = Dispute(
+        disputes[disputeId] = Dispute(
             indexer,
             _fisherman,
             _deposit,
@@ -604,59 +604,59 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         );
 
         emit QueryDisputeCreated(
-            disputeID,
+            disputeId,
             indexer,
             _fisherman,
             _deposit,
-            _attestation.subgraphDeploymentID,
+            _attestation.subgraphDeploymentId,
             _attestationData
         );
 
-        return disputeID;
+        return disputeId;
     }
 
     /**
      * @dev Create an indexing dispute for the arbitrator to resolve.
-     * The disputes are created in reference to an allocationID
+     * The disputes are created in reference to an allocationId
      * This function is called by a challenger that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
-     * @param _allocationID The allocation to dispute
+     * @param _allocationId The allocation to dispute
      * @param _deposit Amount of tokens staked as deposit
      */
-    function createIndexingDispute(address _allocationID, uint256 _deposit) external override returns (bytes32) {
+    function createIndexingDispute(address _allocationId, uint256 _deposit) external override returns (bytes32) {
         // Get funds from submitter
         _pullSubmitterDeposit(_deposit);
 
         // Create a dispute
-        return _createIndexingDisputeWithAllocation(msg.sender, _deposit, _allocationID);
+        return _createIndexingDisputeWithAllocation(msg.sender, _deposit, _allocationId);
     }
 
     /**
      * @dev Create indexing dispute internal function.
      * @param _fisherman The challenger creating the dispute
      * @param _deposit Amount of tokens staked as deposit
-     * @param _allocationID Allocation disputed
+     * @param _allocationId Allocation disputed
      */
     function _createIndexingDisputeWithAllocation(
         address _fisherman,
         uint256 _deposit,
-        address _allocationID
+        address _allocationId
     ) private returns (bytes32) {
-        // Create a disputeID
-        bytes32 disputeID = keccak256(abi.encodePacked(_allocationID));
+        // Create a disputeId
+        bytes32 disputeId = keccak256(abi.encodePacked(_allocationId));
 
-        // Only one dispute for an allocationID at a time
-        if (isDisputeCreated(disputeID)) {
-            revert SubgraphDisputeManagerDisputeAlreadyCreated(disputeID);
+        // Only one dispute for an allocationId at a time
+        if (isDisputeCreated(disputeId)) {
+            revert SubgraphDisputeManagerDisputeAlreadyCreated(disputeId);
         }
 
         // Allocation must exist
         // TODO: Check ISubgraphService for Allocation
         // TODO: Check ISubgraphService for getAllocation(...)
-        ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(_allocationID);
+        ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(_allocationId);
         address indexer = alloc.indexer;
         if (indexer == address(0)) {
-            revert SubgraphDisputeManagerIndexerNotFound(_allocationID);
+            revert SubgraphDisputeManagerIndexerNotFound(_allocationId);
         }
 
         // The indexer must be disputable
@@ -666,7 +666,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         }
 
         // Store dispute
-        disputes[disputeID] = Dispute(
+        disputes[disputeId] = Dispute(
             alloc.indexer,
             _fisherman,
             _deposit,
@@ -676,9 +676,9 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             block.timestamp
         );
 
-        emit IndexingDisputeCreated(disputeID, alloc.indexer, _fisherman, _deposit, _allocationID);
+        emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId);
 
-        return disputeID;
+        return disputeId;
     }
 
     /**
@@ -686,15 +686,15 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * This function will revert if the indexer is not slashable, whether because it does not have
      * any stake available or the slashing percentage is configured to be zero. In those cases
      * a dispute must be resolved using drawDispute or rejectDispute.
-     * @notice Accept a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be accepted
+     * @notice Accept a dispute with Id `_disputeId`
+     * @param _disputeId Id of the dispute to be accepted
      * @param _slashAmount Amount of tokens to slash from the indexer
      */
     function acceptDispute(
-        bytes32 _disputeID,
+        bytes32 _disputeId,
         uint256 _slashAmount
-    ) external override onlyArbitrator onlyPendingDispute(_disputeID) {
-        Dispute storage dispute = disputes[_disputeID];
+    ) external override onlyArbitrator onlyPendingDispute(_disputeId) {
+        Dispute storage dispute = disputes[_disputeId];
 
         // store the dispute status
         dispute.status = IDisputeManager.DisputeStatus.Accepted;
@@ -706,41 +706,41 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         TokenUtils.pushTokens(graphToken, dispute.fisherman, tokensToReward + dispute.deposit);
 
         if (_isDisputeInConflict(dispute)) {
-            rejectDispute(dispute.relatedDisputeID);
+            rejectDispute(dispute.relatedDisputeId);
         }
 
-        emit DisputeAccepted(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit + tokensToReward);
+        emit DisputeAccepted(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit + tokensToReward);
     }
 
     /**
      * @dev The arbitrator rejects a dispute as being invalid.
-     * @notice Reject a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be rejected
+     * @notice Reject a dispute with Id `_disputeId`
+     * @param _disputeId Id of the dispute to be rejected
      */
-    function rejectDispute(bytes32 _disputeID) public override onlyArbitrator onlyPendingDispute(_disputeID) {
-        Dispute storage dispute = disputes[_disputeID];
+    function rejectDispute(bytes32 _disputeId) public override onlyArbitrator onlyPendingDispute(_disputeId) {
+        Dispute storage dispute = disputes[_disputeId];
 
         // store dispute status
         dispute.status = IDisputeManager.DisputeStatus.Rejected;
 
         // For conflicting disputes, the related dispute must be accepted
         if (_isDisputeInConflict(dispute)) {
-            revert SubgraphDisputeManagerMustAcceptRelatedDispute(_disputeID, dispute.relatedDisputeID);
+            revert SubgraphDisputeManagerMustAcceptRelatedDispute(_disputeId, dispute.relatedDisputeId);
         }
 
         // Burn the fisherman's deposit
         TokenUtils.burnTokens(graphToken, dispute.deposit);
 
-        emit DisputeRejected(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
+        emit DisputeRejected(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
      * @dev The arbitrator draws dispute.
-     * @notice Ignore a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be disregarded
+     * @notice Ignore a dispute with Id `_disputeId`
+     * @param _disputeId Id of the dispute to be disregarded
      */
-    function drawDispute(bytes32 _disputeID) public override onlyArbitrator onlyPendingDispute(_disputeID) {
-        Dispute storage dispute = disputes[_disputeID];
+    function drawDispute(bytes32 _disputeId) public override onlyArbitrator onlyPendingDispute(_disputeId) {
+        Dispute storage dispute = disputes[_disputeId];
 
         // Return deposit to the fisherman
         TokenUtils.pushTokens(graphToken, dispute.fisherman, dispute.deposit);
@@ -751,19 +751,19 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         // store dispute status
         dispute.status = IDisputeManager.DisputeStatus.Drawn;
 
-        emit DisputeDrawn(_disputeID, dispute.indexer, dispute.fisherman, dispute.deposit);
+        emit DisputeDrawn(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
      * @dev Once the dispute period ends, if the disput status remains Pending,
      * the fisherman can cancel the dispute and get back their initial deposit.
-     * @notice Cancel a dispute with ID `_disputeID`
-     * @param _disputeID ID of the dispute to be cancelled
+     * @notice Cancel a dispute with Id `_disputeId`
+     * @param _disputeId Id of the dispute to be cancelled
      */
     function cancelDispute(
-        bytes32 _disputeID
-    ) external override onlyFisherman(_disputeID) onlyPendingDispute(_disputeID) {
-        Dispute storage dispute = disputes[_disputeID];
+        bytes32 _disputeId
+    ) external override onlyFisherman(_disputeId) onlyPendingDispute(_disputeId) {
+        Dispute storage dispute = disputes[_disputeId];
 
         // Check if dispute period has finished
         if (block.timestamp <= dispute.createdAt + disputePeriod) {
@@ -786,9 +786,9 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * @return True conflicting attestation dispute
      */
     function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
-        bytes32 relatedID = _dispute.relatedDisputeID;
+        bytes32 relatedId = _dispute.relatedDisputeId;
         // this is so the check returns false when rejecting the related dispute.
-        return relatedID != 0 && disputes[relatedID].status == IDisputeManager.DisputeStatus.Pending;
+        return relatedId != 0 && disputes[relatedId].status == IDisputeManager.DisputeStatus.Pending;
     }
 
     /**
@@ -798,8 +798,8 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      */
     function _drawDisputeInConflict(Dispute memory _dispute) private returns (bool) {
         if (_isDisputeInConflict(_dispute)) {
-            bytes32 relatedDisputeID = _dispute.relatedDisputeID;
-            Dispute storage relatedDispute = disputes[relatedDisputeID];
+            bytes32 relatedDisputeId = _dispute.relatedDisputeId;
+            Dispute storage relatedDispute = disputes[relatedDisputeId];
             relatedDispute.status = IDisputeManager.DisputeStatus.Drawn;
             return true;
         }
@@ -813,8 +813,8 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      */
     function _cancelDisputeInConflict(Dispute memory _dispute) private returns (bool) {
         if (_isDisputeInConflict(_dispute)) {
-            bytes32 relatedDisputeID = _dispute.relatedDisputeID;
-            Dispute storage relatedDispute = disputes[relatedDisputeID];
+            bytes32 relatedDisputeId = _dispute.relatedDisputeId;
+            Dispute storage relatedDispute = disputes[relatedDisputeId];
             relatedDispute.status = IDisputeManager.DisputeStatus.Cancelled;
             return true;
         }
@@ -875,7 +875,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         Receipt memory receipt = Receipt(
             _attestation.requestCID,
             _attestation.responseCID,
-            _attestation.subgraphDeploymentID
+            _attestation.subgraphDeploymentId
         );
         bytes32 messageHash = encodeHashReceipt(receipt);
 
@@ -885,10 +885,10 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     }
 
     /**
-     * @dev Get the running network chain ID
-     * @return The chain ID
+     * @dev Get the running network chain Id
+     * @return The chain Id
      */
-    function _getChainID() private view returns (uint256) {
+    function _getChainId() private view returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()
@@ -907,7 +907,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         }
 
         // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentID) = abi.decode(
+        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentId) = abi.decode(
             _data,
             (bytes32, bytes32, bytes32)
         );
@@ -918,7 +918,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         bytes32 s = _toBytes32(_data, SIG_S_OFFSET);
         uint8 v = _toUint8(_data, SIG_V_OFFSET);
 
-        return Attestation(requestCID, responseCID, subgraphDeploymentID, r, s, v);
+        return Attestation(requestCID, responseCID, subgraphDeploymentId, r, s, v);
     }
 
     /**

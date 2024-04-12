@@ -13,7 +13,7 @@ interface ISubgraphService is IDataServiceFees {
 
     struct Allocation {
         address indexer;
-        bytes32 subgraphDeploymentID;
+        bytes32 subgraphDeploymentId;
         uint256 tokens;
         uint256 createdAt;
         uint256 closedAt;
@@ -27,7 +27,6 @@ interface ISubgraphService is IDataServiceFees {
         bytes32 subgraphDeploymentId,
         uint256 tokens,
         address allocationId,
-        bytes32 metadata,
         bytes calldata proof
     ) external;
 
