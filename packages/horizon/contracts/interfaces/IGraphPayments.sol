@@ -4,9 +4,8 @@ pragma solidity ^0.8.24;
 interface IGraphPayments {
     // Payment types
     enum PaymentType {
-        Null,
-        Indexing,
-        Query
+        IndexingFees,
+        QueryFees
     }
 
     // approve a data service to collect funds

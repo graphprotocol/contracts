@@ -8,7 +8,7 @@ import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 
-contract GraphEscrow is IGraphPayments, GraphPaymentsStorageV1Storage {
+contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage {
     // -- Errors --
 
     // -- Immutable variables --
@@ -44,7 +44,7 @@ contract GraphEscrow is IGraphPayments, GraphPaymentsStorageV1Storage {
         address sender,
         address receiver,
         uint256 amount,
-        uint256 paymentType,
+        IGraphPayments.PaymentType paymentType,
         uint256 dataServiceCut
     ) external {}
 }

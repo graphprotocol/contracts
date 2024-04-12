@@ -5,17 +5,17 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 
 import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
+import { GraphDirectory } from "./GraphDirectory.sol";
 import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
 
-contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage {
+contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirectory {
     // -- Errors --
 
     error GraphEscrowNotGraphPayments();
 
-    // -- Immutable variables --
+    // -- Events --
 
-    IGraphToken public immutable graphToken;
-    IGraphPayments public immutable graphPayments;
+    event Deposit(address indexed sender, address indexed receiver, uint256 amount);
 
     // -- Modifier --
 
@@ -28,14 +28,16 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage {
 
     // -- Constructor --
 
-    constructor(address _graphToken, address _graphPayments, uint256 _withdrawEscrowThawingPeriod) {
-        graphToken = IGraphToken(_graphToken);
-        graphPayments = IGraphPayments(_graphPayments);
-        _withdrawEscrowThawingPeriod = _withdrawEscrowThawingPeriod;
+    constructor(address _controller, uint256 _withdrawEscrowThawingPeriod) GraphDirectory(_controller) {
+        withdrawEscrowThawingPeriod = _withdrawEscrowThawingPeriod;
     }
 
     // Deposit funds into the escrow for a receiver
-    function deposit(address receiver, uint256 amount) external {}
+    function deposit(address receiver, uint256 amount) external {
+        escrowAccounts[msg.sender][receiver].balance += amount;
+        graphToken.transferFrom(msg.sender, address(this), amount);
+        emit Deposit(msg.sender, receiver, amount);
+    }
 
     // Deposit funds into the escrow for multiple receivers
     function depositMany(address[] calldata receivers, uint256[] calldata amounts) external {}
