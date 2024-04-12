@@ -8,10 +8,10 @@ contract GraphEscrowStorageV1Storage {
     mapping(address sender => mapping(address receiver => IGraphEscrow.EscrowAccount escrowAccount))
         public escrowAccounts;
 
-    // The duration (in seconds) in which escrow funds are thawing before they can be withdrawn
-    uint256 public immutable withdrawEscrowThawingPeriod;
-
     // The maximum thawing period (in seconds) for both escrow withdrawal and signer revocation
     // This is a precautionary measure to avoid inadvertedly locking funds for too long
     uint256 public constant MAX_THAWING_PERIOD = 90 days;
+
+    // The duration (in seconds) in which escrow funds are thawing before they can be withdrawn
+    uint256 public immutable withdrawEscrowThawingPeriod;
 }

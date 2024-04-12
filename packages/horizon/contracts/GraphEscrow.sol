@@ -3,10 +3,11 @@ pragma solidity ^0.8.24;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 
+import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
 
-contract GraphEscrow is GraphEscrowStorageV1Storage {
+contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage {
     // -- Errors --
 
     error GraphEscrowNotGraphPayments();
