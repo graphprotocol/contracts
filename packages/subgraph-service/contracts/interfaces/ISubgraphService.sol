@@ -22,8 +22,6 @@ interface ISubgraphService is IDataServiceFees {
 
     function slash(address serviceProvider, uint256 tokens, uint256 reward) external;
 
-    function redeem(ITAPVerifier.SignedRAV calldata rav) external returns (uint256 queryFees);
-
     function allocate(
         address serviceProvider,
         bytes32 subgraphDeploymentId,

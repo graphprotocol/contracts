@@ -14,5 +14,10 @@ interface ITAPVerifier {
         bytes signature; // 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
     }
 
-    function verify(SignedRAV calldata rav) external returns (address);
+    struct SenderAuthorization {
+        address sender; // Sender the signer is authorized to sign for
+        uint256 thawEndTimestamp; // Timestamp at which thawing period ends (zero if not thawing)
+    }
+
+    function verify(SignedRAV calldata rav) external returns (address sender);
 }

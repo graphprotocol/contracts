@@ -1,24 +1,35 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-
-import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
+import { DataService } from "./data-service/DataService.sol";
+import { DataServiceOwnable } from "./data-service/extensions/DataServiceOwnable.sol";
+import { DataServiceRescuable } from "./data-service/extensions/DataServiceRescuable.sol";
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
+
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
+import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 import { Directory } from "./utils/Directory.sol";
 
 // TODO: contract needs to be upgradeable and pausable
-contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, SubgraphServiceV1Storage, ISubgraphService {
+contract SubgraphService is
+    EIP712,
+    DataService,
+    DataServiceOwnable,
+    DataServiceRescuable,
+    DataServiceFees,
+    Directory,
+    SubgraphServiceV1Storage,
+    ISubgraphService
+{
+    uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
     bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
-
     error SubgraphServiceAlreadyRegistered();
     error SubgraphServiceEmptyUrl();
     error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
@@ -35,8 +46,10 @@ contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, Subgrap
         uint256 _minimumProvisionTokens
     )
         EIP712(eip712Name, eip712Version)
-        Ownable(msg.sender)
-        DataServiceFees(_graphController)
+        DataService(_graphController)
+        DataServiceOwnable(msg.sender)
+        DataServiceRescuable()
+        DataServiceFees()
         Directory(address(this), _tapVerifier, _disputeManager)
     {
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
@@ -74,16 +87,15 @@ contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, Subgrap
         graphStaking.acceptProvision(serviceProvider);
     }
 
-    function redeem(ITAPVerifier.SignedRAV calldata signedRAV) external override returns (uint256 queryFees) {
-        // check the stake claims list
+    function redeem(bytes calldata data) external override returns (uint256 feesCollected) {
+        ITAPVerifier.SignedRAV memory signedRAV = abi.decode(data, (ITAPVerifier.SignedRAV));
         address serviceProvider = signedRAV.rav.serviceProvider;
+
+        // release expired stake claims
         releaseStake(serviceProvider, 0);
 
-        // post rav to tap verifier
-        address signer = tapVerifier.verify(signedRAV);
-        address payer = graphEscrow.getSender(signer);
-
-        // calculate delta
+        // validate RAV and calculate tokens to collect
+        address payer = tapVerifier.verify(signedRAV);
         uint256 tokens = signedRAV.rav.valueAggregate;
         uint256 tokensAlreadyCollected = tokensCollected[serviceProvider][payer];
         if (tokens <= tokensAlreadyCollected) {
@@ -91,16 +103,20 @@ contract SubgraphService is EIP712, Ownable, DataServiceFees, Directory, Subgrap
         }
         uint256 tokensToCollect = tokens - tokensAlreadyCollected;
 
+        // lock stake as economic security for fees
         uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
         uint256 unlockTimestamp = block.timestamp + disputeManager.getDisputePeriod();
         lockStake(serviceProvider, tokensToLock, unlockTimestamp);
 
-        // call GraphPayments to collect fees
+        // collect fees
         tokensCollected[serviceProvider][payer] = tokens;
-        graphPayments.collect(payer, serviceProvider, tokensToCollect);
+        // TODO: update payment type here with the correct value, is it maybe a parameter?
+        uint256 subgraphServiceCut = (tokensToCollect * feesCut) / MAX_PPM;
+        graphPayments.collect(payer, serviceProvider, tokensToCollect, 0, subgraphServiceCut);
 
-        // TODO: distribute curation fees?!
+        // TODO: distribute curation fees, how?!
         emit QueryFeesRedeemed(serviceProvider, payer, tokensToCollect);
+        return tokensToCollect;
     }
 
     function slash(address serviceProvider, uint256 tokens, uint256 reward) external override onlyDisputeManager {

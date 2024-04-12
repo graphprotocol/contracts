@@ -5,7 +5,10 @@ import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 contract SubgraphServiceV1Storage {
     // multiplier for how many tokens back collected query fees
-    uint256 stakeToFeesRatio;
+    uint256 public stakeToFeesRatio;
+
+    /// @notice The fees cut taken by the subgraph service
+    uint256 public feesCut;
 
     /// @notice Service providers registered in the data service
     mapping(address indexer => ISubgraphService.Indexer details) public indexers;

@@ -13,8 +13,6 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     event StakeLocked(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 unlockTimestamp);
     event StakeReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
 
-    constructor(address _controller) DataService(_controller) {}
-
     function lockStake(address serviceProvider, uint256 tokens, uint256 unlockTimestamp) internal {
         // do stake checks
         FeesServiceProvider storage serviceProviderDetails = feesServiceProviders[serviceProvider];
