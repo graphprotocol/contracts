@@ -16,19 +16,10 @@ interface ISubgraphService is IDataServiceFees {
         bytes32 subgraphDeploymentId;
         uint256 tokens;
         uint256 createdAt;
-        uint256 closedAt;
         uint256 accRewardsPerAllocatedToken;
     }
 
     function slash(address serviceProvider, uint256 tokens, uint256 reward) external;
-
-    function allocate(
-        address serviceProvider,
-        bytes32 subgraphDeploymentId,
-        uint256 tokens,
-        address allocationId,
-        bytes calldata proof
-    ) external;
 
     function getAllocation(address allocationID) external view returns (Allocation memory);
 

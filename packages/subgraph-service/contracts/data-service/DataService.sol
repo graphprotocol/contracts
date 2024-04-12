@@ -54,7 +54,7 @@ abstract contract DataService is GraphDirectory, DataServiceV1Storage, IDataServ
 
     /// @notice Checks if the service provider has a valid provision for the data service in the staking contract
     /// @param serviceProvider The address of the service provider
-    function _checkProvision(address serviceProvider) internal view virtual {
+    function _checkProvisionParameters(address serviceProvider) internal view virtual {
         IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
 
         (uint256 provisionTokensMin, uint256 provisionTokensMax) = _getProvisionTokensRange();

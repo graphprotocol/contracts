@@ -39,16 +39,16 @@ contract SubgraphService is
     error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
     error SubgraphServiceInvalidAllocationProof(address signer, address allocationId);
     error SubgraphServiceAllocationAlreadyExists(address allocationId);
+    error SubgraphServiceAllocationDoesNotExist(address allocationId);
     error SubgraphServiceInvalidZeroAllocationId();
     error SubgraphServiceAllocateInsufficientTokens(uint256 available, uint256 required);
     error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
     event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
 
     /**
-     * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
+     * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentId`
      * during `epoch`.
-     * `allocationID` indexer derived address used to identify the allocation.
-     * `metadata` additional information related to the allocation.
+     * `allocationId` indexer derived address used to identify the allocation.
      */
     event AllocationCreated(
         address indexed indexer,
@@ -56,6 +56,18 @@ contract SubgraphService is
         uint256 epoch,
         uint256 tokens,
         address indexed allocationId
+    );
+
+    /**
+     * @dev Emitted when `indexer` closes an allocation with id `allocationId`.
+     * An amount of `tokens` get unallocated from `subgraphDeploymentId`.
+     */
+    event AllocationClosed(
+        address indexed indexer,
+        bytes32 indexed subgraphDeploymentId,
+        uint256 tokens,
+        address indexed allocationId,
+        address sender
     );
 
     constructor(
@@ -93,7 +105,7 @@ contract SubgraphService is
         }
 
         // Ensure the service provider created a valid provision for the data service
-        _checkProvision(serviceProvider);
+        _checkProvisionParameters(serviceProvider);
 
         // Register the indexer
         indexers[serviceProvider] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
@@ -148,28 +160,21 @@ contract SubgraphService is
         graphStaking.slash(serviceProvider, tokens, reward, address(disputeManager));
     }
 
-    function allocate(
-        address indexer,
-        bytes32 subgraphDeploymentId,
-        uint256 tokens,
-        address allocationId,
-        bytes calldata proof
-    ) external override onlyProvisionAuthorized(indexer) {
-        if (allocationId == address(0)) {
-            revert SubgraphServiceInvalidZeroAllocationId();
-        }
+    function startService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
+        (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory proof) = abi.decode(
+            data,
+            (bytes32, uint256, address, bytes)
+        );
 
-        if (allocations[allocationId].createdAt != 0) {
-            revert SubgraphServiceAllocationAlreadyExists(allocationId);
-        }
+        if (allocationId == address(0)) revert SubgraphServiceInvalidZeroAllocationId();
+
+        if (allocations[allocationId].createdAt != 0) revert SubgraphServiceAllocationAlreadyExists(allocationId);
 
         // Caller must prove that they own the private key for the allocationId address
         // The proof is an EIP712 signed message of (indexer,allocationId)
         bytes32 digest = encodeProof(indexer, allocationId);
         address signer = ECDSA.recover(digest, proof);
-        if (signer != allocationId) {
-            revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
-        }
+        if (signer != allocationId) revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
 
         // Check that the indexer has enough tokens available
         provisionTrackerAllocations.lock(graphStaking, indexer, tokens);
@@ -179,7 +184,6 @@ contract SubgraphService is
             subgraphDeploymentId: subgraphDeploymentId,
             tokens: tokens,
             createdAt: block.timestamp,
-            closedAt: 0,
             accRewardsPerAllocatedToken: 0
         });
         allocations[allocationId] = allocation;
@@ -189,6 +193,26 @@ contract SubgraphService is
         }
 
         emit AllocationCreated(indexer, subgraphDeploymentId, allocation.createdAt, allocation.tokens, allocationId);
+    }
+
+    function collectServicePayment() external {}
+
+    function stopService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
+        address allocationId = abi.decode(data, (address));
+
+        Allocation memory allocation = allocations[allocationId];
+        if (allocation.createdAt == 0) revert SubgraphServiceAllocationDoesNotExist(allocationId);
+
+        delete allocations[allocationId];
+        provisionTrackerAllocations.release(indexer, allocation.tokens);
+
+        emit AllocationClosed(
+            allocation.indexer,
+            allocation.subgraphDeploymentId,
+            allocation.tokens,
+            allocationId,
+            msg.sender
+        );
     }
 
     function getAllocation(address allocationId) external view returns (Allocation memory) {

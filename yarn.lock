@@ -2802,6 +2802,7 @@ __metadata:
     ethers: "npm:^6.4.0"
     hardhat: "npm:^2.20.1"
     hardhat-gas-reporter: "npm:^1.0.8"
+    hardhat-storage-layout: "npm:^0.1.7"
     lint-staged: "npm:^15.2.2"
     prettier: "npm:^3.2.5"
     prettier-plugin-solidity: "npm:^1.3.1"
@@ -13402,6 +13403,17 @@ __metadata:
   peerDependencies:
     hardhat: ^2.0.3
   checksum: f88e6aaedf65281c161d4b70b94417812e3ca36d7af39d0f9bf0711d62bf0c282c41d148cad8a99964824a8a19f0eb6861666bf04244ff8f4df3c292d51fc443
+  languageName: node
+  linkType: hard
+
+"hardhat-storage-layout@npm:^0.1.7":
+  version: 0.1.7
+  resolution: "hardhat-storage-layout@npm:0.1.7"
+  dependencies:
+    console-table-printer: "npm:^2.9.0"
+  peerDependencies:
+    hardhat: ^2.0.3
+  checksum: 257b52a079183953d079ae221d05551391ff57adbad1ba033a3ccfa1b9df495ddd29285e67a7d03da484aa69f65850feb64a9bd7e37f53c549efd3833ed8b38c
   languageName: node
   linkType: hard
 
