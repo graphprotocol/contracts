@@ -5,10 +5,10 @@ pragma solidity 0.8.24;
 import { LibFixedMath } from "./LibFixedMath.sol";
 
 /**
- * @title LibExponential library
+ * @title Exponential
  * @notice A library to compute query fee rebates using an exponential formula
  */
-library LibExponential {
+contract ExponentialRebates {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.
     uint32 private constant MAX_EXPONENT = 15;
 
@@ -34,7 +34,7 @@ library LibExponential {
         uint32 alphaDenominator,
         uint32 lambdaNumerator,
         uint32 lambdaDenominator
-    ) public pure returns (uint256) {
+    ) external pure returns (uint256) {
         // If alpha is zero indexer gets 100% fees rebate
         int256 alpha = LibFixedMath.toFixed(int32(alphaNumerator), int32(alphaDenominator));
         if (alpha == 0) {

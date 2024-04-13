@@ -14,7 +14,7 @@ import { Managed } from "./Managed.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
-import { LibExponential } from "./utils/LibExponential.sol";
+import { ExponentialRebates } from "./utils/ExponentialRebates.sol";
 import { IStakingBackwardsCompatibility } from "./IStakingBackwardsCompatibility.sol";
 
 /**
@@ -31,15 +31,19 @@ abstract contract StakingBackwardsCompatibility is
     HorizonStakingV1Storage,
     GraphUpgradeable,
     Multicall,
-    IStakingBackwardsCompatibility
+    IStakingBackwardsCompatibility,
+    ExponentialRebates
 {
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
     address public immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
-    constructor(address _subgraphDataServiceAddress) {
+    address public immutable EXPONENTIAL_REBATES_ADDRESS;
+
+    constructor(address _controller, address _subgraphDataServiceAddress, address _exponentialRebatesAddress) Managed(_controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = _subgraphDataServiceAddress;
+        EXPONENTIAL_REBATES_ADDRESS = _exponentialRebatesAddress;
     }
 
     /**
@@ -52,7 +56,7 @@ abstract contract StakingBackwardsCompatibility is
         address _operator,
         address _serviceProvider,
         address _verifier
-    ) public view override returns (bool) {
+    ) internal view override returns (bool) {
         if (_operator == _serviceProvider) {
             return true;
         }
@@ -143,7 +147,7 @@ abstract contract StakingBackwardsCompatibility is
             // No rebates if indexer has no stake or if lambda is zero
             uint256 newRebates = (alloc.tokens == 0 || __DEPRECATED_lambdaNumerator == 0)
                 ? 0
-                : LibExponential.exponentialRebates(
+                : ExponentialRebates(EXPONENTIAL_REBATES_ADDRESS).exponentialRebates(
                     alloc.collectedFees,
                     alloc.tokens,
                     __DEPRECATED_alphaNumerator,

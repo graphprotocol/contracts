@@ -6,6 +6,22 @@ pragma abicoder v2;
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 
 interface IHorizonStaking is IHorizonStakingTypes {
+
+    /**
+     * @dev Emitted when `serviceProvider` stakes `tokens` amount.
+     */
+    event StakeDeposited(address indexed serviceProvider, uint256 tokens);
+
+    /**
+     * @dev Emitted when `serviceProvider` withdraws `tokens` amount.
+     */
+    event StakeWithdrawn(address indexed serviceProvider, uint256 tokens);
+
+    /**
+     * @dev Emitted when `serviceProvider` locks `tokens` amount until `until`.
+     */
+    event StakeLocked(address indexed serviceProvider, uint256 tokens, uint256 until);
+
     /**
      * @dev Emitted when serviceProvider allows a verifier
      */
@@ -157,25 +173,9 @@ interface IHorizonStaking is IHorizonStakingTypes {
         address _verifierCutDestination
     ) external;
 
-    // total staked tokens to the provider
-    // `ServiceProvider.tokensStaked
-    function getStake(address _serviceProvider) external view returns (uint256 tokens);
-
     // staked tokens that are currently not provisioned, aka idle stake
     // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
     function getIdleStake(address _serviceProvider) external view returns (uint256 tokens);
-
-    function getDelegatedTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
-
-    function getProviderTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
-
-    function getTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256 tokens);
-
-    function getThawedTokens(address _serviceProvider, address _verifier) external view returns (uint256);
-
-    function getServiceProvider(address _serviceProvider) external view returns (ServiceProvider memory);
-
-    function getProvision(address _serviceProvider, address _verifier) external view returns (Provision memory);
 
     /**
      * @notice Authorize or unauthorize an address to be an operator for the caller on a specific verifier / data service.

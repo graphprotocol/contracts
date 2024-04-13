@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import { IStaking } from "../../staking/IStaking.sol";
 import { IL2StakingBase } from "./IL2StakingBase.sol";
+import { IL2StakingTypes } from "./IL2StakingTypes.sol";
 
 /**
  * @title Interface for the L2 Staking contract

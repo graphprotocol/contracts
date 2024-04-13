@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 pragma solidity >=0.6.12 <0.9.0;
 
 interface IL2StakingTypes {

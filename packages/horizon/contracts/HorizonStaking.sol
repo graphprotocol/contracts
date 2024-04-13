@@ -2,14 +2,16 @@
 
 pragma solidity 0.8.24;
 
+import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+
 import { IHorizonStaking } from "./IHorizonStaking.sol";
-import { L2StakingBackwardsCompatibility } from "./L2StakingBackwardsCompatibility.sol";
 import { TokenUtils } from "./utils/TokenUtils.sol";
 import { MathUtils } from "./utils/MathUtils.sol";
 import { Managed } from "./Managed.sol";
 import { IGraphToken } from "./IGraphToken.sol";
+import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
-contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
+contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgradeable {
     /// Maximum value that can be set as the maxVerifierCut in a provision.
     /// It is equivalent to 50% in parts-per-million, to protect delegators from
     /// service providers using a malicious verifier.
@@ -26,6 +28,9 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     /// Minimum delegation size
     uint256 public constant MINIMUM_DELEGATION = 1e18;
 
+    address public immutable L2_STAKING_BACKWARDS_COMPATIBILITY;
+    address public immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
+
     error HorizonStakingInvalidVerifier(address verifier);
     error HorizonStakingVerifierAlreadyAllowed(address verifier);
     error HorizonStakingVerifierNotAllowed(address verifier);
@@ -36,9 +41,48 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     error HorizonStakingInsufficientCapacity();
 
     constructor(
-        address _subgraphDataServiceAddress,
-        address _controller
-    ) L2StakingBackwardsCompatibility(_subgraphDataServiceAddress) Managed(_controller) {}
+        address _controller,
+        address _l2StakingBackwardsCompatibility,
+        address _subgraphDataServiceAddress
+     ) Managed(_controller) {
+        L2_STAKING_BACKWARDS_COMPATIBILITY = _l2StakingBackwardsCompatibility;
+        SUBGRAPH_DATA_SERVICE_ADDRESS = _subgraphDataServiceAddress;
+     }
+
+    /**
+     * @notice Delegates the current call to the StakingExtension implementation.
+     * @dev This function does not return to its internal call site, it will return directly to the
+     * external caller.
+     */
+    // solhint-disable-next-line payable-fallback, no-complex-fallback
+    fallback() external {
+        require(_implementation() != address(0), "only through proxy");
+        address extensionImpl = L2_STAKING_BACKWARDS_COMPATIBILITY;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            // (a) get free memory pointer
+            let ptr := mload(0x40)
+
+            // (1) copy incoming call data
+            calldatacopy(ptr, 0, calldatasize())
+
+            // (2) forward call to logic contract
+            let result := delegatecall(gas(), extensionImpl, ptr, calldatasize(), 0, 0)
+            let size := returndatasize()
+
+            // (3) retrieve return data
+            returndatacopy(ptr, 0, size)
+
+            // (4) forward return data back to caller
+            switch result
+            case 0 {
+                revert(ptr, size)
+            }
+            default {
+                return(ptr, size)
+            }
+        }
+    }
 
     /**
      * @notice Allow verifier for stake provisions.
@@ -184,7 +228,7 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
      * @param _serviceProvider The service provider address
      * @param _verifier The verifier address for which the tokens are provisioned
      */
-    function getThawedTokens(address _serviceProvider, address _verifier) external view override returns (uint256) {
+    function getThawedTokens(address _serviceProvider, address _verifier) external view returns (uint256) {
         Provision storage prov = provisions[_serviceProvider][_verifier];
         if (prov.nThawRequests == 0) {
             return 0;
@@ -339,10 +383,26 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
         }
     }
 
-    // total staked tokens to the provider
-    // `ServiceProvider.tokensStaked
-    function getStake(address serviceProvider) public view override returns (uint256 tokens) {
-        return serviceProviders[serviceProvider].tokensStaked;
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @param _operator The address to check for auth
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param _verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(
+        address _operator,
+        address _serviceProvider,
+        address _verifier
+    ) private view returns (bool) {
+        if (_operator == _serviceProvider) {
+            return true;
+        }
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            return legacyOperatorAuth[_serviceProvider][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+        } else {
+            return
+                operatorAuth[_serviceProvider][_verifier][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+        }
     }
 
     // staked tokens that are currently not provisioned, aka idle stake
@@ -359,44 +419,8 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
     function getProviderTokensAvailable(
         address _serviceProvider,
         address _verifier
-    ) public view override returns (uint256) {
+    ) public view returns (uint256) {
         return provisions[_serviceProvider][_verifier].tokens - provisions[_serviceProvider][_verifier].tokensThawing;
-    }
-
-    // provisioned tokens from delegators that are not being thawed
-    // `Provision.delegatedTokens - Provision.delegatedTokensThawing`
-    function getDelegatedTokensAvailable(
-        address _serviceProvider,
-        address _verifier
-    ) public view override returns (uint256) {
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            return
-                legacyDelegationPools[_serviceProvider].tokens -
-                (legacyDelegationPools[_serviceProvider].tokensThawing);
-        }
-        return
-            delegationPools[_serviceProvider][_verifier].tokens -
-            (delegationPools[_serviceProvider][_verifier].tokensThawing);
-    }
-
-    // provisioned tokens that are not being thawed (including provider tokens and delegation)
-    function getTokensAvailable(address _serviceProvider, address _verifier) public view override returns (uint256) {
-        return
-            getProviderTokensAvailable(_serviceProvider, _verifier) +
-            getDelegatedTokensAvailable(_serviceProvider, _verifier);
-    }
-
-    function getServiceProvider(address serviceProvider) public view override returns (ServiceProvider memory) {
-        ServiceProvider memory sp;
-        ServiceProviderInternal storage spInternal = serviceProviders[serviceProvider];
-        sp.tokensStaked = spInternal.tokensStaked;
-        sp.tokensProvisioned = spInternal.tokensProvisioned;
-        sp.nextThawRequestNonce = spInternal.nextThawRequestNonce;
-        return sp;
-    }
-
-    function getProvision(address _serviceProvider, address _verifier) public view override returns (Provision memory) {
-        return provisions[_serviceProvider][_verifier];
     }
 
     /**
@@ -698,5 +722,22 @@ contract HorizonStaking is L2StakingBackwardsCompatibility, IHorizonStaking {
             serviceProviders[_serviceProvider].tokensProvisioned +
             _tokens;
         emit ProvisionIncreased(_serviceProvider, _verifier, _tokens);
+    }
+
+    /**
+     * @dev Stake tokens on the service provider.
+     * TODO: Move to HorizonStaking after the transition period
+     * @param _serviceProvider Address of staking party
+     * @param _tokens Amount of tokens to stake
+     */
+    function _stake(address _serviceProvider, uint256 _tokens) internal {
+        // Deposit tokens into the indexer stake
+        serviceProviders[_serviceProvider].tokensStaked = serviceProviders[_serviceProvider].tokensStaked + _tokens;
+
+        emit StakeDeposited(_serviceProvider, _tokens);
+    }
+
+    function _graphToken() internal view returns (IGraphToken) {
+        return IGraphToken(GRAPH_TOKEN);
     }
 }

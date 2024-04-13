@@ -13,7 +13,7 @@ import { IHorizonStaking } from "./IHorizonStaking.sol";
  * to receive an indexer's stake or delegation from L1. Note that this contract inherits Staking,
  * which uses a StakingExtension contract to implement the full IStaking interface through delegatecalls.
  */
-abstract contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibility, IL2StakingBase {
+contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBase {
     /// @dev Minimum amount of tokens that can be delegated
     uint256 private constant MINIMUM_DELEGATION = 1e18;
 
@@ -25,7 +25,7 @@ abstract contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibili
         _;
     }
 
-    constructor(address _subgraphDataServiceAddress) StakingBackwardsCompatibility(_subgraphDataServiceAddress) {}
+    constructor(address _controller, address _subgraphDataServiceAddress) StakingBackwardsCompatibility(_controller, _subgraphDataServiceAddress) {}
 
     /**
      * @notice Receive ETH into the L2Staking contract: this will always revert
@@ -33,6 +33,53 @@ abstract contract L2StakingBackwardsCompatibility is StakingBackwardsCompatibili
      */
     receive() external payable {
         revert("RECEIVE_ETH_NOT_ALLOWED");
+    }
+
+    // total staked tokens to the provider
+    // `ServiceProvider.tokensStaked
+    function getStake(address serviceProvider) external view returns (uint256 tokens) {
+        return serviceProviders[serviceProvider].tokensStaked;
+    }
+
+    // provisioned tokens from the service provider that are not being thawed
+    // `Provision.tokens - Provision.tokensThawing`
+    function _getProviderTokensAvailable(
+        address _serviceProvider,
+        address _verifier
+    ) private view returns (uint256) {
+        return provisions[_serviceProvider][_verifier].tokens - provisions[_serviceProvider][_verifier].tokensThawing;
+    }
+
+    // provisioned tokens from delegators that are not being thawed
+    // `Provision.delegatedTokens - Provision.delegatedTokensThawing`
+    function getDelegatedTokensAvailable(
+        address _serviceProvider,
+        address _verifier
+    ) public view returns (uint256) {
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            return
+                legacyDelegationPools[_serviceProvider].tokens -
+                (legacyDelegationPools[_serviceProvider].tokensThawing);
+        }
+        return
+            delegationPools[_serviceProvider][_verifier].tokens -
+            (delegationPools[_serviceProvider][_verifier].tokensThawing);
+    }
+
+    // provisioned tokens that are not being thawed (including provider tokens and delegation)
+    function getTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256) {
+        return
+            _getProviderTokensAvailable(_serviceProvider, _verifier) +
+            getDelegatedTokensAvailable(_serviceProvider, _verifier);
+    }
+
+    function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {
+        ServiceProvider memory sp;
+        ServiceProviderInternal storage spInternal = serviceProviders[serviceProvider];
+        sp.tokensStaked = spInternal.tokensStaked;
+        sp.tokensProvisioned = spInternal.tokensProvisioned;
+        sp.nextThawRequestNonce = spInternal.nextThawRequestNonce;
+        return sp;
     }
 
     /**

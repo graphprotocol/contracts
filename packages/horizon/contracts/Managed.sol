@@ -103,9 +103,8 @@ abstract contract Managed is IManaged, GraphDirectory {
 
     /**
      * @notice Set Controller. Deprecated, will revert.
-     * @param _controller Controller contract address
      */
-    function setController(address _controller) external override onlyController {
+    function setController(address) external view override onlyController {
         revert ManagedSetControllerDeprecated();
     }
 }
