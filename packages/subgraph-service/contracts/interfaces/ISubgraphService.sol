@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ITAPVerifier } from "./ITAPVerifier.sol";
 import { IDataServiceFees } from "../data-service/extensions/IDataServiceFees.sol";
 
 interface ISubgraphService is IDataServiceFees {
@@ -18,8 +17,6 @@ interface ISubgraphService is IDataServiceFees {
         uint256 createdAt;
         uint256 accRewardsPerAllocatedToken;
     }
-
-    function slash(address serviceProvider, uint256 tokens, uint256 reward) external;
 
     function getAllocation(address allocationID) external view returns (Allocation memory);
 

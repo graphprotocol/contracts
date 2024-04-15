@@ -18,7 +18,7 @@ interface IGraphPayments {
         address sender,
         address receiver,
         uint256 tokens,
-        uint8 paymentType,
+        PaymentTypes paymentType,
         uint256 tokensDataService
     ) external;
 }

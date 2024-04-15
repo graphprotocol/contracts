@@ -44,6 +44,16 @@ abstract contract DataService is GraphDirectory, DataServiceV1Storage, IDataServ
         maximumVerifierCut = type(uint32).max;
     }
 
+    // solhint-disable-next-line no-unused-vars
+    function acceptProvision(address indexer, bytes calldata _data) external onlyProvisionAuthorized(indexer) {
+        _checkProvisionParameters(indexer);
+        _acceptProvision(indexer);
+    }
+
+    function _slash(address serviceProvider, uint256 tokens, uint256 reward, address rewardsDestination) internal {
+        graphStaking.slash(serviceProvider, tokens, reward, rewardsDestination);
+    }
+
     function _getProvision(address serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
         IHorizonStaking.Provision memory provision = graphStaking.getProvision(serviceProvider, address(this));
         if (provision.createdAt == 0) {
@@ -71,6 +81,10 @@ abstract contract DataService is GraphDirectory, DataServiceV1Storage, IDataServ
         if (!_isInRange(provision.maxVerifierCut, verifierCutMin, verifierCutMax)) {
             revert GraphDataServiceInvalidVerifierCut(provision.maxVerifierCut, verifierCutMin, verifierCutMax);
         }
+    }
+
+    function _acceptProvision(address serviceProvider) internal virtual {
+        graphStaking.acceptProvision(serviceProvider);
     }
 
     function _setProvisionTokensRange(uint256 min, uint256 max) internal {

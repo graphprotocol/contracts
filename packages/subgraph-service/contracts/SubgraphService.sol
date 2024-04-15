@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 
 import { DataService } from "./data-service/DataService.sol";
@@ -88,10 +87,7 @@ contract SubgraphService is
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
     }
 
-    function register(
-        address serviceProvider,
-        bytes calldata data
-    ) external override onlyProvisionAuthorized(serviceProvider) {
+    function register(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
         (string memory url, string memory geohash) = abi.decode(data, (string, string));
 
         // Must provide a URL
@@ -100,18 +96,17 @@ contract SubgraphService is
         }
 
         // Only allow registering once
-        if (indexers[serviceProvider].registeredAt != 0) {
+        if (indexers[indexer].registeredAt != 0) {
             revert SubgraphServiceAlreadyRegistered();
         }
 
-        // Ensure the service provider created a valid provision for the data service
-        _checkProvisionParameters(serviceProvider);
-
         // Register the indexer
-        indexers[serviceProvider] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
+        indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
 
-        // Accept provision in staking contract
-        graphStaking.acceptProvision(serviceProvider);
+        // Ensure the service provider created a valid provision for the data service
+        // and accept it in the staking contract
+        _checkProvisionParameters(indexer);
+        _acceptProvision(indexer);
     }
 
     function redeem(
@@ -119,13 +114,16 @@ contract SubgraphService is
         bytes calldata data
     ) external override returns (uint256 feesCollected) {
         if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
-            feesCollected = _redeemQueryFees(abi.decode(data, (ITAPVerifier.SignedRAV)));
+            feesCollected = _redeemQueryFees(feeType, abi.decode(data, (ITAPVerifier.SignedRAV)));
         } else {
             revert SubgraphServiceInvalidPaymentType(feeType);
         }
     }
 
-    function _redeemQueryFees(ITAPVerifier.SignedRAV memory signedRAV) internal returns (uint256 feesCollected) {
+    function _redeemQueryFees(
+        IGraphPayments.PaymentTypes feeType,
+        ITAPVerifier.SignedRAV memory signedRAV
+    ) internal returns (uint256 feesCollected) {
         address serviceProvider = signedRAV.rav.serviceProvider;
 
         // release expired stake claims
@@ -147,17 +145,17 @@ contract SubgraphService is
 
         // collect fees
         tokensCollected[serviceProvider][payer] = tokens;
-        // TODO: update payment type here with the correct value, is it maybe a parameter?
         uint256 subgraphServiceCut = (tokensToCollect * feesCut) / MAX_PPM;
-        graphPayments.collect(payer, serviceProvider, tokensToCollect, 0, subgraphServiceCut);
+        graphPayments.collect(payer, serviceProvider, tokensToCollect, feeType, subgraphServiceCut);
 
         // TODO: distribute curation fees, how?!
         emit QueryFeesRedeemed(serviceProvider, payer, tokensToCollect);
         return tokensToCollect;
     }
 
-    function slash(address serviceProvider, uint256 tokens, uint256 reward) external override onlyDisputeManager {
-        graphStaking.slash(serviceProvider, tokens, reward, address(disputeManager));
+    function slash(address serviceProvider, bytes calldata data) external override onlyDisputeManager {
+        (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
+        _slash(serviceProvider, tokens, reward, address(disputeManager));
     }
 
     function startService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {

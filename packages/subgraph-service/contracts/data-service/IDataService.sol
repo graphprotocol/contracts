@@ -5,9 +5,9 @@ import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 interface IDataService {
     function register(address serviceProvider, bytes calldata data) external;
-
-    function redeem(IGraphPayments.PaymentTypes feeType, bytes calldata data) external returns (uint256 feesCollected);
-
+    function acceptProvision(address serviceProvider, bytes calldata data) external;
     function startService(address serviceProvider, bytes calldata data) external;
     function stopService(address serviceProvider, bytes calldata data) external;
+    function redeem(IGraphPayments.PaymentTypes feeType, bytes calldata data) external returns (uint256 feesCollected);
+    function slash(address serviceProvider, bytes calldata data) external;
 }
