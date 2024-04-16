@@ -7,6 +7,7 @@ import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 
 import { DataService } from "./data-service/DataService.sol";
+import { IDataService } from "./data-service/IDataService.sol";
 import { DataServiceOwnable } from "./data-service/extensions/DataServiceOwnable.sol";
 import { DataServiceRescuable } from "./data-service/extensions/DataServiceRescuable.sol";
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
@@ -53,10 +54,17 @@ contract SubgraphService is
      */
     event AllocationCreated(
         address indexed indexer,
+        address indexed allocationId,
         bytes32 indexed subgraphDeploymentId,
-        uint256 epoch,
-        uint256 tokens,
-        address indexed allocationId
+        uint256 tokens
+    );
+
+    event AllocationResized(
+        address indexed indexer,
+        address indexed allocationId,
+        bytes32 indexed subgraphDeploymentId,
+        uint256 newTokens,
+        uint256 oldTokens
     );
 
     /**
@@ -65,10 +73,9 @@ contract SubgraphService is
      */
     event AllocationClosed(
         address indexed indexer,
-        bytes32 indexed subgraphDeploymentId,
-        uint256 tokens,
         address indexed allocationId,
-        address sender
+        bytes32 indexed subgraphDeploymentId,
+        uint256 tokens
     );
 
     constructor(
@@ -159,7 +166,10 @@ contract SubgraphService is
         return tokensToCollect;
     }
 
-    function slash(address serviceProvider, bytes calldata data) external override onlyDisputeManager {
+    function slash(
+        address serviceProvider,
+        bytes calldata data
+    ) external override(DataServiceOwnable, IDataService) onlyDisputeManager {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
         _slash(serviceProvider, tokens, reward, address(disputeManager));
     }
@@ -204,10 +214,13 @@ contract SubgraphService is
         }
 
         allocations[allocationId] = allocation;
-        emit AllocationCreated(indexer, subgraphDeploymentId, allocation.createdAt, allocation.tokens, allocationId);
+        emit AllocationCreated(indexer, allocationId, subgraphDeploymentId, allocation.tokens);
     }
 
-    function collectServicePayment() external {}
+    function collectServicePayment(
+        address indexer,
+        bytes calldata data
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {}
 
     function stopService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
         address allocationId = abi.decode(data, (address));
@@ -218,13 +231,43 @@ contract SubgraphService is
         delete allocations[allocationId];
         provisionTrackerAllocations.release(indexer, allocation.tokens);
 
-        emit AllocationClosed(
-            allocation.indexer,
-            allocation.subgraphDeploymentId,
-            allocation.tokens,
-            allocationId,
-            msg.sender
+        emit AllocationClosed(allocation.indexer, allocationId, allocation.subgraphDeploymentId, allocation.tokens);
+    }
+
+    function resizeAllocation(
+        address indexer,
+        address allocationId,
+        uint256 tokens
+    ) external onlyProvisionAuthorized(indexer) {
+        Allocation storage allocation = allocations[allocationId];
+        if (allocation.createdAt == 0) revert SubgraphServiceAllocationDoesNotExist(allocationId);
+
+        // Exit early if the allocation size is not changing
+        if (tokens == allocation.tokens) {
+            return;
+        }
+
+        // Update the allocation
+        uint256 oldTokens = allocation.tokens;
+        allocation.tokens = tokens;
+
+        // Update provision tracker
+        if (tokens > oldTokens) {
+            provisionTrackerAllocations.lock(graphStaking, allocation.indexer, tokens - oldTokens);
+        } else {
+            provisionTrackerAllocations.release(allocation.indexer, oldTokens - tokens);
+        }
+
+        // Update the allocation snapshot and subgraph total allocation
+        // TODO: wat do with resize before collect rewards attack?!
+        allocation.accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
+            allocation.subgraphDeploymentId
         );
+        subgraphAllocations[allocation.subgraphDeploymentId] =
+            subgraphAllocations[allocation.subgraphDeploymentId] +
+            (tokens - oldTokens);
+
+        emit AllocationResized(allocation.indexer, allocationId, allocation.subgraphDeploymentId, tokens, oldTokens);
     }
 
     function getAllocation(address allocationId) external view returns (Allocation memory) {

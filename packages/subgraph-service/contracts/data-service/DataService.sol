@@ -26,6 +26,8 @@ abstract contract DataService is GraphDirectory, DataServiceV1Storage, IDataServ
         uint64 maximumThawingPeriod
     );
 
+    error DataServiceNoServicePayment();
+
     modifier onlyProvisionAuthorized(address serviceProvider) {
         if (!graphStaking.isAuthorized(msg.sender, serviceProvider, address(this))) {
             revert GraphDataServiceNotAuthorized(msg.sender, serviceProvider, address(this));
@@ -45,7 +47,18 @@ abstract contract DataService is GraphDirectory, DataServiceV1Storage, IDataServ
     }
 
     // solhint-disable-next-line no-unused-vars
-    function acceptProvision(address indexer, bytes calldata _data) external onlyProvisionAuthorized(indexer) {
+    function collectServicePayment(
+        address serviceProvider,
+        bytes calldata data
+    ) external virtual override onlyProvisionAuthorized(serviceProvider) {
+        revert DataServiceNoServicePayment();
+    }
+
+    // solhint-disable-next-line no-unused-vars
+    function acceptProvision(
+        address indexer,
+        bytes calldata _data
+    ) external virtual override onlyProvisionAuthorized(indexer) {
         _checkProvisionParameters(indexer);
         _acceptProvision(indexer);
     }

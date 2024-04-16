@@ -861,7 +861,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         uint256 maxRewardableTokens = Math.min(_slashAmount, provision.tokens);
         rewardsAmount = (fishermanRewardPercentage * maxRewardableTokens) / MAX_PPM;
 
-        subgraphService.slash(_indexer, _slashAmount, rewardsAmount);
+        subgraphService.slash(_indexer, abi.encode(_slashAmount, rewardsAmount));
         return rewardsAmount;
     }
 
