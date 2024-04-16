@@ -42,6 +42,8 @@ contract SubgraphService is
     error SubgraphServiceInvalidZeroAllocationId();
     error SubgraphServiceAllocateInsufficientTokens(uint256 available, uint256 required);
     error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
+    error SubgraphServiceIndexingFeesNotImplemented();
+
     event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
 
     /**
@@ -109,12 +111,16 @@ contract SubgraphService is
         _acceptProvision(indexer);
     }
 
+    // TODO: Does this design allow custom payment types?!
     function redeem(
         IGraphPayments.PaymentTypes feeType,
         bytes calldata data
     ) external override returns (uint256 feesCollected) {
         if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
             feesCollected = _redeemQueryFees(feeType, abi.decode(data, (ITAPVerifier.SignedRAV)));
+        }
+        if (feeType == IGraphPayments.PaymentTypes.IndexingFee) {
+            revert SubgraphServiceIndexingFeesNotImplemented();
         } else {
             revert SubgraphServiceInvalidPaymentType(feeType);
         }
@@ -159,19 +165,22 @@ contract SubgraphService is
     }
 
     function startService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
-        (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory proof) = abi.decode(
-            data,
-            (bytes32, uint256, address, bytes)
-        );
+        (
+            bytes32 subgraphDeploymentId,
+            uint256 tokens,
+            address allocationId,
+            bytes memory allocationProof,
+            bytes memory indexingFeesVoucher
+        ) = abi.decode(data, (bytes32, uint256, address, bytes, bytes));
 
+        if (indexingFeesVoucher.length > 0) revert SubgraphServiceIndexingFeesNotImplemented();
         if (allocationId == address(0)) revert SubgraphServiceInvalidZeroAllocationId();
-
         if (allocations[allocationId].createdAt != 0) revert SubgraphServiceAllocationAlreadyExists(allocationId);
 
         // Caller must prove that they own the private key for the allocationId address
         // The proof is an EIP712 signed message of (indexer,allocationId)
         bytes32 digest = encodeProof(indexer, allocationId);
-        address signer = ECDSA.recover(digest, proof);
+        address signer = ECDSA.recover(digest, allocationProof);
         if (signer != allocationId) revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
 
         // Check that the indexer has enough tokens available
@@ -184,12 +193,17 @@ contract SubgraphService is
             createdAt: block.timestamp,
             accRewardsPerAllocatedToken: 0
         });
-        allocations[allocationId] = allocation;
 
         if (tokens > 0) {
-            // TODO: update subgraphAllocations for rewards
+            allocation.accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
+                subgraphDeploymentId
+            );
+            subgraphAllocations[allocation.subgraphDeploymentId] =
+                subgraphAllocations[allocation.subgraphDeploymentId] +
+                allocation.tokens;
         }
 
+        allocations[allocationId] = allocation;
         emit AllocationCreated(indexer, subgraphDeploymentId, allocation.createdAt, allocation.tokens, allocationId);
     }
 
