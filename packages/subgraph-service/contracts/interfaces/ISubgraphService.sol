@@ -15,6 +15,7 @@ interface ISubgraphService is IDataServiceFees {
         bytes32 subgraphDeploymentId;
         uint256 tokens;
         uint256 createdAt;
+        uint256 closedAt;
         uint256 accRewardsPerAllocatedToken;
     }
 

@@ -201,6 +201,7 @@ contract SubgraphService is
             subgraphDeploymentId: subgraphDeploymentId,
             tokens: tokens,
             createdAt: block.timestamp,
+            closedAt: 0,
             accRewardsPerAllocatedToken: 0
         });
 
@@ -225,10 +226,9 @@ contract SubgraphService is
     function stopService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
         address allocationId = abi.decode(data, (address));
 
-        Allocation memory allocation = allocations[allocationId];
-        if (allocation.createdAt == 0) revert SubgraphServiceAllocationDoesNotExist(allocationId);
+        Allocation memory allocation = getAllocation(allocationId);
 
-        delete allocations[allocationId];
+        allocations[allocationId].closedAt = block.timestamp;
         provisionTrackerAllocations.release(indexer, allocation.tokens);
 
         emit AllocationClosed(allocation.indexer, allocationId, allocation.subgraphDeploymentId, allocation.tokens);
@@ -239,8 +239,7 @@ contract SubgraphService is
         address allocationId,
         uint256 tokens
     ) external onlyProvisionAuthorized(indexer) {
-        Allocation storage allocation = allocations[allocationId];
-        if (allocation.createdAt == 0) revert SubgraphServiceAllocationDoesNotExist(allocationId);
+        Allocation memory allocation = getAllocation(allocationId);
 
         // Exit early if the allocation size is not changing
         if (tokens == allocation.tokens) {
@@ -249,7 +248,7 @@ contract SubgraphService is
 
         // Update the allocation
         uint256 oldTokens = allocation.tokens;
-        allocation.tokens = tokens;
+        allocations[allocationId].tokens = tokens;
 
         // Update provision tracker
         if (tokens > oldTokens) {
@@ -260,7 +259,7 @@ contract SubgraphService is
 
         // Update the allocation snapshot and subgraph total allocation
         // TODO: wat do with resize before collect rewards attack?!
-        allocation.accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
+        allocations[allocationId].accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
             allocation.subgraphDeploymentId
         );
         subgraphAllocations[allocation.subgraphDeploymentId] =
@@ -270,8 +269,11 @@ contract SubgraphService is
         emit AllocationResized(allocation.indexer, allocationId, allocation.subgraphDeploymentId, tokens, oldTokens);
     }
 
-    function getAllocation(address allocationId) external view returns (Allocation memory) {
-        return allocations[allocationId];
+    function getAllocation(address allocationId) public view returns (Allocation memory) {
+        Allocation memory allocation = allocations[allocationId];
+        if (allocation.createdAt == 0) revert SubgraphServiceAllocationDoesNotExist(allocationId);
+
+        return allocation;
     }
 
     function encodeProof(address indexer, address allocationId) public view returns (bytes32) {
