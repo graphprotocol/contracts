@@ -2,13 +2,6 @@
 pragma solidity ^0.8.24;
 
 interface IGraphPayments {
-    enum ActionChoices {
-        GoLeft,
-        GoRight,
-        GoStraight,
-        SitStill
-    }
-
     enum PaymentTypes {
         QueryFee,
         IndexingFee

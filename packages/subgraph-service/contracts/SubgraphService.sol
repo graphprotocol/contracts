@@ -40,11 +40,11 @@ contract SubgraphService is
     error SubgraphServiceInvalidAllocationProof(address signer, address allocationId);
     error SubgraphServiceAllocationAlreadyExists(address allocationId);
     error SubgraphServiceAllocationDoesNotExist(address allocationId);
-    error SubgraphServiceInvalidZeroAllocationId();
-    error SubgraphServiceAllocateInsufficientTokens(uint256 available, uint256 required);
+    error SubgraphServiceAllocationClosed(address allocationId);
+    error SubgraphServiceInvalidAllocationId();
     error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
-    error SubgraphServiceIndexingFeesNotImplemented();
-
+    error SubgraphServiceZeroTokensAllocation(address allocationId);
+    error SubgraphServiceInvalidZeroPOI();
     event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
 
     /**
@@ -57,6 +57,15 @@ contract SubgraphService is
         address indexed allocationId,
         bytes32 indexed subgraphDeploymentId,
         uint256 tokens
+    );
+
+    event AllocationCollected(
+        address indexed indexer,
+        address indexed allocationId,
+        bytes32 indexed subgraphDeploymentId,
+        uint256 tokensRewards,
+        uint256 tokensIndexerRewards,
+        uint256 tokensDelegationRewards
     );
 
     event AllocationResized(
@@ -125,9 +134,6 @@ contract SubgraphService is
     ) external override returns (uint256 feesCollected) {
         if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
             feesCollected = _redeemQueryFees(feeType, abi.decode(data, (ITAPVerifier.SignedRAV)));
-        }
-        if (feeType == IGraphPayments.PaymentTypes.IndexingFee) {
-            revert SubgraphServiceIndexingFeesNotImplemented();
         } else {
             revert SubgraphServiceInvalidPaymentType(feeType);
         }
@@ -175,16 +181,12 @@ contract SubgraphService is
     }
 
     function startService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
-        (
-            bytes32 subgraphDeploymentId,
-            uint256 tokens,
-            address allocationId,
-            bytes memory allocationProof,
-            bytes memory indexingFeesVoucher
-        ) = abi.decode(data, (bytes32, uint256, address, bytes, bytes));
+        (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory allocationProof) = abi.decode(
+            data,
+            (bytes32, uint256, address, bytes)
+        );
 
-        if (indexingFeesVoucher.length > 0) revert SubgraphServiceIndexingFeesNotImplemented();
-        if (allocationId == address(0)) revert SubgraphServiceInvalidZeroAllocationId();
+        if (allocationId == address(0)) revert SubgraphServiceInvalidAllocationId();
         if (allocations[allocationId].createdAt != 0) revert SubgraphServiceAllocationAlreadyExists(allocationId);
 
         // Caller must prove that they own the private key for the allocationId address
@@ -202,9 +204,11 @@ contract SubgraphService is
             tokens: tokens,
             createdAt: block.timestamp,
             closedAt: 0,
+            lastPOIPresentedAt: block.timestamp,
             accRewardsPerAllocatedToken: 0
         });
 
+        // Take rewards snapshot for the subgraph before updating the subgraph allocated tokens
         if (tokens > 0) {
             allocation.accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
                 subgraphDeploymentId
@@ -221,7 +225,56 @@ contract SubgraphService is
     function collectServicePayment(
         address indexer,
         bytes calldata data
-    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {}
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
+        (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
+
+        if (poi == bytes32(0)) revert SubgraphServiceInvalidZeroPOI();
+
+        Allocation memory allocation = getAllocation(allocationId);
+        if (allocation.closedAt != 0) revert SubgraphServiceAllocationClosed(allocationId);
+        if (allocation.tokens == 0) revert SubgraphServiceZeroTokensAllocation(allocationId);
+
+        // Mint indexing rewards
+        uint256 timeSinceLastPOI = block.number - allocation.lastPOIPresentedAt;
+        uint256 tokensRewards = timeSinceLastPOI <= maxPOIStaleness ? graphRewardsManager.takeRewards(allocationId) : 0;
+
+        // Update POI timestamp and take rewards snapshot
+        // For stale POIs this ensures the rewards are not collected with the next valid POI
+        allocations[allocationId].lastPOIPresentedAt = block.number;
+        allocations[allocationId].accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
+            allocation.subgraphDeploymentId
+        );
+
+        if (tokensRewards == 0) {
+            return;
+        }
+
+        // Distribute rewards to delegators
+        // TODO: remove the uint8 cast when PRs are merged
+        uint256 delegatorCut = graphStaking.getDelegationCut(indexer, uint8(IGraphPayments.PaymentTypes.IndexingFee));
+        uint256 tokensDelegationRewards = (tokensRewards * delegatorCut) / MAX_PPM;
+        graphToken.approve(address(graphStaking), tokensDelegationRewards);
+        graphStaking.addToDelegationPool(indexer, tokensDelegationRewards);
+
+        // Distribute rewards to indexer
+        uint256 tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
+        address rewardsDestination = rewardsDestination[indexer];
+        if (rewardsDestination == address(0)) {
+            graphToken.approve(address(graphStaking), tokensIndexerRewards);
+            graphStaking.stakeToProvision(indexer, address(this), tokensIndexerRewards);
+        } else {
+            graphToken.transfer(rewardsDestination, tokensIndexerRewards);
+        }
+
+        emit AllocationCollected(
+            indexer,
+            allocationId,
+            allocation.subgraphDeploymentId,
+            tokensRewards,
+            tokensIndexerRewards,
+            tokensDelegationRewards
+        );
+    }
 
     function stopService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
         address allocationId = abi.decode(data, (address));
@@ -230,6 +283,14 @@ contract SubgraphService is
 
         allocations[allocationId].closedAt = block.timestamp;
         provisionTrackerAllocations.release(indexer, allocation.tokens);
+
+        // Take rewards snapshot for the subgraph before updating the subgraph allocated tokens
+        allocations[allocationId].accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
+            allocation.subgraphDeploymentId
+        );
+        subgraphAllocations[allocation.subgraphDeploymentId] =
+            subgraphAllocations[allocation.subgraphDeploymentId] -
+            allocation.tokens;
 
         emit AllocationClosed(allocation.indexer, allocationId, allocation.subgraphDeploymentId, allocation.tokens);
     }
@@ -257,8 +318,7 @@ contract SubgraphService is
             provisionTrackerAllocations.release(allocation.indexer, oldTokens - tokens);
         }
 
-        // Update the allocation snapshot and subgraph total allocation
-        // TODO: wat do with resize before collect rewards attack?!
+        // Take rewards snapshot for the subgraph before updating the subgraph allocated tokens
         allocations[allocationId].accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
             allocation.subgraphDeploymentId
         );

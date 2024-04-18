@@ -159,4 +159,8 @@ interface IHorizonStaking {
      * @param _verifier The verifier / data service on which they're claiming to act
      */
     function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool);
+
+    function getDelegationCut(address serviceProvider, uint8 paymentType) external view returns (uint256 delegationCut);
+    function addToDelegationPool(address serviceProvider, uint256 tokens) external;
+    function stakeToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external;
 }

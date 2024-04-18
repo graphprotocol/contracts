@@ -16,6 +16,7 @@ interface ISubgraphService is IDataServiceFees {
         uint256 tokens;
         uint256 createdAt;
         uint256 closedAt;
+        uint256 lastPOIPresentedAt;
         uint256 accRewardsPerAllocatedToken;
     }
 

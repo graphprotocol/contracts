@@ -18,10 +18,16 @@ contract SubgraphServiceV1Storage {
 
     // -- Indexing rewards --
 
+    /// @notice Maximum amount of since last POI was presented to qualify for indexing rewards
+    uint256 public maxPOIStaleness;
+
     mapping(address indexer => uint256 tokens) public provisionTrackerAllocations;
     mapping(address allocationId => ISubgraphService.Allocation allocation) public allocations;
 
     /// @notice Track total tokens allocated per subgraph deployment
     /// @dev Used to calculate indexing rewards
     mapping(bytes32 subgraphDeploymentId => uint256 tokens) public subgraphAllocations;
+
+    /// @dev Destination of accrued rewards
+    mapping(address indexer => address destination) public rewardsDestination;
 }
