@@ -100,7 +100,7 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         graphToken.transfer(msg.sender, dataServicePayment);
 
         // Get delegation cut
-        (address delegatorAddress, uint256 delegatorCut) = graphStaking.getDelegatorCut(receiver, uint256256(paymentType));
+        (address delegatorAddress, uint256 delegatorCut) = graphStaking.getDelegatorCut(receiver, uint256(paymentType));
         uint256 delegatorPayment = (amount * delegatorCut) / MAX_PPM;
         graphToken.transfer(delegatorAddress, delegatorPayment);
 

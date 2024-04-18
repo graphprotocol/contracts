@@ -8,14 +8,15 @@ import { Controller } from "@graphprotocol/contracts/contracts/governance/Contro
 import { GraphEscrow } from "contracts/GraphEscrow.sol";
 import { GraphPayments } from "contracts/GraphPayments.sol";
 
+import "./GraphDeployments.t.sol";
 import "./mocks/MockGRTToken.sol";
 
 contract GraphEscrowTest is Test {
+    GraphDeployments deployments;
     GraphEscrow escrow;
-
     Controller controller;
     MockGRTToken token;
-    address graphPayments = address(0xA1);
+    GraphPayments payments;
 
     address governor = address(0xA2);
     uint256 withdrawEscrowThawingPeriod = 60;
@@ -26,16 +27,15 @@ contract GraphEscrowTest is Test {
     // Setup
 
     function setUp() public {
-        vm.prank(governor);
-        controller = new Controller();
-        token = new MockGRTToken();
+        deployments = new GraphDeployments();
 
-        vm.startPrank(governor);
-        controller.setContractProxy(keccak256("GraphToken"), address(token));
-        controller.setContractProxy(keccak256("GraphPayments"), graphPayments);
-        vm.stopPrank();
+        controller = deployments.controller();
+        token = deployments.token();
+        escrow = deployments.escrow();
+        payments = deployments.payments();
 
-        escrow = new GraphEscrow(address(controller), withdrawEscrowThawingPeriod);
+        governor = deployments.governor();
+        withdrawEscrowThawingPeriod = deployments.withdrawEscrowThawingPeriod();
 
         sender = address(0xB1);
         receiver = address(0xB2);
@@ -112,6 +112,7 @@ contract GraphEscrowTest is Test {
         escrow.deposit(receiver, 1000 ether);
         vm.stopPrank();
 
+        address graphPayments = address(payments);
         vm.prank(graphPayments);
         escrow.collect(sender, receiver, 100 ether);
 

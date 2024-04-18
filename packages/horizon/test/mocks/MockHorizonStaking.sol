@@ -37,7 +37,7 @@ contract MockHorizonStaking is IHorizonStaking {
     function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {}
     function getProvision(bytes32 provision) external view returns (Provision memory) {}
 
-    function getDelegatorCut(address serviceProvider, uint paymentType) external returns (address, uint256) {
+    function getDelegatorCut(address serviceProvider, uint256 paymentType) external returns (address, uint256) {
         return (delegatorAddress, delegatorCut);
     }
 }
