@@ -8,6 +8,12 @@ interface IGraphPayments {
         QueryFees
     }
 
+    // Authorized collector
+    struct Collector {
+        bool authorized;
+        uint256 thawEndTimestamp;
+    }
+
     // approve a data service to collect funds
     function approveCollector(address dataService) external;
 

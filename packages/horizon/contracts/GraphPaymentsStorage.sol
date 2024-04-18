@@ -5,7 +5,8 @@ import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 
 contract GraphPaymentsStorageV1Storage {
     // Authorized collectors
-    mapping(address sender => mapping(address collector => uint256 thawEndTimestamp)) public authorizedCollectors;
+    mapping(address sender => mapping(address dataService => IGraphPayments.Collector collector))
+        public authorizedCollectors;
 
     // The maximum thawing period (in seconds) for removing collector authorization
     // This is a precautionary measure to avoid inadvertedly locking collectors for too long

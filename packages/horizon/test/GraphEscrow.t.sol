@@ -18,7 +18,6 @@ contract GraphEscrowTest is Test {
     address graphPayments = address(0xA1);
 
     address governor = address(0xA2);
-    uint256 initialSupply = 1000000 ether;
     uint256 withdrawEscrowThawingPeriod = 60;
 
     address sender;
