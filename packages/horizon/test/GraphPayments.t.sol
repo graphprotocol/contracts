@@ -10,6 +10,7 @@ import { GraphPayments } from "contracts/GraphPayments.sol";
 import { IGraphPayments } from "contracts/interfaces/IGraphPayments.sol";
 
 import "./GraphDeployments.t.sol";
+import "./mocks/MockHorizonStaking.sol";
 import "./mocks/MockGRTToken.sol";
 
 contract GraphPaymentsTest is Test {
@@ -18,6 +19,7 @@ contract GraphPaymentsTest is Test {
     Controller controller;
     MockGRTToken token;
     GraphEscrow escrow;
+    MockHorizonStaking staking;
 
     address governor;
 
@@ -36,6 +38,7 @@ contract GraphPaymentsTest is Test {
         controller = deployments.controller();
         token = deployments.token();
         escrow = deployments.escrow();
+        staking = deployments.staking();
         governor = deployments.governor();
 
         revokeCollectorThawingPeriod = deployments.revokeCollectorThawingPeriod();
@@ -121,8 +124,7 @@ contract GraphPaymentsTest is Test {
         uint256 dataServiceBalance = token.balanceOf(dataService);
         assertEq(dataServiceBalance, 30 ether);
 
-        // TODO: test delegator cut payment
-        // uint256 delegatorBalance = token.balanceOf(delegationPool);
-        // assertEq(delegatorBalance, 50 ether);
+        uint256 delegatorBalance = staking.delegationPool(indexer);
+        assertEq(delegatorBalance, 50 ether);
     }
 }

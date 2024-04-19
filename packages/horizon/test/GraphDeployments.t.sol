@@ -33,7 +33,7 @@ contract GraphDeployments is Test {
 
     // Staking parameters
 
-    uint256 public delegatorCut = 50000; // 5%
+    uint256 public delegationCut = 50000; // 5%
 
     // Setup
 
@@ -61,7 +61,7 @@ contract GraphDeployments is Test {
 
         // HorizonStaking
         vm.prank(deployer);
-        staking = new MockHorizonStaking(delegatorCut);
+        staking = new MockHorizonStaking(delegationCut);
 
         // Setup controller
         vm.startPrank(governor);

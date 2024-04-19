@@ -4,13 +4,13 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-import { MockGRTToken } from "./MockGRTToken.sol";
 
 contract MockHorizonStaking is IHorizonStaking {
-    uint256 public delegatorCut;
+    uint256 public delegationCut;
+    mapping(address serviceProvider => uint256 tokens) public delegationPool;
 
-    constructor(uint256 _delegatorCut) {
-        delegatorCut = _delegatorCut;
+    constructor(uint256 _delegationCut) {
+        delegationCut = _delegationCut;
     }
 
     function allowVerifier(address verifier, bool allow) external {}
@@ -35,7 +35,11 @@ contract MockHorizonStaking is IHorizonStaking {
     function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {}
     function getProvision(bytes32 provision) external view returns (Provision memory) {}
 
-    function getDelegatorCut(address serviceProvider, uint256 paymentType) external returns (uint256) {
-        return delegatorCut;
+    function getDelegationCut(address serviceProvider, uint8 paymentType) external view returns (uint256) {
+        return delegationCut;
+    }
+
+    function addToDelegationPool(address serviceProvider, uint256 tokens) external {
+        delegationPool[serviceProvider] += tokens;
     }
 }
