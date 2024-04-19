@@ -15,4 +15,7 @@ contract DataServiceFeesV1Storage {
     /// @notice Service providers registered in the data service
     mapping(IGraphPayments.PaymentTypes feeType => mapping(address serviceProvider => IDataServiceFees.StakeClaimsList list))
         public claimsLists;
+
+    /// @dev Gap to allow adding variables in future upgrades
+    uint256[50] private __gap;
 }

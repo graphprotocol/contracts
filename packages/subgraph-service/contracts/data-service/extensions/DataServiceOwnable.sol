@@ -10,6 +10,6 @@ abstract contract DataServiceOwnable is Ownable, DataService {
 
     function slash(address serviceProvider, bytes calldata data) external virtual override onlyOwner {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
-        _slash(serviceProvider, tokens, reward, owner());
+        graphStaking.slash(serviceProvider, tokens, reward, owner());
     }
 }
