@@ -22,7 +22,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         uint256 tokens,
         uint256 unlockTimestamp
     ) internal {
-        provisionTracker[feeType].lock(graphStaking, serviceProvider, tokens);
+        feesProvisionTracker[feeType].lock(graphStaking, serviceProvider, tokens);
 
         StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];
         bytes32 claimId = _buildStakeClaimId(serviceProvider, claimsList.nonce);
@@ -54,7 +54,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
 
             if (block.timestamp >= claim.releaseAt) {
                 // Release stake
-                provisionTracker[feeType].release(serviceProvider, claim.tokens);
+                feesProvisionTracker[feeType].release(serviceProvider, claim.tokens);
 
                 // Update list and refresh pointer
                 StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];

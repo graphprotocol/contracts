@@ -5,7 +5,7 @@ import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 import { Allocation } from "./libraries/Allocation.sol";
 
-contract SubgraphServiceV1Storage {
+abstract contract SubgraphServiceV1Storage {
     /// @notice Service providers registered in the data service
     mapping(address indexer => ISubgraphService.Indexer details) public indexers;
 
@@ -20,16 +20,5 @@ contract SubgraphServiceV1Storage {
 
     // -- Indexing rewards --
 
-    /// @notice Maximum amount of since last POI was presented to qualify for indexing rewards
-    uint256 public maxPOIStaleness;
-
-    mapping(address indexer => uint256 tokens) public provisionTrackerAllocations;
-    mapping(address allocationId => Allocation.State allocation) public allocations;
-
-    /// @notice Track total tokens allocated per subgraph deployment
-    /// @dev Used to calculate indexing rewards
-    mapping(bytes32 subgraphDeploymentId => uint256 tokens) public subgraphAllocations;
-
-    /// @dev Destination of accrued rewards
-    mapping(address indexer => address destination) public rewardsDestination;
+    // mapping(address allocationId => LegacyAllocation allocation) public legacyAllocations;
 }

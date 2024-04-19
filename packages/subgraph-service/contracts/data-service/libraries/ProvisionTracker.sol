@@ -30,4 +30,14 @@ library ProvisionTracker {
         }
         self[serviceProvider] -= tokens;
     }
+
+    function getTokensFree(
+        mapping(address => uint256) storage self,
+        IHorizonStaking graphStaking,
+        address serviceProvider
+    ) internal view returns (uint256) {
+        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this));
+        if (tokensAvailable >= self[serviceProvider]) return tokensAvailable - self[serviceProvider];
+        else return 0;
+    }
 }

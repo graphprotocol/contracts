@@ -11,7 +11,7 @@ import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRew
 import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
-contract GraphDirectory {
+abstract contract GraphDirectory {
     IController public immutable graphController;
     IHorizonStaking public immutable graphStaking;
     IEpochManager public immutable graphEpochManager;

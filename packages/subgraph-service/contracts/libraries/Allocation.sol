@@ -12,11 +12,14 @@ library Allocation {
         uint256 closedAt;
         uint256 lastPOIPresentedAt;
         uint256 accRewardsPerAllocatedToken;
+        uint256 accRewardsPending;
     }
 
     error AllocationAlreadyExists(address allocationId);
     error AllocationAlreadyClosed(address allocationId, uint256 closedAt);
     error AllocationDoesNotExist(address allocationId);
+    error AllocationClosed(address allocationId, uint256 closedAt);
+    error AllocationZeroTokens(address allocationId);
 
     function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
         return _get(self, allocationId);
@@ -39,7 +42,8 @@ library Allocation {
             createdAt: block.timestamp,
             closedAt: 0,
             lastPOIPresentedAt: block.timestamp,
-            accRewardsPerAllocatedToken: accRewardsPerAllocatedToken
+            accRewardsPerAllocatedToken: accRewardsPerAllocatedToken,
+            accRewardsPending: 0
         });
 
         self[allocationId] = allocation;
@@ -47,25 +51,35 @@ library Allocation {
         return allocation;
     }
 
-    function presentPOI(
-        mapping(address => State) storage self,
-        address allocationId,
-        uint256 accRewardsPerAllocatedToken
-    ) internal {
+    // Update POI timestamp and take rewards snapshot
+    // For stale POIs this ensures the rewards are not collected with the next valid POI
+    function presentPOI(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
+        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
+        if (allocation.isAltruistic()) revert AllocationZeroTokens(allocationId);
         allocation.lastPOIPresentedAt = block.timestamp;
-        allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+
+        return allocation;
     }
 
-    function close(
+    function snapshotRewards(
         mapping(address => State) storage self,
         address allocationId,
         uint256 accRewardsPerAllocatedToken
-    ) internal {
+    ) internal returns (State memory) {
+        State storage allocation = _get(self, allocationId);
+        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
+        allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+
+        return allocation;
+    }
+
+    function close(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
         if (!allocation.isOpen()) revert AllocationAlreadyClosed(allocationId, allocation.closedAt);
         allocation.closedAt = block.timestamp;
-        allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+
+        return allocation;
     }
 
     function exists(State memory self) internal pure returns (bool) {

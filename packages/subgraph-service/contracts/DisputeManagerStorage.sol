@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 import "./interfaces/IDisputeManager.sol";
 
-contract DisputeManagerV1Storage {
+abstract contract DisputeManagerV1Storage {
     // -- State --
 
     bytes32 internal DOMAIN_SEPARATOR;
