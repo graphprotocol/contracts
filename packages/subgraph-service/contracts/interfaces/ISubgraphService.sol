@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { IDataServiceFees } from "../data-service/extensions/IDataServiceFees.sol";
+import { Allocation } from "../libraries/Allocation.sol";
 
 interface ISubgraphService is IDataServiceFees {
     struct Indexer {
@@ -10,17 +11,5 @@ interface ISubgraphService is IDataServiceFees {
         string geoHash;
     }
 
-    struct Allocation {
-        address indexer;
-        bytes32 subgraphDeploymentId;
-        uint256 tokens;
-        uint256 createdAt;
-        uint256 closedAt;
-        uint256 lastPOIPresentedAt;
-        uint256 accRewardsPerAllocatedToken;
-    }
-
-    function getAllocation(address allocationID) external view returns (Allocation memory);
-
-    function encodeProof(address indexer, address allocationId) external view returns (bytes32);
+    function getAllocation(address allocationID) external view returns (Allocation.State memory);
 }

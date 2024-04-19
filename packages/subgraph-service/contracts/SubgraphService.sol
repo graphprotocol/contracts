@@ -11,29 +11,36 @@ import { IDataService } from "./data-service/IDataService.sol";
 import { DataServiceOwnable } from "./data-service/extensions/DataServiceOwnable.sol";
 import { DataServiceRescuable } from "./data-service/extensions/DataServiceRescuable.sol";
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
-import { ProvisionTracker } from "./data-service/utils/ProvisionTracker.sol";
+import { ProvisionTracker } from "./data-service/libraries/ProvisionTracker.sol";
 
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
-import { Directory } from "./utils/Directory.sol";
+
+import { PPMMath } from "./libraries/PPMMath.sol";
+
+import { Directory } from "./utilities/Directory.sol";
+import { Allocation } from "./libraries/Allocation.sol";
 
 // TODO: contract needs to be upgradeable and pausable
 contract SubgraphService is
-    EIP712,
     DataService,
     DataServiceOwnable,
     DataServiceRescuable,
     DataServiceFees,
     Directory,
+    EIP712,
     SubgraphServiceV1Storage,
     ISubgraphService
 {
+    using PPMMath for uint256;
     using ProvisionTracker for mapping(address => uint256);
+    using Allocation for mapping(address => Allocation.State);
+    using Allocation for Allocation.State;
 
-    uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
     bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
+
     error SubgraphServiceAlreadyRegistered();
     error SubgraphServiceEmptyUrl();
     error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
@@ -45,6 +52,8 @@ contract SubgraphService is
     error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
     error SubgraphServiceZeroTokensAllocation(address allocationId);
     error SubgraphServiceInvalidZeroPOI();
+    error SubgraphSericeInvalidAllocationProof(address signer, address allocationId);
+
     event QueryFeesRedeemed(address serviceProvider, address payer, uint256 tokens);
 
     /**
@@ -88,19 +97,17 @@ contract SubgraphService is
     );
 
     constructor(
-        string memory eip712Name,
-        string memory eip712Version,
         address _graphController,
         address _disputeManager,
         address _tapVerifier,
         uint256 _minimumProvisionTokens
     )
-        EIP712(eip712Name, eip712Version)
         DataService(_graphController)
         DataServiceOwnable(msg.sender)
         DataServiceRescuable()
         DataServiceFees()
         Directory(address(this), _tapVerifier, _disputeManager)
+        EIP712("SubgraphService", "1.0")
     {
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
     }
@@ -164,7 +171,7 @@ contract SubgraphService is
 
         // collect fees
         tokensCollected[serviceProvider][payer] = tokens;
-        uint256 subgraphServiceCut = (tokensToCollect * feesCut) / MAX_PPM;
+        uint256 subgraphServiceCut = tokensToCollect.mulPPM(feesCut);
         graphPayments.collect(payer, serviceProvider, tokensToCollect, feeType, subgraphServiceCut);
 
         // TODO: distribute curation fees, how?!
@@ -187,38 +194,29 @@ contract SubgraphService is
         );
 
         if (allocationId == address(0)) revert SubgraphServiceInvalidAllocationId();
-        if (allocations[allocationId].createdAt != 0) revert SubgraphServiceAllocationAlreadyExists(allocationId);
 
-        // Caller must prove that they own the private key for the allocationId address
-        // The proof is an EIP712 signed message of (indexer,allocationId)
-        bytes32 digest = encodeProof(indexer, allocationId);
-        address signer = ECDSA.recover(digest, allocationProof);
-        if (signer != allocationId) revert SubgraphServiceInvalidAllocationProof(signer, allocationId);
+        _verifyAllocationProof(indexer, allocationId, allocationProof);
+
+        uint256 accRewardsPerAllocatedToken = tokens > 0
+            ? graphRewardsManager.onSubgraphAllocationUpdate(subgraphDeploymentId)
+            : 0;
+        Allocation.State memory allocation = allocations.create(
+            indexer,
+            allocationId,
+            subgraphDeploymentId,
+            tokens,
+            accRewardsPerAllocatedToken
+        );
 
         // Check that the indexer has enough tokens available
         provisionTrackerAllocations.lock(graphStaking, indexer, tokens);
 
-        Allocation memory allocation = Allocation({
-            indexer: indexer,
-            subgraphDeploymentId: subgraphDeploymentId,
-            tokens: tokens,
-            createdAt: block.timestamp,
-            closedAt: 0,
-            lastPOIPresentedAt: block.timestamp,
-            accRewardsPerAllocatedToken: 0
-        });
-
-        // Take rewards snapshot for the subgraph before updating the subgraph allocated tokens
         if (tokens > 0) {
-            allocation.accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
-                subgraphDeploymentId
-            );
             subgraphAllocations[allocation.subgraphDeploymentId] =
                 subgraphAllocations[allocation.subgraphDeploymentId] +
                 allocation.tokens;
         }
 
-        allocations[allocationId] = allocation;
         emit AllocationCreated(indexer, allocationId, subgraphDeploymentId, allocation.tokens);
     }
 
@@ -230,9 +228,9 @@ contract SubgraphService is
 
         if (poi == bytes32(0)) revert SubgraphServiceInvalidZeroPOI();
 
-        Allocation memory allocation = getAllocation(allocationId);
-        if (allocation.closedAt != 0) revert SubgraphServiceAllocationClosed(allocationId);
-        if (allocation.tokens == 0) revert SubgraphServiceZeroTokensAllocation(allocationId);
+        Allocation.State memory allocation = allocations.get(allocationId);
+        if (!allocation.isOpen()) revert SubgraphServiceAllocationClosed(allocationId);
+        if (allocation.isAltruistic()) revert SubgraphServiceZeroTokensAllocation(allocationId);
 
         // Mint indexing rewards
         uint256 timeSinceLastPOI = block.number - allocation.lastPOIPresentedAt;
@@ -240,9 +238,9 @@ contract SubgraphService is
 
         // Update POI timestamp and take rewards snapshot
         // For stale POIs this ensures the rewards are not collected with the next valid POI
-        allocations[allocationId].lastPOIPresentedAt = block.number;
-        allocations[allocationId].accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
-            allocation.subgraphDeploymentId
+        allocations.presentPOI(
+            allocationId,
+            graphRewardsManager.onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
 
         if (tokensRewards == 0) {
@@ -252,7 +250,7 @@ contract SubgraphService is
         // Distribute rewards to delegators
         // TODO: remove the uint8 cast when PRs are merged
         uint256 delegatorCut = graphStaking.getDelegationCut(indexer, uint8(IGraphPayments.PaymentTypes.IndexingFee));
-        uint256 tokensDelegationRewards = (tokensRewards * delegatorCut) / MAX_PPM;
+        uint256 tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
         graphToken.approve(address(graphStaking), tokensDelegationRewards);
         graphStaking.addToDelegationPool(indexer, tokensDelegationRewards);
 
@@ -279,16 +277,15 @@ contract SubgraphService is
     function stopService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
         address allocationId = abi.decode(data, (address));
 
-        Allocation memory allocation = getAllocation(allocationId);
+        Allocation.State memory allocation = getAllocation(allocationId);
 
-        allocations[allocationId].closedAt = block.timestamp;
+        allocations.close(
+            allocationId,
+            graphRewardsManager.onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
+        );
         provisionTrackerAllocations.release(indexer, allocation.tokens);
 
-        // Take rewards snapshot for the subgraph before updating the subgraph allocated tokens
-        allocations[allocationId].accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
-            allocation.subgraphDeploymentId
-        );
-        subgraphAllocations[allocation.subgraphDeploymentId] =
+        allocations[allocationId].accRewardsPerAllocatedToken = subgraphAllocations[allocation.subgraphDeploymentId] =
             subgraphAllocations[allocation.subgraphDeploymentId] -
             allocation.tokens;
 
@@ -300,7 +297,7 @@ contract SubgraphService is
         address allocationId,
         uint256 tokens
     ) external onlyProvisionAuthorized(indexer) {
-        Allocation memory allocation = getAllocation(allocationId);
+        Allocation.State memory allocation = getAllocation(allocationId);
 
         // Exit early if the allocation size is not changing
         if (tokens == allocation.tokens) {
@@ -329,17 +326,11 @@ contract SubgraphService is
         emit AllocationResized(allocation.indexer, allocationId, allocation.subgraphDeploymentId, tokens, oldTokens);
     }
 
-    function getAllocation(address allocationId) public view returns (Allocation memory) {
-        Allocation memory allocation = allocations[allocationId];
-        if (allocation.createdAt == 0) revert SubgraphServiceAllocationDoesNotExist(allocationId);
-
-        return allocation;
+    function getAllocation(address allocationId) public view returns (Allocation.State memory) {
+        return allocations.get(allocationId);
     }
 
-    function encodeProof(address indexer, address allocationId) public view returns (bytes32) {
-        return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
-    }
-
+    // -- Data service parameter getters --
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
         uint64 disputePeriod = disputeManager.getDisputePeriod();
         return (disputePeriod, type(uint64).max);
@@ -348,5 +339,16 @@ contract SubgraphService is
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
         uint32 verifierCut = disputeManager.getVerifierCut();
         return (verifierCut, type(uint32).max);
+    }
+
+    // -- Allocation Proof Verification --
+    function _verifyAllocationProof(address indexer, address allocationId, bytes memory proof) internal view {
+        bytes32 digest = _encodeAllocationProof(indexer, allocationId);
+        address signer = ECDSA.recover(digest, proof);
+        if (signer != allocationId) revert SubgraphSericeInvalidAllocationProof(signer, allocationId);
+    }
+
+    function _encodeAllocationProof(address indexer, address allocationId) internal view returns (bytes32) {
+        return EIP712._hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
     }
 }

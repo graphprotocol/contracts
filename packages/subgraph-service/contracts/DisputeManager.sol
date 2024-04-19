@@ -13,7 +13,8 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { Directory } from "./utils/Directory.sol";
+import { Directory } from "./utilities/Directory.sol";
+import { Allocation } from "./libraries/Allocation.sol";
 
 /*
  * @title DisputeManager
@@ -467,7 +468,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         // Get attestation signer. Indexers signs with the allocationId
         address allocationId = _recoverAttestationSigner(_attestation);
 
-        ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(allocationId);
+        Allocation.State memory alloc = subgraphService.getAllocation(allocationId);
         if (alloc.indexer == address(0)) {
             revert SubgraphDisputeManagerIndexerNotFound(allocationId);
         }
@@ -653,7 +654,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         // Allocation must exist
         // TODO: Check ISubgraphService for Allocation
         // TODO: Check ISubgraphService for getAllocation(...)
-        ISubgraphService.Allocation memory alloc = subgraphService.getAllocation(_allocationId);
+        Allocation.State memory alloc = subgraphService.getAllocation(_allocationId);
         address indexer = alloc.indexer;
         if (indexer == address(0)) {
             revert SubgraphDisputeManagerIndexerNotFound(_allocationId);

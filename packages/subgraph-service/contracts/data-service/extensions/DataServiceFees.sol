@@ -6,7 +6,7 @@ import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 import { IDataServiceFees } from "./IDataServiceFees.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
-import { ProvisionTracker } from "../utils/ProvisionTracker.sol";
+import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
 
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { IDataServiceFees } from "./IDataServiceFees.sol";
-import { ProvisionTracker } from "../utils/ProvisionTracker.sol";
+import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 contract DataServiceFeesV1Storage {

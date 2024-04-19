@@ -3,6 +3,8 @@ pragma solidity ^0.8.24;
 
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
+import { Allocation } from "./libraries/Allocation.sol";
+
 contract SubgraphServiceV1Storage {
     /// @notice Service providers registered in the data service
     mapping(address indexer => ISubgraphService.Indexer details) public indexers;
@@ -22,7 +24,7 @@ contract SubgraphServiceV1Storage {
     uint256 public maxPOIStaleness;
 
     mapping(address indexer => uint256 tokens) public provisionTrackerAllocations;
-    mapping(address allocationId => ISubgraphService.Allocation allocation) public allocations;
+    mapping(address allocationId => Allocation.State allocation) public allocations;
 
     /// @notice Track total tokens allocated per subgraph deployment
     /// @dev Used to calculate indexing rewards
