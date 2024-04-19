@@ -11,11 +11,12 @@ interface IGraphPayments {
     // Collector
     struct Collector {
         bool authorized;
+        uint256 amount;
         uint256 thawEndTimestamp;
     }
 
     // approve a data service to collect funds
-    function approveCollector(address dataService) external;
+    function approveCollector(address dataService, uint256 amount) external;
 
     // thaw a data service's collector authorization
     function thawCollector(address dataService) external;

@@ -41,6 +41,8 @@ contract GraphEscrowTest is Test {
         receiver = address(0xB2);
     }
 
+    // Deposit tests
+
     function testDeposit() public {
         token.mint(sender, 10000 ether);
         vm.startPrank(sender);
@@ -75,6 +77,27 @@ contract GraphEscrowTest is Test {
         assertEq(otherReceiverEscrowBalance, 2000 ether);
     }
 
+    function testDepositMany_RevertWhen_InputsLengthMismatch() public {
+        address otherReceiver = address(0xB3);
+        address[] memory receivers = new address[](2);
+        receivers[0] = receiver;
+        receivers[1] = otherReceiver;
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1000 ether;
+
+        token.mint(sender, 1000 ether);
+        token.approve(address(escrow), 1000 ether);
+
+        // revert
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInputsLengthMismatch()");
+        vm.expectRevert(expectedError);
+        vm.prank(sender);
+        escrow.depositMany(receivers, amounts);
+    }
+
+    // Thaw tests
+
     function testThaw() public {
         token.mint(sender, 1000 ether);
         vm.startPrank(sender);
@@ -87,6 +110,34 @@ contract GraphEscrowTest is Test {
         assertEq(amountThawing, 100 ether);
         assertEq(thawEndTimestamp, block.timestamp + withdrawEscrowThawingPeriod);
     }
+
+    function testThaw_RevertWhen_InsufficientThawAmount() public {
+        token.mint(sender, 1000 ether);
+        vm.startPrank(sender);
+        token.approve(address(escrow), 1000 ether);
+        escrow.deposit(receiver, 1000 ether);
+
+        // revert
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientThawAmount()");
+        vm.expectRevert(expectedError);
+        escrow.thaw(receiver, 0);
+        vm.stopPrank();
+    }
+
+    function testThaw_RevertWhen_InsufficientAmount() public {
+        token.mint(sender, 1000 ether);
+        vm.startPrank(sender);
+        token.approve(address(escrow), 1000 ether);
+        escrow.deposit(receiver, 1000 ether);
+
+        // revert
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAmount(uint256,uint256)", 1000 ether, 2000 ether);
+        vm.expectRevert(expectedError);
+        escrow.thaw(receiver, 2000 ether);
+        vm.stopPrank();
+    }
+
+    // Withdraw tests
 
     function testWithdraw() public {
         token.mint(sender, 1000 ether);
@@ -105,6 +156,35 @@ contract GraphEscrowTest is Test {
         assertEq(receiverEscrowBalance, 900 ether);
     }
 
+    function testWithdraw_RevertWhen_NotThawing() public {
+        token.mint(sender, 1000 ether);
+        vm.startPrank(sender);
+        token.approve(address(escrow), 1000 ether);
+        escrow.deposit(receiver, 1000 ether);
+
+        // revert
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotThawing()");
+        vm.expectRevert(expectedError);
+        escrow.withdraw(receiver);
+        vm.stopPrank();
+    }
+
+    function testWithdraw_RevertWhen_StillThawing() public {
+        token.mint(sender, 1000 ether);
+        vm.startPrank(sender);
+        token.approve(address(escrow), 1000 ether);
+        escrow.deposit(receiver, 1000 ether);
+        escrow.thaw(receiver, 100 ether);
+
+        // revert
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowStillThawing(uint256,uint256)", block.timestamp, block.timestamp + withdrawEscrowThawingPeriod);
+        vm.expectRevert(expectedError);
+        escrow.withdraw(receiver);
+        vm.stopPrank();
+    }
+
+    // Collect tests
+
     function testCollect() public {
         token.mint(sender, 1000 ether);
         vm.startPrank(sender);
@@ -120,5 +200,18 @@ contract GraphEscrowTest is Test {
         assertEq(receiverEscrowBalance, 900 ether);
         uint256 graphPaymentsBalance = token.balanceOf(graphPayments);
         assertEq(graphPaymentsBalance, 100 ether);
+    }
+
+    function testCollect_RevertWhen_NotGraphPayments() public {
+        token.mint(sender, 1000 ether);
+        vm.startPrank(sender);
+        token.approve(address(escrow), 1000 ether);
+        escrow.deposit(receiver, 1000 ether);
+        vm.stopPrank();
+
+        // revert
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotGraphPayments()");
+        vm.expectRevert(expectedError);
+        escrow.collect(sender, receiver, 100 ether);
     }
 }

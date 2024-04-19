@@ -15,6 +15,7 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
     error GraphPaymentsNotThawing();
     error GraphPaymentsStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
     error GraphPaymentsCollectorNotAuthorized(address sender, address dataService);
+    error GraphPaymentsCollectorInsufficientAmount(uint256 available, uint256 required);
 
     // -- Events --
 
@@ -41,8 +42,9 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
     }
 
     // approve a data service to collect funds
-    function approveCollector(address dataService) external {
+    function approveCollector(address dataService, uint256 amount) external {
         authorizedCollectors[msg.sender][dataService].authorized = true;
+        authorizedCollectors[msg.sender][dataService].amount = amount;
         emit AuthorizedCollector(msg.sender, dataService);
     }
 
@@ -54,6 +56,10 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
 
     // cancel thawing a data service's collector authorization
     function cancelThawCollector(address dataService) external {
+        if (authorizedCollectors[msg.sender][dataService].thawEndTimestamp == 0) {
+            revert GraphPaymentsNotThawing();
+        }
+
         authorizedCollectors[msg.sender][dataService].thawEndTimestamp = 0;
         emit CancelThawCollector(msg.sender, dataService);
     }
@@ -87,6 +93,13 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         if (!collector.authorized) {
             revert GraphPaymentsCollectorNotAuthorized(sender, msg.sender);
         }
+
+        if (collector.amount < amount) {
+            revert GraphPaymentsCollectorInsufficientAmount(collector.amount, amount);
+        }
+
+        // Reduce amount from approved collector
+        collector.amount -= amount;
 
         // Collect tokens from GraphEscrow
         graphEscrow.collect(sender, receiver, amount);
