@@ -7,11 +7,9 @@ import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHor
 import { MockGRTToken } from "./MockGRTToken.sol";
 
 contract MockHorizonStaking is IHorizonStaking {
-    address public delegatorAddress;
     uint256 public delegatorCut;
 
-    constructor(address _delegatorAddress, uint256 _delegatorCut) {
-        delegatorAddress = _delegatorAddress;
+    constructor(uint256 _delegatorCut) {
         delegatorCut = _delegatorCut;
     }
 
@@ -37,7 +35,7 @@ contract MockHorizonStaking is IHorizonStaking {
     function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {}
     function getProvision(bytes32 provision) external view returns (Provision memory) {}
 
-    function getDelegatorCut(address serviceProvider, uint256 paymentType) external returns (address, uint256) {
-        return (delegatorAddress, delegatorCut);
+    function getDelegatorCut(address serviceProvider, uint256 paymentType) external returns (uint256) {
+        return delegatorCut;
     }
 }

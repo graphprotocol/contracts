@@ -147,5 +147,5 @@ interface IHorizonStaking {
 
     function getProvision(bytes32 provision) external view returns (Provision memory);
 
-    function getDelegatorCut(address serviceProvider, uint256256 paymentType) external returns (address, uint256);
+    function getDelegatorCut(address serviceProvider, uint256 paymentType) external returns (uint256 delegatorCut);
 }

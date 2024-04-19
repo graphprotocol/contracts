@@ -24,9 +24,6 @@ contract GraphPaymentsTest is Test {
     uint256 revokeCollectorThawingPeriod;
     uint256 protocolPaymentCut;
 
-    address delegatorAddress;
-    uint256 delegatorCut;
-
     address sender;
     address dataService;
 
@@ -43,9 +40,6 @@ contract GraphPaymentsTest is Test {
 
         revokeCollectorThawingPeriod = deployments.revokeCollectorThawingPeriod();
         protocolPaymentCut = deployments.protocolPaymentCut();
-
-        delegatorAddress = deployments.delegatorAddress();
-        delegatorCut = deployments.delegatorCut();
 
         sender = address(0xA1);
         dataService = address(0xA2);
@@ -127,7 +121,8 @@ contract GraphPaymentsTest is Test {
         uint256 dataServiceBalance = token.balanceOf(dataService);
         assertEq(dataServiceBalance, 30 ether);
 
-        uint256 delegatorBalance = token.balanceOf(delegatorAddress);
-        assertEq(delegatorBalance, 50 ether);
+        // TODO: test delegator cut payment
+        // uint256 delegatorBalance = token.balanceOf(delegationPool);
+        // assertEq(delegatorBalance, 50 ether);
     }
 }

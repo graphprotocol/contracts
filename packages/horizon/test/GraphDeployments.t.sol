@@ -33,7 +33,6 @@ contract GraphDeployments is Test {
 
     // Staking parameters
 
-    address public delegatorAddress = address(0xbdC1c9f94A729E47d6877217eC995916EAD457B7);
     uint256 public delegatorCut = 50000; // 5%
 
     // Setup
@@ -62,7 +61,7 @@ contract GraphDeployments is Test {
 
         // HorizonStaking
         vm.prank(deployer);
-        staking = new MockHorizonStaking(delegatorAddress, delegatorCut);
+        staking = new MockHorizonStaking(delegatorCut);
 
         // Setup controller
         vm.startPrank(governor);

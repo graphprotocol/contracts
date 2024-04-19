@@ -8,7 +8,7 @@ interface IGraphPayments {
         QueryFees
     }
 
-    // Authorized collector
+    // Collector
     struct Collector {
         bool authorized;
         uint256 thawEndTimestamp;
