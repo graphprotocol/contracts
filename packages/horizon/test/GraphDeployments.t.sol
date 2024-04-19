@@ -5,8 +5,8 @@ import "forge-std/Test.sol";
 
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
 
-import { GraphEscrow } from "contracts/GraphEscrow.sol";
-import { GraphPayments } from "contracts/GraphPayments.sol";
+import { GraphEscrow } from "contracts/escrow/GraphEscrow.sol";
+import { GraphPayments } from "contracts/payments/GraphPayments.sol";
 import { IGraphPayments } from "contracts/interfaces/IGraphPayments.sol";
 
 import "./mocks/MockHorizonStaking.sol";

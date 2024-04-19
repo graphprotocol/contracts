@@ -4,9 +4,9 @@ pragma solidity ^0.8.24;
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 
-import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
-import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
-import { GraphDirectory } from "./GraphDirectory.sol";
+import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
+import { GraphDirectory } from "../GraphDirectory.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 
 contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphEscrow } from "./interfaces/IGraphEscrow.sol";
+import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 
 contract GraphEscrowStorageV1Storage {
     // Stores how much escrow each sender has deposited for each receiver, as well as thawing information
