@@ -1,4 +1,4 @@
-import { confirm, deploy, DeployType, GraphNetworkAddressBook } from '@graphprotocol/sdk'
+import { confirm, deploy, DeployType } from '@graphprotocol/sdk'
 import { greTask } from '@graphprotocol/sdk/gre'
 
 greTask('contract:deploy', 'Deploy a contract')
@@ -37,7 +37,7 @@ greTask('contract:deploy', 'Deploy a contract')
         name: taskArgs.contract,
         args: taskArgs.init?.split(',') || [],
       },
-      new GraphNetworkAddressBook(taskArgs.addressBook, graph.chainId),
+      graph.addressBook,
     )
     console.log(`Contract deployed at ${deployment.contract.address}`)
   })
