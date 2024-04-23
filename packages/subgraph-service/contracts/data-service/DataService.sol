@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import { GraphDirectory } from "./GraphDirectory.sol";
 
@@ -10,7 +11,7 @@ import { ProvisionHandler } from "./utilities/ProvisionHandler.sol";
 
 abstract contract DataService is GraphDirectory, ProvisionHandler, DataServiceV1Storage, IDataService {
     error DataServiceNotAuthorized(address caller, address serviceProvider, address service);
-    error DataServiceServicePaymentsNotEnabled();
+    error DataServiceNotImplemented();
 
     modifier onlyProvisionAuthorized(address serviceProvider) {
         if (!graphStaking.isAuthorized(msg.sender, serviceProvider, address(this))) {
@@ -21,20 +22,42 @@ abstract contract DataService is GraphDirectory, ProvisionHandler, DataServiceV1
 
     constructor(address _controller) GraphDirectory(_controller) {}
 
-    // solhint-disable-next-line no-unused-vars
-    function collectServicePayment(
+    function register(
         address serviceProvider,
-        bytes calldata data
+        bytes calldata
     ) external virtual override onlyProvisionAuthorized(serviceProvider) {
-        revert DataServiceServicePaymentsNotEnabled();
+        _acceptProvision(serviceProvider);
     }
 
-    // solhint-disable-next-line no-unused-vars
     function acceptProvision(
-        address indexer,
-        bytes calldata _data
-    ) external virtual override onlyProvisionAuthorized(indexer) {
-        _checkProvisionParameters(indexer);
-        _acceptProvision(indexer);
+        address serviceProvider,
+        bytes calldata
+    ) external virtual override onlyProvisionAuthorized(serviceProvider) {
+        _acceptProvision(serviceProvider);
+    }
+
+    function startService(
+        address serviceProvider,
+        bytes calldata
+    ) external virtual override onlyProvisionAuthorized(serviceProvider) {
+        revert DataServiceNotImplemented();
+    }
+
+    function collectServicePayment(
+        address serviceProvider,
+        bytes calldata
+    ) external virtual override onlyProvisionAuthorized(serviceProvider) {
+        revert DataServiceNotImplemented();
+    }
+
+    function stopService(
+        address serviceProvider,
+        bytes calldata
+    ) external virtual override onlyProvisionAuthorized(serviceProvider) {
+        revert DataServiceNotImplemented();
+    }
+
+    function redeem(IGraphPayments.PaymentTypes, bytes calldata) external virtual override returns (uint256) {
+        revert DataServiceNotImplemented();
     }
 }

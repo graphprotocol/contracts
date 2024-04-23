@@ -64,7 +64,10 @@ contract SubgraphService is
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
     }
 
-    function register(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
+    function register(
+        address indexer,
+        bytes calldata data
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
         (string memory url, string memory geohash) = abi.decode(data, (string, string));
 
         // Must provide a URL
@@ -82,7 +85,6 @@ contract SubgraphService is
 
         // Ensure the service provider created a valid provision for the data service
         // and accept it in the staking contract
-        _checkProvisionParameters(indexer);
         _acceptProvision(indexer);
     }
 
@@ -90,7 +92,7 @@ contract SubgraphService is
     function redeem(
         IGraphPayments.PaymentTypes feeType,
         bytes calldata data
-    ) external override returns (uint256 feesCollected) {
+    ) external override(DataService, IDataService) returns (uint256 feesCollected) {
         if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
             feesCollected = _redeemQueryFees(feeType, abi.decode(data, (ITAPVerifier.SignedRAV)));
         } else {
@@ -139,7 +141,10 @@ contract SubgraphService is
         graphStaking.slash(serviceProvider, tokens, reward, address(disputeManager));
     }
 
-    function startService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
+    function startService(
+        address indexer,
+        bytes calldata data
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
         (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory allocationProof) = abi.decode(
             data,
             (bytes32, uint256, address, bytes)
@@ -155,7 +160,10 @@ contract SubgraphService is
         _collectPOIRewards(allocationId, poi);
     }
 
-    function stopService(address indexer, bytes calldata data) external override onlyProvisionAuthorized(indexer) {
+    function stopService(
+        address indexer,
+        bytes calldata data
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
         address allocationId = abi.decode(data, (address));
         _closeAllocation(allocationId);
     }

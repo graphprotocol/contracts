@@ -44,6 +44,7 @@ abstract contract ProvisionHandler is GraphDirectory, ProvisionHandlerV1Storage 
     }
 
     function _acceptProvision(address serviceProvider) internal virtual {
+        _checkProvisionParameters(serviceProvider);
         graphStaking.acceptProvision(serviceProvider);
     }
 
