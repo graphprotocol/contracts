@@ -10,7 +10,7 @@ import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
-import { PPMMath } from "../libraries/PPMMath.sol";
+import { PPMMath } from "../data-service/libraries/PPMMath.sol";
 import { ProvisionTracker } from "../data-service/libraries/ProvisionTracker.sol";
 
 abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManagerV1Storage {

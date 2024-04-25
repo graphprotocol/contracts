@@ -18,7 +18,7 @@ import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
 
-import { PPMMath } from "./libraries/PPMMath.sol";
+import { PPMMath } from "./data-service/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
