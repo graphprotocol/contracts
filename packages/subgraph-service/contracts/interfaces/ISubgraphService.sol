@@ -11,5 +11,5 @@ interface ISubgraphService is IDataServiceFees {
         string geoHash;
     }
 
-    function getAllocation(address allocationID) external view returns (Allocation.State memory);
+    function getAllocation(address allocationId) external view returns (Allocation.State memory);
 }

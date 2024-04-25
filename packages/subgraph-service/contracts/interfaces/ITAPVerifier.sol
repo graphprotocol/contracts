@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 interface ITAPVerifier {
     struct ReceiptAggregateVoucher {
-        address serviceProvider;
         address dataService;
+        address serviceProvider;
         uint64 timestampNs;
         uint128 valueAggregate;
     }

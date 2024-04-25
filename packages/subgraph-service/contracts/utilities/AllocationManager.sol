@@ -9,6 +9,7 @@ import { GraphDirectory } from "../data-service/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
 import { Allocation } from "../libraries/Allocation.sol";
+import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 import { ProvisionTracker } from "../data-service/libraries/ProvisionTracker.sol";
 
@@ -16,6 +17,8 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     using ProvisionTracker for mapping(address => uint256);
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
+    using LegacyAllocation for mapping(address => LegacyAllocation.State);
+    using LegacyAllocation for LegacyAllocation.State;
     using PPMMath for uint256;
 
     // -- Immutables --
@@ -62,6 +65,12 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         uint256 tokens
     );
 
+    event LegacyAllocationMigrated(
+        address indexed indexer,
+        address indexed allocationId,
+        bytes32 indexed subgraphDeploymentId
+    );
+
     error AllocationManagerInvalidAllocationProof(address signer, address allocationId);
     error AllocationManagerInvalidAllocationId();
     error AllocationManagerZeroTokensAllocation(address allocationId);
@@ -70,6 +79,19 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     error AllocationManagerInvalidZeroPOI();
 
     constructor(string memory name, string memory version) EIP712(name, version) {}
+
+    function _getAllocation(address allocationId) internal view returns (Allocation.State memory) {
+        return allocations.get(allocationId);
+    }
+
+    function _getLegacyAllocation(address allocationId) internal view returns (LegacyAllocation.State memory) {
+        return legacyAllocations.get(allocationId);
+    }
+
+    function _migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentId) internal {
+        legacyAllocations.migrate(indexer, allocationId, subgraphDeploymentId);
+        emit LegacyAllocationMigrated(indexer, allocationId, subgraphDeploymentId);
+    }
 
     function _allocate(
         address indexer,
@@ -82,6 +104,9 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         _verifyAllocationProof(indexer, allocationId, allocationProof);
 
+        // Ensure allocation id is not reused
+        // need to check both subgraph service (on create()) and legacy allocations
+        legacyAllocations.revertIfExists(allocationId);
         Allocation.State memory allocation = allocations.create(
             indexer,
             allocationId,
@@ -216,7 +241,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         if (signer != allocationId) revert AllocationManagerInvalidAllocationProof(signer, allocationId);
     }
 
-    function _encodeAllocationProof(address indexer, address allocationId) internal view returns (bytes32) {
+    function _encodeAllocationProof(address indexer, address allocationId) private view returns (bytes32) {
         return EIP712._hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, indexer, allocationId)));
     }
 }

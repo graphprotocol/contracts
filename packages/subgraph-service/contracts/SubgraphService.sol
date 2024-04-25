@@ -19,6 +19,7 @@ import { AllocationManager } from "./utilities/AllocationManager.sol";
 
 import { PPMMath } from "./libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
+import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
 // TODO: contract needs to be upgradeable and pausable
 contract SubgraphService is
@@ -52,13 +53,14 @@ contract SubgraphService is
         address _graphController,
         address _disputeManager,
         address _tapVerifier,
+        address _curation,
         uint256 _minimumProvisionTokens
     )
         DataService(_graphController)
         DataServiceOwnable(msg.sender)
         DataServiceRescuable()
         DataServiceFees()
-        Directory(address(this), _tapVerifier, _disputeManager)
+        Directory(address(this), _tapVerifier, _disputeManager, _curation)
         AllocationManager("SubgraphService", "1.0")
     {
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
@@ -118,17 +120,21 @@ contract SubgraphService is
         }
         uint256 tokensToCollect = tokens - tokensAlreadyCollected;
 
-        // lock stake as economic security for fees
-        uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
-        uint256 unlockTimestamp = block.timestamp + disputeManager.getDisputePeriod();
-        lockStake(IGraphPayments.PaymentTypes.QueryFee, serviceProvider, tokensToLock, unlockTimestamp);
+        if (tokensToCollect > 0) {
+            // lock stake as economic security for fees
+            uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
+            uint256 unlockTimestamp = block.timestamp + disputeManager.getDisputePeriod();
+            lockStake(IGraphPayments.PaymentTypes.QueryFee, serviceProvider, tokensToLock, unlockTimestamp);
 
-        // collect fees
-        tokensCollected[serviceProvider][payer] = tokens;
-        uint256 subgraphServiceCut = tokensToCollect.mulPPM(feesCut);
-        graphPayments.collect(payer, serviceProvider, tokensToCollect, feeType, subgraphServiceCut);
+            // collect fees
+            tokensCollected[serviceProvider][payer] = tokens;
+            uint256 subgraphServiceCut = tokensToCollect.mulPPM(feesCut);
+            graphPayments.collect(payer, serviceProvider, tokensToCollect, feeType, subgraphServiceCut);
 
-        // TODO: distribute curation fees, how?!
+            // TODO: distribute curation fees, how?!
+            // _distributeCurationFees(signedRAV.rav.subgraphDeploymentID, tokensToCollect, signedRAV.rav.curationPercentage);
+        }
+
         emit QueryFeesRedeemed(serviceProvider, payer, tokensToCollect);
         return tokensToCollect;
     }
@@ -176,8 +182,20 @@ contract SubgraphService is
         _resizeAllocation(allocationId, tokens);
     }
 
-    function getAllocation(address allocationId) public view returns (Allocation.State memory) {
-        return allocations.get(allocationId);
+    function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
+        return allocations[allocationId];
+    }
+
+    function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory) {
+        return legacyAllocations[allocationId];
+    }
+
+    function migrateLegacyAllocation(
+        address indexer,
+        address allocationId,
+        bytes32 subgraphDeploymentID
+    ) external onlyOwner {
+        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
     }
 
     // -- Data service parameter getters --
@@ -189,5 +207,34 @@ contract SubgraphService is
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
         uint32 verifierCut = disputeManager.getVerifierCut();
         return (verifierCut, type(uint32).max);
+    }
+
+    function _distributeCurationFees(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        uint256 _curationPercentage
+    ) private returns (uint256) {
+        if (_tokens == 0) {
+            return 0;
+        }
+
+        bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
+
+        if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
+            // Calculate the tokens after curation fees first, and subtact that,
+            // to prevent curation fees from rounding down to zero
+            uint256 tokensAfterCurationFees = (PPMMath.MAX_PPM - _curationPercentage).mulPPM(_tokens);
+            uint256 curationFees = _tokens - tokensAfterCurationFees;
+            if (curationFees > 0) {
+                // we are about to change subgraph signal so we take rewards snapshot
+                graphRewardsManager.onSubgraphSignalUpdate(_subgraphDeploymentID);
+
+                // Send GRT and bookkeep by calling collect()
+                graphToken.transfer(address(curation), curationFees);
+                curation.collect(_subgraphDeploymentID, curationFees);
+            }
+            return curationFees;
+        }
+        return 0;
     }
 }

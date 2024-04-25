@@ -13,7 +13,9 @@ import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
  */
 contract TAPVerifier is EIP712, ITAPVerifier {
     bytes32 private constant EIP712_RAV_TYPEHASH =
-        keccak256("ReceiptAggregateVoucher(address allocationId,uint64 timestampNs,uint128 valueAggregate)");
+        keccak256(
+            "ReceiptAggregateVoucher(address dataService, address serviceProvider,uint64 timestampNs,uint128 valueAggregate)"
+        );
 
     // The duration (in seconds) in which a signer is thawing before they can be revoked
     uint256 public immutable revokeSignerThawingPeriod;
@@ -88,8 +90,8 @@ contract TAPVerifier is EIP712, ITAPVerifier {
                 keccak256(
                     abi.encode(
                         EIP712_RAV_TYPEHASH,
-                        rav.serviceProvider,
                         rav.dataService,
+                        rav.serviceProvider,
                         rav.timestampNs,
                         rav.valueAggregate
                     )

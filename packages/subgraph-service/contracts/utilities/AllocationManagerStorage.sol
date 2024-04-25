@@ -2,10 +2,12 @@
 pragma solidity ^0.8.24;
 
 import { Allocation } from "../libraries/Allocation.sol";
+import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
 abstract contract AllocationManagerV1Storage {
     mapping(address allocationId => Allocation.State allocation) public allocations;
     mapping(address indexer => uint256 tokens) public allocationProvisionTracker;
+    mapping(address allocationId => LegacyAllocation.State allocation) public legacyAllocations;
 
     /// @notice Maximum amount of since last POI was presented to qualify for indexing rewards
     uint256 public maxPOIStaleness;

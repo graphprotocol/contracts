@@ -19,6 +19,4 @@ abstract contract SubgraphServiceV1Storage {
     mapping(address indexer => mapping(address payer => uint256 tokens)) public tokensCollected;
 
     // -- Indexing rewards --
-
-    // mapping(address allocationId => LegacyAllocation allocation) public legacyAllocations;
 }
