@@ -14,7 +14,7 @@ import { Denominations } from "../libraries/Denominations.sol";
  * that calls this contract's _rescueTokens.
  */
 abstract contract DataServiceRescuable is DataService {
-    mapping(address account => bool allowed) public rescuers;
+    mapping(address rescuer => bool allowed) public rescuers;
 
     /**
      * @dev Tokens rescued by the user
@@ -40,9 +40,9 @@ abstract contract DataServiceRescuable is DataService {
         _rescueTokens(_to, Denominations.NATIVE_TOKEN, _amount);
     }
 
-    function _setRescuer(address _account, bool _allowed) internal {
-        rescuers[_account] = _allowed;
-        emit RescuerSet(_account, _allowed);
+    function _setRescuer(address _rescuer, bool _allowed) internal {
+        rescuers[_rescuer] = _allowed;
+        emit RescuerSet(_rescuer, _allowed);
     }
 
     /**

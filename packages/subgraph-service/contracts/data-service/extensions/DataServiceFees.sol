@@ -16,7 +16,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     event StakeClaimLocked(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 unlockTimestamp);
     event StakeClaimReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
 
-    function lockStake(
+    function _lockStake(
         IGraphPayments.PaymentTypes feeType,
         address serviceProvider,
         uint256 tokens,
@@ -41,9 +41,13 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         emit StakeClaimLocked(serviceProvider, claimId, tokens, unlockTimestamp);
     }
 
+    function releaseStake(IGraphPayments.PaymentTypes feeType, uint256 n) external virtual {
+        _releaseStake(feeType, msg.sender, n);
+    }
+
     /// @notice Release expired stake claims for a service provider
     /// @param n The number of stake claims to release, or 0 to release all
-    function releaseStake(IGraphPayments.PaymentTypes feeType, address serviceProvider, uint256 n) public {
+    function _releaseStake(IGraphPayments.PaymentTypes feeType, address serviceProvider, uint256 n) internal {
         bool releaseAll = n == 0;
 
         // check the stake claims list

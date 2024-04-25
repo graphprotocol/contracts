@@ -6,7 +6,7 @@ import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { DataService } from "../DataService.sol";
 
 abstract contract DataServicePausable is Pausable, DataService {
-    mapping(address account => bool allowed) public pauseGuardians;
+    mapping(address pauseGuardian => bool allowed) public pauseGuardians;
 
     event PauseGuardianSet(address indexed account, bool allowed);
     error DataServicePausableNotPauseGuardian(address account);
@@ -26,8 +26,8 @@ abstract contract DataServicePausable is Pausable, DataService {
         _unpause();
     }
 
-    function _setPauseGuardian(address account, bool allowed) internal whenNotPaused {
-        pauseGuardians[account] = allowed;
-        emit PauseGuardianSet(account, allowed);
+    function _setPauseGuardian(address pauseGuardian, bool allowed) internal whenNotPaused {
+        pauseGuardians[pauseGuardian] = allowed;
+        emit PauseGuardianSet(pauseGuardian, allowed);
     }
 }

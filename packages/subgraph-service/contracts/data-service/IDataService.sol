@@ -9,6 +9,10 @@ interface IDataService {
     function startService(address serviceProvider, bytes calldata data) external;
     function collectServicePayment(address serviceProvider, bytes calldata data) external;
     function stopService(address serviceProvider, bytes calldata data) external;
-    function redeem(IGraphPayments.PaymentTypes feeType, bytes calldata data) external returns (uint256 fees);
+    function redeem(
+        address serviceProvider,
+        IGraphPayments.PaymentTypes feeType,
+        bytes calldata data
+    ) external returns (uint256 fees);
     function slash(address serviceProvider, bytes calldata data) external;
 }
