@@ -4,12 +4,10 @@ pragma solidity ^0.8.24;
 import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
 
 import { DataService } from "./data-service/DataService.sol";
-import { IDataService } from "./data-service/IDataService.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DataServiceRescuable } from "./data-service/extensions/DataServiceRescuable.sol";
 import { DataServicePausable } from "./data-service/extensions/DataServicePausable.sol";
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
-import { ProvisionTracker } from "./data-service/libraries/ProvisionTracker.sol";
 
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
@@ -22,7 +20,7 @@ import { PPMMath } from "./data-service/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
-// TODO: contract needs to be upgradeable and pausable
+// TODO: contract needs to be upgradeable
 contract SubgraphService is
     Ownable,
     DataService,

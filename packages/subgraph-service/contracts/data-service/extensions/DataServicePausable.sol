@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
-
 import { DataService } from "../DataService.sol";
 
 abstract contract DataServicePausable is Pausable, DataService {

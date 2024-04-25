@@ -2801,6 +2801,7 @@ __metadata:
     eslint-graph-config: "workspace:^0.0.1"
     ethers: "npm:^6.4.0"
     hardhat: "npm:^2.20.1"
+    hardhat-contract-sizer: "npm:^2.10.0"
     hardhat-gas-reporter: "npm:^1.0.8"
     hardhat-storage-layout: "npm:^0.1.7"
     lint-staged: "npm:^15.2.2"
@@ -13306,7 +13307,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hardhat-contract-sizer@npm:^2.0.1, hardhat-contract-sizer@npm:^2.0.3":
+"hardhat-contract-sizer@npm:^2.0.1, hardhat-contract-sizer@npm:^2.0.3, hardhat-contract-sizer@npm:^2.10.0":
   version: 2.10.0
   resolution: "hardhat-contract-sizer@npm:2.10.0"
   dependencies:

@@ -3,8 +3,6 @@ pragma solidity ^0.8.24;
 
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
-import { Allocation } from "./libraries/Allocation.sol";
-
 abstract contract SubgraphServiceV1Storage {
     /// @notice Service providers registered in the data service
     mapping(address indexer => ISubgraphService.Indexer details) public indexers;
