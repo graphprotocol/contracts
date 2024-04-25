@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { DataServiceOwnable } from "./DataServiceOwnable.sol";
+import { DataService } from "../DataService.sol";
 import { Denominations } from "../libraries/Denominations.sol";
 
 /**
@@ -13,20 +13,36 @@ import { Denominations } from "../libraries/Denominations.sol";
  * The contract must implement the external rescueTokens function or similar,
  * that calls this contract's _rescueTokens.
  */
-abstract contract DataServiceRescuable is DataServiceOwnable {
+abstract contract DataServiceRescuable is DataService {
+    mapping(address account => bool allowed) public rescuers;
+
     /**
      * @dev Tokens rescued by the user
      */
     event TokensRescued(address indexed from, address indexed to, uint256 amount);
+    event RescuerSet(address indexed account, bool allowed);
 
     error DataServiceRescuableCannotRescueZero();
+    error DataServiceRescuableNotRescuer(address account);
 
-    function rescueGRT(address _to, uint256 _amount) external onlyOwner {
+    modifier onlyRescuer() {
+        if (!rescuers[msg.sender]) {
+            revert DataServiceRescuableNotRescuer(msg.sender);
+        }
+        _;
+    }
+
+    function rescueGRT(address _to, uint256 _amount) external onlyRescuer {
         _rescueTokens(_to, address(graphToken), _amount);
     }
 
-    function rescueETH(address payable _to, uint256 _amount) external onlyOwner {
+    function rescueETH(address payable _to, uint256 _amount) external onlyRescuer {
         _rescueTokens(_to, Denominations.NATIVE_TOKEN, _amount);
+    }
+
+    function _setRescuer(address _account, bool _allowed) internal {
+        rescuers[_account] = _allowed;
+        emit RescuerSet(_account, _allowed);
     }
 
     /**
