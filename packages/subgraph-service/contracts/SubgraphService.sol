@@ -7,6 +7,7 @@ import { DataService } from "./data-service/DataService.sol";
 import { IDataService } from "./data-service/IDataService.sol";
 import { DataServiceOwnable } from "./data-service/extensions/DataServiceOwnable.sol";
 import { DataServiceRescuable } from "./data-service/extensions/DataServiceRescuable.sol";
+import { DataServicePausable } from "./data-service/extensions/DataServicePausable.sol";
 import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
 import { ProvisionTracker } from "./data-service/libraries/ProvisionTracker.sol";
 
@@ -25,6 +26,7 @@ import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 contract SubgraphService is
     DataService,
     DataServiceOwnable,
+    DataServicePausable,
     DataServiceRescuable,
     DataServiceFees,
     Directory,
@@ -58,6 +60,7 @@ contract SubgraphService is
     )
         DataService(_graphController)
         DataServiceOwnable(msg.sender)
+        DataServicePausable()
         DataServiceRescuable()
         DataServiceFees()
         Directory(address(this), _tapVerifier, _disputeManager, _curation)
@@ -69,7 +72,7 @@ contract SubgraphService is
     function register(
         address indexer,
         bytes calldata data
-    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) whenNotPaused {
         (string memory url, string memory geohash) = abi.decode(data, (string, string));
 
         // Must provide a URL
@@ -94,7 +97,7 @@ contract SubgraphService is
     function redeem(
         IGraphPayments.PaymentTypes feeType,
         bytes calldata data
-    ) external override(DataService, IDataService) returns (uint256 feesCollected) {
+    ) external override(DataService, IDataService) whenNotPaused returns (uint256 feesCollected) {
         if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
             feesCollected = _redeemQueryFees(feeType, abi.decode(data, (ITAPVerifier.SignedRAV)));
         } else {
@@ -142,7 +145,7 @@ contract SubgraphService is
     function slash(
         address serviceProvider,
         bytes calldata data
-    ) external override(DataServiceOwnable, IDataService) onlyDisputeManager {
+    ) external override(DataServiceOwnable, IDataService) onlyDisputeManager whenNotPaused {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
         graphStaking.slash(serviceProvider, tokens, reward, address(disputeManager));
     }
@@ -150,7 +153,7 @@ contract SubgraphService is
     function startService(
         address indexer,
         bytes calldata data
-    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) whenNotPaused {
         (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory allocationProof) = abi.decode(
             data,
             (bytes32, uint256, address, bytes)
@@ -161,7 +164,7 @@ contract SubgraphService is
     function collectServicePayment(
         address indexer,
         bytes calldata data
-    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) whenNotPaused {
         (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
         _collectPOIRewards(allocationId, poi);
     }
@@ -169,7 +172,7 @@ contract SubgraphService is
     function stopService(
         address indexer,
         bytes calldata data
-    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) {
+    ) external override(DataService, IDataService) onlyProvisionAuthorized(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         _closeAllocation(allocationId);
     }
@@ -178,7 +181,7 @@ contract SubgraphService is
         address indexer,
         address allocationId,
         uint256 tokens
-    ) external onlyProvisionAuthorized(indexer) {
+    ) external onlyProvisionAuthorized(indexer) whenNotPaused {
         _resizeAllocation(allocationId, tokens);
     }
 
@@ -196,6 +199,10 @@ contract SubgraphService is
         bytes32 subgraphDeploymentID
     ) external onlyOwner {
         _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
+    }
+
+    function setPauseGuardian(address account, bool allowed) external onlyOwner {
+        _setPauseGuardian(account, allowed);
     }
 
     // -- Data service parameter getters --
