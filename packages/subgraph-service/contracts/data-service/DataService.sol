@@ -7,18 +7,11 @@ import { GraphDirectory } from "./GraphDirectory.sol";
 
 import { DataServiceV1Storage } from "./DataServiceStorage.sol";
 import { IDataService } from "./IDataService.sol";
-import { ProvisionHandler } from "./utilities/ProvisionHandler.sol";
+import { ProvisionManager } from "./utilities/ProvisionManager.sol";
 
-abstract contract DataService is GraphDirectory, ProvisionHandler, DataServiceV1Storage, IDataService {
+abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1Storage, IDataService {
     error DataServiceNotAuthorized(address caller, address serviceProvider, address service);
     error DataServiceNotImplemented();
-
-    modifier onlyProvisionAuthorized(address serviceProvider) {
-        if (!graphStaking.isAuthorized(msg.sender, serviceProvider, address(this))) {
-            revert DataServiceNotAuthorized(msg.sender, serviceProvider, address(this));
-        }
-        _;
-    }
 
     constructor(address _controller) GraphDirectory(_controller) {}
 
