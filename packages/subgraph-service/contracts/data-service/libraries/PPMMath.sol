@@ -8,4 +8,8 @@ library PPMMath {
     function mulPPM(uint256 a, uint256 b) internal pure returns (uint256) {
         return (a * b) / MAX_PPM;
     }
+
+    function isValidPPM(uint256 ppm) internal pure returns (bool) {
+        return ppm >= 0 && ppm <= MAX_PPM;
+    }
 }

@@ -9,12 +9,13 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
+import { Directory } from "./utilities/Directory.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
-import { Directory } from "./utilities/Directory.sol";
 import { Allocation } from "./libraries/Allocation.sol";
+import { PPMMath } from "./data-service/libraries/PPMMath.sol";
 
 /*
  * @title DisputeManager
@@ -40,6 +41,8 @@ import { Allocation } from "./libraries/Allocation.sol";
  * to a EOA or DAO.
  */
 contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
+    using PPMMath for uint256;
+
     // -- EIP-712  --
 
     bytes32 private constant DOMAIN_TYPE_HASH =
@@ -96,8 +99,6 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
 
     uint256 private constant UINT8_BYTE_LENGTH = 1;
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
-
-    uint256 private constant MAX_PPM = 1000000; // 100% in parts per million
 
     // -- Immutable variables --
 
@@ -755,7 +756,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         uint256 totalProvisionTokens = provision.tokens + provision.delegatedTokens; // slashable tokens
 
         // Get slash amount
-        uint256 maxSlashAmount = (maxSlashingPercentage * totalProvisionTokens) / MAX_PPM;
+        uint256 maxSlashAmount = uint256(maxSlashingPercentage).mulPPM(totalProvisionTokens);
         if (_slashAmount == 0) {
             revert DisputeManagerInvalidSlashAmount(_slashAmount);
         }
@@ -767,7 +768,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         // Rewards amount can only be extracted from service poriver tokens so
         // we grab the minimum between the slash amount and indexer's tokens
         uint256 maxRewardableTokens = Math.min(_slashAmount, provision.tokens);
-        rewardsAmount = (fishermanRewardPercentage * maxRewardableTokens) / MAX_PPM;
+        rewardsAmount = uint256(fishermanRewardPercentage).mulPPM(maxRewardableTokens);
 
         subgraphService.slash(_indexer, abi.encode(_slashAmount, rewardsAmount));
         return rewardsAmount;
@@ -832,7 +833,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      */
     function _setFishermanRewardPercentage(uint32 _percentage) private {
         // Must be within 0% to 100% (inclusive)
-        if (_percentage > MAX_PPM) {
+        if (!PPMMath.isValidPPM(_percentage)) {
             revert DisputeManagerInvalidFishermanReward(_percentage);
         }
         fishermanRewardPercentage = _percentage;
@@ -845,7 +846,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      */
     function _setMaxSlashingPercentage(uint32 _maxSlashingPercentage) private {
         // Must be within 0% to 100% (inclusive)
-        if (_maxSlashingPercentage > MAX_PPM) {
+        if (!PPMMath.isValidPPM(_maxSlashingPercentage)) {
             revert DisputeManagerInvalidMaxSlashingPercentage(_maxSlashingPercentage);
         }
         maxSlashingPercentage = _maxSlashingPercentage;
