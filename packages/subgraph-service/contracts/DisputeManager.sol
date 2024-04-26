@@ -51,6 +51,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     event MinimumDepositSet(uint256 minimumDeposit);
     event MaxSlashingPercentageSet(uint32 maxSlashingPercentage);
     event FishermanRewardPercentageSet(uint32 fishermanRewardPercentage);
+    event SubgraphServiceSet(address indexed subgraphService);
 
     /**
      * @dev Emitted when a query dispute is created for `subgraphDeploymentId` and `indexer`
