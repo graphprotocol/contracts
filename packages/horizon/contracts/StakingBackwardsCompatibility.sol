@@ -31,8 +31,7 @@ abstract contract StakingBackwardsCompatibility is
     HorizonStakingV1Storage,
     GraphUpgradeable,
     Multicall,
-    IStakingBackwardsCompatibility,
-    ExponentialRebates
+    IStakingBackwardsCompatibility
 {
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
@@ -41,7 +40,11 @@ abstract contract StakingBackwardsCompatibility is
 
     address public immutable EXPONENTIAL_REBATES_ADDRESS;
 
-    constructor(address _controller, address _subgraphDataServiceAddress, address _exponentialRebatesAddress) Managed(_controller) {
+    constructor(
+        address _controller,
+        address _subgraphDataServiceAddress,
+        address _exponentialRebatesAddress
+    ) Managed(_controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = _subgraphDataServiceAddress;
         EXPONENTIAL_REBATES_ADDRESS = _exponentialRebatesAddress;
     }
@@ -52,11 +55,7 @@ abstract contract StakingBackwardsCompatibility is
      * @param _serviceProvider The service provider on behalf of whom they're claiming to act
      * @param _verifier The verifier / data service on which they're claiming to act
      */
-    function isAuthorized(
-        address _operator,
-        address _serviceProvider,
-        address _verifier
-    ) internal view override returns (bool) {
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) internal view returns (bool) {
         if (_operator == _serviceProvider) {
             return true;
         }

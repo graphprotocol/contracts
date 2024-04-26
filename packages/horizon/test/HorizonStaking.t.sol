@@ -7,11 +7,12 @@ import { HorizonStaking } from "../contracts/HorizonStaking.sol";
 import { ControllerMock } from "../contracts/mocks/ControllerMock.sol";
 import { HorizonStakingExtension } from "../contracts/HorizonStakingExtension.sol";
 import { ExponentialRebates } from "../contracts/utils/ExponentialRebates.sol";
+import { IHorizonStaking } from "../contracts/IHorizonStaking.sol";
 
 contract HorizonStakingTest is Test {
     ExponentialRebates rebates;
     HorizonStakingExtension ext;
-    HorizonStaking staking;
+    IHorizonStaking staking;
     ControllerMock controller;
 
     function setUp() public {
@@ -20,10 +21,21 @@ contract HorizonStakingTest is Test {
         console.log("Deploying HorizonStaking");
         rebates = new ExponentialRebates();
         ext = new HorizonStakingExtension(address(controller), address(0x1), address(rebates));
-        staking = new HorizonStaking(address(controller), address(ext), address(0x1));
+        staking = IHorizonStaking(address(new HorizonStaking(address(controller), address(ext), address(0x1))));
     }
 
-    function test_MinimumDelegationConstant() public view {
-        assertEq(staking.MINIMUM_DELEGATION(), 1e18);
+    function test_AllowVerifier() public {
+        address verifier = address(0x1337);
+        address serviceProvider = address(this);
+        HorizonStakingExtension(payable(address(staking))).allowVerifier(verifier);
+        assertTrue(staking.isAllowedVerifier(serviceProvider, verifier));
+    }
+
+    function test_SetGlobalOperator() public {
+        address operator = address(0x1337);
+        address serviceProvider = address(this);
+
+        staking.setGlobalOperator(operator, true);
+        assertTrue(staking.isGlobalAuthorized(operator, serviceProvider));
     }
 }

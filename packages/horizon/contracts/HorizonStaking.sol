@@ -4,32 +4,32 @@ pragma solidity 0.8.24;
 
 import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
 
-import { IHorizonStaking } from "./IHorizonStaking.sol";
+import { IHorizonStakingBase } from "./IHorizonStakingBase.sol";
 import { TokenUtils } from "./utils/TokenUtils.sol";
 import { MathUtils } from "./utils/MathUtils.sol";
 import { Managed } from "./Managed.sol";
 import { IGraphToken } from "./IGraphToken.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
-contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgradeable {
+contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUpgradeable {
     /// Maximum value that can be set as the maxVerifierCut in a provision.
     /// It is equivalent to 50% in parts-per-million, to protect delegators from
     /// service providers using a malicious verifier.
-    uint32 public constant MAX_MAX_VERIFIER_CUT = 500000; // 50%
+    uint32 private constant MAX_MAX_VERIFIER_CUT = 500000; // 50%
 
     /// Minimum size of a provision
-    uint256 public constant MIN_PROVISION_SIZE = 1e18;
+    uint256 private constant MIN_PROVISION_SIZE = 1e18;
 
     /// Maximum number of simultaneous stake thaw requests or undelegations
-    uint256 public constant MAX_THAW_REQUESTS = 100;
+    uint256 private constant MAX_THAW_REQUESTS = 100;
 
-    uint256 public constant FIXED_POINT_PRECISION = 1e18;
+    uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
     /// Minimum delegation size
-    uint256 public constant MINIMUM_DELEGATION = 1e18;
+    uint256 private constant MINIMUM_DELEGATION = 1e18;
 
-    address public immutable L2_STAKING_BACKWARDS_COMPATIBILITY;
-    address public immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
+    address private immutable STAKING_EXTENSION_ADDRESS;
+    address private immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
     error HorizonStakingInvalidVerifier(address verifier);
     error HorizonStakingVerifierAlreadyAllowed(address verifier);
@@ -42,12 +42,12 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgrad
 
     constructor(
         address _controller,
-        address _l2StakingBackwardsCompatibility,
+        address _stakingExtensionAddress,
         address _subgraphDataServiceAddress
-     ) Managed(_controller) {
-        L2_STAKING_BACKWARDS_COMPATIBILITY = _l2StakingBackwardsCompatibility;
+    ) Managed(_controller) {
+        STAKING_EXTENSION_ADDRESS = _stakingExtensionAddress;
         SUBGRAPH_DATA_SERVICE_ADDRESS = _subgraphDataServiceAddress;
-     }
+    }
 
     /**
      * @notice Delegates the current call to the StakingExtension implementation.
@@ -56,8 +56,8 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgrad
      */
     // solhint-disable-next-line payable-fallback, no-complex-fallback
     fallback() external {
-        require(_implementation() != address(0), "only through proxy");
-        address extensionImpl = L2_STAKING_BACKWARDS_COMPATIBILITY;
+        //require(_implementation() != address(0), "only through proxy");
+        address extensionImpl = STAKING_EXTENSION_ADDRESS;
         // solhint-disable-next-line no-inline-assembly
         assembly {
             // (a) get free memory pointer
@@ -82,38 +82,6 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgrad
                 return(ptr, size)
             }
         }
-    }
-
-    /**
-     * @notice Allow verifier for stake provisions.
-     * After calling this, and a timelock period, the service provider will
-     * be allowed to provision stake that is slashable by the verifier.
-     * @param _verifier The address of the contract that can slash the provision
-     */
-    function allowVerifier(address _verifier) external override {
-        if (_verifier == address(0)) {
-            revert HorizonStakingInvalidVerifier(_verifier);
-        }
-        if (verifierAllowlist[msg.sender][_verifier]) {
-            revert HorizonStakingVerifierAlreadyAllowed(_verifier);
-        }
-        verifierAllowlist[msg.sender][_verifier] = true;
-        emit VerifierAllowed(msg.sender, _verifier);
-    }
-
-    /**
-     * @notice Deny a verifier for stake provisions.
-     * After calling this, the service provider will immediately
-     * be unable to provision any stake to the verifier.
-     * Any existing provisions will be unaffected.
-     * @param _verifier The address of the contract that can slash the provision
-     */
-    function denyVerifier(address _verifier) external override {
-        if (!verifierAllowlist[msg.sender][_verifier]) {
-            revert HorizonStakingVerifierNotAllowed(_verifier);
-        }
-        verifierAllowlist[msg.sender][_verifier] = false;
-        emit VerifierDenied(msg.sender, _verifier);
     }
 
     /**
@@ -389,11 +357,7 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgrad
      * @param _serviceProvider The service provider on behalf of whom they're claiming to act
      * @param _verifier The verifier / data service on which they're claiming to act
      */
-    function isAuthorized(
-        address _operator,
-        address _serviceProvider,
-        address _verifier
-    ) private view returns (bool) {
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) private view returns (bool) {
         if (_operator == _serviceProvider) {
             return true;
         }
@@ -416,38 +380,8 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgrad
 
     // provisioned tokens from the service provider that are not being thawed
     // `Provision.tokens - Provision.tokensThawing`
-    function getProviderTokensAvailable(
-        address _serviceProvider,
-        address _verifier
-    ) public view returns (uint256) {
+    function getProviderTokensAvailable(address _serviceProvider, address _verifier) public view returns (uint256) {
         return provisions[_serviceProvider][_verifier].tokens - provisions[_serviceProvider][_verifier].tokensThawing;
-    }
-
-    /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
-     * @param _operator Address to authorize or unauthorize
-     * @param _verifier The verifier / data service on which they'll be allowed to operate
-     * @param _allowed Whether the operator is authorized or not
-     */
-    function setOperator(address _operator, address _verifier, bool _allowed) external override {
-        require(_operator != msg.sender, "operator == sender");
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            legacyOperatorAuth[msg.sender][_operator] = _allowed;
-        } else {
-            operatorAuth[msg.sender][_verifier][_operator] = _allowed;
-        }
-        emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
-    }
-
-    /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller on all data services.
-     * @param _operator Address to authorize or unauthorize
-     * @param _allowed Whether the operator is authorized or not
-     */
-    function setGlobalOperator(address _operator, bool _allowed) external override {
-        require(_operator != msg.sender, "operator == sender");
-        globalOperatorAuth[msg.sender][_operator] = _allowed;
-        emit GlobalOperatorSet(msg.sender, _operator, _allowed);
     }
 
     /**
@@ -536,7 +470,10 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStaking, GraphUpgrad
 
         pool.shares = pool.shares - _shares;
         delegation.shares = delegation.shares - _shares;
-
+        if (delegation.shares != 0) {
+            uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+            require(remainingTokens >= MINIMUM_DELEGATION, "!minimum-delegation");
+        }
         bytes32 thawRequestId = keccak256(
             abi.encodePacked(_serviceProvider, _verifier, msg.sender, delegation.nextThawRequestNonce)
         );

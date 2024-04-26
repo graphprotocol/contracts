@@ -9,8 +9,6 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 /**
  * @title HorizonStakingV1Storage
  * @notice This contract holds all the storage variables for the Staking contract, version 1
- * @dev Note that we use a double underscore prefix for variable names; this prefix identifies
- * variables that used to be public but are now internal, getters can be found on StakingExtension.sol.
  */
 // solhint-disable-next-line max-states-count
 abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
@@ -119,10 +117,10 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
 
     /// Verifier allowlist by service provider
     /// serviceProvider => verifier => allowed
-    mapping(address => mapping(address => bool)) public verifierAllowlist;
+    mapping(address => mapping(address => bool)) internal verifierAllowlist;
 
     /// Maximum thawing period, in seconds, for a provision
-    uint64 public maxThawingPeriod;
+    uint64 internal maxThawingPeriod;
 
     /// @dev Provisions from each service provider for each data service
     /// ServiceProvider => Verifier => Provision

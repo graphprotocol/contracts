@@ -5,7 +5,7 @@ pragma solidity 0.8.24;
 import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.sol";
 import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 import { IL2StakingTypes } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingTypes.sol";
-import { IHorizonStaking } from "./IHorizonStaking.sol";
+import { IHorizonStakingExtension } from "./IHorizonStakingExtension.sol";
 
 /**
  * @title L2Staking contract
@@ -13,7 +13,7 @@ import { IHorizonStaking } from "./IHorizonStaking.sol";
  * to receive an indexer's stake or delegation from L1. Note that this contract inherits Staking,
  * which uses a StakingExtension contract to implement the full IStaking interface through delegatecalls.
  */
-contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBase {
+contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStakingExtension, IL2StakingBase {
     /// @dev Minimum amount of tokens that can be delegated
     uint256 private constant MINIMUM_DELEGATION = 1e18;
 
@@ -25,10 +25,18 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
         _;
     }
 
-    constructor(address _controller, address _subgraphDataServiceAddress) StakingBackwardsCompatibility(_controller, _subgraphDataServiceAddress) {}
+    error HorizonStakingInvalidVerifier(address verifier);
+    error HorizonStakingVerifierAlreadyAllowed(address verifier);
+    error HorizonStakingVerifierNotAllowed(address verifier);
+
+    constructor(
+        address _controller,
+        address _subgraphDataServiceAddress,
+        address _exponentialRebates
+    ) StakingBackwardsCompatibility(_controller, _subgraphDataServiceAddress, _exponentialRebates) {}
 
     /**
-     * @notice Receive ETH into the L2Staking contract: this will always revert
+     * @notice Receive ETH into the Staking contract: this will always revert
      * @dev This function is only here to prevent ETH from being sent to the contract
      */
     receive() external payable {
@@ -37,17 +45,8 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
 
     // total staked tokens to the provider
     // `ServiceProvider.tokensStaked
-    function getStake(address serviceProvider) external view returns (uint256 tokens) {
+    function getStake(address serviceProvider) external view override returns (uint256) {
         return serviceProviders[serviceProvider].tokensStaked;
-    }
-
-    // provisioned tokens from the service provider that are not being thawed
-    // `Provision.tokens - Provision.tokensThawing`
-    function _getProviderTokensAvailable(
-        address _serviceProvider,
-        address _verifier
-    ) private view returns (uint256) {
-        return provisions[_serviceProvider][_verifier].tokens - provisions[_serviceProvider][_verifier].tokensThawing;
     }
 
     // provisioned tokens from delegators that are not being thawed
@@ -55,7 +54,7 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
     function getDelegatedTokensAvailable(
         address _serviceProvider,
         address _verifier
-    ) public view returns (uint256) {
+    ) public view override returns (uint256) {
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             return
                 legacyDelegationPools[_serviceProvider].tokens -
@@ -67,19 +66,87 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
     }
 
     // provisioned tokens that are not being thawed (including provider tokens and delegation)
-    function getTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256) {
+    function getTokensAvailable(address _serviceProvider, address _verifier) external view override returns (uint256) {
         return
-            _getProviderTokensAvailable(_serviceProvider, _verifier) +
+            provisions[_serviceProvider][_verifier].tokens -
+            provisions[_serviceProvider][_verifier].tokensThawing +
             getDelegatedTokensAvailable(_serviceProvider, _verifier);
     }
 
-    function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {
+    function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {
         ServiceProvider memory sp;
         ServiceProviderInternal storage spInternal = serviceProviders[serviceProvider];
         sp.tokensStaked = spInternal.tokensStaked;
         sp.tokensProvisioned = spInternal.tokensProvisioned;
         sp.nextThawRequestNonce = spInternal.nextThawRequestNonce;
         return sp;
+    }
+
+    /**
+     * @notice Allow verifier for stake provisions.
+     * After calling this, and a timelock period, the service provider will
+     * be allowed to provision stake that is slashable by the verifier.
+     * @param _verifier The address of the contract that can slash the provision
+     */
+    function allowVerifier(address _verifier) external override {
+        if (_verifier == address(0)) {
+            revert HorizonStakingInvalidVerifier(_verifier);
+        }
+        if (verifierAllowlist[msg.sender][_verifier]) {
+            revert HorizonStakingVerifierAlreadyAllowed(_verifier);
+        }
+        verifierAllowlist[msg.sender][_verifier] = true;
+        emit VerifierAllowed(msg.sender, _verifier);
+    }
+
+    /**
+     * @notice Deny a verifier for stake provisions.
+     * After calling this, the service provider will immediately
+     * be unable to provision any stake to the verifier.
+     * Any existing provisions will be unaffected.
+     * @param _verifier The address of the contract that can slash the provision
+     */
+    function denyVerifier(address _verifier) external {
+        if (!verifierAllowlist[msg.sender][_verifier]) {
+            revert HorizonStakingVerifierNotAllowed(_verifier);
+        }
+        verifierAllowlist[msg.sender][_verifier] = false;
+        emit VerifierDenied(msg.sender, _verifier);
+    }
+
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller on all data services.
+     * @param _operator Address to authorize or unauthorize
+     * @param _allowed Whether the operator is authorized or not
+     */
+    function setGlobalOperator(address _operator, bool _allowed) external override {
+        require(_operator != msg.sender, "operator == sender");
+        globalOperatorAuth[msg.sender][_operator] = _allowed;
+        emit GlobalOperatorSet(msg.sender, _operator, _allowed);
+    }
+
+    function isAllowedVerifier(address _serviceProvider, address _verifier) external view override returns (bool) {
+        return _verifier == SUBGRAPH_DATA_SERVICE_ADDRESS || verifierAllowlist[_serviceProvider][_verifier];
+    }
+
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
+     * @param _operator Address to authorize or unauthorize
+     * @param _verifier The verifier / data service on which they'll be allowed to operate
+     * @param _allowed Whether the operator is authorized or not
+     */
+    function setOperator(address _operator, address _verifier, bool _allowed) external override {
+        require(_operator != msg.sender, "operator == sender");
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            legacyOperatorAuth[msg.sender][_operator] = _allowed;
+        } else {
+            operatorAuth[msg.sender][_verifier][_operator] = _allowed;
+        }
+        emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
+    }
+
+    function getMaxThawingPeriod() external view override returns (uint64) {
+        return maxThawingPeriod;
     }
 
     /**
