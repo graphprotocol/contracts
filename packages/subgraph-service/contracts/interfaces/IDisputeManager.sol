@@ -3,6 +3,8 @@
 pragma solidity ^0.8.24;
 pragma abicoder v2;
 
+import { Attestation } from "../libraries/Attestation.sol";
+
 interface IDisputeManager {
     // -- Dispute --
 
@@ -34,23 +36,6 @@ interface IDisputeManager {
 
     // -- Attestation --
 
-    // Receipt content sent from the service provider in response to request
-    struct Receipt {
-        bytes32 requestCID;
-        bytes32 responseCID;
-        bytes32 subgraphDeploymentId;
-    }
-
-    // Attestation sent from the service provider in response to a request
-    struct Attestation {
-        bytes32 requestCID;
-        bytes32 responseCID;
-        bytes32 subgraphDeploymentId;
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-    }
-
     // -- Configuration --
 
     function setDisputePeriod(uint64 _disputePeriod) external;
@@ -71,14 +56,14 @@ interface IDisputeManager {
 
     function isDisputeCreated(bytes32 _disputeId) external view returns (bool);
 
-    function encodeHashReceipt(Receipt memory _receipt) external view returns (bytes32);
+    function encodeReceipt(Attestation.Receipt memory _receipt) external view returns (bytes32);
 
     function areConflictingAttestations(
-        Attestation memory _attestation1,
-        Attestation memory _attestation2
+        Attestation.State memory _attestation1,
+        Attestation.State memory _attestation2
     ) external pure returns (bool);
 
-    function getAttestationIndexer(Attestation memory _attestation) external view returns (address);
+    function getAttestationIndexer(Attestation.State memory _attestation) external view returns (address);
 
     // -- Dispute --
 

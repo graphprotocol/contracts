@@ -16,6 +16,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { PPMMath } from "./data-service/libraries/PPMMath.sol";
+import { Attestation } from "./libraries/Attestation.sol";
 
 /*
  * @title DisputeManager
@@ -50,8 +51,6 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
-    bytes32 private constant RECEIPT_TYPE_HASH =
-        keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
 
     // -- Errors --
 
@@ -66,7 +65,6 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     error DisputeManagerInvalidFishermanReward(uint32 percentage);
     error DisputeManagerInvalidMaxSlashingPercentage(uint32 maxSlashingPercentage);
     error DisputeManagerInvalidSlashAmount(uint256 slashAmount);
-    error DisputeManagerInvalidBytesLength(uint256 length, uint256 expectedLength);
     error DisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
     error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
     error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
@@ -84,21 +82,6 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     );
 
     // -- Constants --
-
-    // Attestation size is the sum of the receipt (96) + signature (65)
-    uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
-    uint256 private constant RECEIPT_SIZE_BYTES = 96;
-
-    uint256 private constant SIG_R_LENGTH = 32;
-    uint256 private constant SIG_S_LENGTH = 32;
-    uint256 private constant SIG_V_LENGTH = 1;
-    uint256 private constant SIG_R_OFFSET = RECEIPT_SIZE_BYTES;
-    uint256 private constant SIG_S_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH;
-    uint256 private constant SIG_V_OFFSET = RECEIPT_SIZE_BYTES + SIG_R_LENGTH + SIG_S_LENGTH;
-    uint256 private constant SIG_SIZE_BYTES = SIG_R_LENGTH + SIG_S_LENGTH + SIG_V_LENGTH;
-
-    uint256 private constant UINT8_BYTE_LENGTH = 1;
-    uint256 private constant BYTES32_BYTE_LENGTH = 32;
 
     // -- Immutable variables --
 
@@ -251,7 +234,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
                 DOMAIN_TYPE_HASH,
                 DOMAIN_NAME_HASH,
                 DOMAIN_VERSION_HASH,
-                _getChainId(),
+                block.chainid,
                 address(this),
                 DOMAIN_SALT
             )
@@ -290,7 +273,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             _createQueryDisputeWithAttestation(
                 msg.sender,
                 _deposit,
-                _parseAttestation(_attestationData),
+                Attestation.parse(_attestationData),
                 _attestationData
             );
     }
@@ -314,11 +297,11 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         address fisherman = msg.sender;
 
         // Parse each attestation
-        Attestation memory attestation1 = _parseAttestation(_attestationData1);
-        Attestation memory attestation2 = _parseAttestation(_attestationData2);
+        Attestation.State memory attestation1 = Attestation.parse(_attestationData1);
+        Attestation.State memory attestation2 = Attestation.parse(_attestationData2);
 
         // Test that attestations are conflicting
-        if (!areConflictingAttestations(attestation2, attestation1)) {
+        if (!Attestation.areConflicting(attestation2, attestation1)) {
             revert DisputeManagerNonConflictingAttestations(
                 attestation1.requestCID,
                 attestation1.responseCID,
@@ -496,6 +479,13 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         _setMaxSlashingPercentage(_maxSlashingPercentage);
     }
 
+    function areConflictingAttestations(
+        Attestation.State memory _attestation1,
+        Attestation.State memory _attestation2
+    ) external pure override returns (bool) {
+        return Attestation.areConflicting(_attestation1, _attestation2);
+    }
+
     /**
      * @dev Get the verifier cut.
      * @return Verifier cut in percentage (ppm)
@@ -529,22 +519,8 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeHashReceipt(Receipt memory _receipt) public view override returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                    DOMAIN_SEPARATOR,
-                    keccak256(
-                        abi.encode(
-                            RECEIPT_TYPE_HASH,
-                            _receipt.requestCID,
-                            _receipt.responseCID,
-                            _receipt.subgraphDeploymentId
-                        ) // EIP 712-encoded message hash
-                    )
-                )
-            );
+    function encodeReceipt(Attestation.Receipt memory _receipt) public view override returns (bytes32) {
+        return Attestation.encodeReceipt(_receipt, DOMAIN_SEPARATOR);
     }
 
     /**
@@ -552,9 +528,9 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * @param _attestation Attestation
      * @return indexer address
      */
-    function getAttestationIndexer(Attestation memory _attestation) public view override returns (address) {
+    function getAttestationIndexer(Attestation.State memory _attestation) public view override returns (address) {
         // Get attestation signer. Indexers signs with the allocationId
-        address allocationId = _recoverAttestationSigner(_attestation);
+        address allocationId = Attestation.recoverSigner(_attestation, DOMAIN_SEPARATOR);
 
         Allocation.State memory alloc = subgraphService.getAllocation(allocationId);
         if (alloc.indexer == address(0)) {
@@ -567,22 +543,6 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             );
         }
         return alloc.indexer;
-    }
-
-    /**
-     * @dev Returns if two attestations are conflicting.
-     * Everything must match except for the responseId.
-     * @param _attestation1 Attestation
-     * @param _attestation2 Attestation
-     * @return True if the two attestations are conflicting
-     */
-    function areConflictingAttestations(
-        Attestation memory _attestation1,
-        Attestation memory _attestation2
-    ) public pure override returns (bool) {
-        return (_attestation1.requestCID == _attestation2.requestCID &&
-            _attestation1.subgraphDeploymentId == _attestation2.subgraphDeploymentId &&
-            _attestation1.responseCID != _attestation2.responseCID);
     }
 
     /**
@@ -599,7 +559,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     function _createQueryDisputeWithAttestation(
         address _fisherman,
         uint256 _deposit,
-        Attestation memory _attestation,
+        Attestation.State memory _attestation,
         bytes memory _attestationData
     ) private returns (bytes32) {
         // Get the indexer that signed the attestation
@@ -862,95 +822,5 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         bytes32 relatedId = _dispute.relatedDisputeId;
         // this is so the check returns false when rejecting the related dispute.
         return relatedId != 0 && disputes[relatedId].status == IDisputeManager.DisputeStatus.Pending;
-    }
-
-    /**
-     * @dev Recover the signer address of the `_attestation`.
-     * @param _attestation The attestation struct
-     * @return Signer address
-     */
-    function _recoverAttestationSigner(Attestation memory _attestation) private view returns (address) {
-        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Receipt memory receipt = Receipt(
-            _attestation.requestCID,
-            _attestation.responseCID,
-            _attestation.subgraphDeploymentId
-        );
-        bytes32 messageHash = encodeHashReceipt(receipt);
-
-        // Obtain the signer of the fully-encoded EIP-712 message hash
-        // NOTE: The signer of the attestation is the indexer that served the request
-        return ECDSA.recover(messageHash, abi.encodePacked(_attestation.r, _attestation.s, _attestation.v));
-    }
-
-    /**
-     * @dev Get the running network chain Id
-     * @return The chain Id
-     */
-    function _getChainId() private view returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
-
-    /**
-     * @dev Parse the bytes attestation into a struct from `_data`.
-     * @return Attestation struct
-     */
-    function _parseAttestation(bytes memory _data) private pure returns (Attestation memory) {
-        // Check attestation data length
-        if (_data.length != ATTESTATION_SIZE_BYTES) {
-            revert DisputeManagerInvalidBytesLength(_data.length, ATTESTATION_SIZE_BYTES);
-        }
-
-        // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentId) = abi.decode(
-            _data,
-            (bytes32, bytes32, bytes32)
-        );
-
-        // Decode signature
-        // Signature is expected to be in the order defined in the Attestation struct
-        bytes32 r = _toBytes32(_data, SIG_R_OFFSET);
-        bytes32 s = _toBytes32(_data, SIG_S_OFFSET);
-        uint8 v = _toUint8(_data, SIG_V_OFFSET);
-
-        return Attestation(requestCID, responseCID, subgraphDeploymentId, r, s, v);
-    }
-
-    /**
-     * @dev Parse a uint8 from `_bytes` starting at offset `_start`.
-     * @return uint8 value
-     */
-    function _toUint8(bytes memory _bytes, uint256 _start) private pure returns (uint8) {
-        if (_bytes.length < (_start + UINT8_BYTE_LENGTH)) {
-            revert DisputeManagerInvalidBytesLength(_bytes.length, _start + UINT8_BYTE_LENGTH);
-        }
-        uint8 tempUint;
-
-        assembly {
-            tempUint := mload(add(add(_bytes, 0x1), _start))
-        }
-
-        return tempUint;
-    }
-
-    /**
-     * @dev Parse a bytes32 from `_bytes` starting at offset `_start`.
-     * @return bytes32 value
-     */
-    function _toBytes32(bytes memory _bytes, uint256 _start) private pure returns (bytes32) {
-        if (_bytes.length < (_start + BYTES32_BYTE_LENGTH)) {
-            revert DisputeManagerInvalidBytesLength(_bytes.length, _start + BYTES32_BYTE_LENGTH);
-        }
-        bytes32 tempBytes32;
-
-        assembly {
-            tempBytes32 := mload(add(add(_bytes, 0x20), _start))
-        }
-
-        return tempBytes32;
     }
 }

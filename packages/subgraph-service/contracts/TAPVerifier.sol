@@ -169,7 +169,7 @@ contract TAPVerifier is EIP712, ITAPVerifier {
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
      */
     function recover(SignedRAV calldata signedRAV) public view returns (address) {
-        bytes32 messageHash = hash(signedRAV.rav);
+        bytes32 messageHash = encodeRAV(signedRAV.rav);
         return ECDSA.recover(messageHash, signedRAV.signature);
     }
 
@@ -178,7 +178,7 @@ contract TAPVerifier is EIP712, ITAPVerifier {
      * @param rav The RAV for which to compute the hash.
      * @return The hash of the RAV.
      */
-    function hash(ReceiptAggregateVoucher calldata rav) public view returns (bytes32) {
+    function encodeRAV(ReceiptAggregateVoucher calldata rav) public view returns (bytes32) {
         return
             _hashTypedDataV4(
                 keccak256(
