@@ -2,6 +2,7 @@
 import '@nomicfoundation/hardhat-toolbox'
 import 'hardhat-contract-sizer'
 import 'hardhat-storage-layout'
+import 'solidity-docgen'
 
 import { HardhatUserConfig } from 'hardhat/config'
 

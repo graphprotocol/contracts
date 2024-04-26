@@ -2810,6 +2810,7 @@ __metadata:
     solhint: "npm:^4.5.2"
     solhint-graph-config: "workspace:^0.0.1"
     solidity-coverage: "npm:^0.8.0"
+    solidity-docgen: "npm:^0.6.0-beta.36"
     ts-node: "npm:>=8.0.0"
     typechain: "npm:^8.3.0"
     typescript: "npm:^5.3.3"
@@ -13253,7 +13254,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"handlebars@npm:^4.0.1":
+"handlebars@npm:^4.0.1, handlebars@npm:^4.7.7":
   version: 4.7.8
   resolution: "handlebars@npm:4.7.8"
   dependencies:
@@ -20959,6 +20960,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"solidity-ast@npm:^0.4.38":
+  version: 0.4.56
+  resolution: "solidity-ast@npm:0.4.56"
+  dependencies:
+    array.prototype.findlast: "npm:^1.2.2"
+  checksum: 6e10e58ddae8c7a9e53551bc61b673963c6671cac12050fa77575caff1ecc6a58440af8b7d85755fdda7e02d0516e2dcd3a5a976bd91a865375274163281d160
+  languageName: node
+  linkType: hard
+
 "solidity-ast@npm:^0.4.51":
   version: 0.4.55
   resolution: "solidity-ast@npm:0.4.55"
@@ -21031,6 +21041,18 @@ __metadata:
   bin:
     solidity-coverage: plugins/bin.js
   checksum: de26a3bdece5b36005fcf84b4c4e9e0affc2822d69c823d925f439876c3d5c7b1fc83d447745c6aae994ad0e5c02f4c031d4d9b2d5613184d9286116857e6437
+  languageName: node
+  linkType: hard
+
+"solidity-docgen@npm:^0.6.0-beta.36":
+  version: 0.6.0-beta.36
+  resolution: "solidity-docgen@npm:0.6.0-beta.36"
+  dependencies:
+    handlebars: "npm:^4.7.7"
+    solidity-ast: "npm:^0.4.38"
+  peerDependencies:
+    hardhat: ^2.8.0
+  checksum: 34ca1c18b2f662e5b6e407fad9346da91807b18ca57c877d909a4e730935475b0d3a5d8e91d79113c96741f4275944f9f3176a612894f4118e16cd9a9de80c02
   languageName: node
   linkType: hard
 
