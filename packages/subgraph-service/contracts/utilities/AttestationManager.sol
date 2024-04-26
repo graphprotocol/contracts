@@ -19,8 +19,6 @@ abstract contract AttestationManager is AttestationManagerV1Storage {
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
 
-    event SubgraphServiceSet(address indexed subgraphService);
-
     constructor() {
         // EIP-712 domain separator
         DOMAIN_SEPARATOR = keccak256(
