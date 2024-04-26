@@ -2,12 +2,13 @@
 
 pragma solidity ^0.8.24;
 
-import "./interfaces/IDisputeManager.sol";
+import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
+import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 abstract contract DisputeManagerV1Storage {
     // -- State --
 
-    bytes32 internal DOMAIN_SEPARATOR;
+    ISubgraphService public subgraphService;
 
     // The arbitrator is solely in control of arbitrating disputes
     address public arbitrator;

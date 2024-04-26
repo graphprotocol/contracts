@@ -23,9 +23,6 @@ library Attestation {
 
     error AttestationInvalidBytesLength(uint256 length, uint256 expectedLength);
 
-    bytes32 private constant RECEIPT_TYPE_HASH =
-        keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
-
     // Attestation size is the sum of the receipt (96) + signature (65)
     uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
@@ -80,57 +77,6 @@ library Attestation {
         uint8 v = _toUint8(_data, SIG_V_OFFSET);
 
         return State(requestCID, responseCID, subgraphDeploymentId, r, s, v);
-    }
-
-    /**
-     * @dev Recover the signer address of the `_attestation`.
-     * @param _attestation The attestation struct
-     * @return Signer address
-     */
-    function recoverSigner(
-        Attestation.State memory _attestation,
-        bytes32 domainSeparator
-    ) internal pure returns (address) {
-        // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Attestation.Receipt memory receipt = Attestation.Receipt(
-            _attestation.requestCID,
-            _attestation.responseCID,
-            _attestation.subgraphDeploymentId
-        );
-        bytes32 messageHash = encodeReceipt(receipt, domainSeparator);
-
-        // Obtain the signer of the fully-encoded EIP-712 message hash
-        // NOTE: The signer of the attestation is the indexer that served the request
-        return ECDSA.recover(messageHash, abi.encodePacked(_attestation.r, _attestation.s, _attestation.v));
-    }
-
-    /**
-     * @dev Get the message hash that a indexer used to sign the receipt.
-     * Encodes a receipt using a domain separator, as described on
-     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
-     * @notice Return the message hash used to sign the receipt
-     * @param _receipt Receipt returned by indexer and submitted by fisherman
-     * @return Message hash used to sign the receipt
-     */
-    function encodeReceipt(
-        Attestation.Receipt memory _receipt,
-        bytes32 domainSeparator
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                    domainSeparator,
-                    keccak256(
-                        abi.encode(
-                            RECEIPT_TYPE_HASH,
-                            _receipt.requestCID,
-                            _receipt.responseCID,
-                            _receipt.subgraphDeploymentId
-                        ) // EIP 712-encoded message hash
-                    )
-                )
-            );
     }
 
     /**

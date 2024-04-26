@@ -9,7 +9,8 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
-import { Directory } from "./utilities/Directory.sol";
+import { GraphDirectory } from "./data-service/GraphDirectory.sol";
+import { AttestationManager } from "./utilities/AttestationManager.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -41,61 +42,15 @@ import { Attestation } from "./libraries/Attestation.sol";
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
  */
-contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
+contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeManagerV1Storage, IDisputeManager {
     using PPMMath for uint256;
 
-    // -- EIP-712  --
-
-    bytes32 private constant DOMAIN_TYPE_HASH =
-        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
-    bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
-    bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
-    bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
-
-    // -- Errors --
-
-    error DisputeManagerNotArbitrator();
-    error DisputeManagerNotFisherman();
-    error DisputeManagerArbitratorZeroAddress();
-    error DisputeManagerSubgraphServiceZeroAddress();
-    error DisputeManagerDisputePeriodZero();
-    error DisputeManagerZeroTokens();
-    error DisputeManagerInvalidDispute(bytes32 disputeId);
-    error DisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
-    error DisputeManagerInvalidFishermanReward(uint32 percentage);
-    error DisputeManagerInvalidMaxSlashingPercentage(uint32 maxSlashingPercentage);
-    error DisputeManagerInvalidSlashAmount(uint256 slashAmount);
-    error DisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
-    error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
-    error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
-    error DisputeManagerDisputePeriodNotFinished();
-    error DisputeManagerMustAcceptRelatedDispute(bytes32 disputeId, bytes32 relatedDisputeId);
-    error DisputeManagerIndexerNotFound(address allocationId);
-    error DisputeManagerNonMatchingSubgraphDeployment(bytes32 subgraphDeploymentId1, bytes32 subgraphDeploymentId2);
-    error DisputeManagerNonConflictingAttestations(
-        bytes32 requestCID1,
-        bytes32 responseCID1,
-        bytes32 subgraphDeploymentId1,
-        bytes32 requestCID2,
-        bytes32 responseCID2,
-        bytes32 subgraphDeploymentId2
-    );
-
-    // -- Constants --
-
-    // -- Immutable variables --
-
-    IHorizonStaking public immutable staking;
-    IGraphToken public immutable graphToken;
-
-    // -- Mutable variables --
-
-    ISubgraphService public subgraphService;
-
     // -- Events --
-
-    /// Emitted when a contract parameter has been updated
-    event ParameterUpdated(string param);
+    event ArbitratorSet(address arbitrator);
+    event DisputePeriodSet(uint64 disputePeriod);
+    event MinimumDepositSet(uint256 minimumDeposit);
+    event MaxSlashingPercentageSet(uint32 maxSlashingPercentage);
+    event FishermanRewardPercentageSet(uint32 fishermanRewardPercentage);
 
     /**
      * @dev Emitted when a query dispute is created for `subgraphDeploymentId` and `indexer`
@@ -159,19 +114,43 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      */
     event DisputeLinked(bytes32 indexed disputeId1, bytes32 indexed disputeId2);
 
-    // -- Modifiers --
+    // -- Errors --
 
-    function _onlyArbitrator() internal view {
-        if (msg.sender != arbitrator) {
-            revert DisputeManagerNotArbitrator();
-        }
-    }
+    error DisputeManagerNotArbitrator();
+    error DisputeManagerNotFisherman();
+    error DisputeManagerInvalidZeroAddress();
+    error DisputeManagerDisputePeriodZero();
+    error DisputeManagerZeroTokens();
+    error DisputeManagerInvalidDispute(bytes32 disputeId);
+    error DisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
+    error DisputeManagerInvalidFishermanReward(uint32 percentage);
+    error DisputeManagerInvalidMaxSlashingPercentage(uint32 maxSlashingPercentage);
+    error DisputeManagerInvalidSlashAmount(uint256 slashAmount);
+    error DisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
+    error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
+    error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
+    error DisputeManagerDisputePeriodNotFinished();
+    error DisputeManagerMustAcceptRelatedDispute(bytes32 disputeId, bytes32 relatedDisputeId);
+    error DisputeManagerIndexerNotFound(address allocationId);
+    error DisputeManagerNonMatchingSubgraphDeployment(bytes32 subgraphDeploymentId1, bytes32 subgraphDeploymentId2);
+    error DisputeManagerNonConflictingAttestations(
+        bytes32 requestCID1,
+        bytes32 responseCID1,
+        bytes32 subgraphDeploymentId1,
+        bytes32 requestCID2,
+        bytes32 responseCID2,
+        bytes32 subgraphDeploymentId2
+    );
+
+    // -- Modifiers --
 
     /**
      * @dev Check if the caller is the arbitrator.
      */
     modifier onlyArbitrator() {
-        _onlyArbitrator();
+        if (msg.sender != arbitrator) {
+            revert DisputeManagerNotArbitrator();
+        }
         _;
     }
 
@@ -201,8 +180,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
 
     /**
      * @dev Initialize this contract.
-     * @param _staking Address of staking contract
-     * @param _graphToken Address of Graph token contract
+     * @param _controller Address of Graph Controller contract
      * @param _arbitrator Arbitrator role
      * @param _disputePeriod Dispute period in seconds
      * @param _minimumDeposit Minimum deposit required to create a Dispute
@@ -210,35 +188,19 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * @param _maxSlashingPercentage Maximum percentage of indexer stake that can be slashed (ppm)
      */
     constructor(
-        address _staking,
-        address _graphToken,
+        address _controller,
         address _arbitrator,
         uint64 _disputePeriod,
         uint256 _minimumDeposit,
         uint32 _fishermanRewardPercentage,
         uint32 _maxSlashingPercentage
-    ) Ownable(msg.sender) {
-        staking = IHorizonStaking(_staking);
-        graphToken = IGraphToken(_graphToken);
-
+    ) Ownable(msg.sender) GraphDirectory(_controller) {
         // Settings
         _setArbitrator(_arbitrator);
         _setDisputePeriod(_disputePeriod);
         _setMinimumDeposit(_minimumDeposit);
         _setFishermanRewardPercentage(_fishermanRewardPercentage);
         _setMaxSlashingPercentage(_maxSlashingPercentage);
-
-        // EIP-712 domain separator
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                DOMAIN_TYPE_HASH,
-                DOMAIN_NAME_HASH,
-                DOMAIN_VERSION_HASH,
-                block.chainid,
-                address(this),
-                DOMAIN_SALT
-            )
-        );
     }
 
     /**
@@ -427,15 +389,6 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     }
 
     /**
-     * @dev Set the subgraph service address.
-     * @notice Update the subgraph service to `_subgraphService`
-     * @param _subgraphService The address of the subgraph service contract
-     */
-    function setSubgraphService(address _subgraphService) external onlyOwner {
-        _setSubgraphService(_subgraphService);
-    }
-
-    /**
      * @dev Set the arbitrator address.
      * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator The address of the arbitration contract or party
@@ -479,11 +432,25 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         _setMaxSlashingPercentage(_maxSlashingPercentage);
     }
 
-    function areConflictingAttestations(
-        Attestation.State memory _attestation1,
-        Attestation.State memory _attestation2
-    ) external pure override returns (bool) {
-        return Attestation.areConflicting(_attestation1, _attestation2);
+    /**
+     * @dev Set the subgraph service address.
+     * @notice Update the subgraph service to `_subgraphService`
+     * @param _subgraphService The address of the subgraph service contract
+     */
+    function setSubgraphService(address _subgraphService) external onlyOwner {
+        _setSubgraphService(_subgraphService);
+    }
+
+    /**
+     * @dev Get the message hash that a indexer used to sign the receipt.
+     * Encodes a receipt using a domain separator, as described on
+     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
+     * @notice Return the message hash used to sign the receipt
+     * @param _receipt Receipt returned by indexer and submitted by fisherman
+     * @return Message hash used to sign the receipt
+     */
+    function encodeReceipt(Attestation.Receipt memory _receipt) external view returns (bytes32) {
+        return _encodeReceipt(_receipt);
     }
 
     /**
@@ -502,25 +469,11 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         return disputePeriod;
     }
 
-    /**
-     * @dev Return whether a dispute exists or not.
-     * @notice Return if dispute with Id `_disputeId` exists
-     * @param _disputeId True if dispute already exists
-     */
-    function isDisputeCreated(bytes32 _disputeId) public view override returns (bool) {
-        return disputes[_disputeId].status != DisputeStatus.Null;
-    }
-
-    /**
-     * @dev Get the message hash that a indexer used to sign the receipt.
-     * Encodes a receipt using a domain separator, as described on
-     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
-     * @notice Return the message hash used to sign the receipt
-     * @param _receipt Receipt returned by indexer and submitted by fisherman
-     * @return Message hash used to sign the receipt
-     */
-    function encodeReceipt(Attestation.Receipt memory _receipt) public view override returns (bytes32) {
-        return Attestation.encodeReceipt(_receipt, DOMAIN_SEPARATOR);
+    function areConflictingAttestations(
+        Attestation.State memory _attestation1,
+        Attestation.State memory _attestation2
+    ) external pure returns (bool) {
+        return Attestation.areConflicting(_attestation1, _attestation2);
     }
 
     /**
@@ -528,9 +481,9 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      * @param _attestation Attestation
      * @return indexer address
      */
-    function getAttestationIndexer(Attestation.State memory _attestation) public view override returns (address) {
+    function getAttestationIndexer(Attestation.State memory _attestation) public view returns (address) {
         // Get attestation signer. Indexers signs with the allocationId
-        address allocationId = Attestation.recoverSigner(_attestation, DOMAIN_SEPARATOR);
+        address allocationId = _recoverSigner(_attestation);
 
         Allocation.State memory alloc = subgraphService.getAllocation(allocationId);
         if (alloc.indexer == address(0)) {
@@ -543,6 +496,15 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             );
         }
         return alloc.indexer;
+    }
+
+    /**
+     * @dev Return whether a dispute exists or not.
+     * @notice Return if dispute with Id `_disputeId` exists
+     * @param _disputeId True if dispute already exists
+     */
+    function isDisputeCreated(bytes32 _disputeId) public view override returns (bool) {
+        return disputes[_disputeId].status != DisputeStatus.Null;
     }
 
     /**
@@ -566,7 +528,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         address indexer = getAttestationIndexer(_attestation);
 
         // The indexer is disputable
-        IHorizonStaking.Provision memory provision = staking.getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = graphStaking.getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert DisputeManagerZeroTokens();
         }
@@ -630,8 +592,6 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         }
 
         // Allocation must exist
-        // TODO: Check ISubgraphService for Allocation
-        // TODO: Check ISubgraphService for getAllocation(...)
         Allocation.State memory alloc = subgraphService.getAllocation(_allocationId);
         address indexer = alloc.indexer;
         if (indexer == address(0)) {
@@ -639,7 +599,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         }
 
         // The indexer must be disputable
-        IHorizonStaking.Provision memory provision = staking.getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = graphStaking.getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert DisputeManagerZeroTokens();
         }
@@ -712,7 +672,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
      */
     function _slashIndexer(address _indexer, uint256 _slashAmount) private returns (uint256 rewardsAmount) {
         // Get slashable amount for indexer
-        IHorizonStaking.Provision memory provision = staking.getProvision(_indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = graphStaking.getProvision(_indexer, address(subgraphService));
         uint256 totalProvisionTokens = provision.tokens + provision.delegatedTokens; // slashable tokens
 
         // Get slash amount
@@ -735,29 +695,16 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
     }
 
     /**
-     * @dev Internal: Set the subgraph service address.
-     * @notice Update the subgraph service to `_subgraphService`
-     * @param _subgraphService The address of the subgraph service contract
-     */
-    function _setSubgraphService(address _subgraphService) private {
-        if (_subgraphService == address(0)) {
-            revert DisputeManagerSubgraphServiceZeroAddress();
-        }
-        subgraphService = ISubgraphService(_subgraphService);
-        emit ParameterUpdated("subgraphService");
-    }
-
-    /**
      * @dev Internal: Set the arbitrator address.
      * @notice Update the arbitrator to `_arbitrator`
      * @param _arbitrator The address of the arbitration contract or party
      */
     function _setArbitrator(address _arbitrator) private {
         if (_arbitrator == address(0)) {
-            revert DisputeManagerArbitratorZeroAddress();
+            revert DisputeManagerInvalidZeroAddress();
         }
         arbitrator = _arbitrator;
-        emit ParameterUpdated("arbitrator");
+        emit ArbitratorSet(arbitrator);
     }
 
     /**
@@ -770,7 +717,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             revert DisputeManagerDisputePeriodZero();
         }
         disputePeriod = _disputePeriod;
-        emit ParameterUpdated("disputePeriod");
+        emit DisputePeriodSet(disputePeriod);
     }
 
     /**
@@ -783,7 +730,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             revert DisputeManagerInvalidMinimumDeposit(_minimumDeposit);
         }
         minimumDeposit = _minimumDeposit;
-        emit ParameterUpdated("minimumDeposit");
+        emit MinimumDepositSet(minimumDeposit);
     }
 
     /**
@@ -797,7 +744,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             revert DisputeManagerInvalidFishermanReward(_percentage);
         }
         fishermanRewardPercentage = _percentage;
-        emit ParameterUpdated("fishermanRewardPercentage");
+        emit FishermanRewardPercentageSet(fishermanRewardPercentage);
     }
 
     /**
@@ -810,7 +757,7 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
             revert DisputeManagerInvalidMaxSlashingPercentage(_maxSlashingPercentage);
         }
         maxSlashingPercentage = _maxSlashingPercentage;
-        emit ParameterUpdated("maxSlashingPercentage");
+        emit MaxSlashingPercentageSet(maxSlashingPercentage);
     }
 
     /**
@@ -822,5 +769,18 @@ contract DisputeManager is Ownable, DisputeManagerV1Storage, IDisputeManager {
         bytes32 relatedId = _dispute.relatedDisputeId;
         // this is so the check returns false when rejecting the related dispute.
         return relatedId != 0 && disputes[relatedId].status == IDisputeManager.DisputeStatus.Pending;
+    }
+
+    /**
+     * @dev Internal: Set the subgraph service address.
+     * @notice Update the subgraph service to `_subgraphService`
+     * @param _subgraphService The address of the subgraph service contract
+     */
+    function _setSubgraphService(address _subgraphService) private {
+        if (_subgraphService == address(0)) {
+            revert DisputeManagerInvalidZeroAddress();
+        }
+        subgraphService = ISubgraphService(_subgraphService);
+        emit SubgraphServiceSet(_subgraphService);
     }
 }
