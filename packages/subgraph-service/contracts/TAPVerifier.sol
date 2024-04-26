@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
+
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title TAPVerifier
@@ -55,51 +56,6 @@ contract TAPVerifier is EIP712, ITAPVerifier {
     constructor(string memory eip712Name, string memory eip712Version) EIP712(eip712Name, eip712Version) {}
 
     /**
-     * @notice Verify validity of a SignedRAV
-     * @dev Caller must be the data service the RAV was issued to.
-     * @param signedRAV The SignedRAV containing the RAV and its signature.
-     * @return The address of the signer.
-     * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
-     */
-    function verify(SignedRAV calldata signedRAV) external view returns (address) {
-        if (signedRAV.rav.dataService != msg.sender) {
-            revert TAPVerifierInvalidCaller(msg.sender, signedRAV.rav.dataService);
-        }
-        return recover(signedRAV);
-    }
-
-    /**
-     * @dev Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
-     * @param signedRAV The SignedRAV containing the RAV and its signature.
-     * @return The address of the signer.
-     * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
-     */
-    function recover(SignedRAV calldata signedRAV) public view returns (address) {
-        bytes32 messageHash = hash(signedRAV.rav);
-        return ECDSA.recover(messageHash, signedRAV.signature);
-    }
-
-    /**
-     * @dev Computes the hash of a ReceiptAggregateVoucher (RAV).
-     * @param rav The RAV for which to compute the hash.
-     * @return The hash of the RAV.
-     */
-    function hash(ReceiptAggregateVoucher calldata rav) public view returns (bytes32) {
-        return
-            _hashTypedDataV4(
-                keccak256(
-                    abi.encode(
-                        EIP712_RAV_TYPEHASH,
-                        rav.dataService,
-                        rav.serviceProvider,
-                        rav.timestampNs,
-                        rav.valueAggregate
-                    )
-                )
-            );
-    }
-
-    /**
      * @dev Authorizes a signer to sign RAVs for the sender.
      * @param signer Address of the authorized signer.
      * @param proof The proof provided by the signer to authorize the sender, consisting of packed (chainID, proof deadline, sender address).
@@ -113,7 +69,7 @@ contract TAPVerifier is EIP712, ITAPVerifier {
             revert TAPVerifierAlreadyAuthorized(signer, authorizedSigners[signer].sender);
         }
 
-        verifyAuthorizedSignerProof(proof, proofDeadline, signer);
+        _verifyAuthorizedSignerProof(proof, proofDeadline, signer);
 
         authorizedSigners[signer].sender = msg.sender;
         authorizedSigners[signer].thawEndTimestamp = 0;
@@ -193,13 +149,58 @@ contract TAPVerifier is EIP712, ITAPVerifier {
     }
 
     /**
+     * @notice Verify validity of a SignedRAV
+     * @dev Caller must be the data service the RAV was issued to.
+     * @param signedRAV The SignedRAV containing the RAV and its signature.
+     * @return The address of the signer.
+     * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
+     */
+    function verify(SignedRAV calldata signedRAV) external view returns (address) {
+        if (signedRAV.rav.dataService != msg.sender) {
+            revert TAPVerifierInvalidCaller(msg.sender, signedRAV.rav.dataService);
+        }
+        return recover(signedRAV);
+    }
+
+    /**
+     * @dev Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
+     * @param signedRAV The SignedRAV containing the RAV and its signature.
+     * @return The address of the signer.
+     * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
+     */
+    function recover(SignedRAV calldata signedRAV) public view returns (address) {
+        bytes32 messageHash = hash(signedRAV.rav);
+        return ECDSA.recover(messageHash, signedRAV.signature);
+    }
+
+    /**
+     * @dev Computes the hash of a ReceiptAggregateVoucher (RAV).
+     * @param rav The RAV for which to compute the hash.
+     * @return The hash of the RAV.
+     */
+    function hash(ReceiptAggregateVoucher calldata rav) public view returns (bytes32) {
+        return
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        EIP712_RAV_TYPEHASH,
+                        rav.dataService,
+                        rav.serviceProvider,
+                        rav.timestampNs,
+                        rav.valueAggregate
+                    )
+                )
+            );
+    }
+
+    /**
      * @dev Verifies a proof that authorizes the sender to authorize the signer.
      * @param proof The proof provided by the signer to authorize the sender.
      * @param signer The address of the signer being authorized.
      * @notice REVERT with error:
      *               - InvalidSignerProof: If the given proof is not valid
      */
-    function verifyAuthorizedSignerProof(bytes calldata proof, uint256 proofDeadline, address signer) private view {
+    function _verifyAuthorizedSignerProof(bytes calldata proof, uint256 proofDeadline, address signer) private view {
         // Verify that the proof deadline has not passed
         if (block.timestamp > proofDeadline) {
             revert TAPVerifierInvalidSignerProof();

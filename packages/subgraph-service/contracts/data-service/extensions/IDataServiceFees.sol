@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { IDataService } from "../IDataService.sol";
+import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 interface IDataServiceFees is IDataService {
     struct StakeClaimsList {
@@ -21,4 +22,6 @@ interface IDataServiceFees is IDataService {
         // next claim in the linked list
         bytes32 nextClaim;
     }
+
+    function releaseStake(IGraphPayments.PaymentTypes feeType, uint256 n) external;
 }

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import { ProvisionGetter } from "../libraries/ProvisionGetter.sol";
 import { UintRange } from "../libraries/UintRange.sol";
 
@@ -28,12 +29,14 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
         uint64 maximumThawingPeriod
     );
     error ProvisionManagerNotAuthorized(address caller, address serviceProvider, address service);
+
     modifier onlyProvisionAuthorized(address serviceProvider) {
         if (!graphStaking.isAuthorized(msg.sender, serviceProvider, address(this))) {
             revert ProvisionManagerNotAuthorized(msg.sender, serviceProvider, address(this));
         }
         _;
     }
+
     constructor() {
         minimumProvisionTokens = type(uint256).min;
         maximumProvisionTokens = type(uint256).max;
@@ -45,13 +48,25 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
         maximumVerifierCut = type(uint32).max;
     }
 
-    function _getProvision(address serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
-        return graphStaking.get(serviceProvider);
-    }
-
     function _acceptProvision(address serviceProvider) internal virtual {
         _checkProvisionParameters(serviceProvider);
         graphStaking.acceptProvision(serviceProvider);
+    }
+
+    // -- Provision Parameters: setters --
+    function _setProvisionTokensRange(uint256 min, uint256 max) internal {
+        minimumProvisionTokens = min;
+        maximumProvisionTokens = max;
+    }
+
+    function _setVerifierCutRange(uint32 min, uint32 max) internal {
+        minimumVerifierCut = min;
+        maximumVerifierCut = max;
+    }
+
+    function _setThawingPeriodRange(uint64 min, uint64 max) internal {
+        minimumThawingPeriod = min;
+        maximumThawingPeriod = max;
     }
 
     /// @notice Checks if the service provider has a valid provision for the data service in the staking contract
@@ -75,22 +90,6 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
         }
     }
 
-    // -- Provision Parameters: setters --
-    function _setProvisionTokensRange(uint256 min, uint256 max) internal {
-        minimumProvisionTokens = min;
-        maximumProvisionTokens = max;
-    }
-
-    function _setVerifierCutRange(uint32 min, uint32 max) internal {
-        minimumVerifierCut = min;
-        maximumVerifierCut = max;
-    }
-
-    function _setThawingPeriodRange(uint64 min, uint64 max) internal {
-        minimumThawingPeriod = min;
-        maximumThawingPeriod = max;
-    }
-
     // -- Provision Parameters: getters --
     function _getProvisionTokensRange() internal view virtual returns (uint256 min, uint256 max) {
         return (minimumProvisionTokens, maximumProvisionTokens);
@@ -102,5 +101,9 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
 
     function _getVerifierCutRange() internal view virtual returns (uint32 min, uint32 max) {
         return (minimumVerifierCut, maximumVerifierCut);
+    }
+
+    function _getProvision(address serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
+        return graphStaking.get(serviceProvider);
     }
 }

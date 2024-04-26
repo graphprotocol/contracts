@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IDataServiceRescuable } from "./IDataServiceRescuable.sol";
+
 import { DataService } from "../DataService.sol";
+
 import { Denominations } from "../libraries/Denominations.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Rescuable contract
@@ -12,7 +15,7 @@ import { Denominations } from "../libraries/Denominations.sol";
  * The contract must implement the external rescueTokens function or similar,
  * that calls this contract's _rescueTokens.
  */
-abstract contract DataServiceRescuable is DataService {
+abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     mapping(address rescuer => bool allowed) public rescuers;
 
     /**

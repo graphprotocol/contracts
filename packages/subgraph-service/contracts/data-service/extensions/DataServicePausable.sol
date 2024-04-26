@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import { IDataServicePausable } from "./IDataServicePausable.sol";
+
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { DataService } from "../DataService.sol";
 
-abstract contract DataServicePausable is Pausable, DataService {
+abstract contract DataServicePausable is Pausable, DataService, IDataServicePausable {
     mapping(address pauseGuardian => bool allowed) public pauseGuardians;
 
     event PauseGuardianSet(address indexed account, bool allowed);
+
     error DataServicePausableNotPauseGuardian(address account);
 
     modifier onlyPauseGuardian() {

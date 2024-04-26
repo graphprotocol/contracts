@@ -18,11 +18,11 @@ abstract contract Directory {
         address disputeManager,
         address curation
     );
-    error SubgraphServiceDirectoryNotDisputeManager(address caller, address disputeManager);
+    error DirectoryNotDisputeManager(address caller, address disputeManager);
 
     modifier onlyDisputeManager() {
         if (msg.sender != address(disputeManager)) {
-            revert SubgraphServiceDirectoryNotDisputeManager(msg.sender, address(disputeManager));
+            revert DirectoryNotDisputeManager(msg.sender, address(disputeManager));
         }
         _;
     }
@@ -32,6 +32,7 @@ abstract contract Directory {
         tapVerifier = ITAPVerifier(_tapVerifier);
         disputeManager = IDisputeManager(_disputeManager);
         curation = ICuration(_curation);
+
         emit SubgraphServiceDirectoryInitialized(_subgraphService, _tapVerifier, _disputeManager, _curation);
     }
 }

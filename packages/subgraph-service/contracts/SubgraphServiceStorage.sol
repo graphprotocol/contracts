@@ -15,6 +15,4 @@ abstract contract SubgraphServiceV1Storage {
     uint256 public feesCut;
 
     mapping(address indexer => mapping(address payer => uint256 tokens)) public tokensCollected;
-
-    // -- Indexing rewards --
 }

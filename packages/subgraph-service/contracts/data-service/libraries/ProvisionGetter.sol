@@ -6,7 +6,7 @@ import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHor
 library ProvisionGetter {
     using ProvisionGetter for IHorizonStaking.Provision;
 
-    error ProvisionNotFound(address serviceProvider, address service);
+    error ProvisionGetterProvisionNotFound(address serviceProvider, address service);
 
     function get(
         IHorizonStaking graphStaking,
@@ -14,7 +14,7 @@ library ProvisionGetter {
     ) internal view returns (IHorizonStaking.Provision memory) {
         IHorizonStaking.Provision memory provision = graphStaking.getProvision(serviceProvider, address(this));
         if (provision.createdAt == 0) {
-            revert ProvisionNotFound(serviceProvider, address(this));
+            revert ProvisionGetterProvisionNotFound(serviceProvider, address(this));
         }
         return provision;
     }

@@ -16,14 +16,9 @@ library Allocation {
     }
 
     error AllocationAlreadyExists(address allocationId);
-    error AllocationAlreadyClosed(address allocationId, uint256 closedAt);
     error AllocationDoesNotExist(address allocationId);
     error AllocationClosed(address allocationId, uint256 closedAt);
     error AllocationZeroTokens(address allocationId);
-
-    function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
-        return _get(self, allocationId);
-    }
 
     function create(
         mapping(address => State) storage self,
@@ -76,10 +71,14 @@ library Allocation {
 
     function close(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
-        if (!allocation.isOpen()) revert AllocationAlreadyClosed(allocationId, allocation.closedAt);
+        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
         allocation.closedAt = block.timestamp;
 
         return allocation;
+    }
+
+    function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
+        return _get(self, allocationId);
     }
 
     function exists(State memory self) internal pure returns (bool) {

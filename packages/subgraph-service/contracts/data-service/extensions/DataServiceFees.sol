@@ -1,45 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { DataService } from "../DataService.sol";
-import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 import { IDataServiceFees } from "./IDataServiceFees.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
+
+import { DataService } from "../DataService.sol";
+import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 
 import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
 
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);
 
-    error DataServiceFeesClaimNotFound(bytes32 claimId);
-
-    event StakeClaimLocked(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 unlockTimestamp);
-    event StakeClaimReleased(address serviceProvider, bytes32 claimId, uint256 tokens, uint256 releaseAt);
-
-    function _lockStake(
-        IGraphPayments.PaymentTypes feeType,
-        address serviceProvider,
+    event StakeClaimLocked(
+        address indexed serviceProvider,
+        bytes32 indexed claimId,
         uint256 tokens,
         uint256 unlockTimestamp
-    ) internal {
-        feesProvisionTracker[feeType].lock(graphStaking, serviceProvider, tokens);
+    );
+    event StakeClaimReleased(
+        address indexed serviceProvider,
+        bytes32 indexed claimId,
+        uint256 tokens,
+        uint256 releaseAt
+    );
 
-        StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];
-        bytes32 claimId = _buildStakeClaimId(serviceProvider, claimsList.nonce);
-        claims[claimId] = StakeClaim({
-            serviceProvider: serviceProvider,
-            tokens: tokens,
-            createdAt: block.timestamp,
-            releaseAt: unlockTimestamp,
-            nextClaim: bytes32(0)
-        });
-
-        claims[claimsList.tail].nextClaim = claimId;
-        claimsList.tail = claimId;
-        claimsList.nonce += 1;
-
-        emit StakeClaimLocked(serviceProvider, claimId, tokens, unlockTimestamp);
-    }
+    error DataServiceFeesClaimNotFound(bytes32 claimId);
 
     function releaseStake(IGraphPayments.PaymentTypes feeType, uint256 n) external virtual {
         _releaseStake(feeType, msg.sender, n);
@@ -72,6 +58,31 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
                 break;
             }
         }
+    }
+
+    function _lockStake(
+        IGraphPayments.PaymentTypes feeType,
+        address serviceProvider,
+        uint256 tokens,
+        uint256 unlockTimestamp
+    ) internal {
+        feesProvisionTracker[feeType].lock(graphStaking, serviceProvider, tokens);
+
+        StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];
+        bytes32 claimId = _buildStakeClaimId(serviceProvider, claimsList.nonce);
+        claims[claimId] = StakeClaim({
+            serviceProvider: serviceProvider,
+            tokens: tokens,
+            createdAt: block.timestamp,
+            releaseAt: unlockTimestamp,
+            nextClaim: bytes32(0)
+        });
+
+        claims[claimsList.tail].nextClaim = claimId;
+        claimsList.tail = claimId;
+        claimsList.nonce += 1;
+
+        emit StakeClaimLocked(serviceProvider, claimId, tokens, unlockTimestamp);
     }
 
     function _getStakeClaim(bytes32 claimId) private view returns (StakeClaim memory) {

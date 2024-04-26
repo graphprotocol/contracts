@@ -10,20 +10,8 @@ library LegacyAllocation {
     }
 
     error LegacyAllocationExists(address allocationId);
-    error LegacyAllocationAlreadyMigrated(address allocationId);
     error LegacyAllocationDoesNotExist(address allocationId);
-
-    function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
-        return _get(self, allocationId);
-    }
-
-    function revertIfExists(mapping(address => State) storage self, address allocationId) internal view {
-        if (self[allocationId].exists()) revert LegacyAllocationExists(allocationId);
-    }
-
-    function exists(State memory self) internal pure returns (bool) {
-        return self.indexer != address(0);
-    }
+    error LegacyAllocationAlreadyMigrated(address allocationId);
 
     function migrate(
         mapping(address => State) storage self,
@@ -36,6 +24,18 @@ library LegacyAllocation {
         State memory allocation = State({ indexer: indexer, subgraphDeploymentID: subgraphDeploymentID });
 
         self[allocationId] = allocation;
+    }
+
+    function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
+        return _get(self, allocationId);
+    }
+
+    function revertIfExists(mapping(address => State) storage self, address allocationId) internal view {
+        if (self[allocationId].exists()) revert LegacyAllocationExists(allocationId);
+    }
+
+    function exists(State memory self) internal pure returns (bool) {
+        return self.indexer != address(0);
     }
 
     function _get(mapping(address => State) storage self, address allocationId) private view returns (State storage) {

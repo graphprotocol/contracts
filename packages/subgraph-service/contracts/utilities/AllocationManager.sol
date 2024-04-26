@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 import { PPMMath } from "../data-service/libraries/PPMMath.sol";
@@ -16,9 +16,7 @@ import { ProvisionTracker } from "../data-service/libraries/ProvisionTracker.sol
 abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManagerV1Storage {
     using ProvisionTracker for mapping(address => uint256);
     using Allocation for mapping(address => Allocation.State);
-    using Allocation for Allocation.State;
     using LegacyAllocation for mapping(address => LegacyAllocation.State);
-    using LegacyAllocation for LegacyAllocation.State;
     using PPMMath for uint256;
 
     // -- Immutables --
@@ -79,14 +77,6 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     error AllocationManagerInvalidZeroPOI();
 
     constructor(string memory name, string memory version) EIP712(name, version) {}
-
-    function _getAllocation(address allocationId) internal view returns (Allocation.State memory) {
-        return allocations.get(allocationId);
-    }
-
-    function _getLegacyAllocation(address allocationId) internal view returns (LegacyAllocation.State memory) {
-        return legacyAllocations.get(allocationId);
-    }
 
     function _migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentId) internal {
         legacyAllocations.migrate(indexer, allocationId, subgraphDeploymentId);
@@ -230,6 +220,14 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         emit AllocationClosed(allocation.indexer, allocationId, allocation.subgraphDeploymentId, allocation.tokens);
         return allocations[allocationId];
+    }
+
+    function _getAllocation(address allocationId) internal view returns (Allocation.State memory) {
+        return allocations.get(allocationId);
+    }
+
+    function _getLegacyAllocation(address allocationId) internal view returns (LegacyAllocation.State memory) {
+        return legacyAllocations.get(allocationId);
     }
 
     // -- Allocation Proof Verification --
