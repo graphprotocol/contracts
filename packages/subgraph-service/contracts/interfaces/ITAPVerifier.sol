@@ -7,6 +7,7 @@ interface ITAPVerifier {
         address serviceProvider;
         uint64 timestampNs;
         uint128 valueAggregate;
+        bytes metadata;
     }
 
     struct SignedRAV {

@@ -15,7 +15,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 contract TAPVerifier is EIP712, ITAPVerifier {
     bytes32 private constant EIP712_RAV_TYPEHASH =
         keccak256(
-            "ReceiptAggregateVoucher(address dataService, address serviceProvider,uint64 timestampNs,uint128 valueAggregate)"
+            "ReceiptAggregateVoucher(address dataService, address serviceProvider,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
         );
 
     // The duration (in seconds) in which a signer is thawing before they can be revoked

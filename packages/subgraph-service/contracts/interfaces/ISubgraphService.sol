@@ -13,6 +13,11 @@ interface ISubgraphService is IDataServiceFees {
         string geoHash;
     }
 
+    struct PaymentFee {
+        uint128 servicePercentage;
+        uint128 curationPercentage;
+    }
+
     function resizeAllocation(address indexer, address allocationId, uint256 tokens) external;
 
     function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentID) external;

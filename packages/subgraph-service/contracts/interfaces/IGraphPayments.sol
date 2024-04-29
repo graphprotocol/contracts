@@ -13,5 +13,5 @@ interface IGraphPayments {
         uint256 tokens,
         PaymentTypes paymentType,
         uint256 tokensDataService
-    ) external;
+    ) external returns (uint256);
 }
