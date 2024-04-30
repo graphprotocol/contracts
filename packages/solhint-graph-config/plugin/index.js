@@ -44,7 +44,7 @@ module.exports = [
     VariableDeclaration(node) {
       if (!this.inLibrary) {
         if (!this.inStateVariableDeclaration) {
-            this.validateName(node, false, 'variable')
+          this.validateName(node, false, 'variable')
           return
         }
 
@@ -58,22 +58,26 @@ module.exports = [
         if (!node.name) {
           return
         }
+        for (const parameter of node.parameters) {
+          parameter.visibility = node.visibility
+        }
 
         this.validateName(node, 'function')
+
       }
     }
-
 
     validateName(node, type) {
       const isPrivate = node.visibility === 'private'
       const isInternal = node.visibility === 'internal' || node.visibility === 'default'
       const isConstant = node.isDeclaredConst
-      const shouldHaveLeadingUnderscore = (isPrivate || isInternal) && !isConstant
+      const isImmutable = node.isImmutable
+      const shouldHaveLeadingUnderscore = (isPrivate || isInternal) && !(isConstant || isImmutable)
 
       if (node.name === null) {
         return
       }
-  
+
       if (hasLeadingUnderscore(node.name) !== shouldHaveLeadingUnderscore) {
         this._error(node, node.name, shouldHaveLeadingUnderscore, type)
       }
@@ -85,6 +89,8 @@ module.exports = [
       if (type === 'function') {
         range = node.range
         range[0] += 8
+      } else if (type === 'parameter') {
+        range = node.identifier.range
       } else {
         range = node.identifier.range
         range[0] -= 1
@@ -99,7 +105,7 @@ module.exports = [
     _error(node, name, shouldHaveLeadingUnderscore, type) {
       this.error(
         node,
-        `'${name}' ${shouldHaveLeadingUnderscore ? 'should' : 'should not'} start with _`,
+        `'${name}' ${shouldHaveLeadingUnderscore ? 'should' : 'should not'} start with _`, 
         this.fixStatement(node, shouldHaveLeadingUnderscore, type)
       )
     }
