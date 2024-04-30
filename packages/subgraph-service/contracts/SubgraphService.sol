@@ -92,6 +92,8 @@ contract SubgraphService is
         // Ensure the service provider created a valid provision for the data service
         // and accept it in the staking contract
         _acceptProvision(indexer);
+
+        emit ServiceProviderRegistered(indexer);
     }
 
     function acceptProvision(
@@ -110,6 +112,7 @@ contract SubgraphService is
             (bytes32, uint256, address, bytes)
         );
         _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof);
+        emit ServiceStarted(indexer);
     }
 
     function collectServicePayment(
@@ -117,7 +120,8 @@ contract SubgraphService is
         bytes calldata data
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
-        _collectPOIRewards(allocationId, poi);
+        uint256 rewards = _collectPOIRewards(allocationId, poi);
+        emit ServicePaymentCollected(indexer, rewards);
     }
 
     function stopService(
@@ -126,6 +130,7 @@ contract SubgraphService is
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         _closeAllocation(allocationId);
+        emit ServiceStopped(indexer);
     }
 
     function resizeAllocation(
@@ -141,17 +146,22 @@ contract SubgraphService is
         address indexer,
         IGraphPayments.PaymentTypes feeType,
         bytes calldata data
-    ) external override onlyRegisteredIndexer(indexer) whenNotPaused returns (uint256 feesCollected) {
+    ) external override onlyRegisteredIndexer(indexer) whenNotPaused {
+        uint256 feesCollected = 0;
+
         if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
             feesCollected = _redeemQueryFees(abi.decode(data, (ITAPVerifier.SignedRAV)));
         } else {
             revert SubgraphServiceInvalidPaymentType(feeType);
         }
+
+        emit ServiceFeesRedeemed(indexer, feeType, feesCollected);
     }
 
     function slash(address indexer, bytes calldata data) external override onlyDisputeManager whenNotPaused {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
         GRAPH_STAKING.slash(indexer, tokens, reward, address(DISPUTE_MANAGER));
+        emit ServiceProviderSlashed(indexer, tokens);
     }
 
     function migrateLegacyAllocation(

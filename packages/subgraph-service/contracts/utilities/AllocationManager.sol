@@ -121,7 +121,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
     // Update POI timestamp and take rewards snapshot even for 0 rewards
     // This ensures the rewards are actually skipped and not collected with the next valid POI
-    function _collectPOIRewards(address _allocationId, bytes32 _poi) internal returns (Allocation.State memory) {
+    function _collectPOIRewards(address _allocationId, bytes32 _poi) internal returns (uint256) {
         if (_poi == bytes32(0)) revert AllocationManagerInvalidZeroPOI();
 
         Allocation.State memory allocation = allocations.get(_allocationId);
@@ -141,7 +141,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         if (tokensRewards == 0) {
             emit AllocationCollected(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, 0, 0, 0, _poi);
-            return allocations[_allocationId];
+            return tokensRewards;
         }
 
         // Distribute rewards to delegators
@@ -174,7 +174,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
             _poi
         );
 
-        return allocations[_allocationId];
+        return tokensRewards;
     }
 
     function _resizeAllocation(address _allocationId, uint256 _tokens) internal returns (Allocation.State memory) {

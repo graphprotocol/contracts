@@ -21,4 +21,19 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
      * @param controller The address of the Graph Horizon controller contract.
      */
     constructor(address controller) GraphDirectory(controller) {}
+
+    /**
+     * @notice Verifies and accepts the provision of a service provider in the {Graph Horizon staking
+     * contract}.
+     * @dev This internal function is a wrapper around {ProvisionManager-checkAndAcceptProvision}
+     * that ensures the event {ProvisionAccepted} is emitted when called from different contexts.
+     *
+     * Emits a {ProvisionAccepted} event.
+     *
+     * @param serviceProvider The address of the service provider.
+     */
+    function _acceptProvision(address __serviceProvider) internal {
+        _checkAndAcceptProvision(serviceProvider);
+        emit ProvisionAccepted(serviceProvider);
+    }
 }

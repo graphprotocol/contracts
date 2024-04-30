@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IDataService } from "../IDataService.sol";
 
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
@@ -48,7 +49,7 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
         maximumVerifierCut = type(uint32).max;
     }
 
-    function _acceptProvision(address _serviceProvider) internal virtual {
+    function _checkAndAcceptProvision(address _serviceProvider) internal virtual {
         _checkProvisionParameters(_serviceProvider);
         GRAPH_STAKING.acceptProvision(_serviceProvider);
     }
