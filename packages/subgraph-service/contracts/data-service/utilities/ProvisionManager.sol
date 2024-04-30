@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-import { IDataService } from "../IDataService.sol";
 
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";

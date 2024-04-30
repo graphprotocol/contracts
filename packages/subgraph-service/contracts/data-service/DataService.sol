@@ -30,10 +30,10 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
      *
      * Emits a {ProvisionAccepted} event.
      *
-     * @param serviceProvider The address of the service provider.
+     * @param _serviceProvider The address of the service provider.
      */
-    function _acceptProvision(address __serviceProvider) internal {
-        _checkAndAcceptProvision(serviceProvider);
-        emit ProvisionAccepted(serviceProvider);
+    function _acceptProvision(address _serviceProvider) internal {
+        _checkAndAcceptProvision(_serviceProvider);
+        emit ProvisionAccepted(_serviceProvider);
     }
 }
