@@ -18,7 +18,7 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
 abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1Storage, IDataService {
     /**
      * @dev Addresses in GraphDirectory are immutables, they can only be set in this constructor.
-     * @param _controller The address of the Graph Horizon controller contract.
+     * @param controller The address of the Graph Horizon controller contract.
      */
-    constructor(address _controller) GraphDirectory(_controller) {}
+    constructor(address controller) GraphDirectory(controller) {}
 }

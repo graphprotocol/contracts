@@ -195,25 +195,25 @@ contract TAPVerifier is EIP712, ITAPVerifier {
 
     /**
      * @dev Verifies a proof that authorizes the sender to authorize the signer.
-     * @param proof The proof provided by the signer to authorize the sender.
-     * @param signer The address of the signer being authorized.
+     * @param _proof The proof provided by the signer to authorize the sender.
+     * @param _signer The address of the signer being authorized.
      * @notice REVERT with error:
      *               - InvalidSignerProof: If the given proof is not valid
      */
-    function _verifyAuthorizedSignerProof(bytes calldata proof, uint256 proofDeadline, address signer) private view {
+    function _verifyAuthorizedSignerProof(bytes calldata _proof, uint256 _proofDeadline, address _signer) private view {
         // Verify that the proof deadline has not passed
-        if (block.timestamp > proofDeadline) {
+        if (block.timestamp > _proofDeadline) {
             revert TAPVerifierInvalidSignerProof();
         }
 
         // Generate the hash of the sender's address
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, proofDeadline, msg.sender));
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, _proofDeadline, msg.sender));
 
         // Generate the digest to be signed by the signer
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
 
         // Verify that the recovered signer matches the expected signer
-        if (ECDSA.recover(digest, proof) != signer) {
+        if (ECDSA.recover(digest, _proof) != _signer) {
             revert TAPVerifierInvalidSignerProof();
         }
     }

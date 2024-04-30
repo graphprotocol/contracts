@@ -28,8 +28,8 @@ abstract contract DataServicePausable is Pausable, DataService, IDataServicePaus
         _unpause();
     }
 
-    function _setPauseGuardian(address pauseGuardian, bool allowed) internal whenNotPaused {
-        pauseGuardians[pauseGuardian] = allowed;
-        emit PauseGuardianSet(pauseGuardian, allowed);
+    function _setPauseGuardian(address _pauseGuardian, bool _allowed) internal whenNotPaused {
+        pauseGuardians[_pauseGuardian] = _allowed;
+        emit PauseGuardianSet(_pauseGuardian, _allowed);
     }
 }

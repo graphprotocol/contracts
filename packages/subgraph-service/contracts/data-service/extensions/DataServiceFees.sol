@@ -32,28 +32,28 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     }
 
     /// @notice Release expired stake claims for a service provider
-    /// @param n The number of stake claims to release, or 0 to release all
-    function _releaseStake(IGraphPayments.PaymentTypes feeType, address serviceProvider, uint256 n) internal {
-        bool releaseAll = n == 0;
+    /// @param _n The number of stake claims to release, or 0 to release all
+    function _releaseStake(IGraphPayments.PaymentTypes _feeType, address _serviceProvider, uint256 _n) internal {
+        bool releaseAll = _n == 0;
 
         // check the stake claims list
         // TODO: evaluate replacing with OZ DoubleEndedQueue
-        bytes32 head = claimsLists[feeType][serviceProvider].head;
-        while (head != bytes32(0) && (releaseAll || n > 0)) {
+        bytes32 head = claimsLists[_feeType][_serviceProvider].head;
+        while (head != bytes32(0) && (releaseAll || _n > 0)) {
             StakeClaim memory claim = _getStakeClaim(head);
 
             if (block.timestamp >= claim.releaseAt) {
                 // Release stake
-                feesProvisionTracker[feeType].release(serviceProvider, claim.tokens);
+                feesProvisionTracker[_feeType].release(_serviceProvider, claim.tokens);
 
                 // Update list and refresh pointer
-                StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];
+                StakeClaimsList storage claimsList = claimsLists[_feeType][_serviceProvider];
                 claimsList.head = claim.nextClaim;
                 delete claims[head];
                 head = claimsList.head;
-                if (!releaseAll) n--;
+                if (!releaseAll) _n--;
 
-                emit StakeClaimReleased(serviceProvider, claimsList.head, claim.tokens, claim.releaseAt);
+                emit StakeClaimReleased(_serviceProvider, claimsList.head, claim.tokens, claim.releaseAt);
             } else {
                 break;
             }
@@ -61,20 +61,20 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     }
 
     function _lockStake(
-        IGraphPayments.PaymentTypes feeType,
-        address serviceProvider,
-        uint256 tokens,
-        uint256 unlockTimestamp
+        IGraphPayments.PaymentTypes _feeType,
+        address _serviceProvider,
+        uint256 _tokens,
+        uint256 _unlockTimestamp
     ) internal {
-        feesProvisionTracker[feeType].lock(GRAPH_STAKING, serviceProvider, tokens);
+        feesProvisionTracker[_feeType].lock(GRAPH_STAKING, _serviceProvider, _tokens);
 
-        StakeClaimsList storage claimsList = claimsLists[feeType][serviceProvider];
-        bytes32 claimId = _buildStakeClaimId(serviceProvider, claimsList.nonce);
+        StakeClaimsList storage claimsList = claimsLists[_feeType][_serviceProvider];
+        bytes32 claimId = _buildStakeClaimId(_serviceProvider, claimsList.nonce);
         claims[claimId] = StakeClaim({
-            serviceProvider: serviceProvider,
-            tokens: tokens,
+            serviceProvider: _serviceProvider,
+            tokens: _tokens,
             createdAt: block.timestamp,
-            releaseAt: unlockTimestamp,
+            releaseAt: _unlockTimestamp,
             nextClaim: bytes32(0)
         });
 
@@ -82,18 +82,18 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         claimsList.tail = claimId;
         claimsList.nonce += 1;
 
-        emit StakeClaimLocked(serviceProvider, claimId, tokens, unlockTimestamp);
+        emit StakeClaimLocked(_serviceProvider, claimId, _tokens, _unlockTimestamp);
     }
 
-    function _getStakeClaim(bytes32 claimId) private view returns (StakeClaim memory) {
-        StakeClaim memory claim = claims[claimId];
+    function _getStakeClaim(bytes32 _claimId) private view returns (StakeClaim memory) {
+        StakeClaim memory claim = claims[_claimId];
         if (claim.createdAt == 0) {
-            revert DataServiceFeesClaimNotFound(claimId);
+            revert DataServiceFeesClaimNotFound(_claimId);
         }
         return claim;
     }
 
-    function _buildStakeClaimId(address serviceProvider, uint256 nonce) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(address(this), serviceProvider, nonce));
+    function _buildStakeClaimId(address _serviceProvider, uint256 _nonce) private view returns (bytes32) {
+        return keccak256(abi.encodePacked(address(this), _serviceProvider, _nonce));
     }
 }

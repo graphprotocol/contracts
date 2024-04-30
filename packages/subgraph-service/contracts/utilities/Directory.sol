@@ -27,12 +27,12 @@ abstract contract Directory {
         _;
     }
 
-    constructor(address _subgraphService, address _tapVerifier, address _disputeManager, address _curation) {
-        SUBGRAPH_SERVICE = ISubgraphService(_subgraphService);
-        TAP_VERIFIER = ITAPVerifier(_tapVerifier);
-        DISPUTE_MANAGER = IDisputeManager(_disputeManager);
-        CURATION = ICuration(_curation);
+    constructor(address subgraphService, address tapVerifier, address disputeManager, address curation) {
+        SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
+        TAP_VERIFIER = ITAPVerifier(tapVerifier);
+        DISPUTE_MANAGER = IDisputeManager(disputeManager);
+        CURATION = ICuration(curation);
 
-        emit SubgraphServiceDirectoryInitialized(_subgraphService, _tapVerifier, _disputeManager, _curation);
+        emit SubgraphServiceDirectoryInitialized(subgraphService, tapVerifier, disputeManager, curation);
     }
 }

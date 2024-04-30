@@ -32,8 +32,8 @@ abstract contract GraphDirectory {
         IRewardsManager graphRewardsManager
     );
 
-    constructor(address _controller) {
-        GRAPH_CONTROLLER = IController(_controller);
+    constructor(address controller) {
+        GRAPH_CONTROLLER = IController(controller);
         GRAPH_STAKING = IHorizonStaking(GRAPH_CONTROLLER.getContractProxy(keccak256("Staking")));
         GRAPH_EPOCH_MANAGER = IEpochManager(GRAPH_CONTROLLER.getContractProxy(keccak256("EpochManager")));
         GRAPH_TOKEN = IGraphToken(GRAPH_CONTROLLER.getContractProxy(keccak256("GraphToken")));

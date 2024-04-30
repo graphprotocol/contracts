@@ -48,31 +48,31 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
         maximumVerifierCut = type(uint32).max;
     }
 
-    function _acceptProvision(address serviceProvider) internal virtual {
-        _checkProvisionParameters(serviceProvider);
-        GRAPH_STAKING.acceptProvision(serviceProvider);
+    function _acceptProvision(address _serviceProvider) internal virtual {
+        _checkProvisionParameters(_serviceProvider);
+        GRAPH_STAKING.acceptProvision(_serviceProvider);
     }
 
     // -- Provision Parameters: setters --
-    function _setProvisionTokensRange(uint256 min, uint256 max) internal {
-        minimumProvisionTokens = min;
-        maximumProvisionTokens = max;
+    function _setProvisionTokensRange(uint256 _min, uint256 _max) internal {
+        minimumProvisionTokens = _min;
+        maximumProvisionTokens = _max;
     }
 
-    function _setVerifierCutRange(uint32 min, uint32 max) internal {
-        minimumVerifierCut = min;
-        maximumVerifierCut = max;
+    function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
+        minimumVerifierCut = _min;
+        maximumVerifierCut = _max;
     }
 
-    function _setThawingPeriodRange(uint64 min, uint64 max) internal {
-        minimumThawingPeriod = min;
-        maximumThawingPeriod = max;
+    function _setThawingPeriodRange(uint64 _min, uint64 _max) internal {
+        minimumThawingPeriod = _min;
+        maximumThawingPeriod = _max;
     }
 
     /// @notice Checks if the service provider has a valid provision for the data service in the staking contract
-    /// @param serviceProvider The address of the service provider
-    function _checkProvisionParameters(address serviceProvider) internal view virtual {
-        IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
+    /// @param _serviceProvider The address of the service provider
+    function _checkProvisionParameters(address _serviceProvider) internal view virtual {
+        IHorizonStaking.Provision memory provision = _getProvision(_serviceProvider);
 
         (uint256 provisionTokensMin, uint256 provisionTokensMax) = _getProvisionTokensRange();
         if (!provision.tokens.isInRange(provisionTokensMin, provisionTokensMax)) {
@@ -103,7 +103,7 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
         return (minimumVerifierCut, maximumVerifierCut);
     }
 
-    function _getProvision(address serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
-        return GRAPH_STAKING.get(serviceProvider);
+    function _getProvision(address _serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
+        return GRAPH_STAKING.get(_serviceProvider);
     }
 }

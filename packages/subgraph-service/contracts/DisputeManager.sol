@@ -153,23 +153,23 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         _;
     }
 
-    modifier onlyPendingDispute(bytes32 _disputeId) {
-        if (!isDisputeCreated(_disputeId)) {
-            revert DisputeManagerInvalidDispute(_disputeId);
+    modifier onlyPendingDispute(bytes32 disputeId) {
+        if (!isDisputeCreated(disputeId)) {
+            revert DisputeManagerInvalidDispute(disputeId);
         }
 
-        if (disputes[_disputeId].status != IDisputeManager.DisputeStatus.Pending) {
-            revert DisputeManagerInvalidDisputeStatus(disputes[_disputeId].status);
+        if (disputes[disputeId].status != IDisputeManager.DisputeStatus.Pending) {
+            revert DisputeManagerInvalidDisputeStatus(disputes[disputeId].status);
         }
         _;
     }
 
-    modifier onlyFisherman(bytes32 _disputeId) {
-        if (!isDisputeCreated(_disputeId)) {
-            revert DisputeManagerInvalidDispute(_disputeId);
+    modifier onlyFisherman(bytes32 disputeId) {
+        if (!isDisputeCreated(disputeId)) {
+            revert DisputeManagerInvalidDispute(disputeId);
         }
 
-        if (msg.sender != disputes[_disputeId].fisherman) {
+        if (msg.sender != disputes[disputeId].fisherman) {
             revert DisputeManagerNotFisherman();
         }
         _;
@@ -179,27 +179,27 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
 
     /**
      * @dev Initialize this contract.
-     * @param _controller Address of Graph Controller contract
-     * @param _arbitrator Arbitrator role
-     * @param _disputePeriod Dispute period in seconds
-     * @param _minimumDeposit Minimum deposit required to create a Dispute
-     * @param _fishermanRewardPercentage Percent of slashed funds for fisherman (ppm)
-     * @param _maxSlashingPercentage Maximum percentage of indexer stake that can be slashed (ppm)
+     * @param controller Address of Graph Controller contract
+     * @param arbitrator Arbitrator role
+     * @param disputePeriod Dispute period in seconds
+     * @param minimumDeposit Minimum deposit required to create a Dispute
+     * @param fishermanRewardPercentage Percent of slashed funds for fisherman (ppm)
+     * @param maxSlashingPercentage Maximum percentage of indexer stake that can be slashed (ppm)
      */
     constructor(
-        address _controller,
-        address _arbitrator,
-        uint64 _disputePeriod,
-        uint256 _minimumDeposit,
-        uint32 _fishermanRewardPercentage,
-        uint32 _maxSlashingPercentage
-    ) Ownable(msg.sender) GraphDirectory(_controller) {
+        address controller,
+        address arbitrator,
+        uint64 disputePeriod,
+        uint256 minimumDeposit,
+        uint32 fishermanRewardPercentage,
+        uint32 maxSlashingPercentage
+    ) Ownable(msg.sender) GraphDirectory(controller) {
         // Settings
-        _setArbitrator(_arbitrator);
-        _setDisputePeriod(_disputePeriod);
-        _setMinimumDeposit(_minimumDeposit);
-        _setFishermanRewardPercentage(_fishermanRewardPercentage);
-        _setMaxSlashingPercentage(_maxSlashingPercentage);
+        _setArbitrator(arbitrator);
+        _setDisputePeriod(disputePeriod);
+        _setMinimumDeposit(minimumDeposit);
+        _setFishermanRewardPercentage(fishermanRewardPercentage);
+        _setMaxSlashingPercentage(maxSlashingPercentage);
     }
 
     /**
@@ -207,35 +207,35 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * The disputes are created in reference to an allocationId
      * This function is called by a challenger that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
-     * @param _allocationId The allocation to dispute
-     * @param _deposit Amount of tokens staked as deposit
+     * @param allocationId The allocation to dispute
+     * @param deposit Amount of tokens staked as deposit
      */
-    function createIndexingDispute(address _allocationId, uint256 _deposit) external override returns (bytes32) {
+    function createIndexingDispute(address allocationId, uint256 deposit) external override returns (bytes32) {
         // Get funds from submitter
-        _pullSubmitterDeposit(_deposit);
+        _pullSubmitterDeposit(deposit);
 
         // Create a dispute
-        return _createIndexingDisputeWithAllocation(msg.sender, _deposit, _allocationId);
+        return _createIndexingDisputeWithAllocation(msg.sender, deposit, allocationId);
     }
 
     /**
      * @dev Create a query dispute for the arbitrator to resolve.
      * This function is called by a fisherman that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
-     * @param _attestationData Attestation bytes submitted by the fisherman
-     * @param _deposit Amount of tokens staked as deposit
+     * @param attestationData Attestation bytes submitted by the fisherman
+     * @param deposit Amount of tokens staked as deposit
      */
-    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external override returns (bytes32) {
+    function createQueryDispute(bytes calldata attestationData, uint256 deposit) external override returns (bytes32) {
         // Get funds from submitter
-        _pullSubmitterDeposit(_deposit);
+        _pullSubmitterDeposit(deposit);
 
         // Create a dispute
         return
             _createQueryDisputeWithAttestation(
                 msg.sender,
-                _deposit,
-                Attestation.parse(_attestationData),
-                _attestationData
+                deposit,
+                Attestation.parse(attestationData),
+                attestationData
             );
     }
 
@@ -247,19 +247,19 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * as one of the attestation is considered to be right.
      * Two linked disputes will be created and if the arbitrator resolve one, the other
      * one will be automatically resolved.
-     * @param _attestationData1 First attestation data submitted
-     * @param _attestationData2 Second attestation data submitted
+     * @param attestationData1 First attestation data submitted
+     * @param attestationData2 Second attestation data submitted
      * @return DisputeId1, DisputeId2
      */
     function createQueryDisputeConflict(
-        bytes calldata _attestationData1,
-        bytes calldata _attestationData2
+        bytes calldata attestationData1,
+        bytes calldata attestationData2
     ) external override returns (bytes32, bytes32) {
         address fisherman = msg.sender;
 
         // Parse each attestation
-        Attestation.State memory attestation1 = Attestation.parse(_attestationData1);
-        Attestation.State memory attestation2 = Attestation.parse(_attestationData2);
+        Attestation.State memory attestation1 = Attestation.parse(attestationData1);
+        Attestation.State memory attestation2 = Attestation.parse(attestationData2);
 
         // Test that attestations are conflicting
         if (!Attestation.areConflicting(attestation2, attestation1)) {
@@ -275,8 +275,8 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
-        bytes32 dId1 = _createQueryDisputeWithAttestation(fisherman, 0, attestation1, _attestationData1);
-        bytes32 dId2 = _createQueryDisputeWithAttestation(fisherman, 0, attestation2, _attestationData2);
+        bytes32 dId1 = _createQueryDisputeWithAttestation(fisherman, 0, attestation1, attestationData1);
+        bytes32 dId2 = _createQueryDisputeWithAttestation(fisherman, 0, attestation2, attestationData2);
 
         // Store the linked disputes to be resolved
         disputes[dId1].relatedDisputeId = dId2;
@@ -293,21 +293,21 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * This function will revert if the indexer is not slashable, whether because it does not have
      * any stake available or the slashing percentage is configured to be zero. In those cases
      * a dispute must be resolved using drawDispute or rejectDispute.
-     * @notice Accept a dispute with Id `_disputeId`
-     * @param _disputeId Id of the dispute to be accepted
-     * @param _slashAmount Amount of tokens to slash from the indexer
+     * @notice Accept a dispute with Id `disputeId`
+     * @param disputeId Id of the dispute to be accepted
+     * @param slashAmount Amount of tokens to slash from the indexer
      */
     function acceptDispute(
-        bytes32 _disputeId,
-        uint256 _slashAmount
-    ) external override onlyArbitrator onlyPendingDispute(_disputeId) {
-        Dispute storage dispute = disputes[_disputeId];
+        bytes32 disputeId,
+        uint256 slashAmount
+    ) external override onlyArbitrator onlyPendingDispute(disputeId) {
+        Dispute storage dispute = disputes[disputeId];
 
         // store the dispute status
         dispute.status = IDisputeManager.DisputeStatus.Accepted;
 
         // Slash
-        uint256 tokensToReward = _slashIndexer(dispute.indexer, _slashAmount);
+        uint256 tokensToReward = _slashIndexer(dispute.indexer, slashAmount);
 
         // Give the fisherman their reward and their deposit back
         TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, tokensToReward + dispute.deposit);
@@ -316,16 +316,16 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
             rejectDispute(dispute.relatedDisputeId);
         }
 
-        emit DisputeAccepted(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit + tokensToReward);
+        emit DisputeAccepted(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit + tokensToReward);
     }
 
     /**
      * @dev The arbitrator draws dispute.
-     * @notice Ignore a dispute with Id `_disputeId`
-     * @param _disputeId Id of the dispute to be disregarded
+     * @notice Ignore a dispute with Id `disputeId`
+     * @param disputeId Id of the dispute to be disregarded
      */
-    function drawDispute(bytes32 _disputeId) external override onlyArbitrator onlyPendingDispute(_disputeId) {
-        Dispute storage dispute = disputes[_disputeId];
+    function drawDispute(bytes32 disputeId) external override onlyArbitrator onlyPendingDispute(disputeId) {
+        Dispute storage dispute = disputes[disputeId];
 
         // Return deposit to the fisherman
         TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, dispute.deposit);
@@ -336,19 +336,17 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         // store dispute status
         dispute.status = IDisputeManager.DisputeStatus.Drawn;
 
-        emit DisputeDrawn(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
+        emit DisputeDrawn(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
      * @dev Once the dispute period ends, if the disput status remains Pending,
      * the fisherman can cancel the dispute and get back their initial deposit.
-     * @notice Cancel a dispute with Id `_disputeId`
-     * @param _disputeId Id of the dispute to be cancelled
+     * @notice Cancel a dispute with Id `disputeId`
+     * @param disputeId Id of the dispute to be cancelled
      */
-    function cancelDispute(
-        bytes32 _disputeId
-    ) external override onlyFisherman(_disputeId) onlyPendingDispute(_disputeId) {
-        Dispute storage dispute = disputes[_disputeId];
+    function cancelDispute(bytes32 disputeId) external override onlyFisherman(disputeId) onlyPendingDispute(disputeId) {
+        Dispute storage dispute = disputes[disputeId];
 
         // Check if dispute period has finished
         if (block.timestamp <= dispute.createdAt + disputePeriod) {
@@ -368,54 +366,54 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     /**
      * @dev Set the arbitrator address.
      * @notice Update the arbitrator to `_arbitrator`
-     * @param _arbitrator The address of the arbitration contract or party
+     * @param arbitrator The address of the arbitration contract or party
      */
-    function setArbitrator(address _arbitrator) external override onlyOwner {
-        _setArbitrator(_arbitrator);
+    function setArbitrator(address arbitrator) external override onlyOwner {
+        _setArbitrator(arbitrator);
     }
 
     /**
      * @dev Set the dispute period.
      * @notice Update the dispute period to `_disputePeriod` in seconds
-     * @param _disputePeriod Dispute period in seconds
+     * @param disputePeriod Dispute period in seconds
      */
-    function setDisputePeriod(uint64 _disputePeriod) external override {
-        _setDisputePeriod(_disputePeriod);
+    function setDisputePeriod(uint64 disputePeriod) external override {
+        _setDisputePeriod(disputePeriod);
     }
 
     /**
      * @dev Set the minimum deposit required to create a dispute.
      * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
-     * @param _minimumDeposit The minimum deposit in Graph Tokens
+     * @param minimumDeposit The minimum deposit in Graph Tokens
      */
-    function setMinimumDeposit(uint256 _minimumDeposit) external override onlyOwner {
-        _setMinimumDeposit(_minimumDeposit);
+    function setMinimumDeposit(uint256 minimumDeposit) external override onlyOwner {
+        _setMinimumDeposit(minimumDeposit);
     }
 
     /**
      * @dev Set the percent reward that the fisherman gets when slashing occurs.
      * @notice Update the reward percentage to `_percentage`
-     * @param _percentage Reward as a percentage of indexer stake
+     * @param percentage Reward as a percentage of indexer stake
      */
-    function setFishermanRewardPercentage(uint32 _percentage) external override onlyOwner {
-        _setFishermanRewardPercentage(_percentage);
+    function setFishermanRewardPercentage(uint32 percentage) external override onlyOwner {
+        _setFishermanRewardPercentage(percentage);
     }
 
     /**
      * @dev Set the maximum percentage that can be used for slashing indexers.
-     * @param _maxSlashingPercentage Max percentage slashing for disputes
+     * @param maxSlashingPercentage Max percentage slashing for disputes
      */
-    function setMaxSlashingPercentage(uint32 _maxSlashingPercentage) external override onlyOwner {
-        _setMaxSlashingPercentage(_maxSlashingPercentage);
+    function setMaxSlashingPercentage(uint32 maxSlashingPercentage) external override onlyOwner {
+        _setMaxSlashingPercentage(maxSlashingPercentage);
     }
 
     /**
      * @dev Set the subgraph service address.
      * @notice Update the subgraph service to `_subgraphService`
-     * @param _subgraphService The address of the subgraph service contract
+     * @param subgraphService The address of the subgraph service contract
      */
-    function setSubgraphService(address _subgraphService) external onlyOwner {
-        _setSubgraphService(_subgraphService);
+    function setSubgraphService(address subgraphService) external onlyOwner {
+        _setSubgraphService(subgraphService);
     }
 
     /**
@@ -423,11 +421,11 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * Encodes a receipt using a domain separator, as described on
      * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
      * @notice Return the message hash used to sign the receipt
-     * @param _receipt Receipt returned by indexer and submitted by fisherman
+     * @param receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeReceipt(Attestation.Receipt memory _receipt) external view returns (bytes32) {
-        return _encodeReceipt(_receipt);
+    function encodeReceipt(Attestation.Receipt memory receipt) external view returns (bytes32) {
+        return _encodeReceipt(receipt);
     }
 
     /**
@@ -447,51 +445,51 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     }
 
     function areConflictingAttestations(
-        Attestation.State memory _attestation1,
-        Attestation.State memory _attestation2
+        Attestation.State memory attestation1,
+        Attestation.State memory attestation2
     ) external pure returns (bool) {
-        return Attestation.areConflicting(_attestation1, _attestation2);
+        return Attestation.areConflicting(attestation1, attestation2);
     }
 
     /**
      * @dev The arbitrator rejects a dispute as being invalid.
-     * @notice Reject a dispute with Id `_disputeId`
-     * @param _disputeId Id of the dispute to be rejected
+     * @notice Reject a dispute with Id `disputeId`
+     * @param disputeId Id of the dispute to be rejected
      */
-    function rejectDispute(bytes32 _disputeId) public override onlyArbitrator onlyPendingDispute(_disputeId) {
-        Dispute storage dispute = disputes[_disputeId];
+    function rejectDispute(bytes32 disputeId) public override onlyArbitrator onlyPendingDispute(disputeId) {
+        Dispute storage dispute = disputes[disputeId];
 
         // store dispute status
         dispute.status = IDisputeManager.DisputeStatus.Rejected;
 
         // For conflicting disputes, the related dispute must be accepted
         if (_isDisputeInConflict(dispute)) {
-            revert DisputeManagerMustAcceptRelatedDispute(_disputeId, dispute.relatedDisputeId);
+            revert DisputeManagerMustAcceptRelatedDispute(disputeId, dispute.relatedDisputeId);
         }
 
         // Burn the fisherman's deposit
         TokenUtils.burnTokens(GRAPH_TOKEN, dispute.deposit);
 
-        emit DisputeRejected(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
+        emit DisputeRejected(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
      * @dev Returns the indexer that signed an attestation.
-     * @param _attestation Attestation
+     * @param attestation Attestation
      * @return indexer address
      */
-    function getAttestationIndexer(Attestation.State memory _attestation) public view returns (address) {
+    function getAttestationIndexer(Attestation.State memory attestation) public view returns (address) {
         // Get attestation signer. Indexers signs with the allocationId
-        address allocationId = _recoverSigner(_attestation);
+        address allocationId = _recoverSigner(attestation);
 
         Allocation.State memory alloc = subgraphService.getAllocation(allocationId);
         if (alloc.indexer == address(0)) {
             revert DisputeManagerIndexerNotFound(allocationId);
         }
-        if (alloc.subgraphDeploymentId != _attestation.subgraphDeploymentId) {
+        if (alloc.subgraphDeploymentId != attestation.subgraphDeploymentId) {
             revert DisputeManagerNonMatchingSubgraphDeployment(
                 alloc.subgraphDeploymentId,
-                _attestation.subgraphDeploymentId
+                attestation.subgraphDeploymentId
             );
         }
         return alloc.indexer;
@@ -499,18 +497,18 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
 
     /**
      * @dev Return whether a dispute exists or not.
-     * @notice Return if dispute with Id `_disputeId` exists
-     * @param _disputeId True if dispute already exists
+     * @notice Return if dispute with Id `disputeId` exists
+     * @param disputeId True if dispute already exists
      */
-    function isDisputeCreated(bytes32 _disputeId) public view override returns (bool) {
-        return disputes[_disputeId].status != DisputeStatus.Null;
+    function isDisputeCreated(bytes32 disputeId) public view override returns (bool) {
+        return disputes[disputeId].status != DisputeStatus.Null;
     }
 
     /**
      * @dev Create a query dispute passing the parsed attestation.
      * To be used in createQueryDispute() and createQueryDisputeConflict()
      * to avoid calling parseAttestation() multiple times
-     * `_attestationData` is only passed to be emitted
+     * `attestationData` is only passed to be emitted
      * @param _fisherman Creator of dispute
      * @param _deposit Amount of tokens staked as deposit
      * @param _attestation Attestation struct parsed from bytes

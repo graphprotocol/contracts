@@ -38,34 +38,34 @@ interface IDisputeManager {
 
     // -- Configuration --
 
-    function setDisputePeriod(uint64 _disputePeriod) external;
+    function setDisputePeriod(uint64 disputePeriod) external;
 
-    function setArbitrator(address _arbitrator) external;
+    function setArbitrator(address arbitrator) external;
 
-    function setMinimumDeposit(uint256 _minimumDeposit) external;
+    function setMinimumDeposit(uint256 minimumDeposit) external;
 
-    function setFishermanRewardPercentage(uint32 _percentage) external;
+    function setFishermanRewardPercentage(uint32 percentage) external;
 
-    function setMaxSlashingPercentage(uint32 _maxPercentage) external;
+    function setMaxSlashingPercentage(uint32 maxPercentage) external;
 
     // -- Dispute --
 
-    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external returns (bytes32);
+    function createQueryDispute(bytes calldata attestationData, uint256 deposit) external returns (bytes32);
 
     function createQueryDisputeConflict(
-        bytes calldata _attestationData1,
-        bytes calldata _attestationData2
+        bytes calldata attestationData1,
+        bytes calldata attestationData2
     ) external returns (bytes32, bytes32);
 
-    function createIndexingDispute(address _allocationId, uint256 _deposit) external returns (bytes32);
+    function createIndexingDispute(address allocationId, uint256 deposit) external returns (bytes32);
 
-    function acceptDispute(bytes32 _disputeId, uint256 _slashAmount) external;
+    function acceptDispute(bytes32 disputeId, uint256 slashAmount) external;
 
-    function rejectDispute(bytes32 _disputeId) external;
+    function rejectDispute(bytes32 disputeId) external;
 
-    function drawDispute(bytes32 _disputeId) external;
+    function drawDispute(bytes32 disputeId) external;
 
-    function cancelDispute(bytes32 _disputeId) external;
+    function cancelDispute(bytes32 disputeId) external;
 
     // -- Getters --
 
@@ -73,14 +73,14 @@ interface IDisputeManager {
 
     function getDisputePeriod() external view returns (uint64);
 
-    function isDisputeCreated(bytes32 _disputeId) external view returns (bool);
+    function isDisputeCreated(bytes32 disputeId) external view returns (bool);
 
-    function encodeReceipt(Attestation.Receipt memory _receipt) external view returns (bytes32);
+    function encodeReceipt(Attestation.Receipt memory receipt) external view returns (bytes32);
 
-    function getAttestationIndexer(Attestation.State memory _attestation) external view returns (address);
+    function getAttestationIndexer(Attestation.State memory attestation) external view returns (address);
 
     function areConflictingAttestations(
-        Attestation.State memory _attestation1,
-        Attestation.State memory _attestation2
+        Attestation.State memory attestation1,
+        Attestation.State memory attestation2
     ) external pure returns (bool);
 }

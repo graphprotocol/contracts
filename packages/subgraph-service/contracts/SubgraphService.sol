@@ -56,18 +56,18 @@ contract SubgraphService is
     }
 
     constructor(
-        address _graphController,
-        address _disputeManager,
-        address _tapVerifier,
-        address _curation,
-        uint256 _minimumProvisionTokens
+        address graphController,
+        address disputeManager,
+        address tapVerifier,
+        address curation,
+        uint256 minimumProvisionTokens
     )
         Ownable(msg.sender)
-        DataService(_graphController)
-        Directory(address(this), _tapVerifier, _disputeManager, _curation)
+        DataService(graphController)
+        Directory(address(this), tapVerifier, disputeManager, curation)
         AllocationManager("SubgraphService", "1.0")
     {
-        _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
+        _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
     }
 
     function register(
@@ -185,16 +185,16 @@ contract SubgraphService is
         return (verifierCut, type(uint32).max);
     }
 
-    function _redeemQueryFees(ITAPVerifier.SignedRAV memory signedRAV) private returns (uint256 feesCollected) {
-        address indexer = signedRAV.rav.serviceProvider;
-        address allocationId = abi.decode(signedRAV.rav.metadata, (address));
+    function _redeemQueryFees(ITAPVerifier.SignedRAV memory _signedRAV) private returns (uint256 feesCollected) {
+        address indexer = _signedRAV.rav.serviceProvider;
+        address allocationId = abi.decode(_signedRAV.rav.metadata, (address));
 
         // release expired stake claims
         _releaseStake(IGraphPayments.PaymentTypes.QueryFee, indexer, 0);
 
         // validate RAV and calculate tokens to collect
-        address payer = TAP_VERIFIER.verify(signedRAV);
-        uint256 tokens = signedRAV.rav.valueAggregate;
+        address payer = TAP_VERIFIER.verify(_signedRAV);
+        uint256 tokens = _signedRAV.rav.valueAggregate;
         uint256 tokensAlreadyCollected = tokensCollected[indexer][payer];
         if (tokens <= tokensAlreadyCollected) {
             revert SubgraphServiceInconsistentRAVTokens(tokens, tokensAlreadyCollected);
@@ -246,11 +246,11 @@ contract SubgraphService is
         return tokensToCollect;
     }
 
-    function _getQueryFeesPaymentFees(bytes32 subgraphDeploymentId) private view returns (PaymentFee memory) {
+    function _getQueryFeesPaymentFees(bytes32 _subgraphDeploymentId) private view returns (PaymentFee memory) {
         PaymentFee memory feePercentages = paymentFees[IGraphPayments.PaymentTypes.QueryFee];
 
         // Only pay curation fees if the subgraph is curated
-        if (!CURATION.isCurated(subgraphDeploymentId)) {
+        if (!CURATION.isCurated(_subgraphDeploymentId)) {
             feePercentages.curationPercentage = 0;
         }
 
