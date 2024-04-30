@@ -12,25 +12,14 @@ class Base {
     }
   }
 
-  error(node, message) {
+  error(node, message, fix) {
     if (!this.ignored) {
-      this.reporter.error(node, this.ruleId, message);
+      this.reporter.error(node, this.ruleId, message, fix);
     }
   }
 }
 
 module.exports = [
-  class extends Base {
-    static ruleId = 'private-variables';
-
-    VariableDeclaration(node) {
-      const constantOrImmutable = node.isDeclaredConst || node.isImmutable;
-      if (node.isStateVar && !constantOrImmutable && node.visibility !== 'private') {
-        this.error(node, 'State variables must be private');
-      }
-    }
-  },
-
   class extends Base {
     static ruleId = 'leading-underscore';
 
@@ -58,11 +47,8 @@ module.exports = [
             this.validateName(node, false, 'variable')
           return
         }
-        const isPrivate = node.visibility === 'private'
-        const isInternal = node.visibility === 'internal' || node.visibility === 'default'
-        const isConstant = node.isDeclaredConst
-        const shouldHaveLeadingUnderscore = (isPrivate || isInternal) && !isConstant
-        this.validateName(node, shouldHaveLeadingUnderscore, 'variable')
+
+        this.validateName(node, 'variable')
       }
 
     }
@@ -72,16 +58,18 @@ module.exports = [
         if (!node.name) {
           return
         }
-  
-        const isPrivate = node.visibility === 'private'
-        const isInternal = node.visibility === 'internal' || node.visibility === 'default'
-        const isConstant = node.isDeclaredConst
-        const shouldHaveLeadingUnderscore = (isPrivate || isInternal) && !isConstant
-        this.validateName(node, shouldHaveLeadingUnderscore, 'function')
+
+        this.validateName(node, 'function')
       }
     }
 
-    validateName(node, shouldHaveLeadingUnderscore, type) {
+
+    validateName(node, type) {
+      const isPrivate = node.visibility === 'private'
+      const isInternal = node.visibility === 'internal' || node.visibility === 'default'
+      const isConstant = node.isDeclaredConst
+      const shouldHaveLeadingUnderscore = (isPrivate || isInternal) && !isConstant
+
       if (node.name === null) {
         return
       }
@@ -91,8 +79,29 @@ module.exports = [
       }
     }
 
-    _error(node, name, shouldHaveLeadingUnderscore) {
-      this.error(node, `'${name}' ${shouldHaveLeadingUnderscore ? 'should' : 'should not'} start with _`)
+    fixStatement(node, shouldHaveLeadingUnderscore, type) {
+      let range
+  
+      if (type === 'function') {
+        range = node.range
+        range[0] += 8
+      } else {
+        range = node.identifier.range
+        range[0] -= 1
+      }
+  
+      return (fixer) =>
+        shouldHaveLeadingUnderscore
+          ? fixer.insertTextBeforeRange(range, ' _')
+          : fixer.removeRange([range[0] + 1, range[0] + 1])
+    }
+
+    _error(node, name, shouldHaveLeadingUnderscore, type) {
+      this.error(
+        node,
+        `'${name}' ${shouldHaveLeadingUnderscore ? 'should' : 'should not'} start with _`,
+        this.fixStatement(node, shouldHaveLeadingUnderscore, type)
+      )
     }
   },
 

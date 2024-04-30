@@ -20888,15 +20888,15 @@ __metadata:
 
 "solhint-plugin-graph@file:node_modules/solhint-graph-config/plugin::locator=%40graphprotocol%2Fsubgraph-service%40workspace%3Apackages%2Fsubgraph-service":
   version: 0.0.0
-  resolution: "solhint-plugin-graph@file:node_modules/solhint-graph-config/plugin#node_modules/solhint-graph-config/plugin::hash=3f644f&locator=%40graphprotocol%2Fsubgraph-service%40workspace%3Apackages%2Fsubgraph-service"
-  checksum: 27056abf16283dbae5a1c597bf9468f27a90f425a297dfca5ab43ec5a602a669dba60ca7fa3ecfc46f5ec95dfbacbccf6eff4cf3f16cb62e3bf518c394debccf
+  resolution: "solhint-plugin-graph@file:node_modules/solhint-graph-config/plugin#node_modules/solhint-graph-config/plugin::hash=5f6cba&locator=%40graphprotocol%2Fsubgraph-service%40workspace%3Apackages%2Fsubgraph-service"
+  checksum: cc82ad80bfbfc76a8135af1171cf6fe9ea2ef3dbfcca4953d5abea4279040e1aeab7150490b8ce396e5babb1eda58792fbdb3a8cc5572e5ab6fdfebc18bbf058
   languageName: node
   linkType: hard
 
 "solhint-plugin-graph@file:plugin::locator=solhint-graph-config%40workspace%3Apackages%2Fsolhint-graph-config":
   version: 0.0.0
-  resolution: "solhint-plugin-graph@file:plugin#plugin::hash=3f644f&locator=solhint-graph-config%40workspace%3Apackages%2Fsolhint-graph-config"
-  checksum: 27056abf16283dbae5a1c597bf9468f27a90f425a297dfca5ab43ec5a602a669dba60ca7fa3ecfc46f5ec95dfbacbccf6eff4cf3f16cb62e3bf518c394debccf
+  resolution: "solhint-plugin-graph@file:plugin#plugin::hash=5f6cba&locator=solhint-graph-config%40workspace%3Apackages%2Fsolhint-graph-config"
+  checksum: cc82ad80bfbfc76a8135af1171cf6fe9ea2ef3dbfcca4953d5abea4279040e1aeab7150490b8ce396e5babb1eda58792fbdb3a8cc5572e5ab6fdfebc18bbf058
   languageName: node
   linkType: hard
 
