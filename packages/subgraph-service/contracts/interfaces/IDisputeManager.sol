@@ -48,23 +48,6 @@ interface IDisputeManager {
 
     function setMaxSlashingPercentage(uint32 _maxPercentage) external;
 
-    // -- Getters --
-
-    function getVerifierCut() external view returns (uint32);
-
-    function getDisputePeriod() external view returns (uint64);
-
-    function isDisputeCreated(bytes32 _disputeId) external view returns (bool);
-
-    function encodeReceipt(Attestation.Receipt memory _receipt) external view returns (bytes32);
-
-    function areConflictingAttestations(
-        Attestation.State memory _attestation1,
-        Attestation.State memory _attestation2
-    ) external pure returns (bool);
-
-    function getAttestationIndexer(Attestation.State memory _attestation) external view returns (address);
-
     // -- Dispute --
 
     function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external returns (bytes32);
@@ -83,4 +66,21 @@ interface IDisputeManager {
     function drawDispute(bytes32 _disputeId) external;
 
     function cancelDispute(bytes32 _disputeId) external;
+
+    // -- Getters --
+
+    function getVerifierCut() external view returns (uint32);
+
+    function getDisputePeriod() external view returns (uint64);
+
+    function isDisputeCreated(bytes32 _disputeId) external view returns (bool);
+
+    function encodeReceipt(Attestation.Receipt memory _receipt) external view returns (bytes32);
+
+    function getAttestationIndexer(Attestation.State memory _attestation) external view returns (address);
+
+    function areConflictingAttestations(
+        Attestation.State memory _attestation1,
+        Attestation.State memory _attestation2
+    ) external pure returns (bool);
 }

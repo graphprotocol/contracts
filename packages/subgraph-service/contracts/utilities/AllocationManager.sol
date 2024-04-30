@@ -107,7 +107,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         );
 
         // Check that the indexer has enough tokens available
-        allocationProvisionTracker.lock(graphStaking, indexer, tokens);
+        allocationProvisionTracker.lock(GRAPH_STAKING, indexer, tokens);
 
         // Update total allocated tokens for the subgraph deployment
         subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
@@ -142,20 +142,20 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         // Distribute rewards to delegators
         // TODO: remove the uint8 cast when PRs are merged
-        uint256 delegatorCut = graphStaking.getDelegationCut(
+        uint256 delegatorCut = GRAPH_STAKING.getDelegationCut(
             allocation.indexer,
             uint8(IGraphPayments.PaymentTypes.IndexingFee)
         );
         uint256 tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
-        graphToken.approve(address(graphStaking), tokensDelegationRewards);
-        graphStaking.addToDelegationPool(allocation.indexer, tokensDelegationRewards);
+        graphToken.approve(address(GRAPH_STAKING), tokensDelegationRewards);
+        GRAPH_STAKING.addToDelegationPool(allocation.indexer, tokensDelegationRewards);
 
         // Distribute rewards to indexer
         uint256 tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
         address rewardsDestination = rewardsDestination[allocation.indexer];
         if (rewardsDestination == address(0)) {
-            graphToken.approve(address(graphStaking), tokensIndexerRewards);
-            graphStaking.stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
+            graphToken.approve(address(GRAPH_STAKING), tokensIndexerRewards);
+            GRAPH_STAKING.stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
         } else {
             graphToken.transfer(rewardsDestination, tokensIndexerRewards);
         }
@@ -183,7 +183,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         // Update provision tracker
         uint256 oldTokens = allocation.tokens;
         if (tokens > oldTokens) {
-            allocationProvisionTracker.lock(graphStaking, allocation.indexer, tokens - oldTokens);
+            allocationProvisionTracker.lock(GRAPH_STAKING, allocation.indexer, tokens - oldTokens);
         } else {
             allocationProvisionTracker.release(allocation.indexer, oldTokens - tokens);
         }

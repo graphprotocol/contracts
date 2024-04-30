@@ -5,14 +5,12 @@ pragma abicoder v2;
 import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
 import { GraphDirectory } from "./data-service/GraphDirectory.sol";
 import { AttestationManager } from "./utilities/AttestationManager.sol";
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { Allocation } from "./libraries/Allocation.sol";
@@ -312,35 +310,13 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         uint256 tokensToReward = _slashIndexer(dispute.indexer, _slashAmount);
 
         // Give the fisherman their reward and their deposit back
-        TokenUtils.pushTokens(graphToken, dispute.fisherman, tokensToReward + dispute.deposit);
+        TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, tokensToReward + dispute.deposit);
 
         if (_isDisputeInConflict(dispute)) {
             rejectDispute(dispute.relatedDisputeId);
         }
 
         emit DisputeAccepted(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit + tokensToReward);
-    }
-
-    /**
-     * @dev The arbitrator rejects a dispute as being invalid.
-     * @notice Reject a dispute with Id `_disputeId`
-     * @param _disputeId Id of the dispute to be rejected
-     */
-    function rejectDispute(bytes32 _disputeId) public override onlyArbitrator onlyPendingDispute(_disputeId) {
-        Dispute storage dispute = disputes[_disputeId];
-
-        // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Rejected;
-
-        // For conflicting disputes, the related dispute must be accepted
-        if (_isDisputeInConflict(dispute)) {
-            revert DisputeManagerMustAcceptRelatedDispute(_disputeId, dispute.relatedDisputeId);
-        }
-
-        // Burn the fisherman's deposit
-        TokenUtils.burnTokens(graphToken, dispute.deposit);
-
-        emit DisputeRejected(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
@@ -352,7 +328,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         Dispute storage dispute = disputes[_disputeId];
 
         // Return deposit to the fisherman
-        TokenUtils.pushTokens(graphToken, dispute.fisherman, dispute.deposit);
+        TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, dispute.deposit);
 
         // resolve related dispute if any
         _drawDisputeInConflict(dispute);
@@ -380,7 +356,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
 
         // Return deposit to the fisherman
-        TokenUtils.pushTokens(graphToken, dispute.fisherman, dispute.deposit);
+        TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, dispute.deposit);
 
         // resolve related dispute if any
         _cancelDisputeInConflict(dispute);
@@ -478,6 +454,28 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     }
 
     /**
+     * @dev The arbitrator rejects a dispute as being invalid.
+     * @notice Reject a dispute with Id `_disputeId`
+     * @param _disputeId Id of the dispute to be rejected
+     */
+    function rejectDispute(bytes32 _disputeId) public override onlyArbitrator onlyPendingDispute(_disputeId) {
+        Dispute storage dispute = disputes[_disputeId];
+
+        // store dispute status
+        dispute.status = IDisputeManager.DisputeStatus.Rejected;
+
+        // For conflicting disputes, the related dispute must be accepted
+        if (_isDisputeInConflict(dispute)) {
+            revert DisputeManagerMustAcceptRelatedDispute(_disputeId, dispute.relatedDisputeId);
+        }
+
+        // Burn the fisherman's deposit
+        TokenUtils.burnTokens(GRAPH_TOKEN, dispute.deposit);
+
+        emit DisputeRejected(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
+    }
+
+    /**
      * @dev Returns the indexer that signed an attestation.
      * @param _attestation Attestation
      * @return indexer address
@@ -529,7 +527,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         address indexer = getAttestationIndexer(_attestation);
 
         // The indexer is disputable
-        IHorizonStaking.Provision memory provision = graphStaking.getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = GRAPH_STAKING.getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert DisputeManagerZeroTokens();
         }
@@ -600,7 +598,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
 
         // The indexer must be disputable
-        IHorizonStaking.Provision memory provision = graphStaking.getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = GRAPH_STAKING.getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert DisputeManagerZeroTokens();
         }
@@ -662,7 +660,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
 
         // Transfer tokens to deposit from fisherman to this contract
-        TokenUtils.pullTokens(graphToken, msg.sender, _deposit);
+        TokenUtils.pullTokens(GRAPH_TOKEN, msg.sender, _deposit);
     }
 
     /**
@@ -673,7 +671,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      */
     function _slashIndexer(address _indexer, uint256 _slashAmount) private returns (uint256 rewardsAmount) {
         // Get slashable amount for indexer
-        IHorizonStaking.Provision memory provision = graphStaking.getProvision(_indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = GRAPH_STAKING.getProvision(_indexer, address(subgraphService));
         uint256 totalProvisionTokens = provision.tokens + provision.delegatedTokens; // slashable tokens
 
         // Get slash amount
@@ -762,17 +760,6 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     }
 
     /**
-     * @dev Returns whether the dispute is for a conflicting attestation or not.
-     * @param _dispute Dispute
-     * @return True conflicting attestation dispute
-     */
-    function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
-        bytes32 relatedId = _dispute.relatedDisputeId;
-        // this is so the check returns false when rejecting the related dispute.
-        return relatedId != 0 && disputes[relatedId].status == IDisputeManager.DisputeStatus.Pending;
-    }
-
-    /**
      * @dev Internal: Set the subgraph service address.
      * @notice Update the subgraph service to `_subgraphService`
      * @param _subgraphService The address of the subgraph service contract
@@ -783,5 +770,16 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
         subgraphService = ISubgraphService(_subgraphService);
         emit SubgraphServiceSet(_subgraphService);
+    }
+
+    /**
+     * @dev Returns whether the dispute is for a conflicting attestation or not.
+     * @param _dispute Dispute
+     * @return True conflicting attestation dispute
+     */
+    function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
+        bytes32 relatedId = _dispute.relatedDisputeId;
+        // this is so the check returns false when rejecting the related dispute.
+        return relatedId != 0 && disputes[relatedId].status == IDisputeManager.DisputeStatus.Pending;
     }
 }

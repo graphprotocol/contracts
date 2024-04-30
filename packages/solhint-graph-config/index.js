@@ -6,11 +6,10 @@ module.exports = {
     'constructor-syntax': 'warn',
 
     // style rules
-    'private-vars-leading-underscore': ['warn', { strict: false }],
+    // 'private-vars-leading-underscore': ['warn', { strict: false }],
     'const-name-snakecase': 'warn',
     'immutable-vars-naming': 'warn',
     'named-parameters-mapping': 'warn',
-    'func-order': 'warn',
     'imports-on-top': 'warn',
     'ordering': 'warn',
     'visibility-modifier-order': 'warn',

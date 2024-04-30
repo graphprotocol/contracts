@@ -33,13 +33,6 @@ contract SubgraphService is
     using PPMMath for uint256;
     using Allocation for mapping(address => Allocation.State);
 
-    error SubgraphServiceEmptyUrl();
-    error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
-    error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
-    error SubgraphServiceIndexerAlreadyRegistered();
-    error SubgraphServiceIndexerNotRegistered(address indexer);
-    error SubgraphServiceInconsistentCollection(uint256 tokensExpected, uint256 tokensCollected);
-
     event QueryFeesRedeemed(
         address serviceProvider,
         address payer,
@@ -47,6 +40,20 @@ contract SubgraphService is
         uint256 tokensCurators,
         uint256 tokensSubgraphService
     );
+
+    error SubgraphServiceEmptyUrl();
+    error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
+    error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
+    error SubgraphServiceIndexerAlreadyRegistered();
+    error SubgraphServiceIndexerNotRegistered(address indexer);
+    error SubgraphServiceInconsistentCollection(uint256 tokensExpected, uint256 tokensCollected);
+
+    modifier onlyRegisteredIndexer(address indexer) {
+        if (indexers[indexer].registeredAt == 0) {
+            revert SubgraphServiceIndexerNotRegistered(indexer);
+        }
+        _;
+    }
 
     constructor(
         address _graphController,
@@ -61,13 +68,6 @@ contract SubgraphService is
         AllocationManager("SubgraphService", "1.0")
     {
         _setProvisionTokensRange(_minimumProvisionTokens, type(uint256).max);
-    }
-
-    modifier onlyRegisteredIndexer(address indexer) {
-        if (indexers[indexer].registeredAt == 0) {
-            revert SubgraphServiceIndexerNotRegistered(indexer);
-        }
-        _;
     }
 
     function register(
@@ -151,7 +151,7 @@ contract SubgraphService is
 
     function slash(address indexer, bytes calldata data) external override onlyDisputeManager whenNotPaused {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
-        graphStaking.slash(indexer, tokens, reward, address(disputeManager));
+        GRAPH_STAKING.slash(indexer, tokens, reward, address(DISPUTE_MANAGER));
     }
 
     function migrateLegacyAllocation(
@@ -176,12 +176,12 @@ contract SubgraphService is
 
     // -- Data service parameter getters --
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
-        uint64 disputePeriod = disputeManager.getDisputePeriod();
+        uint64 disputePeriod = DISPUTE_MANAGER.getDisputePeriod();
         return (disputePeriod, type(uint64).max);
     }
 
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
-        uint32 verifierCut = disputeManager.getVerifierCut();
+        uint32 verifierCut = DISPUTE_MANAGER.getVerifierCut();
         return (verifierCut, type(uint32).max);
     }
 
@@ -193,7 +193,7 @@ contract SubgraphService is
         _releaseStake(IGraphPayments.PaymentTypes.QueryFee, indexer, 0);
 
         // validate RAV and calculate tokens to collect
-        address payer = tapVerifier.verify(signedRAV);
+        address payer = TAP_VERIFIER.verify(signedRAV);
         uint256 tokens = signedRAV.rav.valueAggregate;
         uint256 tokensAlreadyCollected = tokensCollected[indexer][payer];
         if (tokens <= tokensAlreadyCollected) {
@@ -206,7 +206,7 @@ contract SubgraphService is
         if (tokensToCollect > 0) {
             // lock stake as economic security for fees
             uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
-            uint256 unlockTimestamp = block.timestamp + disputeManager.getDisputePeriod();
+            uint256 unlockTimestamp = block.timestamp + DISPUTE_MANAGER.getDisputePeriod();
             _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
 
             // get subgraph deployment id - reverts if allocation is not found
@@ -234,8 +234,8 @@ contract SubgraphService is
                 graphRewardsManager.onSubgraphSignalUpdate(subgraphDeploymentId);
 
                 // Send GRT and bookkeep by calling collect()
-                graphToken.transfer(address(curation), tokensCurators);
-                curation.collect(subgraphDeploymentId, tokensCurators);
+                graphToken.transfer(address(CURATION), tokensCurators);
+                CURATION.collect(subgraphDeploymentId, tokensCurators);
             }
         }
 
@@ -247,7 +247,7 @@ contract SubgraphService is
         PaymentFee memory feePercentages = paymentFees[IGraphPayments.PaymentTypes.QueryFee];
 
         // Only pay curation fees if the subgraph is curated
-        if (!curation.isCurated(subgraphDeploymentId)) {
+        if (!CURATION.isCurated(subgraphDeploymentId)) {
             feePercentages.curationPercentage = 0;
         }
 

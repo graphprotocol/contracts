@@ -35,7 +35,7 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     }
 
     function rescueGRT(address _to, uint256 _amount) external onlyRescuer {
-        _rescueTokens(_to, address(graphToken), _amount);
+        _rescueTokens(_to, address(GRAPH_TOKEN), _amount);
     }
 
     function rescueETH(address payable _to, uint256 _amount) external onlyRescuer {

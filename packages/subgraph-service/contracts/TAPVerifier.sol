@@ -19,7 +19,7 @@ contract TAPVerifier is EIP712, ITAPVerifier {
         );
 
     // The duration (in seconds) in which a signer is thawing before they can be revoked
-    uint256 public immutable revokeSignerThawingPeriod;
+    uint256 public immutable REVOKE_SIGNER_THAWING_PERIOD;
 
     // Map of signer to authorized signer information
     mapping(address signer => SenderAuthorization authorizedSigner) public authorizedSigners;
@@ -94,7 +94,7 @@ contract TAPVerifier is EIP712, ITAPVerifier {
             revert TAPVerifierNotAuthorized(signer, authorizedSigners[signer].sender);
         }
 
-        authorization.thawEndTimestamp = block.timestamp + revokeSignerThawingPeriod;
+        authorization.thawEndTimestamp = block.timestamp + REVOKE_SIGNER_THAWING_PERIOD;
         emit ThawSigner(authorization.sender, signer, authorization.thawEndTimestamp);
     }
 

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
 library Attestation {
     // Receipt content sent from the service provider in response to request
     struct Receipt {
@@ -21,8 +19,6 @@ library Attestation {
         uint8 v;
     }
 
-    error AttestationInvalidBytesLength(uint256 length, uint256 expectedLength);
-
     // Attestation size is the sum of the receipt (96) + signature (65)
     uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
@@ -37,6 +33,8 @@ library Attestation {
 
     uint256 private constant UINT8_BYTE_LENGTH = 1;
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
+
+    error AttestationInvalidBytesLength(uint256 length, uint256 expectedLength);
 
     /**
      * @dev Returns if two attestations are conflicting.
@@ -89,6 +87,7 @@ library Attestation {
         }
         uint8 tempUint;
 
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             tempUint := mload(add(add(_bytes, 0x1), _start))
         }
@@ -106,6 +105,7 @@ library Attestation {
         }
         bytes32 tempBytes32;
 
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             tempBytes32 := mload(add(add(_bytes, 0x20), _start))
         }

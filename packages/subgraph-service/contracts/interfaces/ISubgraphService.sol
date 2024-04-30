@@ -22,9 +22,9 @@ interface ISubgraphService is IDataServiceFees {
 
     function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentID) external;
 
+    function setPauseGuardian(address pauseGuardian, bool allowed) external;
+
     function getAllocation(address allocationId) external view returns (Allocation.State memory);
 
     function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory);
-
-    function setPauseGuardian(address pauseGuardian, bool allowed) external;
 }

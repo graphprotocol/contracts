@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
-
 import { AttestationManagerV1Storage } from "./AttestationManagerStorage.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Attestation } from "../libraries/Attestation.sol";
-import { Allocation } from "../libraries/Allocation.sol";
 
 abstract contract AttestationManager is AttestationManagerV1Storage {
     bytes32 private constant RECEIPT_TYPE_HASH =
@@ -21,7 +18,7 @@ abstract contract AttestationManager is AttestationManagerV1Storage {
 
     constructor() {
         // EIP-712 domain separator
-        DOMAIN_SEPARATOR = keccak256(
+        _domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_TYPE_HASH,
                 DOMAIN_NAME_HASH,
@@ -65,7 +62,7 @@ abstract contract AttestationManager is AttestationManagerV1Storage {
             keccak256(
                 abi.encodePacked(
                     "\x19\x01", // EIP-191 encoding pad, EIP-712 version 1
-                    DOMAIN_SEPARATOR,
+                    _domainSeparator,
                     keccak256(
                         abi.encode(
                             RECEIPT_TYPE_HASH,

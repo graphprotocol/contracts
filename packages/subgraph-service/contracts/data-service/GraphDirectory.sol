@@ -12,14 +12,14 @@ import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 abstract contract GraphDirectory {
-    IController public immutable graphController;
-    IHorizonStaking public immutable graphStaking;
-    IEpochManager public immutable graphEpochManager;
-    IGraphToken public immutable graphToken;
+    IController public immutable GRAPH_CONTROLLER;
+    IHorizonStaking public immutable GRAPH_STAKING;
+    IEpochManager public immutable GRAPH_EPOCH_MANAGER;
+    IGraphToken public immutable GRAPH_TOKEN;
     // IGraphTokenGateway public immutable graphTokenGateway;
-    IGraphEscrow public immutable graphEscrow;
-    IGraphPayments public immutable graphPayments;
-    IRewardsManager public immutable graphRewardsManager;
+    IGraphEscrow public immutable GRAPH_ESCROW;
+    IGraphPayments public immutable GRAPH_PAYMENTS;
+    IRewardsManager public immutable GRAPH_REWARDS_MANAGER;
 
     event GraphDirectoryInitialized(
         IController graphController,
@@ -33,23 +33,23 @@ abstract contract GraphDirectory {
     );
 
     constructor(address _controller) {
-        graphController = IController(_controller);
-        graphStaking = IHorizonStaking(graphController.getContractProxy(keccak256("Staking")));
-        graphEpochManager = IEpochManager(graphController.getContractProxy(keccak256("EpochManager")));
-        graphToken = IGraphToken(graphController.getContractProxy(keccak256("GraphToken")));
+        GRAPH_CONTROLLER = IController(_controller);
+        GRAPH_STAKING = IHorizonStaking(GRAPH_CONTROLLER.getContractProxy(keccak256("Staking")));
+        GRAPH_EPOCH_MANAGER = IEpochManager(GRAPH_CONTROLLER.getContractProxy(keccak256("EpochManager")));
+        GRAPH_TOKEN = IGraphToken(GRAPH_CONTROLLER.getContractProxy(keccak256("GraphToken")));
         // graphTokenGateway = graphController.getContractProxy(keccak256("GraphTokenGateway"));
-        graphEscrow = IGraphEscrow(graphController.getContractProxy(keccak256("GraphEscrow")));
-        graphPayments = IGraphPayments(graphController.getContractProxy(keccak256("GraphPayments")));
-        graphRewardsManager = IRewardsManager(graphController.getContractProxy(keccak256("RewardsManager")));
+        GRAPH_ESCROW = IGraphEscrow(GRAPH_CONTROLLER.getContractProxy(keccak256("GraphEscrow")));
+        GRAPH_PAYMENTS = IGraphPayments(GRAPH_CONTROLLER.getContractProxy(keccak256("GraphPayments")));
+        GRAPH_REWARDS_MANAGER = IRewardsManager(GRAPH_CONTROLLER.getContractProxy(keccak256("RewardsManager")));
         emit GraphDirectoryInitialized(
-            graphController,
-            graphStaking,
-            graphEpochManager,
-            graphToken,
+            GRAPH_CONTROLLER,
+            GRAPH_STAKING,
+            GRAPH_EPOCH_MANAGER,
+            GRAPH_TOKEN,
             // graphTokenGateway,
-            graphEscrow,
-            graphPayments,
-            graphRewardsManager
+            GRAPH_ESCROW,
+            GRAPH_PAYMENTS,
+            GRAPH_REWARDS_MANAGER
         );
     }
 }

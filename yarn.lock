@@ -2807,7 +2807,7 @@ __metadata:
     lint-staged: "npm:^15.2.2"
     prettier: "npm:^3.2.5"
     prettier-plugin-solidity: "npm:^1.3.1"
-    solhint: "npm:^4.5.2"
+    solhint: "npm:^4.5.4"
     solhint-graph-config: "workspace:^0.0.1"
     solidity-coverage: "npm:^0.8.0"
     solidity-docgen: "npm:^0.6.0-beta.36"
@@ -20879,7 +20879,7 @@ __metadata:
   peerDependencies:
     prettier: ^3.2.5
     prettier-plugin-solidity: ^1.3.1
-    solhint: ^4.1.1
+    solhint: ^4.5.4
   languageName: unknown
   linkType: soft
 
@@ -20957,6 +20957,38 @@ __metadata:
   bin:
     solhint: solhint.js
   checksum: a54cc8df54ed711ca6be783b9291eb9e838f518f236d4df05c6ef412ead6a21f4a5bf3bace62ca7d2ed69f4566d5289db4c8c93e0c5e23ac91401904e1f1f312
+  languageName: node
+  linkType: hard
+
+"solhint@npm:^4.5.4":
+  version: 4.5.4
+  resolution: "solhint@npm:4.5.4"
+  dependencies:
+    "@solidity-parser/parser": "npm:^0.18.0"
+    ajv: "npm:^6.12.6"
+    antlr4: "npm:^4.13.1-patch-1"
+    ast-parents: "npm:^0.0.1"
+    chalk: "npm:^4.1.2"
+    commander: "npm:^10.0.0"
+    cosmiconfig: "npm:^8.0.0"
+    fast-diff: "npm:^1.2.0"
+    glob: "npm:^8.0.3"
+    ignore: "npm:^5.2.4"
+    js-yaml: "npm:^4.1.0"
+    latest-version: "npm:^7.0.0"
+    lodash: "npm:^4.17.21"
+    pluralize: "npm:^8.0.0"
+    prettier: "npm:^2.8.3"
+    semver: "npm:^7.5.2"
+    strip-ansi: "npm:^6.0.1"
+    table: "npm:^6.8.1"
+    text-table: "npm:^0.2.0"
+  dependenciesMeta:
+    prettier:
+      optional: true
+  bin:
+    solhint: solhint.js
+  checksum: 85bc62536c6b1269403b2af369dcfc7c63d07c6efb994f4e3c4e7e96d3511a64ab10c68635c6676e09eee289104b5d349091960994e990cacf240497170c8aed
   languageName: node
   linkType: hard
 
