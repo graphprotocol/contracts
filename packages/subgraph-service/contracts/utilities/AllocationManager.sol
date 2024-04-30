@@ -103,7 +103,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
             subgraphDeploymentId,
             tokens,
             // allos can be resized now, so we need to always take snapshot
-            graphRewardsManager.onSubgraphAllocationUpdate(subgraphDeploymentId)
+            GRAPH_REWARDS_MANAGER.onSubgraphAllocationUpdate(subgraphDeploymentId)
         );
 
         // Check that the indexer has enough tokens available
@@ -127,12 +127,14 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         // Mint indexing rewards, stale POIs get no rewards...
         uint256 timeSinceLastPOI = block.number - allocation.lastPOIPresentedAt;
-        uint256 tokensRewards = timeSinceLastPOI <= maxPOIStaleness ? graphRewardsManager.takeRewards(allocationId) : 0;
+        uint256 tokensRewards = timeSinceLastPOI <= maxPOIStaleness
+            ? GRAPH_REWARDS_MANAGER.takeRewards(allocationId)
+            : 0;
 
         // ... but we still take a snapshot to ensure the rewards are not collected with the next valid POI
         allocations.snapshotRewards(
             allocationId,
-            graphRewardsManager.onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
+            GRAPH_REWARDS_MANAGER.onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
         allocations.presentPOI(allocationId);
 
@@ -147,17 +149,17 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
             uint8(IGraphPayments.PaymentTypes.IndexingFee)
         );
         uint256 tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
-        graphToken.approve(address(GRAPH_STAKING), tokensDelegationRewards);
+        GRAPH_TOKEN.approve(address(GRAPH_STAKING), tokensDelegationRewards);
         GRAPH_STAKING.addToDelegationPool(allocation.indexer, tokensDelegationRewards);
 
         // Distribute rewards to indexer
         uint256 tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
         address rewardsDestination = rewardsDestination[allocation.indexer];
         if (rewardsDestination == address(0)) {
-            graphToken.approve(address(GRAPH_STAKING), tokensIndexerRewards);
+            GRAPH_TOKEN.approve(address(GRAPH_STAKING), tokensIndexerRewards);
             GRAPH_STAKING.stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
         } else {
-            graphToken.transfer(rewardsDestination, tokensIndexerRewards);
+            GRAPH_TOKEN.transfer(rewardsDestination, tokensIndexerRewards);
         }
 
         emit AllocationCollected(
@@ -189,7 +191,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         }
 
         // Calculate rewards that have been accrued since the last snapshot but not yet issued
-        uint256 accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
+        uint256 accRewardsPerAllocatedToken = GRAPH_REWARDS_MANAGER.onSubgraphAllocationUpdate(
             allocation.subgraphDeploymentId
         );
         uint256 accRewardsPending = accRewardsPerAllocatedToken - allocation.accRewardsPerAllocatedToken;

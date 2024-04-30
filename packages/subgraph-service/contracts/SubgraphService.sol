@@ -205,9 +205,12 @@ contract SubgraphService is
 
         if (tokensToCollect > 0) {
             // lock stake as economic security for fees
-            uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
-            uint256 unlockTimestamp = block.timestamp + DISPUTE_MANAGER.getDisputePeriod();
-            _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
+            // block scope to avoid 'stack too deep' error
+            {
+                uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
+                uint256 unlockTimestamp = block.timestamp + DISPUTE_MANAGER.getDisputePeriod();
+                _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
+            }
 
             // get subgraph deployment id - reverts if allocation is not found
             bytes32 subgraphDeploymentId = allocations.get(allocationId).subgraphDeploymentId;
@@ -220,9 +223,9 @@ contract SubgraphService is
             uint256 totalCut = tokensSubgraphService + tokensCurators;
 
             // collect fees
-            uint256 balanceBefore = graphToken.balanceOf(address(this));
-            graphPayments.collect(payer, indexer, tokensToCollect, IGraphPayments.PaymentTypes.QueryFee, totalCut);
-            uint256 balanceAfter = graphToken.balanceOf(address(this));
+            uint256 balanceBefore = GRAPH_TOKEN.balanceOf(address(this));
+            GRAPH_PAYMENTS.collect(payer, indexer, tokensToCollect, IGraphPayments.PaymentTypes.QueryFee, totalCut);
+            uint256 balanceAfter = GRAPH_TOKEN.balanceOf(address(this));
             if (balanceBefore + totalCut != balanceAfter) {
                 revert SubgraphServiceInconsistentCollection(balanceBefore + totalCut, balanceAfter);
             }
@@ -231,10 +234,10 @@ contract SubgraphService is
             // distribute curation cut to curators
             if (tokensCurators > 0) {
                 // we are about to change subgraph signal so we take rewards snapshot
-                graphRewardsManager.onSubgraphSignalUpdate(subgraphDeploymentId);
+                GRAPH_REWARDS_MANAGER.onSubgraphSignalUpdate(subgraphDeploymentId);
 
                 // Send GRT and bookkeep by calling collect()
-                graphToken.transfer(address(CURATION), tokensCurators);
+                GRAPH_TOKEN.transfer(address(CURATION), tokensCurators);
                 CURATION.collect(subgraphDeploymentId, tokensCurators);
             }
         }
