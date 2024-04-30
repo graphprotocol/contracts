@@ -1,4 +1,5 @@
 module.exports = {
+  plugins: [ 'graph' ],
   extends: 'solhint:recommended',
   rules: {
     // best practices
@@ -6,9 +7,8 @@ module.exports = {
     'constructor-syntax': 'warn',
 
     // style rules
-    // 'private-vars-leading-underscore': ['warn', { strict: false }],
+    'private-vars-leading-underscore': 'off', // see graph/leading-underscore
     'const-name-snakecase': 'warn',
-    'immutable-vars-naming': 'warn',
     'named-parameters-mapping': 'warn',
     'imports-on-top': 'warn',
     'ordering': 'warn',
@@ -21,5 +21,8 @@ module.exports = {
     'compiler-version': ['off'],
     'func-visibility': ['warn', { ignoreConstructors: true }],
     'not-rely-on-time': 'off',
+
+    // graph
+    'graph/leading-underscore': 'warn',
   },
 }

@@ -2809,6 +2809,7 @@ __metadata:
     prettier-plugin-solidity: "npm:^1.3.1"
     solhint: "npm:^4.5.4"
     solhint-graph-config: "workspace:^0.0.1"
+    solhint-plugin-graph: "file:node_modules/solhint-graph-config/plugin"
     solidity-coverage: "npm:^0.8.0"
     solidity-docgen: "npm:^0.6.0-beta.36"
     ts-node: "npm:>=8.0.0"
@@ -20876,12 +20877,28 @@ __metadata:
 "solhint-graph-config@workspace:^0.0.1, solhint-graph-config@workspace:packages/solhint-graph-config":
   version: 0.0.0-use.local
   resolution: "solhint-graph-config@workspace:packages/solhint-graph-config"
+  dependencies:
+    solhint-plugin-graph: "file:plugin"
   peerDependencies:
     prettier: ^3.2.5
     prettier-plugin-solidity: ^1.3.1
     solhint: ^4.5.4
   languageName: unknown
   linkType: soft
+
+"solhint-plugin-graph@file:node_modules/solhint-graph-config/plugin::locator=%40graphprotocol%2Fsubgraph-service%40workspace%3Apackages%2Fsubgraph-service":
+  version: 0.0.0
+  resolution: "solhint-plugin-graph@file:node_modules/solhint-graph-config/plugin#node_modules/solhint-graph-config/plugin::hash=3f644f&locator=%40graphprotocol%2Fsubgraph-service%40workspace%3Apackages%2Fsubgraph-service"
+  checksum: 27056abf16283dbae5a1c597bf9468f27a90f425a297dfca5ab43ec5a602a669dba60ca7fa3ecfc46f5ec95dfbacbccf6eff4cf3f16cb62e3bf518c394debccf
+  languageName: node
+  linkType: hard
+
+"solhint-plugin-graph@file:plugin::locator=solhint-graph-config%40workspace%3Apackages%2Fsolhint-graph-config":
+  version: 0.0.0
+  resolution: "solhint-plugin-graph@file:plugin#plugin::hash=3f644f&locator=solhint-graph-config%40workspace%3Apackages%2Fsolhint-graph-config"
+  checksum: 27056abf16283dbae5a1c597bf9468f27a90f425a297dfca5ab43ec5a602a669dba60ca7fa3ecfc46f5ec95dfbacbccf6eff4cf3f16cb62e3bf518c394debccf
+  languageName: node
+  linkType: hard
 
 "solhint-plugin-prettier@npm:^0.1.0":
   version: 0.1.0
