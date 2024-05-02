@@ -205,10 +205,10 @@
       }
     },
     "SubgraphAvailabilityManager": {
-      "address": "0x8E0492d809D07E6b612818416ff27f8988ba5c53",
+      "address": "0xF00AA63f1a8eE67BAD135759eC7a6542b1d56a8f",
       "constructorArgs": [
         "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
-        "0x913A282574A0AD91EecAdCbaf2800fDf516E27B1",
+        "0x00b9d319E3D09E83c62f453B44354049Dd93a345",
         "3",
         "300",
         [
@@ -220,8 +220,8 @@
         ]
       ],
       "creationCodeHash": "0xc34842fa42ee2f21e3a435b52fa69a122a5de795448faa890fbc63d4838f45da",
-      "runtimeCodeHash": "0x2db3a9799e9733ffd5470a39d9f126d74ff82b60eeab2bbab2f2e76f7ec920c9",
-      "txHash": "0x684a6d54fa6fd3c48add9fc32d2624a1242a19cf94952d55730d4086eb6e7f8a"
+      "runtimeCodeHash": "0xe6c0ccd0b0514dd55e58806b1c84f09805dd6202985722579c11d7e252df6b8d",
+      "txHash": "0x5c1dd91c76e547fe31a5df822353b50e93eb795b915aac0ea8f8364229e9c29c"
     }
   },
   "11155111": {
