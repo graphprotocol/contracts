@@ -35,6 +35,8 @@ contract MockHorizonStaking is IHorizonStaking {
         _provisions[verifier][msg.sender] = newProvision;
     }
 
+    function acceptProvision(address serviceProvider) external {}
+
     // initiate a thawing to remove tokens from a provision
     function thaw(bytes32 provisionId, uint256 tokens) external returns (bytes32 thawRequestId) {}
 
@@ -80,7 +82,9 @@ contract MockHorizonStaking is IHorizonStaking {
 
     // provisioned tokens that are not being used
     // `Provision.tokens - Provision.tokensThawing`
-    function getTokensAvailable(address serviceProvider, address verifier) external view returns (uint256 tokens) {}
+    function getTokensAvailable(address serviceProvider, address verifier) external view returns (uint256 tokens) {
+        return _provisions[verifier][serviceProvider].tokens;
+    }
 
     function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {}
 
@@ -97,4 +101,8 @@ contract MockHorizonStaking is IHorizonStaking {
     function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool) {
         return true;
     }
+
+    function getDelegationCut(address serviceProvider, uint8 paymentType) external view returns (uint256 delegationCut) {}
+    function addToDelegationPool(address serviceProvider, uint256 tokens) external {}
+    function stakeToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external {}
 }

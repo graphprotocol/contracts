@@ -184,6 +184,10 @@ contract SubgraphService is
         return legacyAllocations[allocationId];
     }
 
+    function encodeAllocationProof(address _indexer, address _allocationId) external view returns (bytes32) {
+        return _encodeAllocationProof(_indexer, _allocationId);
+    }
+
     // -- Data service parameter getters --
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
         uint64 disputePeriod = DISPUTE_MANAGER.getDisputePeriod();
