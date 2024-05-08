@@ -8,31 +8,12 @@ interface IGraphPayments {
         QueryFees
     }
 
-    // Collector
-    struct Collector {
-        bool authorized;
-        uint256 amount;
-        uint256 thawEndTimestamp;
-    }
-
-    // approve a data service to collect funds
-    function approveCollector(address dataService, uint256 amount) external;
-
-    // thaw a data service's collector authorization
-    function thawCollector(address dataService) external;
-
-    // cancel thawing a data service's collector authorization
-    function cancelThawCollector(address dataService) external;
-
-    // revoke authorized collector
-    function revokeCollector(address dataService) external;
-
     // collect funds from a sender, pay cuts and forward the rest to the receiver
     function collect(
-        address sender,
         address receiver,
+        address dataService,
         uint256 amount,
         PaymentType paymentType,
-        uint256 dataServiceCut
+        uint256 tokensDataService
     ) external;
 }

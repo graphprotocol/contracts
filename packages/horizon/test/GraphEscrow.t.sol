@@ -7,6 +7,7 @@ import { Controller } from "@graphprotocol/contracts/contracts/governance/Contro
 
 import { GraphEscrow } from "contracts/escrow/GraphEscrow.sol";
 import { GraphPayments } from "contracts/payments/GraphPayments.sol";
+import { IGraphPayments } from "contracts/interfaces/IGraphPayments.sol";
 
 import "./GraphDeployments.t.sol";
 import "./mocks/MockGRTToken.sol";
@@ -20,9 +21,12 @@ contract GraphEscrowTest is Test {
 
     address governor = address(0xA2);
     uint256 withdrawEscrowThawingPeriod = 60;
+    uint256 revokeCollectorThawingPeriod;
 
     address sender;
     address receiver;
+    address verifier;
+    address dataService;
 
     // Setup
 
@@ -36,9 +40,98 @@ contract GraphEscrowTest is Test {
 
         governor = deployments.governor();
         withdrawEscrowThawingPeriod = deployments.withdrawEscrowThawingPeriod();
+        revokeCollectorThawingPeriod = deployments.revokeCollectorThawingPeriod();
 
         sender = address(0xB1);
         receiver = address(0xB2);
+        verifier = address(0xB3);
+        dataService = address(0xB4);
+    }
+
+    // Collector approve tests
+
+    function testApproveCollector() public {
+        vm.prank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+
+        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(sender, verifier);
+        assertEq(authorized, true);
+        assertEq(thawEndTimestamp, 0);
+    }
+
+    // Collector thaw tests
+
+    function testThawCollector() public {
+        vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+        escrow.thawCollector(verifier);
+        vm.stopPrank();
+
+        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(sender, verifier);
+        assertEq(authorized, true);
+        assertEq(thawEndTimestamp, block.timestamp + revokeCollectorThawingPeriod);
+    }
+
+    // Collector cancel thaw tests
+
+    function testCancelThawCollector() public {
+        vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+        escrow.thawCollector(verifier);
+        vm.stopPrank();
+
+        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(sender, verifier);
+        assertEq(authorized, true);
+        assertEq(thawEndTimestamp, block.timestamp + revokeCollectorThawingPeriod);
+
+        vm.prank(sender);
+        escrow.cancelThawCollector(verifier);
+
+        (authorized,, thawEndTimestamp) = escrow.authorizedCollectors(sender, verifier);
+        assertEq(authorized, true);
+        assertEq(thawEndTimestamp, 0);
+    }
+
+    function testCancel_RevertWhen_CollectorIsNotThawing() public {
+        vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotThawing()");
+        vm.expectRevert(expectedError);
+        escrow.cancelThawCollector(verifier);
+        vm.stopPrank();
+    }
+
+    // Collector revoke tests
+
+    function testRevokeCollector() public {
+        vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+        escrow.thawCollector(verifier);
+        skip(revokeCollectorThawingPeriod + 1);
+        escrow.revokeCollector(verifier);
+        vm.stopPrank();
+
+        (bool authorized,,) = escrow.authorizedCollectors(sender, verifier);
+        assertEq(authorized, false);
+    }
+
+    function testRevoke_RevertWhen_CollectorIsNotThawing() public {
+        vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotThawing()");
+        vm.expectRevert(expectedError);
+        escrow.revokeCollector(verifier);
+        vm.stopPrank();
+    }
+
+    function testRevoke_RevertWhen_CollectorIsStillThawing() public {
+        vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+        escrow.thawCollector(verifier);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowStillThawing(uint256,uint256)", block.timestamp, block.timestamp + revokeCollectorThawingPeriod);
+        vm.expectRevert(expectedError);
+        escrow.revokeCollector(verifier);
+        vm.stopPrank();
     }
 
     // Deposit tests
@@ -188,30 +281,48 @@ contract GraphEscrowTest is Test {
     function testCollect() public {
         token.mint(sender, 1000 ether);
         vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
         token.approve(address(escrow), 1000 ether);
         escrow.deposit(receiver, 1000 ether);
         vm.stopPrank();
 
-        address graphPayments = address(payments);
-        vm.prank(graphPayments);
-        escrow.collect(sender, receiver, 100 ether);
+        vm.prank(verifier);
+        escrow.collect(sender, receiver, dataService, 100 ether, IGraphPayments.PaymentType.IndexingFees, 3 ether);
 
-        (uint256 receiverEscrowBalance,,) = escrow.escrowAccounts(sender, receiver);
-        assertEq(receiverEscrowBalance, 900 ether);
-        uint256 graphPaymentsBalance = token.balanceOf(graphPayments);
-        assertEq(graphPaymentsBalance, 100 ether);
+        uint256 indexerBalance = token.balanceOf(receiver);
+        assertEq(indexerBalance, 91 ether);
     }
 
-    function testCollect_RevertWhen_NotGraphPayments() public {
-        token.mint(sender, 1000 ether);
+    function testCollect_RevertWhen_CollectorNotAuthorized() public {
+        address indexer = address(0xA3);
+        uint256 amount = 1000 ether;
+
+        vm.startPrank(verifier);
+        uint256 dataServiceCut = 30000; // 3%
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorNotAuthorized(address,address)", sender, verifier);
+        vm.expectRevert(expectedError);
+        escrow.collect(sender, indexer, dataService, amount, IGraphPayments.PaymentType.IndexingFees, dataServiceCut);
+        vm.stopPrank();
+    }
+
+    function testCollect_RevertWhen_CollectorHasInsufficientAmount() public {
+        vm.prank(sender);
+        escrow.approveCollector(verifier, 100 ether);
+
+        address indexer = address(0xA3);
+        uint256 amount = 1000 ether;
+
+        token.mint(sender, amount);
         vm.startPrank(sender);
-        token.approve(address(escrow), 1000 ether);
-        escrow.deposit(receiver, 1000 ether);
+        token.approve(address(escrow), amount);
+        escrow.deposit(indexer, amount);
         vm.stopPrank();
 
-        // revert
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotGraphPayments()");
+        vm.startPrank(verifier);
+        uint256 dataServiceCut = 30 ether;
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", 100 ether, 1000 ether);
         vm.expectRevert(expectedError);
-        escrow.collect(sender, receiver, 100 ether);
+        escrow.collect(sender, indexer, dataService, 1000 ether, IGraphPayments.PaymentType.IndexingFees, dataServiceCut);
+        vm.stopPrank();
     }
 }

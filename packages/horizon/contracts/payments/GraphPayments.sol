@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
-
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
 
 contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
     // -- Errors --
@@ -19,11 +16,6 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
 
     // -- Events --
 
-    event AuthorizedCollector(address indexed sender, address indexed dataService);
-    event ThawCollector(address indexed sender, address indexed dataService);
-    event CancelThawCollector(address indexed sender, address indexed dataService);
-    event RevokeCollector(address indexed sender, address indexed dataService);
-
     // -- Modifier --
 
     // -- Parameters --
@@ -32,85 +24,26 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
 
     // -- Constructor --
 
-    constructor(
-        address _controller,
-        uint256 _revokeCollectorThawingPeriod,
-        uint256 _protocolPaymentCut
-    ) GraphDirectory(_controller) {
-        revokeCollectorThawingPeriod = _revokeCollectorThawingPeriod;
+    constructor(address _controller, uint256 _protocolPaymentCut) GraphDirectory(_controller) {
         protocolPaymentCut = _protocolPaymentCut;
-    }
-
-    // approve a data service to collect funds
-    function approveCollector(address dataService, uint256 amount) external {
-        authorizedCollectors[msg.sender][dataService].authorized = true;
-        authorizedCollectors[msg.sender][dataService].amount = amount;
-        emit AuthorizedCollector(msg.sender, dataService);
-    }
-
-    // thaw a data service's collector authorization
-    function thawCollector(address dataService) external {
-        authorizedCollectors[msg.sender][dataService].thawEndTimestamp = block.timestamp + revokeCollectorThawingPeriod;
-        emit ThawCollector(msg.sender, dataService);
-    }
-
-    // cancel thawing a data service's collector authorization
-    function cancelThawCollector(address dataService) external {
-        if (authorizedCollectors[msg.sender][dataService].thawEndTimestamp == 0) {
-            revert GraphPaymentsNotThawing();
-        }
-
-        authorizedCollectors[msg.sender][dataService].thawEndTimestamp = 0;
-        emit CancelThawCollector(msg.sender, dataService);
-    }
-
-    // revoke authorized collector
-    function revokeCollector(address dataService) external {
-        Collector storage collector = authorizedCollectors[msg.sender][dataService];
-
-        if (collector.thawEndTimestamp == 0) {
-            revert GraphPaymentsNotThawing();
-        }
-
-        if (collector.thawEndTimestamp > block.timestamp) {
-            revert GraphPaymentsStillThawing(block.timestamp, collector.thawEndTimestamp);
-        }
-
-        delete authorizedCollectors[msg.sender][dataService];
-        emit RevokeCollector(msg.sender, dataService);
     }
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver
     function collect(
-        address sender,
         address receiver, // serviceProvider
+        address dataService,
         uint256 amount,
         IGraphPayments.PaymentType paymentType,
-        uint256 dataServiceCut
+        uint256 tokensDataService
     ) external {
-        Collector storage collector = authorizedCollectors[sender][msg.sender];
-
-        if (!collector.authorized) {
-            revert GraphPaymentsCollectorNotAuthorized(sender, msg.sender);
-        }
-
-        if (collector.amount < amount) {
-            revert GraphPaymentsCollectorInsufficientAmount(collector.amount, amount);
-        }
-
-        // Reduce amount from approved collector
-        collector.amount -= amount;
-
-        // Collect tokens from GraphEscrow
-        graphEscrow.collect(sender, receiver, amount);
+        TokenUtils.pullTokens(graphToken, msg.sender, amount);
 
         // Pay protocol cut
-        uint256 protocolCut = (amount * protocolPaymentCut) / MAX_PPM;
-        graphToken.burn(protocolCut);
+        uint256 tokensProtocol = (amount * protocolPaymentCut) / MAX_PPM;
+        TokenUtils.burnTokens(graphToken, tokensProtocol);
 
         // Pay data service cut
-        uint256 dataServicePayment = (amount * dataServiceCut) / MAX_PPM;
-        graphToken.transfer(msg.sender, dataServicePayment);
+        TokenUtils.pushTokens(graphToken, dataService, tokensDataService);
 
         // Get delegation cut
         uint256 delegatorCut = graphStaking.getDelegationCut(receiver, uint8(paymentType));
@@ -118,7 +51,7 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         graphStaking.addToDelegationPool(receiver, delegatorPayment);
 
         // Pay the rest to the receiver
-        uint256 receiverPayment = amount - protocolCut - dataServicePayment - delegatorPayment;
-        graphToken.transfer(receiver, receiverPayment);
+        uint256 receiverPayment = amount - tokensProtocol - tokensDataService - delegatorPayment;
+        TokenUtils.pushTokens(graphToken, receiver, receiverPayment);
     }
 }

@@ -47,12 +47,12 @@ contract GraphDeployments is Test {
 
         // GraphPayments preddict address
         bytes32 saltPayments = keccak256("GraphPaymentsSalt");
-        bytes32 paymentsHash = keccak256(bytes.concat(vm.getCode("GraphPayments.sol:GraphPayments"), abi.encode(address(controller), revokeCollectorThawingPeriod, protocolPaymentCut)));
+        bytes32 paymentsHash = keccak256(bytes.concat(vm.getCode("GraphPayments.sol:GraphPayments"), abi.encode(address(controller), protocolPaymentCut)));
         address predictedPaymentsAddress = vm.computeCreate2Address(saltPayments, paymentsHash, deployer);
         
         // GraphEscrow preddict address
         bytes32 saltEscrow = keccak256("GraphEscrowSalt");
-        bytes32 escrowHash = keccak256(bytes.concat(vm.getCode("GraphEscrow.sol:GraphEscrow"), abi.encode(address(controller), withdrawEscrowThawingPeriod)));
+        bytes32 escrowHash = keccak256(bytes.concat(vm.getCode("GraphEscrow.sol:GraphEscrow"), abi.encode(address(controller), revokeCollectorThawingPeriod, withdrawEscrowThawingPeriod)));
         address predictedAddressEscrow = vm.computeCreate2Address(saltEscrow, escrowHash, deployer);
 
         // GraphToken
@@ -72,8 +72,8 @@ contract GraphDeployments is Test {
         vm.stopPrank();
         
         vm.startPrank(deployer);
-        payments = new GraphPayments{salt: saltPayments}(address(controller), revokeCollectorThawingPeriod, protocolPaymentCut);
-        escrow = new GraphEscrow{salt: saltEscrow}(address(controller), withdrawEscrowThawingPeriod);
+        payments = new GraphPayments{salt: saltPayments}(address(controller), protocolPaymentCut);
+        escrow = new GraphEscrow{salt: saltEscrow}(address(controller), revokeCollectorThawingPeriod, withdrawEscrowThawingPeriod);
         vm.stopPrank();
     }
 

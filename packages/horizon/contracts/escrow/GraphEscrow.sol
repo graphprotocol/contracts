@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-
 import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
+import { TokenUtils } from "../utils/TokenUtils.sol";
 
 contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirectory {
     // -- Errors --
@@ -17,9 +16,16 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
     error GraphEscrowInsufficientAmount(uint256 available, uint256 required);
     error GraphEscrowNotThawing();
     error GraphEscrowStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
+    error GraphEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
+    error GraphEscrowCollectorNotAuthorized(address sender, address dataService);
+    error GraphEscrowCollectorInsufficientAmount(uint256 available, uint256 required);
 
     // -- Events --
 
+    event AuthorizedCollector(address indexed sender, address indexed dataService);
+    event ThawCollector(address indexed sender, address indexed dataService);
+    event CancelThawCollector(address indexed sender, address indexed dataService);
+    event RevokeCollector(address indexed sender, address indexed dataService);
     event Deposit(address indexed sender, address indexed receiver, uint256 amount);
     event CancelThaw(address indexed sender, address indexed receiver);
     event Thaw(
@@ -32,25 +38,68 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
     event Withdraw(address indexed sender, address indexed receiver, uint256 amount);
     event Collect(address indexed sender, address indexed receiver, uint256 amount);
 
-    // -- Modifier --
-
-    modifier onlyGraphPayments() {
-        if (msg.sender != address(graphPayments)) {
-            revert GraphEscrowNotGraphPayments();
-        }
-        _;
-    }
-
     // -- Constructor --
 
-    constructor(address _controller, uint256 _withdrawEscrowThawingPeriod) GraphDirectory(_controller) {
+    constructor(
+        address _controller,
+        uint256 _revokeCollectorThawingPeriod,
+        uint256 _withdrawEscrowThawingPeriod
+    ) GraphDirectory(_controller) {
+        if (_revokeCollectorThawingPeriod > MAX_THAWING_PERIOD) {
+            revert GraphEscrowThawingPeriodTooLong(_revokeCollectorThawingPeriod, MAX_THAWING_PERIOD);
+        }
+
+        if (_withdrawEscrowThawingPeriod > MAX_THAWING_PERIOD) {
+            revert GraphEscrowThawingPeriodTooLong(_withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
+        }
+
+        revokeCollectorThawingPeriod = _revokeCollectorThawingPeriod;
         withdrawEscrowThawingPeriod = _withdrawEscrowThawingPeriod;
+    }
+
+    // approve a data service to collect funds
+    function approveCollector(address dataService, uint256 amount) external {
+        authorizedCollectors[msg.sender][dataService].authorized = true;
+        authorizedCollectors[msg.sender][dataService].amount = amount;
+        emit AuthorizedCollector(msg.sender, dataService);
+    }
+
+    // thaw a data service's collector authorization
+    function thawCollector(address dataService) external {
+        authorizedCollectors[msg.sender][dataService].thawEndTimestamp = block.timestamp + revokeCollectorThawingPeriod;
+        emit ThawCollector(msg.sender, dataService);
+    }
+
+    // cancel thawing a data service's collector authorization
+    function cancelThawCollector(address dataService) external {
+        if (authorizedCollectors[msg.sender][dataService].thawEndTimestamp == 0) {
+            revert GraphEscrowNotThawing();
+        }
+
+        authorizedCollectors[msg.sender][dataService].thawEndTimestamp = 0;
+        emit CancelThawCollector(msg.sender, dataService);
+    }
+
+    // revoke authorized collector
+    function revokeCollector(address dataService) external {
+        Collector storage collector = authorizedCollectors[msg.sender][dataService];
+
+        if (collector.thawEndTimestamp == 0) {
+            revert GraphEscrowNotThawing();
+        }
+
+        if (collector.thawEndTimestamp > block.timestamp) {
+            revert GraphEscrowStillThawing(block.timestamp, collector.thawEndTimestamp);
+        }
+
+        delete authorizedCollectors[msg.sender][dataService];
+        emit RevokeCollector(msg.sender, dataService);
     }
 
     // Deposit funds into the escrow for a receiver
     function deposit(address receiver, uint256 amount) external {
         escrowAccounts[msg.sender][receiver].balance += amount;
-        graphToken.transferFrom(msg.sender, address(this), amount);
+        TokenUtils.pullTokens(graphToken, msg.sender, amount);
         emit Deposit(msg.sender, receiver, amount);
     }
 
@@ -70,7 +119,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
             emit Deposit(msg.sender, receiver, amount);
         }
 
-        graphToken.transferFrom(msg.sender, address(this), totalAmount);
+        TokenUtils.pullTokens(graphToken, msg.sender, totalAmount);
     }
 
     // Requests to thaw a specific amount of escrow from a receiver's escrow account
@@ -122,20 +171,42 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         account.balance -= amount; // Reduce the balance by the withdrawn amount (no underflow risk)
         account.amountThawing = 0;
         account.thawEndTimestamp = 0;
-        graphToken.transfer(msg.sender, amount);
+        TokenUtils.pushTokens(graphToken, msg.sender, amount);
         emit Withdraw(msg.sender, receiver, amount);
     }
 
     // Collect from escrow (up to amount available in escrow) for a receiver using sender's deposit
-    function collect(address sender, address receiver, uint256 amount) external onlyGraphPayments {
+    function collect(
+        address sender,
+        address receiver, // serviceProvider
+        address dataService,
+        uint256 amount,
+        IGraphPayments.PaymentType paymentType,
+        uint256 tokensDataService
+    ) external {
+        // Check if collector is authorized and has enough funds
+        Collector storage collector = authorizedCollectors[sender][msg.sender];
+
+        if (!collector.authorized) {
+            revert GraphEscrowCollectorNotAuthorized(sender, msg.sender);
+        }
+
+        if (collector.amount < amount) {
+            revert GraphEscrowCollectorInsufficientAmount(collector.amount, amount);
+        }
+
+        // Reduce amount from approved collector
+        collector.amount -= amount;
+
+        // Collect tokens from GraphEscrow up to amount available
         EscrowAccount storage account = escrowAccounts[sender][receiver];
         uint256 available = account.balance - account.amountThawing;
-
-        // TODO: should we revert if not enough funds are available?
         uint256 collectAmount = amount > available ? available : amount;
-
         account.balance -= collectAmount;
-        graphToken.transfer(msg.sender, collectAmount);
         emit Collect(sender, receiver, collectAmount);
+
+        // Approve tokens so GraphPayments can pull them
+        graphToken.approve(address(graphPayments), collectAmount);
+        graphPayments.collect(receiver, dataService, collectAmount, paymentType, tokensDataService);
     }
 }
