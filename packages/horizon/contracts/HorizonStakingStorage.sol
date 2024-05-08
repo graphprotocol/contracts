@@ -136,9 +136,6 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
 
     mapping(bytes32 => ThawRequest) internal thawRequests;
 
-    // indexer => operator => authorized
-    mapping(address => mapping(address => bool)) internal globalOperatorAuth;
-
     // indexer => verifier => operator => authorized
     mapping(address => mapping(address => mapping(address => bool))) internal operatorAuth;
 

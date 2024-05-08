@@ -13,9 +13,8 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUpgradeable {
     /// Maximum value that can be set as the maxVerifierCut in a provision.
-    /// It is equivalent to 50% in parts-per-million, to protect delegators from
-    /// service providers using a malicious verifier.
-    uint32 private constant MAX_MAX_VERIFIER_CUT = 500000; // 50%
+    /// It is equivalent to 100% in parts-per-million
+    uint32 private constant MAX_MAX_VERIFIER_CUT = 1000000; // 50%
 
     /// Minimum size of a provision
     uint256 private constant MIN_PROVISION_SIZE = 1e18;
@@ -37,7 +36,6 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
     error HorizonStakingInvalidZeroTokens();
     error HorizonStakingInvalidProvision(address serviceProvider, address verifier);
     error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
-    error HorizonStakingNotGlobalAuthorized(address caller, address serviceProvider);
     error HorizonStakingInsufficientCapacity();
 
     constructor(
@@ -136,9 +134,6 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         }
         if (getIdleStake(_serviceProvider) < _tokens) {
             revert HorizonStakingInsufficientCapacity();
-        }
-        if (!verifierAllowlist[_serviceProvider][_verifier]) {
-            revert HorizonStakingVerifierNotAllowed(_verifier);
         }
 
         _createProvision(_serviceProvider, _tokens, _verifier, _maxVerifierCut, _thawingPeriod);
@@ -244,13 +239,12 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
     }
 
     // moves idle stake back to the owner's account - stake is removed from the protocol
-    // global operators are allowed to call this but stake is always sent to the service provider's address
-    function unstake(address _serviceProvider, uint256 _tokens) external override notPaused {
-        require(isGlobalAuthorized(msg.sender, _serviceProvider), "!auth");
+    function unstake(uint256 _tokens) external override notPaused {
+        address serviceProvider = msg.sender;
         require(_tokens > 0, "!tokens");
-        require(getIdleStake(_serviceProvider) >= _tokens, "insufficient idle stake");
+        require(getIdleStake(serviceProvider) >= _tokens, "insufficient idle stake");
 
-        ServiceProviderInternal storage sp = serviceProviders[_serviceProvider];
+        ServiceProviderInternal storage sp = serviceProviders[serviceProvider];
         uint256 stakedTokens = sp.tokensStaked;
         // Check that the indexer's stake minus
         // TODO this is only needed until legacy allocations are closed,
@@ -264,12 +258,12 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         uint256 lockingPeriod = __DEPRECATED_thawingPeriod;
         if (lockingPeriod == 0) {
             sp.tokensStaked = stakedTokens - _tokens;
-            TokenUtils.pushTokens(_graphToken(), _serviceProvider, _tokens);
-            emit StakeWithdrawn(_serviceProvider, _tokens);
+            TokenUtils.pushTokens(_graphToken(), serviceProvider, _tokens);
+            emit StakeWithdrawn(serviceProvider, _tokens);
         } else {
             // Before locking more tokens, withdraw any unlocked ones if possible
             if (sp.__DEPRECATED_tokensLockedUntil != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
-                _withdraw(_serviceProvider);
+                _withdraw(serviceProvider);
             }
             // TODO remove after the transition period
             // Take into account period averaging for multiple unstake requests
@@ -285,7 +279,7 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
             // Update balances
             sp.__DEPRECATED_tokensLocked = sp.__DEPRECATED_tokensLocked + _tokens;
             sp.__DEPRECATED_tokensLockedUntil = block.number + lockingPeriod;
-            emit StakeLocked(_serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
+            emit StakeLocked(serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
         }
     }
 
@@ -357,15 +351,18 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
      * @param _serviceProvider The service provider on behalf of whom they're claiming to act
      * @param _verifier The verifier / data service on which they're claiming to act
      */
-    function isAuthorized(address _operator, address _serviceProvider, address _verifier) private view returns (bool) {
+    function isAuthorized(
+        address _operator,
+        address _serviceProvider,
+        address _verifier
+    ) public view override returns (bool) {
         if (_operator == _serviceProvider) {
             return true;
         }
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            return legacyOperatorAuth[_serviceProvider][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+            return legacyOperatorAuth[_serviceProvider][_operator];
         } else {
-            return
-                operatorAuth[_serviceProvider][_verifier][_operator] || globalOperatorAuth[_serviceProvider][_operator];
+            return operatorAuth[_serviceProvider][_verifier][_operator];
         }
     }
 
@@ -385,22 +382,12 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
     }
 
     /**
-     * @notice Check if an operator is authorized for the caller on all their allowlisted verifiers and global stake.
-     * @param _operator The address to check for auth
-     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
-     */
-    function isGlobalAuthorized(address _operator, address _serviceProvider) public view override returns (bool) {
-        return _operator == _serviceProvider || globalOperatorAuth[_serviceProvider][_operator];
-    }
-
-    /**
      * @notice Withdraw indexer tokens once the thawing period has passed.
      * @dev This is only needed during the transition period while we still have
      * a global lock. After that, unstake() will also withdraw.
      */
-    function withdrawLocked(address _serviceProvider) external override notPaused {
-        require(isGlobalAuthorized(msg.sender, _serviceProvider), "!auth");
-        _withdraw(_serviceProvider);
+    function withdrawLocked() external override notPaused {
+        _withdraw(msg.sender);
     }
 
     function delegate(address _serviceProvider, address _verifier, uint256 _tokens) public override notPartialPaused {

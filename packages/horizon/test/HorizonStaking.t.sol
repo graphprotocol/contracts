@@ -24,18 +24,12 @@ contract HorizonStakingTest is Test {
         staking = IHorizonStaking(address(new HorizonStaking(address(controller), address(ext), address(0x1))));
     }
 
-    function test_AllowVerifier() public {
-        address verifier = address(0x1337);
-        address serviceProvider = address(this);
-        HorizonStakingExtension(payable(address(staking))).allowVerifier(verifier);
-        assertTrue(staking.isAllowedVerifier(serviceProvider, verifier));
-    }
-
     function test_SetGlobalOperator() public {
         address operator = address(0x1337);
+        address dataService = address(0x1338);
         address serviceProvider = address(this);
 
-        staking.setGlobalOperator(operator, true);
-        assertTrue(staking.isGlobalAuthorized(operator, serviceProvider));
+        staking.setOperator(operator, dataService, true);
+        assertTrue(staking.isAuthorized(operator, serviceProvider, dataService));
     }
 }

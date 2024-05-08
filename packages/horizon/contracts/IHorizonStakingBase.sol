@@ -129,7 +129,7 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
     ) external;
 
     // moves thawed stake back to the owner's account - stake is removed from the protocol
-    function unstake(address _serviceProvider, uint256 _tokens) external;
+    function unstake(uint256 _tokens) external;
 
     // delegate tokens to a provider on a data service
     function delegate(address _serviceProvider, address _verifier, uint256 _tokens) external;
@@ -152,18 +152,19 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
     function getIdleStake(address _serviceProvider) external view returns (uint256 tokens);
 
     /**
-     * @notice Check if an operator is authorized for the caller on all their allowlisted verifiers and global stake.
-     * @param _operator The address to check for auth
-     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
-     */
-    function isGlobalAuthorized(address _operator, address _serviceProvider) external view returns (bool);
-
-    /**
      * @notice Withdraw indexer tokens once the thawing period has passed.
      * @dev This is only needed during the transition period while we still have
      * a global lock. After that, unstake() will also withdraw.
      */
-    function withdrawLocked(address _serviceProvider) external;
+    function withdrawLocked() external;
 
     function setDelegationSlashingEnabled(bool _enabled) external;
+
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @param _operator The address to check for auth
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param _verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool);
 }

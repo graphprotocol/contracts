@@ -25,10 +25,6 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         _;
     }
 
-    error HorizonStakingInvalidVerifier(address verifier);
-    error HorizonStakingVerifierAlreadyAllowed(address verifier);
-    error HorizonStakingVerifierNotAllowed(address verifier);
-
     constructor(
         address _controller,
         address _subgraphDataServiceAddress,
@@ -80,53 +76,6 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         sp.tokensProvisioned = spInternal.tokensProvisioned;
         sp.nextThawRequestNonce = spInternal.nextThawRequestNonce;
         return sp;
-    }
-
-    /**
-     * @notice Allow verifier for stake provisions.
-     * After calling this, and a timelock period, the service provider will
-     * be allowed to provision stake that is slashable by the verifier.
-     * @param _verifier The address of the contract that can slash the provision
-     */
-    function allowVerifier(address _verifier) external override {
-        if (_verifier == address(0)) {
-            revert HorizonStakingInvalidVerifier(_verifier);
-        }
-        if (verifierAllowlist[msg.sender][_verifier]) {
-            revert HorizonStakingVerifierAlreadyAllowed(_verifier);
-        }
-        verifierAllowlist[msg.sender][_verifier] = true;
-        emit VerifierAllowed(msg.sender, _verifier);
-    }
-
-    /**
-     * @notice Deny a verifier for stake provisions.
-     * After calling this, the service provider will immediately
-     * be unable to provision any stake to the verifier.
-     * Any existing provisions will be unaffected.
-     * @param _verifier The address of the contract that can slash the provision
-     */
-    function denyVerifier(address _verifier) external {
-        if (!verifierAllowlist[msg.sender][_verifier]) {
-            revert HorizonStakingVerifierNotAllowed(_verifier);
-        }
-        verifierAllowlist[msg.sender][_verifier] = false;
-        emit VerifierDenied(msg.sender, _verifier);
-    }
-
-    /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller on all data services.
-     * @param _operator Address to authorize or unauthorize
-     * @param _allowed Whether the operator is authorized or not
-     */
-    function setGlobalOperator(address _operator, bool _allowed) external override {
-        require(_operator != msg.sender, "operator == sender");
-        globalOperatorAuth[msg.sender][_operator] = _allowed;
-        emit GlobalOperatorSet(msg.sender, _operator, _allowed);
-    }
-
-    function isAllowedVerifier(address _serviceProvider, address _verifier) external view override returns (bool) {
-        return _verifier == SUBGRAPH_DATA_SERVICE_ADDRESS || verifierAllowlist[_serviceProvider][_verifier];
     }
 
     /**

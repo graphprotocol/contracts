@@ -50,24 +50,6 @@ abstract contract StakingBackwardsCompatibility is
     }
 
     /**
-     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
-     * @param _operator The address to check for auth
-     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
-     * @param _verifier The verifier / data service on which they're claiming to act
-     */
-    function isAuthorized(address _operator, address _serviceProvider, address _verifier) internal view returns (bool) {
-        if (_operator == _serviceProvider) {
-            return true;
-        }
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            return legacyOperatorAuth[_serviceProvider][_operator] || globalOperatorAuth[_serviceProvider][_operator];
-        } else {
-            return
-                operatorAuth[_serviceProvider][_verifier][_operator] || globalOperatorAuth[_serviceProvider][_operator];
-        }
-    }
-
-    /**
      * @notice Set the address of the counterpart (L1 or L2) staking contract.
      * @dev This function can only be called by the governor.
      * TODO: Remove after L2 transition period

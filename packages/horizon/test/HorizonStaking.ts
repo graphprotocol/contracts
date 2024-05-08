@@ -26,12 +26,13 @@ describe('HorizonStaking', function () {
     return { horizonStaking, owner }
   }
 
-  describe('Verifier allowlist', function () {
-    it('adds a verifier to the allowlist', async function () {
+  describe('setOperator', function () {
+    it('adds an operator', async function () {
       const { horizonStaking, owner } = await loadFixture(deployFixture)
       const verifier = ethers.Wallet.createRandom().address
-      await horizonStaking.connect(owner).allowVerifier(verifier)
-      expect(await horizonStaking.isAllowedVerifier(owner, verifier)).to.be.true
+      const operator = ethers.Wallet.createRandom().address
+      await horizonStaking.connect(owner).setOperator(operator, verifier, true)
+      expect(await horizonStaking.isAuthorized(operator, owner, verifier)).to.be.true
     })
   })
 })
