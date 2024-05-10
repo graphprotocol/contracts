@@ -325,4 +325,19 @@ contract GraphEscrowTest is Test {
         escrow.collect(sender, indexer, dataService, 1000 ether, IGraphPayments.PaymentType.IndexingFees, dataServiceCut);
         vm.stopPrank();
     }
+
+    function testCollect_RevertWhen_SenderHasInsufficientAmountInEscrow() public {
+        token.mint(sender, 1000 ether);
+        vm.startPrank(sender);
+        escrow.approveCollector(verifier, 1000 ether);
+        token.approve(address(escrow), 1000 ether);
+        escrow.deposit(receiver, 100 ether);
+        vm.stopPrank();
+
+        vm.prank(verifier);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAmount(uint256,uint256)", 100 ether, 200 ether);
+        vm.expectRevert(expectedError);
+        escrow.collect(sender, receiver, dataService, 200 ether, IGraphPayments.PaymentType.IndexingFees, 3 ether);
+        vm.stopPrank();
+    }
 }

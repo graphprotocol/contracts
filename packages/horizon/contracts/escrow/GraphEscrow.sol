@@ -175,7 +175,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         emit Withdraw(msg.sender, receiver, amount);
     }
 
-    // Collect from escrow (up to amount available in escrow) for a receiver using sender's deposit
+    // Collect from escrow for a receiver using sender's deposit
     function collect(
         address sender,
         address receiver, // serviceProvider
@@ -200,13 +200,22 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
 
         // Collect tokens from GraphEscrow up to amount available
         EscrowAccount storage account = escrowAccounts[sender][receiver];
-        uint256 available = account.balance - account.amountThawing;
-        uint256 collectAmount = amount > available ? available : amount;
-        account.balance -= collectAmount;
-        emit Collect(sender, receiver, collectAmount);
+        uint256 availableAmount = account.balance - account.amountThawing;
+        if (availableAmount < amount) {
+            revert GraphEscrowInsufficientAmount(availableAmount, amount);
+        }
+
+        account.balance -= amount;
+        emit Collect(sender, receiver, amount);
 
         // Approve tokens so GraphPayments can pull them
-        graphToken.approve(address(graphPayments), collectAmount);
-        graphPayments.collect(receiver, dataService, collectAmount, paymentType, tokensDataService);
+        graphToken.approve(address(graphPayments), amount);
+        graphPayments.collect(receiver, dataService, amount, paymentType, tokensDataService);
+    }
+
+    // Get the balance of a sender-receiver pair
+    function getBalance(address sender, address receiver) external view returns (uint256) {
+        EscrowAccount storage account = escrowAccounts[sender][receiver];
+        return account.balance - account.amountThawing;
     }
 }

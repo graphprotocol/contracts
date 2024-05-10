@@ -29,7 +29,7 @@ interface IGraphEscrow {
     // Withdraws all thawed escrow from a receiver's escrow account
     function withdraw(address receiver) external;
 
-    // Collect from escrow (up to amount available in escrow) for a receiver using sender's deposit
+    // Collect from escrow for a receiver using sender's deposit
     function collect(
         address sender,
         address receiver,
@@ -38,4 +38,6 @@ interface IGraphEscrow {
         IGraphPayments.PaymentType paymentType,
         uint256 tokensDataService
     ) external;
+
+    function getBalance(address sender, address receiver) external view returns (uint256);
 }
