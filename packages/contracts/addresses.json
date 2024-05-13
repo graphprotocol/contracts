@@ -705,12 +705,12 @@
       "txHash": "0xa33c0d58ddaed7e3f7381a33e3d5f63e39219863019f00d54ce2fd2446076ac7",
       "proxy": true,
       "implementation": {
-        "address": "0x4a886d3E44C7731Dcf888Da704CA5C51ed63DfC8",
-        "creationCodeHash": "0xa9796308a637b0bfe091f32c1019e4db8efe4bab80788c052fa334e6810c3a98",
-        "runtimeCodeHash": "0x19d3491cab54b2aae04d05525a532200e946ce9b55573b58f2e3e1606b4514be",
-        "txHash": "0xc3235306a51c20b28a8b05da69859e03a081a84c9914156c79da07dcc45b3b4e",
+        "address": "0x0Dae36adCbE384a31309269448E09465B2288429",
+        "creationCodeHash": "0x7bd2944ba001c51a42d88f89b10eb894e11be62ee96e76331309ff6a8e9b20ff",
+        "runtimeCodeHash": "0x0808fafef220cfddb64a51f680a18e455d5b7c6b9c0c7aad8f8067f4775dd204",
+        "txHash": "0x6bdee0f03f74df2b7e6141075b06a88b201cbc78a131aa0fe6bb1ef1da1e2dc1",
         "libraries": {
-          "LibExponential": "0x208f638d8804e4ccc874ec39e240feea3dc289ee"
+          "LibExponential": "0x6F436161bBa439FB7D0A6192D22dd8fcE4C26Fb5"
         }
       }
     },
@@ -1146,12 +1146,12 @@
       "txHash": "0x326cf1f2849da4bb4d7e39f2783779e3c99fa48e4ee8ef004cfdd50c62e775df",
       "proxy": true,
       "implementation": {
-        "address": "0xD07dFD514dc1b57020e6C1F49e05c48d0658C99f",
-        "creationCodeHash": "0x6a763345e5f166ea4e73ce9a116a49c9fc0833d9ea235a86fa5a997e91cf09e5",
-        "runtimeCodeHash": "0xb4c31859ac132241f04c802d4add70a94c7f2c6eb9dfd4bf224048d249dbc7bc",
-        "txHash": "0x68b34eda64287b84582c8f005c4e96162252d36c9c5c9b84332336a7c2e3d6d3",
+        "address": "0x64Ed77b164d3B22339DA4DB6d56a1C1d8A051c0A",
+        "creationCodeHash": "0x56a3dd587f3f4ae38dd782e9c35125fa7015c708394950de90bc190204502438",
+        "runtimeCodeHash": "0x9040ccf84a89ba2e7a32eb297f0da148827e7e272b20d9e57b1acf749baa35da",
+        "txHash": "0xbfec14a2dd1a571612076b71b4f2e78ea18f95d7d80e14cd1456ecaa7466db54",
         "libraries": {
-          "LibExponential": "0xd844116f6d79a280b117Bb6d9EBf4121D4e8B44b"
+          "LibExponential": "0x413d16eF53d3dd8b7e769570115ee5419CF77C98"
         }
       }
     },

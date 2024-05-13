@@ -134,12 +134,12 @@
       "txHash": "0x5ae51383f5ad1e434a78c2a6d5393d497be315c40287d827c63c4ca48cc66aca",
       "proxy": true,
       "implementation": {
-        "address": "0xC4Cfde877Bc77fD93378D33Ec26330127Ed93bbE",
-        "creationCodeHash": "0x9319aaf6b70b423fa04ad747f004961123e7833b269f69ecff902db13b010fa2",
-        "runtimeCodeHash": "0x9a3f54b5f61709d40a71892f241f61fc72cf95346e5d928f1d699ea57065efc4",
-        "txHash": "0x1e53eadecdb33a8e90e5c9bc3d02d438dd21217c5017b596b3e51f64be4501e2",
+        "address": "0x0a6b1efb7b2e9A27Cf7C5ED1bdF1Bd03bF8F5600",
+        "creationCodeHash": "0x60bc1fda6913ef750a1d931e87068d0f6cd62b8b42a4fff13b304b9c0c278557",
+        "runtimeCodeHash": "0xd8bbd97b94f8ac45a479c55c0416e7b0ebef6a99da8ef7580bebaaad1d8d74d9",
+        "txHash": "0x5d9276e47f3d1fa1fe5c6d826534722aa73d47f5a114e844de73a3cf0cb22d6b",
         "libraries": {
-          "LibExponential": "0x6f6Db03f7F3bBE43669F81FD954Bd083FEdBb4a5"
+          "LibExponential": "0xb7fB963257d4f31F88021d2D7Ee53688e38A0938"
         }
       }
     },

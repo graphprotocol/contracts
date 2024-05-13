@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 6.3.0
+
+### Minor Changes
+
+- Remove restriction that prevented closing allocations older than 1 epoch.
+
 ## 6.2.1
 
 ### Patch Changes

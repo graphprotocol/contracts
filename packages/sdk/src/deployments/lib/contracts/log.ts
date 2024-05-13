@@ -39,6 +39,7 @@ export function logContractDeployReceipt(
   runtimeCodeHash: string,
 ) {
   const msg: string[] = []
+  msg.push(`   = Contract deployed at: ${receipt.contractAddress}`)
   msg.push(`   = CreationCodeHash: ${creationCodeHash}`)
   msg.push(`   = RuntimeCodeHash: ${runtimeCodeHash}`)
   logToConsoleAndFile(msg)
