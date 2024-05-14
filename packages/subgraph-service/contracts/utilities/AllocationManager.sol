@@ -244,7 +244,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         if (signer != _allocationId) revert AllocationManagerInvalidAllocationProof(signer, _allocationId);
     }
 
-    function _encodeAllocationProof(address _indexer, address _allocationId) private view returns (bytes32) {
+    function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {
         return
             EIP712._hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));
     }

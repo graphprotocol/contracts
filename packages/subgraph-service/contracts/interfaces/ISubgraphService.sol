@@ -27,4 +27,6 @@ interface ISubgraphService is IDataServiceFees {
     function getAllocation(address allocationId) external view returns (Allocation.State memory);
 
     function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory);
+
+    function encodeAllocationProof(address _indexer, address _allocationId) external view returns (bytes32);
 }
