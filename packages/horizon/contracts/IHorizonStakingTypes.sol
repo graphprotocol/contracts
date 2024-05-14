@@ -15,6 +15,7 @@ interface IHorizonStakingTypes {
         uint32 maxVerifierCut;
         // time, in seconds, tokens must thaw before being withdrawn
         uint64 thawingPeriod;
+        uint64 createdAt;
         bytes32 firstThawRequestId;
         bytes32 lastThawRequestId;
         uint256 nThawRequests;
@@ -29,7 +30,7 @@ interface IHorizonStakingTypes {
         uint256 nextThawRequestNonce;
     }
 
-    struct DelegationPool {
+    struct DelegationPoolInternal {
         uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
         uint32 __DEPRECATED_indexingRewardCut; // in PPM
         uint32 __DEPRECATED_queryFeeCut; // in PPM
@@ -37,6 +38,13 @@ interface IHorizonStakingTypes {
         uint256 tokens; // Total tokens as pool reserves
         uint256 shares; // Total shares minted in the pool
         mapping(address => Delegation) delegators; // Mapping of delegator => Delegation
+        uint256 tokensThawing; // Tokens thawing in the pool
+        uint256 sharesThawing; // Shares representing the thawing tokens
+    }
+
+    struct DelegationPool {
+        uint256 tokens; // Total tokens as pool reserves
+        uint256 shares; // Total shares minted in the pool
         uint256 tokensThawing; // Tokens thawing in the pool
         uint256 sharesThawing; // Shares representing the thawing tokens
     }

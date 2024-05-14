@@ -167,4 +167,7 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
      * @param _verifier The verifier / data service on which they're claiming to act
      */
     function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool);
+
+    function getProviderTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
+    function setMaxThawingPeriod(uint64 _maxThawingPeriod) external;
 }

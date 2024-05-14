@@ -132,6 +132,47 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         }
     }
 
+    function getDelegationPool(
+        address _serviceProvider,
+        address _verifier
+    ) external view override returns (DelegationPool memory) {
+        DelegationPool memory pool;
+        DelegationPoolInternal storage poolInternal;
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            poolInternal = legacyDelegationPools[_serviceProvider];
+        } else {
+            poolInternal = delegationPools[_serviceProvider][_verifier];
+        }
+        pool.tokens = poolInternal.tokens;
+        pool.shares = poolInternal.shares;
+        pool.tokensThawing = poolInternal.tokensThawing;
+        pool.sharesThawing = poolInternal.sharesThawing;
+        return pool;
+    }
+
+    function getDelegation(
+        address _delegator,
+        address _serviceProvider,
+        address _verifier
+    ) external view override returns (Delegation memory) {
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            return legacyDelegationPools[_serviceProvider].delegators[_delegator];
+        } else {
+            return delegationPools[_serviceProvider][_verifier].delegators[_delegator];
+        }
+    }
+
+    function getThawRequest(bytes32 _thawRequestId) external view returns (ThawRequest memory) {
+        return thawRequests[_thawRequestId];
+    }
+
+    function getProvision(
+        address _serviceProvider,
+        address _verifier
+    ) external view override returns (Provision memory) {
+        return provisions[_serviceProvider][_verifier];
+    }
+
     /**
      * @dev Receive an Indexer's stake from L1.
      * The specified amount is added to the indexer's stake; the indexer's
@@ -161,7 +202,7 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         IL2StakingTypes.ReceiveDelegationData memory _delegationData
     ) internal {
         // Get the delegation pool of the indexer
-        DelegationPool storage pool = legacyDelegationPools[_delegationData.indexer];
+        DelegationPoolInternal storage pool = legacyDelegationPools[_delegationData.indexer];
         Delegation storage delegation = pool.delegators[_delegationData.delegator];
 
         // Calculate shares to issue (without applying any delegation tax)

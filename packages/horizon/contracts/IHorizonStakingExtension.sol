@@ -14,7 +14,6 @@ interface IHorizonStakingExtension {
     function getStake(address serviceProvider) external view returns (uint256);
 
     function getDelegatedTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
-
     function getTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
 
     function getServiceProvider(
@@ -30,4 +29,19 @@ interface IHorizonStakingExtension {
     function setOperator(address _operator, address _verifier, bool _allowed) external;
 
     function getMaxThawingPeriod() external view returns (uint64);
+
+    function getDelegationPool(
+        address _serviceProvider,
+        address _verifier
+    ) external view returns (IHorizonStakingTypes.DelegationPool memory);
+    function getDelegation(
+        address _delegator,
+        address _serviceProvider,
+        address _verifier
+    ) external view returns (IHorizonStakingTypes.Delegation memory);
+    function getThawRequest(bytes32 _thawRequestId) external view returns (IHorizonStakingTypes.ThawRequest memory);
+    function getProvision(
+        address _serviceProvider,
+        address _verifier
+    ) external view returns (IHorizonStakingTypes.Provision memory);
 }

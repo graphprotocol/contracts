@@ -320,7 +320,7 @@ abstract contract StakingBackwardsCompatibility is
      */
     function _collectDelegationQueryRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
-        DelegationPool storage pool = legacyDelegationPools[_indexer];
+        DelegationPoolInternal storage pool = legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && pool.__DEPRECATED_queryFeeCut < MAX_PPM) {
             uint256 indexerCut = (uint256(pool.__DEPRECATED_queryFeeCut) * _tokens) / MAX_PPM;
             delegationRewards = _tokens - indexerCut;
@@ -338,7 +338,7 @@ abstract contract StakingBackwardsCompatibility is
      */
     function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
-        DelegationPool storage pool = legacyDelegationPools[_indexer];
+        DelegationPoolInternal storage pool = legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
             uint256 indexerCut = (uint256(pool.__DEPRECATED_indexingRewardCut) * _tokens) / MAX_PPM;
             delegationRewards = _tokens - indexerCut;

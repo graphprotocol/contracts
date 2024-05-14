@@ -87,9 +87,9 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     /// Deprecated, no tax is applied now.
     uint32 internal __DEPRECATED_delegationTaxPercentage;
 
-    /// @dev Delegation pools : serviceProvider => DelegationPool
+    /// @dev Delegation pools : serviceProvider => DelegationPoolInternal
     /// These are for the subgraph data service.
-    mapping(address => DelegationPool) internal legacyDelegationPools;
+    mapping(address => DelegationPoolInternal) internal legacyDelegationPools;
 
     // -- Operators --
 
@@ -143,5 +143,5 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     bool public delegationSlashingEnabled;
 
     // delegation pools for each service provider and verifier
-    mapping(address => mapping(address => DelegationPool)) internal delegationPools;
+    mapping(address => mapping(address => DelegationPoolInternal)) internal delegationPools;
 }
