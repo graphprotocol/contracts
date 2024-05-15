@@ -58,4 +58,10 @@ interface IHorizonStakingExtension {
         uint256 _feeType,
         uint256 _feeCut
     ) external;
+
+    function getDelegationFeeCut(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _feeType
+    ) external view returns (uint256);
 }
