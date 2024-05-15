@@ -94,6 +94,8 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
 
     event DelegationSlashingEnabled(bool enabled);
 
+    event AllowedLockedVerifierSet(address verifier, bool allowed);
+
     // deposit stake
     function stake(uint256 _tokens) external;
 
@@ -104,6 +106,26 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
 
     // create a provision
     function provision(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _tokens,
+        uint32 _maxVerifierCut,
+        uint64 _thawingPeriod
+    ) external;
+
+    /**
+     * @notice Provision stake to a verifier using locked tokens (i.e. from GraphTokenLockWallets). The tokens will be locked with a thawing period
+     * and will be slashable by the verifier. This is the main mechanism to provision stake to a data
+     * service, where the data service is the verifier. Only authorized verifiers can be used.
+     * This function can be called by the service provider or by an operator authorized by the provider
+     * for this specific verifier.
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
+     * @param _tokens The amount of tokens that will be locked and slashable
+     * @param _maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
+     * @param _thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
+     */
+    function provisionLocked(
         address _serviceProvider,
         address _verifier,
         uint256 _tokens,
@@ -175,4 +197,6 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
 
     function getProviderTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
     function setMaxThawingPeriod(uint64 _maxThawingPeriod) external;
+
+    function setAllowedLockedVerifier(address _verifier, bool _allowed) external;
 }

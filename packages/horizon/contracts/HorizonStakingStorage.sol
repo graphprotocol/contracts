@@ -139,4 +139,7 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
 
     // delegation pools for each service provider and verifier
     mapping(address => mapping(address => DelegationPoolInternal)) internal delegationPools;
+
+    // allowed verifiers for locked provisions (i.e. from GraphTokenLockWallets)
+    mapping(address => bool) internal allowedLockedVerifiers;
 }
