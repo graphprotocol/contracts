@@ -11,6 +11,13 @@ interface IHorizonStakingExtension {
      */
     event OperatorSet(address indexed serviceProvider, address indexed operator, address verifier, bool allowed);
 
+    event DelegationFeeCutSet(
+        address indexed serviceProvider,
+        address indexed verifier,
+        uint256 feeType,
+        uint256 feeCut
+    );
+
     function getStake(address serviceProvider) external view returns (uint256);
 
     function getDelegatedTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
@@ -44,4 +51,11 @@ interface IHorizonStakingExtension {
         address _serviceProvider,
         address _verifier
     ) external view returns (IHorizonStakingTypes.Provision memory);
+
+    function setDelegationFeeCut(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _feeType,
+        uint256 _feeCut
+    ) external;
 }

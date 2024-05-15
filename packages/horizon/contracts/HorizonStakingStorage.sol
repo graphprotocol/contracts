@@ -102,9 +102,8 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     mapping(address => bool) private __DEPRECATED_assetHolders; // solhint-disable-line var-name-mixedcase
 
     /// @dev Destination of accrued rewards : beneficiary => rewards destination
-    /// Data services may optionally use this to determine where to send a service provider's
-    /// fees or rewards, or restake them if this is empty.
-    mapping(address => address) internal rewardsDestination;
+    /// Deprecated, defined by each data service as needed
+    mapping(address => address) internal __DEPRECATED_rewardsDestination;
 
     /// @dev Address of the counterpart Staking contract on L1/L2
     address internal counterpartStakingAddress;
@@ -114,10 +113,6 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     // Additional rebate parameters for exponential rebates
     uint32 internal __DEPRECATED_lambdaNumerator;
     uint32 internal __DEPRECATED_lambdaDenominator;
-
-    /// Verifier allowlist by service provider
-    /// serviceProvider => verifier => allowed
-    mapping(address => mapping(address => bool)) internal verifierAllowlist;
 
     /// Maximum thawing period, in seconds, for a provision
     uint64 internal maxThawingPeriod;

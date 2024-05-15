@@ -173,6 +173,16 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         return provisions[_serviceProvider][_verifier];
     }
 
+    function setDelegationFeeCut(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _feeType,
+        uint256 _feeCut
+    ) external override {
+        delegationFeeCut[_serviceProvider][_verifier][_feeType] = _feeCut;
+        emit DelegationFeeCutSet(_serviceProvider, _verifier, _feeType, _feeCut);
+    }
+
     /**
      * @dev Receive an Indexer's stake from L1.
      * The specified amount is added to the indexer's stake; the indexer's

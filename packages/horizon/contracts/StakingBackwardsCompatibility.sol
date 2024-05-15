@@ -159,7 +159,7 @@ abstract contract StakingBackwardsCompatibility is
                 queryRebates = queryRebates - delegationRewards;
 
                 // -- Transfer or restake rebates --
-                _sendRewards(queryRebates, alloc.indexer, rewardsDestination[alloc.indexer] == address(0));
+                _sendRewards(queryRebates, alloc.indexer, __DEPRECATED_rewardsDestination[alloc.indexer] == address(0));
             }
         }
 
@@ -437,7 +437,7 @@ abstract contract StakingBackwardsCompatibility is
         uint256 indexerRewards = totalRewards - delegationRewards;
 
         // Send the indexer rewards
-        _sendRewards(indexerRewards, _indexer, rewardsDestination[_indexer] == address(0));
+        _sendRewards(indexerRewards, _indexer, __DEPRECATED_rewardsDestination[_indexer] == address(0));
     }
 
     /**
@@ -454,7 +454,7 @@ abstract contract StakingBackwardsCompatibility is
             _stake(_beneficiary, _amount);
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
-            address destination = rewardsDestination[_beneficiary];
+            address destination = __DEPRECATED_rewardsDestination[_beneficiary];
             TokenUtils.pushTokens(_graphToken(), destination == address(0) ? _beneficiary : destination, _amount);
         }
     }
