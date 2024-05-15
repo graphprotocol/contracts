@@ -35,7 +35,7 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     /// @dev Period for allocation to be finalized
     uint32 private __DEPRECATED_channelDisputeEpochs; // solhint-disable-line var-name-mixedcase
 
-    /// @dev Maximum allocation time
+    /// @dev Maximum allocation time. Deprecated, allocations now live on the subgraph service contract.
     uint32 internal __DEPRECATED_maxAllocationEpochs;
 
     /// @dev Rebate alpha numerator
@@ -59,21 +59,21 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     /// Deprecated, now applied on the SubgraphService
     mapping(bytes32 => uint256) internal __DEPRECATED_subgraphAllocations;
 
-    // Rebate pools : epoch => Pool
+    /// @dev Rebate pools : epoch => Pool
+    /// Deprecated.
     mapping(uint256 => uint256) private __DEPRECATED_rebates; // solhint-disable-line var-name-mixedcase
 
     // -- Slashing --
 
     /// @dev List of addresses allowed to slash stakes
-    /// Deprecated, now allowlisted by each service provider by setting a verifier
+    /// Deprecated, now each verifier can slash the corresponding provision.
     mapping(address => bool) internal __DEPRECATED_slashers;
 
     // -- Delegation --
 
-    /// @dev Set the delegation capacity multiplier defined by the delegation ratio
-    /// If delegation ratio is 100, and an Indexer has staked 5 GRT,
-    /// then they can use up to 500 GRT from the delegated stake
-    uint32 internal delegationRatio;
+    /// @dev Delegation capacity multiplier defined by the delegation ratio
+    /// Deprecated, now applied by each data service as needed.
+    uint32 internal __DEPRECATED_delegationRatio;
 
     /// @dev Time in blocks an indexer needs to wait to change delegation parameters (deprecated)
     uint32 internal __DEPRECATED_delegationParametersCooldown; // solhint-disable-line var-name-mixedcase

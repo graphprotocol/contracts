@@ -4,6 +4,12 @@ pragma solidity 0.8.24;
 
 import { IGraphToken } from "../IGraphToken.sol";
 
+/**
+ * @title TokenUtils library
+ * @notice This library contains utility functions for handling tokens (transfers and burns).
+ * It is specifically adapted for the GraphToken, so does not need to handle edge cases
+ * for other tokens.
+ */
 library TokenUtils {
     /**
      * @dev Pull tokens from an address to this contract.

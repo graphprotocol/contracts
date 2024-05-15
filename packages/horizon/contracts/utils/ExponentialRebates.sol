@@ -5,8 +5,10 @@ pragma solidity 0.8.24;
 import { LibFixedMath } from "./LibFixedMath.sol";
 
 /**
- * @title Exponential
+ * @title ExponentialRebates contract
  * @notice A library to compute query fee rebates using an exponential formula
+ * @dev This is only used for backwards compatibility in HorizonStaking, and should
+ * be removed after the transition period.
  */
 contract ExponentialRebates {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.

@@ -4,6 +4,13 @@ pragma solidity 0.8.24;
 
 import { IController } from "@graphprotocol/contracts/contracts/governance/IController.sol";
 
+/**
+ * @title GraphDirectory contract
+ * @notice This contract is meant to be inherited by other contracts that
+ * need to keep track of the addresses of the core Graph Horizon contracts.
+ * It fetches the addresses from the Controller supplied during construction,
+ * and uses immutable variables to minimize gas costs.
+ */
 contract GraphDirectory {
     address public immutable CONTROLLER;
     address public immutable STAKING;

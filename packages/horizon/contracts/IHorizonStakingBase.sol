@@ -132,13 +132,18 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
     function unstake(uint256 _tokens) external;
 
     // delegate tokens to a provider on a data service
-    function delegate(address _serviceProvider, address _verifier, uint256 _tokens) external;
+    function delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) external;
 
     // undelegate (thaw) delegated tokens from a provision
     function undelegate(address _serviceProvider, address _verifier, uint256 _shares) external;
 
     // withdraw delegated tokens after thawing
-    function withdrawDelegated(address _serviceProvider, address _verifier, address _newServiceProvider) external;
+    function withdrawDelegated(
+        address _serviceProvider,
+        address _verifier,
+        address _newServiceProvider,
+        uint256 _minSharesForNewProvider
+    ) external;
 
     function slash(
         address _serviceProvider,

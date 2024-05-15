@@ -13,30 +13,33 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 /**
  * @title HorizonStaking contract
- * @dev This contract is the main Staking contract in The Graph protocol after Horizon.
+ * @dev This contract is the main Staking contract in The Graph protocol after the Horizon upgrade.
  * It is designed to be deployed as an upgrade to the L2Staking contract from the legacy contracts
  * package.
- * It uses an HorizonStakingExtension contract to implement the full IHorizonStaking interface through delegatecalls.
+ * It uses a HorizonStakingExtension contract to implement the full IHorizonStaking interface through delegatecalls.
  * This is due to the contract size limit on Arbitrum (24kB like mainnet).
  */
 contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUpgradeable {
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
-    /// Maximum value that can be set as the maxVerifierCut in a provision.
+    /// @dev Maximum value that can be set as the maxVerifierCut in a provision.
     /// It is equivalent to 100% in parts-per-million
     uint32 private constant MAX_MAX_VERIFIER_CUT = 1000000; // 100%
 
-    /// Minimum size of a provision
+    /// @dev Minimum size of a provision
     uint256 private constant MIN_PROVISION_SIZE = 1e18;
 
-    /// Maximum number of simultaneous stake thaw requests or undelegations
+    /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
     uint256 private constant MAX_THAW_REQUESTS = 100;
 
+    /// @dev Fixed point precision
     uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
-    /// Minimum delegation size
-    uint256 private constant MINIMUM_DELEGATION = 1e18;
+    /// @dev Minimum amount of delegation to prevent rounding attacks.
+    /// TODO: remove this after L2 transfer tool for delegation is removed
+    /// (delegation on L2 has its own slippage protection)
+    uint256 private constant MIN_DELEGATION = 1e18;
 
     address private immutable STAKING_EXTENSION_ADDRESS;
     address private immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
@@ -52,6 +55,7 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
     error HorizonStakingInsufficientCapacityForLegacyAllocations();
     error HorizonStakingTooManyThawRequests();
     error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
+    error HorizonStakingSlippageProtection(uint256 minExpectedAmount, uint256 actualAmount);
 
     modifier onlyAuthorized(address _serviceProvider, address _verifier) {
         if (!isAuthorized(msg.sender, _serviceProvider, _verifier)) {
@@ -477,15 +481,21 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         _withdraw(msg.sender);
     }
 
-    function delegate(address _serviceProvider, address _verifier, uint256 _tokens) public override notPartialPaused {
+    function delegate(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _tokens,
+        uint256 _minSharesOut
+    ) public override notPartialPaused {
         // Transfer tokens to stake from caller to this contract
         TokenUtils.pullTokens(_graphToken(), msg.sender, _tokens);
-        _delegate(_serviceProvider, _verifier, _tokens);
+        _delegate(_serviceProvider, _verifier, _tokens, _minSharesOut);
     }
 
     // For backwards compatibility, delegates to the subgraph data service
+    // (Note this one doesn't have splippage/rounding protection!)
     function delegate(address _serviceProvider, uint256 _tokens) external {
-        delegate(_serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, _tokens);
+        delegate(_serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, _tokens, 0);
     }
 
     // For backwards compatibility, undelegates from the subgraph data service
@@ -495,15 +505,21 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
 
     // For backwards compatibility, withdraws delegated tokens from the subgraph data service
     function withdrawDelegated(address _serviceProvider, address _newServiceProvider) external {
-        withdrawDelegated(_serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, _newServiceProvider);
+        withdrawDelegated(_serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, _newServiceProvider, 0);
     }
 
-    function _delegate(address _serviceProvider, address _verifier, uint256 _tokens) internal {
-        require(_tokens > 0, "!tokens");
-        require(provisions[_serviceProvider][_verifier].tokens >= 0, "!provision");
+    function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) internal {
+        if (_tokens == 0) {
+            revert HorizonStakingInvalidZeroTokens();
+        }
+        // TODO: remove this after L2 transfer tool for delegation is removed
+        if (_tokens < MIN_DELEGATION) {
+            revert HorizonStakingInsufficientTokens(MIN_DELEGATION, _tokens);
+        }
+        if (provisions[_serviceProvider][_verifier].tokens == 0) {
+            revert HorizonStakingInvalidProvision(_serviceProvider, _verifier);
+        }
 
-        // Only allow delegations over a minimum, to prevent rounding attacks
-        require(_tokens >= MINIMUM_DELEGATION, "!minimum-delegation");
         DelegationPoolInternal storage pool;
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             pool = legacyDelegationPools[_serviceProvider];
@@ -514,7 +530,9 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
 
         // Calculate shares to issue
         uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
-        require(shares > 0, "!shares");
+        if (shares == 0 || shares < _minSharesOut) {
+            revert HorizonStakingSlippageProtection(_minSharesOut, shares);
+        }
 
         pool.tokens = pool.tokens + _tokens;
         pool.shares = pool.shares + shares;
@@ -546,7 +564,7 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         delegation.shares = delegation.shares - _shares;
         if (delegation.shares != 0) {
             uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-            require(remainingTokens >= MINIMUM_DELEGATION, "!minimum-delegation");
+            require(remainingTokens >= MIN_DELEGATION, "!minimum-delegation");
         }
         bytes32 thawRequestId = keccak256(
             abi.encodePacked(_serviceProvider, _verifier, msg.sender, delegation.nextThawRequestNonce)
@@ -573,7 +591,8 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
     function withdrawDelegated(
         address _serviceProvider,
         address _verifier,
-        address _newServiceProvider
+        address _newServiceProvider,
+        uint256 _minSharesForNewProvider
     ) public override notPartialPaused {
         DelegationPoolInternal storage pool;
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
@@ -612,7 +631,7 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         pool.tokensThawing = tokensThawing;
 
         if (_newServiceProvider != address(0)) {
-            _delegate(_newServiceProvider, _verifier, thawedTokens);
+            _delegate(_newServiceProvider, _verifier, thawedTokens, _minSharesForNewProvider);
         } else {
             TokenUtils.pushTokens(_graphToken(), msg.sender, thawedTokens);
         }

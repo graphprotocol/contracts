@@ -21,12 +21,17 @@ contract ControllerMock is IController {
     /// Emitted when the proxy address for a protocol contract has been set
     event SetContractProxy(bytes32 indexed id, address contractAddress);
 
+    /**
+     * Constructor for the Controller mock
+     * @param _governor Address of the governor
+     */
     constructor(address _governor) {
         governor = _governor;
     }
 
     /**
      * @notice Getter to access governor
+     * @return Address of the governor
      */
     function getGovernor() external view override returns (address) {
         return governor;
@@ -56,7 +61,7 @@ contract ControllerMock is IController {
 
     /**
      * @notice Get contract proxy address by its id
-     * @param _id Contract id
+     * @param _id Contract id (keccak256 hash of contract name)
      * @return Address of the proxy contract for the provided id
      */
     function getContractProxy(bytes32 _id) external view override returns (address) {
@@ -64,9 +69,9 @@ contract ControllerMock is IController {
     }
 
     /**
-     * @notice Update contract's controller
+     * @notice Update a contract's controller
      * @param _id Contract id (keccak256 hash of contract name)
-     * @param _controller Controller address
+     * @param _controller New Controller address
      */
     function updateController(bytes32 _id, address _controller) external override {
         require(_controller != address(0), "Controller must be set");
