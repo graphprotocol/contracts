@@ -262,7 +262,6 @@ abstract contract StakingBackwardsCompatibility is
         // Validate that an allocation cannot be closed before one epoch
         alloc.closedAtEpoch = _epochManager().currentEpoch();
         uint256 epochs = MathUtils.diffOrZero(alloc.closedAtEpoch, alloc.createdAtEpoch);
-        require(epochs > 0, "<epochs");
 
         // Indexer or operator can close an allocation
         // Anyone is allowed to close ONLY under two concurrent conditions
