@@ -11,8 +11,7 @@ import { Managed } from "./Managed.sol";
 import { IGraphToken } from "./IGraphToken.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
-/**
- * @title HorizonStaking contract
+contract
  * @dev This contract is the main Staking contract in The Graph protocol after the Horizon upgrade.
  * It is designed to be deployed as an upgrade to the L2Staking contract from the legacy contracts
  * package.
@@ -54,8 +53,11 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
     error HorizonStakingInsufficientShares();
     error HorizonStakingInsufficientCapacityForLegacyAllocations();
     error HorizonStakingTooManyThawRequests();
+    error HorizonStakingNotEnoughThawedTokens();
+    error HorizonStakingStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
     error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
     error HorizonStakingSlippageProtection(uint256 minExpectedAmount, uint256 actualAmount);
+    error HorizonStakingNoThawRequest();
 
     modifier onlyAuthorized(address _serviceProvider, address _verifier) {
         if (!isAuthorized(msg.sender, _serviceProvider, _verifier)) {
@@ -429,7 +431,16 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
     ) external override notPartialPaused {
         address verifier = msg.sender;
         Provision storage prov = provisions[_serviceProvider][verifier];
-        if (prov.tokens < _tokens) {
+
+        DelegationPoolInternal storage pool;
+        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            pool = legacyDelegationPools[_serviceProvider];
+        } else {
+            pool = delegationPools[_serviceProvider][verifier];
+        }
+
+        uint256 tokensAvailable = prov.tokens + pool.tokens;
+        if (tokensAvailable < _tokens) {
             revert HorizonStakingInsufficientTokens(_tokens, prov.tokens);
         }
 
@@ -459,12 +470,6 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
 
         tokensToSlash = tokensToSlash - providerTokensSlashed;
         if (tokensToSlash > 0) {
-            DelegationPoolInternal storage pool;
-            if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-                pool = legacyDelegationPools[_serviceProvider];
-            } else {
-                pool = delegationPools[_serviceProvider][verifier];
-            }
             if (delegationSlashingEnabled) {
                 require(pool.tokens >= tokensToSlash, "insufficient delegated tokens");
                 TokenUtils.burnTokens(_graphToken(), tokensToSlash);
@@ -681,11 +686,14 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
             pool = delegationPools[_serviceProvider][_verifier];
         }
         Delegation storage delegation = pool.delegators[msg.sender];
+        if (delegation.nThawRequests == 0) {
+            revert HorizonStakingNoThawRequest();
+        }
         uint256 thawedTokens = 0;
 
         uint256 sharesThawing = pool.sharesThawing;
         uint256 tokensThawing = pool.tokensThawing;
-        require(delegation.nThawRequests > 0, "no thaw requests");
+
         bytes32 thawRequestId = delegation.firstThawRequestId;
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = thawRequests[thawRequestId];
@@ -796,10 +804,14 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         uint256 sharesThawing = prov.sharesThawing;
         uint256 tokensThawing = prov.tokensThawing;
         while (tokensRemaining > 0) {
-            require(prov.nThawRequests > 0, "not enough thawed tokens");
+            if (prov.nThawRequests == 0) {
+                revert HorizonStakingNotEnoughThawedTokens();
+            }
             bytes32 thawRequestId = prov.firstThawRequestId;
             ThawRequest storage thawRequest = thawRequests[thawRequestId];
-            require(thawRequest.thawingUntil <= block.timestamp, "thawing period not over");
+            if (thawRequest.thawingUntil > block.timestamp) {
+                revert HorizonStakingStillThawing(block.timestamp, thawRequest.thawingUntil);
+            }
             uint256 thawRequestTokens = (thawRequest.shares * tokensThawing) / sharesThawing;
             if (thawRequestTokens <= tokensRemaining) {
                 tokensRemaining = tokensRemaining - thawRequestTokens;
