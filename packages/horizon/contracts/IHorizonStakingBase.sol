@@ -98,6 +98,20 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
 
     event TokensAddedToDelegationPool(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
+    event ProvisionParametersStaged(
+        address indexed serviceProvider,
+        address indexed verifier,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    );
+
+    event ProvisionParametersSet(
+        address indexed serviceProvider,
+        address indexed verifier,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    );
+
     // deposit stake
     function stake(uint256 _tokens) external;
 
@@ -210,4 +224,13 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
      * @param _tokens The amount of tokens to add to the delegation pool
      */
     function addToDelegationPool(address _serviceProvider, address _verifier, uint256 _tokens) external;
+
+    function setProvisionParameters(
+        address _serviceProvider,
+        address _verifier,
+        uint32 _maxVerifierCut,
+        uint64 _thawingPeriod
+    ) external;
+
+    function acceptProvisionParameters(address _serviceProvider) external;
 }

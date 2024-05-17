@@ -133,6 +133,26 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         _stake(_serviceProvider, _tokens);
     }
 
+    function setProvisionParameters(
+        address _serviceProvider,
+        address _verifier,
+        uint32 _maxVerifierCut,
+        uint64 _thawingPeriod
+    ) external override notPartialPaused onlyAuthorized(_serviceProvider, _verifier) {
+        Provision storage prov = provisions[_serviceProvider][_verifier];
+        prov.maxVerifierCutPending = _maxVerifierCut;
+        prov.thawingPeriodPending = _thawingPeriod;
+        emit ProvisionParametersStaged(_serviceProvider, _verifier, _maxVerifierCut, _thawingPeriod);
+    }
+
+    function acceptProvisionParameters(address _serviceProvider) external override notPartialPaused {
+        address verifier = msg.sender;
+        Provision storage prov = provisions[_serviceProvider][verifier];
+        prov.maxVerifierCut = prov.maxVerifierCutPending;
+        prov.thawingPeriod = prov.thawingPeriodPending;
+        emit ProvisionParametersSet(_serviceProvider, verifier, prov.maxVerifierCut, prov.thawingPeriod);
+    }
+
     /**
      * @notice Deposit tokens on the service provider stake, on behalf of the service provider, provisioned
      * to a specific verifier. The provider must have previously provisioned stake to that verifier.
@@ -760,7 +780,9 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
             createdAt: uint64(block.timestamp),
             firstThawRequestId: bytes32(0),
             lastThawRequestId: bytes32(0),
-            nThawRequests: 0
+            nThawRequests: 0,
+            maxVerifierCutPending: _maxVerifierCut,
+            thawingPeriodPending: _thawingPeriod
         });
 
         ServiceProviderInternal storage sp = serviceProviders[_serviceProvider];

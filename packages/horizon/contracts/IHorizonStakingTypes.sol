@@ -19,6 +19,10 @@ interface IHorizonStakingTypes {
         bytes32 firstThawRequestId;
         bytes32 lastThawRequestId;
         uint256 nThawRequests;
+        // max amount that can be taken by the verifier when slashing, expressed in parts-per-million of the amount slashed
+        uint32 maxVerifierCutPending;
+        // time, in seconds, tokens must thaw before being withdrawn
+        uint64 thawingPeriodPending;
     }
 
     struct ServiceProvider {
