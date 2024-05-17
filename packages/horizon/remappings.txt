@@ -3,3 +3,4 @@ forge-std/=lib/forge-std/src/
 ds-test/=lib/forge-std/lib/ds-test/src/
 eth-gas-reporter/=node_modules/eth-gas-reporter/
 hardhat/=node_modules/hardhat/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
