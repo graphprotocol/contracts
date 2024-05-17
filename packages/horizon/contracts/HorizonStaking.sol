@@ -197,7 +197,9 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         if (getIdleStake(_serviceProvider) < _tokens) {
             revert HorizonStakingInsufficientCapacity();
         }
-
+        if (!allowedLockedVerifiers[_verifier]) {
+            revert HorizonStakingInvalidVerifier(_verifier);
+        }
         _createProvision(_serviceProvider, _tokens, _verifier, _maxVerifierCut, _thawingPeriod);
     }
 
@@ -508,7 +510,7 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
      * @dev This is only needed during the transition period while we still have
      * a global lock. After that, unstake() will also withdraw.
      */
-    function withdrawLocked() external override notPaused {
+    function withdraw() external override notPaused {
         _withdraw(msg.sender);
     }
 
@@ -592,7 +594,10 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         pool.tokensThawing = pool.tokensThawing + tokens;
 
         pool.shares = pool.shares - _shares;
+        pool.sharesThawing = pool.sharesThawing + thawingShares;
+
         delegation.shares = delegation.shares - _shares;
+        // TODO: remove this when L2 transfer tools are removed
         if (delegation.shares != 0) {
             uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
             require(remainingTokens >= MIN_DELEGATION, "!minimum-delegation");
@@ -617,6 +622,31 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
             delegation.nThawRequests += 1;
         }
         emit TokensUndelegated(_serviceProvider, _verifier, msg.sender, tokens);
+    }
+
+    /**
+     * @notice Add tokens to a delegation pool (without getting shares).
+     * Used by data services to pay delegation fees/rewards.
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address for which the tokens are provisioned
+     * @param _tokens The amount of tokens to add to the delegation pool
+     */
+    function addToDelegationPool(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _tokens
+    ) external override notPartialPaused {
+        if (_tokens == 0) {
+            revert HorizonStakingInvalidZeroTokens();
+        }
+        DelegationPoolInternal storage pool;
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            pool = legacyDelegationPools[_serviceProvider];
+        } else {
+            pool = delegationPools[_serviceProvider][_verifier];
+        }
+        pool.tokens = pool.tokens + _tokens;
+        emit TokensAddedToDelegationPool(_serviceProvider, _verifier, _tokens);
     }
 
     function withdrawDelegated(
