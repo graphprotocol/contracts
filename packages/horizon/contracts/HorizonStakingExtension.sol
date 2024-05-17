@@ -6,6 +6,7 @@ import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.s
 import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 import { IL2StakingTypes } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingTypes.sol";
 import { IHorizonStakingExtension } from "./IHorizonStakingExtension.sol";
+import { MathUtils } from "./utils/MathUtils.sol";
 
 /**
  * @title L2Staking contract
@@ -62,11 +63,18 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
     }
 
     // provisioned tokens that are not being thawed (including provider tokens and delegation)
-    function getTokensAvailable(address _serviceProvider, address _verifier) external view override returns (uint256) {
-        return
-            provisions[_serviceProvider][_verifier].tokens -
-            provisions[_serviceProvider][_verifier].tokensThawing +
-            getDelegatedTokensAvailable(_serviceProvider, _verifier);
+    function getTokensAvailable(
+        address _serviceProvider,
+        address _verifier,
+        uint32 _delegationRatio
+    ) external view override returns (uint256) {
+        uint256 providerTokens = provisions[_serviceProvider][_verifier].tokens;
+        uint256 tokensDelegatedMax = providerTokens * (uint256(_delegationRatio));
+        uint256 tokensDelegatedCapacity = MathUtils.min(
+            getDelegatedTokensAvailable(_serviceProvider, _verifier),
+            tokensDelegatedMax
+        );
+        return providerTokens - provisions[_serviceProvider][_verifier].tokensThawing + tokensDelegatedCapacity;
     }
 
     function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {

@@ -21,7 +21,11 @@ interface IHorizonStakingExtension {
     function getStake(address serviceProvider) external view returns (uint256);
 
     function getDelegatedTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
-    function getTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
+    function getTokensAvailable(
+        address _serviceProvider,
+        address _verifier,
+        uint32 _delegationRatio
+    ) external view returns (uint256);
 
     function getServiceProvider(
         address serviceProvider
