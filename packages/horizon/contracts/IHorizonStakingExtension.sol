@@ -35,6 +35,9 @@ interface IHorizonStakingExtension {
      */
     function setOperator(address _operator, address _verifier, bool _allowed) external;
 
+    // for vesting contracts
+    function setOperatorLocked(address _operator, address _verifier, bool _allowed) external;
+
     function getMaxThawingPeriod() external view returns (uint64);
 
     function getDelegationPool(

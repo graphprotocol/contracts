@@ -94,6 +94,14 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
     }
 
+    // for vesting contracts
+    function setOperatorLocked(address _operator, address _verifier, bool _allowed) external override {
+        require(_operator != msg.sender, "operator == sender");
+        require(allowedLockedVerifiers[_verifier], "VERIFIER_NOT_ALLOWED");
+        operatorAuth[msg.sender][_verifier][_operator] = _allowed;
+        emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
+    }
+
     function getMaxThawingPeriod() external view override returns (uint64) {
         return maxThawingPeriod;
     }
