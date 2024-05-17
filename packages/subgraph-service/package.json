@@ -1,0 +1,63 @@
+{
+  "name": "@graphprotocol/subgraph-service",
+  "version": "0.0.1",
+  "description": "",
+  "author": "The Graph Team",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "lint:ts": "eslint '**/*.{js,ts}' --fix",
+    "lint:sol": "prettier --write contracts/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
+    "lint": "yarn lint:ts && yarn lint:sol",
+    "clean": "rm -rf build cache typechain-types",
+    "build": "forge build && hardhat compile",
+    "test": "forge test && hardhat test"
+  },
+  "devDependencies": {
+    "@graphprotocol/contracts": "workspace:^7.0.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-foundry": "^1.1.1",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.2.0",
+    "@types/mocha": ">=9.1.0",
+    "@types/node": ">=16.0.0",
+    "chai": "^4.2.0",
+    "eslint": "^8.56.0",
+    "eslint-graph-config": "workspace:^0.0.1",
+    "ethers": "^6.4.0",
+    "hardhat": "^2.20.1",
+    "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-storage-layout": "^0.1.7",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.3.1",
+    "solhint": "^4.5.4",
+    "solhint-graph-config": "workspace:^0.0.1",
+    "solhint-plugin-graph": "file:node_modules/solhint-graph-config/plugin",
+    "solidity-coverage": "^0.8.0",
+    "solidity-docgen": "^0.6.0-beta.36",
+    "ts-node": ">=8.0.0",
+    "typechain": "^8.3.0",
+    "typescript": "^5.3.3"
+  },
+  "lint-staged": {
+    "contracts/**/*.sol": [
+      "yarn lint:sol"
+    ],
+    "**/*.ts": [
+      "yarn lint:ts"
+    ],
+    "**/*.js": [
+      "yarn lint:ts"
+    ],
+    "**/*.json": [
+      "yarn lint:ts"
+    ]
+  }
+}

@@ -13,6 +13,7 @@
     "packages/horizon",
     "packages/sdk",
     "packages/solhint-graph-config",
+    "packages/subgraph-service",
     "packages/token-distribution"
   ],
   "scripts": {

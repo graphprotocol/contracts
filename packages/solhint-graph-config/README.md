@@ -17,6 +17,13 @@ yarn add --dev solhint solhint-graph-config
 yarn add --dev solhint solhint-graph-config@workspace:^x.y.z
 ```
 
+To use graph plugin you'll also need to manually add the plugin to your `package.json`:
+```json
+  "devDependencies": {
+    "solhint-plugin-graph": "file:node_modules/solhint-graph-config/plugin"
+  }
+```
+
 ### Configuration
 
 Run `solhint` with `node_modules/solhint-graph-config/index.js` as the configuration file. We suggest creating an npm script to make it easier to run:

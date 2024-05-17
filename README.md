@@ -41,6 +41,7 @@ This repository is a Yarn workspaces monorepo containing the following packages:
 | [horizon](./packages/horizon) | [![npm version]()]() | Contracts for Graph Horizon, the next iteration of The Graph protocol. |
 | [sdk](./packages/sdk) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk) | TypeScript based SDK to interact with the protocol contracts |
 | [solhint-graph-config](./packages/eslint-graph-config) | [![npm version]()]() | Shared linting and formatting rules for Solidity projects. |
+| [subgraph-service](./packages/subgraph-service) | [![npm version]()]() | Contracts for the Subgraph data service in Graph Horizon. |
 | [token-distribution](./packages/token-distribution) | - | Contracts managing token locks for network participants |
 
 
