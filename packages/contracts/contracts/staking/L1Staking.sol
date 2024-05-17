@@ -9,12 +9,12 @@ import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { Staking } from "./Staking.sol";
 import { Stakes } from "./libs/Stakes.sol";
 import { IStakingData } from "./IStakingData.sol";
-import { IL2Staking } from "../l2/staking/IL2Staking.sol";
 import { L1StakingV1Storage } from "./L1StakingStorage.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { IL1StakingBase } from "./IL1StakingBase.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";
+import { IL2StakingTypes } from "../l2/staking/IL2StakingTypes.sol";
 
 /**
  * @title L1Staking contract
@@ -267,11 +267,11 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             );
         }
 
-        IL2Staking.ReceiveIndexerStakeData memory functionData;
+        IL2StakingTypes.ReceiveIndexerStakeData memory functionData;
         functionData.indexer = _l2Beneficiary;
 
         bytes memory extraData = abi.encode(
-            uint8(IL2Staking.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE),
+            uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE),
             abi.encode(functionData)
         );
 
@@ -324,10 +324,13 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         delegation.shares = 0;
         bytes memory extraData;
         {
-            IL2Staking.ReceiveDelegationData memory functionData;
+            IL2StakingTypes.ReceiveDelegationData memory functionData;
             functionData.indexer = indexerTransferredToL2[_indexer];
             functionData.delegator = _l2Beneficiary;
-            extraData = abi.encode(uint8(IL2Staking.L1MessageCodes.RECEIVE_DELEGATION_CODE), abi.encode(functionData));
+            extraData = abi.encode(
+                uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE),
+                abi.encode(functionData)
+            );
         }
 
         _sendTokensAndMessageToL2Staking(

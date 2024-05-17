@@ -1,0 +1,26 @@
+name: CI - packages/data-edge
+
+env:
+  CI: true
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - packages/data-edge/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/data-edge/**
+  workflow_dispatch:
+
+jobs:
+  test-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Run tests
+        run: yarn test

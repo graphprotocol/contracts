@@ -8,6 +8,7 @@ import { Staking } from "../../staking/Staking.sol";
 import { IL2StakingBase } from "./IL2StakingBase.sol";
 import { IL2Staking } from "./IL2Staking.sol";
 import { Stakes } from "../../staking/libs/Stakes.sol";
+import { IL2StakingTypes } from "./IL2StakingTypes.sol";
 
 /**
  * @title L2Staking contract
@@ -63,16 +64,16 @@ contract L2Staking is Staking, IL2StakingBase {
         require(_from == counterpartStakingAddress, "ONLY_L1_STAKING_THROUGH_BRIDGE");
         (uint8 code, bytes memory functionData) = abi.decode(_data, (uint8, bytes));
 
-        if (code == uint8(IL2Staking.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE)) {
-            IL2Staking.ReceiveIndexerStakeData memory indexerData = abi.decode(
+        if (code == uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE)) {
+            IL2StakingTypes.ReceiveIndexerStakeData memory indexerData = abi.decode(
                 functionData,
-                (IL2Staking.ReceiveIndexerStakeData)
+                (IL2StakingTypes.ReceiveIndexerStakeData)
             );
             _receiveIndexerStake(_amount, indexerData);
-        } else if (code == uint8(IL2Staking.L1MessageCodes.RECEIVE_DELEGATION_CODE)) {
-            IL2Staking.ReceiveDelegationData memory delegationData = abi.decode(
+        } else if (code == uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE)) {
+            IL2StakingTypes.ReceiveDelegationData memory delegationData = abi.decode(
                 functionData,
-                (IL2Staking.ReceiveDelegationData)
+                (IL2StakingTypes.ReceiveDelegationData)
             );
             _receiveDelegation(_amount, delegationData);
         } else {
@@ -87,7 +88,10 @@ contract L2Staking is Staking, IL2StakingBase {
      * @param _amount Amount of tokens that were transferred
      * @param _indexerData struct containing the indexer's address
      */
-    function _receiveIndexerStake(uint256 _amount, IL2Staking.ReceiveIndexerStakeData memory _indexerData) internal {
+    function _receiveIndexerStake(
+        uint256 _amount,
+        IL2StakingTypes.ReceiveIndexerStakeData memory _indexerData
+    ) internal {
         address _indexer = _indexerData.indexer;
         // Deposit tokens into the indexer stake
         __stakes[_indexer].deposit(_amount);
@@ -108,7 +112,10 @@ contract L2Staking is Staking, IL2StakingBase {
      * @param _amount Amount of tokens that were transferred
      * @param _delegationData struct containing the delegator's address and the indexer's address
      */
-    function _receiveDelegation(uint256 _amount, IL2Staking.ReceiveDelegationData memory _delegationData) internal {
+    function _receiveDelegation(
+        uint256 _amount,
+        IL2StakingTypes.ReceiveDelegationData memory _delegationData
+    ) internal {
         // Get the delegation pool of the indexer
         DelegationPool storage pool = __delegationPools[_delegationData.indexer];
         Delegation storage delegation = pool.delegators[_delegationData.delegator];

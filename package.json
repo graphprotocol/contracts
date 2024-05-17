@@ -8,6 +8,7 @@
   "packageManager": "yarn@4.0.2",
   "workspaces": [
     "packages/contracts",
+    "packages/data-edge",
     "packages/eslint-graph-config",
     "packages/horizon",
     "packages/sdk",

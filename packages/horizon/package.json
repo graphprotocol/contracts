@@ -10,7 +10,7 @@
     "lint": "yarn lint:ts && yarn lint:sol",
     "clean": "rm -rf build cache typechain-types",
     "build": "forge build && hardhat compile",
-    "test": "forge test && hardhat test"
+    "test": "forge test -vvv && hardhat test"
   },
   "devDependencies": {
     "@graphprotocol/contracts": "workspace:^7.0.0",
@@ -20,6 +20,7 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@openzeppelin/contracts": "^5.0.2",
     "@typechain/ethers-v6": "^0.5.0",
     "@typechain/hardhat": "^9.0.0",
     "@types/chai": "^4.2.0",
