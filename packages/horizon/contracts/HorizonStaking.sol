@@ -434,15 +434,14 @@ contract HorizonStaking is HorizonStakingV1Storage, IHorizonStakingBase, GraphUp
         }
 
         uint256 tokensToSlash = _tokens;
-
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
-        require((prov.tokens * prov.maxVerifierCut) / MAX_PPM >= _verifierCutAmount, "verifier cut too high");
-        if (_verifierCutAmount > 0) {
-            TokenUtils.pushTokens(_graphToken(), _verifierCutDestination, _verifierCutAmount);
-            emit VerifierCutSent(_serviceProvider, verifier, _verifierCutDestination, _verifierCutAmount);
-        }
         if (providerTokensSlashed > 0) {
-            TokenUtils.burnTokens(_graphToken(), providerTokensSlashed);
+            require((prov.tokens * prov.maxVerifierCut) / MAX_PPM >= _verifierCutAmount, "verifier cut too high");
+            if (_verifierCutAmount > 0) {
+                TokenUtils.pushTokens(_graphToken(), _verifierCutDestination, _verifierCutAmount);
+                emit VerifierCutSent(_serviceProvider, verifier, _verifierCutDestination, _verifierCutAmount);
+            }
+            TokenUtils.burnTokens(_graphToken(), providerTokensSlashed - _verifierCutAmount);
             uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
             // TODO check for rounding issues
             prov.tokensThawing =
