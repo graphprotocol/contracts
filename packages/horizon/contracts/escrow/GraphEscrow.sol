@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import { IGraphToken } from "../IGraphToken.sol";
 import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { GraphDirectory } from "../GraphDirectory.sol";
@@ -99,7 +100,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
     // Deposit funds into the escrow for a receiver
     function deposit(address receiver, uint256 amount) external {
         escrowAccounts[msg.sender][receiver].balance += amount;
-        TokenUtils.pullTokens(graphToken, msg.sender, amount);
+        TokenUtils.pullTokens(IGraphToken(GRAPH_TOKEN), msg.sender, amount);
         emit Deposit(msg.sender, receiver, amount);
     }
 
@@ -119,7 +120,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
             emit Deposit(msg.sender, receiver, amount);
         }
 
-        TokenUtils.pullTokens(graphToken, msg.sender, totalAmount);
+        TokenUtils.pullTokens(IGraphToken(GRAPH_TOKEN), msg.sender, totalAmount);
     }
 
     // Requests to thaw a specific amount of escrow from a receiver's escrow account
@@ -171,7 +172,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         account.balance -= amount; // Reduce the balance by the withdrawn amount (no underflow risk)
         account.amountThawing = 0;
         account.thawEndTimestamp = 0;
-        TokenUtils.pushTokens(graphToken, msg.sender, amount);
+        TokenUtils.pushTokens(IGraphToken(GRAPH_TOKEN), msg.sender, amount);
         emit Withdraw(msg.sender, receiver, amount);
     }
 
@@ -209,6 +210,8 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         emit Collect(sender, receiver, amount);
 
         // Approve tokens so GraphPayments can pull them
+        IGraphToken graphToken = IGraphToken(GRAPH_TOKEN);
+        IGraphPayments graphPayments = IGraphPayments(GRAPH_PAYMENTS);
         graphToken.approve(address(graphPayments), amount);
         graphPayments.collect(receiver, dataService, amount, paymentType, tokensDataService);
     }

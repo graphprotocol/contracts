@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import { IGraphToken } from "../IGraphToken.sol";
+import { IHorizonStaking } from "../IHorizonStaking.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
 
-contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
+aphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
     // -- Errors --
 
     error GraphPaymentsNotThawing();
@@ -36,6 +38,8 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         IGraphPayments.PaymentType paymentType,
         uint256 tokensDataService
     ) external {
+        IGraphToken graphToken = IGraphToken(GRAPH_TOKEN);
+        IHorizonStaking staking = IHorizonStaking(STAKING);
         TokenUtils.pullTokens(graphToken, msg.sender, amount);
 
         // Pay protocol cut
@@ -46,12 +50,12 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         TokenUtils.pushTokens(graphToken, dataService, tokensDataService);
 
         // Get delegation cut
-        uint256 delegatorCut = graphStaking.getDelegationCut(receiver, uint8(paymentType));
-        uint256 delegatorPayment = (amount * delegatorCut) / MAX_PPM;
-        graphStaking.addToDelegationPool(receiver, delegatorPayment);
+        uint256 delegationFeeCut = staking.getDelegationFeeCut(receiver, dataService, uint8(paymentType));
+        uint256 tokensDelegationPool = (amount * delegationFeeCut) / MAX_PPM;
+        staking.addToDelegationPool(receiver, dataService, tokensDelegationPool);
 
         // Pay the rest to the receiver
-        uint256 receiverPayment = amount - tokensProtocol - tokensDataService - delegatorPayment;
-        TokenUtils.pushTokens(graphToken, receiver, receiverPayment);
+        uint256 tokensReceiver = amount - tokensProtocol - tokensDataService - tokensDelegationPool;
+        TokenUtils.pushTokens(graphToken, receiver, tokensReceiver);
     }
 }
