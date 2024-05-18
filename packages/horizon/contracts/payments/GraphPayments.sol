@@ -8,7 +8,7 @@ import { GraphDirectory } from "../GraphDirectory.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
 
-aphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
+contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
     // -- Errors --
 
     error GraphPaymentsNotThawing();

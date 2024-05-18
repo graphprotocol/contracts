@@ -8,7 +8,8 @@ import { IL2StakingTypes } from "@graphprotocol/contracts/contracts/l2/staking/I
 import { IHorizonStakingExtension } from "./IHorizonStakingExtension.sol";
 import { MathUtils } from "./utils/MathUtils.sol";
 
-act
+/**
+ * @title L2Staking contract
  * @dev This contract is the L2 variant of the Staking contract. It adds a function
  * to receive an indexer's stake or delegation from L1. Note that this contract inherits Staking,
  * which uses a StakingExtension contract to implement the full IStaking interface through delegatecalls.
