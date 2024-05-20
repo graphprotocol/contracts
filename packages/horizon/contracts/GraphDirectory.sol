@@ -21,6 +21,8 @@ contract GraphDirectory {
     // Legacy contracts (pre-Horizon) used for StakingBackwardCompatibility
     address public immutable REWARDS_MANAGER;
     address public immutable CURATION;
+    address public immutable GRAPH_PAYMENTS;
+    address public immutable GRAPH_ESCROW;
 
     constructor(address _controller) {
         CONTROLLER = _controller;
@@ -30,5 +32,7 @@ contract GraphDirectory {
         GRAPH_TOKEN_GATEWAY = IController(_controller).getContractProxy(keccak256("GraphTokenGateway"));
         REWARDS_MANAGER = IController(_controller).getContractProxy(keccak256("RewardsManager"));
         CURATION = IController(_controller).getContractProxy(keccak256("Curation"));
+        GRAPH_PAYMENTS = IController(_controller).getContractProxy(keccak256("GraphPayments"));
+        GRAPH_ESCROW = IController(_controller).getContractProxy(keccak256("GraphEscrow"));
     }
 }
