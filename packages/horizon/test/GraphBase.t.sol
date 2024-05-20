@@ -7,9 +7,9 @@ import { Controller } from "@graphprotocol/contracts/contracts/governance/Contro
 
 import { GraphEscrow } from "contracts/escrow/GraphEscrow.sol";
 import { GraphPayments } from "contracts/payments/GraphPayments.sol";
-import { IHorizonStaking } from "contracts/IHorizonStaking.sol";
-import { HorizonStaking } from "contracts/HorizonStaking.sol";
-import { HorizonStakingExtension } from "contracts/HorizonStakingExtension.sol";
+import { IHorizonStaking } from "contracts/interfaces/IHorizonStaking.sol";
+import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
+import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtension.sol";
 import { MockGRTToken } from "../contracts/mocks/MockGRTToken.sol";
 import { Constants } from "./utils/Constants.sol";
 import { Users } from "./utils/Users.sol";
@@ -28,7 +28,6 @@ abstract contract GraphBaseTest is Test, Constants {
     HorizonStakingExtension private stakingExtension;
 
     address subgraphDataServiceAddress = makeAddr("subgraphDataServiceAddress");
-    address exponentialRebates = makeAddr("exponentialRebates");
 
     /* Users */
 
@@ -103,7 +102,7 @@ abstract contract GraphBaseTest is Test, Constants {
         bytes32 saltHorizonStakingExtension = keccak256("HorizonStakingExtensionSalt");
         bytes32 horizonStakingExtensionHash = keccak256(bytes.concat(
             vm.getCode("HorizonStakingExtension.sol:HorizonStakingExtension"),
-            abi.encode(address(controller), subgraphDataServiceAddress, exponentialRebates)
+            abi.encode(address(controller), subgraphDataServiceAddress)
         ));
         address predictedAddressHorizonStakingExtension = vm.computeCreate2Address(
             saltHorizonStakingExtension,
@@ -121,18 +120,18 @@ abstract contract GraphBaseTest is Test, Constants {
                 subgraphDataServiceAddress
             )
         ));
-        address predictedAddressHorizonStaking = vm.computeCreate2Address(
-            saltHorizonStaking,
-            horizonStakingHash,
-            users.deployer
-        );
+        // address predictedAddressHorizonStaking = vm.computeCreate2Address(
+        //     saltHorizonStaking,
+        //     horizonStakingHash,
+        //     users.deployer
+        // );
 
         // Setup controller
         vm.startPrank(users.governor);
         controller.setContractProxy(keccak256("GraphToken"), address(token));
         controller.setContractProxy(keccak256("GraphEscrow"), predictedAddressEscrow);
         controller.setContractProxy(keccak256("GraphPayments"), predictedPaymentsAddress);
-        controller.setContractProxy(keccak256("Staking"), predictedAddressHorizonStaking);
+        // controller.setContractProxy(keccak256("Staking"), predictedAddressHorizonStaking);
         vm.stopPrank();
         
         vm.startPrank(users.deployer);
@@ -151,11 +150,10 @@ abstract contract GraphBaseTest is Test, Constants {
             subgraphDataServiceAddress
         );
         staking = IHorizonStaking(address(stakingBase));
-        stakingExtension = new HorizonStakingExtension{salt: saltHorizonStakingExtension}(
-            address(controller),
-            subgraphDataServiceAddress,
-            exponentialRebates
-        );
+        // stakingExtension = new HorizonStakingExtension{salt: saltHorizonStakingExtension}(
+        //     address(controller),
+        //     subgraphDataServiceAddress
+        // );
         vm.stopPrank();
     }
 

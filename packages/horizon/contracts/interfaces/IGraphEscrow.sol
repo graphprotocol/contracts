@@ -35,7 +35,7 @@ interface IGraphEscrow {
         address receiver,
         address dataService,
         uint256 amount,
-        IGraphPayments.PaymentType paymentType,
+        IGraphPayments.PaymentTypes paymentType,
         uint256 tokensDataService
     ) external;
 

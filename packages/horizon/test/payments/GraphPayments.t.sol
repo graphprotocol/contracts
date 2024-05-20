@@ -25,7 +25,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         // Collect payments through GraphPayments
         uint256 dataServiceCut = 30 ether; // 3%
         uint256 indexerPreviousBalance = token.balanceOf(users.indexer);
-        payments.collect(users.indexer, subgraphDataServiceAddress, amount, IGraphPayments.PaymentType.IndexingFees, dataServiceCut);
+        payments.collect(users.indexer, subgraphDataServiceAddress, amount, IGraphPayments.PaymentTypes.IndexingFee, dataServiceCut);
         vm.stopPrank();
 
         uint256 indexerBalance = token.balanceOf(users.indexer);

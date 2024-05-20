@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphToken } from "../IGraphToken.sol";
+import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
-import { TokenUtils } from "../utils/TokenUtils.sol";
+import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirectory {
     // -- Errors --
@@ -182,7 +182,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         address receiver, // serviceProvider
         address dataService,
         uint256 amount,
-        IGraphPayments.PaymentType paymentType,
+        IGraphPayments.PaymentTypes paymentType,
         uint256 tokensDataService
     ) external {
         // Check if collector is authorized and has enough funds

@@ -2,11 +2,13 @@
 
 pragma solidity 0.8.24;
 
-import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.sol";
 import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 import { IL2StakingTypes } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingTypes.sol";
-import { IHorizonStakingExtension } from "./IHorizonStakingExtension.sol";
-import { MathUtils } from "./utils/MathUtils.sol";
+import { IHorizonStakingExtension } from "../interfaces/IHorizonStakingExtension.sol";
+
+import { MathUtils } from "../libraries/MathUtils.sol";
+
+import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.sol";
 
 /**
  * @title L2Staking contract
@@ -28,9 +30,8 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
 
     constructor(
         address _controller,
-        address _subgraphDataServiceAddress,
-        address _exponentialRebates
-    ) StakingBackwardsCompatibility(_controller, _subgraphDataServiceAddress, _exponentialRebates) {}
+        address _subgraphDataServiceAddress
+    ) StakingBackwardsCompatibility(_controller, _subgraphDataServiceAddress) {}
 
     /**
      * @notice Receive ETH into the Staking contract: this will always revert

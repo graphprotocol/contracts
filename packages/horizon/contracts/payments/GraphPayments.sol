@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphToken } from "../IGraphToken.sol";
-import { IHorizonStaking } from "../IHorizonStaking.sol";
+import { IGraphToken } from "../interfaces/IGraphToken.sol";
+import { IHorizonStaking } from "../interfaces/IHorizonStaking.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
-import { TokenUtils } from "../utils/TokenUtils.sol";
+import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
     // -- Errors --
@@ -35,7 +35,7 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         address receiver, // serviceProvider
         address dataService,
         uint256 amount,
-        IGraphPayments.PaymentType paymentType,
+        IGraphPayments.PaymentTypes paymentType,
         uint256 tokensDataService
     ) external {
         IGraphToken graphToken = IGraphToken(GRAPH_TOKEN);

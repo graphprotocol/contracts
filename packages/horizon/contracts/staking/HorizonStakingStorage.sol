@@ -2,9 +2,10 @@
 
 pragma solidity 0.8.24;
 
-import { Managed } from "./Managed.sol";
-import { IStakingBackwardsCompatibility } from "./IStakingBackwardsCompatibility.sol";
-import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
+import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
+import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
+
+import { Managed } from "./utilities/Managed.sol";
 
 /**
  * @title HorizonStakingV1Storage

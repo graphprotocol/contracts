@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.24;
 
-import { IGraphToken } from "../IGraphToken.sol";
+import { IGraphToken } from "../interfaces/IGraphToken.sol";
 
 /**
  * @title TokenUtils library
