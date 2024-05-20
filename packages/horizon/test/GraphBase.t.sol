@@ -57,6 +57,14 @@ abstract contract GraphBaseTest is Test, Constants {
         // Deploy protocol contracts
         deployProtocolContracts();
         unpauseProtocol();
+
+        // Label contracts
+        vm.label({ account: address(controller), newLabel: "Controller" });
+        vm.label({ account: address(token), newLabel: "GraphToken" });
+        vm.label({ account: address(payments), newLabel: "GraphPayments" });
+        vm.label({ account: address(escrow), newLabel: "GraphEscrow" });
+        vm.label({ account: address(staking), newLabel: "HorizonStaking" });
+        vm.label({ account: address(stakingExtension), newLabel: "HorizonStakingExtension" });
     }
 
     function deployProtocolContracts() private {
@@ -158,7 +166,9 @@ abstract contract GraphBaseTest is Test, Constants {
 
     function createUser(string memory name) private returns (address) {
         address user = makeAddr(name);
-        deal({ token: address(token), to: user, give: 10000 ether });
+        vm.deal({ account: user, newBalance: 100 ether });
+        deal({ token: address(token), to: user, give: type(uint256).max });
+        vm.label({ account: user, newLabel: name });
         return user;
     }
 

@@ -5,15 +5,13 @@ import "forge-std/Test.sol";
 
 import { GraphBaseTest } from "../../GraphBase.t.sol";
 
-abstract contract HorizonStaking_Shared_Test is GraphBaseTest {
+abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     /* Set Up */
 
-    // function setUp() public virtual override {
-    //     GraphBaseTest.setUp();
-
-        
-    // }
+    function setUp() public virtual override {
+        GraphBaseTest.setUp();  
+    }
 
     /* Helpers */
 

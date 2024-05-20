@@ -5,9 +5,9 @@ import "forge-std/Test.sol";
 
 import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
 
-import { HorizonStaking_Shared_Test } from "../shared/horizon-staking/HorizonStaking.t.sol";
+import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStaking.t.sol";
 
-contract GraphPaymentsTest is HorizonStaking_Shared_Test {
+contract GraphPaymentsTest is HorizonStakingSharedTest {
 
     function testCollect() public {
         // Setup Staking
