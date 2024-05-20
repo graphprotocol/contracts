@@ -3,6 +3,9 @@
 pragma solidity >=0.6.12 <0.9.0;
 pragma abicoder v2;
 
+// TODO: create custom var-name-mixedcase
+/* solhint-disable var-name-mixedcase */
+
 interface IHorizonStakingTypes {
     struct Provision {
         // service provider tokens in the provision
@@ -77,7 +80,7 @@ interface IHorizonStakingTypes {
         // Tokens on the Service Provider stake (staked by the provider)
         uint256 tokensStaked;
         // Tokens used in allocations
-        uint256 __DEPRECATED_tokensAllocated;
+        uint256 __DEPRECATED_tokensAllocated; // solhint-disable-line graph/leading-underscore
         // Tokens locked for withdrawal subject to thawing period
         uint256 __DEPRECATED_tokensLocked;
         // Block when locked tokens can be withdrawn

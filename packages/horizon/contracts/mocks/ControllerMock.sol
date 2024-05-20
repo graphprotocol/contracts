@@ -12,7 +12,7 @@ import { IManaged } from "@graphprotocol/contracts/contracts/governance/IManaged
  */
 contract ControllerMock is IController {
     /// @dev Track contract ids to contract proxy address
-    mapping(bytes32 => address) private _registry;
+    mapping(bytes32 contractName => address contractAddress) private _registry;
     address public governor;
     bool internal _paused;
     bool internal _partialPaused;
@@ -23,10 +23,71 @@ contract ControllerMock is IController {
 
     /**
      * Constructor for the Controller mock
-     * @param _governor Address of the governor
+     * @param governor_ Address of the governor
      */
-    constructor(address _governor) {
-        governor = _governor;
+    constructor(address governor_) {
+        governor = governor_;
+    }
+
+    // -- Registry --
+
+    /**
+     * @notice Register contract id and mapped address
+     * @param id Contract id (keccak256 hash of contract name)
+     * @param contractAddress Contract address
+     */
+    function setContractProxy(bytes32 id, address contractAddress) external override {
+        require(contractAddress != address(0), "Contract address must be set");
+        _registry[id] = contractAddress;
+        emit SetContractProxy(id, contractAddress);
+    }
+
+    /**
+     * @notice Unregister a contract address
+     * @param id Contract id (keccak256 hash of contract name)
+     */
+    function unsetContractProxy(bytes32 id) external override {
+        _registry[id] = address(0);
+        emit SetContractProxy(id, address(0));
+    }
+
+    /**
+     * @notice Update a contract's controller
+     * @param id Contract id (keccak256 hash of contract name)
+     * @param controller New Controller address
+     */
+    function updateController(bytes32 id, address controller) external override {
+        require(controller != address(0), "Controller must be set");
+        return IManaged(_registry[id]).setController(controller);
+    }
+
+    // -- Pausing --
+
+    /**
+     * @notice Change the partial paused state of the contract
+     * Partial pause is intended as a partial pause of the protocol
+     * @param toPause True if the contracts should be (partially) paused, false otherwise
+     */
+    function setPartialPaused(bool toPause) external override {
+        _partialPaused = toPause;
+    }
+
+    /**
+     * @notice Change the paused state of the contract
+     * Full pause most of protocol functions
+     * @param toPause True if the contracts should be paused, false otherwise
+     */
+    function setPaused(bool toPause) external override {
+        _paused = toPause;
+    }
+
+    /**
+     * @notice Change the Pause Guardian
+     * @param newPauseGuardian The address of the new Pause Guardian
+     */
+    function setPauseGuardian(address newPauseGuardian) external override {
+        require(newPauseGuardian != address(0), "PauseGuardian must be set");
+        _pauseGuardian = newPauseGuardian;
     }
 
     /**
@@ -37,74 +98,13 @@ contract ControllerMock is IController {
         return governor;
     }
 
-    // -- Registry --
-
-    /**
-     * @notice Register contract id and mapped address
-     * @param _id Contract id (keccak256 hash of contract name)
-     * @param _contractAddress Contract address
-     */
-    function setContractProxy(bytes32 _id, address _contractAddress) external override {
-        require(_contractAddress != address(0), "Contract address must be set");
-        _registry[_id] = _contractAddress;
-        emit SetContractProxy(_id, _contractAddress);
-    }
-
-    /**
-     * @notice Unregister a contract address
-     * @param _id Contract id (keccak256 hash of contract name)
-     */
-    function unsetContractProxy(bytes32 _id) external override {
-        _registry[_id] = address(0);
-        emit SetContractProxy(_id, address(0));
-    }
-
     /**
      * @notice Get contract proxy address by its id
-     * @param _id Contract id (keccak256 hash of contract name)
+     * @param id Contract id (keccak256 hash of contract name)
      * @return Address of the proxy contract for the provided id
      */
-    function getContractProxy(bytes32 _id) external view override returns (address) {
-        return _registry[_id];
-    }
-
-    /**
-     * @notice Update a contract's controller
-     * @param _id Contract id (keccak256 hash of contract name)
-     * @param _controller New Controller address
-     */
-    function updateController(bytes32 _id, address _controller) external override {
-        require(_controller != address(0), "Controller must be set");
-        return IManaged(_registry[_id]).setController(_controller);
-    }
-
-    // -- Pausing --
-
-    /**
-     * @notice Change the partial paused state of the contract
-     * Partial pause is intended as a partial pause of the protocol
-     * @param _toPause True if the contracts should be (partially) paused, false otherwise
-     */
-    function setPartialPaused(bool _toPause) external override {
-        _partialPaused = _toPause;
-    }
-
-    /**
-     * @notice Change the paused state of the contract
-     * Full pause most of protocol functions
-     * @param _toPause True if the contracts should be paused, false otherwise
-     */
-    function setPaused(bool _toPause) external override {
-        _paused = _toPause;
-    }
-
-    /**
-     * @notice Change the Pause Guardian
-     * @param _newPauseGuardian The address of the new Pause Guardian
-     */
-    function setPauseGuardian(address _newPauseGuardian) external override {
-        require(_newPauseGuardian != address(0), "PauseGuardian must be set");
-        _pauseGuardian = _newPauseGuardian;
+    function getContractProxy(bytes32 id) external view override returns (address) {
+        return _registry[id];
     }
 
     /**

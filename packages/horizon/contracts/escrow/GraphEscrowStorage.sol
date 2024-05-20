@@ -17,8 +17,8 @@ contract GraphEscrowStorageV1Storage {
     uint256 public constant MAX_THAWING_PERIOD = 90 days;
 
     // Thawing period for authorized collectors
-    uint256 public immutable revokeCollectorThawingPeriod;
+    uint256 public immutable REVOKE_COLLECTOR_THAWING_PERIOD;
 
     // The duration (in seconds) in which escrow funds are thawing before they can be withdrawn
-    uint256 public immutable withdrawEscrowThawingPeriod;
+    uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
 }

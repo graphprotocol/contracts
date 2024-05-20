@@ -7,6 +7,9 @@ import { IManaged } from "../../interfaces/IManaged.sol";
 
 import { GraphDirectory } from "../../GraphDirectory.sol";
 
+// TODO: create custom var-name-mixedcase
+/* solhint-disable var-name-mixedcase */
+
 /**
  * @title Graph Managed contract
  * @dev The Managed contract provides an interface to interact with the Controller.
@@ -19,7 +22,7 @@ abstract contract Managed is IManaged, GraphDirectory {
     /// Controller that manages this contract
     IController private __DEPRECATED_controller;
     /// @dev Cache for the addresses of the contracts retrieved from the controller
-    mapping(bytes32 => address) private __DEPRECATED_addressCache;
+    mapping(bytes32 contractName => address contractAddress) private __DEPRECATED_addressCache;
     /// @dev Gap for future storage variables
     uint256[10] private __gap;
 
@@ -34,41 +37,6 @@ abstract contract Managed is IManaged, GraphDirectory {
     event ContractSynced(bytes32 indexed nameHash, address contractAddress);
 
     error ManagedSetControllerDeprecated();
-
-    constructor(address _controller) GraphDirectory(_controller) {}
-
-    function controller() public view override returns (IController) {
-        return IController(CONTROLLER);
-    }
-
-    /**
-     * @dev Revert if the controller is paused or partially paused
-     */
-    function _notPartialPaused() internal view {
-        require(!controller().paused(), "Paused");
-        require(!controller().partialPaused(), "Partial-paused");
-    }
-
-    /**
-     * @dev Revert if the controller is paused
-     */
-    function _notPaused() internal view virtual {
-        require(!controller().paused(), "Paused");
-    }
-
-    /**
-     * @dev Revert if the caller is not the governor
-     */
-    function _onlyGovernor() internal view {
-        require(msg.sender == controller().getGovernor(), "Only Controller governor");
-    }
-
-    /**
-     * @dev Revert if the caller is not the Controller
-     */
-    function _onlyController() internal view {
-        require(msg.sender == CONTROLLER, "Caller must be Controller");
-    }
 
     /**
      * @dev Revert if the controller is paused or partially paused
@@ -102,10 +70,45 @@ abstract contract Managed is IManaged, GraphDirectory {
         _;
     }
 
+    constructor(address controller_) GraphDirectory(controller_) {}
+
     /**
      * @notice Set Controller. Deprecated, will revert.
      */
     function setController(address) external view override onlyController {
         revert ManagedSetControllerDeprecated();
+    }
+
+    function controller() public view override returns (IController) {
+        return IController(CONTROLLER);
+    }
+
+    /**
+     * @dev Revert if the controller is paused or partially paused
+     */
+    function _notPartialPaused() internal view {
+        require(!controller().paused(), "Paused");
+        require(!controller().partialPaused(), "Partial-paused");
+    }
+
+    /**
+     * @dev Revert if the controller is paused
+     */
+    function _notPaused() internal view virtual {
+        require(!controller().paused(), "Paused");
+    }
+
+    /**
+     * @dev Revert if the caller is not the governor
+     */
+    function _onlyGovernor() internal view {
+        require(msg.sender == controller().getGovernor(), "Only Controller governor");
+    }
+
+    /**
+     * @dev Revert if the caller is not the Controller
+     */
+    function _onlyController() internal view {
+        require(msg.sender == CONTROLLER, "Caller must be Controller");
     }
 }

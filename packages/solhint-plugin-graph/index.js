@@ -4,6 +4,8 @@ function hasLeadingUnderscore(text) {
 
 class Base {
   constructor(reporter, config, source, fileName) {
+    this.ignoreDeprecated = true;
+    this.deprecatedPrefix = '__DEPRECATED_';
     this.reporter = reporter;
     this.ignored = this.constructor.global;
     this.ruleId = this.constructor.ruleId;
@@ -68,6 +70,10 @@ module.exports = [
     }
 
     validateName(node, type) {
+      if (this.ignoreDeprecated && node.name.startsWith(this.deprecatedPrefix)) {
+        return
+      }
+
       const isPrivate = node.visibility === 'private'
       const isInternal = node.visibility === 'internal' || node.visibility === 'default'
       const isConstant = node.isDeclaredConst

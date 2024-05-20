@@ -9,18 +9,6 @@ import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirectory {
-    // -- Errors --
-
-    error GraphEscrowNotGraphPayments();
-    error GraphEscrowInputsLengthMismatch();
-    error GraphEscrowInsufficientThawAmount();
-    error GraphEscrowInsufficientAmount(uint256 available, uint256 required);
-    error GraphEscrowNotThawing();
-    error GraphEscrowStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
-    error GraphEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
-    error GraphEscrowCollectorNotAuthorized(address sender, address dataService);
-    error GraphEscrowCollectorInsufficientAmount(uint256 available, uint256 required);
-
     // -- Events --
 
     event AuthorizedCollector(address indexed sender, address indexed dataService);
@@ -39,23 +27,35 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
     event Withdraw(address indexed sender, address indexed receiver, uint256 amount);
     event Collect(address indexed sender, address indexed receiver, uint256 amount);
 
+    // -- Errors --
+
+    error GraphEscrowNotGraphPayments();
+    error GraphEscrowInputsLengthMismatch();
+    error GraphEscrowInsufficientThawAmount();
+    error GraphEscrowInsufficientAmount(uint256 available, uint256 required);
+    error GraphEscrowNotThawing();
+    error GraphEscrowStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
+    error GraphEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
+    error GraphEscrowCollectorNotAuthorized(address sender, address dataService);
+    error GraphEscrowCollectorInsufficientAmount(uint256 available, uint256 required);
+
     // -- Constructor --
 
     constructor(
-        address _controller,
-        uint256 _revokeCollectorThawingPeriod,
-        uint256 _withdrawEscrowThawingPeriod
-    ) GraphDirectory(_controller) {
-        if (_revokeCollectorThawingPeriod > MAX_THAWING_PERIOD) {
-            revert GraphEscrowThawingPeriodTooLong(_revokeCollectorThawingPeriod, MAX_THAWING_PERIOD);
+        address controller,
+        uint256 revokeCollectorThawingPeriod,
+        uint256 withdrawEscrowThawingPeriod
+    ) GraphDirectory(controller) {
+        if (revokeCollectorThawingPeriod > MAX_THAWING_PERIOD) {
+            revert GraphEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_THAWING_PERIOD);
         }
 
-        if (_withdrawEscrowThawingPeriod > MAX_THAWING_PERIOD) {
-            revert GraphEscrowThawingPeriodTooLong(_withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
+        if (withdrawEscrowThawingPeriod > MAX_THAWING_PERIOD) {
+            revert GraphEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
         }
 
-        revokeCollectorThawingPeriod = _revokeCollectorThawingPeriod;
-        withdrawEscrowThawingPeriod = _withdrawEscrowThawingPeriod;
+        revokeCollectorThawingPeriod = revokeCollectorThawingPeriod;
+        withdrawEscrowThawingPeriod = withdrawEscrowThawingPeriod;
     }
 
     // approve a data service to collect funds
@@ -67,7 +67,9 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
 
     // thaw a data service's collector authorization
     function thawCollector(address dataService) external {
-        authorizedCollectors[msg.sender][dataService].thawEndTimestamp = block.timestamp + revokeCollectorThawingPeriod;
+        authorizedCollectors[msg.sender][dataService].thawEndTimestamp =
+            block.timestamp +
+            REVOKE_COLLECTOR_THAWING_PERIOD;
         emit ThawCollector(msg.sender, dataService);
     }
 
@@ -147,7 +149,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         // Set amount to thaw
         account.amountThawing = amount;
         // Set when the thaw is complete (thawing period number of seconds after current timestamp)
-        account.thawEndTimestamp = block.timestamp + withdrawEscrowThawingPeriod;
+        account.thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
 
         emit Thaw(msg.sender, receiver, amount, account.amountThawing, account.thawEndTimestamp);
     }

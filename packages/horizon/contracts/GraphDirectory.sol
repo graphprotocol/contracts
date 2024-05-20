@@ -24,15 +24,15 @@ contract GraphDirectory {
     address public immutable GRAPH_PAYMENTS;
     address public immutable GRAPH_ESCROW;
 
-    constructor(address _controller) {
-        CONTROLLER = _controller;
-        STAKING = IController(_controller).getContractProxy(keccak256("Staking"));
-        EPOCH_MANAGER = IController(_controller).getContractProxy(keccak256("EpochManager"));
-        GRAPH_TOKEN = IController(_controller).getContractProxy(keccak256("GraphToken"));
-        GRAPH_TOKEN_GATEWAY = IController(_controller).getContractProxy(keccak256("GraphTokenGateway"));
-        REWARDS_MANAGER = IController(_controller).getContractProxy(keccak256("RewardsManager"));
-        CURATION = IController(_controller).getContractProxy(keccak256("Curation"));
-        GRAPH_PAYMENTS = IController(_controller).getContractProxy(keccak256("GraphPayments"));
-        GRAPH_ESCROW = IController(_controller).getContractProxy(keccak256("GraphEscrow"));
+    constructor(address controller) {
+        CONTROLLER = controller;
+        STAKING = IController(controller).getContractProxy(keccak256("Staking"));
+        EPOCH_MANAGER = IController(controller).getContractProxy(keccak256("EpochManager"));
+        GRAPH_TOKEN = IController(controller).getContractProxy(keccak256("GraphToken"));
+        GRAPH_TOKEN_GATEWAY = IController(controller).getContractProxy(keccak256("GraphTokenGateway"));
+        REWARDS_MANAGER = IController(controller).getContractProxy(keccak256("RewardsManager"));
+        CURATION = IController(controller).getContractProxy(keccak256("Curation"));
+        GRAPH_PAYMENTS = IController(controller).getContractProxy(keccak256("GraphPayments"));
+        GRAPH_ESCROW = IController(controller).getContractProxy(keccak256("GraphEscrow"));
     }
 }

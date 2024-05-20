@@ -113,20 +113,20 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
     );
 
     // deposit stake
-    function stake(uint256 _tokens) external;
+    function stake(uint256 tokens) external;
 
-    function stakeTo(address _serviceProvider, uint256 _tokens) external;
+    function stakeTo(address serviceProvider, uint256 tokens) external;
 
     // can be called by anyone if the indexer has provisioned stake to this verifier
-    function stakeToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external;
+    function stakeToProvision(address serviceProvider, address verifier, uint256 tokens) external;
 
     // create a provision
     function provision(
-        address _serviceProvider,
-        address _verifier,
-        uint256 _tokens,
-        uint32 _maxVerifierCut,
-        uint64 _thawingPeriod
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
     ) external;
 
     /**
@@ -135,64 +135,55 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
      * service, where the data service is the verifier. Only authorized verifiers can be used.
      * This function can be called by the service provider or by an operator authorized by the provider
      * for this specific verifier.
-     * @param _serviceProvider The service provider address
-     * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
-     * @param _tokens The amount of tokens that will be locked and slashable
-     * @param _maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
-     * @param _thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
+     * @param tokens The amount of tokens that will be locked and slashable
+     * @param maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
+     * @param thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
      */
     function provisionLocked(
-        address _serviceProvider,
-        address _verifier,
-        uint256 _tokens,
-        uint32 _maxVerifierCut,
-        uint64 _thawingPeriod
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
     ) external;
 
     // initiate a thawing to remove tokens from a provision
-    function thaw(address _serviceProvider, address _verifier, uint256 _tokens) external returns (bytes32);
+    function thaw(address serviceProvider, address verifier, uint256 tokens) external returns (bytes32);
 
     // add more tokens from idle stake to an existing provision
-    function addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) external;
+    function addToProvision(address serviceProvider, address verifier, uint256 tokens) external;
 
     // moves thawed stake from a provision back into the provider's available stake
-    function deprovision(address _serviceProvider, address _verifier, uint256 _tokens) external;
+    function deprovision(address serviceProvider, address verifier, uint256 tokens) external;
 
     // moves thawed stake from one provision into another provision
-    function reprovision(
-        address _serviceProvider,
-        address _oldVerifier,
-        address _newVerifier,
-        uint256 _tokens
-    ) external;
+    function reprovision(address serviceProvider, address oldVerifier, address newVerifier, uint256 tokens) external;
 
     // moves thawed stake back to the owner's account - stake is removed from the protocol
-    function unstake(uint256 _tokens) external;
+    function unstake(uint256 tokens) external;
 
     // delegate tokens to a provider on a data service
-    function delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) external;
+    function delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) external;
 
     // undelegate (thaw) delegated tokens from a provision
-    function undelegate(address _serviceProvider, address _verifier, uint256 _shares) external;
+    function undelegate(address serviceProvider, address verifier, uint256 shares) external;
 
     // withdraw delegated tokens after thawing
     function withdrawDelegated(
-        address _serviceProvider,
-        address _verifier,
-        address _newServiceProvider,
-        uint256 _minSharesForNewProvider
+        address serviceProvider,
+        address verifier,
+        address newServiceProvider,
+        uint256 minSharesForNewProvider
     ) external;
 
     function slash(
-        address _serviceProvider,
-        uint256 _tokens,
-        uint256 _verifierCutAmount,
-        address _verifierCutDestination
+        address serviceProvider,
+        uint256 tokens,
+        uint256 verifierCutAmount,
+        address verifierCutDestination
     ) external;
-
-    // staked tokens that are currently not provisioned, aka idle stake
-    // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
-    function getIdleStake(address _serviceProvider) external view returns (uint256 tokens);
 
     /**
      * @notice Withdraw indexer tokens once the thawing period has passed.
@@ -201,36 +192,41 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
      */
     function withdraw() external;
 
-    function setDelegationSlashingEnabled(bool _enabled) external;
+    function setDelegationSlashingEnabled(bool enabled) external;
 
-    /**
-     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
-     * @param _operator The address to check for auth
-     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
-     * @param _verifier The verifier / data service on which they're claiming to act
-     */
-    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool);
+    function setMaxThawingPeriod(uint64 maxThawingPeriod) external;
 
-    function getProviderTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
-    function setMaxThawingPeriod(uint64 _maxThawingPeriod) external;
-
-    function setAllowedLockedVerifier(address _verifier, bool _allowed) external;
+    function setAllowedLockedVerifier(address verifier, bool allowed) external;
 
     /**
      * @notice Add tokens to a delegation pool (without getting shares).
      * Used by data services to pay delegation fees/rewards.
-     * @param _serviceProvider The service provider address
-     * @param _verifier The verifier address for which the tokens are provisioned
-     * @param _tokens The amount of tokens to add to the delegation pool
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address for which the tokens are provisioned
+     * @param tokens The amount of tokens to add to the delegation pool
      */
-    function addToDelegationPool(address _serviceProvider, address _verifier, uint256 _tokens) external;
+    function addToDelegationPool(address serviceProvider, address verifier, uint256 tokens) external;
 
     function setProvisionParameters(
-        address _serviceProvider,
-        address _verifier,
-        uint32 _maxVerifierCut,
-        uint64 _thawingPeriod
+        address serviceProvider,
+        address verifier,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
     ) external;
 
-    function acceptProvisionParameters(address _serviceProvider) external;
+    function acceptProvisionParameters(address serviceProvider) external;
+
+    // staked tokens that are currently not provisioned, aka idle stake
+    // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
+    function getIdleStake(address serviceProvider) external view returns (uint256 tokens);
+
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @param operator The address to check for auth
+     * @param serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(address operator, address serviceProvider, address verifier) external view returns (bool);
+
+    function getProviderTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
 }

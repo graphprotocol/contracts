@@ -29,9 +29,9 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
     }
 
     constructor(
-        address _controller,
-        address _subgraphDataServiceAddress
-    ) StakingBackwardsCompatibility(_controller, _subgraphDataServiceAddress) {}
+        address controller,
+        address subgraphDataServiceAddress
+    ) StakingBackwardsCompatibility(controller, subgraphDataServiceAddress) {}
 
     /**
      * @notice Receive ETH into the Staking contract: this will always revert
@@ -41,78 +41,28 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         revert("RECEIVE_ETH_NOT_ALLOWED");
     }
 
-    // total staked tokens to the provider
-    // `ServiceProvider.tokensStaked
-    function getStake(address serviceProvider) external view override returns (uint256) {
-        return serviceProviders[serviceProvider].tokensStaked;
-    }
-
-    // provisioned tokens from delegators that are not being thawed
-    // `Provision.delegatedTokens - Provision.delegatedTokensThawing`
-    function getDelegatedTokensAvailable(
-        address _serviceProvider,
-        address _verifier
-    ) public view override returns (uint256) {
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            return
-                legacyDelegationPools[_serviceProvider].tokens -
-                (legacyDelegationPools[_serviceProvider].tokensThawing);
-        }
-        return
-            delegationPools[_serviceProvider][_verifier].tokens -
-            (delegationPools[_serviceProvider][_verifier].tokensThawing);
-    }
-
-    // provisioned tokens that are not being thawed (including provider tokens and delegation)
-    function getTokensAvailable(
-        address _serviceProvider,
-        address _verifier,
-        uint32 _delegationRatio
-    ) external view override returns (uint256) {
-        uint256 providerTokens = provisions[_serviceProvider][_verifier].tokens;
-        uint256 tokensDelegatedMax = providerTokens * (uint256(_delegationRatio));
-        uint256 tokensDelegatedCapacity = MathUtils.min(
-            getDelegatedTokensAvailable(_serviceProvider, _verifier),
-            tokensDelegatedMax
-        );
-        return providerTokens - provisions[_serviceProvider][_verifier].tokensThawing + tokensDelegatedCapacity;
-    }
-
-    function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {
-        ServiceProvider memory sp;
-        ServiceProviderInternal storage spInternal = serviceProviders[serviceProvider];
-        sp.tokensStaked = spInternal.tokensStaked;
-        sp.tokensProvisioned = spInternal.tokensProvisioned;
-        sp.nextThawRequestNonce = spInternal.nextThawRequestNonce;
-        return sp;
-    }
-
     /**
      * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
-     * @param _operator Address to authorize or unauthorize
-     * @param _verifier The verifier / data service on which they'll be allowed to operate
-     * @param _allowed Whether the operator is authorized or not
+     * @param operator Address to authorize or unauthorize
+     * @param verifier The verifier / data service on which they'll be allowed to operate
+     * @param allowed Whether the operator is authorized or not
      */
-    function setOperator(address _operator, address _verifier, bool _allowed) external override {
-        require(_operator != msg.sender, "operator == sender");
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            legacyOperatorAuth[msg.sender][_operator] = _allowed;
+    function setOperator(address operator, address verifier, bool allowed) external override {
+        require(operator != msg.sender, "operator == sender");
+        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            _legacyOperatorAuth[msg.sender][operator] = allowed;
         } else {
-            operatorAuth[msg.sender][_verifier][_operator] = _allowed;
+            _operatorAuth[msg.sender][verifier][operator] = allowed;
         }
-        emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
+        emit OperatorSet(msg.sender, operator, verifier, allowed);
     }
 
     // for vesting contracts
-    function setOperatorLocked(address _operator, address _verifier, bool _allowed) external override {
-        require(_operator != msg.sender, "operator == sender");
-        require(allowedLockedVerifiers[_verifier], "VERIFIER_NOT_ALLOWED");
-        operatorAuth[msg.sender][_verifier][_operator] = _allowed;
-        emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
-    }
-
-    function getMaxThawingPeriod() external view override returns (uint64) {
-        return maxThawingPeriod;
+    function setOperatorLocked(address operator, address verifier, bool allowed) external override {
+        require(operator != msg.sender, "operator == sender");
+        require(_allowedLockedVerifiers[verifier], "VERIFIER_NOT_ALLOWED");
+        _operatorAuth[msg.sender][verifier][operator] = allowed;
+        emit OperatorSet(msg.sender, operator, verifier, allowed);
     }
 
     /**
@@ -120,45 +70,89 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
      * @dev The encoded _data can contain information about an indexer's stake
      * or a delegator's delegation.
      * See L1MessageCodes in IL2Staking for the supported messages.
-     * @param _from Token sender in L1
-     * @param _amount Amount of tokens that were transferred
-     * @param _data ABI-encoded callhook data which must include a uint8 code and either a ReceiveIndexerStakeData or ReceiveDelegationData struct.
+     * @param from Token sender in L1
+     * @param amount Amount of tokens that were transferred
+     * @param data ABI-encoded callhook data which must include a uint8 code and either a ReceiveIndexerStakeData or ReceiveDelegationData struct.
      */
     function onTokenTransfer(
-        address _from,
-        uint256 _amount,
-        bytes calldata _data
+        address from,
+        uint256 amount,
+        bytes calldata data
     ) external override notPartialPaused onlyL2Gateway {
-        require(_from == counterpartStakingAddress, "ONLY_L1_STAKING_THROUGH_BRIDGE");
-        (uint8 code, bytes memory functionData) = abi.decode(_data, (uint8, bytes));
+        require(from == _counterpartStakingAddress, "ONLY_L1_STAKING_THROUGH_BRIDGE");
+        (uint8 code, bytes memory functionData) = abi.decode(data, (uint8, bytes));
 
         if (code == uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE)) {
             IL2StakingTypes.ReceiveIndexerStakeData memory indexerData = abi.decode(
                 functionData,
                 (IL2StakingTypes.ReceiveIndexerStakeData)
             );
-            _receiveIndexerStake(_amount, indexerData);
+            _receiveIndexerStake(amount, indexerData);
         } else if (code == uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE)) {
             IL2StakingTypes.ReceiveDelegationData memory delegationData = abi.decode(
                 functionData,
                 (IL2StakingTypes.ReceiveDelegationData)
             );
-            _receiveDelegation(_amount, delegationData);
+            _receiveDelegation(amount, delegationData);
         } else {
             revert("INVALID_CODE");
         }
     }
 
+    function setDelegationFeeCut(
+        address serviceProvider,
+        address verifier,
+        uint256 feeType,
+        uint256 feeCut
+    ) external override {
+        delegationFeeCut[serviceProvider][verifier][feeType] = feeCut;
+        emit DelegationFeeCutSet(serviceProvider, verifier, feeType, feeCut);
+    }
+
+    // total staked tokens to the provider
+    // `ServiceProvider.tokensStaked
+    function getStake(address serviceProvider) external view override returns (uint256) {
+        return _serviceProviders[serviceProvider].tokensStaked;
+    }
+
+    // provisioned tokens that are not being thawed (including provider tokens and delegation)
+    function getTokensAvailable(
+        address serviceProvider,
+        address verifier,
+        uint32 delegationRatio
+    ) external view override returns (uint256) {
+        uint256 providerTokens = _provisions[serviceProvider][verifier].tokens;
+        uint256 tokensDelegatedMax = providerTokens * (uint256(delegationRatio));
+        uint256 tokensDelegatedCapacity = MathUtils.min(
+            getDelegatedTokensAvailable(serviceProvider, verifier),
+            tokensDelegatedMax
+        );
+        return providerTokens - _provisions[serviceProvider][verifier].tokensThawing + tokensDelegatedCapacity;
+    }
+
+    function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {
+        ServiceProvider memory sp;
+        ServiceProviderInternal storage spInternal = _serviceProviders[serviceProvider];
+        sp.tokensStaked = spInternal.tokensStaked;
+        sp.tokensProvisioned = spInternal.tokensProvisioned;
+        sp.nextThawRequestNonce = spInternal.nextThawRequestNonce;
+        return sp;
+    }
+
+    function getMaxThawingPeriod() external view override returns (uint64) {
+        return _maxThawingPeriod;
+    }
+
     function getDelegationPool(
-        address _serviceProvider,
-        address _verifier
+        address serviceProvider,
+        address verifier
     ) external view override returns (DelegationPool memory) {
         DelegationPool memory pool;
         DelegationPoolInternal storage poolInternal;
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            poolInternal = legacyDelegationPools[_serviceProvider];
+        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            poolInternal = _legacyDelegationPools[serviceProvider];
         } else {
-            poolInternal = delegationPools[_serviceProvider][_verifier];
+            poolInternal = _delegationPools[serviceProvider][verifier];
         }
         pool.tokens = poolInternal.tokens;
         pool.shares = poolInternal.shares;
@@ -168,44 +162,47 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
     }
 
     function getDelegation(
-        address _delegator,
-        address _serviceProvider,
-        address _verifier
+        address delegator,
+        address serviceProvider,
+        address verifier
     ) external view override returns (Delegation memory) {
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            return legacyDelegationPools[_serviceProvider].delegators[_delegator];
+        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            return _legacyDelegationPools[serviceProvider].delegators[delegator];
         } else {
-            return delegationPools[_serviceProvider][_verifier].delegators[_delegator];
+            return _delegationPools[serviceProvider][verifier].delegators[delegator];
         }
     }
 
-    function getThawRequest(bytes32 _thawRequestId) external view returns (ThawRequest memory) {
-        return thawRequests[_thawRequestId];
+    function getThawRequest(bytes32 thawRequestId) external view returns (ThawRequest memory) {
+        return _thawRequests[thawRequestId];
     }
 
-    function getProvision(
-        address _serviceProvider,
-        address _verifier
-    ) external view override returns (Provision memory) {
-        return provisions[_serviceProvider][_verifier];
-    }
-
-    function setDelegationFeeCut(
-        address _serviceProvider,
-        address _verifier,
-        uint256 _feeType,
-        uint256 _feeCut
-    ) external override {
-        delegationFeeCut[_serviceProvider][_verifier][_feeType] = _feeCut;
-        emit DelegationFeeCutSet(_serviceProvider, _verifier, _feeType, _feeCut);
+    function getProvision(address serviceProvider, address verifier) external view override returns (Provision memory) {
+        return _provisions[serviceProvider][verifier];
     }
 
     function getDelegationFeeCut(
-        address _serviceProvider,
-        address _verifier,
-        uint256 _feeType
+        address serviceProvider,
+        address verifier,
+        uint256 feeType
     ) external view override returns (uint256) {
-        return delegationFeeCut[_serviceProvider][_verifier][_feeType];
+        return delegationFeeCut[serviceProvider][verifier][feeType];
+    }
+
+    // provisioned tokens from delegators that are not being thawed
+    // `Provision.delegatedTokens - Provision.delegatedTokensThawing`
+    function getDelegatedTokensAvailable(
+        address serviceProvider,
+        address verifier
+    ) public view override returns (uint256) {
+        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            return
+                _legacyDelegationPools[serviceProvider].tokens -
+                (_legacyDelegationPools[serviceProvider].tokensThawing);
+        }
+        return
+            _delegationPools[serviceProvider][verifier].tokens -
+            (_delegationPools[serviceProvider][verifier].tokensThawing);
     }
 
     /**
@@ -219,9 +216,9 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         uint256 _amount,
         IL2StakingTypes.ReceiveIndexerStakeData memory _indexerData
     ) internal {
-        address _indexer = _indexerData.indexer;
+        address indexer = _indexerData.indexer;
         // Deposit tokens into the indexer stake
-        _stake(_indexer, _amount);
+        _stake(indexer, _amount);
     }
 
     /**
@@ -237,7 +234,7 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStaki
         IL2StakingTypes.ReceiveDelegationData memory _delegationData
     ) internal {
         // Get the delegation pool of the indexer
-        DelegationPoolInternal storage pool = legacyDelegationPools[_delegationData.indexer];
+        DelegationPoolInternal storage pool = _legacyDelegationPools[_delegationData.indexer];
         Delegation storage delegation = pool.delegators[_delegationData.delegator];
 
         // Calculate shares to issue (without applying any delegation tax)

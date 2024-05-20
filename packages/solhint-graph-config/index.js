@@ -24,5 +24,7 @@ module.exports = {
 
     // graph
     'graph/leading-underscore': 'warn',
+
+    'gas-custom-errors': 'off'
   },
 }

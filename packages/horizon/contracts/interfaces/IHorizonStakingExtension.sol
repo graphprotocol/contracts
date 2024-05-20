@@ -18,57 +18,56 @@ interface IHorizonStakingExtension {
         uint256 feeCut
     );
 
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
+     * @param operator Address to authorize or unauthorize
+     * @param verifier The verifier / data service on which they'll be allowed to operate
+     * @param allowed Whether the operator is authorized or not
+     */
+    function setOperator(address operator, address verifier, bool allowed) external;
+
+    // for vesting contracts
+    function setOperatorLocked(address operator, address verifier, bool allowed) external;
+
+    function setDelegationFeeCut(address serviceProvider, address verifier, uint256 feeType, uint256 feeCut) external;
+
     function getStake(address serviceProvider) external view returns (uint256);
 
-    function getDelegatedTokensAvailable(address _serviceProvider, address _verifier) external view returns (uint256);
+    function getDelegatedTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
+
     function getTokensAvailable(
-        address _serviceProvider,
-        address _verifier,
-        uint32 _delegationRatio
+        address serviceProvider,
+        address verifier,
+        uint32 delegationRatio
     ) external view returns (uint256);
 
     function getServiceProvider(
         address serviceProvider
     ) external view returns (IHorizonStakingTypes.ServiceProvider memory);
 
-    /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
-     * @param _operator Address to authorize or unauthorize
-     * @param _verifier The verifier / data service on which they'll be allowed to operate
-     * @param _allowed Whether the operator is authorized or not
-     */
-    function setOperator(address _operator, address _verifier, bool _allowed) external;
-
-    // for vesting contracts
-    function setOperatorLocked(address _operator, address _verifier, bool _allowed) external;
-
     function getMaxThawingPeriod() external view returns (uint64);
 
     function getDelegationPool(
-        address _serviceProvider,
-        address _verifier
+        address serviceProvider,
+        address verifier
     ) external view returns (IHorizonStakingTypes.DelegationPool memory);
+
     function getDelegation(
-        address _delegator,
-        address _serviceProvider,
-        address _verifier
+        address delegator,
+        address serviceProvider,
+        address verifier
     ) external view returns (IHorizonStakingTypes.Delegation memory);
-    function getThawRequest(bytes32 _thawRequestId) external view returns (IHorizonStakingTypes.ThawRequest memory);
+
+    function getThawRequest(bytes32 thawRequestId) external view returns (IHorizonStakingTypes.ThawRequest memory);
+
     function getProvision(
-        address _serviceProvider,
-        address _verifier
+        address serviceProvider,
+        address verifier
     ) external view returns (IHorizonStakingTypes.Provision memory);
 
-    function setDelegationFeeCut(
-        address _serviceProvider,
-        address _verifier,
-        uint256 _feeType,
-        uint256 _feeCut
-    ) external;
-
     function getDelegationFeeCut(
-        address _serviceProvider,
-        address _verifier,
-        uint256 _feeType
+        address serviceProvider,
+        address verifier,
+        uint256 feeType
     ) external view returns (uint256);
 }

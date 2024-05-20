@@ -38,18 +38,18 @@ abstract contract StakingBackwardsCompatibility is
 
     address public immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
-    constructor(address _controller, address _subgraphDataServiceAddress) Managed(_controller) {
-        SUBGRAPH_DATA_SERVICE_ADDRESS = _subgraphDataServiceAddress;
+    constructor(address controller, address subgraphDataServiceAddress) Managed(controller) {
+        SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
     }
 
     /**
      * @notice Set the address of the counterpart (L1 or L2) staking contract.
      * @dev This function can only be called by the governor.
      * TODO: Remove after L2 transition period
-     * @param _counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
+     * @param counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
      */
-    function setCounterpartStakingAddress(address _counterpart) external override onlyGovernor {
-        counterpartStakingAddress = _counterpart;
+    function setCounterpartStakingAddress(address counterpart) external override onlyGovernor {
+        _counterpartStakingAddress = counterpart;
         emit ParameterUpdated("counterpartStakingAddress");
     }
 
@@ -59,11 +59,11 @@ abstract contract StakingBackwardsCompatibility is
      * Presenting a bad proof is subject to slashable condition.
      * To opt out of rewards set _poi to 0x0
      * @dev TODO: Remove after Horizon transition period
-     * @param _allocationID The allocation identifier
-     * @param _poi Proof of indexing submitted for the allocated period
+     * @param allocationID The allocation identifier
+     * @param poi Proof of indexing submitted for the allocated period
      */
-    function closeAllocation(address _allocationID, bytes32 _poi) external override notPaused {
-        _closeAllocation(_allocationID, _poi);
+    function closeAllocation(address allocationID, bytes32 poi) external override notPaused {
+        _closeAllocation(allocationID, poi);
     }
 
     /**
@@ -73,27 +73,27 @@ abstract contract StakingBackwardsCompatibility is
      * This implementation allows collecting multiple times on the same allocation, keeping track of the
      * total amount rebated, the total amount collected and compensating the indexer for the difference.
      * TODO: Remove after Horizon transition period
-     * @param _tokens Amount of tokens to collect
-     * @param _allocationID Allocation where the tokens will be assigned
+     * @param tokens Amount of tokens to collect
+     * @param allocationID Allocation where the tokens will be assigned
      */
-    function collect(uint256 _tokens, address _allocationID) external override {
+    function collect(uint256 tokens, address allocationID) external override {
         // Allocation identifier validation
-        require(_allocationID != address(0), "!alloc");
+        require(allocationID != address(0), "!alloc");
 
         // Allocation must exist
-        AllocationState allocState = _getAllocationState(_allocationID);
+        AllocationState allocState = _getAllocationState(allocationID);
         require(allocState != AllocationState.Null, "!collect");
 
         // If the query fees are zero, we don't want to revert
         // but we also don't need to do anything, so just return
-        if (_tokens == 0) {
+        if (tokens == 0) {
             return;
         }
 
-        Allocation storage alloc = __DEPRECATED_allocations[_allocationID];
+        Allocation storage alloc = __DEPRECATED_allocations[allocationID];
         bytes32 subgraphDeploymentID = alloc.subgraphDeploymentID;
 
-        uint256 queryFees = _tokens; // Tokens collected from the channel
+        uint256 queryFees = tokens; // Tokens collected from the channel
         uint256 protocolTax = 0; // Tokens burnt as protocol tax
         uint256 curationFees = 0; // Tokens distributed to curators as curation fees
         uint256 queryRebates = 0; // Tokens to distribute to indexer
@@ -160,9 +160,9 @@ abstract contract StakingBackwardsCompatibility is
             msg.sender,
             alloc.indexer,
             subgraphDeploymentID,
-            _allocationID,
+            allocationID,
             _epochManager().currentEpoch(),
-            _tokens,
+            tokens,
             protocolTax,
             curationFees,
             queryFees,
@@ -174,207 +174,98 @@ abstract contract StakingBackwardsCompatibility is
     /**
      * @notice Return if allocationID is used.
      * @dev TODO: Remove after Horizon transition period
-     * @param _allocationID Address used as signer by the indexer for an allocation
+     * @param allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
      */
-    function isAllocation(address _allocationID) external view override returns (bool) {
-        return _getAllocationState(_allocationID) != AllocationState.Null;
+    function isAllocation(address allocationID) external view override returns (bool) {
+        return _getAllocationState(allocationID) != AllocationState.Null;
     }
 
     /**
      * @notice Return the allocation by ID.
      * @dev TODO: Remove after Horizon transition period
-     * @param _allocationID Address used as allocation identifier
+     * @param allocationID Address used as allocation identifier
      * @return Allocation data
      */
-    function getAllocation(address _allocationID) external view override returns (Allocation memory) {
-        return __DEPRECATED_allocations[_allocationID];
+    function getAllocation(address allocationID) external view override returns (Allocation memory) {
+        return __DEPRECATED_allocations[allocationID];
     }
 
     /**
      * @notice Return the current state of an allocation
      * @dev TODO: Remove after Horizon transition period
-     * @param _allocationID Allocation identifier
+     * @param allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
      */
-    function getAllocationState(address _allocationID) external view override returns (AllocationState) {
-        return _getAllocationState(_allocationID);
+    function getAllocationState(address allocationID) external view override returns (AllocationState) {
+        return _getAllocationState(allocationID);
     }
 
     /**
      * @notice Return the total amount of tokens allocated to subgraph.
-     * @param _subgraphDeploymentID Deployment ID for the subgraph
+     * @param subgraphDeploymentID Deployment ID for the subgraph
      * @return Total tokens allocated to subgraph
      */
-    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) external view override returns (uint256) {
-        return __DEPRECATED_subgraphAllocations[_subgraphDeploymentID];
+    function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentID) external view override returns (uint256) {
+        return __DEPRECATED_subgraphAllocations[subgraphDeploymentID];
+    }
+
+    /**
+     * @notice Get the total amount of tokens staked by the indexer.
+     * @param indexer Address of the indexer
+     * @return Amount of tokens staked by the indexer
+     */
+    function getIndexerStakedTokens(address indexer) external view override returns (uint256) {
+        return _serviceProviders[indexer].tokensStaked;
+    }
+
+    /**
+     * @notice Getter that returns if an indexer has any stake.
+     * @param indexer Address of the indexer
+     * @return True if indexer has staked tokens
+     */
+    function hasStake(address indexer) external view override returns (bool) {
+        return _serviceProviders[indexer].tokensStaked > 0;
     }
 
     /**
      * @notice (Legacy) Return true if operator is allowed for the service provider on the subgraph data service.
      * @dev TODO: Delete after the transition period
-     * @param _operator Address of the operator
-     * @param _serviceProvider Address of the service provider
+     * @param operator Address of the operator
+     * @param serviceProvider Address of the service provider
      * @return True if operator is allowed for indexer, false otherwise
      */
-    function isOperator(address _operator, address _serviceProvider) public view override returns (bool) {
-        return legacyOperatorAuth[_serviceProvider][_operator];
+    function isOperator(address operator, address serviceProvider) public view override returns (bool) {
+        return _legacyOperatorAuth[serviceProvider][operator];
     }
 
     /**
-     * @notice Get the total amount of tokens staked by the indexer.
-     * @param _indexer Address of the indexer
-     * @return Amount of tokens staked by the indexer
+     * @dev Stake tokens on the service provider.
+     * TODO: Move to HorizonStaking after the transition period
+     * @param _serviceProvider Address of staking party
+     * @param _tokens Amount of tokens to stake
      */
-    function getIndexerStakedTokens(address _indexer) external view override returns (uint256) {
-        return serviceProviders[_indexer].tokensStaked;
+    function _stake(address _serviceProvider, uint256 _tokens) internal {
+        // Deposit tokens into the indexer stake
+        _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
+
+        emit StakeDeposited(_serviceProvider, _tokens);
     }
 
-    /**
-     * @notice Getter that returns if an indexer has any stake.
-     * @param _indexer Address of the indexer
-     * @return True if indexer has staked tokens
-     */
-    function hasStake(address _indexer) external view override returns (bool) {
-        return serviceProviders[_indexer].tokensStaked > 0;
+    function _graphToken() internal view returns (IGraphToken) {
+        return IGraphToken(GRAPH_TOKEN);
     }
 
-    /**
-     * @dev Close an allocation and free the staked tokens.
-     * @param _allocationID The allocation identifier
-     * @param _poi Proof of indexing submitted for the allocated period
-     */
-    function _closeAllocation(address _allocationID, bytes32 _poi) private {
-        // Allocation must exist and be active
-        AllocationState allocState = _getAllocationState(_allocationID);
-        require(allocState == AllocationState.Active, "!active");
-
-        // Get allocation
-        Allocation memory alloc = __DEPRECATED_allocations[_allocationID];
-
-        // Validate that an allocation cannot be closed before one epoch
-        alloc.closedAtEpoch = _epochManager().currentEpoch();
-        uint256 epochs = MathUtils.diffOrZero(alloc.closedAtEpoch, alloc.createdAtEpoch);
-
-        // Indexer or operator can close an allocation
-        // Anyone is allowed to close ONLY under two concurrent conditions
-        // - After maxAllocationEpochs passed
-        // - When the allocation is for non-zero amount of tokens
-        bool isIndexer = isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
-        if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
-            require(isIndexer, "!auth");
-        }
-
-        // Close the allocation
-        __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
-
-        // -- Rewards Distribution --
-
-        // Process non-zero-allocation rewards tracking
-        if (alloc.tokens > 0) {
-            // Distribute rewards if proof of indexing was presented by the indexer or operator
-            if (isIndexer && _poi != 0) {
-                _distributeRewards(_allocationID, alloc.indexer);
-            } else {
-                _updateRewards(alloc.subgraphDeploymentID);
-            }
-
-            // Free allocated tokens from use
-            serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated =
-                serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated -
-                alloc.tokens;
-
-            // Track total allocations per subgraph
-            // Used for rewards calculations
-            __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] =
-                __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] -
-                alloc.tokens;
-        }
-
-        emit AllocationClosed(
-            alloc.indexer,
-            alloc.subgraphDeploymentID,
-            alloc.closedAtEpoch,
-            alloc.tokens,
-            _allocationID,
-            msg.sender,
-            _poi,
-            !isIndexer
-        );
+    function _curation() internal view returns (ICuration) {
+        return ICuration(CURATION);
     }
 
-    /**
-     * @dev Collect the delegation rewards for query fees.
-     * This function will assign the collected fees to the delegation pool.
-     * @param _indexer Indexer to which the tokens to distribute are related
-     * @param _tokens Total tokens received used to calculate the amount of fees to collect
-     * @return Amount of delegation rewards
-     */
-    function _collectDelegationQueryRewards(address _indexer, uint256 _tokens) private returns (uint256) {
-        uint256 delegationRewards = 0;
-        DelegationPoolInternal storage pool = legacyDelegationPools[_indexer];
-        if (pool.tokens > 0 && pool.__DEPRECATED_queryFeeCut < MAX_PPM) {
-            uint256 indexerCut = (uint256(pool.__DEPRECATED_queryFeeCut) * _tokens) / MAX_PPM;
-            delegationRewards = _tokens - indexerCut;
-            pool.tokens = pool.tokens + delegationRewards;
-        }
-        return delegationRewards;
+    function _rewardsManager() internal view returns (IRewardsManager) {
+        return IRewardsManager(REWARDS_MANAGER);
     }
 
-    /**
-     * @dev Collect the delegation rewards for indexing.
-     * This function will assign the collected fees to the delegation pool.
-     * @param _indexer Indexer to which the tokens to distribute are related
-     * @param _tokens Total tokens received used to calculate the amount of fees to collect
-     * @return Amount of delegation rewards
-     */
-    function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens) private returns (uint256) {
-        uint256 delegationRewards = 0;
-        DelegationPoolInternal storage pool = legacyDelegationPools[_indexer];
-        if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
-            uint256 indexerCut = (uint256(pool.__DEPRECATED_indexingRewardCut) * _tokens) / MAX_PPM;
-            delegationRewards = _tokens - indexerCut;
-            pool.tokens = pool.tokens + delegationRewards;
-        }
-        return delegationRewards;
-    }
-
-    /**
-     * @dev Collect the curation fees for a subgraph deployment from an amount of tokens.
-     * This function transfer curation fees to the Curation contract by calling Curation.collect
-     * @param _subgraphDeploymentID Subgraph deployment to which the curation fees are related
-     * @param _tokens Total tokens received used to calculate the amount of fees to collect
-     * @param _curationPercentage Percentage of tokens to collect as fees
-     * @return Amount of curation fees
-     */
-    function _collectCurationFees(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
-        uint256 _curationPercentage
-    ) private returns (uint256) {
-        if (_tokens == 0) {
-            return 0;
-        }
-
-        ICuration curation = _curation();
-        bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
-
-        if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
-            // Calculate the tokens after curation fees first, and subtact that,
-            // to prevent curation fees from rounding down to zero
-            uint256 tokensAfterCurationFees = ((uint256(MAX_PPM) - _curationPercentage) * _tokens) / MAX_PPM;
-            uint256 curationFees = _tokens - tokensAfterCurationFees;
-            if (curationFees > 0) {
-                // Transfer and call collect()
-                // This function transfer tokens to a trusted protocol contracts
-                // Then we call collect() to do the transfer bookeeping
-                _rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
-                TokenUtils.pushTokens(_graphToken(), address(curation), curationFees);
-                curation.collect(_subgraphDeploymentID, curationFees);
-            }
-            return curationFees;
-        }
-        return 0;
+    function _epochManager() internal view returns (IEpochManager) {
+        return IEpochManager(EPOCH_MANAGER);
     }
 
     /**
@@ -452,6 +343,144 @@ abstract contract StakingBackwardsCompatibility is
     }
 
     /**
+     * @dev Close an allocation and free the staked tokens.
+     * @param _allocationID The allocation identifier
+     * @param _poi Proof of indexing submitted for the allocated period
+     */
+    function _closeAllocation(address _allocationID, bytes32 _poi) private {
+        // Allocation must exist and be active
+        AllocationState allocState = _getAllocationState(_allocationID);
+        require(allocState == AllocationState.Active, "!active");
+
+        // Get allocation
+        Allocation memory alloc = __DEPRECATED_allocations[_allocationID];
+
+        // Validate that an allocation cannot be closed before one epoch
+        alloc.closedAtEpoch = _epochManager().currentEpoch();
+        uint256 epochs = MathUtils.diffOrZero(alloc.closedAtEpoch, alloc.createdAtEpoch);
+
+        // Indexer or operator can close an allocation
+        // Anyone is allowed to close ONLY under two concurrent conditions
+        // - After maxAllocationEpochs passed
+        // - When the allocation is for non-zero amount of tokens
+        bool isIndexer = isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
+        if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
+            require(isIndexer, "!auth");
+        }
+
+        // Close the allocation
+        __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
+
+        // -- Rewards Distribution --
+
+        // Process non-zero-allocation rewards tracking
+        if (alloc.tokens > 0) {
+            // Distribute rewards if proof of indexing was presented by the indexer or operator
+            if (isIndexer && _poi != 0) {
+                _distributeRewards(_allocationID, alloc.indexer);
+            } else {
+                _updateRewards(alloc.subgraphDeploymentID);
+            }
+
+            // Free allocated tokens from use
+            _serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated =
+                _serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated -
+                alloc.tokens;
+
+            // Track total allocations per subgraph
+            // Used for rewards calculations
+            __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] =
+                __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] -
+                alloc.tokens;
+        }
+
+        emit AllocationClosed(
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            alloc.closedAtEpoch,
+            alloc.tokens,
+            _allocationID,
+            msg.sender,
+            _poi,
+            !isIndexer
+        );
+    }
+
+    /**
+     * @dev Collect the delegation rewards for query fees.
+     * This function will assign the collected fees to the delegation pool.
+     * @param _indexer Indexer to which the tokens to distribute are related
+     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @return Amount of delegation rewards
+     */
+    function _collectDelegationQueryRewards(address _indexer, uint256 _tokens) private returns (uint256) {
+        uint256 delegationRewards = 0;
+        DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
+        if (pool.tokens > 0 && pool.__DEPRECATED_queryFeeCut < MAX_PPM) {
+            uint256 indexerCut = (uint256(pool.__DEPRECATED_queryFeeCut) * _tokens) / MAX_PPM;
+            delegationRewards = _tokens - indexerCut;
+            pool.tokens = pool.tokens + delegationRewards;
+        }
+        return delegationRewards;
+    }
+
+    /**
+     * @dev Collect the delegation rewards for indexing.
+     * This function will assign the collected fees to the delegation pool.
+     * @param _indexer Indexer to which the tokens to distribute are related
+     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @return Amount of delegation rewards
+     */
+    function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens) private returns (uint256) {
+        uint256 delegationRewards = 0;
+        DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
+        if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
+            uint256 indexerCut = (uint256(pool.__DEPRECATED_indexingRewardCut) * _tokens) / MAX_PPM;
+            delegationRewards = _tokens - indexerCut;
+            pool.tokens = pool.tokens + delegationRewards;
+        }
+        return delegationRewards;
+    }
+
+    /**
+     * @dev Collect the curation fees for a subgraph deployment from an amount of tokens.
+     * This function transfer curation fees to the Curation contract by calling Curation.collect
+     * @param _subgraphDeploymentID Subgraph deployment to which the curation fees are related
+     * @param _tokens Total tokens received used to calculate the amount of fees to collect
+     * @param _curationPercentage Percentage of tokens to collect as fees
+     * @return Amount of curation fees
+     */
+    function _collectCurationFees(
+        bytes32 _subgraphDeploymentID,
+        uint256 _tokens,
+        uint256 _curationPercentage
+    ) private returns (uint256) {
+        if (_tokens == 0) {
+            return 0;
+        }
+
+        ICuration curation = _curation();
+        bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
+
+        if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
+            // Calculate the tokens after curation fees first, and subtact that,
+            // to prevent curation fees from rounding down to zero
+            uint256 tokensAfterCurationFees = ((uint256(MAX_PPM) - _curationPercentage) * _tokens) / MAX_PPM;
+            uint256 curationFees = _tokens - tokensAfterCurationFees;
+            if (curationFees > 0) {
+                // Transfer and call collect()
+                // This function transfer tokens to a trusted protocol contracts
+                // Then we call collect() to do the transfer bookeeping
+                _rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
+                TokenUtils.pushTokens(_graphToken(), address(curation), curationFees);
+                curation.collect(_subgraphDeploymentID, curationFees);
+            }
+            return curationFees;
+        }
+        return 0;
+    }
+
+    /**
      * @dev Return the current state of an allocation
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
@@ -468,34 +497,5 @@ abstract contract StakingBackwardsCompatibility is
         }
 
         return AllocationState.Closed;
-    }
-
-    /**
-     * @dev Stake tokens on the service provider.
-     * TODO: Move to HorizonStaking after the transition period
-     * @param _serviceProvider Address of staking party
-     * @param _tokens Amount of tokens to stake
-     */
-    function _stake(address _serviceProvider, uint256 _tokens) internal {
-        // Deposit tokens into the indexer stake
-        serviceProviders[_serviceProvider].tokensStaked = serviceProviders[_serviceProvider].tokensStaked + _tokens;
-
-        emit StakeDeposited(_serviceProvider, _tokens);
-    }
-
-    function _graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(GRAPH_TOKEN);
-    }
-
-    function _curation() internal view returns (ICuration) {
-        return ICuration(CURATION);
-    }
-
-    function _rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(REWARDS_MANAGER);
-    }
-
-    function _epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(EPOCH_MANAGER);
     }
 }

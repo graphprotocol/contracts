@@ -9,6 +9,7 @@ import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
+    uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
     // -- Errors --
 
     error GraphPaymentsNotThawing();
@@ -22,12 +23,10 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
 
     // -- Parameters --
 
-    uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
-
     // -- Constructor --
 
-    constructor(address _controller, uint256 _protocolPaymentCut) GraphDirectory(_controller) {
-        protocolPaymentCut = _protocolPaymentCut;
+    constructor(address controller, uint256 protocolPaymentCut) GraphDirectory(controller) {
+        protocolPaymentCut = protocolPaymentCut;
     }
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver
@@ -43,7 +42,7 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         TokenUtils.pullTokens(graphToken, msg.sender, amount);
 
         // Pay protocol cut
-        uint256 tokensProtocol = (amount * protocolPaymentCut) / MAX_PPM;
+        uint256 tokensProtocol = (amount * PROTOCOL_PAYMENT_CUT) / MAX_PPM;
         TokenUtils.burnTokens(graphToken, tokensProtocol);
 
         // Pay data service cut

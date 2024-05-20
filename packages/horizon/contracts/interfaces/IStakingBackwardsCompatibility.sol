@@ -13,14 +13,6 @@ pragma abicoder v2;
  */
 interface IStakingBackwardsCompatibility {
     /**
-     * @dev Emitted when `delegator` delegated `tokens` to the `serviceProvider`, the delegator
-     * gets `shares` for the delegation pool proportionally to the tokens staked.
-     * This event is here for backwards compatibility, the tokens are delegated
-     * on the subgraph data service provision.
-     */
-    event StakeDelegated(address indexed serviceProvider, address indexed delegator, uint256 tokens, uint256 shares);
-
-    /**
      * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
      * An allocation is created in the allocate() function and closed in closeAllocation()
      */
@@ -31,10 +23,32 @@ interface IStakingBackwardsCompatibility {
         uint256 createdAtEpoch; // Epoch when it was created
         uint256 closedAtEpoch; // Epoch when it was closed
         uint256 collectedFees; // Collected fees for the allocation
-        uint256 __DEPRECATED_effectiveAllocation; // solhint-disable-line var-name-mixedcase
+        uint256 DEPRECATED_effectiveAllocation; // solhint-disable-line var-name-mixedcase
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
         uint256 distributedRebates; // Collected rebates that have been rebated
     }
+
+    /**
+     * @dev Possible states an allocation can be.
+     * States:
+     * - Null = indexer == address(0)
+     * - Active = not Null && tokens > 0
+     * - Closed = Active && closedAtEpoch != 0
+     */
+    enum AllocationState {
+        Null,
+        Active,
+        Closed
+    }
+
+    /**
+     * @dev Emitted when `delegator` delegated `tokens` to the `serviceProvider`, the delegator
+     * gets `shares` for the delegation pool proportionally to the tokens staked.
+     * This event is here for backwards compatibility, the tokens are delegated
+     * on the subgraph data service provision.
+     */
+    event StakeDelegated(address indexed serviceProvider, address indexed delegator, uint256 tokens, uint256 shares);
+
     /**
      * @dev Emitted when `serviceProvider` stakes `tokens` amount.
      */
@@ -96,34 +110,21 @@ interface IStakingBackwardsCompatibility {
     event SetOperator(address indexed indexer, address indexed operator, bool allowed);
 
     /**
-     * @dev Possible states an allocation can be.
-     * States:
-     * - Null = indexer == address(0)
-     * - Active = not Null && tokens > 0
-     * - Closed = Active && closedAtEpoch != 0
-     */
-    enum AllocationState {
-        Null,
-        Active,
-        Closed
-    }
-
-    /**
      * @notice Set the address of the counterpart (L1 or L2) staking contract.
      * @dev This function can only be called by the governor.
-     * @param _counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
+     * @param counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
      */
-    function setCounterpartStakingAddress(address _counterpart) external;
+    function setCounterpartStakingAddress(address counterpart) external;
 
     /**
      * @notice Close an allocation and free the staked tokens.
      * To be eligible for rewards a proof of indexing must be presented.
      * Presenting a bad proof is subject to slashable condition.
      * To opt out of rewards set _poi to 0x0
-     * @param _allocationID The allocation identifier
-     * @param _poi Proof of indexing submitted for the allocated period
+     * @param allocationID The allocation identifier
+     * @param poi Proof of indexing submitted for the allocated period
      */
-    function closeAllocation(address _allocationID, bytes32 _poi) external;
+    function closeAllocation(address allocationID, bytes32 poi) external;
 
     /**
      * @notice Collect query fees from state channels and assign them to an allocation.
@@ -132,58 +133,58 @@ interface IStakingBackwardsCompatibility {
      * 1) Accept calls with zero tokens.
      * 2) Accept calls after an allocation passed the dispute period, in that case, all
      *    the received tokens are burned.
-     * @param _tokens Amount of tokens to collect
-     * @param _allocationID Allocation where the tokens will be assigned
+     * @param tokens Amount of tokens to collect
+     * @param allocationID Allocation where the tokens will be assigned
      */
-    function collect(uint256 _tokens, address _allocationID) external;
+    function collect(uint256 tokens, address allocationID) external;
 
     /**
      * @notice Return true if operator is allowed for indexer.
-     * @param _operator Address of the operator
-     * @param _indexer Address of the indexer
+     * @param operator Address of the operator
+     * @param indexer Address of the indexer
      * @return True if operator is allowed for indexer, false otherwise
      */
-    function isOperator(address _operator, address _indexer) external view returns (bool);
+    function isOperator(address operator, address indexer) external view returns (bool);
 
     /**
      * @notice Getter that returns if an indexer has any stake.
-     * @param _indexer Address of the indexer
+     * @param indexer Address of the indexer
      * @return True if indexer has staked tokens
      */
-    function hasStake(address _indexer) external view returns (bool);
+    function hasStake(address indexer) external view returns (bool);
 
     /**
      * @notice Get the total amount of tokens staked by the indexer.
-     * @param _indexer Address of the indexer
+     * @param indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerStakedTokens(address _indexer) external view returns (uint256);
+    function getIndexerStakedTokens(address indexer) external view returns (uint256);
 
     /**
      * @notice Return the allocation by ID.
-     * @param _allocationID Address used as allocation identifier
+     * @param allocationID Address used as allocation identifier
      * @return Allocation data
      */
-    function getAllocation(address _allocationID) external view returns (Allocation memory);
+    function getAllocation(address allocationID) external view returns (Allocation memory);
 
     /**
      * @notice Return the current state of an allocation
-     * @param _allocationID Allocation identifier
+     * @param allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
      */
-    function getAllocationState(address _allocationID) external view returns (AllocationState);
+    function getAllocationState(address allocationID) external view returns (AllocationState);
 
     /**
      * @notice Return if allocationID is used.
-     * @param _allocationID Address used as signer by the indexer for an allocation
+     * @param allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
      */
-    function isAllocation(address _allocationID) external view returns (bool);
+    function isAllocation(address allocationID) external view returns (bool);
 
     /**
      * @notice Return the total amount of tokens allocated to subgraph.
-     * @param _subgraphDeploymentID Deployment ID for the subgraph
+     * @param subgraphDeploymentID Deployment ID for the subgraph
      * @return Total tokens allocated to subgraph
      */
-    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
+    function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentID) external view returns (uint256);
 }
