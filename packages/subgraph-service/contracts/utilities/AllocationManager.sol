@@ -90,7 +90,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         bytes32 _subgraphDeploymentId,
         uint256 _tokens,
         bytes memory _allocationProof,
-        uint32 __delegationRatio
+        uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
         if (_allocationId == address(0)) revert AllocationManagerInvalidAllocationId();
 
@@ -109,7 +109,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         );
 
         // Check that the indexer has enough tokens available
-        allocationProvisionTracker.lock(GRAPH_STAKING, _indexer, _tokens, delegationRatio);
+        allocationProvisionTracker.lock(GRAPH_STAKING, _indexer, _tokens, _delegationRatio);
 
         // Update total allocated tokens for the subgraph deployment
         subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
@@ -182,7 +182,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     function _resizeAllocation(
         address _allocationId,
         uint256 _tokens,
-        uint3 _ _delegationRatio
+        uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
 
@@ -194,7 +194,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         // Update provision tracker
         uint256 oldTokens = allocation.tokens;
         if (_tokens > oldTokens) {
-            allocationProvisionTracker.lock(GRAPH_STAKING, allocation.indexer, _tokens - oldTokens, delegationRatio);
+            allocationProvisionTracker.lock(GRAPH_STAKING, allocation.indexer, _tokens - oldTokens, _delegationRatio);
         } else {
             allocationProvisionTracker.release(allocation.indexer, oldTokens - _tokens);
         }
