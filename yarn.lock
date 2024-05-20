@@ -863,8 +863,8 @@ __metadata:
   linkType: hard
 
 "@changesets/cli@npm:^2.27.1":
-  version: 2.27.2
-  resolution: "@changesets/cli@npm:2.27.2"
+  version: 2.27.3
+  resolution: "@changesets/cli@npm:2.27.3"
   dependencies:
     "@babel/runtime": "npm:^7.20.1"
     "@changesets/apply-release-plan": "npm:^7.0.1"
@@ -900,7 +900,7 @@ __metadata:
     tty-table: "npm:^4.1.5"
   bin:
     changeset: bin.js
-  checksum: c2fd356b235bb27de0267389af38bca356d1c61892d0d3e114cec2e628aa6e7aadfe1828d9024b9c7d8005c3b968760ab4d781d4ce3a04309d5263d710341bec
+  checksum: fee10ae204926dbf4847111bf49ca93dc5b43a55b48635e2e08e71ab8442cf414c8165ae11174d6366ef12305274ea1b75beb14ca74b9a766d82b8c32148199b
   languageName: node
   linkType: hard
 
@@ -3024,7 +3024,7 @@ __metadata:
     prettier-plugin-solidity: "npm:^1.3.1"
     solhint: "npm:^4.5.4"
     solhint-graph-config: "workspace:^0.0.1"
-    solhint-plugin-graph: "file:node_modules/solhint-graph-config/plugin"
+    solhint-plugin-graph: "workspace:^0.0.1"
     solidity-coverage: "npm:^0.8.0"
     solidity-docgen: "npm:^0.6.0-beta.36"
     ts-node: "npm:>=8.0.0"
@@ -4766,28 +4766,28 @@ __metadata:
   linkType: hard
 
 "@openzeppelin/defender-admin-client@npm:^1.46.0":
-  version: 1.54.2
-  resolution: "@openzeppelin/defender-admin-client@npm:1.54.2"
+  version: 1.54.4
+  resolution: "@openzeppelin/defender-admin-client@npm:1.54.4"
   dependencies:
-    "@openzeppelin/defender-base-client": "npm:1.54.2"
+    "@openzeppelin/defender-base-client": "npm:1.54.4"
     axios: "npm:^1.4.0"
     ethers: "npm:^5.7.2"
     lodash: "npm:^4.17.19"
     node-fetch: "npm:^2.6.0"
-  checksum: fff2a74f840168d65a7cc51992610c199eb0d2b54b63f84060dded898d2730e0b008b3f492251ec99a697d45e69987a203ee005b5912e51a2786407755e3e53f
+  checksum: a44439ebde420aa35b36db7c2845978dd099e0fb6edc394e7b65be67ec1135e99ccc8059e78cb70c8a8fd5598ba40d082648664af95f9cb97a7673c075f64abb
   languageName: node
   linkType: hard
 
-"@openzeppelin/defender-base-client@npm:1.54.2, @openzeppelin/defender-base-client@npm:^1.46.0":
-  version: 1.54.2
-  resolution: "@openzeppelin/defender-base-client@npm:1.54.2"
+"@openzeppelin/defender-base-client@npm:1.54.4, @openzeppelin/defender-base-client@npm:^1.46.0":
+  version: 1.54.4
+  resolution: "@openzeppelin/defender-base-client@npm:1.54.4"
   dependencies:
     amazon-cognito-identity-js: "npm:^6.0.1"
     async-retry: "npm:^1.3.3"
     axios: "npm:^1.4.0"
     lodash: "npm:^4.17.19"
     node-fetch: "npm:^2.6.0"
-  checksum: b30c5c5ed47ed0ff788025abd0cdfc816fdbd49065c221be7e760385e5cbf5b05488ed1cfb040c5cbe0a1ca6cc6af035dc88a6e5b2c09fb9ae4ae048493014bd
+  checksum: 636614a8012cfbbe065b8ccc3ef6a16635e2f1b48f7421242de81f74def99a51795464e9a2bd02e7305ff32b339a8847d7733452e6fe7810d4badd0c2086c38f
   languageName: node
   linkType: hard
 
@@ -7215,13 +7215,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.4.0, axios@npm:^1.5.1":
-  version: 1.6.8
-  resolution: "axios@npm:1.6.8"
+  version: 1.7.1
+  resolution: "axios@npm:1.7.1"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 0f22da6f490335479a89878bc7d5a1419484fbb437b564a80c34888fc36759ae4f56ea28d55a191695e5ed327f0bad56e7ff60fb6770c14d1be6501505d47ab9
+  checksum: 554395472f18f4ddb43b4be2900473bc1a4d589464a8ab16f6954c53d9cace4317d5c9e009d5bb05f098d9565b2fa45f152a5d4cecb87536c8f0c370c25a7770
   languageName: node
   linkType: hard
 
@@ -21783,7 +21783,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "solhint-graph-config@workspace:packages/solhint-graph-config"
   dependencies:
-    solhint-plugin-graph: "file:plugin"
+    solhint-plugin-graph: "workspace:*"
   peerDependencies:
     prettier: ^3.2.5
     prettier-plugin-solidity: ^1.3.1
@@ -21791,19 +21791,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"solhint-plugin-graph@file:node_modules/solhint-graph-config/plugin::locator=%40graphprotocol%2Fsubgraph-service%40workspace%3Apackages%2Fsubgraph-service":
-  version: 0.0.0
-  resolution: "solhint-plugin-graph@file:node_modules/solhint-graph-config/plugin#node_modules/solhint-graph-config/plugin::hash=37bdb1&locator=%40graphprotocol%2Fsubgraph-service%40workspace%3Apackages%2Fsubgraph-service"
-  checksum: f77aeda80dc6f8bb93376c3b05e910874038e701793f7805e9937f0047e68d3ac8595d915a4cb12dd974c49851d2b0fdf94742b0b2865cd7bf7e3a630177dfea
-  languageName: node
-  linkType: hard
-
-"solhint-plugin-graph@file:plugin::locator=solhint-graph-config%40workspace%3Apackages%2Fsolhint-graph-config":
-  version: 0.0.0
-  resolution: "solhint-plugin-graph@file:plugin#plugin::hash=37bdb1&locator=solhint-graph-config%40workspace%3Apackages%2Fsolhint-graph-config"
-  checksum: f77aeda80dc6f8bb93376c3b05e910874038e701793f7805e9937f0047e68d3ac8595d915a4cb12dd974c49851d2b0fdf94742b0b2865cd7bf7e3a630177dfea
-  languageName: node
-  linkType: hard
+"solhint-plugin-graph@workspace:*, solhint-plugin-graph@workspace:^0.0.1, solhint-plugin-graph@workspace:packages/solhint-plugin-graph":
+  version: 0.0.0-use.local
+  resolution: "solhint-plugin-graph@workspace:packages/solhint-plugin-graph"
+  languageName: unknown
+  linkType: soft
 
 "solhint-plugin-prettier@npm:^0.1.0":
   version: 0.1.0
