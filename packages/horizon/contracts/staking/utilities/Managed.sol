@@ -3,8 +3,9 @@
 pragma solidity 0.8.24;
 
 import { IController } from "@graphprotocol/contracts/contracts/governance/IController.sol";
-import { IManaged } from "./IManaged.sol";
-import { GraphDirectory } from "./GraphDirectory.sol";
+import { IManaged } from "../../interfaces/IManaged.sol";
+
+import { GraphDirectory } from "../../GraphDirectory.sol";
 
 /**
  * @title Graph Managed contract

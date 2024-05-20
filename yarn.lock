@@ -2909,7 +2909,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@graphprotocol/horizon@workspace:packages/horizon":
+"@graphprotocol/horizon@workspace:^0.0.1, @graphprotocol/horizon@workspace:packages/horizon":
   version: 0.0.0-use.local
   resolution: "@graphprotocol/horizon@workspace:packages/horizon"
   dependencies:
@@ -2999,6 +2999,7 @@ __metadata:
   resolution: "@graphprotocol/subgraph-service@workspace:packages/subgraph-service"
   dependencies:
     "@graphprotocol/contracts": "workspace:^7.0.0"
+    "@graphprotocol/horizon": "workspace:^0.0.1"
     "@nomicfoundation/hardhat-chai-matchers": "npm:^2.0.0"
     "@nomicfoundation/hardhat-ethers": "npm:^3.0.0"
     "@nomicfoundation/hardhat-foundry": "npm:^1.1.1"

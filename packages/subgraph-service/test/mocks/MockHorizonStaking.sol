@@ -3,10 +3,11 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStakingTypes.sol";
 import { MockGRTToken } from "./MockGRTToken.sol";
 
-contract MockHorizonStaking is IHorizonStaking {
+contract MockHorizonStaking {
     mapping (address verifier => mapping (address serviceProvider => IHorizonStaking.Provision provision)) public _provisions;
     MockGRTToken public grtToken;
 
@@ -22,15 +23,18 @@ contract MockHorizonStaking is IHorizonStaking {
 
     // create a provision
     function provision(uint256 tokens, address verifier, uint32 maxVerifierCut, uint64 thawingPeriod) external {
-        IHorizonStaking.Provision memory newProvision = IHorizonStaking.Provision({
-            serviceProvider: msg.sender,
+        IHorizonStaking.Provision memory newProvision = IHorizonStakingTypes.Provision({
             tokens: tokens,
-            delegatedTokens: 0,
             tokensThawing: 0,
-            createdAt: uint64(block.timestamp),
-            verifier: verifier,
+            sharesThawing: 0,
             maxVerifierCut: maxVerifierCut,
-            thawingPeriod: thawingPeriod
+            thawingPeriod: thawingPeriod,
+            createdAt: uint64(block.timestamp),
+            firstThawRequestId: bytes32(0),
+            lastThawRequestId: bytes32(0),
+            nThawRequests: 0,
+            maxVerifierCutPending: maxVerifierCut,
+            thawingPeriodPending: thawingPeriod
         });
         _provisions[verifier][msg.sender] = newProvision;
     }
@@ -86,9 +90,9 @@ contract MockHorizonStaking is IHorizonStaking {
         return _provisions[verifier][serviceProvider].tokens;
     }
 
-    function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory) {}
+    function getServiceProvider(address serviceProvider) external view returns (IHorizonStaking.ServiceProvider memory) {}
 
-    function getProvision(address serviceProvider, address verifier) external view returns (Provision memory) {
+    function getProvision(address serviceProvider, address verifier) external view returns (IHorizonStaking.Provision memory) {
         return _provisions[verifier][serviceProvider];
     }
 

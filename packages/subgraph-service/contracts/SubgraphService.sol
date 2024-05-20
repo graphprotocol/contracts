@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphPayments } from "./interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { ITAPVerifier } from "@graphprotocol/horizon/contracts/interfaces/ITAPVerifier.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { DataService } from "./data-service/DataService.sol";
-import { DataServicePausable } from "./data-service/extensions/DataServicePausable.sol";
-import { DataServiceRescuable } from "./data-service/extensions/DataServiceRescuable.sol";
-import { DataServiceFees } from "./data-service/extensions/DataServiceFees.sol";
+import { DataServicePausable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausable.sol";
+import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataService.sol";
+import { DataServiceRescuable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceRescuable.sol";
+import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
 import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 
-import { PPMMath } from "./data-service/libraries/PPMMath.sol";
+import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
@@ -111,7 +111,7 @@ contract SubgraphService is
             data,
             (bytes32, uint256, address, bytes)
         );
-        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof);
+        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, delegationRatio);
         emit ServiceStarted(indexer);
     }
 
@@ -138,7 +138,7 @@ contract SubgraphService is
         address allocationId,
         uint256 tokens
     ) external onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
-        _resizeAllocation(allocationId, tokens);
+        _resizeAllocation(allocationId, tokens, delegationRatio);
     }
 
     // TODO: Does this design allow custom payment types?!
@@ -184,8 +184,8 @@ contract SubgraphService is
         return legacyAllocations[allocationId];
     }
 
-    function encodeAllocationProof(address _indexer, address _allocationId) external view returns (bytes32) {
-        return _encodeAllocationProof(_indexer, _allocationId);
+    function encodeAllocationProof(address indexer, address allocationId) external view returns (bytes32) {
+        return _encodeAllocationProof(indexer, allocationId);
     }
 
     // -- Data service parameter getters --

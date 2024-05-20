@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
+
+import { ProvisionGetter } from "../libraries/ProvisionGetter.sol";
+import { UintRange } from "../../libraries/UintRange.sol";
 
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
-
-import { ProvisionGetter } from "../libraries/ProvisionGetter.sol";
-import { UintRange } from "../libraries/UintRange.sol";
 
 abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage {
     using ProvisionGetter for IHorizonStaking;
@@ -50,7 +50,7 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
 
     function _checkAndAcceptProvision(address _serviceProvider) internal virtual {
         _checkProvisionParameters(_serviceProvider);
-        GRAPH_STAKING.acceptProvision(_serviceProvider);
+        GRAPH_STAKING.acceptProvisionParameters(_serviceProvider);
     }
 
     // -- Provision Parameters: setters --

@@ -2,19 +2,19 @@
 pragma solidity ^0.8.24;
 pragma abicoder v2;
 
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
-import { GraphDirectory } from "./data-service/GraphDirectory.sol";
+import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
 import { AttestationManager } from "./utilities/AttestationManager.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
-import { PPMMath } from "./data-service/libraries/PPMMath.sol";
 import { Attestation } from "./libraries/Attestation.sol";
 
 /*
@@ -670,7 +670,11 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     function _slashIndexer(address _indexer, uint256 _slashAmount) private returns (uint256 rewardsAmount) {
         // Get slashable amount for indexer
         IHorizonStaking.Provision memory provision = GRAPH_STAKING.getProvision(_indexer, address(subgraphService));
-        uint256 totalProvisionTokens = provision.tokens + provision.delegatedTokens; // slashable tokens
+        IHorizonStaking.DelegationPool memory pool = GRAPH_STAKING.getDelegationPool(
+            _indexer,
+            address(subgraphService)
+        );
+        uint256 totalProvisionTokens = provision.tokens + pool.tokens; // slashable tokens
 
         // Get slash amount
         uint256 maxSlashAmount = uint256(maxSlashingPercentage).mulPPM(totalProvisionTokens);

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.24;
 
-import { LibFixedMath } from "./LibFixedMath.sol";
+import { LibFixedMath } from "../../libraries/LibFixedMath.sol";
 
 /**
  * @title ExponentialRebates contract
@@ -10,7 +10,7 @@ import { LibFixedMath } from "./LibFixedMath.sol";
  * @dev This is only used for backwards compatibility in HorizonStaking, and should
  * be removed after the transition period.
  */
-contract ExponentialRebates {
+library ExponentialRebates {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.
     uint32 private constant MAX_EXPONENT = 15;
 

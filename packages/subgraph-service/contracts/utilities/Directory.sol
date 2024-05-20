@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ITAPVerifier } from "../interfaces/ITAPVerifier.sol";
+import { ITAPVerifier } from "@graphprotocol/horizon/contracts/interfaces/ITAPVerifier.sol";
 import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";

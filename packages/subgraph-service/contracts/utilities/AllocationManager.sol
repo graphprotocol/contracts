@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 
-import { GraphDirectory } from "../data-service/GraphDirectory.sol";
+import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
-import { PPMMath } from "../data-service/libraries/PPMMath.sol";
-import { ProvisionTracker } from "../data-service/libraries/ProvisionTracker.sol";
+import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
+import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
 abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManagerV1Storage {
     using ProvisionTracker for mapping(address => uint256);
@@ -89,7 +89,8 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         address _allocationId,
         bytes32 _subgraphDeploymentId,
         uint256 _tokens,
-        bytes memory _allocationProof
+        bytes memory _allocationProof,
+        uint32 __delegationRatio
     ) internal returns (Allocation.State memory) {
         if (_allocationId == address(0)) revert AllocationManagerInvalidAllocationId();
 
@@ -108,7 +109,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         );
 
         // Check that the indexer has enough tokens available
-        allocationProvisionTracker.lock(GRAPH_STAKING, _indexer, _tokens);
+        allocationProvisionTracker.lock(GRAPH_STAKING, _indexer, _tokens, delegationRatio);
 
         // Update total allocated tokens for the subgraph deployment
         subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
@@ -146,13 +147,14 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         // Distribute rewards to delegators
         // TODO: remove the uint8 cast when PRs are merged
-        uint256 delegatorCut = GRAPH_STAKING.getDelegationCut(
+        uint256 delegatorCut = GRAPH_STAKING.getDelegationFeeCut(
             allocation.indexer,
+            address(this),
             uint8(IGraphPayments.PaymentTypes.IndexingFee)
         );
         uint256 tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
         GRAPH_TOKEN.approve(address(GRAPH_STAKING), tokensDelegationRewards);
-        GRAPH_STAKING.addToDelegationPool(allocation.indexer, tokensDelegationRewards);
+        GRAPH_STAKING.addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
 
         // Distribute rewards to indexer
         uint256 tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
@@ -177,7 +179,11 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         return tokensRewards;
     }
 
-    function _resizeAllocation(address _allocationId, uint256 _tokens) internal returns (Allocation.State memory) {
+    function _resizeAllocation(
+        address _allocationId,
+        uint256 _tokens,
+        uint3 _ _delegationRatio
+    ) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
 
         // Exit early if the allocation size is the same
@@ -188,7 +194,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         // Update provision tracker
         uint256 oldTokens = allocation.tokens;
         if (_tokens > oldTokens) {
-            allocationProvisionTracker.lock(GRAPH_STAKING, allocation.indexer, _tokens - oldTokens);
+            allocationProvisionTracker.lock(GRAPH_STAKING, allocation.indexer, _tokens - oldTokens, delegationRatio);
         } else {
             allocationProvisionTracker.release(allocation.indexer, oldTokens - _tokens);
         }

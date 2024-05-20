@@ -3,12 +3,13 @@
 pragma solidity 0.8.24;
 
 import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+import { IHorizonStakingBase } from "../interfaces/IHorizonStakingBase.sol";
+import { IGraphToken } from "../interfaces/IGraphToken.sol";
 
-import { IHorizonStakingBase } from "./IHorizonStakingBase.sol";
-import { TokenUtils } from "./utils/TokenUtils.sol";
-import { MathUtils } from "./utils/MathUtils.sol";
-import { Managed } from "./Managed.sol";
-import { IGraphToken } from "./IGraphToken.sol";
+import { TokenUtils } from "../libraries/TokenUtils.sol";
+import { MathUtils } from "../libraries/MathUtils.sol";
+
+import { Managed } from "./utilities/Managed.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 /**

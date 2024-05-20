@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
 
 library ProvisionTracker {
     error ProvisionTrackerInsufficientTokens(uint256 tokensAvailable, uint256 tokensRequired);
@@ -10,12 +10,13 @@ library ProvisionTracker {
         mapping(address => uint256) storage self,
         IHorizonStaking graphStaking,
         address serviceProvider,
-        uint256 tokens
+        uint256 tokens,
+        uint32 delegationRatio
     ) internal {
         if (tokens == 0) return;
 
         uint256 tokensRequired = self[serviceProvider] + tokens;
-        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this));
+        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
         if (tokensRequired > tokensAvailable) {
             revert ProvisionTrackerInsufficientTokens(tokensAvailable, tokensRequired);
         }
@@ -34,9 +35,10 @@ library ProvisionTracker {
     function getTokensFree(
         mapping(address => uint256) storage self,
         IHorizonStaking graphStaking,
-        address serviceProvider
+        address serviceProvider,
+        uint32 delegationRatio
     ) internal view returns (uint256) {
-        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this));
+        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
         if (tokensAvailable >= self[serviceProvider]) return tokensAvailable - self[serviceProvider];
         else return 0;
     }

@@ -1,4 +1,5 @@
 @graphprotocol/contracts/=node_modules/@graphprotocol/contracts/
+@graphprotocol/horizon/=node_modules/@graphprotocol/horizon/
 forge-std/=lib/forge-std/src/
 ds-test/=lib/forge-std/lib/ds-test/src/
 eth-gas-reporter/=node_modules/eth-gas-reporter/

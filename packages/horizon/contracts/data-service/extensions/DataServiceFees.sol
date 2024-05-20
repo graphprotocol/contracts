@@ -4,10 +4,10 @@ pragma solidity ^0.8.24;
 import { IDataServiceFees } from "./IDataServiceFees.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
+import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
+
 import { DataService } from "../DataService.sol";
 import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
-
-import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
 
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);
@@ -66,7 +66,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         uint256 _tokens,
         uint256 _unlockTimestamp
     ) internal {
-        feesProvisionTracker[_feeType].lock(GRAPH_STAKING, _serviceProvider, _tokens);
+        feesProvisionTracker[_feeType].lock(GRAPH_STAKING, _serviceProvider, _tokens, delegationRatio);
 
         StakeClaimsList storage claimsList = claimsLists[_feeType][_serviceProvider];
         bytes32 claimId = _buildStakeClaimId(_serviceProvider, claimsList.nonce);

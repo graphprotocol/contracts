@@ -3,7 +3,7 @@
 pragma solidity 0.8.24;
 
 import { IController } from "@graphprotocol/contracts/contracts/governance/IController.sol";
-import { IHorizonStaking } from "@graphprotocol/contracts/contracts/staking/IHorizonStaking.sol";
+import { IHorizonStaking } from "../interfaces/IHorizonStaking.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 // import { IGraphTokenGateway } from "@graphprotocol/contracts/contracts/gateway/IGraphTokenGateway.sol";
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";

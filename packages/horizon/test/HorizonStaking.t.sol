@@ -3,14 +3,13 @@ pragma solidity 0.8.24;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import { HorizonStaking } from "../contracts/HorizonStaking.sol";
+import { HorizonStaking } from "../contracts/staking/HorizonStaking.sol";
 import { ControllerMock } from "../contracts/mocks/ControllerMock.sol";
-import { HorizonStakingExtension } from "../contracts/HorizonStakingExtension.sol";
-import { ExponentialRebates } from "../contracts/utils/ExponentialRebates.sol";
-import { IHorizonStaking } from "../contracts/IHorizonStaking.sol";
+import { HorizonStakingExtension } from "../contracts/staking/HorizonStakingExtension.sol";
+import { ExponentialRebates } from "../contracts/staking/libraries/ExponentialRebates.sol";
+import { IHorizonStaking } from "../contracts/interfaces/IHorizonStaking.sol";
 
 contract HorizonStakingTest is Test {
-    ExponentialRebates rebates;
     HorizonStakingExtension ext;
     IHorizonStaking staking;
     ControllerMock controller;
@@ -19,8 +18,7 @@ contract HorizonStakingTest is Test {
         console.log("Deploying Controller mock");
         controller = new ControllerMock(address(0x1));
         console.log("Deploying HorizonStaking");
-        rebates = new ExponentialRebates();
-        ext = new HorizonStakingExtension(address(controller), address(0x1), address(rebates));
+        ext = new HorizonStakingExtension(address(controller), address(0x1));
         staking = IHorizonStaking(address(new HorizonStaking(address(controller), address(ext), address(0x1))));
     }
 

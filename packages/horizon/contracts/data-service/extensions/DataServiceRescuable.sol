@@ -6,7 +6,7 @@ import { IDataServiceRescuable } from "./IDataServiceRescuable.sol";
 
 import { DataService } from "../DataService.sol";
 
-import { Denominations } from "../libraries/Denominations.sol";
+import { Denominations } from "../../libraries/Denominations.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**

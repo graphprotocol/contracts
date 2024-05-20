@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ITAPVerifier } from "./interfaces/ITAPVerifier.sol";
+import { ITAPVerifier } from "../../interfaces/ITAPVerifier.sol";
 
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 

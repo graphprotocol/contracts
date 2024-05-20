@@ -2,20 +2,20 @@
 
 pragma solidity 0.8.24;
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
-import { Multicall } from "@graphprotocol/contracts/contracts/base/Multicall.sol";
-import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
-import { TokenUtils } from "./utils/TokenUtils.sol";
-import { IGraphToken } from "./IGraphToken.sol";
-import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
-import { MathUtils } from "./utils/MathUtils.sol";
-import { Managed } from "./Managed.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
-import { ExponentialRebates } from "./utils/ExponentialRebates.sol";
-import { IStakingBackwardsCompatibility } from "./IStakingBackwardsCompatibility.sol";
+import { IGraphToken } from "../interfaces/IGraphToken.sol";
+import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
+
+import { TokenUtils } from "../libraries/TokenUtils.sol";
+import { MathUtils } from "../libraries/MathUtils.sol";
+import { ExponentialRebates } from "./libraries/ExponentialRebates.sol";
+
+import { Multicall } from "@graphprotocol/contracts/contracts/base/Multicall.sol";
+import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+import { Managed } from "./utilities/Managed.sol";
+import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 /**
  * @title Base Staking contract
@@ -38,15 +38,8 @@ abstract contract StakingBackwardsCompatibility is
 
     address public immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
-    address public immutable EXPONENTIAL_REBATES_ADDRESS;
-
-    constructor(
-        address _controller,
-        address _subgraphDataServiceAddress,
-        address _exponentialRebatesAddress
-    ) Managed(_controller) {
+    constructor(address _controller, address _subgraphDataServiceAddress) Managed(_controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = _subgraphDataServiceAddress;
-        EXPONENTIAL_REBATES_ADDRESS = _exponentialRebatesAddress;
     }
 
     /**
@@ -128,7 +121,7 @@ abstract contract StakingBackwardsCompatibility is
             // No rebates if indexer has no stake or if lambda is zero
             uint256 newRebates = (alloc.tokens == 0 || __DEPRECATED_lambdaNumerator == 0)
                 ? 0
-                : ExponentialRebates(EXPONENTIAL_REBATES_ADDRESS).exponentialRebates(
+                : ExponentialRebates.exponentialRebates(
                     alloc.collectedFees,
                     alloc.tokens,
                     __DEPRECATED_alphaNumerator,
