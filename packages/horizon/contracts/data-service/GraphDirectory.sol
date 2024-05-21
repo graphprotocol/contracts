@@ -6,7 +6,7 @@ import { IController } from "@graphprotocol/contracts/contracts/governance/ICont
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IHorizonStaking } from "../interfaces/IHorizonStaking.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
+import { IPaymentsEscrow } from "../interfaces/IPaymentsEscrow.sol";
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
@@ -26,7 +26,7 @@ abstract contract GraphDirectory {
     IGraphToken private immutable GRAPH_TOKEN;
     IHorizonStaking private immutable GRAPH_STAKING;
     IGraphPayments private immutable GRAPH_PAYMENTS;
-    IGraphEscrow private immutable GRAPH_ESCROW;
+    IPaymentsEscrow private immutable GRAPH_ESCROW;
 
     // Legacy Graph contracts
     // Required for StakingBackwardCompatibility
@@ -41,7 +41,7 @@ abstract contract GraphDirectory {
         IGraphToken graphToken,
         IHorizonStaking graphStaking,
         IGraphPayments graphPayments,
-        IGraphEscrow graphEscrow,
+        IPaymentsEscrow graphEscrow,
         IEpochManager graphEpochManager,
         IRewardsManager graphRewardsManager,
         ICuration graphCuration,
@@ -59,7 +59,7 @@ abstract contract GraphDirectory {
         GRAPH_TOKEN = IGraphToken(_getContractFromController("GraphToken"));
         GRAPH_STAKING = IHorizonStaking(_getContractFromController("Staking"));
         GRAPH_PAYMENTS = IGraphPayments(_getContractFromController("GraphPayments"));
-        GRAPH_ESCROW = IGraphEscrow(_getContractFromController("GraphEscrow"));
+        GRAPH_ESCROW = IPaymentsEscrow(_getContractFromController("PaymentsEscrow"));
         GRAPH_EPOCH_MANAGER = IEpochManager(_getContractFromController("EpochManager"));
         GRAPH_REWARDS_MANAGER = IRewardsManager(_getContractFromController("RewardsManager"));
         GRAPH_CURATION = ICuration(_getContractFromController("Curation"));
@@ -94,7 +94,7 @@ abstract contract GraphDirectory {
         return GRAPH_PAYMENTS;
     }
 
-    function _graphEscrow() internal view returns (IGraphEscrow) {
+    function _graphEscrow() internal view returns (IPaymentsEscrow) {
         return GRAPH_ESCROW;
     }
 
@@ -114,8 +114,8 @@ abstract contract GraphDirectory {
         return GRAPH_TOKEN_GATEWAY;
     }
 
-    function _getContractFromController(bytes memory __contractName) private view returns (address) {
-        address contractAddress = GRAPH_CONTROLLER.getContractProxy(keccak256(contractName));
+    function _getContractFromController(bytes memory _contractName) private view returns (address) {
+        address contractAddress = GRAPH_CONTROLLER.getContractProxy(keccak256(_contractName));
         if (contractAddress == address(0)) {
             revert GraphDirectoryInvalidZeroAddress();
         }

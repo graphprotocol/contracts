@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import { IGraphPayments } from "./IGraphPayments.sol";
 
-interface IGraphEscrow {
+interface IPaymentsEscrow {
     struct EscrowAccount {
         uint256 balance; // Total escrow balance for a sender-receiver pair
         uint256 amountThawing; // Amount of escrow currently being thawed

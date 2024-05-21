@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
+import { IPaymentsEscrow } from "../interfaces/IPaymentsEscrow.sol";
 
-contract GraphEscrowStorageV1Storage {
+contract PaymentsEscrowV1Storage {
     // Authorized collectors
-    mapping(address sender => mapping(address dataService => IGraphEscrow.Collector collector))
+    mapping(address sender => mapping(address dataService => IPaymentsEscrow.Collector collector))
         public authorizedCollectors;
 
     // Stores how much escrow each sender has deposited for each receiver, as well as thawing information
-    mapping(address sender => mapping(address receiver => IGraphEscrow.EscrowAccount escrowAccount))
+    mapping(address sender => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount))
         public escrowAccounts;
 
     // The maximum thawing period (in seconds) for both escrow withdrawal and signer revocation

@@ -97,7 +97,6 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
 
         {
             // -- Pull tokens from the sender --
-            IGraphToken graphToken = _graphToken();
             _graphToken().pullTokens(msg.sender, queryFees);
 
             // -- Collect protocol tax --

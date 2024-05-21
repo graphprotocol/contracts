@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
 
-import { GraphEscrow } from "contracts/escrow/GraphEscrow.sol";
+import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";
 import { GraphPayments } from "contracts/payments/GraphPayments.sol";
 import { IHorizonStaking } from "contracts/interfaces/IHorizonStaking.sol";
 import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
@@ -21,7 +21,7 @@ abstract contract GraphBaseTest is Test, Constants {
     Controller public controller;
     MockGRTToken public token;
     GraphPayments public payments;
-    GraphEscrow public escrow;
+    PaymentsEscrow public escrow;
     IHorizonStaking public staking;
     
     HorizonStaking private stakingBase;
@@ -139,7 +139,7 @@ abstract contract GraphBaseTest is Test, Constants {
             address(controller), 
             protocolPaymentCut
         );
-        escrow = new GraphEscrow{salt: saltEscrow}(
+        escrow = new PaymentsEscrow{salt: saltEscrow}(
             address(controller),
             revokeCollectorThawingPeriod,
             withdrawEscrowThawingPeriod

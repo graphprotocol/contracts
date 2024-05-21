@@ -2,15 +2,15 @@
 pragma solidity ^0.8.24;
 
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
-import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IPaymentsEscrow } from "../interfaces/IPaymentsEscrow.sol";
 
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
-import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
+import { PaymentsEscrowV1Storage } from "./PaymentsEscrowStorage.sol";
 
-contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirectory {
+contract PaymentsEscrow is IPaymentsEscrow, PaymentsEscrowV1Storage, GraphDirectory {
     using TokenUtils for IGraphToken;
 
     // -- Events --
