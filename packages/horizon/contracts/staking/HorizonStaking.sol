@@ -8,8 +8,8 @@ import { IGraphToken } from "../interfaces/IGraphToken.sol";
 
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
-
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+
 import { Managed } from "./utilities/Managed.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 

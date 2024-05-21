@@ -20,9 +20,6 @@ interface IPaymentsEscrow {
     // Deposit funds into the escrow for a receiver
     function deposit(address receiver, uint256 amount) external;
 
-    // Deposit funds into the escrow for multiple receivers
-    function depositMany(address[] calldata receivers, uint256[] calldata amounts) external;
-
     // Requests to thaw a specific amount of escrow from a receiver's escrow account
     function thaw(address receiver, uint256 amount) external;
 

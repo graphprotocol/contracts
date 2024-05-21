@@ -5,12 +5,13 @@ import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IHorizonStaking } from "../interfaces/IHorizonStaking.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
+import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 
-contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
+contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Storage, IGraphPayments {
     using TokenUtils for IGraphToken;
 
     uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million

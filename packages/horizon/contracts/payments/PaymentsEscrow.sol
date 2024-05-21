@@ -5,12 +5,13 @@ import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { IPaymentsEscrow } from "../interfaces/IPaymentsEscrow.sol";
 
+import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
 import { PaymentsEscrowV1Storage } from "./PaymentsEscrowStorage.sol";
 
-contract PaymentsEscrow is IPaymentsEscrow, PaymentsEscrowV1Storage, GraphDirectory {
+contract PaymentsEscrow is Multicall, GraphDirectory, PaymentsEscrowV1Storage, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
 
     // -- Events --
@@ -108,25 +109,6 @@ contract PaymentsEscrow is IPaymentsEscrow, PaymentsEscrowV1Storage, GraphDirect
         escrowAccounts[msg.sender][receiver].balance += amount;
         _graphToken().pullTokens(msg.sender, amount);
         emit Deposit(msg.sender, receiver, amount);
-    }
-
-    // Deposit funds into the escrow for multiple receivers
-    function depositMany(address[] calldata receivers, uint256[] calldata amounts) external {
-        if (receivers.length != amounts.length) {
-            revert GraphEscrowInputsLengthMismatch();
-        }
-
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < receivers.length; i++) {
-            address receiver = receivers[i];
-            uint256 amount = amounts[i];
-
-            totalAmount += amount;
-            escrowAccounts[msg.sender][receiver].balance += amount;
-            emit Deposit(msg.sender, receiver, amount);
-        }
-
-        _graphToken().pullTokens(msg.sender, totalAmount);
     }
 
     // Requests to thaw a specific amount of escrow from a receiver's escrow account
