@@ -15,6 +15,16 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
     using TokenUtils for IGraphToken;
 
     uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
+
+    event GraphPaymentsCollected(
+        address indexed sender,
+        address indexed receiver,
+        uint256 tokensReceiver,
+        uint256 tokensDelegationPool,
+        uint256 tokensDataService,
+        uint256 tokensProtocol
+    );
+
     // -- Errors --
 
     error GraphPaymentsNotThawing();
@@ -54,10 +64,21 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
         // Get delegation cut
         uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, uint8(paymentType));
         uint256 tokensDelegationPool = (amount * delegationFeeCut) / MAX_PPM;
-        _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
+        if (tokensDelegationPool > 0) {
+            _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
+        }
 
         // Pay the rest to the receiver
         uint256 tokensReceiver = amount - tokensProtocol - tokensDataService - tokensDelegationPool;
         _graphToken().pushTokens(receiver, tokensReceiver);
+
+        emit GraphPaymentsCollected(
+            msg.sender,
+            receiver,
+            tokensReceiver,
+            tokensDelegationPool,
+            tokensDataService,
+            tokensProtocol
+        );
     }
 }

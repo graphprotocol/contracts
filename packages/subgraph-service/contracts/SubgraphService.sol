@@ -33,7 +33,7 @@ contract SubgraphService is
     using PPMMath for uint256;
     using Allocation for mapping(address => Allocation.State);
 
-    event QueryFeesRedeemed(
+    event QueryFeesCollected(
         address serviceProvider,
         address payer,
         uint256 tokensCollected,
@@ -122,15 +122,6 @@ contract SubgraphService is
         emit ServiceStarted(indexer);
     }
 
-    function collectServicePayment(
-        address indexer,
-        bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
-        (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
-        uint256 rewards = _collectPOIRewards(allocationId, poi);
-        emit ServicePaymentCollected(indexer, rewards);
-    }
-
     function stopService(
         address indexer,
         bytes calldata data
@@ -148,21 +139,22 @@ contract SubgraphService is
         _resizeAllocation(allocationId, tokens, delegationRatio);
     }
 
-    // TODO: Does this design allow custom payment types?!
-    function redeem(
+    function collect(
         address indexer,
-        IGraphPayments.PaymentTypes feeType,
+        IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
     ) external override onlyRegisteredIndexer(indexer) whenNotPaused {
-        uint256 feesCollected = 0;
+        uint256 paymentCollected = 0;
 
-        if (feeType == IGraphPayments.PaymentTypes.QueryFee) {
-            feesCollected = _redeemQueryFees(abi.decode(data, (ITAPVerifier.SignedRAV)));
+        if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
+            paymentCollected = _collectQueryFees(data);
+        } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
+            paymentCollected = _collectIndexingRewards(data);
         } else {
-            revert SubgraphServiceInvalidPaymentType(feeType);
+            revert SubgraphServiceInvalidPaymentType(paymentType);
         }
 
-        emit ServiceFeesRedeemed(indexer, feeType, feesCollected);
+        emit ServicePaymentCollected(indexer, paymentType, paymentCollected);
     }
 
     function slash(address indexer, bytes calldata data) external override onlyDisputeManager whenNotPaused {
@@ -206,16 +198,17 @@ contract SubgraphService is
         return (verifierCut, type(uint32).max);
     }
 
-    function _redeemQueryFees(ITAPVerifier.SignedRAV memory _signedRAV) private returns (uint256 feesCollected) {
-        address indexer = _signedRAV.rav.serviceProvider;
-        address allocationId = abi.decode(_signedRAV.rav.metadata, (address));
+    function _collectQueryFees(bytes memory _data) private returns (uint256 feesCollected) {
+        ITAPVerifier.SignedRAV memory signedRav = abi.decode(_data, (ITAPVerifier.SignedRAV));
+        address indexer = signedRav.rav.serviceProvider;
+        address allocationId = abi.decode(signedRav.rav.metadata, (address));
 
         // release expired stake claims
         _releaseStake(IGraphPayments.PaymentTypes.QueryFee, indexer, 0);
 
         // validate RAV and calculate tokens to collect
-        address payer = TAP_VERIFIER.verify(_signedRAV);
-        uint256 tokens = _signedRAV.rav.valueAggregate;
+        address payer = TAP_VERIFIER.verify(signedRav);
+        uint256 tokens = signedRav.rav.valueAggregate;
         uint256 tokensAlreadyCollected = tokensCollected[indexer][payer];
         if (tokens <= tokensAlreadyCollected) {
             revert SubgraphServiceInconsistentRAVTokens(tokens, tokensAlreadyCollected);
@@ -263,7 +256,7 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesRedeemed(indexer, payer, tokensToCollect, tokensCurators, tokensSubgraphService);
+        emit QueryFeesCollected(indexer, payer, tokensToCollect, tokensCurators, tokensSubgraphService);
         return tokensToCollect;
     }
 

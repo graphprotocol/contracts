@@ -44,19 +44,12 @@ interface IDataService {
     event ServiceStopped(address indexed serviceProvider);
 
     /**
-     * @notice Emitted when a service provider collects payment for the service being provided.
+     * @notice Emitted when a service provider collects payment.
      * @param serviceProvider The address of the service provider.
+     * @param feeType The type of fee to collect as defined in {GraphPayments}.
      * @param tokens The amount of tokens collected.
      */
-    event ServicePaymentCollected(address indexed serviceProvider, uint256 tokens);
-
-    /**
-     * @notice Emitted when a service provider redeems fees.
-     * @param serviceProvider The address of the service provider.
-     * @param feeType The type of fee to redeem as defined in {GraphPayments}.
-     * @param tokens The amount of tokens redeemed.
-     */
-    event ServiceFeesRedeemed(
+    event ServicePaymentCollected(
         address indexed serviceProvider,
         IGraphPayments.PaymentTypes indexed feeType,
         uint256 tokens
@@ -115,21 +108,6 @@ interface IDataService {
     function startService(address serviceProvider, bytes calldata data) external;
 
     /**
-     * @notice Service provider collects payment for the service being provided.
-     * @dev This is payment owed to a service provided for ongoing work required to fullfil
-     * customer requests. How the funds for the payment are procured is up to the data service.
-     *
-     * Emits a {ServicePaymentCollected} event.
-     *
-     * NOTE: Data services that are vetted by the Graph Council might qualify for a portion of
-     * the protocol issuance to cover these payments. In this case, the funds are taken by
-     * interacting with the rewards manager contract.
-     * @param serviceProvider The address of the service provider.
-     * @param data Custom data, usage defined by the data service.
-     */
-    function collectServicePayment(address serviceProvider, bytes calldata data) external;
-
-    /**
      * @notice Service provider stops providing the service.
      * @dev Emits a {ServiceStopped} event.
      * @param serviceProvider The address of the service provider.
@@ -138,17 +116,21 @@ interface IDataService {
     function stopService(address serviceProvider, bytes calldata data) external;
 
     /**
-     * @notice Redeeems fees earnt by the service provider.
+     * @notice Collects payment earnt by the service provider.
      * @dev The implementation of this function is expected to interact with {GraphPayments}
-     * to collect fees from the service payer, which is done via {IGraphPayments-collect}.
+     * to collect payment from the service payer, which is done via {IGraphPayments-collect}.
      * @param serviceProvider The address of the service provider.
      *
-     * Emits a {ServicePaymentRedeemed} event.
+     * Emits a {ServicePaymentCollected} event.
      *
-     * @param feeType The type of fee to redeem as defined in {GraphPayments}.
+     * NOTE: Data services that are vetted by the Graph Council might qualify for a portion of
+     * protocol issuance to cover for these payments. In this case, the funds are taken by
+     * interacting with the rewards manager contract instead of the {GraphPayments} contract.
+     * @param serviceProvider The address of the service provider.
+     * @param feeType The type of fee to collect as defined in {GraphPayments}.
      * @param data Custom data, usage defined by the data service.
      */
-    function redeem(address serviceProvider, IGraphPayments.PaymentTypes feeType, bytes calldata data) external;
+    function collect(address serviceProvider, IGraphPayments.PaymentTypes feeType, bytes calldata data) external;
 
     /**
      * @notice Slash a service provider for misbehaviour.

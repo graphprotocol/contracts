@@ -47,7 +47,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         uint256 thawEndTimestamp
     );
     event Withdraw(address indexed sender, address indexed receiver, uint256 amount);
-    event Collect(address indexed sender, address indexed receiver, uint256 amount);
+    event EscrowCollected(address indexed sender, address indexed receiver, uint256 amount);
 
     // -- Errors --
 
@@ -212,7 +212,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         }
 
         account.balance -= amount;
-        emit Collect(sender, receiver, amount);
+        emit EscrowCollected(sender, receiver, amount);
 
         // Approve tokens so GraphPayments can pull them
         _graphToken().approve(address(_graphPayments()), amount);

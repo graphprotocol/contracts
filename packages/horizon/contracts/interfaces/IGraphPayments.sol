@@ -5,7 +5,8 @@ interface IGraphPayments {
     // Payment types
     enum PaymentTypes {
         QueryFee,
-        IndexingFee
+        IndexingFee,
+        IndexingRewards
     }
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver

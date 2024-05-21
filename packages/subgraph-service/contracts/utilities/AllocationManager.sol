@@ -35,7 +35,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         uint256 tokens
     );
 
-    event AllocationCollected(
+    event IndexingRewardsCollected(
         address indexed indexer,
         address indexed allocationId,
         bytes32 indexed subgraphDeploymentId,
@@ -128,26 +128,35 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
     // Update POI timestamp and take rewards snapshot even for 0 rewards
     // This ensures the rewards are actually skipped and not collected with the next valid POI
-    function _collectPOIRewards(address _allocationId, bytes32 _poi) internal returns (uint256) {
-        if (_poi == bytes32(0)) revert AllocationManagerInvalidZeroPOI();
+    function _collectIndexingRewards(bytes memory _data) internal returns (uint256) {
+        (address allocationId, bytes32 poi) = abi.decode(_data, (address, bytes32));
+        if (poi == bytes32(0)) revert AllocationManagerInvalidZeroPOI();
 
-        Allocation.State memory allocation = allocations.get(_allocationId);
+        Allocation.State memory allocation = allocations.get(allocationId);
 
         // Mint indexing rewards, stale POIs get no rewards...
         uint256 timeSinceLastPOI = block.number - allocation.lastPOIPresentedAt;
         uint256 tokensRewards = timeSinceLastPOI <= maxPOIStaleness
-            ? _graphRewardsManager().takeRewards(_allocationId)
+            ? _graphRewardsManager().takeRewards(allocationId)
             : 0;
 
         // ... but we still take a snapshot to ensure the rewards are not collected with the next valid POI
         allocations.snapshotRewards(
-            _allocationId,
+            allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
-        allocations.presentPOI(_allocationId);
+        allocations.presentPOI(allocationId);
 
         if (tokensRewards == 0) {
-            emit AllocationCollected(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, 0, 0, 0, _poi);
+            emit IndexingRewardsCollected(
+                allocation.indexer,
+                allocationId,
+                allocation.subgraphDeploymentId,
+                0,
+                0,
+                0,
+                poi
+            );
             return tokensRewards;
         }
 
@@ -159,8 +168,10 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
             uint8(IGraphPayments.PaymentTypes.IndexingFee)
         );
         uint256 tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
-        _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
-        _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
+        if (tokensDelegationRewards > 0) {
+            _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
+            _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
+        }
 
         // Distribute rewards to indexer
         uint256 tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
@@ -172,14 +183,14 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
             _graphToken().transfer(rewardsDestination, tokensIndexerRewards);
         }
 
-        emit AllocationCollected(
+        emit IndexingRewardsCollected(
             allocation.indexer,
-            _allocationId,
+            allocationId,
             allocation.subgraphDeploymentId,
             tokensRewards,
             tokensIndexerRewards,
             tokensDelegationRewards,
-            _poi
+            poi
         );
 
         return tokensRewards;
