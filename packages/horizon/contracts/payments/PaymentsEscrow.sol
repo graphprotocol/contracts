@@ -84,8 +84,13 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
 
     // approve a data service to collect funds
     function approveCollector(address dataService, uint256 amount) external {
-        authorizedCollectors[msg.sender][dataService].authorized = true;
-        authorizedCollectors[msg.sender][dataService].amount = amount;
+        IGraphEscrow.Collector storage collector = authorizedCollectors[msg.sender][dataService];
+        if (collector.amount > amount) {
+            revert GraphEscrowCollectorInsufficientAmount(collector.amount, amount);
+        }
+
+        collector.authorized = true;
+        collector.amount = amount;
         emit AuthorizedCollector(msg.sender, dataService);
     }
 

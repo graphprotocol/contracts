@@ -15,6 +15,16 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
         assertEq(thawEndTimestamp, 0);
     }
 
+    function testCollector_RevertWhen_ApprovingForSmallerAllowance(
+        uint256 amount,
+        uint256 smallerAmount
+    ) public useGateway useCollector(amount) {
+        vm.assume(smallerAmount < amount);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", amount, smallerAmount);
+        vm.expectRevert(expectedError);
+        escrow.approveCollector(users.verifier, smallerAmount);
+    }
+
     // Collector thaw tests
 
     function testCollector_Thaw(uint256 amount) public useGateway useCollector(amount) {
