@@ -69,7 +69,11 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
         }
 
         // Pay the rest to the receiver
-        uint256 tokensReceiverRemaining = tokens - tokensProtocol - tokensDataService - tokensDelegationPool;
+        uint256 totalCut = tokensProtocol + tokensDataService + tokensDelegationPool;
+        if (totalCut > tokens) {
+            revert GraphPaymentsCollectorInsufficientAmount(tokens, totalCut);
+        }
+        uint256 tokensReceiverRemaining = tokens - totalCut;
         _graphToken().pushTokens(receiver, tokensReceiverRemaining);
 
         emit GraphPaymentsCollected(

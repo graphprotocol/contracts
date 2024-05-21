@@ -16,6 +16,7 @@ import { IGraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/IG
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 
+import "forge-std/console.sol";
 /**
  * @title GraphDirectory contract
  * @notice This contract is meant to be inherited by other contracts that

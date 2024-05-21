@@ -8,68 +8,57 @@ import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
 
 contract GraphEscrowCollectTest is GraphEscrowTest {
 
-    function testCollect() public {
-        uint256 amount = 1000 ether;
-        createProvision(amount);
-        setDelegationFeeCut(0, 100000);
-
+    function testCollect_Tokens(uint256 amount, uint256 tokensDataService) public useProvision(amount, 0, 0) useDelegationFeeCut(0, delegationFeeCut) {
+        uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
+        uint256 tokensDelegatoion = amount * delegationFeeCut / MAX_PPM;
+        vm.assume(tokensDataService < amount - tokensProtocol - tokensDelegatoion);
+        
         vm.startPrank(users.gateway);
-        escrow.approveCollector(users.verifier, 1000 ether);
-        token.approve(address(escrow), 1000 ether);
-        escrow.deposit(users.indexer, 1000 ether);
+        escrow.approveCollector(users.verifier, amount);
+        _depositTokens(amount);
         vm.stopPrank();
 
         uint256 indexerPreviousBalance = token.balanceOf(users.indexer);
         vm.prank(users.verifier);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, 100 ether, subgraphDataServiceAddress, 3 ether);
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);
 
         uint256 indexerBalance = token.balanceOf(users.indexer);
-        assertEq(indexerBalance - indexerPreviousBalance, 86 ether);
+        uint256 indexerExpectedPayment = amount - tokensDataService - tokensProtocol - tokensDelegatoion;
+        assertEq(indexerBalance - indexerPreviousBalance, indexerExpectedPayment);
+        assertTrue(true);
     }
 
-    function testCollect_RevertWhen_CollectorNotAuthorized() public {
-        address indexer = address(0xA3);
-        uint256 amount = 1000 ether;
-
+    function testCollect_RevertWhen_CollectorNotAuthorized(uint256 amount) public {
         vm.startPrank(users.verifier);
         uint256 dataServiceCut = 30000; // 3%
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorNotAuthorized(address,address)", users.gateway, users.verifier);
         vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, indexer, amount, subgraphDataServiceAddress, dataServiceCut);
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, dataServiceCut);
         vm.stopPrank();
     }
 
-    function testCollect_RevertWhen_CollectorHasInsufficientAmount() public {
-        vm.prank(users.gateway);
-        escrow.approveCollector(users.verifier, 100 ether);
+    function testCollect_RevertWhen_CollectorHasInsufficientAmount(
+        uint256 amount,
+        uint256 insufficientAmount
+    ) public useGateway useCollector(insufficientAmount) useDeposit(amount) {
+        vm.assume(insufficientAmount < amount);
 
-        address indexer = address(0xA3);
-        uint256 amount = 1000 ether;
-
-        vm.startPrank(users.gateway);
-        token.approve(address(escrow), amount);
-        escrow.deposit(indexer, amount);
-        vm.stopPrank();
-
-        vm.startPrank(users.verifier);
-        uint256 dataServiceCut = 30 ether;
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", 100 ether, 1000 ether);
+        changePrank(users.verifier);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", insufficientAmount, amount);
         vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, indexer, 1000 ether, subgraphDataServiceAddress, dataServiceCut);
-        vm.stopPrank();
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
     }
 
-    function testCollect_RevertWhen_SenderHasInsufficientAmountInEscrow() public {
-        vm.startPrank(users.gateway);
-        escrow.approveCollector(users.verifier, 1000 ether);
-        token.approve(address(escrow), 1000 ether);
-        escrow.deposit(users.indexer, 100 ether);
-        vm.stopPrank();
+    function testCollect_RevertWhen_SenderHasInsufficientAmountInEscrow(
+        uint256 amount, 
+        uint256 insufficientAmount
+    ) public useGateway useCollector(amount) useDeposit(insufficientAmount)  {
+        vm.assume(insufficientAmount < amount);
 
-        vm.prank(users.verifier);
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAmount(uint256,uint256)", 100 ether, 200 ether);
+        changePrank(users.verifier);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAmount(uint256,uint256)", insufficientAmount, amount);
         vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, 200 ether, subgraphDataServiceAddress, 3 ether);
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
         vm.stopPrank();
     }
 }
