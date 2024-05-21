@@ -24,7 +24,7 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
      */
     modifier onlyL2Gateway() {
-        require(msg.sender == GRAPH_TOKEN_GATEWAY, "ONLY_GATEWAY");
+        require(msg.sender == address(_graphTokenGateway()), "ONLY_GATEWAY");
         _;
     }
 

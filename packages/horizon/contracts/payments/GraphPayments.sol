@@ -4,11 +4,15 @@ pragma solidity ^0.8.24;
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IHorizonStaking } from "../interfaces/IHorizonStaking.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-import { GraphDirectory } from "../GraphDirectory.sol";
-import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
+
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
+import { GraphDirectory } from "../data-service/GraphDirectory.sol";
+import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
+
 contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDirectory {
+    using TokenUtils for IGraphToken;
+
     uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
     // -- Errors --
 
@@ -26,7 +30,7 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
     // -- Constructor --
 
     constructor(address controller, uint256 protocolPaymentCut) GraphDirectory(controller) {
-        protocolPaymentCut = protocolPaymentCut;
+        PROTOCOL_PAYMENT_CUT = protocolPaymentCut;
     }
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver
@@ -37,24 +41,22 @@ contract GraphPayments is IGraphPayments, GraphPaymentsStorageV1Storage, GraphDi
         IGraphPayments.PaymentTypes paymentType,
         uint256 tokensDataService
     ) external {
-        IGraphToken graphToken = IGraphToken(GRAPH_TOKEN);
-        IHorizonStaking staking = IHorizonStaking(STAKING);
-        TokenUtils.pullTokens(graphToken, msg.sender, amount);
+        _graphToken().pullTokens(msg.sender, amount);
 
         // Pay protocol cut
         uint256 tokensProtocol = (amount * PROTOCOL_PAYMENT_CUT) / MAX_PPM;
-        TokenUtils.burnTokens(graphToken, tokensProtocol);
+        _graphToken().burnTokens(tokensProtocol);
 
         // Pay data service cut
-        TokenUtils.pushTokens(graphToken, dataService, tokensDataService);
+        _graphToken().pushTokens(dataService, tokensDataService);
 
         // Get delegation cut
-        uint256 delegationFeeCut = staking.getDelegationFeeCut(receiver, dataService, uint8(paymentType));
+        uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, uint8(paymentType));
         uint256 tokensDelegationPool = (amount * delegationFeeCut) / MAX_PPM;
-        staking.addToDelegationPool(receiver, dataService, tokensDelegationPool);
+        _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
 
         // Pay the rest to the receiver
         uint256 tokensReceiver = amount - tokensProtocol - tokensDataService - tokensDelegationPool;
-        TokenUtils.pushTokens(graphToken, receiver, tokensReceiver);
+        _graphToken().pushTokens(receiver, tokensReceiver);
     }
 }

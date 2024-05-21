@@ -2,10 +2,7 @@
 
 pragma solidity 0.8.24;
 
-import { IController } from "@graphprotocol/contracts/contracts/governance/IController.sol";
-import { IManaged } from "../../interfaces/IManaged.sol";
-
-import { GraphDirectory } from "../../GraphDirectory.sol";
+import { GraphDirectory } from "../../data-service/GraphDirectory.sol";
 
 // TODO: create custom var-name-mixedcase
 /* solhint-disable var-name-mixedcase */
@@ -16,11 +13,11 @@ import { GraphDirectory } from "../../GraphDirectory.sol";
  * Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
-abstract contract Managed is IManaged, GraphDirectory {
+abstract contract Managed is GraphDirectory {
     // -- State --
 
     /// Controller that manages this contract
-    IController private __DEPRECATED_controller;
+    address private __DEPRECATED_controller;
     /// @dev Cache for the addresses of the contracts retrieved from the controller
     mapping(bytes32 contractName => address contractAddress) private __DEPRECATED_addressCache;
     /// @dev Gap for future storage variables
@@ -31,14 +28,12 @@ abstract contract Managed is IManaged, GraphDirectory {
     /// Emitted when a contract parameter has been updated
     event ParameterUpdated(string param);
 
-    error ManagedSetControllerDeprecated();
-
     /**
      * @dev Revert if the controller is paused or partially paused
      */
     modifier notPartialPaused() {
-        require(!controller().paused(), "Paused");
-        require(!controller().partialPaused(), "Partial-paused");
+        require(!_graphController().paused(), "Paused");
+        require(!_graphController().partialPaused(), "Partial-paused");
         _;
     }
 
@@ -46,7 +41,7 @@ abstract contract Managed is IManaged, GraphDirectory {
      * @dev Revert if the controller is paused
      */
     modifier notPaused() {
-        require(!controller().paused(), "Paused");
+        require(!_graphController().paused(), "Paused");
         _;
     }
 
@@ -54,7 +49,7 @@ abstract contract Managed is IManaged, GraphDirectory {
      * @dev Revert if the caller is not the Controller
      */
     modifier onlyController() {
-        require(msg.sender == CONTROLLER, "Caller must be Controller");
+        require(msg.sender == address(_graphController()), "Caller must be Controller");
         _;
     }
 
@@ -62,20 +57,9 @@ abstract contract Managed is IManaged, GraphDirectory {
      * @dev Revert if the caller is not the governor
      */
     modifier onlyGovernor() {
-        require(msg.sender == controller().getGovernor(), "Only Controller governor");
+        require(msg.sender == _graphController().getGovernor(), "Only Controller governor");
         _;
     }
 
     constructor(address controller_) GraphDirectory(controller_) {}
-
-    /**
-     * @notice Set Controller. Deprecated, will revert.
-     */
-    function setController(address) external view override onlyController {
-        revert ManagedSetControllerDeprecated();
-    }
-
-    function controller() public view override returns (IController) {
-        return IController(CONTROLLER);
-    }
 }

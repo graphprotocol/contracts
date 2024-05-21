@@ -31,7 +31,7 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
     error ProvisionManagerNotAuthorized(address caller, address serviceProvider, address service);
 
     modifier onlyProvisionAuthorized(address serviceProvider) {
-        if (!GRAPH_STAKING.isAuthorized(msg.sender, serviceProvider, address(this))) {
+        if (!_graphStaking().isAuthorized(msg.sender, serviceProvider, address(this))) {
             revert ProvisionManagerNotAuthorized(msg.sender, serviceProvider, address(this));
         }
         _;
@@ -50,7 +50,7 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
 
     function _checkAndAcceptProvision(address _serviceProvider) internal virtual {
         _checkProvisionParameters(_serviceProvider);
-        GRAPH_STAKING.acceptProvisionParameters(_serviceProvider);
+        _graphStaking().acceptProvisionParameters(_serviceProvider);
     }
 
     // -- Provision Parameters: setters --
@@ -104,6 +104,6 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
     }
 
     function _getProvision(address _serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
-        return GRAPH_STAKING.get(_serviceProvider);
+        return _graphStaking().get(_serviceProvider);
     }
 }

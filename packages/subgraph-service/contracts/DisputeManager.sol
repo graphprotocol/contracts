@@ -2,20 +2,21 @@
 pragma solidity ^0.8.24;
 pragma abicoder v2;
 
+import { IGraphToken } from "@graphprotocol/horizon/contracts/interfaces/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
-import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
-import { AttestationManager } from "./utilities/AttestationManager.sol";
-
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/horizon/contracts/libraries/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { Attestation } from "./libraries/Attestation.sol";
+
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
+import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
+import { AttestationManager } from "./utilities/AttestationManager.sol";
 
 /*
  * @title DisputeManager
@@ -41,6 +42,7 @@ import { Attestation } from "./libraries/Attestation.sol";
  * to a EOA or DAO.
  */
 contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeManagerV1Storage, IDisputeManager {
+    using TokenUtils for IGraphToken;
     using PPMMath for uint256;
 
     // -- Events --
@@ -310,7 +312,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         uint256 tokensToReward = _slashIndexer(dispute.indexer, slashAmount);
 
         // Give the fisherman their reward and their deposit back
-        TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, tokensToReward + dispute.deposit);
+        _graphToken().pushTokens(dispute.fisherman, tokensToReward + dispute.deposit);
 
         if (_isDisputeInConflict(dispute)) {
             rejectDispute(dispute.relatedDisputeId);
@@ -328,7 +330,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         Dispute storage dispute = disputes[disputeId];
 
         // Return deposit to the fisherman
-        TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, dispute.deposit);
+        _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
 
         // resolve related dispute if any
         _drawDisputeInConflict(dispute);
@@ -354,7 +356,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
 
         // Return deposit to the fisherman
-        TokenUtils.pushTokens(GRAPH_TOKEN, dispute.fisherman, dispute.deposit);
+        _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
 
         // resolve related dispute if any
         _cancelDisputeInConflict(dispute);
@@ -468,7 +470,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
 
         // Burn the fisherman's deposit
-        TokenUtils.burnTokens(GRAPH_TOKEN, dispute.deposit);
+        _graphToken().burnTokens(dispute.deposit);
 
         emit DisputeRejected(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
@@ -525,7 +527,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         address indexer = getAttestationIndexer(_attestation);
 
         // The indexer is disputable
-        IHorizonStaking.Provision memory provision = GRAPH_STAKING.getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert DisputeManagerZeroTokens();
         }
@@ -596,7 +598,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
 
         // The indexer must be disputable
-        IHorizonStaking.Provision memory provision = GRAPH_STAKING.getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
         if (provision.tokens == 0) {
             revert DisputeManagerZeroTokens();
         }
@@ -658,7 +660,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         }
 
         // Transfer tokens to deposit from fisherman to this contract
-        TokenUtils.pullTokens(GRAPH_TOKEN, msg.sender, _deposit);
+        _graphToken().pullTokens(msg.sender, _deposit);
     }
 
     /**
@@ -669,8 +671,8 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      */
     function _slashIndexer(address _indexer, uint256 _slashAmount) private returns (uint256 rewardsAmount) {
         // Get slashable amount for indexer
-        IHorizonStaking.Provision memory provision = GRAPH_STAKING.getProvision(_indexer, address(subgraphService));
-        IHorizonStaking.DelegationPool memory pool = GRAPH_STAKING.getDelegationPool(
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_indexer, address(subgraphService));
+        IHorizonStaking.DelegationPool memory pool = _graphStaking().getDelegationPool(
             _indexer,
             address(subgraphService)
         );

@@ -22,6 +22,8 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * This is due to the contract size limit on Arbitrum (24kB like mainnet).
  */
 contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV1Storage, IHorizonStakingBase {
+    using TokenUtils for IGraphToken;
+
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
@@ -341,7 +343,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint256 lockingPeriod = __DEPRECATED_thawingPeriod;
         if (lockingPeriod == 0) {
             sp.tokensStaked = stakedTokens - tokens;
-            TokenUtils.pushTokens(_graphToken(), serviceProvider, tokens);
+            _graphToken().pushTokens(serviceProvider, tokens);
             emit StakeWithdrawn(serviceProvider, tokens);
         } else {
             // Before locking more tokens, withdraw any unlocked ones if possible
@@ -393,10 +395,10 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         if (providerTokensSlashed > 0) {
             require((prov.tokens * prov.maxVerifierCut) / MAX_PPM >= verifierCutAmount, "verifier cut too high");
             if (verifierCutAmount > 0) {
-                TokenUtils.pushTokens(_graphToken(), verifierCutDestination, verifierCutAmount);
+                _graphToken().pushTokens(verifierCutDestination, verifierCutAmount);
                 emit VerifierCutSent(serviceProvider, verifier, verifierCutDestination, verifierCutAmount);
             }
-            TokenUtils.burnTokens(_graphToken(), providerTokensSlashed - verifierCutAmount);
+            _graphToken().burnTokens(providerTokensSlashed - verifierCutAmount);
             uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
             // TODO check for rounding issues
             prov.tokensThawing =
@@ -422,7 +424,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
             }
             if (delegationSlashingEnabled) {
                 require(pool.tokens >= tokensToSlash, "insufficient delegated tokens");
-                TokenUtils.burnTokens(_graphToken(), tokensToSlash);
+                _graphToken().burnTokens(tokensToSlash);
                 uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION) / pool.tokens;
                 pool.tokens = pool.tokens - tokensToSlash;
                 pool.tokensThawing =
@@ -541,7 +543,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         }
 
         // Transfer tokens to stake from caller to this contract
-        TokenUtils.pullTokens(_graphToken(), msg.sender, tokens);
+        _graphToken().pullTokens(msg.sender, tokens);
 
         // Stake the transferred tokens
         _stake(serviceProvider, tokens);
@@ -554,7 +556,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint256 minSharesOut
     ) public override notPartialPaused {
         // Transfer tokens to stake from caller to this contract
-        TokenUtils.pullTokens(_graphToken(), msg.sender, tokens);
+        _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, verifier, tokens, minSharesOut);
     }
 
@@ -652,7 +654,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         if (newServiceProvider != address(0)) {
             _delegate(newServiceProvider, verifier, thawedTokens, minSharesForNewProvider);
         } else {
-            TokenUtils.pushTokens(_graphToken(), msg.sender, thawedTokens);
+            _graphToken().pushTokens(msg.sender, thawedTokens);
         }
         emit DelegatedTokensWithdrawn(serviceProvider, verifier, msg.sender, thawedTokens);
     }
@@ -836,10 +838,6 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         emit StakeDeposited(_serviceProvider, _tokens);
     }
 
-    function _graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(GRAPH_TOKEN);
-    }
-
     /**
      * @dev Withdraw indexer tokens once the thawing period has passed.
      * @param _indexer Address of indexer to withdraw funds from
@@ -858,7 +856,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         sp.tokensStaked = sp.tokensStaked - tokensToWithdraw;
 
         // Return tokens to the indexer
-        TokenUtils.pushTokens(_graphToken(), _indexer, tokensToWithdraw);
+        _graphToken().pushTokens(_indexer, tokensToWithdraw);
 
         emit StakeWithdrawn(_indexer, tokensToWithdraw);
     }

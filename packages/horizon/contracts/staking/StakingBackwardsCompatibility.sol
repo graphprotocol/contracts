@@ -27,6 +27,8 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * This is due to the 24kB contract size limit on Ethereum.
  */
 abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Storage, IStakingBackwardsCompatibility {
+    using TokenUtils for IGraphToken;
+
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
@@ -96,7 +98,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
         {
             // -- Pull tokens from the sender --
             IGraphToken graphToken = _graphToken();
-            TokenUtils.pullTokens(graphToken, msg.sender, queryFees);
+            _graphToken().pullTokens(msg.sender, queryFees);
 
             // -- Collect protocol tax --
             protocolTax = _collectTax(queryFees, __DEPRECATED_protocolPercentage);
@@ -135,7 +137,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
             queryRebates = MathUtils.min(queryRebates, queryFees);
 
             // -- Burn rebates remanent --
-            TokenUtils.burnTokens(graphToken, queryFees - queryRebates);
+            _graphToken().burnTokens(queryFees - queryRebates);
 
             // -- Distribute rebates --
             if (queryRebates > 0) {
@@ -155,7 +157,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
             alloc.indexer,
             subgraphDeploymentID,
             allocationID,
-            _epochManager().currentEpoch(),
+            _graphEpochManager().currentEpoch(),
             tokens,
             protocolTax,
             curationFees,
@@ -246,22 +248,6 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
         emit StakeDeposited(_serviceProvider, _tokens);
     }
 
-    function _graphToken() internal view returns (IGraphToken) {
-        return IGraphToken(GRAPH_TOKEN);
-    }
-
-    function _curation() internal view returns (ICuration) {
-        return ICuration(CURATION);
-    }
-
-    function _rewardsManager() internal view returns (IRewardsManager) {
-        return IRewardsManager(REWARDS_MANAGER);
-    }
-
-    function _epochManager() internal view returns (IEpochManager) {
-        return IEpochManager(EPOCH_MANAGER);
-    }
-
     /**
      * @dev Collect tax to burn for an amount of tokens.
      * @param _tokens Total tokens received used to calculate the amount of tax to collect
@@ -273,7 +259,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
         // to prevent the tax from rounding down to zero
         uint256 tokensAfterTax = ((uint256(MAX_PPM) - _percentage) * _tokens) / MAX_PPM;
         uint256 tax = _tokens - tokensAfterTax;
-        TokenUtils.burnTokens(_graphToken(), tax); // Burn tax if any
+        _graphToken().burnTokens(tax); // Burn tax if any
         return tax;
     }
 
@@ -283,11 +269,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
      * @return Accumulated rewards per allocated token for the subgraph deployment
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
-        IRewardsManager rewardsManager = _rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return 0;
-        }
-        return rewardsManager.onSubgraphAllocationUpdate(_subgraphDeploymentID);
+        return _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
@@ -296,15 +278,10 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
      * @param _indexer Address of the indexer that did the allocation
      */
     function _distributeRewards(address _allocationID, address _indexer) private {
-        IRewardsManager rewardsManager = _rewardsManager();
-        if (address(rewardsManager) == address(0)) {
-            return;
-        }
-
         // Automatically triggers update of rewards snapshot as allocation will change
         // after this call. Take rewards mint tokens for the Staking contract to distribute
         // between indexer and delegators
-        uint256 totalRewards = rewardsManager.takeRewards(_allocationID);
+        uint256 totalRewards = _graphRewardsManager().takeRewards(_allocationID);
         if (totalRewards == 0) {
             return;
         }
@@ -332,7 +309,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
             address destination = __DEPRECATED_rewardsDestination[_beneficiary];
-            TokenUtils.pushTokens(_graphToken(), destination == address(0) ? _beneficiary : destination, _amount);
+            _graphToken().pushTokens(destination == address(0) ? _beneficiary : destination, _amount);
         }
     }
 
@@ -350,7 +327,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
         Allocation memory alloc = __DEPRECATED_allocations[_allocationID];
 
         // Validate that an allocation cannot be closed before one epoch
-        alloc.closedAtEpoch = _epochManager().currentEpoch();
+        alloc.closedAtEpoch = _graphEpochManager().currentEpoch();
         uint256 epochs = MathUtils.diffOrZero(alloc.closedAtEpoch, alloc.createdAtEpoch);
 
         // Indexer or operator can close an allocation
@@ -453,7 +430,7 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
             return 0;
         }
 
-        ICuration curation = _curation();
+        ICuration curation = _graphCuration();
         bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
 
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
@@ -465,8 +442,8 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
                 // Then we call collect() to do the transfer bookeeping
-                _rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
-                TokenUtils.pushTokens(_graphToken(), address(curation), curationFees);
+                _graphRewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
+                _graphToken().pushTokens(address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);
             }
             return curationFees;

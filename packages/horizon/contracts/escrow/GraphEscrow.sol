@@ -4,11 +4,15 @@ pragma solidity ^0.8.24;
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IGraphEscrow } from "../interfaces/IGraphEscrow.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-import { GraphDirectory } from "../GraphDirectory.sol";
-import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
+
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
+import { GraphDirectory } from "../data-service/GraphDirectory.sol";
+import { GraphEscrowStorageV1Storage } from "./GraphEscrowStorage.sol";
+
 contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirectory {
+    using TokenUtils for IGraphToken;
+
     // -- Events --
 
     event AuthorizedCollector(address indexed sender, address indexed dataService);
@@ -102,7 +106,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
     // Deposit funds into the escrow for a receiver
     function deposit(address receiver, uint256 amount) external {
         escrowAccounts[msg.sender][receiver].balance += amount;
-        TokenUtils.pullTokens(IGraphToken(GRAPH_TOKEN), msg.sender, amount);
+        _graphToken().pullTokens(msg.sender, amount);
         emit Deposit(msg.sender, receiver, amount);
     }
 
@@ -122,7 +126,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
             emit Deposit(msg.sender, receiver, amount);
         }
 
-        TokenUtils.pullTokens(IGraphToken(GRAPH_TOKEN), msg.sender, totalAmount);
+        _graphToken().pullTokens(msg.sender, totalAmount);
     }
 
     // Requests to thaw a specific amount of escrow from a receiver's escrow account
@@ -174,7 +178,7 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         account.balance -= amount; // Reduce the balance by the withdrawn amount (no underflow risk)
         account.amountThawing = 0;
         account.thawEndTimestamp = 0;
-        TokenUtils.pushTokens(IGraphToken(GRAPH_TOKEN), msg.sender, amount);
+        _graphToken().pushTokens(msg.sender, amount);
         emit Withdraw(msg.sender, receiver, amount);
     }
 
@@ -212,10 +216,8 @@ contract GraphEscrow is IGraphEscrow, GraphEscrowStorageV1Storage, GraphDirector
         emit Collect(sender, receiver, amount);
 
         // Approve tokens so GraphPayments can pull them
-        IGraphToken graphToken = IGraphToken(GRAPH_TOKEN);
-        IGraphPayments graphPayments = IGraphPayments(GRAPH_PAYMENTS);
-        graphToken.approve(address(graphPayments), amount);
-        graphPayments.collect(receiver, dataService, amount, paymentType, tokensDataService);
+        _graphToken().approve(address(_graphPayments()), amount);
+        _graphPayments().collect(receiver, dataService, amount, paymentType, tokensDataService);
     }
 
     // Get the balance of a sender-receiver pair

@@ -160,7 +160,7 @@ contract SubgraphService is
 
     function slash(address indexer, bytes calldata data) external override onlyDisputeManager whenNotPaused {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
-        GRAPH_STAKING.slash(indexer, tokens, reward, address(DISPUTE_MANAGER));
+        _graphStaking().slash(indexer, tokens, reward, address(DISPUTE_MANAGER));
         emit ServiceProviderSlashed(indexer, tokens);
     }
 
@@ -237,9 +237,9 @@ contract SubgraphService is
             uint256 totalCut = tokensSubgraphService + tokensCurators;
 
             // collect fees
-            uint256 balanceBefore = GRAPH_TOKEN.balanceOf(address(this));
-            GRAPH_PAYMENTS.collect(payer, indexer, tokensToCollect, IGraphPayments.PaymentTypes.QueryFee, totalCut);
-            uint256 balanceAfter = GRAPH_TOKEN.balanceOf(address(this));
+            uint256 balanceBefore = _graphToken().balanceOf(address(this));
+            _graphPayments().collect(payer, indexer, tokensToCollect, IGraphPayments.PaymentTypes.QueryFee, totalCut);
+            uint256 balanceAfter = _graphToken().balanceOf(address(this));
             if (balanceBefore + totalCut != balanceAfter) {
                 revert SubgraphServiceInconsistentCollection(balanceBefore + totalCut, balanceAfter);
             }
@@ -248,10 +248,10 @@ contract SubgraphService is
             // distribute curation cut to curators
             if (tokensCurators > 0) {
                 // we are about to change subgraph signal so we take rewards snapshot
-                GRAPH_REWARDS_MANAGER.onSubgraphSignalUpdate(subgraphDeploymentId);
+                _graphRewardsManager().onSubgraphSignalUpdate(subgraphDeploymentId);
 
                 // Send GRT and bookkeep by calling collect()
-                GRAPH_TOKEN.transfer(address(CURATION), tokensCurators);
+                _graphToken().transfer(address(CURATION), tokensCurators);
                 CURATION.collect(subgraphDeploymentId, tokensCurators);
             }
         }

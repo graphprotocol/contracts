@@ -66,7 +66,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         uint256 _tokens,
         uint256 _unlockTimestamp
     ) internal {
-        feesProvisionTracker[_feeType].lock(GRAPH_STAKING, _serviceProvider, _tokens, delegationRatio);
+        feesProvisionTracker[_feeType].lock(_graphStaking(), _serviceProvider, _tokens, delegationRatio);
 
         StakeClaimsList storage claimsList = claimsLists[_feeType][_serviceProvider];
         bytes32 claimId = _buildStakeClaimId(_serviceProvider, claimsList.nonce);

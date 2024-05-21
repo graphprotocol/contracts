@@ -23,7 +23,7 @@
  *
  */
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.24;
 
 interface ITokenGateway {
     /// @notice event deprecated in favor of DepositInitiated and WithdrawalInitiated
@@ -47,21 +47,20 @@ interface ITokenGateway {
     // );
 
     function outboundTransfer(
-        address _token,
-        address _to,
-        uint256 _amount,
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        bytes calldata _data
-    ) external payable returns (bytes memory);
+        address oken,
+        address t,
+        uint256 amunt,
+        uint256 maxas,
+        uint256 gasPiceBid,
+        bytes calldata data
+   ) external payable returns (bytes memory);
 
     function finalizeInboundTransfer(
-        address _token,
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes calldata _data
-    ) external payable;
+        address token,        address from,
+       address to,
+       uint256 amount,
+       bytes calldata data
+    )external payable;
 
     /**
      * @notice Calculate the address used when bridging an ERC20 token
