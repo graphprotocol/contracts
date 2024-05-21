@@ -70,6 +70,8 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         bytes32 indexed subgraphDeploymentId
     );
 
+    event RewardsDestinationSet(address indexed indexer, address rewardsDestination);
+
     error AllocationManagerInvalidAllocationProof(address signer, address allocationId);
     error AllocationManagerInvalidAllocationId();
     error AllocationManagerZeroTokensAllocation(address allocationId);
@@ -78,6 +80,10 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     error AllocationManagerInvalidZeroPOI();
 
     constructor(string memory name, string memory version) EIP712(name, version) {}
+
+    function setRewardsDestination(address rewardsDestination) external {
+        _setRewardsDestination(msg.sender, rewardsDestination);
+    }
 
     function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
         legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
@@ -231,6 +237,11 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         emit AllocationClosed(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, allocation.tokens);
         return allocations[_allocationId];
+    }
+
+    function _setRewardsDestination(address _indexer, address _rewardsDestination) internal {
+        rewardsDestination[_indexer] = _rewardsDestination;
+        emit RewardsDestinationSet(_indexer, _rewardsDestination);
     }
 
     function _getAllocation(address _allocationId) internal view returns (Allocation.State memory) {

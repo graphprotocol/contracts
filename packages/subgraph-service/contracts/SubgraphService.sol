@@ -74,7 +74,10 @@ contract SubgraphService is
         address indexer,
         bytes calldata data
     ) external override onlyProvisionAuthorized(indexer) whenNotPaused {
-        (string memory url, string memory geohash) = abi.decode(data, (string, string));
+        (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
+            data,
+            (string, string, address)
+        );
 
         // Must provide a URL
         if (bytes(url).length == 0) {
@@ -88,6 +91,10 @@ contract SubgraphService is
 
         // Register the indexer
         indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
+
+        if (rewardsDestination != address(0)) {
+            _setRewardsDestination(indexer, rewardsDestination);
+        }
 
         // Ensure the service provider created a valid provision for the data service
         // and accept it in the staking contract
