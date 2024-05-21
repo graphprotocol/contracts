@@ -30,11 +30,6 @@ abstract contract Managed is IManaged, GraphDirectory {
 
     /// Emitted when a contract parameter has been updated
     event ParameterUpdated(string param);
-    /// (Deprecated) Emitted when the controller address has been set
-    event SetController(address controller);
-
-    ///(Deprecated) Emitted when contract with `nameHash` is synced to `contractAddress`.
-    event ContractSynced(bytes32 indexed nameHash, address contractAddress);
 
     error ManagedSetControllerDeprecated();
 
@@ -42,7 +37,8 @@ abstract contract Managed is IManaged, GraphDirectory {
      * @dev Revert if the controller is paused or partially paused
      */
     modifier notPartialPaused() {
-        _notPartialPaused();
+        require(!controller().paused(), "Paused");
+        require(!controller().partialPaused(), "Partial-paused");
         _;
     }
 
@@ -50,7 +46,7 @@ abstract contract Managed is IManaged, GraphDirectory {
      * @dev Revert if the controller is paused
      */
     modifier notPaused() {
-        _notPaused();
+        require(!controller().paused(), "Paused");
         _;
     }
 
@@ -58,7 +54,7 @@ abstract contract Managed is IManaged, GraphDirectory {
      * @dev Revert if the caller is not the Controller
      */
     modifier onlyController() {
-        _onlyController();
+        require(msg.sender == CONTROLLER, "Caller must be Controller");
         _;
     }
 
@@ -66,7 +62,7 @@ abstract contract Managed is IManaged, GraphDirectory {
      * @dev Revert if the caller is not the governor
      */
     modifier onlyGovernor() {
-        _onlyGovernor();
+        require(msg.sender == controller().getGovernor(), "Only Controller governor");
         _;
     }
 
@@ -81,34 +77,5 @@ abstract contract Managed is IManaged, GraphDirectory {
 
     function controller() public view override returns (IController) {
         return IController(CONTROLLER);
-    }
-
-    /**
-     * @dev Revert if the controller is paused or partially paused
-     */
-    function _notPartialPaused() internal view {
-        require(!controller().paused(), "Paused");
-        require(!controller().partialPaused(), "Partial-paused");
-    }
-
-    /**
-     * @dev Revert if the controller is paused
-     */
-    function _notPaused() internal view virtual {
-        require(!controller().paused(), "Paused");
-    }
-
-    /**
-     * @dev Revert if the caller is not the governor
-     */
-    function _onlyGovernor() internal view {
-        require(msg.sender == controller().getGovernor(), "Only Controller governor");
-    }
-
-    /**
-     * @dev Revert if the caller is not the Controller
-     */
-    function _onlyController() internal view {
-        require(msg.sender == CONTROLLER, "Caller must be Controller");
     }
 }

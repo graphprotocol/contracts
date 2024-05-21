@@ -26,7 +26,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * Note that this contract delegates part of its functionality to a StakingExtension contract.
  * This is due to the 24kB contract size limit on Ethereum.
  */
-abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, IStakingBackwardsCompatibility {
+abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Storage, IStakingBackwardsCompatibility {
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
