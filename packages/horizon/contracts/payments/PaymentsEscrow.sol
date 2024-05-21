@@ -9,10 +9,27 @@ import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
-import { PaymentsEscrowV1Storage } from "./PaymentsEscrowStorage.sol";
 
-contract PaymentsEscrow is Multicall, GraphDirectory, PaymentsEscrowV1Storage, IPaymentsEscrow {
+contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
+
+    // Authorized collectors
+    mapping(address sender => mapping(address dataService => IPaymentsEscrow.Collector collector))
+        public authorizedCollectors;
+
+    // Stores how much escrow each sender has deposited for each receiver, as well as thawing information
+    mapping(address sender => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount))
+        public escrowAccounts;
+
+    // The maximum thawing period (in seconds) for both escrow withdrawal and signer revocation
+    // This is a precautionary measure to avoid inadvertedly locking funds for too long
+    uint256 public constant MAX_THAWING_PERIOD = 90 days;
+
+    // Thawing period for authorized collectors
+    uint256 public immutable REVOKE_COLLECTOR_THAWING_PERIOD;
+
+    // The duration (in seconds) in which escrow funds are thawing before they can be withdrawn
+    uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
 
     // -- Events --
 
