@@ -21,7 +21,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * It uses a HorizonStakingExtension contract to implement the full IHorizonStaking interface through delegatecalls.
  * This is due to the contract size limit on Arbitrum (24kB like mainnet).
  */
-contract HorizonStaking is GraphUpgradeable, Multicall, HorizonStakingV1Storage, IHorizonStakingBase {
+contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV1Storage, IHorizonStakingBase {
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 

@@ -5,8 +5,6 @@ pragma solidity 0.8.24;
 import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
 import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
 
-import { Managed } from "./utilities/Managed.sol";
-
 // TODO: create custom var-name-mixedcase
 /* solhint-disable var-name-mixedcase */
 
@@ -15,7 +13,7 @@ import { Managed } from "./utilities/Managed.sol";
  * @notice This contract holds all the storage variables for the Staking contract, version 1
  */
 // solhint-disable-next-line max-states-count
-abstract contract HorizonStakingV1Storage is Managed {
+abstract contract HorizonStakingV1Storage {
     // -- Staking --
 
     /// @dev Minimum amount of tokens an indexer needs to stake.
