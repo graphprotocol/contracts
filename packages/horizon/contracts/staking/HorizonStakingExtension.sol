@@ -16,7 +16,7 @@ import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.s
  * to receive an indexer's stake or delegation from L1. Note that this contract inherits Staking,
  * which uses a StakingExtension contract to implement the full IStaking interface through delegatecalls.
  */
-contract HorizonStakingExtension is StakingBackwardsCompatibility, IHorizonStakingExtension, IL2StakingBase {
+contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBase, IHorizonStakingExtension {
     /// @dev Minimum amount of tokens that can be delegated
     uint256 private constant MINIMUM_DELEGATION = 1e18;
 

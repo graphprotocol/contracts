@@ -7,13 +7,12 @@ import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRew
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
+import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
 
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
 import { ExponentialRebates } from "./libraries/ExponentialRebates.sol";
 
-import { Multicall } from "@graphprotocol/contracts/contracts/base/Multicall.sol";
-import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
 import { Managed } from "./utilities/Managed.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
@@ -27,12 +26,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * Note that this contract delegates part of its functionality to a StakingExtension contract.
  * This is due to the 24kB contract size limit on Ethereum.
  */
-abstract contract StakingBackwardsCompatibility is
-    HorizonStakingV1Storage,
-    GraphUpgradeable,
-    Multicall,
-    IStakingBackwardsCompatibility
-{
+abstract contract StakingBackwardsCompatibility is HorizonStakingV1Storage, IStakingBackwardsCompatibility {
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
 
@@ -415,7 +409,7 @@ abstract contract StakingBackwardsCompatibility is
      */
     function _collectDelegationQueryRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
-        DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
+        IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && pool.__DEPRECATED_queryFeeCut < MAX_PPM) {
             uint256 indexerCut = (uint256(pool.__DEPRECATED_queryFeeCut) * _tokens) / MAX_PPM;
             delegationRewards = _tokens - indexerCut;
@@ -433,7 +427,7 @@ abstract contract StakingBackwardsCompatibility is
      */
     function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
-        DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
+        IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
             uint256 indexerCut = (uint256(pool.__DEPRECATED_indexingRewardCut) * _tokens) / MAX_PPM;
             delegationRewards = _tokens - indexerCut;

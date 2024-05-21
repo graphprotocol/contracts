@@ -15,7 +15,7 @@ import { Managed } from "./utilities/Managed.sol";
  * @notice This contract holds all the storage variables for the Staking contract, version 1
  */
 // solhint-disable-next-line max-states-count
-abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
+abstract contract HorizonStakingV1Storage is Managed {
     // -- Staking --
 
     /// @dev Minimum amount of tokens an indexer needs to stake.
@@ -53,7 +53,7 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     uint32 internal __DEPRECATED_alphaDenominator;
 
     /// @dev Service provider stakes : serviceProviderAddress => ServiceProvider
-    mapping(address serviceProvider => ServiceProviderInternal details) internal _serviceProviders;
+    mapping(address serviceProvider => IHorizonStakingTypes.ServiceProviderInternal details) internal _serviceProviders;
 
     /// @dev Allocations : allocationID => Allocation
     /// Deprecated, now applied on the SubgraphService
@@ -94,7 +94,8 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
 
     /// @dev Delegation pools : serviceProvider => DelegationPoolInternal
     /// These are for the subgraph data service.
-    mapping(address serviceProvider => DelegationPoolInternal delegationPool) internal _legacyDelegationPools;
+    mapping(address serviceProvider => IHorizonStakingTypes.DelegationPoolInternal delegationPool)
+        internal _legacyDelegationPools;
 
     // -- Operators --
 
@@ -124,7 +125,8 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
 
     /// @dev Provisions from each service provider for each data service
     /// ServiceProvider => Verifier => Provision
-    mapping(address serviceProvider => mapping(address verifier => Provision provision)) internal _provisions;
+    mapping(address serviceProvider => mapping(address verifier => IHorizonStakingTypes.Provision provision))
+        internal _provisions;
 
     /// @dev Delegation fee cuts for each service provider on each provision, by fee type:
     /// ServiceProvider => Verifier => Fee Type => Fee Cut.
@@ -135,7 +137,7 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     mapping(address serviceProvider => mapping(address verifier => mapping(uint256 feeType => uint256 feeCut)))
         public delegationFeeCut;
 
-    mapping(bytes32 thawRequestId => ThawRequest thawRequest) internal _thawRequests;
+    mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _thawRequests;
 
     // indexer => verifier => operator => authorized
     mapping(address serviceProvider => mapping(address verifier => mapping(address operator => bool authorized)))
@@ -145,7 +147,7 @@ abstract contract HorizonStakingV1Storage is Managed, IHorizonStakingTypes {
     bool public delegationSlashingEnabled;
 
     // delegation pools for each service provider and verifier
-    mapping(address serviceProvider => mapping(address verifier => DelegationPoolInternal delegationPool))
+    mapping(address serviceProvider => mapping(address verifier => IHorizonStakingTypes.DelegationPoolInternal delegationPool))
         internal _delegationPools;
 
     // allowed verifiers for locked provisions (i.e. from GraphTokenLockWallets)

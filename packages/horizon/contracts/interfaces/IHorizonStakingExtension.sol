@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 
-interface IHorizonStakingExtension {
+interface IHorizonStakingExtension is IHorizonStakingTypes {
     /**
      * @dev Emitted when an operator is allowed or denied by a service provider for a particular data service
      */
@@ -41,29 +41,21 @@ interface IHorizonStakingExtension {
         uint32 delegationRatio
     ) external view returns (uint256);
 
-    function getServiceProvider(
-        address serviceProvider
-    ) external view returns (IHorizonStakingTypes.ServiceProvider memory);
+    function getServiceProvider(address serviceProvider) external view returns (ServiceProvider memory);
 
     function getMaxThawingPeriod() external view returns (uint64);
 
-    function getDelegationPool(
-        address serviceProvider,
-        address verifier
-    ) external view returns (IHorizonStakingTypes.DelegationPool memory);
+    function getDelegationPool(address serviceProvider, address verifier) external view returns (DelegationPool memory);
 
     function getDelegation(
         address delegator,
         address serviceProvider,
         address verifier
-    ) external view returns (IHorizonStakingTypes.Delegation memory);
+    ) external view returns (Delegation memory);
 
-    function getThawRequest(bytes32 thawRequestId) external view returns (IHorizonStakingTypes.ThawRequest memory);
+    function getThawRequest(bytes32 thawRequestId) external view returns (ThawRequest memory);
 
-    function getProvision(
-        address serviceProvider,
-        address verifier
-    ) external view returns (IHorizonStakingTypes.Provision memory);
+    function getProvision(address serviceProvider, address verifier) external view returns (Provision memory);
 
     function getDelegationFeeCut(
         address serviceProvider,
