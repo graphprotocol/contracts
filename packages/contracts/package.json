@@ -97,7 +97,7 @@
     "test:upgrade": "scripts/upgrade",
     "lint": "yarn lint:ts && yarn lint:sol",
     "lint:ts": "eslint '**/*.{js,ts}' --fix",
-    "lint:sol": "prettier --write 'contracts/**/*.sol' && solhint --fix --noPrompt contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
+    "lint:sol": "prettier --write 'contracts/**/*.sol' && solhint --fix --noPrompt contracts/**/*.sol --config solhint.config.js",
     "analyze": "scripts/analyze",
     "myth": "scripts/myth",
     "flatten": "scripts/flatten && scripts/clean",

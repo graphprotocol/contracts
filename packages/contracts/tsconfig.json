@@ -13,6 +13,7 @@
     "truffle.js",
     "eslint.config.js",
     "prettier.config.js",
+    "solhint.config.js",
     "hardhat.config.ts", 
     "index.d.ts", 
     "scripts/**/*.ts", 

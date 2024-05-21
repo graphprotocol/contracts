@@ -53,14 +53,15 @@ interface ITokenGateway {
         uint256 maxas,
         uint256 gasPiceBid,
         bytes calldata data
-   ) external payable returns (bytes memory);
+    ) external payable returns (bytes memory);
 
     function finalizeInboundTransfer(
-        address token,        address from,
-       address to,
-       uint256 amount,
-       bytes calldata data
-    )external payable;
+        address token,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata data
+    ) external payable;
 
     /**
      * @notice Calculate the address used when bridging an ERC20 token
