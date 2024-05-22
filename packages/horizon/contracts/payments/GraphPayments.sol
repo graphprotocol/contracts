@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
-import { IHorizonStaking } from "../interfaces/IHorizonStaking.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";

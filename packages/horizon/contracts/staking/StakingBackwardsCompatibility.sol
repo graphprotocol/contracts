@@ -3,8 +3,6 @@
 pragma solidity 0.8.24;
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
-import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
-import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
 import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";

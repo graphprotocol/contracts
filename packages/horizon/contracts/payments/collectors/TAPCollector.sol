@@ -9,7 +9,6 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
 
 import { GraphDirectory } from "../../data-service/GraphDirectory.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title TAPVerifier
@@ -74,7 +73,14 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         uint256 tokensDataService = tokensToCollect.mulPPM(percentageDataService);
 
         if (tokensToCollect > 0) {
-            _graphEscrow().collect(paymentType, payer, receiver, tokensToCollect, dataService, tokensDataService);
+            _graphPaymentsEscrow().collect(
+                paymentType,
+                payer,
+                receiver,
+                tokensToCollect,
+                dataService,
+                tokensDataService
+            );
             tokensCollected[dataService][receiver][payer] = tokensRAV;
         }
 
@@ -101,21 +107,21 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         return _encodeRAV(rav);
     }
 
-    function _recoverRAVSigner(SignedRAV memory __signedRAV) private view returns (address) {
-        bytes32 messageHash = _encodeRAV(signedRAV.rav);
-        return ECDSA.recover(messageHash, signedRAV.signature);
+    function _recoverRAVSigner(SignedRAV memory _signedRAV) private view returns (address) {
+        bytes32 messageHash = _encodeRAV(_signedRAV.rav);
+        return ECDSA.recover(messageHash, _signedRAV.signature);
     }
 
-    function _encodeRAV(ReceiptAggregateVoucher memor _ _rav) private view returns (bytes32) {
+    function _encodeRAV(ReceiptAggregateVoucher memory _rav) private view returns (bytes32) {
         return
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(
                         EIP712_RAV_TYPEHASH,
-                        rav.dataService,
-                        rav.serviceProvider,
-                        rav.timestampNs,
-                        rav.valueAggregate
+                        _rav.dataService,
+                        _rav.serviceProvider,
+                        _rav.timestampNs,
+                        _rav.valueAggregate
                     )
                 )
             );
