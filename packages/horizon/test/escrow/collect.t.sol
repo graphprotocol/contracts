@@ -20,7 +20,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
 
         uint256 indexerPreviousBalance = token.balanceOf(users.indexer);
         vm.prank(users.verifier);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);
+        escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);
 
         uint256 indexerBalance = token.balanceOf(users.indexer);
         uint256 indexerExpectedPayment = amount - tokensDataService - tokensProtocol - tokensDelegatoion;
@@ -33,7 +33,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         uint256 dataServiceCut = 30000; // 3%
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorNotAuthorized(address,address)", users.gateway, users.verifier);
         vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, dataServiceCut);
+        escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, dataServiceCut);
         vm.stopPrank();
     }
 
@@ -46,7 +46,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         changePrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", insufficientAmount, amount);
         vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
+        escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
     }
 
     function testCollect_RevertWhen_SenderHasInsufficientAmountInEscrow(
@@ -58,7 +58,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         changePrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAmount(uint256,uint256)", insufficientAmount, amount);
         vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
+        escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
         vm.stopPrank();
     }
 }
