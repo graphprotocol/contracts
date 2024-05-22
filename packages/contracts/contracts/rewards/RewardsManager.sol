@@ -10,6 +10,7 @@ import "../staking/libs/MathUtils.sol";
 
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
+import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -28,7 +29,7 @@ import "./IRewardsManager.sol";
  * These functions may overestimate the actual rewards due to changes in the total supply
  * until the actual takeRewards function is called.
  */
-contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
@@ -38,17 +39,22 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Emitted when rewards are assigned to an indexer.
      */
-    event RewardsAssigned(address indexed indexer, address indexed allocationID, uint256 epoch, uint256 amount);
+    event RewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount);
 
     /**
      * @dev Emitted when rewards are denied to an indexer.
      */
-    event RewardsDenied(address indexed indexer, address indexed allocationID, uint256 epoch);
+    event RewardsDenied(address indexed indexer, address indexed allocationID);
 
     /**
      * @dev Emitted when a subgraph is denied for claiming rewards.
      */
     event RewardsDenylistUpdated(bytes32 indexed subgraphDeploymentID, uint256 sinceBlock);
+
+    /**
+     * @dev Emitted when a rewards issuer is updated.
+     */
+    event RewardsIssuerSet(address indexed rewardsIssuer, bool allowed);
 
     // -- Modifiers --
 
@@ -113,6 +119,11 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         );
         minimumSubgraphSignal = _minimumSubgraphSignal;
         emit ParameterUpdated("minimumSubgraphSignal");
+    }
+
+    function setRewardsIssuer(address _rewardsIssuer, bool _allowed) external override onlyGovernor {
+        rewardsIssuers[_rewardsIssuer] = _allowed;
+        emit RewardsIssuerSet(_rewardsIssuer, _allowed);
     }
 
     // -- Denylist --
@@ -349,29 +360,34 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
      * @return Assigned rewards amount
      */
     function takeRewards(address _allocationID) external override returns (uint256) {
-        // Only Staking contract is authorized as caller
-        IStaking staking = staking();
-        require(msg.sender == address(staking), "Caller must be the staking contract");
+        address rewardsIssuer = msg.sender;
+        require(rewardsIssuers[rewardsIssuer], "Caller must be a rewards issuer");
 
-        IStaking.Allocation memory alloc = staking.getAllocation(_allocationID);
-        uint256 accRewardsPerAllocatedToken = onSubgraphAllocationUpdate(alloc.subgraphDeploymentID);
+        (
+            address indexer,
+            bytes32 subgraphDeploymentID,
+            uint256 tokens,
+            uint256 accRewardsPerAllocatedToken
+        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationID);
+
+        uint256 updatedAccRewardsPerAllocatedToken = onSubgraphAllocationUpdate(subgraphDeploymentID);
 
         // Do not do rewards on denied subgraph deployments ID
-        if (isDenied(alloc.subgraphDeploymentID)) {
-            emit RewardsDenied(alloc.indexer, _allocationID, alloc.closedAtEpoch);
+        if (isDenied(subgraphDeploymentID)) {
+            emit RewardsDenied(indexer, _allocationID);
             return 0;
         }
 
         // Calculate rewards accrued by this allocation
-        uint256 rewards = _calcRewards(alloc.tokens, alloc.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+        uint256 rewards = _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken);
         if (rewards > 0) {
-            // Mint directly to staking contract for the reward amount
-            // The staking contract will do bookkeeping of the reward and
+            // Mint directly to rewards issuer for the reward amount
+            // The rewards issuer contract will do bookkeeping of the reward and
             // assign in proportion to each stakeholder incentive
-            graphToken().mint(address(staking), rewards);
+            graphToken().mint(rewardsIssuer, rewards);
         }
 
-        emit RewardsAssigned(alloc.indexer, _allocationID, alloc.closedAtEpoch, rewards);
+        emit RewardsAssigned(indexer, _allocationID, rewards);
 
         return rewards;
     }

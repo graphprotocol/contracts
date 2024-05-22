@@ -12,6 +12,8 @@ contract MockRewardsManager is IRewardsManager {
 
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external {}
 
+    function setRewardsIssuer(address _rewardsIssuer, bool _allowed) external {}
+
     // -- Denylist --
 
     function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle) external {}

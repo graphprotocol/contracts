@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DataServicePausable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausable.sol";
@@ -28,6 +29,7 @@ contract SubgraphService is
     Directory,
     AllocationManager,
     SubgraphServiceV1Storage,
+    IRewardsIssuer,
     ISubgraphService
 {
     using PPMMath for uint256;
@@ -175,6 +177,13 @@ contract SubgraphService is
 
     function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
         return allocations[allocationId];
+    }
+
+    function getAllocationData(
+        address allocationId
+    ) external view override returns (address, bytes32, uint256, uint256) {
+        Allocation.State memory allo = allocations[allocationId];
+        return (allo.indexer, allo.subgraphDeploymentId, allo.tokens, allo.accRewardsPerAllocatedToken);
     }
 
     function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory) {

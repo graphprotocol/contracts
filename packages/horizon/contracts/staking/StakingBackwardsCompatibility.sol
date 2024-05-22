@@ -3,6 +3,7 @@
 pragma solidity 0.8.24;
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
+import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
 import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
 import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
@@ -24,7 +25,12 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * Note that this contract delegates part of its functionality to a StakingExtension contract.
  * This is due to the 24kB contract size limit on Ethereum.
  */
-abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Storage, IStakingBackwardsCompatibility {
+abstract contract StakingBackwardsCompatibility is
+    Managed,
+    HorizonStakingV1Storage,
+    IRewardsIssuer,
+    IStakingBackwardsCompatibility
+{
     using TokenUtils for IGraphToken;
 
     /// @dev 100% in parts per million
@@ -182,6 +188,20 @@ abstract contract StakingBackwardsCompatibility is Managed, HorizonStakingV1Stor
      */
     function getAllocation(address allocationID) external view override returns (Allocation memory) {
         return __DEPRECATED_allocations[allocationID];
+    }
+
+    /**
+     * @notice Return allocation data by ID.
+     * @dev To be called by the Rewards Manager to calculate rewards issuance.
+     * @dev TODO: Remove after Horizon transition period
+     * @param allocationID Address used as allocation identifier
+     * @return Allocation data
+     */
+    function getAllocationData(
+        address allocationID
+    ) external view override returns (address, bytes32, uint256, uint256) {
+        Allocation memory allo = __DEPRECATED_allocations[allocationID];
+        return (allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken);
     }
 
     /**
