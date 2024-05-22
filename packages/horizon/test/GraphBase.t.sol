@@ -3,6 +3,8 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
+import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
+import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
 
 import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";
@@ -18,6 +20,7 @@ abstract contract GraphBaseTest is Test, Constants {
 
     /* Contracts */
 
+    GraphProxyAdmin public proxyAdmin;
     Controller public controller;
     MockGRTToken public token;
     GraphPayments public payments;
@@ -41,6 +44,7 @@ abstract contract GraphBaseTest is Test, Constants {
 
     function setUp() public virtual {
         // Deploy ERC20 token
+        vm.prank(users.deployer);
         token = new MockGRTToken();
 
         // Setup Users
@@ -68,10 +72,13 @@ abstract contract GraphBaseTest is Test, Constants {
 
     function deployProtocolContracts() private {
         vm.startPrank(users.governor);
+        proxyAdmin = new GraphProxyAdmin();
         controller = new Controller();
-        controller.setContractProxy(keccak256("GraphToken"), address(token));
         vm.stopPrank();
 
+        // Staking Proxy
+        vm.prank(users.deployer);
+        GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
 
         // GraphPayments predict address
         bytes32 saltPayments = keccak256("GraphPaymentsSalt");
@@ -101,39 +108,16 @@ abstract contract GraphBaseTest is Test, Constants {
             users.deployer
         );
 
-        // HorizonStakingExtension predict address
-        bytes32 saltHorizonStakingExtension = keccak256("HorizonStakingExtensionSalt");
-        bytes32 horizonStakingExtensionHash = keccak256(bytes.concat(
-            vm.getCode("HorizonStakingExtension.sol:HorizonStakingExtension"),
-            abi.encode(address(controller), subgraphDataServiceAddress)
-        ));
-        address predictedAddressHorizonStakingExtension = vm.computeCreate2Address(
-            saltHorizonStakingExtension,
-            horizonStakingExtensionHash,
-            users.deployer
-        );
-
-        // HorizonStaking predict address
-        bytes32 saltHorizonStaking = keccak256("saltHorizonStaking");
-        bytes32 horizonStakingHash = keccak256(bytes.concat(
-            vm.getCode("HorizonStaking.sol:HorizonStaking"),
-            abi.encode(
-                address(controller), 
-                predictedAddressHorizonStakingExtension, 
-                subgraphDataServiceAddress
-            )
-        ));
-        address predictedAddressHorizonStaking = vm.computeCreate2Address(
-            saltHorizonStaking,
-            horizonStakingHash,
-            users.deployer
-        );
-
         // Setup controller
         vm.startPrank(users.governor);
-        controller.setContractProxy(keccak256("GraphEscrow"), predictedAddressEscrow);
+        controller.setContractProxy(keccak256("GraphToken"), address(token));
+        controller.setContractProxy(keccak256("PaymentsEscrow"), predictedAddressEscrow);
         controller.setContractProxy(keccak256("GraphPayments"), predictedPaymentsAddress);
-        controller.setContractProxy(keccak256("Staking"), address(predictedAddressHorizonStaking));
+        controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
+        controller.setContractProxy(keccak256("EpochManager"), makeAddr("EpochManager"));
+        controller.setContractProxy(keccak256("RewardsManager"), makeAddr("RewardsManager"));
+        controller.setContractProxy(keccak256("Curation"), makeAddr("Curation"));
+        controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
         vm.stopPrank();
         
         vm.startPrank(users.deployer);
@@ -146,16 +130,21 @@ abstract contract GraphBaseTest is Test, Constants {
             revokeCollectorThawingPeriod,
             withdrawEscrowThawingPeriod
         );
-        stakingExtension = new HorizonStakingExtension{salt: saltHorizonStakingExtension}(
+        stakingExtension = new HorizonStakingExtension(
             address(controller),
             subgraphDataServiceAddress
         );
-        stakingBase = new HorizonStaking{salt: saltHorizonStaking}(
+        stakingBase = new HorizonStaking(
             address(controller),
             address(stakingExtension),
             subgraphDataServiceAddress
         );
-        staking = IHorizonStaking(address(stakingBase));
+        vm.stopPrank();
+
+        vm.startPrank(users.governor);
+        proxyAdmin.upgrade(stakingProxy, address(stakingBase));
+        proxyAdmin.acceptProxy(stakingBase, stakingProxy);
+        staking = IHorizonStaking(address(stakingProxy));
         vm.stopPrank();
     }
 

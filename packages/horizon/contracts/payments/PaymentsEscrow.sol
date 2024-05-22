@@ -78,8 +78,8 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
             revert GraphEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
         }
 
-        revokeCollectorThawingPeriod = revokeCollectorThawingPeriod;
-        withdrawEscrowThawingPeriod = withdrawEscrowThawingPeriod;
+        REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
+        WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
     }
 
     // approve a data service to collect funds
