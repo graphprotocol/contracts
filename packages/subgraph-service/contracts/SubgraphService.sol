@@ -157,7 +157,7 @@ contract SubgraphService is
 
     function slash(address indexer, bytes calldata data) external override onlyDisputeManager whenNotPaused {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
-        _graphStaking().slash(indexer, tokens, reward, address(DISPUTE_MANAGER));
+        _graphStaking().slash(indexer, tokens, reward, address(_disputeManager()));
         emit ServiceProviderSlashed(indexer, tokens);
     }
 
@@ -187,12 +187,12 @@ contract SubgraphService is
 
     // -- Data service parameter getters --
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
-        uint64 disputePeriod = DISPUTE_MANAGER.getDisputePeriod();
+        uint64 disputePeriod = _disputeManager().getDisputePeriod();
         return (disputePeriod, type(uint64).max);
     }
 
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
-        uint32 verifierCut = DISPUTE_MANAGER.getVerifierCut();
+        uint32 verifierCut = _disputeManager().getVerifierCut();
         return (verifierCut, type(uint32).max);
     }
 
@@ -211,7 +211,7 @@ contract SubgraphService is
             queryFeePaymentCuts.percentageCurationCut;
 
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
-        uint256 tokensCollected = TAP_COLLECTOR.collect(
+        uint256 tokensCollected = _tapCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
             abi.encode(signedRav, percentageTotalCut)
         );
@@ -226,7 +226,7 @@ contract SubgraphService is
         if (tokensCollected > 0) {
             // lock stake as economic security for fees
             uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
-            uint256 unlockTimestamp = block.timestamp + DISPUTE_MANAGER.getDisputePeriod();
+            uint256 unlockTimestamp = block.timestamp + _disputeManager().getDisputePeriod();
             _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
 
             // calculate service and curator cuts
@@ -238,8 +238,8 @@ contract SubgraphService is
                 _graphRewardsManager().onSubgraphSignalUpdate(subgraphDeploymentId);
 
                 // Send GRT and bookkeep by calling collect()
-                _graphToken().transfer(address(CURATION), tokensCurators);
-                CURATION.collect(subgraphDeploymentId, tokensCurators);
+                _graphToken().transfer(address(_curation()), tokensCurators);
+                _curation().collect(subgraphDeploymentId, tokensCurators);
             }
         }
 
@@ -251,7 +251,7 @@ contract SubgraphService is
         PaymentCuts memory queryFeePaymentCuts = paymentCuts[IGraphPayments.PaymentTypes.QueryFee];
 
         // Only pay curation fees if the subgraph is curated
-        if (!CURATION.isCurated(_subgraphDeploymentId)) {
+        if (!_curation().isCurated(_subgraphDeploymentId)) {
             queryFeePaymentCuts.percentageCurationCut = 0;
         }
 

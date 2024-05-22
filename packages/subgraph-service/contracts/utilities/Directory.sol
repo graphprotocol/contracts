@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
 import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
+import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 
 abstract contract Directory {
-    ITAPCollector public immutable TAP_COLLECTOR;
-    IDisputeManager public immutable DISPUTE_MANAGER;
-    ISubgraphService public immutable SUBGRAPH_SERVICE;
-    ICuration public immutable CURATION;
+    ISubgraphService private immutable SUBGRAPH_SERVICE;
+    IDisputeManager private immutable DISPUTE_MANAGER;
+    ITAPCollector private immutable TAP_COLLECTOR;
+    ICuration private immutable CURATION;
 
     event SubgraphServiceDirectoryInitialized(
         address subgraphService,
-        address tapVerifier,
         address disputeManager,
+        address tapCollector,
         address curation
     );
     error DirectoryNotDisputeManager(address caller, address disputeManager);
@@ -27,12 +27,28 @@ abstract contract Directory {
         _;
     }
 
-    constructor(address subgraphService, address tapVerifier, address disputeManager, address curation) {
+    constructor(address subgraphService, address disputeManager, address tapCollector, address curation) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
-        TAP_COLLECTOR = ITAPCollector(tapVerifier);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
+        TAP_COLLECTOR = ITAPCollector(tapCollector);
         CURATION = ICuration(curation);
 
-        emit SubgraphServiceDirectoryInitialized(subgraphService, tapVerifier, disputeManager, curation);
+        emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, tapCollector, curation);
+    }
+
+    function _subgraphService() internal view returns (ISubgraphService) {
+        return SUBGRAPH_SERVICE;
+    }
+
+    function _disputeManager() internal view returns (IDisputeManager) {
+        return DISPUTE_MANAGER;
+    }
+
+    function _tapCollector() internal view returns (ITAPCollector) {
+        return TAP_COLLECTOR;
+    }
+
+    function _curation() internal view returns (ICuration) {
+        return CURATION;
     }
 }
