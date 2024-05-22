@@ -6,6 +6,7 @@ import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGra
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { Allocation } from "../libraries/Allocation.sol";
@@ -130,17 +131,16 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     // This ensures the rewards are actually skipped and not collected with the next valid POI
     function _collectIndexingRewards(bytes memory _data) internal returns (uint256) {
         (address allocationId, bytes32 poi) = abi.decode(_data, (address, bytes32));
-        if (poi == bytes32(0)) revert AllocationManagerInvalidZeroPOI();
 
         Allocation.State memory allocation = allocations.get(allocationId);
 
-        // Mint indexing rewards, stale POIs get no rewards...
-        uint256 timeSinceLastPOI = block.number - allocation.lastPOIPresentedAt;
-        uint256 tokensRewards = timeSinceLastPOI <= maxPOIStaleness
+        // Mint indexing rewards, 0x00 and stale POIs get no rewards...
+        uint256 timeSinceLastPOI = block.number - Math.max(allocation.createdAt, allocation.lastPOIPresentedAt);
+        uint256 tokensRewards = (timeSinceLastPOI <= maxPOIStaleness && poi != bytes32(0))
             ? _graphRewardsManager().takeRewards(allocationId)
             : 0;
 
-        // ... but we still take a snapshot to ensure the rewards are not collected with the next valid POI
+        // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
         allocations.snapshotRewards(
             allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)

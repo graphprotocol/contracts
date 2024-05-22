@@ -36,7 +36,7 @@ library Allocation {
             tokens: tokens,
             createdAt: block.timestamp,
             closedAt: 0,
-            lastPOIPresentedAt: block.timestamp,
+            lastPOIPresentedAt: 0,
             accRewardsPerAllocatedToken: accRewardsPerAllocatedToken,
             accRewardsPending: 0
         });
