@@ -28,11 +28,11 @@ interface IPaymentsEscrow {
 
     // Collect from escrow for a receiver using sender's deposit
     function collect(
-        address sender,
-        address receiver,
-        address dataService,
-        uint256 amount,
         IGraphPayments.PaymentTypes paymentType,
+        address payer,
+        address receiver,
+        uint256 tokens,
+        address dataService,
         uint256 tokensDataService
     ) external;
 

@@ -19,6 +19,7 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
     event GraphPaymentsCollected(
         address indexed sender,
         address indexed receiver,
+        address indexed dataService,
         uint256 tokensReceiver,
         uint256 tokensDelegationPool,
         uint256 tokensDataService,
@@ -46,16 +47,16 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver
     function collect(
-        address receiver, // serviceProvider
-        address dataService,
-        uint256 amount,
         IGraphPayments.PaymentTypes paymentType,
+        address receiver,
+        uint256 tokens,
+        address dataService,
         uint256 tokensDataService
     ) external {
-        _graphToken().pullTokens(msg.sender, amount);
+        _graphToken().pullTokens(msg.sender, tokens);
 
         // Pay protocol cut
-        uint256 tokensProtocol = (amount * PROTOCOL_PAYMENT_CUT) / MAX_PPM;
+        uint256 tokensProtocol = (tokens * PROTOCOL_PAYMENT_CUT) / MAX_PPM;
         _graphToken().burnTokens(tokensProtocol);
 
         // Pay data service cut
@@ -63,19 +64,20 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
 
         // Get delegation cut
         uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, uint8(paymentType));
-        uint256 tokensDelegationPool = (amount * delegationFeeCut) / MAX_PPM;
+        uint256 tokensDelegationPool = (tokens * delegationFeeCut) / MAX_PPM;
         if (tokensDelegationPool > 0) {
             _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
         }
 
         // Pay the rest to the receiver
-        uint256 tokensReceiver = amount - tokensProtocol - tokensDataService - tokensDelegationPool;
-        _graphToken().pushTokens(receiver, tokensReceiver);
+        uint256 tokensReceiverRemaining = tokens - tokensProtocol - tokensDataService - tokensDelegationPool;
+        _graphToken().pushTokens(receiver, tokensReceiverRemaining);
 
         emit GraphPaymentsCollected(
             msg.sender,
             receiver,
-            tokensReceiver,
+            dataService,
+            tokensReceiverRemaining,
             tokensDelegationPool,
             tokensDataService,
             tokensProtocol

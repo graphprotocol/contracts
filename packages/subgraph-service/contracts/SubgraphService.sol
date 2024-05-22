@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { ITAPVerifier } from "@graphprotocol/horizon/contracts/interfaces/ITAPVerifier.sol";
+import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -35,18 +35,16 @@ contract SubgraphService is
 
     event QueryFeesCollected(
         address serviceProvider,
-        address payer,
         uint256 tokensCollected,
         uint256 tokensCurators,
         uint256 tokensSubgraphService
     );
 
     error SubgraphServiceEmptyUrl();
-    error SubgraphServiceInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
     error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
     error SubgraphServiceIndexerAlreadyRegistered();
     error SubgraphServiceIndexerNotRegistered(address indexer);
-    error SubgraphServiceInconsistentCollection(uint256 tokensExpected, uint256 tokensCollected);
+    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
 
     modifier onlyRegisteredIndexer(address indexer) {
         if (indexers[indexer].registeredAt == 0) {
@@ -199,55 +197,44 @@ contract SubgraphService is
     }
 
     function _collectQueryFees(bytes memory _data) private returns (uint256 feesCollected) {
-        ITAPVerifier.SignedRAV memory signedRav = abi.decode(_data, (ITAPVerifier.SignedRAV));
+        ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
         address indexer = signedRav.rav.serviceProvider;
         address allocationId = abi.decode(signedRav.rav.metadata, (address));
+        bytes32 subgraphDeploymentId = allocations.get(allocationId).subgraphDeploymentId;
 
         // release expired stake claims
         _releaseStake(IGraphPayments.PaymentTypes.QueryFee, indexer, 0);
 
-        // validate RAV and calculate tokens to collect
-        address payer = TAP_VERIFIER.verify(signedRav);
-        uint256 tokens = signedRav.rav.valueAggregate;
-        uint256 tokensAlreadyCollected = tokensCollected[indexer][payer];
-        if (tokens <= tokensAlreadyCollected) {
-            revert SubgraphServiceInconsistentRAVTokens(tokens, tokensAlreadyCollected);
+        // Collect from GraphPayments
+        PaymentCuts memory queryFeePaymentCuts = _getQueryFeePaymentCuts(subgraphDeploymentId);
+        uint256 percentageTotalCut = queryFeePaymentCuts.percentageServiceCut +
+            queryFeePaymentCuts.percentageCurationCut;
+
+        uint256 balanceBefore = _graphToken().balanceOf(address(this));
+        uint256 tokensCollected = TAP_COLLECTOR.collect(
+            IGraphPayments.PaymentTypes.QueryFee,
+            abi.encode(signedRav, percentageTotalCut)
+        );
+        uint256 tokensDataService = tokensCollected.mulPPM(percentageTotalCut);
+        uint256 balanceAfter = _graphToken().balanceOf(address(this));
+        if (balanceAfter - balanceBefore != tokensDataService) {
+            revert SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensDataService);
         }
-        uint256 tokensToCollect = tokens - tokensAlreadyCollected;
+
         uint256 tokensCurators = 0;
         uint256 tokensSubgraphService = 0;
-
-        if (tokensToCollect > 0) {
+        if (tokensCollected > 0) {
             // lock stake as economic security for fees
-            // block scope to avoid 'stack too deep' error
-            {
-                uint256 tokensToLock = tokensToCollect * stakeToFeesRatio;
-                uint256 unlockTimestamp = block.timestamp + DISPUTE_MANAGER.getDisputePeriod();
-                _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
-            }
-
-            // get subgraph deployment id - reverts if allocation is not found
-            bytes32 subgraphDeploymentId = allocations.get(allocationId).subgraphDeploymentId;
+            uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
+            uint256 unlockTimestamp = block.timestamp + DISPUTE_MANAGER.getDisputePeriod();
+            _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
 
             // calculate service and curator cuts
-            // TODO: note we don't let curation cut round down to zero
-            PaymentFee memory feePercentages = _getQueryFeesPaymentFees(subgraphDeploymentId);
-            tokensSubgraphService = tokensToCollect.mulPPM(feePercentages.servicePercentage);
-            tokensCurators = tokensToCollect.mulPPMRoundUp(feePercentages.curationPercentage);
-            uint256 totalCut = tokensSubgraphService + tokensCurators;
+            tokensCurators = tokensCollected.mulPPMRoundUp(queryFeePaymentCuts.percentageCurationCut);
+            tokensSubgraphService = tokensDataService - tokensCurators;
 
-            // collect fees
-            uint256 balanceBefore = _graphToken().balanceOf(address(this));
-            _graphPayments().collect(payer, indexer, tokensToCollect, IGraphPayments.PaymentTypes.QueryFee, totalCut);
-            uint256 balanceAfter = _graphToken().balanceOf(address(this));
-            if (balanceBefore + totalCut != balanceAfter) {
-                revert SubgraphServiceInconsistentCollection(balanceBefore + totalCut, balanceAfter);
-            }
-            tokensCollected[indexer][payer] = tokens;
-
-            // distribute curation cut to curators
             if (tokensCurators > 0) {
-                // we are about to change subgraph signal so we take rewards snapshot
+                // curation collection changes subgraph signal so we take rewards snapshot
                 _graphRewardsManager().onSubgraphSignalUpdate(subgraphDeploymentId);
 
                 // Send GRT and bookkeep by calling collect()
@@ -256,18 +243,18 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesCollected(indexer, payer, tokensToCollect, tokensCurators, tokensSubgraphService);
-        return tokensToCollect;
+        emit QueryFeesCollected(indexer, tokensCollected, tokensCurators, tokensSubgraphService);
+        return tokensCollected;
     }
 
-    function _getQueryFeesPaymentFees(bytes32 _subgraphDeploymentId) private view returns (PaymentFee memory) {
-        PaymentFee memory feePercentages = paymentFees[IGraphPayments.PaymentTypes.QueryFee];
+    function _getQueryFeePaymentCuts(bytes32 _subgraphDeploymentId) private view returns (PaymentCuts memory) {
+        PaymentCuts memory queryFeePaymentCuts = paymentCuts[IGraphPayments.PaymentTypes.QueryFee];
 
         // Only pay curation fees if the subgraph is curated
         if (!CURATION.isCurated(_subgraphDeploymentId)) {
-            feePercentages.curationPercentage = 0;
+            queryFeePaymentCuts.percentageCurationCut = 0;
         }
 
-        return feePercentages;
+        return queryFeePaymentCuts;
     }
 }

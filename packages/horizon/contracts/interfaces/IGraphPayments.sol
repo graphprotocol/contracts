@@ -11,10 +11,10 @@ interface IGraphPayments {
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver
     function collect(
-        address receiver,
-        address dataService,
-        uint256 tokens,
         PaymentTypes paymentType,
+        address receiver,
+        uint256 tokens,
+        address dataService,
         uint256 tokensDataService
     ) external;
 }

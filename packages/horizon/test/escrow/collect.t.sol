@@ -21,7 +21,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
 
         uint256 indexerPreviousBalance = token.balanceOf(users.indexer);
         vm.prank(users.verifier);
-        escrow.collect(users.gateway, users.indexer, subgraphDataServiceAddress, 100 ether, IGraphPayments.PaymentTypes.IndexingFee, 3 ether);
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, 100 ether, subgraphDataServiceAddress, 3 ether);
 
         uint256 indexerBalance = token.balanceOf(users.indexer);
         assertEq(indexerBalance - indexerPreviousBalance, 86 ether);
@@ -35,7 +35,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         uint256 dataServiceCut = 30000; // 3%
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorNotAuthorized(address,address)", users.gateway, users.verifier);
         vm.expectRevert(expectedError);
-        escrow.collect(users.gateway, indexer, subgraphDataServiceAddress, amount, IGraphPayments.PaymentTypes.IndexingFee, dataServiceCut);
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, indexer, amount, subgraphDataServiceAddress, dataServiceCut);
         vm.stopPrank();
     }
 
@@ -55,7 +55,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         uint256 dataServiceCut = 30 ether;
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", 100 ether, 1000 ether);
         vm.expectRevert(expectedError);
-        escrow.collect(users.gateway, indexer, subgraphDataServiceAddress, 1000 ether, IGraphPayments.PaymentTypes.IndexingFee, dataServiceCut);
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, indexer, 1000 ether, subgraphDataServiceAddress, dataServiceCut);
         vm.stopPrank();
     }
 
@@ -69,7 +69,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         vm.prank(users.verifier);
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAmount(uint256,uint256)", 100 ether, 200 ether);
         vm.expectRevert(expectedError);
-        escrow.collect(users.gateway, users.indexer, subgraphDataServiceAddress, 200 ether, IGraphPayments.PaymentTypes.IndexingFee, 3 ether);
+        escrow.collect(IGraphPayments.PaymentTypes.IndexingFee, users.gateway, users.indexer, 200 ether, subgraphDataServiceAddress, 3 ether);
         vm.stopPrank();
     }
 }

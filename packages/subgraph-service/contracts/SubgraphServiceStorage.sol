@@ -13,7 +13,5 @@ abstract contract SubgraphServiceV1Storage {
     uint256 public stakeToFeesRatio;
 
     /// @notice The fees cut taken by the subgraph service
-    mapping(IGraphPayments.PaymentTypes paymentType => ISubgraphService.PaymentFee paymentFees) public paymentFees;
-
-    mapping(address indexer => mapping(address payer => uint256 tokens)) public tokensCollected;
+    mapping(IGraphPayments.PaymentTypes paymentType => ISubgraphService.PaymentCuts paymentCuts) public paymentCuts;
 }

@@ -33,21 +33,21 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
 
     // -- Events --
 
-    event AuthorizedCollector(address indexed sender, address indexed dataService);
-    event ThawCollector(address indexed sender, address indexed dataService);
-    event CancelThawCollector(address indexed sender, address indexed dataService);
-    event RevokeCollector(address indexed sender, address indexed dataService);
-    event Deposit(address indexed sender, address indexed receiver, uint256 amount);
-    event CancelThaw(address indexed sender, address indexed receiver);
+    event AuthorizedCollector(address indexed payer, address indexed dataService);
+    event ThawCollector(address indexed payer, address indexed dataService);
+    event CancelThawCollector(address indexed payer, address indexed dataService);
+    event RevokeCollector(address indexed payer, address indexed dataService);
+    event Deposit(address indexed payer, address indexed receiver, uint256 tokens);
+    event CancelThaw(address indexed payer, address indexed receiver);
     event Thaw(
-        address indexed sender,
+        address indexed payer,
         address indexed receiver,
-        uint256 amount,
+        uint256 tokens,
         uint256 totalAmountThawing,
         uint256 thawEndTimestamp
     );
-    event Withdraw(address indexed sender, address indexed receiver, uint256 amount);
-    event EscrowCollected(address indexed sender, address indexed receiver, uint256 amount);
+    event Withdraw(address indexed payer, address indexed receiver, uint256 tokens);
+    event EscrowCollected(address indexed payer, address indexed receiver, uint256 tokens);
 
     // -- Errors --
 
@@ -60,6 +60,8 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     error GraphEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
     error GraphEscrowCollectorNotAuthorized(address sender, address dataService);
     error GraphEscrowCollectorInsufficientAmount(uint256 available, uint256 required);
+
+    error PaymentsEscrowInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokens);
 
     // -- Constructor --
 
@@ -183,45 +185,53 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
 
     // Collect from escrow for a receiver using sender's deposit
     function collect(
-        address sender,
-        address receiver, // serviceProvider
-        address dataService,
-        uint256 amount,
         IGraphPayments.PaymentTypes paymentType,
+        address payer,
+        address receiver,
+        uint256 tokens,
+        address dataService,
         uint256 tokensDataService
     ) external {
         // Check if collector is authorized and has enough funds
-        Collector storage collector = authorizedCollectors[sender][msg.sender];
+        Collector storage collector = authorizedCollectors[payer][msg.sender];
 
         if (!collector.authorized) {
-            revert GraphEscrowCollectorNotAuthorized(sender, msg.sender);
+            revert GraphEscrowCollectorNotAuthorized(payer, msg.sender);
         }
 
-        if (collector.amount < amount) {
-            revert GraphEscrowCollectorInsufficientAmount(collector.amount, amount);
+        if (collector.amount < tokens) {
+            revert GraphEscrowCollectorInsufficientAmount(collector.amount, tokens);
         }
 
         // Reduce amount from approved collector
-        collector.amount -= amount;
+        collector.amount -= tokens;
 
         // Collect tokens from GraphEscrow up to amount available
-        EscrowAccount storage account = escrowAccounts[sender][receiver];
+        EscrowAccount storage account = escrowAccounts[payer][receiver];
         uint256 availableAmount = account.balance - account.amountThawing;
-        if (availableAmount < amount) {
-            revert GraphEscrowInsufficientAmount(availableAmount, amount);
+        if (availableAmount < tokens) {
+            revert GraphEscrowInsufficientAmount(availableAmount, tokens);
         }
 
-        account.balance -= amount;
-        emit EscrowCollected(sender, receiver, amount);
+        account.balance -= tokens;
 
         // Approve tokens so GraphPayments can pull them
-        _graphToken().approve(address(_graphPayments()), amount);
-        _graphPayments().collect(receiver, dataService, amount, paymentType, tokensDataService);
+        uint256 balanceBefore = _graphToken().balanceOf(address(this));
+
+        _graphToken().approve(address(_graphPayments()), tokens);
+        _graphPayments().collect(paymentType, receiver, tokens, dataService, tokensDataService);
+
+        uint256 balanceAfter = _graphToken().balanceOf(address(this));
+        if (balanceBefore - balanceAfter != tokens) {
+            revert PaymentsEscrowInconsistentCollection(balanceBefore, balanceAfter, tokens);
+        }
+
+        emit EscrowCollected(payer, receiver, tokens);
     }
 
     // Get the balance of a sender-receiver pair
-    function getBalance(address sender, address receiver) external view returns (uint256) {
-        EscrowAccount storage account = escrowAccounts[sender][receiver];
+    function getBalance(address payer, address receiver) external view returns (uint256) {
+        EscrowAccount storage account = escrowAccounts[payer][receiver];
         return account.balance - account.amountThawing;
     }
 }
