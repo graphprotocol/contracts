@@ -122,12 +122,13 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
         uint32 delegationRatio
     ) external view override returns (uint256) {
         uint256 providerTokens = _provisions[serviceProvider][verifier].tokens;
-        uint256 tokensDelegatedMax = providerTokens * (uint256(delegationRatio));
+        uint256 providerThawingTokens = _provisions[serviceProvider][verifier].tokensThawing;
+        uint256 tokensDelegatedMax = (providerTokens - providerThawingTokens) * (uint256(delegationRatio));
         uint256 tokensDelegatedCapacity = MathUtils.min(
             getDelegatedTokensAvailable(serviceProvider, verifier),
             tokensDelegatedMax
         );
-        return providerTokens - _provisions[serviceProvider][verifier].tokensThawing + tokensDelegatedCapacity;
+        return providerTokens - providerThawingTokens + tokensDelegatedCapacity;
     }
 
     function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {

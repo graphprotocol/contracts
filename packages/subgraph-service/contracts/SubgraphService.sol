@@ -60,7 +60,8 @@ contract SubgraphService is
         address disputeManager,
         address tapVerifier,
         address curation,
-        uint256 minimumProvisionTokens
+        uint256 minimumProvisionTokens,
+        uint32 maximumDelegationRatio
     )
         Ownable(msg.sender)
         DataService(graphController)
@@ -68,6 +69,7 @@ contract SubgraphService is
         AllocationManager("SubgraphService", "1.0")
     {
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
+        _setDelegationRatioRange(type(uint32).min, maximumDelegationRatio);
     }
 
     function register(
@@ -97,8 +99,8 @@ contract SubgraphService is
         }
 
         // Ensure the service provider created a valid provision for the data service
-        // and accept it in the staking contract
-        _acceptProvision(indexer);
+        _checkProvisionParameters(indexer, false);
+        _checkProvisionTokens(indexer);
 
         emit ServiceProviderRegistered(indexer);
     }
@@ -107,18 +109,21 @@ contract SubgraphService is
         address indexer,
         bytes calldata
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
-        _acceptProvision(indexer);
+        _checkProvisionTokens(indexer);
+        _acceptProvisionParameters(indexer);
+        emit ProvisionAccepted(indexer);
     }
 
     function startService(
         address indexer,
         bytes calldata data
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+        _checkProvisionTokens(indexer);
         (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory allocationProof) = abi.decode(
             data,
             (bytes32, uint256, address, bytes)
         );
-        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, delegationRatio);
+        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, maximumDelegationRatio);
         emit ServiceStarted(indexer);
     }
 
@@ -136,7 +141,8 @@ contract SubgraphService is
         address allocationId,
         uint256 tokens
     ) external onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
-        _resizeAllocation(allocationId, tokens, delegationRatio);
+        _checkProvisionTokens(indexer);
+        _resizeAllocation(allocationId, tokens, maximumDelegationRatio);
     }
 
     function collect(
@@ -144,6 +150,7 @@ contract SubgraphService is
         IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
     ) external override onlyRegisteredIndexer(indexer) whenNotPaused {
+        _checkProvisionTokens(indexer);
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {

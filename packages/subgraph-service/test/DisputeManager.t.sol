@@ -89,7 +89,8 @@ contract DisputeManagerTest is Test {
             address(disputeManager),
             tapVerifier,
             curation,
-            1000 ether
+            1000 ether,
+            16
         );
 
         disputeManager.setSubgraphService(address(subgraphService));

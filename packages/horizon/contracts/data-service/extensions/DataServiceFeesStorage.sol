@@ -15,8 +15,6 @@ abstract contract DataServiceFeesV1Storage {
     mapping(IGraphPayments.PaymentTypes feeType => mapping(address serviceProvider => IDataServiceFees.StakeClaimsList list))
         public claimsLists;
 
-    uint32 public delegationRatio;
-
     /// @dev Gap to allow adding variables in future upgrades
     uint256[50] private __gap;
 }
