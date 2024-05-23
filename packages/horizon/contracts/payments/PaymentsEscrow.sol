@@ -78,14 +78,19 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
             revert GraphEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
         }
 
-        revokeCollectorThawingPeriod = revokeCollectorThawingPeriod;
-        withdrawEscrowThawingPeriod = withdrawEscrowThawingPeriod;
+        REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
+        WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
     }
 
     // approve a data service to collect funds
     function approveCollector(address dataService, uint256 amount) external {
-        authorizedCollectors[msg.sender][dataService].authorized = true;
-        authorizedCollectors[msg.sender][dataService].amount = amount;
+        Collector storage collector = authorizedCollectors[msg.sender][dataService];
+        if (collector.amount > amount) {
+            revert GraphEscrowCollectorInsufficientAmount(collector.amount, amount);
+        }
+
+        collector.authorized = true;
+        collector.amount = amount;
         emit AuthorizedCollector(msg.sender, dataService);
     }
 

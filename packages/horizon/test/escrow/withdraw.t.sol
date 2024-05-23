@@ -29,7 +29,7 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         assertEq(indexerEscrowBalance, amount - thawAmount);
     }
 
-    function testWithdraw_RevertWhen_NotThawing(uint256 amount) public useGateway depositTokens(amount) {
+    function testWithdraw_RevertWhen_NotThawing(uint256 amount) public useGateway useDeposit(amount) {
         bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotThawing()");
         vm.expectRevert(expectedError);
         escrow.withdraw(users.indexer);
