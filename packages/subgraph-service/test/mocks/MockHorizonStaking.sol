@@ -96,13 +96,7 @@ contract MockHorizonStaking {
         return _provisions[verifier][serviceProvider];
     }
 
-    /**
-     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
-     * @param _operator The address to check for auth
-     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
-     * @param _verifier The verifier / data service on which they're claiming to act
-     */
-    function isAuthorized(address _operator, address _serviceProvider, address _verifier) external view returns (bool) {
+    function isAuthorized(address, address, address) external pure returns (bool) {
         return true;
     }
 

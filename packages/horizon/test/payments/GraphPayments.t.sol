@@ -56,7 +56,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
             uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
             uint256 tokensDelegatoion = amount * delegationFeeCut / MAX_PPM;
             uint256 requiredAmount = tokensDataService + tokensProtocol + tokensDelegatoion;
-            expectedError = abi.encodeWithSignature("GraphPaymentsInsufficientAmount(uint256,uint256)", amount, requiredAmount);
+            expectedError = abi.encodeWithSignature("GraphPaymentsInsufficientTokens(uint256,uint256)", amount, requiredAmount);
         }
         vm.expectRevert(expectedError);
         payments.collect(IGraphPayments.PaymentTypes.QueryFee, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);

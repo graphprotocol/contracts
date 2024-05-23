@@ -49,8 +49,8 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     event ArbitratorSet(address arbitrator);
     event DisputePeriodSet(uint64 disputePeriod);
     event MinimumDepositSet(uint256 minimumDeposit);
-    event MaxSlashingPercentageSet(uint32 maxSlashingPercentage);
-    event FishermanRewardPercentageSet(uint32 fishermanRewardPercentage);
+    event MaxSlashingCutSet(uint32 maxSlashingCut);
+    event FishermanRewardCutSet(uint32 fishermanRewardCut);
     event SubgraphServiceSet(address indexed subgraphService);
 
     /**
@@ -124,9 +124,9 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     error DisputeManagerZeroTokens();
     error DisputeManagerInvalidDispute(bytes32 disputeId);
     error DisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
-    error DisputeManagerInvalidFishermanReward(uint32 percentage);
-    error DisputeManagerInvalidMaxSlashingPercentage(uint32 maxSlashingPercentage);
-    error DisputeManagerInvalidSlashAmount(uint256 slashAmount);
+    error DisputeManagerInvalidFishermanReward(uint32 cut);
+    error DisputeManagerInvalidMaxSlashingCut(uint32 maxSlashingCut);
+    error DisputeManagerInvalidTokensSlash(uint256 tokensSlash);
     error DisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
     error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
     error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
@@ -185,23 +185,23 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @param arbitrator Arbitrator role
      * @param disputePeriod Dispute period in seconds
      * @param minimumDeposit Minimum deposit required to create a Dispute
-     * @param fishermanRewardPercentage Percent of slashed funds for fisherman (ppm)
-     * @param maxSlashingPercentage Maximum percentage of indexer stake that can be slashed (ppm)
+     * @param fishermanRewardCut_ Percent of slashed funds for fisherman (ppm)
+     * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
     constructor(
         address controller,
         address arbitrator,
         uint64 disputePeriod,
         uint256 minimumDeposit,
-        uint32 fishermanRewardPercentage,
-        uint32 maxSlashingPercentage
+        uint32 fishermanRewardCut_,
+        uint32 maxSlashingCut_
     ) Ownable(msg.sender) GraphDirectory(controller) {
         // Settings
         _setArbitrator(arbitrator);
         _setDisputePeriod(disputePeriod);
         _setMinimumDeposit(minimumDeposit);
-        _setFishermanRewardPercentage(fishermanRewardPercentage);
-        _setMaxSlashingPercentage(maxSlashingPercentage);
+        _setFishermanRewardCut(fishermanRewardCut_);
+        _setMaxSlashingCut(maxSlashingCut_);
     }
 
     /**
@@ -297,11 +297,11 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * a dispute must be resolved using drawDispute or rejectDispute.
      * @notice Accept a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be accepted
-     * @param slashAmount Amount of tokens to slash from the indexer
+     * @param tokensSlash Amount of tokens to slash from the indexer
      */
     function acceptDispute(
         bytes32 disputeId,
-        uint256 slashAmount
+        uint256 tokensSlash
     ) external override onlyArbitrator onlyPendingDispute(disputeId) {
         Dispute storage dispute = disputes[disputeId];
 
@@ -309,7 +309,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         dispute.status = IDisputeManager.DisputeStatus.Accepted;
 
         // Slash
-        uint256 tokensToReward = _slashIndexer(dispute.indexer, slashAmount);
+        uint256 tokensToReward = _slashIndexer(dispute.indexer, tokensSlash);
 
         // Give the fisherman their reward and their deposit back
         _graphToken().pushTokens(dispute.fisherman, tokensToReward + dispute.deposit);
@@ -395,18 +395,18 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     /**
      * @dev Set the percent reward that the fisherman gets when slashing occurs.
      * @notice Update the reward percentage to `_percentage`
-     * @param percentage Reward as a percentage of indexer stake
+     * @param fishermanRewardCut_ Reward as a percentage of indexer stake
      */
-    function setFishermanRewardPercentage(uint32 percentage) external override onlyOwner {
-        _setFishermanRewardPercentage(percentage);
+    function setFishermanRewardCut(uint32 fishermanRewardCut_) external override onlyOwner {
+        _setFishermanRewardCut(fishermanRewardCut_);
     }
 
     /**
      * @dev Set the maximum percentage that can be used for slashing indexers.
-     * @param maxSlashingPercentage Max percentage slashing for disputes
+     * @param maxSlashingCut_ Max percentage slashing for disputes
      */
-    function setMaxSlashingPercentage(uint32 maxSlashingPercentage) external override onlyOwner {
-        _setMaxSlashingPercentage(maxSlashingPercentage);
+    function setMaxSlashingCut(uint32 maxSlashingCut_) external override onlyOwner {
+        _setMaxSlashingCut(maxSlashingCut_);
     }
 
     /**
@@ -435,7 +435,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @return Verifier cut in percentage (ppm)
      */
     function getVerifierCut() external view returns (uint32) {
-        return fishermanRewardPercentage;
+        return fishermanRewardCut;
     }
 
     /**
@@ -667,9 +667,9 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @dev Make the subgraph service contract slash the indexer and reward the challenger.
      * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
      * @param _indexer Address of the indexer
-     * @param _slashAmount Amount of tokens to slash from the indexer
+     * @param _tokensSlash Amount of tokens to slash from the indexer
      */
-    function _slashIndexer(address _indexer, uint256 _slashAmount) private returns (uint256 rewardsAmount) {
+    function _slashIndexer(address _indexer, uint256 _tokensSlash) private returns (uint256) {
         // Get slashable amount for indexer
         IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_indexer, address(subgraphService));
         IHorizonStaking.DelegationPool memory pool = _graphStaking().getDelegationPool(
@@ -679,22 +679,22 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         uint256 totalProvisionTokens = provision.tokens + pool.tokens; // slashable tokens
 
         // Get slash amount
-        uint256 maxSlashAmount = uint256(maxSlashingPercentage).mulPPM(totalProvisionTokens);
-        if (_slashAmount == 0) {
-            revert DisputeManagerInvalidSlashAmount(_slashAmount);
+        uint256 maxTokensSlash = uint256(maxSlashingCut).mulPPM(totalProvisionTokens);
+        if (_tokensSlash == 0) {
+            revert DisputeManagerInvalidTokensSlash(_tokensSlash);
         }
 
-        if (_slashAmount > maxSlashAmount) {
-            revert DisputeManagerInvalidSlashAmount(_slashAmount);
+        if (_tokensSlash > maxTokensSlash) {
+            revert DisputeManagerInvalidTokensSlash(_tokensSlash);
         }
 
         // Rewards amount can only be extracted from service poriver tokens so
         // we grab the minimum between the slash amount and indexer's tokens
-        uint256 maxRewardableTokens = Math.min(_slashAmount, provision.tokens);
-        rewardsAmount = uint256(fishermanRewardPercentage).mulPPM(maxRewardableTokens);
+        uint256 maxRewardableTokens = Math.min(_tokensSlash, provision.tokens);
+        uint256 tokensRewards = uint256(fishermanRewardCut).mulPPM(maxRewardableTokens);
 
-        subgraphService.slash(_indexer, abi.encode(_slashAmount, rewardsAmount));
-        return rewardsAmount;
+        subgraphService.slash(_indexer, abi.encode(_tokensSlash, tokensRewards));
+        return tokensRewards;
     }
 
     /**
@@ -739,28 +739,28 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
     /**
      * @dev Internal: Set the percent reward that the fisherman gets when slashing occurs.
      * @notice Update the reward percentage to `_percentage`
-     * @param _percentage Reward as a percentage of indexer stake
+     * @param _fishermanRewardCut Reward as a percentage of indexer stake
      */
-    function _setFishermanRewardPercentage(uint32 _percentage) private {
+    function _setFishermanRewardCut(uint32 _fishermanRewardCut) private {
         // Must be within 0% to 100% (inclusive)
-        if (!PPMMath.isValidPPM(_percentage)) {
-            revert DisputeManagerInvalidFishermanReward(_percentage);
+        if (!PPMMath.isValidPPM(_fishermanRewardCut)) {
+            revert DisputeManagerInvalidFishermanReward(_fishermanRewardCut);
         }
-        fishermanRewardPercentage = _percentage;
-        emit FishermanRewardPercentageSet(fishermanRewardPercentage);
+        fishermanRewardCut = _fishermanRewardCut;
+        emit FishermanRewardCutSet(fishermanRewardCut);
     }
 
     /**
      * @dev Internal: Set the maximum percentage that can be used for slashing indexers.
-     * @param _maxSlashingPercentage Max percentage slashing for disputes
+     * @param _maxSlashingCut Max percentage slashing for disputes
      */
-    function _setMaxSlashingPercentage(uint32 _maxSlashingPercentage) private {
+    function _setMaxSlashingCut(uint32 _maxSlashingCut) private {
         // Must be within 0% to 100% (inclusive)
-        if (!PPMMath.isValidPPM(_maxSlashingPercentage)) {
-            revert DisputeManagerInvalidMaxSlashingPercentage(_maxSlashingPercentage);
+        if (!PPMMath.isValidPPM(_maxSlashingCut)) {
+            revert DisputeManagerInvalidMaxSlashingCut(_maxSlashingCut);
         }
-        maxSlashingPercentage = _maxSlashingPercentage;
-        emit MaxSlashingPercentageSet(maxSlashingPercentage);
+        maxSlashingCut = _maxSlashingCut;
+        emit MaxSlashingCutSet(maxSlashingCut);
     }
 
     /**

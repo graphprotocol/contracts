@@ -21,11 +21,11 @@ abstract contract DisputeManagerV1Storage {
 
     // Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public fishermanRewardPercentage;
+    uint32 public fishermanRewardCut;
 
     // Maximum percentage of indexer stake that can be slashed on a dispute
     // Parts per million. (Allows for 4 decimal points, 999,999 = 99.9999%)
-    uint32 public maxSlashingPercentage;
+    uint32 public maxSlashingCut;
 
     // Disputes created : disputeID => Dispute
     // disputeID - check creation functions to see how disputeID is built

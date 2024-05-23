@@ -44,9 +44,9 @@ interface IDisputeManager {
 
     function setMinimumDeposit(uint256 minimumDeposit) external;
 
-    function setFishermanRewardPercentage(uint32 percentage) external;
+    function setFishermanRewardCut(uint32 cut) external;
 
-    function setMaxSlashingPercentage(uint32 maxPercentage) external;
+    function setMaxSlashingCut(uint32 maxCut) external;
 
     // -- Dispute --
 
@@ -59,7 +59,7 @@ interface IDisputeManager {
 
     function createIndexingDispute(address allocationId, uint256 deposit) external returns (bytes32);
 
-    function acceptDispute(bytes32 disputeId, uint256 slashAmount) external;
+    function acceptDispute(bytes32 disputeId, uint256 tokensSlash) external;
 
     function rejectDispute(bytes32 disputeId) external;
 

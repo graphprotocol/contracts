@@ -14,8 +14,8 @@ interface ISubgraphService is IDataServiceFees {
     }
 
     struct PaymentCuts {
-        uint128 percentageServiceCut;
-        uint128 percentageCurationCut;
+        uint128 serviceCut;
+        uint128 curationCut;
     }
 
     function resizeAllocation(address indexer, address allocationId, uint256 tokens) external;

@@ -238,15 +238,14 @@ contract SubgraphService is
 
         // Collect from GraphPayments
         PaymentCuts memory queryFeePaymentCuts = _getQueryFeePaymentCuts(subgraphDeploymentId);
-        uint256 percentageTotalCut = queryFeePaymentCuts.percentageServiceCut +
-            queryFeePaymentCuts.percentageCurationCut;
+        uint256 totalCut = queryFeePaymentCuts.serviceCut + queryFeePaymentCuts.curationCut;
 
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
         uint256 tokensCollected = _tapCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
-            abi.encode(signedRav, percentageTotalCut)
+            abi.encode(signedRav, totalCut)
         );
-        uint256 tokensDataService = tokensCollected.mulPPM(percentageTotalCut);
+        uint256 tokensDataService = tokensCollected.mulPPM(totalCut);
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
         if (balanceAfter - balanceBefore != tokensDataService) {
             revert SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensDataService);
@@ -261,7 +260,7 @@ contract SubgraphService is
             _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
 
             // calculate service and curator cuts
-            tokensCurators = tokensCollected.mulPPMRoundUp(queryFeePaymentCuts.percentageCurationCut);
+            tokensCurators = tokensCollected.mulPPMRoundUp(queryFeePaymentCuts.curationCut);
             tokensSubgraphService = tokensDataService - tokensCurators;
 
             if (tokensCurators > 0) {
@@ -283,7 +282,7 @@ contract SubgraphService is
 
         // Only pay curation fees if the subgraph is curated
         if (!_curation().isCurated(_subgraphDeploymentId)) {
-            queryFeePaymentCuts.percentageCurationCut = 0;
+            queryFeePaymentCuts.curationCut = 0;
         }
 
         return queryFeePaymentCuts;

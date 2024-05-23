@@ -44,7 +44,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         vm.assume(insufficientAmount < amount);
 
         changePrank(users.verifier);
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", insufficientAmount, amount);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAllowance(uint256,uint256)", insufficientAmount, amount);
         vm.expectRevert(expectedError);
         escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
     }
@@ -56,7 +56,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         vm.assume(insufficientAmount < amount);
 
         changePrank(users.verifier);
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAmount(uint256,uint256)", insufficientAmount, amount);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientBalance(uint256,uint256)", insufficientAmount, amount);
         vm.expectRevert(expectedError);
         escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
         vm.stopPrank();

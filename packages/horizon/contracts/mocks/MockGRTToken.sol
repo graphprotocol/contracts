@@ -7,10 +7,10 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 contract MockGRTToken is ERC20, IGraphToken {
     constructor() ERC20("Graph Token", "GRT") {}
 
-    function burn(uint256 amount) external {}
+    function burn(uint256 tokens) external {}
 
-    function burnFrom(address from, uint256 amount) external {
-        _burn(from, amount);
+    function burnFrom(address from, uint256 tokens) external {
+        _burn(from, tokens);
     }
 
     // -- Mint Admin --
@@ -41,7 +41,7 @@ contract MockGRTToken is ERC20, IGraphToken {
 
     function isMinter(address account) external view returns (bool) {}
 
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
+    function mint(address to, uint256 tokens) public {
+        _mint(to, tokens);
     }
 }

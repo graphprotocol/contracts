@@ -6,22 +6,22 @@ import { IGraphPayments } from "./IGraphPayments.sol";
 interface IPaymentsEscrow {
     struct EscrowAccount {
         uint256 balance; // Total escrow balance for a sender-receiver pair
-        uint256 amountThawing; // Amount of escrow currently being thawed
+        uint256 tokensThawing; // Amount of escrow currently being thawed
         uint256 thawEndTimestamp; // Timestamp at which thawing period ends (zero if not thawing)
     }
 
     // Collector
     struct Collector {
         bool authorized;
-        uint256 amount;
+        uint256 allowance;
         uint256 thawEndTimestamp;
     }
 
     // Deposit funds into the escrow for a receiver
-    function deposit(address receiver, uint256 amount) external;
+    function deposit(address receiver, uint256 tokens) external;
 
     // Requests to thaw a specific amount of escrow from a receiver's escrow account
-    function thaw(address receiver, uint256 amount) external;
+    function thaw(address receiver, uint256 tokens) external;
 
     // Withdraws all thawed escrow from a receiver's escrow account
     function withdraw(address receiver) external;

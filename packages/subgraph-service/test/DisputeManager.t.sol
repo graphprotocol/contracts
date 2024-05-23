@@ -64,7 +64,6 @@ contract DisputeManagerTest is Test {
         staking = new MockHorizonStaking(address(graphToken));
         rewardsManager = new MockRewardsManager();
         
-        address payments = address(0xE2);
         address tapVerifier = address(0xE3);
         address curation = address(0xE4);
 

@@ -313,20 +313,20 @@ abstract contract StakingBackwardsCompatibility is
 
     /**
      * @dev Send rewards to the appropriate destination.
-     * @param _amount Number of rewards tokens
+     * @param _tokens Number of rewards tokens
      * @param _beneficiary Address of the beneficiary of rewards
      * @param _restake Whether to restake or not
      */
-    function _sendRewards(uint256 _amount, address _beneficiary, bool _restake) private {
-        if (_amount == 0) return;
+    function _sendRewards(uint256 _tokens, address _beneficiary, bool _restake) private {
+        if (_tokens == 0) return;
 
         if (_restake) {
             // Restake to place fees into the indexer stake
-            _stake(_beneficiary, _amount);
+            _stake(_beneficiary, _tokens);
         } else {
             // Transfer funds to the beneficiary's designated rewards destination if set
             address destination = __DEPRECATED_rewardsDestination[_beneficiary];
-            _graphToken().pushTokens(destination == address(0) ? _beneficiary : destination, _amount);
+            _graphToken().pushTokens(destination == address(0) ? _beneficiary : destination, _tokens);
         }
     }
 
@@ -435,25 +435,25 @@ abstract contract StakingBackwardsCompatibility is
      * This function transfer curation fees to the Curation contract by calling Curation.collect
      * @param _subgraphDeploymentID Subgraph deployment to which the curation fees are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
-     * @param _curationPercentage Percentage of tokens to collect as fees
+     * @param _curationCut Percentage of tokens to collect as fees
      * @return Amount of curation fees
      */
     function _collectCurationFees(
         bytes32 _subgraphDeploymentID,
         uint256 _tokens,
-        uint256 _curationPercentage
+        uint256 _curationCut
     ) private returns (uint256) {
         if (_tokens == 0) {
             return 0;
         }
 
         ICuration curation = _graphCuration();
-        bool isCurationEnabled = _curationPercentage > 0 && address(curation) != address(0);
+        bool isCurationEnabled = _curationCut > 0 && address(curation) != address(0);
 
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
             // Calculate the tokens after curation fees first, and subtact that,
             // to prevent curation fees from rounding down to zero
-            uint256 tokensAfterCurationFees = ((uint256(MAX_PPM) - _curationPercentage) * _tokens) / MAX_PPM;
+            uint256 tokensAfterCurationFees = ((uint256(MAX_PPM) - _curationCut) * _tokens) / MAX_PPM;
             uint256 curationFees = _tokens - tokensAfterCurationFees;
             if (curationFees > 0) {
                 // Transfer and call collect()

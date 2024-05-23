@@ -30,7 +30,7 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
     error GraphPaymentsNotThawing();
     error GraphPaymentsStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
     error GraphPaymentsCollectorNotAuthorized(address sender, address dataService);
-    error GraphPaymentsInsufficientAmount(uint256 available, uint256 required);
+    error GraphPaymentsInsufficientTokens(uint256 available, uint256 required);
 
     // -- Events --
 
@@ -60,7 +60,7 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
         uint256 tokensDelegationPool = (tokens * delegationFeeCut) / MAX_PPM;
         uint256 totalCut = tokensProtocol + tokensDataService + tokensDelegationPool;
         if (totalCut > tokens) {
-            revert GraphPaymentsInsufficientAmount(tokens, totalCut);
+            revert GraphPaymentsInsufficientTokens(tokens, totalCut);
         }
 
         // Pay protocol cut

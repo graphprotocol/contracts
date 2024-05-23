@@ -21,7 +21,7 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     /**
      * @dev Tokens rescued by the user
      */
-    event TokensRescued(address indexed from, address indexed to, uint256 amount);
+    event TokensRescued(address indexed from, address indexed to, uint256 tokens);
     event RescuerSet(address indexed account, bool allowed);
 
     error DataServiceRescuableCannotRescueZero();
@@ -34,12 +34,12 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
         _;
     }
 
-    function rescueGRT(address to, uint256 amount) external onlyRescuer {
-        _rescueTokens(to, address(_graphToken()), amount);
+    function rescueGRT(address to, uint256 tokens) external onlyRescuer {
+        _rescueTokens(to, address(_graphToken()), tokens);
     }
 
-    function rescueETH(address payable to, uint256 amount) external onlyRescuer {
-        _rescueTokens(to, Denominations.NATIVE_TOKEN, amount);
+    function rescueETH(address payable to, uint256 tokens) external onlyRescuer {
+        _rescueTokens(to, Denominations.NATIVE_TOKEN, tokens);
     }
 
     function _setRescuer(address _rescuer, bool _allowed) internal {
@@ -51,14 +51,14 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
      * @dev Allows rescuing tokens sent to this contract
      * @param _to  Destination address to send the tokens
      * @param _token  Address of the token being rescued
-     * @param _amount  Amount of tokens to pull
+     * @param _tokens  Amount of tokens to pull
      */
-    function _rescueTokens(address _to, address _token, uint256 _amount) internal {
-        if (_amount == 0) revert DataServiceRescuableCannotRescueZero();
+    function _rescueTokens(address _to, address _token, uint256 _tokens) internal {
+        if (_tokens == 0) revert DataServiceRescuableCannotRescueZero();
 
-        if (Denominations.isNativeToken(_token)) payable(_to).transfer(_amount);
-        else SafeERC20.safeTransfer(IERC20(_token), _to, _amount);
+        if (Denominations.isNativeToken(_token)) payable(_to).transfer(_tokens);
+        else SafeERC20.safeTransfer(IERC20(_token), _to, _tokens);
 
-        emit TokensRescued(msg.sender, _to, _amount);
+        emit TokensRescued(msg.sender, _to, _tokens);
     }
 }

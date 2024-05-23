@@ -59,7 +59,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     error HorizonStakingInsufficientCapacityForLegacyAllocations();
     error HorizonStakingTooManyThawRequests();
     error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
-    error HorizonStakingSlippageProtection(uint256 minExpectedAmount, uint256 actualAmount);
+    error HorizonStakingSlippageProtection(uint256 minExpectedShares, uint256 actualShares);
 
     modifier onlyAuthorized(address serviceProvider, address verifier) {
         if (!isAuthorized(msg.sender, serviceProvider, verifier)) {
@@ -375,14 +375,14 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
      * provider's provisioned self-stake, the delegation slashing is skipped without reverting.
      * @param serviceProvider The service provider to slash
      * @param tokens The amount of tokens to slash
-     * @param verifierCutAmount The amount of tokens to transfer instead of burning
-     * @param verifierCutDestination The address to transfer the verifier cut to
+     * @param tokensVerifier The amount of tokens to transfer instead of burning
+     * @param verifierDestination The address to transfer the verifier cut to
      */
     function slash(
         address serviceProvider,
         uint256 tokens,
-        uint256 verifierCutAmount,
-        address verifierCutDestination
+        uint256 tokensVerifier,
+        address verifierDestination
     ) external override notPartialPaused {
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
@@ -393,12 +393,12 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint256 tokensToSlash = tokens;
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
         if (providerTokensSlashed > 0) {
-            require((prov.tokens * prov.maxVerifierCut) / MAX_PPM >= verifierCutAmount, "verifier cut too high");
-            if (verifierCutAmount > 0) {
-                _graphToken().pushTokens(verifierCutDestination, verifierCutAmount);
-                emit VerifierCutSent(serviceProvider, verifier, verifierCutDestination, verifierCutAmount);
+            require((prov.tokens * prov.maxVerifierCut) / MAX_PPM >= tokensVerifier, "verifier cut too high");
+            if (tokensVerifier > 0) {
+                _graphToken().pushTokens(verifierDestination, tokensVerifier);
+                emit VerifierTokensSent(serviceProvider, verifier, verifierDestination, tokensVerifier);
             }
-            _graphToken().burnTokens(providerTokensSlashed - verifierCutAmount);
+            _graphToken().burnTokens(providerTokensSlashed - tokensVerifier);
             uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
             // TODO check for rounding issues
             prov.tokensThawing =

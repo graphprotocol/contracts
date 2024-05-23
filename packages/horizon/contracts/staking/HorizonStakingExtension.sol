@@ -71,12 +71,12 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
      * or a delegator's delegation.
      * See L1MessageCodes in IL2Staking for the supported messages.
      * @param from Token sender in L1
-     * @param amount Amount of tokens that were transferred
+     * @param tokens Amount of tokens that were transferred
      * @param data ABI-encoded callhook data which must include a uint8 code and either a ReceiveIndexerStakeData or ReceiveDelegationData struct.
      */
     function onTokenTransfer(
         address from,
-        uint256 amount,
+        uint256 tokens,
         bytes calldata data
     ) external override notPartialPaused onlyL2Gateway {
         require(from == _counterpartStakingAddress, "ONLY_L1_STAKING_THROUGH_BRIDGE");
@@ -87,13 +87,13 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
                 functionData,
                 (IL2StakingTypes.ReceiveIndexerStakeData)
             );
-            _receiveIndexerStake(amount, indexerData);
+            _receiveIndexerStake(tokens, indexerData);
         } else if (code == uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE)) {
             IL2StakingTypes.ReceiveDelegationData memory delegationData = abi.decode(
                 functionData,
                 (IL2StakingTypes.ReceiveDelegationData)
             );
-            _receiveDelegation(amount, delegationData);
+            _receiveDelegation(tokens, delegationData);
         } else {
             revert("INVALID_CODE");
         }
@@ -210,16 +210,16 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
      * @dev Receive an Indexer's stake from L1.
      * The specified amount is added to the indexer's stake; the indexer's
      * address is specified in the _indexerData struct.
-     * @param _amount Amount of tokens that were transferred
+     * @param _tokens Amount of tokens that were transferred
      * @param _indexerData struct containing the indexer's address
      */
     function _receiveIndexerStake(
-        uint256 _amount,
+        uint256 _tokens,
         IL2StakingTypes.ReceiveIndexerStakeData memory _indexerData
     ) internal {
         address indexer = _indexerData.indexer;
         // Deposit tokens into the indexer stake
-        _stake(indexer, _amount);
+        _stake(indexer, _tokens);
     }
 
     /**
@@ -227,11 +227,11 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
      * The specified amount is added to the delegator's delegation; the delegator's
      * address and the indexer's address are specified in the _delegationData struct.
      * Note that no delegation tax is applied here.
-     * @param _amount Amount of tokens that were transferred
+     * @param _tokens Amount of tokens that were transferred
      * @param _delegationData struct containing the delegator's address and the indexer's address
      */
     function _receiveDelegation(
-        uint256 _amount,
+        uint256 _tokens,
         IL2StakingTypes.ReceiveDelegationData memory _delegationData
     ) internal {
         // Get the delegation pool of the indexer
@@ -239,23 +239,23 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
         Delegation storage delegation = pool.delegators[_delegationData.delegator];
 
         // Calculate shares to issue (without applying any delegation tax)
-        uint256 shares = (pool.tokens == 0) ? _amount : ((_amount * pool.shares) / pool.tokens);
+        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / pool.tokens);
 
-        if (shares == 0 || _amount < MINIMUM_DELEGATION) {
+        if (shares == 0 || _tokens < MINIMUM_DELEGATION) {
             // If no shares would be issued (probably a rounding issue or attack),
             // or if the amount is under the minimum delegation (which could be part of a rounding attack),
             // return the tokens to the delegator
-            _graphToken().transfer(_delegationData.delegator, _amount);
-            emit TransferredDelegationReturnedToDelegator(_delegationData.indexer, _delegationData.delegator, _amount);
+            _graphToken().transfer(_delegationData.delegator, _tokens);
+            emit TransferredDelegationReturnedToDelegator(_delegationData.indexer, _delegationData.delegator, _tokens);
         } else {
             // Update the delegation pool
-            pool.tokens = pool.tokens + _amount;
+            pool.tokens = pool.tokens + _tokens;
             pool.shares = pool.shares + shares;
 
             // Update the individual delegation
             delegation.shares = delegation.shares + shares;
 
-            emit StakeDelegated(_delegationData.indexer, _delegationData.delegator, _amount, shares);
+            emit StakeDelegated(_delegationData.indexer, _delegationData.delegator, _tokens, shares);
         }
     }
 }

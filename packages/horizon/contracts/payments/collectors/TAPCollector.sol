@@ -53,7 +53,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external returns (uint256) {
-        (SignedRAV memory signedRAV, uint256 percentageDataService) = abi.decode(data, (SignedRAV, uint256));
+        (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(data, (SignedRAV, uint256));
 
         if (signedRAV.rav.dataService != msg.sender) {
             revert TAPCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService);
@@ -70,7 +70,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         }
 
         uint256 tokensToCollect = tokensRAV - tokensAlreadyCollected;
-        uint256 tokensDataService = tokensToCollect.mulPPM(percentageDataService);
+        uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);
 
         if (tokensToCollect > 0) {
             _graphPaymentsEscrow().collect(

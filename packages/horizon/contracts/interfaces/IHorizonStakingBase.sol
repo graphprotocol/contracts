@@ -64,7 +64,7 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
 
     event DelegationSlashingSkipped(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
-    event VerifierCutSent(
+    event VerifierTokensSent(
         address indexed serviceProvider,
         address indexed verifier,
         address indexed destination,
@@ -181,8 +181,8 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
     function slash(
         address serviceProvider,
         uint256 tokens,
-        uint256 verifierCutAmount,
-        address verifierCutDestination
+        uint256 tokensVerifier,
+        address verifierDestination
     ) external;
 
     /**

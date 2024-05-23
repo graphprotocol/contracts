@@ -20,7 +20,7 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
         uint256 smallerAmount
     ) public useGateway useCollector(amount) {
         vm.assume(smallerAmount < amount);
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowCollectorInsufficientAmount(uint256,uint256)", amount, smallerAmount);
+        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAllowance(uint256,uint256)", amount, smallerAmount);
         vm.expectRevert(expectedError);
         escrow.approveCollector(users.verifier, smallerAmount);
     }

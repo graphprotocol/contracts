@@ -7,11 +7,11 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IGraphToken is IERC20 {
     // -- Mint and Burn --
 
-    function burn(uint256 amount) external;
+    function burn(uint256 tokens) external;
 
-    function burnFrom(address from, uint256 amount) external;
+    function burnFrom(address from, uint256 tokens) external;
 
-    function mint(address to, uint256 amount) external;
+    function mint(address to, uint256 tokens) external;
 
     // -- Mint Admin --
 

@@ -15,11 +15,11 @@ library TokenUtils {
      * @dev Pull tokens from an address to this contract.
      * @param _graphToken Token to transfer
      * @param _from Address sending the tokens
-     * @param _amount Amount of tokens to transfer
+     * @param _tokens Amount of tokens to transfer
      */
-    function pullTokens(IGraphToken _graphToken, address _from, uint256 _amount) internal {
-        if (_amount > 0) {
-            require(_graphToken.transferFrom(_from, address(this), _amount), "!transfer");
+    function pullTokens(IGraphToken _graphToken, address _from, uint256 _tokens) internal {
+        if (_tokens > 0) {
+            require(_graphToken.transferFrom(_from, address(this), _tokens), "!transfer");
         }
     }
 
@@ -27,22 +27,22 @@ library TokenUtils {
      * @dev Push tokens from this contract to a receiving address.
      * @param _graphToken Token to transfer
      * @param _to Address receiving the tokens
-     * @param _amount Amount of tokens to transfer
+     * @param _tokens Amount of tokens to transfer
      */
-    function pushTokens(IGraphToken _graphToken, address _to, uint256 _amount) internal {
-        if (_amount > 0) {
-            require(_graphToken.transfer(_to, _amount), "!transfer");
+    function pushTokens(IGraphToken _graphToken, address _to, uint256 _tokens) internal {
+        if (_tokens > 0) {
+            require(_graphToken.transfer(_to, _tokens), "!transfer");
         }
     }
 
     /**
      * @dev Burn tokens held by this contract.
      * @param _graphToken Token to burn
-     * @param _amount Amount of tokens to burn
+     * @param _tokens Amount of tokens to burn
      */
-    function burnTokens(IGraphToken _graphToken, uint256 _amount) internal {
-        if (_amount > 0) {
-            _graphToken.burn(_amount);
+    function burnTokens(IGraphToken _graphToken, uint256 _tokens) internal {
+        if (_tokens > 0) {
+            _graphToken.burn(_tokens);
         }
     }
 }
