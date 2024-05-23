@@ -5,6 +5,7 @@ pragma solidity 0.8.24;
 import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 import { IL2StakingTypes } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingTypes.sol";
 import { IHorizonStakingExtension } from "../interfaces/IHorizonStakingExtension.sol";
+import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 import { MathUtils } from "../libraries/MathUtils.sol";
 
@@ -102,11 +103,11 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
     function setDelegationFeeCut(
         address serviceProvider,
         address verifier,
-        uint256 feeType,
+        IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
     ) external override {
-        delegationFeeCut[serviceProvider][verifier][feeType] = feeCut;
-        emit DelegationFeeCutSet(serviceProvider, verifier, feeType, feeCut);
+        delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
+        emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
     }
 
     // total staked tokens to the provider
@@ -185,9 +186,9 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
     function getDelegationFeeCut(
         address serviceProvider,
         address verifier,
-        uint256 feeType
+        IGraphPayments.PaymentTypes paymentType
     ) external view override returns (uint256) {
-        return delegationFeeCut[serviceProvider][verifier][feeType];
+        return delegationFeeCut[serviceProvider][verifier][paymentType];
     }
 
     // provisioned tokens from delegators that are not being thawed

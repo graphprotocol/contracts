@@ -12,7 +12,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
     function testCollect(
         uint256 amount,
         uint256 tokensDataService
-    ) public useProvision(amount, 0, 0) useDelegationFeeCut(0, delegationFeeCut) {
+    ) public useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
         uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
         uint256 tokensDelegatoion = amount * delegationFeeCut / MAX_PPM;
         vm.assume(tokensDataService < amount - tokensProtocol - tokensDelegatoion);
@@ -42,7 +42,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
     function testCollect_RevertWhen_InsufficientAmount(
         uint256 amount,
         uint256 tokensDataService
-    ) public useProvision(amount, 0, 0) useDelegationFeeCut(0, delegationFeeCut) {
+    ) public useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
         vm.assume(tokensDataService <= 10_000_000_000 ether);
         vm.assume(tokensDataService > amount);
 

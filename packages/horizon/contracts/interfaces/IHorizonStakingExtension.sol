@@ -4,6 +4,7 @@ pragma solidity >=0.6.12 <0.9.0;
 pragma abicoder v2;
 
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
+import { IGraphPayments } from "./IGraphPayments.sol";
 
 interface IHorizonStakingExtension is IHorizonStakingTypes {
     /**
@@ -14,7 +15,7 @@ interface IHorizonStakingExtension is IHorizonStakingTypes {
     event DelegationFeeCutSet(
         address indexed serviceProvider,
         address indexed verifier,
-        uint256 feeType,
+        IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
     );
 
@@ -29,7 +30,12 @@ interface IHorizonStakingExtension is IHorizonStakingTypes {
     // for vesting contracts
     function setOperatorLocked(address operator, address verifier, bool allowed) external;
 
-    function setDelegationFeeCut(address serviceProvider, address verifier, uint256 feeType, uint256 feeCut) external;
+    function setDelegationFeeCut(
+        address serviceProvider,
+        address verifier,
+        IGraphPayments.PaymentTypes paymentType,
+        uint256 feeCut
+    ) external;
 
     function getStake(address serviceProvider) external view returns (uint256);
 
@@ -60,6 +66,6 @@ interface IHorizonStakingExtension is IHorizonStakingTypes {
     function getDelegationFeeCut(
         address serviceProvider,
         address verifier,
-        uint256 feeType
+        IGraphPayments.PaymentTypes paymentType
     ) external view returns (uint256);
 }

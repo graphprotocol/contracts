@@ -168,7 +168,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
             allocation.indexer,
             address(this),
-            uint8(IGraphPayments.PaymentTypes.IndexingFee)
+            IGraphPayments.PaymentTypes.IndexingFee
         );
         uint256 tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
         if (tokensDelegationRewards > 0) {

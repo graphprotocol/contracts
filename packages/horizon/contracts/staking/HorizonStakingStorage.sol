@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 
 import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
 import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
+import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 // TODO: create custom var-name-mixedcase
 /* solhint-disable var-name-mixedcase */
@@ -127,12 +128,12 @@ abstract contract HorizonStakingV1Storage {
         internal _provisions;
 
     /// @dev Delegation fee cuts for each service provider on each provision, by fee type:
-    /// ServiceProvider => Verifier => Fee Type => Fee Cut.
+    /// ServiceProvider => Verifier => Payment Type => Fee Cut.
     /// This is the effective delegator fee cuts for each (data-service-defined) fee type (e.g. indexing fees, query fees).
     /// This is in PPM and is the cut taken by the indexer from the fees that correspond to delegators.
     /// (based on stake vs delegated stake proportion).
     /// The cuts are applied in GraphPayments so apply to all data services that use it.
-    mapping(address serviceProvider => mapping(address verifier => mapping(uint256 feeType => uint256 feeCut)))
+    mapping(address serviceProvider => mapping(address verifier => mapping(IGraphPayments.PaymentTypes paymentType => uint256 feeCut)))
         public delegationFeeCut;
 
     mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _thawRequests;
