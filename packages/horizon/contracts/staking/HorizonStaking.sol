@@ -60,6 +60,8 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     error HorizonStakingTooManyThawRequests();
     error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
     error HorizonStakingSlippageProtection(uint256 minExpectedAmount, uint256 actualAmount);
+    error HorizonStakingMaxVerifierCutExceeded(uint32 maxVerifierCut, uint32 verifierCut);
+    error HorizonStakingMaxThawingPeriodExceeded(uint64 maxThawingPeriod, uint64 thawingPeriod);
 
     modifier onlyAuthorized(address serviceProvider, address verifier) {
         if (!isAuthorized(msg.sender, serviceProvider, verifier)) {
@@ -504,7 +506,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     }
 
     function setMaxThawingPeriod(uint64 maxThawingPeriod) external override onlyGovernor {
-        maxThawingPeriod = _maxThawingPeriod;
+        _maxThawingPeriod = maxThawingPeriod;
         emit ParameterUpdated("maxThawingPeriod");
     }
 
@@ -742,9 +744,16 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint32 _maxVerifierCut,
         uint64 _thawingPeriod
     ) internal {
-        require(_tokens >= MIN_PROVISION_SIZE, "!tokens");
-        require(_maxVerifierCut <= MAX_MAX_VERIFIER_CUT, "maxVerifierCut too high");
-        require(_thawingPeriod <= _maxThawingPeriod, "thawingPeriod too high");
+        if (_tokens < MIN_PROVISION_SIZE) {
+            revert HorizonStakingInsufficientTokens(MIN_PROVISION_SIZE, _tokens);
+        }
+        if (_maxVerifierCut > MAX_MAX_VERIFIER_CUT) {
+            revert HorizonStakingMaxVerifierCutExceeded(MAX_MAX_VERIFIER_CUT, _maxVerifierCut);
+        }
+        if (_thawingPeriod > _maxThawingPeriod) {
+            revert HorizonStakingMaxThawingPeriodExceeded(_maxThawingPeriod, _thawingPeriod);
+        }
+
         _provisions[_serviceProvider][_verifier] = Provision({
             tokens: _tokens,
             tokensThawing: 0,

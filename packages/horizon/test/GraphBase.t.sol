@@ -59,6 +59,7 @@ abstract contract GraphBaseTest is Test, Constants {
 
         // Deploy protocol contracts
         deployProtocolContracts();
+        setupProtocol();
         unpauseProtocol();
 
         // Label contracts
@@ -147,11 +148,15 @@ abstract contract GraphBaseTest is Test, Constants {
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));
         proxyAdmin.acceptProxy(stakingBase, stakingProxy);
         staking = IHorizonStaking(address(stakingProxy));
-        vm.stopPrank();
+    }
+
+    function setupProtocol() private {
+        vm.startPrank(users.governor);
+        staking.setMaxThawingPeriod(STAKING_MAX_THAWING_PERIOD);
     }
 
     function unpauseProtocol() private {
-        vm.prank(users.governor);
+        vm.startPrank(users.governor);
         controller.setPaused(false);
     }
 

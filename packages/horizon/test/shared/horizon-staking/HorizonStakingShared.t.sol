@@ -7,9 +7,17 @@ import { GraphBaseTest } from "../../GraphBase.t.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
+    modifier useIndexer() {
+        vm.startPrank(users.indexer);
+        _;
+        vm.stopPrank();
+    }
+
     modifier useProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) {
         vm.assume(tokens <= 10_000_000_000 ether);
         vm.assume(tokens > 1e18);
+        vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
+        vm.assume(thawingPeriod <= STAKING_MAX_THAWING_PERIOD);
         _createProvision(tokens, maxVerifierCut, thawingPeriod);
         _;
     }
@@ -28,7 +36,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     /* Helpers */
 
     function _createProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) internal {
-        vm.startPrank(users.indexer);
         token.approve(address(staking), tokens);
         staking.stakeTo(users.indexer, tokens);
         staking.provision(
@@ -38,11 +45,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             maxVerifierCut,
             thawingPeriod
         );
-        vm.stopPrank();
     }
 
     function _setDelegationFeeCut(uint256 paymentType, uint256 cut) internal {
-        vm.prank(users.indexer);
         staking.setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, cut);
     }
 }
