@@ -6,9 +6,10 @@ import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/Gr
 import { IHorizonStakingBase } from "../interfaces/IHorizonStakingBase.sol";
 import { IGraphToken } from "../interfaces/IGraphToken.sol";
 
+import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { PPMMath } from "../libraries/PPMMath.sol";
 
 import { Managed } from "./utilities/Managed.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
@@ -23,13 +24,11 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  */
 contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV1Storage, IHorizonStakingBase {
     using TokenUtils for IGraphToken;
-
-    /// @dev 100% in parts per million
-    uint32 internal constant MAX_PPM = 1000000;
+    using PPMMath for uint256;
 
     /// @dev Maximum value that can be set as the maxVerifierCut in a provision.
     /// It is equivalent to 100% in parts-per-million
-    uint32 private constant MAX_MAX_VERIFIER_CUT = 1000000; // 100%
+    uint32 private constant MAX_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
 
     /// @dev Minimum size of a provision
     uint256 private constant MIN_PROVISION_SIZE = 1e18;
@@ -393,7 +392,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint256 tokensToSlash = tokens;
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
         if (providerTokensSlashed > 0) {
-            require((prov.tokens * prov.maxVerifierCut) / MAX_PPM >= tokensVerifier, "verifier cut too high");
+            require(prov.tokens.mulPPM(prov.maxVerifierCut) >= tokensVerifier, "verifier cut too high");
             if (tokensVerifier > 0) {
                 _graphToken().pushTokens(verifierDestination, tokensVerifier);
                 emit VerifierTokensSent(serviceProvider, verifier, verifierDestination, tokensVerifier);

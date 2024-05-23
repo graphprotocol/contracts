@@ -11,6 +11,7 @@ import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
 import { ExponentialRebates } from "./libraries/ExponentialRebates.sol";
+import { PPMMath } from "../libraries/PPMMath.sol";
 
 import { Managed } from "./utilities/Managed.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
@@ -32,9 +33,7 @@ abstract contract StakingBackwardsCompatibility is
     IStakingBackwardsCompatibility
 {
     using TokenUtils for IGraphToken;
-
-    /// @dev 100% in parts per million
-    uint32 internal constant MAX_PPM = 1000000;
+    using PPMMath for uint256;
 
     address public immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
@@ -272,10 +271,7 @@ abstract contract StakingBackwardsCompatibility is
      * @return Amount of tax charged
      */
     function _collectTax(uint256 _tokens, uint256 _percentage) private returns (uint256) {
-        // Calculate tokens after tax first, and subtract that,
-        // to prevent the tax from rounding down to zero
-        uint256 tokensAfterTax = ((uint256(MAX_PPM) - _percentage) * _tokens) / MAX_PPM;
-        uint256 tax = _tokens - tokensAfterTax;
+        uint256 tax = _tokens.mulPPMRoundUp(_percentage);
         _graphToken().burnTokens(tax); // Burn tax if any
         return tax;
     }
@@ -404,8 +400,8 @@ abstract contract StakingBackwardsCompatibility is
     function _collectDelegationQueryRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
         IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
-        if (pool.tokens > 0 && pool.__DEPRECATED_queryFeeCut < MAX_PPM) {
-            uint256 indexerCut = (uint256(pool.__DEPRECATED_queryFeeCut) * _tokens) / MAX_PPM;
+        if (pool.tokens > 0 && uint256(pool.__DEPRECATED_queryFeeCut).isValidPPM()) {
+            uint256 indexerCut = uint256(pool.__DEPRECATED_queryFeeCut).mulPPM(_tokens);
             delegationRewards = _tokens - indexerCut;
             pool.tokens = pool.tokens + delegationRewards;
         }
@@ -422,8 +418,8 @@ abstract contract StakingBackwardsCompatibility is
     function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
         IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
-        if (pool.tokens > 0 && pool.__DEPRECATED_indexingRewardCut < MAX_PPM) {
-            uint256 indexerCut = (uint256(pool.__DEPRECATED_indexingRewardCut) * _tokens) / MAX_PPM;
+        if (pool.tokens > 0 && uint256(pool.__DEPRECATED_indexingRewardCut).isValidPPM()) {
+            uint256 indexerCut = uint256(pool.__DEPRECATED_indexingRewardCut).mulPPM(_tokens);
             delegationRewards = _tokens - indexerCut;
             pool.tokens = pool.tokens + delegationRewards;
         }
@@ -451,10 +447,7 @@ abstract contract StakingBackwardsCompatibility is
         bool isCurationEnabled = _curationCut > 0 && address(curation) != address(0);
 
         if (isCurationEnabled && curation.isCurated(_subgraphDeploymentID)) {
-            // Calculate the tokens after curation fees first, and subtact that,
-            // to prevent curation fees from rounding down to zero
-            uint256 tokensAfterCurationFees = ((uint256(MAX_PPM) - _curationCut) * _tokens) / MAX_PPM;
-            uint256 curationFees = _tokens - tokensAfterCurationFees;
+            uint256 curationFees = _tokens.mulPPMRoundUp(_curationCut);
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts

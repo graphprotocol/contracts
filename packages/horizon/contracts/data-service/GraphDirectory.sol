@@ -56,11 +56,11 @@ abstract contract GraphDirectory {
         ICuration graphCuration
     );
 
-    error GraphDirectoryInvalidZeroAddress();
+    error GraphDirectoryInvalidZeroAddress(bytes contractName);
 
     constructor(address controller) {
         if (controller == address(0)) {
-            revert GraphDirectoryInvalidZeroAddress();
+            revert GraphDirectoryInvalidZeroAddress("Controller");
         }
         GRAPH_CONTROLLER = IController(controller);
 
@@ -137,7 +137,7 @@ abstract contract GraphDirectory {
     function _getContractFromController(bytes memory _contractName) private view returns (address) {
         address contractAddress = GRAPH_CONTROLLER.getContractProxy(keccak256(_contractName));
         if (contractAddress == address(0)) {
-            revert GraphDirectoryInvalidZeroAddress();
+            revert GraphDirectoryInvalidZeroAddress(_contractName);
         }
         return contractAddress;
     }

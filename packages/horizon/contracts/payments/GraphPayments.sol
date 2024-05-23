@@ -6,14 +6,14 @@ import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { TokenUtils } from "../libraries/TokenUtils.sol";
+import { PPMMath } from "../libraries/PPMMath.sol";
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
 import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 
 contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Storage, IGraphPayments {
     using TokenUtils for IGraphToken;
-
-    uint256 private immutable MAX_PPM = 1000000; // 100% in parts per million
+    using PPMMath for uint256;
 
     event GraphPaymentsCollected(
         address indexed sender,
@@ -55,9 +55,9 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
         _graphToken().pullTokens(msg.sender, tokens);
 
         // Calculate cuts
-        uint256 tokensProtocol = (tokens * PROTOCOL_PAYMENT_CUT) / MAX_PPM;
+        uint256 tokensProtocol = tokens.mulPPM(PROTOCOL_PAYMENT_CUT);
         uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, uint8(paymentType));
-        uint256 tokensDelegationPool = (tokens * delegationFeeCut) / MAX_PPM;
+        uint256 tokensDelegationPool = tokens.mulPPM(delegationFeeCut);
         uint256 totalCut = tokensProtocol + tokensDataService + tokensDelegationPool;
         if (totalCut > tokens) {
             revert GraphPaymentsInsufficientTokens(tokens, totalCut);
