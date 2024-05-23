@@ -13,15 +13,23 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
         vm.stopPrank();
     }
 
-    modifier approveEscrow(uint256 amount) {
-        _approveEscrow(amount);
+    modifier approveEscrow(uint256 tokens) {
+        changePrank(users.gateway);
+        _approveEscrow(tokens);
         _;
     }
 
-    modifier depositTokens(uint256 amount) {
-        vm.assume(amount > 0);
-        vm.assume(amount <= 10000 ether);
-        _depositTokens(amount);
+    modifier useDeposit(uint256 tokens) {
+        changePrank(users.gateway);
+        vm.assume(tokens > 0);
+        vm.assume(tokens <= 10_000_000_000 ether);
+        _depositTokens(tokens);
+        _;
+    }
+
+    modifier useCollector(uint256 tokens) {
+        changePrank(users.gateway);
+        escrow.approveCollector(users.verifier, tokens);
         _;
     }
 
@@ -29,12 +37,12 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
         HorizonStakingSharedTest.setUp();
     }
 
-    function _depositTokens(uint256 amount) internal {
-        token.approve(address(escrow), amount);
-        escrow.deposit(users.indexer, amount);
+    function _depositTokens(uint256 tokens) internal {
+        token.approve(address(escrow), tokens);
+        escrow.deposit(users.indexer, tokens);
     }
 
-    function _approveEscrow(uint256 amount) internal {
-        token.approve(address(escrow), amount);
+    function _approveEscrow(uint256 tokens) internal {
+        token.approve(address(escrow), tokens);
     }
 }

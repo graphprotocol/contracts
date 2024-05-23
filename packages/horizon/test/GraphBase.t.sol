@@ -3,6 +3,8 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
+import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
+import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
 
 import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";
@@ -18,6 +20,7 @@ abstract contract GraphBaseTest is Test, Constants {
 
     /* Contracts */
 
+    GraphProxyAdmin public proxyAdmin;
     Controller public controller;
     MockGRTToken public token;
     GraphPayments public payments;
@@ -41,6 +44,7 @@ abstract contract GraphBaseTest is Test, Constants {
 
     function setUp() public virtual {
         // Deploy ERC20 token
+        vm.prank(users.deployer);
         token = new MockGRTToken();
 
         // Setup Users
@@ -67,10 +71,16 @@ abstract contract GraphBaseTest is Test, Constants {
     }
 
     function deployProtocolContracts() private {
-        vm.prank(users.governor);
+        vm.startPrank(users.governor);
+        proxyAdmin = new GraphProxyAdmin();
         controller = new Controller();
+        vm.stopPrank();
 
-        // GraphPayments preddict address
+        // Staking Proxy
+        vm.prank(users.deployer);
+        GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
+
+        // GraphPayments predict address
         bytes32 saltPayments = keccak256("GraphPaymentsSalt");
         bytes32 paymentsHash = keccak256(bytes.concat(
             vm.getCode("GraphPayments.sol:GraphPayments"),
@@ -82,7 +92,7 @@ abstract contract GraphBaseTest is Test, Constants {
             users.deployer
         );
         
-        // GraphEscrow preddict address
+        // GraphEscrow predict address
         bytes32 saltEscrow = keccak256("GraphEscrowSalt");
         bytes32 escrowHash = keccak256(bytes.concat(
             vm.getCode("GraphEscrow.sol:GraphEscrow"),
@@ -98,40 +108,18 @@ abstract contract GraphBaseTest is Test, Constants {
             users.deployer
         );
 
-        // HorizonStakingExtension preddict address
-        bytes32 saltHorizonStakingExtension = keccak256("HorizonStakingExtensionSalt");
-        bytes32 horizonStakingExtensionHash = keccak256(bytes.concat(
-            vm.getCode("HorizonStakingExtension.sol:HorizonStakingExtension"),
-            abi.encode(address(controller), subgraphDataServiceAddress)
-        ));
-        address predictedAddressHorizonStakingExtension = vm.computeCreate2Address(
-            saltHorizonStakingExtension,
-            horizonStakingExtensionHash,
-            users.deployer
-        );
-
-        // HorizonStaking preddict address
-        bytes32 saltHorizonStaking = keccak256("saltHorizonStaking");
-        bytes32 horizonStakingHash = keccak256(bytes.concat(
-            vm.getCode("HorizonStaking.sol:HorizonStaking"),
-            abi.encode(
-                address(controller), 
-                predictedAddressHorizonStakingExtension, 
-                subgraphDataServiceAddress
-            )
-        ));
-        // address predictedAddressHorizonStaking = vm.computeCreate2Address(
-        //     saltHorizonStaking,
-        //     horizonStakingHash,
-        //     users.deployer
-        // );
-
         // Setup controller
         vm.startPrank(users.governor);
         controller.setContractProxy(keccak256("GraphToken"), address(token));
-        controller.setContractProxy(keccak256("GraphEscrow"), predictedAddressEscrow);
+        controller.setContractProxy(keccak256("PaymentsEscrow"), predictedAddressEscrow);
         controller.setContractProxy(keccak256("GraphPayments"), predictedPaymentsAddress);
-        // controller.setContractProxy(keccak256("Staking"), predictedAddressHorizonStaking);
+        controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
+        controller.setContractProxy(keccak256("EpochManager"), makeAddr("EpochManager"));
+        controller.setContractProxy(keccak256("RewardsManager"), makeAddr("RewardsManager"));
+        controller.setContractProxy(keccak256("Curation"), makeAddr("Curation"));
+        controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
+        controller.setContractProxy(keccak256("BridgeEscrow"), makeAddr("BridgeEscrow"));
+        controller.setContractProxy(keccak256("GraphProxyAdmin"), makeAddr("GraphProxyAdmin"));
         vm.stopPrank();
         
         vm.startPrank(users.deployer);
@@ -144,16 +132,21 @@ abstract contract GraphBaseTest is Test, Constants {
             revokeCollectorThawingPeriod,
             withdrawEscrowThawingPeriod
         );
-        stakingBase = new HorizonStaking{salt: saltHorizonStaking}(
+        stakingExtension = new HorizonStakingExtension(
             address(controller),
-            predictedAddressHorizonStakingExtension,
             subgraphDataServiceAddress
         );
-        staking = IHorizonStaking(address(stakingBase));
-        // stakingExtension = new HorizonStakingExtension{salt: saltHorizonStakingExtension}(
-        //     address(controller),
-        //     subgraphDataServiceAddress
-        // );
+        stakingBase = new HorizonStaking(
+            address(controller),
+            address(stakingExtension),
+            subgraphDataServiceAddress
+        );
+        vm.stopPrank();
+
+        vm.startPrank(users.governor);
+        proxyAdmin.upgrade(stakingProxy, address(stakingBase));
+        proxyAdmin.acceptProxy(stakingBase, stakingProxy);
+        staking = IHorizonStaking(address(stakingProxy));
         vm.stopPrank();
     }
 

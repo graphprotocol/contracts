@@ -30,7 +30,7 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
     error GraphPaymentsNotThawing();
     error GraphPaymentsStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
     error GraphPaymentsCollectorNotAuthorized(address sender, address dataService);
-    error GraphPaymentsCollectorInsufficientAmount(uint256 available, uint256 required);
+    error GraphPaymentsInsufficientAmount(uint256 available, uint256 required);
 
     // -- Events --
 
@@ -54,22 +54,28 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
     ) external {
         _graphToken().pullTokens(msg.sender, tokens);
 
-        // Pay protocol cut
+        // Calculate cuts
         uint256 tokensProtocol = (tokens * PROTOCOL_PAYMENT_CUT) / MAX_PPM;
+        uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, uint8(paymentType));
+        uint256 tokensDelegationPool = (tokens * delegationFeeCut) / MAX_PPM;
+        uint256 totalCut = tokensProtocol + tokensDataService + tokensDelegationPool;
+        if (totalCut > tokens) {
+            revert GraphPaymentsInsufficientAmount(tokens, totalCut);
+        }
+
+        // Pay protocol cut
         _graphToken().burnTokens(tokensProtocol);
 
         // Pay data service cut
         _graphToken().pushTokens(dataService, tokensDataService);
 
-        // Get delegation cut
-        uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, uint8(paymentType));
-        uint256 tokensDelegationPool = (tokens * delegationFeeCut) / MAX_PPM;
+        // Pay delegators
         if (tokensDelegationPool > 0) {
             _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
         }
 
-        // Pay the rest to the receiver
-        uint256 tokensReceiverRemaining = tokens - tokensProtocol - tokensDataService - tokensDelegationPool;
+        // Pay receiver
+        uint256 tokensReceiverRemaining = tokens - totalCut;
         _graphToken().pushTokens(receiver, tokensReceiverRemaining);
 
         emit GraphPaymentsCollected(
