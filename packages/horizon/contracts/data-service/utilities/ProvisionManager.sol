@@ -23,6 +23,13 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
         _;
     }
 
+    modifier onlyValidProvision(address serviceProvider) virtual {
+        _checkProvisionTokens(serviceProvider);
+        _checkProvisionDelegationRatio(serviceProvider);
+        _checkProvisionParameters(serviceProvider, false);
+        _;
+    }
+
     constructor() {
         minimumProvisionTokens = type(uint256).min;
         maximumProvisionTokens = type(uint256).max;

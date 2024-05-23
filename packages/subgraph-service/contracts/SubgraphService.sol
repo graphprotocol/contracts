@@ -55,6 +55,15 @@ contract SubgraphService is
         _;
     }
 
+    /**
+     * @dev Strict delegation ratio not enforced.
+     */
+    modifier onlyValidProvision(address indexer) override {
+        _checkProvisionTokens(indexer);
+        _checkProvisionParameters(indexer, false);
+        _;
+    }
+
     constructor(
         address graphController,
         address disputeManager,
@@ -75,7 +84,7 @@ contract SubgraphService is
     function register(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) whenNotPaused {
+    ) external override onlyProvisionAuthorized(indexer) onlyValidProvision(indexer) whenNotPaused {
         (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
             data,
             (string, string, address)
@@ -98,10 +107,6 @@ contract SubgraphService is
             _setRewardsDestination(indexer, rewardsDestination);
         }
 
-        // Ensure the service provider created a valid provision for the data service
-        _checkProvisionParameters(indexer, false);
-        _checkProvisionTokens(indexer);
-
         emit ServiceProviderRegistered(indexer);
     }
 
@@ -117,8 +122,14 @@ contract SubgraphService is
     function startService(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
-        _checkProvisionTokens(indexer);
+    )
+        external
+        override
+        onlyProvisionAuthorized(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+        whenNotPaused
+    {
         (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId, bytes memory allocationProof) = abi.decode(
             data,
             (bytes32, uint256, address, bytes)
@@ -140,8 +151,13 @@ contract SubgraphService is
         address indexer,
         address allocationId,
         uint256 tokens
-    ) external onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
-        _checkProvisionTokens(indexer);
+    )
+        external
+        onlyProvisionAuthorized(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+        whenNotPaused
+    {
         _resizeAllocation(allocationId, tokens, maximumDelegationRatio);
     }
 
@@ -149,8 +165,7 @@ contract SubgraphService is
         address indexer,
         IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
-    ) external override onlyRegisteredIndexer(indexer) whenNotPaused {
-        _checkProvisionTokens(indexer);
+    ) external override onlyValidProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
