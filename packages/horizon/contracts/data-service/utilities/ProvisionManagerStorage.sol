@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
 abstract contract ProvisionManagerV1Storage {
     /// @notice The minimum amount of tokens required to register a provision in the data service

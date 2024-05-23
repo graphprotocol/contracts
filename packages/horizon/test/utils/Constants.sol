@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
 abstract contract Constants {
     uint256 internal constant MAX_PPM = 1000000; // 100% in parts per million

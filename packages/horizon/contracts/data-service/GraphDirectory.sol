@@ -11,8 +11,8 @@ import { IController } from "@graphprotocol/contracts/contracts/governance/ICont
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
 import { ITokenGateway } from "@graphprotocol/contracts/contracts/arbitrum/ITokenGateway.sol";
-import { IBridgeEscrow } from "@graphprotocol/contracts/contracts/gateway/IBridgeEscrow.sol";
-import { IGraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/IGraphProxyAdmin.sol";
+import { IBridgeEscrow } from "../interfaces/IBridgeEscrow.sol";
+import { IGraphProxyAdmin } from "../interfaces/IGraphProxyAdmin.sol";
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 
