@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.24;
-pragma abicoder v2;
 
 import { IGraphToken } from "@graphprotocol/horizon/contracts/interfaces/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
