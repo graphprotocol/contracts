@@ -4,11 +4,11 @@ pragma solidity 0.8.24;
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
-import { IGraphToken } from "../interfaces/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
 import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
 
-import { TokenUtils } from "../libraries/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
 import { ExponentialRebates } from "./libraries/ExponentialRebates.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";

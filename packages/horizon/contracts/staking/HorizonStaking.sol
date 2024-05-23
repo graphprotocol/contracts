@@ -3,11 +3,11 @@
 pragma solidity 0.8.24;
 
 import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingBase } from "../interfaces/IHorizonStakingBase.sol";
-import { IGraphToken } from "../interfaces/IGraphToken.sol";
 
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
-import { TokenUtils } from "../libraries/TokenUtils.sol";
+import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 
