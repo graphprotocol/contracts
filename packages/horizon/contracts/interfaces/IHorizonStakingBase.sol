@@ -117,7 +117,7 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
 
     function stakeTo(address serviceProvider, uint256 tokens) external;
 
-    // can be called by anyone if the indexer has provisioned stake to this verifier
+    // can be called by anyone if the service provider has provisioned stake to this verifier
     function stakeToProvision(address serviceProvider, address verifier, uint256 tokens) external;
 
     // create a provision
@@ -186,7 +186,7 @@ interface IHorizonStakingBase is IHorizonStakingTypes {
     ) external;
 
     /**
-     * @notice Withdraw indexer tokens once the thawing period has passed.
+     * @notice Withdraw service provider tokens once the thawing period has passed.
      * @dev This is only needed during the transition period while we still have
      * a global lock. After that, unstake() will also withdraw.
      */

@@ -14,7 +14,7 @@ import { StakingBackwardsCompatibility } from "./StakingBackwardsCompatibility.s
 /**
  * @title L2Staking contract
  * @dev This contract is the L2 variant of the Staking contract. It adds a function
- * to receive an indexer's stake or delegation from L1. Note that this contract inherits Staking,
+ * to receive an service provider's stake or delegation from L1. Note that this contract inherits Staking,
  * which uses a StakingExtension contract to implement the full IStaking interface through delegatecalls.
  */
 contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBase, IHorizonStakingExtension {
@@ -68,9 +68,10 @@ contract HorizonStakingExtension is StakingBackwardsCompatibility, IL2StakingBas
 
     /**
      * @notice Receive tokens with a callhook from the bridge.
-     * @dev The encoded _data can contain information about an indexer's stake
+     * @dev The encoded _data can contain information about an service provider's stake
      * or a delegator's delegation.
      * See L1MessageCodes in IL2Staking for the supported messages.
+     * @dev "indexer" in this context refers to a service provider (legacy terminology for the bridge)
      * @param from Token sender in L1
      * @param tokens Amount of tokens that were transferred
      * @param data ABI-encoded callhook data which must include a uint8 code and either a ReceiveIndexerStakeData or ReceiveDelegationData struct.

@@ -142,7 +142,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     /**
      * @notice Deposit tokens on the service provider stake, on behalf of the service provider, provisioned
      * to a specific verifier. The provider must have previously provisioned stake to that verifier.
-     * @param serviceProvider Address of the indexer
+     * @param serviceProvider Address of the service provider
      * @param verifier Address of the verifier
      * @param tokens Amount of tokens to stake
      */
@@ -327,7 +327,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
 
         ServiceProviderInternal storage sp = _serviceProviders[serviceProvider];
         uint256 stakedTokens = sp.tokensStaked;
-        // Check that the indexer's stake minus the tokens to unstake is sufficient
+        // Check that the service provider's stake minus the tokens to unstake is sufficient
         // to cover existing allocations
         // TODO this is only needed until legacy allocations are closed,
         // so we should remove it after the transition period
@@ -458,7 +458,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     }
 
     /**
-     * @notice Withdraw indexer tokens once the thawing period has passed.
+     * @notice Withdraw service provider tokens once the thawing period has passed.
      * @dev This is only needed during the transition period while we still have
      * a global lock. After that, unstake() will also withdraw.
      */
@@ -533,7 +533,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
 
     /**
      * @notice Deposit tokens on the service provider stake, on behalf of the service provider.
-     * @param serviceProvider Address of the indexer
+     * @param serviceProvider Address of the service provider
      * @param tokens Amount of tokens to stake
      */
     function stakeTo(address serviceProvider, uint256 tokens) public override notPartialPaused {
@@ -831,7 +831,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
      * @param _tokens Amount of tokens to stake
      */
     function _stake(address _serviceProvider, uint256 _tokens) internal {
-        // Deposit tokens into the indexer stake
+        // Deposit tokens into the service provider stake
         _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
 
         emit StakeDeposited(_serviceProvider, _tokens);
