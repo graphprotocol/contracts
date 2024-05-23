@@ -6,6 +6,11 @@ pushd packages/contracts
 npx --no-install lint-staged
 popd
 
+# subgraph service
+pushd packages/subgraph-service
+npx --no-install lint-staged
+popd
+
 # data-edge
 pushd packages/data-edge
 npx --no-install lint-staged

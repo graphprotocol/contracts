@@ -36,3 +36,8 @@ contract RewardsManagerV4Storage is RewardsManagerV3Storage {
     // GRT issued for indexer rewards per block
     uint256 public issuancePerBlock;
 }
+
+contract RewardsManagerV5Storage is RewardsManagerV4Storage {
+    // List of addresses that are allowed to issue rewards
+    mapping(address => bool) public rewardsIssuers;
+}
