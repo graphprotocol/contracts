@@ -147,6 +147,9 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         );
         allocations.presentPOI(allocationId);
 
+        // Any pending rewards should have been collected now
+        allocations.clearPendingRewards(allocationId);
+
         if (tokensRewards == 0) {
             emit IndexingRewardsCollected(
                 allocation.indexer,
@@ -225,12 +228,11 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         // Update the allocation
         allocations[_allocationId].tokens = _tokens;
         allocations[_allocationId].accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        allocations[_allocationId].accRewardsPending = allocations[_allocationId].accRewardsPending + accRewardsPending;
+        allocations[_allocationId].accRewardsPending += accRewardsPending;
 
         // Update total allocated tokens for the subgraph deployment
-        subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
-            (_tokens - oldTokens);
+        // underflow: subgraphAllocatedTokens should at least be oldTokens so it can't underflow
+        subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
 
         emit AllocationResized(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, _tokens, oldTokens);
         return allocations[_allocationId];
@@ -242,6 +244,13 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         allocations.close(_allocationId);
         allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
 
+        // Take rewards snapshot to prevent other allos from counting tokens from this allo
+        allocations.snapshotRewards(
+            _allocationId,
+            _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
+        );
+
+        // Update total allocated tokens for the subgraph deployment
         subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
             subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
             allocation.tokens;

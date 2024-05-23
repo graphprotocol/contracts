@@ -69,6 +69,17 @@ library Allocation {
         return allocation;
     }
 
+    function clearPendingRewards(
+        mapping(address => State) storage self,
+        address allocationId
+    ) internal returns (State memory) {
+        State storage allocation = _get(self, allocationId);
+        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
+        allocation.accRewardsPending = 0;
+
+        return allocation;
+    }
+
     function close(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
         if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);

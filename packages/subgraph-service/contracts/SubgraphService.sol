@@ -205,7 +205,12 @@ contract SubgraphService is
         address allocationId
     ) external view override returns (address, bytes32, uint256, uint256) {
         Allocation.State memory allo = allocations[allocationId];
-        return (allo.indexer, allo.subgraphDeploymentId, allo.tokens, allo.accRewardsPerAllocatedToken);
+        return (
+            allo.indexer,
+            allo.subgraphDeploymentId,
+            allo.tokens,
+            allo.accRewardsPerAllocatedToken + allo.accRewardsPending
+        );
     }
 
     function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory) {
