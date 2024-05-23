@@ -98,7 +98,7 @@ abstract contract HorizonStakingV1Storage {
 
     // -- Operators --
 
-    /// @dev Legacy operator auth : indexer => operator => is authorized
+    /// @dev Legacy operator auth : service provider => operator => is authorized
     mapping(address legacyOperator => mapping(address serviceProvider => bool authorized)) internal _legacyOperatorAuth;
 
     // -- Asset Holders --
@@ -130,7 +130,7 @@ abstract contract HorizonStakingV1Storage {
     /// @dev Delegation fee cuts for each service provider on each provision, by fee type:
     /// ServiceProvider => Verifier => Payment Type => Fee Cut.
     /// This is the effective delegator fee cuts for each (data-service-defined) fee type (e.g. indexing fees, query fees).
-    /// This is in PPM and is the cut taken by the indexer from the fees that correspond to delegators.
+    /// This is in PPM and is the cut taken by the service provider from the fees that correspond to delegators.
     /// (based on stake vs delegated stake proportion).
     /// The cuts are applied in GraphPayments so apply to all data services that use it.
     mapping(address serviceProvider => mapping(address verifier => mapping(IGraphPayments.PaymentTypes paymentType => uint256 feeCut)))
@@ -138,7 +138,7 @@ abstract contract HorizonStakingV1Storage {
 
     mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _thawRequests;
 
-    // indexer => verifier => operator => authorized
+    // service provider => verifier => operator => authorized
     mapping(address serviceProvider => mapping(address verifier => mapping(address operator => bool authorized)))
         internal _operatorAuth;
 

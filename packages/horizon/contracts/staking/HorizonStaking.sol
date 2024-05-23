@@ -838,12 +838,12 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     }
 
     /**
-     * @dev Withdraw indexer tokens once the thawing period has passed.
-     * @param _indexer Address of indexer to withdraw funds from
+     * @dev Withdraw service provider tokens once the thawing period has passed.
+     * @param _serviceProvider Address of service provider to withdraw funds from
      */
-    function _withdraw(address _indexer) private {
+    function _withdraw(address _serviceProvider) private {
         // Get tokens available for withdraw and update balance
-        ServiceProviderInternal storage sp = _serviceProviders[_indexer];
+        ServiceProviderInternal storage sp = _serviceProviders[_serviceProvider];
         uint256 tokensToWithdraw = sp.__DEPRECATED_tokensLocked;
         require(tokensToWithdraw > 0, "!tokens");
         require(block.number >= sp.__DEPRECATED_tokensLockedUntil, "locked");
@@ -854,9 +854,9 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
 
         sp.tokensStaked = sp.tokensStaked - tokensToWithdraw;
 
-        // Return tokens to the indexer
-        _graphToken().pushTokens(_indexer, tokensToWithdraw);
+        // Return tokens to the service provider
+        _graphToken().pushTokens(_serviceProvider, tokensToWithdraw);
 
-        emit StakeWithdrawn(_indexer, tokensToWithdraw);
+        emit StakeWithdrawn(_serviceProvider, tokensToWithdraw);
     }
 }
