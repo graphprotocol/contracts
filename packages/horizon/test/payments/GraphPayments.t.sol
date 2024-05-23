@@ -9,7 +9,10 @@ import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStaki
 
 contract GraphPaymentsTest is HorizonStakingSharedTest {
 
-    function testCollect(uint256 amount, uint256 tokensDataService) public useProvision(amount, 0, 0) useDelegationFeeCut(0, 100000) {
+    function testCollect(
+        uint256 amount,
+        uint256 tokensDataService
+    ) public useProvision(amount, 0, 0) useDelegationFeeCut(0, delegationFeeCut) {
         uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
         uint256 tokensDelegatoion = amount * delegationFeeCut / MAX_PPM;
         vm.assume(tokensDataService < amount - tokensProtocol - tokensDelegatoion);
@@ -34,5 +37,28 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
 
         uint256 delegatorBalance = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(delegatorBalance, tokensDelegatoion);
+    }
+
+    function testCollect_RevertWhen_InsufficientAmount(
+        uint256 amount,
+        uint256 tokensDataService
+    ) public useProvision(amount, 0, 0) useDelegationFeeCut(0, delegationFeeCut) {
+        vm.assume(tokensDataService <= 10_000_000_000 ether);
+        vm.assume(tokensDataService > amount);
+
+        address escrowAddress = address(escrow);
+        mint(escrowAddress, amount);
+        vm.startPrank(escrowAddress);
+        approve(address(payments), amount);
+
+        bytes memory expectedError;
+        {
+            uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
+            uint256 tokensDelegatoion = amount * delegationFeeCut / MAX_PPM;
+            uint256 requiredAmount = tokensDataService + tokensProtocol + tokensDelegatoion;
+            expectedError = abi.encodeWithSignature("GraphPaymentsInsufficientAmount(uint256,uint256)", amount, requiredAmount);
+        }
+        vm.expectRevert(expectedError);
+        payments.collect(IGraphPayments.PaymentTypes.QueryFee, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);
     }
 }
