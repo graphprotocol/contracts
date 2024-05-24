@@ -31,6 +31,7 @@
     "eslint-graph-config": "workspace:^0.0.1",
     "ethers": "^6.4.0",
     "hardhat": "^2.20.1",
+    "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",
     "hardhat-storage-layout": "^0.1.7",
     "lint-staged": "^15.2.2",

@@ -2,7 +2,8 @@
 
 pragma solidity 0.8.24;
 
-import { IHorizonStakingBase } from "./IHorizonStakingBase.sol";
+import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
+import { IHorizonStakingMain } from "./IHorizonStakingMain.sol";
 import { IHorizonStakingExtension } from "./IHorizonStakingExtension.sol";
 
-interface IHorizonStaking is IHorizonStakingBase, IHorizonStakingExtension {}
+interface IHorizonStaking is IHorizonStakingTypes, IHorizonStakingMain, IHorizonStakingExtension {}

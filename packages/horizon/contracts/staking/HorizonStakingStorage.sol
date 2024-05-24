@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.24;
 
-import { IStakingBackwardsCompatibility } from "../interfaces/IStakingBackwardsCompatibility.sol";
+import { IHorizonStakingExtension } from "../interfaces/IHorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
@@ -56,8 +56,7 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Allocations : allocationID => Allocation
     /// Deprecated, now applied on the SubgraphService
-    mapping(address allocationId => IStakingBackwardsCompatibility.Allocation allocation)
-        internal __DEPRECATED_allocations;
+    mapping(address allocationId => IHorizonStakingExtension.Allocation allocation) internal __DEPRECATED_allocations;
 
     /// @dev Subgraph Allocations: subgraphDeploymentID => tokens
     /// Deprecated, now applied on the SubgraphService

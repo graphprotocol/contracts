@@ -1,6 +1,7 @@
 // import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
 import 'hardhat-storage-layout'
+import 'hardhat-contract-sizer'
 
 import { HardhatUserConfig } from 'hardhat/config'
 
