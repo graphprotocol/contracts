@@ -57,7 +57,7 @@ abstract contract HorizonStakingBase is
         uint256 providerThawingTokens = _provisions[serviceProvider][verifier].tokensThawing;
         uint256 tokensDelegatedMax = (providerTokens - providerThawingTokens) * (uint256(delegationRatio));
         uint256 tokensDelegatedCapacity = MathUtils.min(
-            getDelegatedTokensAvailable(serviceProvider, verifier),
+            _getDelegatedTokensAvailable(serviceProvider, verifier),
             tokensDelegatedMax
         );
         return providerTokens - providerThawingTokens + tokensDelegatedCapacity;
@@ -119,9 +119,8 @@ abstract contract HorizonStakingBase is
     function getDelegatedTokensAvailable(
         address serviceProvider,
         address verifier
-    ) public view override returns (uint256) {
-        DelegationPoolInternal storage poolInternal = _getDelegationPool(serviceProvider, verifier);
-        return poolInternal.tokens - poolInternal.tokensThawing;
+    ) external view override returns (uint256) {
+        return _getDelegatedTokensAvailable(serviceProvider, verifier);
     }
 
     // staked tokens that are currently not provisioned, aka idle stake
@@ -187,14 +186,19 @@ abstract contract HorizonStakingBase is
         return pool;
     }
 
-    function _getIdleStake(address _serviceProvider) public view returns (uint256 tokens) {
+    function _getIdleStake(address _serviceProvider) internal view returns (uint256 tokens) {
         return
             _serviceProviders[_serviceProvider].tokensStaked -
             _serviceProviders[_serviceProvider].tokensProvisioned -
             _serviceProviders[_serviceProvider].__DEPRECATED_tokensLocked;
     }
 
-    function _getProviderTokensAvailable(address _serviceProvider, address _verifier) public view returns (uint256) {
+    function _getProviderTokensAvailable(address _serviceProvider, address _verifier) internal view returns (uint256) {
         return _provisions[_serviceProvider][_verifier].tokens - _provisions[_serviceProvider][_verifier].tokensThawing;
+    }
+
+    function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) internal view returns (uint256) {
+        DelegationPoolInternal storage poolInternal = _getDelegationPool(_serviceProvider, _verifier);
+        return poolInternal.tokens - poolInternal.tokensThawing;
     }
 }

@@ -5,7 +5,6 @@ pragma solidity 0.8.24;
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingMain } from "../interfaces/internal/IHorizonStakingMain.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
@@ -44,19 +43,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     uint256 private constant MIN_DELEGATION = 1e18;
 
     address private immutable STAKING_EXTENSION_ADDRESS;
-
-    error HorizonStakingInvalidVerifier(address verifier);
-    error HorizonStakingVerifierAlreadyAllowed(address verifier);
-    error HorizonStakingVerifierNotAllowed(address verifier);
-    error HorizonStakingInvalidZeroTokens();
-    error HorizonStakingInvalidProvision(address serviceProvider, address verifier);
-    error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
-    error HorizonStakingInsufficientCapacity();
-    error HorizonStakingInsufficientShares();
-    error HorizonStakingInsufficientCapacityForLegacyAllocations();
-    error HorizonStakingTooManyThawRequests();
-    error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
-    error HorizonStakingSlippageProtection(uint256 minExpectedShares, uint256 actualShares);
 
     modifier onlyAuthorized(address serviceProvider, address verifier) {
         if (!isAuthorized(msg.sender, serviceProvider, verifier)) {
@@ -108,66 +94,25 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
     }
 
+    /*
+     * STAKING
+     */
+
     /**
      * @notice Deposit tokens on the caller's stake.
      * @param tokens Amount of tokens to stake
      */
     function stake(uint256 tokens) external override {
-        stakeTo(msg.sender, tokens);
+        _stakeTo(msg.sender, tokens);
     }
 
     /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
-     * @param operator Address to authorize or unauthorize
-     * @param verifier The verifier / data service on which they'll be allowed to operate
-     * @param allowed Whether the operator is authorized or not
+     * @notice Deposit tokens on the service provider stake, on behalf of the service provider.
+     * @param serviceProvider Address of the service provider
+     * @param tokens Amount of tokens to stake
      */
-    function setOperator(address operator, address verifier, bool allowed) external override {
-        require(operator != msg.sender, "operator == sender");
-        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            _legacyOperatorAuth[msg.sender][operator] = allowed;
-        } else {
-            _operatorAuth[msg.sender][verifier][operator] = allowed;
-        }
-        emit OperatorSet(msg.sender, operator, verifier, allowed);
-    }
-
-    // for vesting contracts
-    function setOperatorLocked(address operator, address verifier, bool allowed) external override {
-        require(operator != msg.sender, "operator == sender");
-        require(_allowedLockedVerifiers[verifier], "VERIFIER_NOT_ALLOWED");
-        _operatorAuth[msg.sender][verifier][operator] = allowed;
-        emit OperatorSet(msg.sender, operator, verifier, allowed);
-    }
-
-    function setDelegationFeeCut(
-        address serviceProvider,
-        address verifier,
-        IGraphPayments.PaymentTypes paymentType,
-        uint256 feeCut
-    ) external override {
-        delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
-        emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
-    }
-
-    function setProvisionParameters(
-        address serviceProvider,
-        address verifier,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
-        Provision storage prov = _provisions[serviceProvider][verifier];
-        prov.maxVerifierCutPending = maxVerifierCut;
-        prov.thawingPeriodPending = thawingPeriod;
-        emit ProvisionParametersStaged(serviceProvider, verifier, maxVerifierCut, thawingPeriod);
-    }
-
-    function acceptProvisionParameters(address serviceProvider) external override notPartialPaused {
-        address verifier = msg.sender;
-        Provision storage prov = _provisions[serviceProvider][verifier];
-        prov.maxVerifierCut = prov.maxVerifierCutPending;
-        prov.thawingPeriod = prov.thawingPeriodPending;
-        emit ProvisionParametersSet(serviceProvider, verifier, prov.maxVerifierCut, prov.thawingPeriod);
+    function stakeTo(address serviceProvider, uint256 tokens) external override notPartialPaused {
+        _stakeTo(serviceProvider, tokens);
     }
 
     /**
@@ -182,9 +127,32 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 tokens
     ) external override notPartialPaused {
-        stakeTo(serviceProvider, tokens);
+        _stakeTo(serviceProvider, tokens);
         _addToProvision(serviceProvider, verifier, tokens);
     }
+
+    /**
+     * @notice Move idle stake back to the owner's account.
+     * If tokens were thawing they must be deprovisioned first.
+     * Stake is removed from the protocol.
+     * @param tokens Amount of tokens to unstake
+     */
+    function unstake(uint256 tokens) external override notPaused {
+        _unstake(tokens);
+    }
+
+    /**
+     * @notice Withdraw service provider tokens once the thawing period has passed.
+     * @dev This is only needed during the transition period while we still have
+     * a global lock. After that, unstake() will also withdraw.
+     */
+    function withdraw() external override notPaused {
+        _withdraw(msg.sender);
+    }
+
+    /*
+     * PROVISIONS
+     */
 
     /**
      * @notice Provision stake to a verifier. The tokens will be locked with a thawing period
@@ -209,34 +177,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             revert HorizonStakingInsufficientCapacity();
         }
 
-        _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
-    }
-
-    /**
-     * @notice Provision stake to a verifier using locked tokens (i.e. from GraphTokenLockWallets). The tokens will be locked with a thawing period
-     * and will be slashable by the verifier. This is the main mechanism to provision stake to a data
-     * service, where the data service is the verifier. Only authorized verifiers can be used.
-     * This function can be called by the service provider or by an operator authorized by the provider
-     * for this specific verifier.
-     * @param serviceProvider The service provider address
-     * @param verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
-     * @param tokens The amount of tokens that will be locked and slashable
-     * @param maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
-     * @param thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
-     */
-    function provisionLocked(
-        address serviceProvider,
-        address verifier,
-        uint256 tokens,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
-        if (_getIdleStake(serviceProvider) < tokens) {
-            revert HorizonStakingInsufficientCapacity();
-        }
-        if (!_allowedLockedVerifiers[verifier]) {
-            revert HorizonStakingInvalidVerifier(verifier);
-        }
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
@@ -341,62 +281,174 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _addToProvision(serviceProvider, newVerifier, tokens);
     }
 
-    /**
-     * @notice Move idle stake back to the owner's account.
-     * If tokens were thawing they must be deprovisioned first.
-     * Stake is removed from the protocol.
-     * @param tokens Amount of tokens to unstake
+    function setProvisionParameters(
+        address serviceProvider,
+        address verifier,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
+        Provision storage prov = _provisions[serviceProvider][verifier];
+        prov.maxVerifierCutPending = maxVerifierCut;
+        prov.thawingPeriodPending = thawingPeriod;
+        emit ProvisionParametersStaged(serviceProvider, verifier, maxVerifierCut, thawingPeriod);
+    }
+
+    function acceptProvisionParameters(address serviceProvider) external override notPartialPaused {
+        address verifier = msg.sender;
+        Provision storage prov = _provisions[serviceProvider][verifier];
+        prov.maxVerifierCut = prov.maxVerifierCutPending;
+        prov.thawingPeriod = prov.thawingPeriodPending;
+        emit ProvisionParametersSet(serviceProvider, verifier, prov.maxVerifierCut, prov.thawingPeriod);
+    }
+
+    /*
+     * DELEGATION
      */
-    function unstake(uint256 tokens) external override notPaused {
-        address serviceProvider = msg.sender;
+
+    function delegate(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint256 minSharesOut
+    ) external override notPartialPaused {
+        _graphToken().pullTokens(msg.sender, tokens);
+        _delegate(serviceProvider, verifier, tokens, minSharesOut);
+    }
+
+    // undelegate tokens from a service provider
+    // the shares are burned and replaced with shares in the thawing pool
+    function undelegate(address serviceProvider, address verifier, uint256 shares) external override notPartialPaused {
+        _undelegate(serviceProvider, verifier, shares);
+    }
+
+    function withdrawDelegated(
+        address serviceProvider,
+        address verifier,
+        address newServiceProvider,
+        uint256 minSharesForNewProvider
+    ) external override notPartialPaused {
+        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+        Delegation storage delegation = pool.delegators[msg.sender];
+        uint256 thawedTokens = 0;
+
+        uint256 sharesThawing = pool.sharesThawing;
+        uint256 tokensThawing = pool.tokensThawing;
+        require(delegation.nThawRequests > 0, "no thaw requests");
+        bytes32 thawRequestId = delegation.firstThawRequestId;
+        while (thawRequestId != bytes32(0)) {
+            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
+            if (thawRequest.thawingUntil <= block.timestamp) {
+                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+                tokensThawing = tokensThawing - tokens;
+                sharesThawing = sharesThawing - thawRequest.shares;
+                thawedTokens = thawedTokens + tokens;
+                delete _thawRequests[thawRequestId];
+                delegation.firstThawRequestId = thawRequest.next;
+                delegation.nThawRequests -= 1;
+                if (delegation.nThawRequests == 0) {
+                    delegation.lastThawRequestId = bytes32(0);
+                }
+            } else {
+                break;
+            }
+            thawRequestId = thawRequest.next;
+        }
+
+        pool.tokens = pool.tokens - thawedTokens;
+        pool.sharesThawing = sharesThawing;
+        pool.tokensThawing = tokensThawing;
+
+        if (newServiceProvider != address(0)) {
+            _delegate(newServiceProvider, verifier, thawedTokens, minSharesForNewProvider);
+        } else {
+            _graphToken().pushTokens(msg.sender, thawedTokens);
+        }
+        emit DelegatedTokensWithdrawn(serviceProvider, verifier, msg.sender, thawedTokens);
+    }
+
+    /**
+     * @notice Add tokens to a delegation pool (without getting shares).
+     * Used by data services to pay delegation fees/rewards.
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address for which the tokens are provisioned
+     * @param tokens The amount of tokens to add to the delegation pool
+     */
+    function addToDelegationPool(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens
+    ) external override notPartialPaused {
         if (tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
         }
-        if (_getIdleStake(serviceProvider) < tokens) {
-            revert HorizonStakingInsufficientCapacity();
-        }
-
-        ServiceProviderInternal storage sp = _serviceProviders[serviceProvider];
-        uint256 stakedTokens = sp.tokensStaked;
-        // Check that the service provider's stake minus the tokens to unstake is sufficient
-        // to cover existing allocations
-        // TODO this is only needed until legacy allocations are closed,
-        // so we should remove it after the transition period
-        if ((stakedTokens - tokens) < sp.__DEPRECATED_tokensAllocated) {
-            revert HorizonStakingInsufficientCapacityForLegacyAllocations();
-        }
-
-        // This is also only during the transition period: we need
-        // to ensure tokens stay locked after closing legacy allocations.
-        // After sufficient time (56 days?) we should remove the closeAllocation function
-        // and set the thawing period to 0.
-        uint256 lockingPeriod = __DEPRECATED_thawingPeriod;
-        if (lockingPeriod == 0) {
-            sp.tokensStaked = stakedTokens - tokens;
-            _graphToken().pushTokens(serviceProvider, tokens);
-            emit StakeWithdrawn(serviceProvider, tokens);
-        } else {
-            // Before locking more tokens, withdraw any unlocked ones if possible
-            if (sp.__DEPRECATED_tokensLockedUntil != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
-                _withdraw(serviceProvider);
-            }
-            // TODO remove after the transition period
-            // Take into account period averaging for multiple unstake requests
-            if (sp.__DEPRECATED_tokensLocked > 0) {
-                lockingPeriod = MathUtils.weightedAverageRoundingUp(
-                    MathUtils.diffOrZero(sp.__DEPRECATED_tokensLockedUntil, block.number), // Remaining thawing period
-                    sp.__DEPRECATED_tokensLocked, // Weighted by remaining unstaked tokens
-                    lockingPeriod, // Thawing period
-                    tokens // Weighted by new tokens to unstake
-                );
-            }
-
-            // Update balances
-            sp.__DEPRECATED_tokensLocked = sp.__DEPRECATED_tokensLocked + tokens;
-            sp.__DEPRECATED_tokensLockedUntil = block.number + lockingPeriod;
-            emit StakeLocked(serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
-        }
+        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+        pool.tokens = pool.tokens + tokens;
+        emit TokensAddedToDelegationPool(serviceProvider, verifier, tokens);
     }
+
+    function setDelegationSlashingEnabled(bool enabled) external override onlyGovernor {
+        delegationSlashingEnabled = enabled;
+        emit DelegationSlashingEnabled(enabled);
+    }
+
+    function setDelegationFeeCut(
+        address serviceProvider,
+        address verifier,
+        IGraphPayments.PaymentTypes paymentType,
+        uint256 feeCut
+    ) external override {
+        delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
+        emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
+    }
+
+    // For backwards compatibility, delegates to the subgraph data service
+    // (Note this one doesn't have splippage/rounding protection!)
+    function delegate(address serviceProvider, uint256 tokens) external {
+        _graphToken().pullTokens(msg.sender, tokens);
+        _delegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, tokens, 0);
+    }
+
+    // For backwards compatibility, undelegates from the subgraph data service
+    function undelegate(address serviceProvider, uint256 shares) external {
+        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
+    }
+
+    // For backwards compatibility, withdraws delegated tokens from the subgraph data service
+    function withdrawDelegated(address serviceProvider, address newServiceProvider) external {
+        _withdrawDelegated(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, newServiceProvider, 0);
+    }
+
+    /*
+     * OPERATOR
+     */
+
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
+     * @param operator Address to authorize or unauthorize
+     * @param verifier The verifier / data service on which they'll be allowed to operate
+     * @param allowed Whether the operator is authorized or not
+     */
+    function setOperator(address operator, address verifier, bool allowed) external override {
+        require(operator != msg.sender, "operator == sender");
+        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            _legacyOperatorAuth[msg.sender][operator] = allowed;
+        } else {
+            _operatorAuth[msg.sender][verifier][operator] = allowed;
+        }
+        emit OperatorSet(msg.sender, operator, verifier, allowed);
+    }
+
+    // for vesting contracts
+    function setOperatorLocked(address operator, address verifier, bool allowed) external override {
+        require(operator != msg.sender, "operator == sender");
+        require(_allowedLockedVerifiers[verifier], "VERIFIER_NOT_ALLOWED");
+        _operatorAuth[msg.sender][verifier][operator] = allowed;
+        emit OperatorSet(msg.sender, operator, verifier, allowed);
+    }
+
+    /*
+     * SLASHING
+     */
 
     /**
      * @notice Slash a service provider. This can only be called by a verifier to which
@@ -462,59 +514,41 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
     }
 
-    // For backwards compatibility, delegates to the subgraph data service
-    // (Note this one doesn't have splippage/rounding protection!)
-    function delegate(address serviceProvider, uint256 tokens) external {
-        delegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, tokens, 0);
-    }
+    /*
+     * LOCKED VERIFIERS
+     */
 
-    // For backwards compatibility, undelegates from the subgraph data service
-    function undelegate(address serviceProvider, uint256 shares) external {
-        undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
-    }
-
-    // For backwards compatibility, withdraws delegated tokens from the subgraph data service
-    function withdrawDelegated(address serviceProvider, address newServiceProvider) external {
-        withdrawDelegated(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, newServiceProvider, 0);
+    /**
+     * @notice Provision stake to a verifier using locked tokens (i.e. from GraphTokenLockWallets). The tokens will be locked with a thawing period
+     * and will be slashable by the verifier. This is the main mechanism to provision stake to a data
+     * service, where the data service is the verifier. Only authorized verifiers can be used.
+     * This function can be called by the service provider or by an operator authorized by the provider
+     * for this specific verifier.
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
+     * @param tokens The amount of tokens that will be locked and slashable
+     * @param maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
+     * @param thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
+     */
+    function provisionLocked(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
+        if (_getIdleStake(serviceProvider) < tokens) {
+            revert HorizonStakingInsufficientCapacity();
+        }
+        if (!_allowedLockedVerifiers[verifier]) {
+            revert HorizonStakingInvalidVerifier(verifier);
+        }
+        _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
     function setAllowedLockedVerifier(address verifier, bool allowed) external onlyGovernor {
         _allowedLockedVerifiers[verifier] = allowed;
         emit AllowedLockedVerifierSet(verifier, allowed);
-    }
-
-    /**
-     * @notice Withdraw service provider tokens once the thawing period has passed.
-     * @dev This is only needed during the transition period while we still have
-     * a global lock. After that, unstake() will also withdraw.
-     */
-    function withdraw() external override notPaused {
-        _withdraw(msg.sender);
-    }
-
-    /**
-     * @notice Add tokens to a delegation pool (without getting shares).
-     * Used by data services to pay delegation fees/rewards.
-     * @param serviceProvider The service provider address
-     * @param verifier The verifier address for which the tokens are provisioned
-     * @param tokens The amount of tokens to add to the delegation pool
-     */
-    function addToDelegationPool(
-        address serviceProvider,
-        address verifier,
-        uint256 tokens
-    ) external override notPartialPaused {
-        if (tokens == 0) {
-            revert HorizonStakingInvalidZeroTokens();
-        }
-        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-        pool.tokens = pool.tokens + tokens;
-        emit TokensAddedToDelegationPool(serviceProvider, verifier, tokens);
-    }
-
-    function setDelegationSlashingEnabled(bool enabled) external override onlyGovernor {
-        delegationSlashingEnabled = enabled;
-        emit DelegationSlashingEnabled(enabled);
     }
 
     // To be called at the end of the transition period, to set the deprecated thawing period to 0
@@ -526,123 +560,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function setMaxThawingPeriod(uint64 maxThawingPeriod) external override onlyGovernor {
         maxThawingPeriod = _maxThawingPeriod;
         emit ParameterUpdated("maxThawingPeriod");
-    }
-
-    /**
-     * @notice Deposit tokens on the service provider stake, on behalf of the service provider.
-     * @param serviceProvider Address of the service provider
-     * @param tokens Amount of tokens to stake
-     */
-    function stakeTo(address serviceProvider, uint256 tokens) public override notPartialPaused {
-        if (tokens == 0) {
-            revert HorizonStakingInvalidZeroTokens();
-        }
-
-        // Transfer tokens to stake from caller to this contract
-        _graphToken().pullTokens(msg.sender, tokens);
-
-        // Stake the transferred tokens
-        _stake(serviceProvider, tokens);
-    }
-
-    function delegate(
-        address serviceProvider,
-        address verifier,
-        uint256 tokens,
-        uint256 minSharesOut
-    ) public override notPartialPaused {
-        // Transfer tokens to stake from caller to this contract
-        _graphToken().pullTokens(msg.sender, tokens);
-        _delegate(serviceProvider, verifier, tokens, minSharesOut);
-    }
-
-    // undelegate tokens from a service provider
-    // the shares are burned and replaced with shares in the thawing pool
-    function undelegate(address serviceProvider, address verifier, uint256 shares) public override notPartialPaused {
-        require(shares > 0, "!shares");
-        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-        Delegation storage delegation = pool.delegators[msg.sender];
-        require(delegation.shares >= shares, "!shares-avail");
-
-        uint256 tokens = (shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-
-        uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
-        pool.tokensThawing = pool.tokensThawing + tokens;
-
-        pool.shares = pool.shares - shares;
-        pool.sharesThawing = pool.sharesThawing + thawingShares;
-
-        delegation.shares = delegation.shares - shares;
-        // TODO: remove this when L2 transfer tools are removed
-        if (delegation.shares != 0) {
-            uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-            require(remainingTokens >= MIN_DELEGATION, "!minimum-delegation");
-        }
-        bytes32 thawRequestId = keccak256(
-            abi.encodePacked(serviceProvider, verifier, msg.sender, delegation.nextThawRequestNonce)
-        );
-        delegation.nextThawRequestNonce += 1;
-        ThawRequest storage thawRequest = _thawRequests[thawRequestId];
-        thawRequest.shares = thawingShares;
-        thawRequest.thawingUntil = uint64(
-            block.timestamp + uint256(_provisions[serviceProvider][verifier].thawingPeriod)
-        );
-        require(delegation.nThawRequests < MAX_THAW_REQUESTS, "max thaw requests");
-        if (delegation.nThawRequests == 0) {
-            delegation.firstThawRequestId = thawRequestId;
-        } else {
-            _thawRequests[delegation.lastThawRequestId].next = thawRequestId;
-        }
-        delegation.lastThawRequestId = thawRequestId;
-        unchecked {
-            delegation.nThawRequests += 1;
-        }
-        emit TokensUndelegated(serviceProvider, verifier, msg.sender, tokens);
-    }
-
-    function withdrawDelegated(
-        address serviceProvider,
-        address verifier,
-        address newServiceProvider,
-        uint256 minSharesForNewProvider
-    ) public override notPartialPaused {
-        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-        Delegation storage delegation = pool.delegators[msg.sender];
-        uint256 thawedTokens = 0;
-
-        uint256 sharesThawing = pool.sharesThawing;
-        uint256 tokensThawing = pool.tokensThawing;
-        require(delegation.nThawRequests > 0, "no thaw requests");
-        bytes32 thawRequestId = delegation.firstThawRequestId;
-        while (thawRequestId != bytes32(0)) {
-            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
-            if (thawRequest.thawingUntil <= block.timestamp) {
-                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-                tokensThawing = tokensThawing - tokens;
-                sharesThawing = sharesThawing - thawRequest.shares;
-                thawedTokens = thawedTokens + tokens;
-                delete _thawRequests[thawRequestId];
-                delegation.firstThawRequestId = thawRequest.next;
-                delegation.nThawRequests -= 1;
-                if (delegation.nThawRequests == 0) {
-                    delegation.lastThawRequestId = bytes32(0);
-                }
-            } else {
-                break;
-            }
-            thawRequestId = thawRequest.next;
-        }
-
-        pool.tokens = pool.tokens - thawedTokens;
-        pool.sharesThawing = sharesThawing;
-        pool.tokensThawing = tokensThawing;
-
-        if (newServiceProvider != address(0)) {
-            _delegate(newServiceProvider, verifier, thawedTokens, minSharesForNewProvider);
-        } else {
-            _graphToken().pushTokens(msg.sender, thawedTokens);
-        }
-        emit DelegatedTokensWithdrawn(serviceProvider, verifier, msg.sender, thawedTokens);
     }
 
     /**
@@ -666,33 +583,70 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
     }
 
-    function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) internal {
+    /*
+     * PRIVATE FUNCTIONS
+     */
+    function _stakeTo(address _serviceProvider, uint256 _tokens) private {
         if (_tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
         }
-        // TODO: remove this after L2 transfer tool for delegation is removed
-        if (_tokens < MIN_DELEGATION) {
-            revert HorizonStakingInsufficientTokens(MIN_DELEGATION, _tokens);
+
+        // Transfer tokens to stake from caller to this contract
+        _graphToken().pullTokens(msg.sender, _tokens);
+
+        // Stake the transferred tokens
+        _stake(_serviceProvider, _tokens);
+    }
+
+    function _unstake(uint256 _tokens) private {
+        address serviceProvider = msg.sender;
+        if (_tokens == 0) {
+            revert HorizonStakingInvalidZeroTokens();
         }
-        if (_provisions[_serviceProvider][_verifier].tokens == 0) {
-            revert HorizonStakingInvalidProvision(_serviceProvider, _verifier);
+        if (_getIdleStake(serviceProvider) < _tokens) {
+            revert HorizonStakingInsufficientCapacity();
         }
 
-        DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
-        Delegation storage delegation = pool.delegators[msg.sender];
-
-        // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
-        if (shares == 0 || shares < _minSharesOut) {
-            revert HorizonStakingSlippageProtection(_minSharesOut, shares);
+        ServiceProviderInternal storage sp = _serviceProviders[serviceProvider];
+        uint256 stakedTokens = sp.tokensStaked;
+        // Check that the service provider's stake minus the tokens to unstake is sufficient
+        // to cover existing allocations
+        // TODO this is only needed until legacy allocations are closed,
+        // so we should remove it after the transition period
+        if ((stakedTokens - _tokens) < sp.__DEPRECATED_tokensAllocated) {
+            revert HorizonStakingInsufficientCapacityForLegacyAllocations();
         }
 
-        pool.tokens = pool.tokens + _tokens;
-        pool.shares = pool.shares + shares;
+        // This is also only during the transition period: we need
+        // to ensure tokens stay locked after closing legacy allocations.
+        // After sufficient time (56 days?) we should remove the closeAllocation function
+        // and set the thawing period to 0.
+        uint256 lockingPeriod = __DEPRECATED_thawingPeriod;
+        if (lockingPeriod == 0) {
+            sp.tokensStaked = stakedTokens - _tokens;
+            _graphToken().pushTokens(serviceProvider, _tokens);
+            emit StakeWithdrawn(serviceProvider, _tokens);
+        } else {
+            // Before locking more tokens, withdraw any unlocked ones if possible
+            if (sp.__DEPRECATED_tokensLockedUntil != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
+                _withdraw(serviceProvider);
+            }
+            // TODO remove after the transition period
+            // Take into account period averaging for multiple unstake requests
+            if (sp.__DEPRECATED_tokensLocked > 0) {
+                lockingPeriod = MathUtils.weightedAverageRoundingUp(
+                    MathUtils.diffOrZero(sp.__DEPRECATED_tokensLockedUntil, block.number), // Remaining thawing period
+                    sp.__DEPRECATED_tokensLocked, // Weighted by remaining unstaked tokens
+                    lockingPeriod, // Thawing period
+                    _tokens // Weighted by new tokens to unstake
+                );
+            }
 
-        delegation.shares = delegation.shares + shares;
-
-        emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens);
+            // Update balances
+            sp.__DEPRECATED_tokensLocked = sp.__DEPRECATED_tokensLocked + _tokens;
+            sp.__DEPRECATED_tokensLockedUntil = block.number + lockingPeriod;
+            emit StakeLocked(serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
+        }
     }
 
     /**
@@ -704,7 +658,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address _verifier,
         uint32 _maxVerifierCut,
         uint64 _thawingPeriod
-    ) internal {
+    ) private {
         require(_tokens >= MIN_PROVISION_SIZE, "!tokens");
         require(_maxVerifierCut <= MAX_MAX_VERIFIER_CUT, "maxVerifierCut too high");
         require(_thawingPeriod <= _maxThawingPeriod, "thawingPeriod too high");
@@ -728,48 +682,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit ProvisionCreated(_serviceProvider, _verifier, _tokens, _maxVerifierCut, _thawingPeriod);
     }
 
-    function _fulfillThawRequests(address _serviceProvider, address _verifier, uint256 _tokens) internal {
-        Provision storage prov = _provisions[_serviceProvider][_verifier];
-        uint256 tokensRemaining = _tokens;
-        uint256 sharesThawing = prov.sharesThawing;
-        uint256 tokensThawing = prov.tokensThawing;
-        while (tokensRemaining > 0) {
-            require(prov.nThawRequests > 0, "not enough thawed tokens");
-            bytes32 thawRequestId = prov.firstThawRequestId;
-            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
-            require(thawRequest.thawingUntil <= block.timestamp, "thawing period not over");
-            uint256 thawRequestTokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-            if (thawRequestTokens <= tokensRemaining) {
-                tokensRemaining = tokensRemaining - thawRequestTokens;
-                delete _thawRequests[thawRequestId];
-                prov.firstThawRequestId = thawRequest.next;
-                prov.nThawRequests -= 1;
-                tokensThawing = tokensThawing - thawRequestTokens;
-                sharesThawing = sharesThawing - thawRequest.shares;
-                if (prov.nThawRequests == 0) {
-                    prov.lastThawRequestId = bytes32(0);
-                }
-            } else {
-                // TODO check for potential rounding issues
-                uint256 sharesRemoved = (tokensRemaining * prov.sharesThawing) / prov.tokensThawing;
-                thawRequest.shares = thawRequest.shares - sharesRemoved;
-                tokensThawing = tokensThawing - tokensRemaining;
-                sharesThawing = sharesThawing - sharesRemoved;
-            }
-            emit ProvisionThawFulfilled(
-                _serviceProvider,
-                _verifier,
-                MathUtils.min(thawRequestTokens, tokensRemaining),
-                thawRequestId
-            );
-        }
-        prov.sharesThawing = sharesThawing;
-        prov.tokensThawing = tokensThawing;
-        prov.tokens = prov.tokens - _tokens;
-        _serviceProviders[_serviceProvider].tokensProvisioned -= _tokens;
-    }
-
-    function _addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) internal {
+    function _addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) private {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
         if (_tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
@@ -809,5 +722,162 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _graphToken().pushTokens(_serviceProvider, tokensToWithdraw);
 
         emit StakeWithdrawn(_serviceProvider, tokensToWithdraw);
+    }
+
+    function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
+        if (_tokens == 0) {
+            revert HorizonStakingInvalidZeroTokens();
+        }
+        // TODO: remove this after L2 transfer tool for delegation is removed
+        if (_tokens < MIN_DELEGATION) {
+            revert HorizonStakingInsufficientTokens(MIN_DELEGATION, _tokens);
+        }
+        if (_provisions[_serviceProvider][_verifier].tokens == 0) {
+            revert HorizonStakingInvalidProvision(_serviceProvider, _verifier);
+        }
+
+        DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
+        Delegation storage delegation = pool.delegators[msg.sender];
+
+        // Calculate shares to issue
+        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
+        if (shares == 0 || shares < _minSharesOut) {
+            revert HorizonStakingSlippageProtection(_minSharesOut, shares);
+        }
+
+        pool.tokens = pool.tokens + _tokens;
+        pool.shares = pool.shares + shares;
+
+        delegation.shares = delegation.shares + shares;
+
+        emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens);
+    }
+
+    function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private {
+        require(_shares > 0, "!shares");
+        DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
+        Delegation storage delegation = pool.delegators[msg.sender];
+        require(delegation.shares >= _shares, "!shares-avail");
+
+        uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+
+        uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
+        pool.tokensThawing = pool.tokensThawing + tokens;
+
+        pool.shares = pool.shares - _shares;
+        pool.sharesThawing = pool.sharesThawing + thawingShares;
+
+        delegation.shares = delegation.shares - _shares;
+        // TODO: remove this when L2 transfer tools are removed
+        if (delegation.shares != 0) {
+            uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+            require(remainingTokens >= MIN_DELEGATION, "!minimum-delegation");
+        }
+        bytes32 thawRequestId = keccak256(
+            abi.encodePacked(_serviceProvider, _verifier, msg.sender, delegation.nextThawRequestNonce)
+        );
+        delegation.nextThawRequestNonce += 1;
+        ThawRequest storage thawRequest = _thawRequests[thawRequestId];
+        thawRequest.shares = thawingShares;
+        thawRequest.thawingUntil = uint64(
+            block.timestamp + uint256(_provisions[_serviceProvider][_verifier].thawingPeriod)
+        );
+        require(delegation.nThawRequests < MAX_THAW_REQUESTS, "max thaw requests");
+        if (delegation.nThawRequests == 0) {
+            delegation.firstThawRequestId = thawRequestId;
+        } else {
+            _thawRequests[delegation.lastThawRequestId].next = thawRequestId;
+        }
+        delegation.lastThawRequestId = thawRequestId;
+        unchecked {
+            delegation.nThawRequests += 1;
+        }
+        emit TokensUndelegated(_serviceProvider, _verifier, msg.sender, tokens);
+    }
+
+    function _withdrawDelegated(
+        address _serviceProvider,
+        address _verifier,
+        address _newServiceProvider,
+        uint256 _minSharesForNewProvider
+    ) private {
+        DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
+        Delegation storage delegation = pool.delegators[msg.sender];
+        uint256 thawedTokens = 0;
+
+        uint256 sharesThawing = pool.sharesThawing;
+        uint256 tokensThawing = pool.tokensThawing;
+        require(delegation.nThawRequests > 0, "no thaw requests");
+        bytes32 thawRequestId = delegation.firstThawRequestId;
+        while (thawRequestId != bytes32(0)) {
+            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
+            if (thawRequest.thawingUntil <= block.timestamp) {
+                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+                tokensThawing = tokensThawing - tokens;
+                sharesThawing = sharesThawing - thawRequest.shares;
+                thawedTokens = thawedTokens + tokens;
+                delete _thawRequests[thawRequestId];
+                delegation.firstThawRequestId = thawRequest.next;
+                delegation.nThawRequests -= 1;
+                if (delegation.nThawRequests == 0) {
+                    delegation.lastThawRequestId = bytes32(0);
+                }
+            } else {
+                break;
+            }
+            thawRequestId = thawRequest.next;
+        }
+
+        pool.tokens = pool.tokens - thawedTokens;
+        pool.sharesThawing = sharesThawing;
+        pool.tokensThawing = tokensThawing;
+
+        if (_newServiceProvider != address(0)) {
+            _delegate(_newServiceProvider, _verifier, thawedTokens, _minSharesForNewProvider);
+        } else {
+            _graphToken().pushTokens(msg.sender, thawedTokens);
+        }
+        emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, thawedTokens);
+    }
+
+    function _fulfillThawRequests(address _serviceProvider, address _verifier, uint256 _tokens) private {
+        Provision storage prov = _provisions[_serviceProvider][_verifier];
+        uint256 tokensRemaining = _tokens;
+        uint256 sharesThawing = prov.sharesThawing;
+        uint256 tokensThawing = prov.tokensThawing;
+        while (tokensRemaining > 0) {
+            require(prov.nThawRequests > 0, "not enough thawed tokens");
+            bytes32 thawRequestId = prov.firstThawRequestId;
+            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
+            require(thawRequest.thawingUntil <= block.timestamp, "thawing period not over");
+            uint256 thawRequestTokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+            if (thawRequestTokens <= tokensRemaining) {
+                tokensRemaining = tokensRemaining - thawRequestTokens;
+                delete _thawRequests[thawRequestId];
+                prov.firstThawRequestId = thawRequest.next;
+                prov.nThawRequests -= 1;
+                tokensThawing = tokensThawing - thawRequestTokens;
+                sharesThawing = sharesThawing - thawRequest.shares;
+                if (prov.nThawRequests == 0) {
+                    prov.lastThawRequestId = bytes32(0);
+                }
+            } else {
+                // TODO check for potential rounding issues
+                uint256 sharesRemoved = (tokensRemaining * prov.sharesThawing) / prov.tokensThawing;
+                thawRequest.shares = thawRequest.shares - sharesRemoved;
+                tokensThawing = tokensThawing - tokensRemaining;
+                sharesThawing = sharesThawing - sharesRemoved;
+            }
+            emit ProvisionThawFulfilled(
+                _serviceProvider,
+                _verifier,
+                MathUtils.min(thawRequestTokens, tokensRemaining),
+                thawRequestId
+            );
+        }
+        prov.sharesThawing = sharesThawing;
+        prov.tokensThawing = tokensThawing;
+        prov.tokens = prov.tokens - _tokens;
+        _serviceProviders[_serviceProvider].tokensProvisioned -= _tokens;
     }
 }

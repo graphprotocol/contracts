@@ -16,8 +16,6 @@ import { ExponentialRebates } from "./libraries/ExponentialRebates.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 
 import { HorizonStakingBase } from "./HorizonStakingBase.sol";
-import { Managed } from "./utilities/Managed.sol";
-import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 /**
  * @title Base Staking contract

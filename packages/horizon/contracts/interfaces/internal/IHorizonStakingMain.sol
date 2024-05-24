@@ -3,7 +3,6 @@
 pragma solidity 0.8.24;
 
 import { IHorizonStakingBase } from "./IHorizonStakingBase.sol";
-import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 interface IHorizonStakingMain is IHorizonStakingBase {
@@ -120,6 +119,19 @@ interface IHorizonStakingMain is IHorizonStakingBase {
         uint256 feeCut
     );
 
+    error HorizonStakingInvalidVerifier(address verifier);
+    error HorizonStakingVerifierAlreadyAllowed(address verifier);
+    error HorizonStakingVerifierNotAllowed(address verifier);
+    error HorizonStakingInvalidZeroTokens();
+    error HorizonStakingInvalidProvision(address serviceProvider, address verifier);
+    error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
+    error HorizonStakingInsufficientCapacity();
+    error HorizonStakingInsufficientShares();
+    error HorizonStakingInsufficientCapacityForLegacyAllocations();
+    error HorizonStakingTooManyThawRequests();
+    error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
+    error HorizonStakingSlippageProtection(uint256 minExpectedShares, uint256 actualShares);
+
     // deposit stake
     function stake(uint256 tokens) external;
 
@@ -225,14 +237,6 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     function acceptProvisionParameters(address serviceProvider) external;
 
     /**
-     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
-     * @param operator The address to check for auth
-     * @param serviceProvider The service provider on behalf of whom they're claiming to act
-     * @param verifier The verifier / data service on which they're claiming to act
-     */
-    function isAuthorized(address operator, address serviceProvider, address verifier) external view returns (bool);
-
-    /**
      * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
      * @param operator Address to authorize or unauthorize
      * @param verifier The verifier / data service on which they'll be allowed to operate
@@ -249,4 +253,12 @@ interface IHorizonStakingMain is IHorizonStakingBase {
         IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
     ) external;
+
+    /**
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
+     * @param operator The address to check for auth
+     * @param serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param verifier The verifier / data service on which they're claiming to act
+     */
+    function isAuthorized(address operator, address serviceProvider, address verifier) external view returns (bool);
 }
