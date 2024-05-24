@@ -122,7 +122,6 @@ interface IHorizonStakingMain is IHorizonStakingBase {
         uint256 feeCut
     );
 
-    error HorizonStakingInvalidVerifier(address verifier);
     error HorizonStakingInvalidZeroTokens();
     error HorizonStakingInvalidProvision(address serviceProvider, address verifier);
     error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
@@ -131,6 +130,7 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     error HorizonStakingTooManyThawRequests();
     error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
     error HorizonStakingSlippageProtection(uint256 minExpectedShares, uint256 actualShares);
+    error HorizonStakingVerifierNotAllowed(address verifier);
 
     // deposit stake
     function stake(uint256 tokens) external;

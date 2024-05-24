@@ -173,10 +173,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
-        if (_getIdleStake(serviceProvider) < tokens) {
-            revert HorizonStakingInsufficientCapacity();
-        }
-
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
@@ -504,18 +500,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
-        if (_getIdleStake(serviceProvider) < tokens) {
-            revert HorizonStakingInsufficientCapacity();
-        }
         if (!_allowedLockedVerifiers[verifier]) {
-            revert HorizonStakingInvalidVerifier(verifier);
+            revert HorizonStakingVerifierNotAllowed(verifier);
         }
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
     // for vesting contracts
     function setOperatorLocked(address operator, address verifier, bool allowed) external override {
-        require(_allowedLockedVerifiers[verifier], "VERIFIER_NOT_ALLOWED");
+        if (!_allowedLockedVerifiers[verifier]) revert HorizonStakingVerifierNotAllowed(verifier);
         _setOperator(operator, verifier, allowed);
     }
 
@@ -648,6 +641,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint32 _maxVerifierCut,
         uint64 _thawingPeriod
     ) private {
+        if (_getIdleStake(_serviceProvider) < _tokens) {
+            revert HorizonStakingInsufficientCapacity();
+        }
         require(_tokens >= MIN_PROVISION_SIZE, "!tokens");
         require(_maxVerifierCut <= MAX_MAX_VERIFIER_CUT, "maxVerifierCut too high");
         require(_thawingPeriod <= _maxThawingPeriod, "thawingPeriod too high");
