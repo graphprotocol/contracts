@@ -59,11 +59,9 @@ abstract contract GraphDirectory {
     error GraphDirectoryInvalidZeroAddress(bytes contractName);
 
     constructor(address controller) {
-        if (controller == address(0)) {
-            revert GraphDirectoryInvalidZeroAddress("Controller");
-        }
-        GRAPH_CONTROLLER = IController(controller);
+        require(controller != address(0), GraphDirectoryInvalidZeroAddress("Controller"));
 
+        GRAPH_CONTROLLER = IController(controller);
         GRAPH_TOKEN = IGraphToken(_getContractFromController("GraphToken"));
         GRAPH_STAKING = IHorizonStaking(_getContractFromController("Staking"));
         GRAPH_PAYMENTS = IGraphPayments(_getContractFromController("GraphPayments"));
@@ -136,9 +134,7 @@ abstract contract GraphDirectory {
 
     function _getContractFromController(bytes memory _contractName) private view returns (address) {
         address contractAddress = GRAPH_CONTROLLER.getContractProxy(keccak256(_contractName));
-        if (contractAddress == address(0)) {
-            revert GraphDirectoryInvalidZeroAddress(_contractName);
-        }
+        require(contractAddress != address(0), GraphDirectoryInvalidZeroAddress(_contractName));
         return contractAddress;
     }
 }

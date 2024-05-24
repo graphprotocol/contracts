@@ -41,10 +41,10 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external returns (uint256) {
         (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(data, (SignedRAV, uint256));
-
-        if (signedRAV.rav.dataService != msg.sender) {
-            revert TAPCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService);
-        }
+        require(
+            signedRAV.rav.dataService == msg.sender,
+            TAPCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService)
+        );
 
         address dataService = signedRAV.rav.dataService;
         address payer = _recoverRAVSigner(signedRAV);
@@ -52,9 +52,10 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
 
         uint256 tokensRAV = signedRAV.rav.valueAggregate;
         uint256 tokensAlreadyCollected = tokensCollected[dataService][receiver][payer];
-        if (tokensRAV < tokensAlreadyCollected) {
-            revert TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected);
-        }
+        require(
+            tokensRAV > tokensAlreadyCollected,
+            TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
+        );
 
         uint256 tokensToCollect = tokensRAV - tokensAlreadyCollected;
         uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);

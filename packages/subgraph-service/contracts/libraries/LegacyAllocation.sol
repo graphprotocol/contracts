@@ -19,10 +19,9 @@ library LegacyAllocation {
         address allocationId,
         bytes32 subgraphDeploymentID
     ) internal {
-        if (self[allocationId].exists()) revert LegacyAllocationAlreadyMigrated(allocationId);
+        require(!self[allocationId].exists(), LegacyAllocationExists(allocationId));
 
         State memory allocation = State({ indexer: indexer, subgraphDeploymentID: subgraphDeploymentID });
-
         self[allocationId] = allocation;
     }
 
@@ -31,7 +30,7 @@ library LegacyAllocation {
     }
 
     function revertIfExists(mapping(address => State) storage self, address allocationId) internal view {
-        if (self[allocationId].exists()) revert LegacyAllocationExists(allocationId);
+        require(!self[allocationId].exists(), LegacyAllocationExists(allocationId));
     }
 
     function exists(State memory self) internal pure returns (bool) {
@@ -40,7 +39,7 @@ library LegacyAllocation {
 
     function _get(mapping(address => State) storage self, address allocationId) private view returns (State storage) {
         State storage allocation = self[allocationId];
-        if (!allocation.exists()) revert LegacyAllocationDoesNotExist(allocationId);
+        require(allocation.exists(), LegacyAllocationDoesNotExist(allocationId));
         return allocation;
     }
 }

@@ -28,7 +28,7 @@ library Allocation {
         uint256 tokens,
         uint256 accRewardsPerAllocatedToken
     ) internal returns (State memory) {
-        if (self[allocationId].exists()) revert AllocationAlreadyExists(allocationId);
+        require(!self[allocationId].exists(), AllocationAlreadyExists(allocationId));
 
         State memory allocation = State({
             indexer: indexer,
@@ -50,8 +50,7 @@ library Allocation {
     // For stale POIs this ensures the rewards are not collected with the next valid POI
     function presentPOI(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
-        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
-        if (allocation.isAltruistic()) revert AllocationZeroTokens(allocationId);
+        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.lastPOIPresentedAt = block.timestamp;
 
         return allocation;
@@ -63,7 +62,7 @@ library Allocation {
         uint256 accRewardsPerAllocatedToken
     ) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
-        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
+        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
 
         return allocation;
@@ -74,7 +73,7 @@ library Allocation {
         address allocationId
     ) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
-        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
+        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.accRewardsPending = 0;
 
         return allocation;
@@ -82,7 +81,7 @@ library Allocation {
 
     function close(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
         State storage allocation = _get(self, allocationId);
-        if (!allocation.isOpen()) revert AllocationClosed(allocationId, allocation.closedAt);
+        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.closedAt = block.timestamp;
 
         return allocation;
@@ -106,7 +105,7 @@ library Allocation {
 
     function _get(mapping(address => State) storage self, address allocationId) private view returns (State storage) {
         State storage allocation = self[allocationId];
-        if (!allocation.exists()) revert AllocationDoesNotExist(allocationId);
+        require(allocation.exists(), AllocationDoesNotExist(allocationId));
         return allocation;
     }
 }

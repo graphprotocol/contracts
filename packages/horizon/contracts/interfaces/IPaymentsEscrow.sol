@@ -43,9 +43,9 @@ interface IPaymentsEscrow {
     error PaymentsEscrowStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
     error PaymentsEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
     error PaymentsEscrowCollectorNotAuthorized(address sender, address dataService);
-    error PaymentsEscrowInsufficientAllowance(uint256 available, uint256 required);
+    error PaymentsEscrowInsufficientAllowance(uint256 current, uint256 required);
+    error PaymentsEscrowInconsistentAllowance(uint256 current, uint256 required);
     error PaymentsEscrowInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokens);
-
     // Deposit funds into the escrow for a receiver
     function deposit(address receiver, uint256 tokens) external;
 

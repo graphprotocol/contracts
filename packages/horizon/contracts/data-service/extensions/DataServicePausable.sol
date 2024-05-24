@@ -10,9 +10,7 @@ abstract contract DataServicePausable is Pausable, DataService, IDataServicePaus
     mapping(address pauseGuardian => bool allowed) public pauseGuardians;
 
     modifier onlyPauseGuardian() {
-        if (!pauseGuardians[msg.sender]) {
-            revert DataServicePausableNotPauseGuardian(msg.sender);
-        }
+        require(pauseGuardians[msg.sender], DataServicePausableNotPauseGuardian(msg.sender));
         _;
     }
 

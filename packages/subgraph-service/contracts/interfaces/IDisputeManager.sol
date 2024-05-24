@@ -115,7 +115,7 @@ interface IDisputeManager {
     error DisputeManagerInvalidFishermanReward(uint32 cut);
     error DisputeManagerInvalidMaxSlashingCut(uint32 maxSlashingCut);
     error DisputeManagerInvalidTokensSlash(uint256 tokensSlash);
-    error DisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
+    error DisputeManagerDisputeNotPending(IDisputeManager.DisputeStatus status);
     error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
     error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
     error DisputeManagerDisputePeriodNotFinished();

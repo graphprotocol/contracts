@@ -36,9 +36,7 @@ contract SubgraphService is
     using Allocation for mapping(address => Allocation.State);
 
     modifier onlyRegisteredIndexer(address indexer) {
-        if (indexers[indexer].registeredAt == 0) {
-            revert SubgraphServiceIndexerNotRegistered(indexer);
-        }
+        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
         _;
     }
 
@@ -77,19 +75,11 @@ contract SubgraphService is
             (string, string, address)
         );
 
-        // Must provide a URL
-        if (bytes(url).length == 0) {
-            revert SubgraphServiceEmptyUrl();
-        }
-
-        // Only allow registering once
-        if (indexers[indexer].registeredAt != 0) {
-            revert SubgraphServiceIndexerAlreadyRegistered();
-        }
+        require(bytes(url).length > 0, SubgraphServiceEmptyUrl());
+        require(indexers[indexer].registeredAt == 0, SubgraphServiceIndexerAlreadyRegistered());
 
         // Register the indexer
         indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
-
         if (rewardsDestination != address(0)) {
             _setRewardsDestination(indexer, rewardsDestination);
         }
@@ -239,9 +229,10 @@ contract SubgraphService is
         );
         uint256 tokensDataService = tokensCollected.mulPPM(totalCut);
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
-        if (balanceAfter - balanceBefore != tokensDataService) {
-            revert SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensDataService);
-        }
+        require(
+            balanceBefore + tokensDataService == balanceAfter,
+            SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensDataService)
+        );
 
         uint256 tokensCurators = 0;
         uint256 tokensSubgraphService = 0;

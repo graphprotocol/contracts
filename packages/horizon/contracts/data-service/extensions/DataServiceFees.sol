@@ -72,9 +72,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
 
     function _getStakeClaim(bytes32 _claimId) private view returns (StakeClaim memory) {
         StakeClaim memory claim = claims[_claimId];
-        if (claim.createdAt == 0) {
-            revert DataServiceFeesClaimNotFound(_claimId);
-        }
+        require(claim.createdAt != 0, DataServiceFeesClaimNotFound(_claimId));
         return claim;
     }
 

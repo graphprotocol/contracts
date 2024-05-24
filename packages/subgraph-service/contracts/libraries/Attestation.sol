@@ -58,9 +58,10 @@ library Attestation {
      */
     function parse(bytes memory _data) internal pure returns (State memory) {
         // Check attestation data length
-        if (_data.length != ATTESTATION_SIZE_BYTES) {
-            revert AttestationInvalidBytesLength(_data.length, ATTESTATION_SIZE_BYTES);
-        }
+        require(
+            _data.length == ATTESTATION_SIZE_BYTES,
+            AttestationInvalidBytesLength(_data.length, ATTESTATION_SIZE_BYTES)
+        );
 
         // Decode receipt
         (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentId) = abi.decode(
@@ -82,9 +83,10 @@ library Attestation {
      * @return uint8 value
      */
     function _toUint8(bytes memory _bytes, uint256 _start) private pure returns (uint8) {
-        if (_bytes.length < (_start + UINT8_BYTE_LENGTH)) {
-            revert AttestationInvalidBytesLength(_bytes.length, _start + UINT8_BYTE_LENGTH);
-        }
+        require(
+            _bytes.length >= _start + UINT8_BYTE_LENGTH,
+            AttestationInvalidBytesLength(_bytes.length, _start + UINT8_BYTE_LENGTH)
+        );
         uint8 tempUint;
 
         // solhint-disable-next-line no-inline-assembly
@@ -100,9 +102,10 @@ library Attestation {
      * @return bytes32 value
      */
     function _toBytes32(bytes memory _bytes, uint256 _start) private pure returns (bytes32) {
-        if (_bytes.length < (_start + BYTES32_BYTE_LENGTH)) {
-            revert AttestationInvalidBytesLength(_bytes.length, _start + BYTES32_BYTE_LENGTH);
-        }
+        require(
+            _bytes.length >= _start + BYTES32_BYTE_LENGTH,
+            AttestationInvalidBytesLength(_bytes.length, _start + BYTES32_BYTE_LENGTH)
+        );
         bytes32 tempBytes32;
 
         // solhint-disable-next-line no-inline-assembly

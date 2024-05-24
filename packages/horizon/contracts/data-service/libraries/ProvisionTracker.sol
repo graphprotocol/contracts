@@ -17,18 +17,13 @@ library ProvisionTracker {
 
         uint256 tokensRequired = self[serviceProvider] + tokens;
         uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
-        if (tokensRequired > tokensAvailable) {
-            revert ProvisionTrackerInsufficientTokens(tokensAvailable, tokensRequired);
-        }
+        require(tokensRequired <= tokensAvailable, ProvisionTrackerInsufficientTokens(tokensAvailable, tokensRequired));
         self[serviceProvider] += tokens;
     }
 
     function release(mapping(address => uint256) storage self, address serviceProvider, uint256 tokens) internal {
         if (tokens == 0) return;
-
-        if (tokens > self[serviceProvider]) {
-            revert ProvisionTrackerInsufficientTokens(self[serviceProvider], tokens);
-        }
+        require(self[serviceProvider] >= tokens, ProvisionTrackerInsufficientTokens(self[serviceProvider], tokens));
         self[serviceProvider] -= tokens;
     }
 

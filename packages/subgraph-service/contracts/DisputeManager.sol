@@ -50,31 +50,22 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @dev Check if the caller is the arbitrator.
      */
     modifier onlyArbitrator() {
-        if (msg.sender != arbitrator) {
-            revert DisputeManagerNotArbitrator();
-        }
+        require(msg.sender == arbitrator, DisputeManagerNotArbitrator());
         _;
     }
 
     modifier onlyPendingDispute(bytes32 disputeId) {
-        if (!isDisputeCreated(disputeId)) {
-            revert DisputeManagerInvalidDispute(disputeId);
-        }
-
-        if (disputes[disputeId].status != IDisputeManager.DisputeStatus.Pending) {
-            revert DisputeManagerInvalidDisputeStatus(disputes[disputeId].status);
-        }
+        require(isDisputeCreated(disputeId), DisputeManagerInvalidDispute(disputeId));
+        require(
+            disputes[disputeId].status == IDisputeManager.DisputeStatus.Pending,
+            DisputeManagerDisputeNotPending(disputes[disputeId].status)
+        );
         _;
     }
 
     modifier onlyFisherman(bytes32 disputeId) {
-        if (!isDisputeCreated(disputeId)) {
-            revert DisputeManagerInvalidDispute(disputeId);
-        }
-
-        if (msg.sender != disputes[disputeId].fisherman) {
-            revert DisputeManagerNotFisherman();
-        }
+        require(isDisputeCreated(disputeId), DisputeManagerInvalidDispute(disputeId));
+        require(msg.sender == disputes[disputeId].fisherman, DisputeManagerNotFisherman());
         _;
     }
 
@@ -165,16 +156,17 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         Attestation.State memory attestation2 = Attestation.parse(attestationData2);
 
         // Test that attestations are conflicting
-        if (!Attestation.areConflicting(attestation2, attestation1)) {
-            revert DisputeManagerNonConflictingAttestations(
+        require(
+            Attestation.areConflicting(attestation1, attestation2),
+            DisputeManagerNonConflictingAttestations(
                 attestation1.requestCID,
                 attestation1.responseCID,
                 attestation1.subgraphDeploymentId,
                 attestation2.requestCID,
                 attestation2.responseCID,
                 attestation2.subgraphDeploymentId
-            );
-        }
+            )
+        );
 
         // Create the disputes
         // The deposit is zero for conflicting attestations
@@ -252,9 +244,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         Dispute storage dispute = disputes[disputeId];
 
         // Check if dispute period has finished
-        if (block.timestamp <= dispute.createdAt + disputePeriod) {
-            revert DisputeManagerDisputePeriodNotFinished();
-        }
+        require(dispute.createdAt + disputePeriod < block.timestamp, DisputeManagerDisputePeriodNotFinished());
 
         // Return deposit to the fisherman
         _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
@@ -366,9 +356,10 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         dispute.status = IDisputeManager.DisputeStatus.Rejected;
 
         // For conflicting disputes, the related dispute must be accepted
-        if (_isDisputeInConflict(dispute)) {
-            revert DisputeManagerMustAcceptRelatedDispute(disputeId, dispute.relatedDisputeId);
-        }
+        require(
+            !_isDisputeInConflict(dispute),
+            DisputeManagerMustAcceptRelatedDispute(disputeId, dispute.relatedDisputeId)
+        );
 
         // Burn the fisherman's deposit
         _graphToken().burnTokens(dispute.deposit);
@@ -386,15 +377,11 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         address allocationId = _recoverSigner(attestation);
 
         Allocation.State memory alloc = subgraphService.getAllocation(allocationId);
-        if (alloc.indexer == address(0)) {
-            revert DisputeManagerIndexerNotFound(allocationId);
-        }
-        if (alloc.subgraphDeploymentId != attestation.subgraphDeploymentId) {
-            revert DisputeManagerNonMatchingSubgraphDeployment(
-                alloc.subgraphDeploymentId,
-                attestation.subgraphDeploymentId
-            );
-        }
+        require(alloc.indexer != address(0), DisputeManagerIndexerNotFound(allocationId));
+        require(
+            alloc.subgraphDeploymentId == attestation.subgraphDeploymentId,
+            DisputeManagerNonMatchingSubgraphDeployment(alloc.subgraphDeploymentId, attestation.subgraphDeploymentId)
+        );
         return alloc.indexer;
     }
 
@@ -429,9 +416,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
 
         // The indexer is disputable
         IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
-        if (provision.tokens == 0) {
-            revert DisputeManagerZeroTokens();
-        }
+        require(provision.tokens != 0, DisputeManagerZeroTokens());
 
         // Create a disputeId
         bytes32 disputeId = keccak256(
@@ -445,9 +430,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         );
 
         // Only one dispute for a (indexer, subgraphDeploymentId) at a time
-        if (isDisputeCreated(disputeId)) {
-            revert DisputeManagerDisputeAlreadyCreated(disputeId);
-        }
+        require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
 
         // Store dispute
         disputes[disputeId] = Dispute(
@@ -487,22 +470,16 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         bytes32 disputeId = keccak256(abi.encodePacked(_allocationId));
 
         // Only one dispute for an allocationId at a time
-        if (isDisputeCreated(disputeId)) {
-            revert DisputeManagerDisputeAlreadyCreated(disputeId);
-        }
+        require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
 
         // Allocation must exist
         Allocation.State memory alloc = subgraphService.getAllocation(_allocationId);
         address indexer = alloc.indexer;
-        if (indexer == address(0)) {
-            revert DisputeManagerIndexerNotFound(_allocationId);
-        }
+        require(indexer != address(0), DisputeManagerIndexerNotFound(_allocationId));
 
         // The indexer must be disputable
         IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
-        if (provision.tokens == 0) {
-            revert DisputeManagerZeroTokens();
-        }
+        require(provision.tokens != 0, DisputeManagerZeroTokens());
 
         // Store dispute
         disputes[disputeId] = Dispute(
@@ -556,9 +533,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      */
     function _pullSubmitterDeposit(uint256 _deposit) private {
         // Ensure that fisherman has staked at least the minimum amount
-        if (_deposit < minimumDeposit) {
-            revert DisputeManagerInsufficientDeposit(_deposit, minimumDeposit);
-        }
+        require(_deposit >= minimumDeposit, DisputeManagerInsufficientDeposit(_deposit, minimumDeposit));
 
         // Transfer tokens to deposit from fisherman to this contract
         _graphToken().pullTokens(msg.sender, _deposit);
@@ -581,13 +556,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
 
         // Get slash amount
         uint256 maxTokensSlash = uint256(maxSlashingCut).mulPPM(totalProvisionTokens);
-        if (_tokensSlash == 0) {
-            revert DisputeManagerInvalidTokensSlash(_tokensSlash);
-        }
-
-        if (_tokensSlash > maxTokensSlash) {
-            revert DisputeManagerInvalidTokensSlash(_tokensSlash);
-        }
+        require(_tokensSlash != 0 && _tokensSlash <= maxTokensSlash, DisputeManagerInvalidTokensSlash(_tokensSlash));
 
         // Rewards amount can only be extracted from service poriver tokens so
         // we grab the minimum between the slash amount and indexer's tokens
@@ -604,9 +573,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @param _arbitrator The address of the arbitration contract or party
      */
     function _setArbitrator(address _arbitrator) private {
-        if (_arbitrator == address(0)) {
-            revert DisputeManagerInvalidZeroAddress();
-        }
+        require(_arbitrator != address(0), DisputeManagerInvalidZeroAddress());
         arbitrator = _arbitrator;
         emit ArbitratorSet(arbitrator);
     }
@@ -617,9 +584,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @param _disputePeriod Dispute period in seconds
      */
     function _setDisputePeriod(uint64 _disputePeriod) private {
-        if (_disputePeriod == 0) {
-            revert DisputeManagerDisputePeriodZero();
-        }
+        require(_disputePeriod != 0, DisputeManagerDisputePeriodZero());
         disputePeriod = _disputePeriod;
         emit DisputePeriodSet(disputePeriod);
     }
@@ -630,9 +595,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
     function _setMinimumDeposit(uint256 _minimumDeposit) private {
-        if (_minimumDeposit == 0) {
-            revert DisputeManagerInvalidMinimumDeposit(_minimumDeposit);
-        }
+        require(_minimumDeposit != 0, DisputeManagerInvalidMinimumDeposit(_minimumDeposit));
         minimumDeposit = _minimumDeposit;
         emit MinimumDepositSet(minimumDeposit);
     }
@@ -644,9 +607,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      */
     function _setFishermanRewardCut(uint32 _fishermanRewardCut) private {
         // Must be within 0% to 100% (inclusive)
-        if (!PPMMath.isValidPPM(_fishermanRewardCut)) {
-            revert DisputeManagerInvalidFishermanReward(_fishermanRewardCut);
-        }
+        require(PPMMath.isValidPPM(_fishermanRewardCut), DisputeManagerInvalidFishermanReward(_fishermanRewardCut));
         fishermanRewardCut = _fishermanRewardCut;
         emit FishermanRewardCutSet(fishermanRewardCut);
     }
@@ -657,9 +618,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      */
     function _setMaxSlashingCut(uint32 _maxSlashingCut) private {
         // Must be within 0% to 100% (inclusive)
-        if (!PPMMath.isValidPPM(_maxSlashingCut)) {
-            revert DisputeManagerInvalidMaxSlashingCut(_maxSlashingCut);
-        }
+        require(PPMMath.isValidPPM(_maxSlashingCut), DisputeManagerInvalidMaxSlashingCut(_maxSlashingCut));
         maxSlashingCut = _maxSlashingCut;
         emit MaxSlashingCutSet(maxSlashingCut);
     }
@@ -670,9 +629,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @param _subgraphService The address of the subgraph service contract
      */
     function _setSubgraphService(address _subgraphService) private {
-        if (_subgraphService == address(0)) {
-            revert DisputeManagerInvalidZeroAddress();
-        }
+        require(_subgraphService != address(0), DisputeManagerInvalidZeroAddress());
         subgraphService = ISubgraphService(_subgraphService);
         emit SubgraphServiceSet(_subgraphService);
     }

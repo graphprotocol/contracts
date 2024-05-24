@@ -23,12 +23,17 @@ abstract contract Managed is GraphDirectory {
     /// @dev Gap for future storage variables
     uint256[10] private __gap;
 
+    error ManagedIsPaused();
+    error ManagedIsPartialPaused();
+    error ManagedOnlyController();
+    error ManagedOnlyGovernor();
+
     /**
      * @dev Revert if the controller is paused or partially paused
      */
     modifier notPartialPaused() {
-        require(!_graphController().paused(), "Paused");
-        require(!_graphController().partialPaused(), "Partial-paused");
+        require(!_graphController().paused(), ManagedIsPaused());
+        require(!_graphController().partialPaused(), ManagedIsPartialPaused());
         _;
     }
 
@@ -36,7 +41,7 @@ abstract contract Managed is GraphDirectory {
      * @dev Revert if the controller is paused
      */
     modifier notPaused() {
-        require(!_graphController().paused(), "Paused");
+        require(!_graphController().paused(), ManagedIsPaused());
         _;
     }
 
@@ -44,7 +49,7 @@ abstract contract Managed is GraphDirectory {
      * @dev Revert if the caller is not the Controller
      */
     modifier onlyController() {
-        require(msg.sender == address(_graphController()), "Caller must be Controller");
+        require(msg.sender == address(_graphController()), ManagedOnlyController());
         _;
     }
 
@@ -52,7 +57,7 @@ abstract contract Managed is GraphDirectory {
      * @dev Revert if the caller is not the governor
      */
     modifier onlyGovernor() {
-        require(msg.sender == _graphController().getGovernor(), "Only Controller governor");
+        require(msg.sender == _graphController().getGovernor(), ManagedOnlyGovernor());
         _;
     }
 

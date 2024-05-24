@@ -124,13 +124,25 @@ interface IHorizonStakingMain is IHorizonStakingBase {
 
     error HorizonStakingInvalidZeroTokens();
     error HorizonStakingInvalidProvision(address serviceProvider, address verifier);
+    error HorizonStakingInvalidTokens(uint256 tokens, uint256 minTokens);
+    error HorizonStakingInvalidMaxVerifierCut(uint32 maxVerifierCut, uint32 maxAllowedCut);
+    error HorizonStakingInvalidThawingPeriod(uint64 thawingPeriod, uint64 maxThawingPeriod);
     error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
     error HorizonStakingInsufficientCapacity();
     error HorizonStakingInsufficientCapacityForLegacyAllocations();
+    error HorizonStakingInsufficientTokensAvailable(uint256 tokensAvailable, uint256 tokensRequired);
     error HorizonStakingTooManyThawRequests();
-    error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
+    error HorizonStakingInsufficientTokens(uint256 available, uint256 tokensRequired);
     error HorizonStakingSlippageProtection(uint256 minExpectedShares, uint256 actualShares);
     error HorizonStakingVerifierNotAllowed(address verifier);
+    error HorizonStakingNothingThawing();
+    error HorizonStakingVerifierTokensTooHigh(uint256 tokensVerifier, uint256 maxVerifierTokens);
+    error HorizonStakingNotEnoughDelegation(uint256 tokensAvailable, uint256 tokensRequired);
+    error HorizonStakingStillThawing(uint256 until);
+    error HorizonStakingInvalidZeroShares();
+    error HorizonStakingInvalidSharesAmount(uint256 sharesAvailable, uint256 sharesRequired);
+    error HorizonStakingCallerIsServiceProvider();
+    error HorizonStakingCannotFulfillThawRequest();
 
     // deposit stake
     function stake(uint256 tokens) external;

@@ -10,9 +10,7 @@ library PPMMath {
 
     // one of a or b must be in PPM
     function mulPPM(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (!isValidPPM(a) && !isValidPPM(b)) {
-            revert PPMMathInvalidMulPPM(a, b);
-        }
+        require(isValidPPM(a) || isValidPPM(b), PPMMathInvalidMulPPM(a, b));
         return (a * b) / MAX_PPM;
     }
 
@@ -20,9 +18,7 @@ library PPMMath {
     // to prevent curation fees from rounding down to zero
     // a must be in ppm
     function mulPPMRoundUp(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (!isValidPPM(b)) {
-            revert PPMMathInvalidPPM(b);
-        }
+        require(isValidPPM(b), PPMMathInvalidPPM(b));
         return a - mulPPM(MAX_PPM - b, a);
     }
 

@@ -21,9 +21,10 @@ abstract contract Directory {
     error DirectoryNotDisputeManager(address caller, address disputeManager);
 
     modifier onlyDisputeManager() {
-        if (msg.sender != address(DISPUTE_MANAGER)) {
-            revert DirectoryNotDisputeManager(msg.sender, address(DISPUTE_MANAGER));
-        }
+        require(
+            msg.sender == address(DISPUTE_MANAGER),
+            DirectoryNotDisputeManager(msg.sender, address(DISPUTE_MANAGER))
+        );
         _;
     }
 

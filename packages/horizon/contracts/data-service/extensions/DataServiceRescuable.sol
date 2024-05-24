@@ -19,9 +19,7 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     mapping(address rescuer => bool allowed) public rescuers;
 
     modifier onlyRescuer() {
-        if (!rescuers[msg.sender]) {
-            revert DataServiceRescuableNotRescuer(msg.sender);
-        }
+        require(rescuers[msg.sender], DataServiceRescuableNotRescuer(msg.sender));
         _;
     }
 
@@ -45,7 +43,7 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
      * @param _tokens  Amount of tokens to pull
      */
     function _rescueTokens(address _to, address _token, uint256 _tokens) internal {
-        if (_tokens == 0) revert DataServiceRescuableCannotRescueZero();
+        require(_tokens != 0, DataServiceRescuableCannotRescueZero());
 
         if (Denominations.isNativeToken(_token)) payable(_to).transfer(_tokens);
         else SafeERC20.safeTransfer(IERC20(_token), _to, _tokens);

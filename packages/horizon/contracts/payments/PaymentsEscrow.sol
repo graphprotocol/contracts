@@ -38,13 +38,14 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         uint256 revokeCollectorThawingPeriod,
         uint256 withdrawEscrowThawingPeriod
     ) GraphDirectory(controller) {
-        if (revokeCollectorThawingPeriod > MAX_THAWING_PERIOD) {
-            revert PaymentsEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_THAWING_PERIOD);
-        }
-
-        if (withdrawEscrowThawingPeriod > MAX_THAWING_PERIOD) {
-            revert PaymentsEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
-        }
+        require(
+            revokeCollectorThawingPeriod <= MAX_THAWING_PERIOD,
+            PaymentsEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_THAWING_PERIOD)
+        );
+        require(
+            withdrawEscrowThawingPeriod <= MAX_THAWING_PERIOD,
+            PaymentsEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD)
+        );
 
         REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
         WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
@@ -53,9 +54,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     // approve a data service to collect funds
     function approveCollector(address dataService, uint256 tokens) external {
         Collector storage collector = authorizedCollectors[msg.sender][dataService];
-        if (collector.allowance > tokens) {
-            revert PaymentsEscrowInsufficientAllowance(collector.allowance, tokens);
-        }
+        require(tokens > collector.allowance, PaymentsEscrowInconsistentAllowance(collector.allowance, tokens));
 
         collector.authorized = true;
         collector.allowance = tokens;
@@ -72,9 +71,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
 
     // cancel thawing a data service's collector authorization
     function cancelThawCollector(address dataService) external {
-        if (authorizedCollectors[msg.sender][dataService].thawEndTimestamp == 0) {
-            revert PaymentsEscrowNotThawing();
-        }
+        require(authorizedCollectors[msg.sender][dataService].thawEndTimestamp != 0, PaymentsEscrowNotThawing());
 
         authorizedCollectors[msg.sender][dataService].thawEndTimestamp = 0;
         emit CancelThawCollector(msg.sender, dataService);
@@ -84,13 +81,11 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     function revokeCollector(address dataService) external {
         Collector storage collector = authorizedCollectors[msg.sender][dataService];
 
-        if (collector.thawEndTimestamp == 0) {
-            revert PaymentsEscrowNotThawing();
-        }
-
-        if (collector.thawEndTimestamp > block.timestamp) {
-            revert PaymentsEscrowStillThawing(block.timestamp, collector.thawEndTimestamp);
-        }
+        require(collector.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
+        require(
+            collector.thawEndTimestamp < block.timestamp,
+            PaymentsEscrowStillThawing(block.timestamp, collector.thawEndTimestamp)
+        );
 
         delete authorizedCollectors[msg.sender][dataService];
         emit RevokeCollector(msg.sender, dataService);
@@ -110,9 +105,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
             // if amount thawing is zero and requested amount is zero this is an invalid request.
             // otherwise if amount thawing is greater than zero and requested amount is zero this
             // is a cancel thaw request.
-            if (account.tokensThawing == 0) {
-                revert PaymentsEscrowInsufficientTokensThawing();
-            }
+            require(account.tokensThawing != 0, PaymentsEscrowInsufficientTokensThawing());
             account.tokensThawing = 0;
             account.thawEndTimestamp = 0;
             emit CancelThaw(msg.sender, receiver);
@@ -120,9 +113,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         }
 
         // Check if the escrow balance is sufficient
-        if (account.balance < tokens) {
-            revert PaymentsEscrowInsufficientBalance(account.balance, tokens);
-        }
+        require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
         // Set amount to thaw
         account.tokensThawing = tokens;
@@ -135,16 +126,11 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     // Withdraws all thawed escrow from a receiver's escrow account
     function withdraw(address receiver) external {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
-        if (account.thawEndTimestamp == 0) {
-            revert PaymentsEscrowNotThawing();
-        }
-
-        if (account.thawEndTimestamp > block.timestamp) {
-            revert PaymentsEscrowStillThawing({
-                currentTimestamp: block.timestamp,
-                thawEndTimestamp: account.thawEndTimestamp
-            });
-        }
+        require(account.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
+        require(
+            account.thawEndTimestamp < block.timestamp,
+            PaymentsEscrowStillThawing(block.timestamp, account.thawEndTimestamp)
+        );
 
         // Amount is the minimum between the amount being thawed and the actual balance
         uint256 tokens = account.tokensThawing > account.balance ? account.balance : account.tokensThawing;
@@ -167,14 +153,8 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     ) external {
         // Check if collector is authorized and has enough funds
         Collector storage collector = authorizedCollectors[payer][msg.sender];
-
-        if (!collector.authorized) {
-            revert PaymentsEscrowCollectorNotAuthorized(payer, msg.sender);
-        }
-
-        if (collector.allowance < tokens) {
-            revert PaymentsEscrowInsufficientAllowance(collector.allowance, tokens);
-        }
+        require(collector.authorized, PaymentsEscrowCollectorNotAuthorized(payer, msg.sender));
+        require(collector.allowance >= tokens, PaymentsEscrowInsufficientAllowance(collector.allowance, tokens));
 
         // Reduce amount from approved collector
         collector.allowance -= tokens;
@@ -182,9 +162,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         // Collect tokens from PaymentsEscrow up to amount available
         EscrowAccount storage account = escrowAccounts[payer][receiver];
         uint256 availableTokens = account.balance - account.tokensThawing;
-        if (availableTokens < tokens) {
-            revert PaymentsEscrowInsufficientBalance(availableTokens, tokens);
-        }
+        require(availableTokens >= tokens, PaymentsEscrowInsufficientBalance(availableTokens, tokens));
 
         account.balance -= tokens;
 
@@ -195,9 +173,10 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         _graphPayments().collect(paymentType, receiver, tokens, dataService, tokensDataService);
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
-        if (balanceBefore - balanceAfter != tokens) {
-            revert PaymentsEscrowInconsistentCollection(balanceBefore, balanceAfter, tokens);
-        }
+        require(
+            balanceBefore == tokens + balanceAfter,
+            PaymentsEscrowInconsistentCollection(balanceBefore, balanceAfter, tokens)
+        );
 
         emit EscrowCollected(payer, receiver, tokens);
     }

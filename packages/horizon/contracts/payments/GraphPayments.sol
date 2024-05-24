@@ -52,9 +52,7 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
         uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, paymentType);
         uint256 tokensDelegationPool = tokens.mulPPM(delegationFeeCut);
         uint256 totalCut = tokensProtocol + tokensDataService + tokensDelegationPool;
-        if (totalCut > tokens) {
-            revert GraphPaymentsInsufficientTokens(tokens, totalCut);
-        }
+        require(tokens >= totalCut, GraphPaymentsInsufficientTokens(tokens, totalCut));
 
         // Pay protocol cut
         _graphToken().burnTokens(tokensProtocol);

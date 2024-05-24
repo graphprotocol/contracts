@@ -17,6 +17,7 @@ import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/
 abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManagerV1Storage {
     using ProvisionTracker for mapping(address => uint256);
     using Allocation for mapping(address => Allocation.State);
+    using Allocation for Allocation.State;
     using LegacyAllocation for mapping(address => LegacyAllocation.State);
     using PPMMath for uint256;
 
@@ -99,7 +100,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         bytes memory _allocationProof,
         uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
-        if (_allocationId == address(0)) revert AllocationManagerInvalidAllocationId();
+        require(_allocationId != address(0), AllocationManagerInvalidAllocationId());
 
         _verifyAllocationProof(_indexer, _allocationId, _allocationProof);
 
@@ -134,9 +135,12 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
 
         Allocation.State memory allocation = allocations.get(allocationId);
 
-        // Mint indexing rewards, 0x00 and stale POIs get no rewards...
+        // Mint indexing rewards. To qualify:
+        // - POI must be non-zero
+        // - POI must not be stale, i.e: older than maxPOIStaleness
+        // - allocation must not be altruistic (tokens = 0)
         uint256 timeSinceLastPOI = block.number - Math.max(allocation.createdAt, allocation.lastPOIPresentedAt);
-        uint256 tokensRewards = (timeSinceLastPOI <= maxPOIStaleness && poi != bytes32(0))
+        uint256 tokensRewards = (timeSinceLastPOI <= maxPOIStaleness && poi != bytes32(0) && !allocation.isAltruistic())
             ? _graphRewardsManager().takeRewards(allocationId)
             : 0;
 
@@ -205,11 +209,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
-
-        // Exit early if the allocation size is the same
-        if (_tokens == allocation.tokens) {
-            revert AllocationManagerAllocationSameSize(_allocationId, _tokens);
-        }
+        require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
 
         // Update provision tracker
         uint256 oldTokens = allocation.tokens;
@@ -223,7 +223,9 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
         uint256 accRewardsPerAllocatedToken = _graphRewardsManager().onSubgraphAllocationUpdate(
             allocation.subgraphDeploymentId
         );
-        uint256 accRewardsPending = accRewardsPerAllocatedToken - allocation.accRewardsPerAllocatedToken;
+        uint256 accRewardsPending = !allocation.isAltruistic()
+            ? accRewardsPerAllocatedToken - allocation.accRewardsPerAllocatedToken
+            : 0;
 
         // Update the allocation
         allocations[_allocationId].tokens = _tokens;
@@ -278,7 +280,7 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     function _verifyAllocationProof(address _indexer, address _allocationId, bytes memory _proof) internal view {
         bytes32 digest = _encodeAllocationProof(_indexer, _allocationId);
         address signer = ECDSA.recover(digest, _proof);
-        if (signer != _allocationId) revert AllocationManagerInvalidAllocationProof(signer, _allocationId);
+        require(signer == _allocationId, AllocationManagerInvalidAllocationProof(signer, _allocationId));
     }
 
     function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {

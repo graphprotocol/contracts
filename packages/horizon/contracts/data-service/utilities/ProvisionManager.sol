@@ -3,23 +3,23 @@ pragma solidity 0.8.26;
 
 import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
 
-import { ProvisionGetter } from "../libraries/ProvisionGetter.sol";
 import { UintRange } from "../../libraries/UintRange.sol";
 
 import { GraphDirectory } from "../GraphDirectory.sol";
 import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 
 abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage {
-    using ProvisionGetter for IHorizonStaking;
     using UintRange for uint256;
 
     error ProvisionManagerInvalidValue(bytes message, uint256 value, uint256 min, uint256 max);
     error ProvisionManagerNotAuthorized(address caller, address serviceProvider, address service);
+    error ProvisionManagerProvisionNotFound(address serviceProvider, address service);
 
     modifier onlyProvisionAuthorized(address serviceProvider) {
-        if (!_graphStaking().isAuthorized(msg.sender, serviceProvider, address(this))) {
-            revert ProvisionManagerNotAuthorized(msg.sender, serviceProvider, address(this));
-        }
+        require(
+            _graphStaking().isAuthorized(msg.sender, serviceProvider, address(this)),
+            ProvisionManagerNotAuthorized(msg.sender, serviceProvider, address(this))
+        );
         _;
     }
 
@@ -123,12 +123,12 @@ abstract contract ProvisionManager is GraphDirectory, ProvisionManagerV1Storage 
     }
 
     function _getProvision(address _serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
-        return _graphStaking().get(_serviceProvider);
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_serviceProvider, address(this));
+        require(provision.createdAt != 0, ProvisionManagerProvisionNotFound(_serviceProvider, address(this)));
+        return provision;
     }
 
     function _checkValueInRange(uint256 _value, uint256 _min, uint256 _max, bytes memory _revertMessage) private pure {
-        if (!_value.isInRange(_min, _max)) {
-            revert ProvisionManagerInvalidValue(_revertMessage, _value, _min, _max);
-        }
+        require(_value.isInRange(_min, _max), ProvisionManagerInvalidValue(_revertMessage, _value, _min, _max));
     }
 }
