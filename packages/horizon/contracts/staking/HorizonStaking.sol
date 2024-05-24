@@ -332,7 +332,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
         pool.tokens = pool.tokens + tokens;
-        emit TokensAddedToDelegationPool(serviceProvider, verifier, tokens);
+        emit TokensToDelegationPoolAdded(serviceProvider, verifier, tokens);
     }
 
     // undelegate tokens from a service provider
@@ -536,12 +536,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     // To be called at the end of the transition period, to set the deprecated thawing period to 0
     function clearThawingPeriod() external onlyGovernor {
         __DEPRECATED_thawingPeriod = 0;
-        emit ParameterUpdated("thawingPeriod");
+        emit ThawingPeriodCleared();
     }
 
     function setMaxThawingPeriod(uint64 maxThawingPeriod) external override onlyGovernor {
         maxThawingPeriod = _maxThawingPeriod;
-        emit ParameterUpdated("maxThawingPeriod");
+        emit MaxThawingPeriodSet(_maxThawingPeriod);
     }
 
     /*

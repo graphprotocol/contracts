@@ -33,6 +33,104 @@ interface IDisputeManager {
         uint256 createdAt;
     }
 
+    // -- Events --
+    event ArbitratorSet(address arbitrator);
+    event DisputePeriodSet(uint64 disputePeriod);
+    event MinimumDepositSet(uint256 minimumDeposit);
+    event MaxSlashingCutSet(uint32 maxSlashingCut);
+    event FishermanRewardCutSet(uint32 fishermanRewardCut);
+    event SubgraphServiceSet(address indexed subgraphService);
+
+    /**
+     * @dev Emitted when a query dispute is created for `subgraphDeploymentId` and `indexer`
+     * by `fisherman`.
+     * The event emits the amount of `tokens` deposited by the fisherman and `attestation` submitted.
+     */
+    event QueryDisputeCreated(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens,
+        bytes32 subgraphDeploymentId,
+        bytes attestation
+    );
+
+    /**
+     * @dev Emitted when an indexing dispute is created for `allocationId` and `indexer`
+     * by `fisherman`.
+     * The event emits the amount of `tokens` deposited by the fisherman.
+     */
+    event IndexingDisputeCreated(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens,
+        address allocationId
+    );
+
+    /**
+     * @dev Emitted when arbitrator accepts a `disputeId` to `indexer` created by `fisherman`.
+     * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
+     */
+    event DisputeAccepted(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens
+    );
+
+    /**
+     * @dev Emitted when arbitrator rejects a `disputeId` for `indexer` created by `fisherman`.
+     * The event emits the amount `tokens` burned from the fisherman deposit.
+     */
+    event DisputeRejected(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens
+    );
+
+    /**
+     * @dev Emitted when arbitrator draw a `disputeId` for `indexer` created by `fisherman`.
+     * The event emits the amount `tokens` used as deposit and returned to the fisherman.
+     */
+    event DisputeDrawn(bytes32 indexed disputeId, address indexed indexer, address indexed fisherman, uint256 tokens);
+
+    /**
+     * @dev Emitted when two disputes are in conflict to link them.
+     * This event will be emitted after each DisputeCreated event is emitted
+     * for each of the individual disputes.
+     */
+    event DisputeLinked(bytes32 indexed disputeId1, bytes32 indexed disputeId2);
+
+    // -- Errors --
+
+    error DisputeManagerNotArbitrator();
+    error DisputeManagerNotFisherman();
+    error DisputeManagerInvalidZeroAddress();
+    error DisputeManagerDisputePeriodZero();
+    error DisputeManagerZeroTokens();
+    error DisputeManagerInvalidDispute(bytes32 disputeId);
+    error DisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
+    error DisputeManagerInvalidFishermanReward(uint32 cut);
+    error DisputeManagerInvalidMaxSlashingCut(uint32 maxSlashingCut);
+    error DisputeManagerInvalidTokensSlash(uint256 tokensSlash);
+    error DisputeManagerInvalidDisputeStatus(IDisputeManager.DisputeStatus status);
+    error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
+    error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
+    error DisputeManagerDisputePeriodNotFinished();
+    error DisputeManagerMustAcceptRelatedDispute(bytes32 disputeId, bytes32 relatedDisputeId);
+    error DisputeManagerIndexerNotFound(address allocationId);
+    error DisputeManagerNonMatchingSubgraphDeployment(bytes32 subgraphDeploymentId1, bytes32 subgraphDeploymentId2);
+    error DisputeManagerNonConflictingAttestations(
+        bytes32 requestCID1,
+        bytes32 responseCID1,
+        bytes32 subgraphDeploymentId1,
+        bytes32 requestCID2,
+        bytes32 responseCID2,
+        bytes32 subgraphDeploymentId2
+    );
+
     // -- Attestation --
 
     // -- Configuration --

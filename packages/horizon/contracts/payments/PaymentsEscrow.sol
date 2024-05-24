@@ -31,37 +31,6 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     // The duration (in seconds) in which escrow funds are thawing before they can be withdrawn
     uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
 
-    // -- Events --
-
-    event AuthorizedCollector(address indexed payer, address indexed dataService);
-    event ThawCollector(address indexed payer, address indexed dataService);
-    event CancelThawCollector(address indexed payer, address indexed dataService);
-    event RevokeCollector(address indexed payer, address indexed dataService);
-    event Deposit(address indexed payer, address indexed receiver, uint256 tokens);
-    event CancelThaw(address indexed payer, address indexed receiver);
-    event Thaw(
-        address indexed payer,
-        address indexed receiver,
-        uint256 tokens,
-        uint256 totalTokensThawing,
-        uint256 thawEndTimestamp
-    );
-    event Withdraw(address indexed payer, address indexed receiver, uint256 tokens);
-    event EscrowCollected(address indexed payer, address indexed receiver, uint256 tokens);
-
-    // -- Errors --
-
-    error GraphEscrowNotGraphPayments();
-    error GraphEscrowInputsLengthMismatch();
-    error GraphEscrowInsufficientTokensThawing();
-    error GraphEscrowInsufficientBalance(uint256 available, uint256 required);
-    error GraphEscrowNotThawing();
-    error GraphEscrowStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
-    error GraphEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
-    error GraphEscrowCollectorNotAuthorized(address sender, address dataService);
-    error GraphEscrowInsufficientAllowance(uint256 available, uint256 required);
-    error PaymentsEscrowInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokens);
-
     // -- Constructor --
 
     constructor(
@@ -70,11 +39,11 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         uint256 withdrawEscrowThawingPeriod
     ) GraphDirectory(controller) {
         if (revokeCollectorThawingPeriod > MAX_THAWING_PERIOD) {
-            revert GraphEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_THAWING_PERIOD);
+            revert PaymentsEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_THAWING_PERIOD);
         }
 
         if (withdrawEscrowThawingPeriod > MAX_THAWING_PERIOD) {
-            revert GraphEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
+            revert PaymentsEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD);
         }
 
         REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
@@ -85,7 +54,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     function approveCollector(address dataService, uint256 tokens) external {
         Collector storage collector = authorizedCollectors[msg.sender][dataService];
         if (collector.allowance > tokens) {
-            revert GraphEscrowInsufficientAllowance(collector.allowance, tokens);
+            revert PaymentsEscrowInsufficientAllowance(collector.allowance, tokens);
         }
 
         collector.authorized = true;
@@ -104,7 +73,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     // cancel thawing a data service's collector authorization
     function cancelThawCollector(address dataService) external {
         if (authorizedCollectors[msg.sender][dataService].thawEndTimestamp == 0) {
-            revert GraphEscrowNotThawing();
+            revert PaymentsEscrowNotThawing();
         }
 
         authorizedCollectors[msg.sender][dataService].thawEndTimestamp = 0;
@@ -116,11 +85,11 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         Collector storage collector = authorizedCollectors[msg.sender][dataService];
 
         if (collector.thawEndTimestamp == 0) {
-            revert GraphEscrowNotThawing();
+            revert PaymentsEscrowNotThawing();
         }
 
         if (collector.thawEndTimestamp > block.timestamp) {
-            revert GraphEscrowStillThawing(block.timestamp, collector.thawEndTimestamp);
+            revert PaymentsEscrowStillThawing(block.timestamp, collector.thawEndTimestamp);
         }
 
         delete authorizedCollectors[msg.sender][dataService];
@@ -142,7 +111,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
             // otherwise if amount thawing is greater than zero and requested amount is zero this
             // is a cancel thaw request.
             if (account.tokensThawing == 0) {
-                revert GraphEscrowInsufficientTokensThawing();
+                revert PaymentsEscrowInsufficientTokensThawing();
             }
             account.tokensThawing = 0;
             account.thawEndTimestamp = 0;
@@ -152,7 +121,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
 
         // Check if the escrow balance is sufficient
         if (account.balance < tokens) {
-            revert GraphEscrowInsufficientBalance(account.balance, tokens);
+            revert PaymentsEscrowInsufficientBalance(account.balance, tokens);
         }
 
         // Set amount to thaw
@@ -167,11 +136,11 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     function withdraw(address receiver) external {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
         if (account.thawEndTimestamp == 0) {
-            revert GraphEscrowNotThawing();
+            revert PaymentsEscrowNotThawing();
         }
 
         if (account.thawEndTimestamp > block.timestamp) {
-            revert GraphEscrowStillThawing({
+            revert PaymentsEscrowStillThawing({
                 currentTimestamp: block.timestamp,
                 thawEndTimestamp: account.thawEndTimestamp
             });
@@ -200,21 +169,21 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         Collector storage collector = authorizedCollectors[payer][msg.sender];
 
         if (!collector.authorized) {
-            revert GraphEscrowCollectorNotAuthorized(payer, msg.sender);
+            revert PaymentsEscrowCollectorNotAuthorized(payer, msg.sender);
         }
 
         if (collector.allowance < tokens) {
-            revert GraphEscrowInsufficientAllowance(collector.allowance, tokens);
+            revert PaymentsEscrowInsufficientAllowance(collector.allowance, tokens);
         }
 
         // Reduce amount from approved collector
         collector.allowance -= tokens;
 
-        // Collect tokens from GraphEscrow up to amount available
+        // Collect tokens from PaymentsEscrow up to amount available
         EscrowAccount storage account = escrowAccounts[payer][receiver];
         uint256 availableTokens = account.balance - account.tokensThawing;
         if (availableTokens < tokens) {
-            revert GraphEscrowInsufficientBalance(availableTokens, tokens);
+            revert PaymentsEscrowInsufficientBalance(availableTokens, tokens);
         }
 
         account.balance -= tokens;

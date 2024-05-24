@@ -25,13 +25,6 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
         uint256 tokensProtocol
     );
 
-    // -- Errors --
-
-    error GraphPaymentsNotThawing();
-    error GraphPaymentsStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
-    error GraphPaymentsCollectorNotAuthorized(address sender, address dataService);
-    error GraphPaymentsInsufficientTokens(uint256 available, uint256 required);
-
     // -- Events --
 
     // -- Modifier --

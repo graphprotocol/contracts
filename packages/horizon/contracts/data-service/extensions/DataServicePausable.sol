@@ -9,10 +9,6 @@ import { DataService } from "../DataService.sol";
 abstract contract DataServicePausable is Pausable, DataService, IDataServicePausable {
     mapping(address pauseGuardian => bool allowed) public pauseGuardians;
 
-    event PauseGuardianSet(address indexed account, bool allowed);
-
-    error DataServicePausableNotPauseGuardian(address account);
-
     modifier onlyPauseGuardian() {
         if (!pauseGuardians[msg.sender]) {
             revert DataServicePausableNotPauseGuardian(msg.sender);

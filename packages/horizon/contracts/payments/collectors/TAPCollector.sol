@@ -25,19 +25,6 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     mapping(address dataService => mapping(address receiver => mapping(address payer => uint256 tokens)))
         public tokensCollected;
 
-    event TAPCollectorCollected(
-        IGraphPayments.PaymentTypes indexed paymentType,
-        address indexed payer,
-        address receiver,
-        uint256 tokensReceiver,
-        address indexed dataService,
-        uint256 tokensDataService
-    );
-
-    error TAPCollectorCallerNotDataService(address caller, address dataService);
-    error TAPVerifierInvalidSignerProof();
-    error TAPCollectorInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
-
     /**
      * @dev Constructs a new instance of the TAPVerifier contract.
      */

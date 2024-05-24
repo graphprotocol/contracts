@@ -23,5 +23,19 @@ interface IDataServiceFees is IDataService {
         bytes32 nextClaim;
     }
 
+    event StakeClaimLocked(
+        address indexed serviceProvider,
+        bytes32 indexed claimId,
+        uint256 tokens,
+        uint256 unlockTimestamp
+    );
+    event StakeClaimReleased(
+        address indexed serviceProvider,
+        bytes32 indexed claimId,
+        uint256 tokens,
+        uint256 releaseAt
+    );
+    error DataServiceFeesClaimNotFound(bytes32 claimId);
+
     function releaseStake(IGraphPayments.PaymentTypes feeType, uint256 n) external;
 }

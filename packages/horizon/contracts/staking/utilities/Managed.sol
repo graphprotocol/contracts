@@ -23,11 +23,6 @@ abstract contract Managed is GraphDirectory {
     /// @dev Gap for future storage variables
     uint256[10] private __gap;
 
-    // -- Events --
-
-    /// Emitted when a contract parameter has been updated
-    event ParameterUpdated(string param);
-
     /**
      * @dev Revert if the controller is paused or partially paused
      */

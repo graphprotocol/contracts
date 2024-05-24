@@ -18,15 +18,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     mapping(address rescuer => bool allowed) public rescuers;
 
-    /**
-     * @dev Tokens rescued by the user
-     */
-    event TokensRescued(address indexed from, address indexed to, uint256 tokens);
-    event RescuerSet(address indexed account, bool allowed);
-
-    error DataServiceRescuableCannotRescueZero();
-    error DataServiceRescuableNotRescuer(address account);
-
     modifier onlyRescuer() {
         if (!rescuers[msg.sender]) {
             revert DataServiceRescuableNotRescuer(msg.sender);

@@ -9,6 +9,10 @@ interface IGraphPayments {
         IndexingRewards
     }
 
+    // -- Errors --
+
+    error GraphPaymentsInsufficientTokens(uint256 available, uint256 required);
+
     // collect funds from a sender, pay cuts and forward the rest to the receiver
     function collect(
         PaymentTypes paymentType,

@@ -90,7 +90,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
      */
     function setCounterpartStakingAddress(address counterpart) external override onlyGovernor {
         _counterpartStakingAddress = counterpart;
-        emit ParameterUpdated("counterpartStakingAddress");
+        emit CounterpartStakingAddressSet(counterpart);
     }
 
     /**

@@ -79,11 +79,7 @@ interface IHorizonStakingExtension {
         uint256 delegationRewards
     );
 
-    /**
-     * @dev Emitted when `indexer` set `operator` access in the legacy contract,
-     * which now means only for the subgraph data service.
-     */
-    event SetOperator(address indexed indexer, address indexed operator, bool allowed);
+    event CounterpartStakingAddressSet(address indexed counterpart);
 
     /**
      * @notice Set the address of the counterpart (L1 or L2) staking contract.

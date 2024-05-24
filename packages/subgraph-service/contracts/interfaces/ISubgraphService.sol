@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
+import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
@@ -17,6 +18,19 @@ interface ISubgraphService is IDataServiceFees {
         uint128 serviceCut;
         uint128 curationCut;
     }
+
+    event QueryFeesCollected(
+        address serviceProvider,
+        uint256 tokensCollected,
+        uint256 tokensCurators,
+        uint256 tokensSubgraphService
+    );
+
+    error SubgraphServiceEmptyUrl();
+    error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
+    error SubgraphServiceIndexerAlreadyRegistered();
+    error SubgraphServiceIndexerNotRegistered(address indexer);
+    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
 
     function resizeAllocation(address indexer, address allocationId, uint256 tokens) external;
 

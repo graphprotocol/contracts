@@ -3,8 +3,8 @@ pragma solidity 0.8.24;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
-import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
+import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { DataServicePausable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausable.sol";
@@ -34,19 +34,6 @@ contract SubgraphService is
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => Allocation.State);
-
-    event QueryFeesCollected(
-        address serviceProvider,
-        uint256 tokensCollected,
-        uint256 tokensCurators,
-        uint256 tokensSubgraphService
-    );
-
-    error SubgraphServiceEmptyUrl();
-    error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
-    error SubgraphServiceIndexerAlreadyRegistered();
-    error SubgraphServiceIndexerNotRegistered(address indexer);
-    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
 
     modifier onlyRegisteredIndexer(address indexer) {
         if (indexers[indexer].registeredAt == 0) {

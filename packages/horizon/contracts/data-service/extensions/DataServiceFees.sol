@@ -12,21 +12,6 @@ import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);
 
-    event StakeClaimLocked(
-        address indexed serviceProvider,
-        bytes32 indexed claimId,
-        uint256 tokens,
-        uint256 unlockTimestamp
-    );
-    event StakeClaimReleased(
-        address indexed serviceProvider,
-        bytes32 indexed claimId,
-        uint256 tokens,
-        uint256 releaseAt
-    );
-
-    error DataServiceFeesClaimNotFound(bytes32 claimId);
-
     function releaseStake(IGraphPayments.PaymentTypes feeType, uint256 n) external virtual {
         _releaseStake(feeType, msg.sender, n);
     }

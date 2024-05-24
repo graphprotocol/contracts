@@ -91,7 +91,7 @@ interface IHorizonStakingMain is IHorizonStakingBase {
 
     event AllowedLockedVerifierSet(address verifier, bool allowed);
 
-    event TokensAddedToDelegationPool(address indexed serviceProvider, address indexed verifier, uint256 tokens);
+    event TokensToDelegationPoolAdded(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
     event ProvisionParametersStaged(
         address indexed serviceProvider,
@@ -107,6 +107,9 @@ interface IHorizonStakingMain is IHorizonStakingBase {
         uint64 thawingPeriod
     );
 
+    event ThawingPeriodCleared();
+    event MaxThawingPeriodSet(uint64 maxThawingPeriod);
+
     /**
      * @dev Emitted when an operator is allowed or denied by a service provider for a particular data service
      */
@@ -120,13 +123,10 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     );
 
     error HorizonStakingInvalidVerifier(address verifier);
-    error HorizonStakingVerifierAlreadyAllowed(address verifier);
-    error HorizonStakingVerifierNotAllowed(address verifier);
     error HorizonStakingInvalidZeroTokens();
     error HorizonStakingInvalidProvision(address serviceProvider, address verifier);
     error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
     error HorizonStakingInsufficientCapacity();
-    error HorizonStakingInsufficientShares();
     error HorizonStakingInsufficientCapacityForLegacyAllocations();
     error HorizonStakingTooManyThawRequests();
     error HorizonStakingInsufficientTokens(uint256 expected, uint256 available);
