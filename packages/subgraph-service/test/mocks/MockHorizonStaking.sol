@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import "forge-std/Test.sol";
 
 import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
-import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStakingTypes.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
 import { MockGRTToken } from "./MockGRTToken.sol";
 
 contract MockHorizonStaking {
