@@ -112,7 +112,7 @@ module.exports = [
       this.error(
         node,
         `'${name}' ${shouldHaveLeadingUnderscore ? 'should' : 'should not'} start with _`, 
-        this.fixStatement(node, shouldHaveLeadingUnderscore, type)
+        // this.fixStatement(node, shouldHaveLeadingUnderscore, type)
       )
     }
   },
