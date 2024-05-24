@@ -61,7 +61,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
         address from,
         uint256 tokens,
         bytes calldata data
-    ) external override notPartialPaused onlyL2Gateway {
+    ) external override notPaused onlyL2Gateway {
         require(from == _counterpartStakingAddress, "ONLY_L1_STAKING_THROUGH_BRIDGE");
         (uint8 code, bytes memory functionData) = abi.decode(data, (uint8, bytes));
 
@@ -116,7 +116,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
      * @param tokens Amount of tokens to collect
      * @param allocationID Allocation where the tokens will be assigned
      */
-    function collect(uint256 tokens, address allocationID) external override {
+    function collect(uint256 tokens, address allocationID) external override notPaused {
         // Allocation identifier validation
         require(allocationID != address(0), "!alloc");
 

@@ -24,18 +24,8 @@ abstract contract Managed is GraphDirectory {
     uint256[10] private __gap;
 
     error ManagedIsPaused();
-    error ManagedIsPartialPaused();
     error ManagedOnlyController();
     error ManagedOnlyGovernor();
-
-    /**
-     * @dev Revert if the controller is paused or partially paused
-     */
-    modifier notPartialPaused() {
-        require(!_graphController().paused(), ManagedIsPaused());
-        require(!_graphController().partialPaused(), ManagedIsPartialPaused());
-        _;
-    }
 
     /**
      * @dev Revert if the controller is paused

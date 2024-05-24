@@ -102,7 +102,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice Deposit tokens on the caller's stake.
      * @param tokens Amount of tokens to stake
      */
-    function stake(uint256 tokens) external override notPartialPaused {
+    function stake(uint256 tokens) external override notPaused {
         _stakeTo(msg.sender, tokens);
     }
 
@@ -111,7 +111,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param serviceProvider Address of the service provider
      * @param tokens Amount of tokens to stake
      */
-    function stakeTo(address serviceProvider, uint256 tokens) external override notPartialPaused {
+    function stakeTo(address serviceProvider, uint256 tokens) external override notPaused {
         _stakeTo(serviceProvider, tokens);
     }
 
@@ -122,11 +122,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param verifier Address of the verifier
      * @param tokens Amount of tokens to stake
      */
-    function stakeToProvision(
-        address serviceProvider,
-        address verifier,
-        uint256 tokens
-    ) external override notPartialPaused {
+    function stakeToProvision(address serviceProvider, address verifier, uint256 tokens) external override notPaused {
         _stakeTo(serviceProvider, tokens);
         _addToProvision(serviceProvider, verifier, tokens);
     }
@@ -172,7 +168,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokens,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
+    ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
@@ -188,7 +184,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address verifier,
         uint256 tokens
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
+    ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
         _addToProvision(serviceProvider, verifier, tokens);
     }
 
@@ -204,7 +200,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address verifier,
         uint256 tokens
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) returns (bytes32) {
+    ) external override notPaused onlyAuthorized(serviceProvider, verifier) returns (bytes32) {
         require(tokens != 0, HorizonStakingInvalidZeroTokens());
 
         Provision storage prov = _provisions[serviceProvider][verifier];
@@ -245,7 +241,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address verifier,
         uint256 tokens
-    ) external override onlyAuthorized(serviceProvider, verifier) notPartialPaused {
+    ) external override onlyAuthorized(serviceProvider, verifier) notPaused {
         _fulfillThawRequests(serviceProvider, verifier, tokens);
     }
 
@@ -267,7 +263,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     )
         external
         override
-        notPartialPaused
+        notPaused
         onlyAuthorized(serviceProvider, oldVerifier)
         onlyAuthorized(serviceProvider, newVerifier)
     {
@@ -280,14 +276,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
+    ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
         Provision storage prov = _provisions[serviceProvider][verifier];
         prov.maxVerifierCutPending = maxVerifierCut;
         prov.thawingPeriodPending = thawingPeriod;
         emit ProvisionParametersStaged(serviceProvider, verifier, maxVerifierCut, thawingPeriod);
     }
 
-    function acceptProvisionParameters(address serviceProvider) external override notPartialPaused {
+    function acceptProvisionParameters(address serviceProvider) external override notPaused {
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
         prov.maxVerifierCut = prov.maxVerifierCutPending;
@@ -304,7 +300,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 tokens,
         uint256 minSharesOut
-    ) external override notPartialPaused {
+    ) external override notPaused {
         _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, verifier, tokens, minSharesOut);
     }
@@ -320,7 +316,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address verifier,
         uint256 tokens
-    ) external override notPartialPaused {
+    ) external override notPaused {
         require(tokens != 0, HorizonStakingInvalidZeroTokens());
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
         pool.tokens = pool.tokens + tokens;
@@ -329,7 +325,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     // undelegate tokens from a service provider
     // the shares are burned and replaced with shares in the thawing pool
-    function undelegate(address serviceProvider, address verifier, uint256 shares) external override notPartialPaused {
+    function undelegate(address serviceProvider, address verifier, uint256 shares) external override notPaused {
         _undelegate(serviceProvider, verifier, shares);
     }
 
@@ -338,7 +334,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         address newServiceProvider,
         uint256 minSharesForNewProvider
-    ) external override notPartialPaused {
+    ) external override notPaused {
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
         Delegation storage delegation = pool.delegators[msg.sender];
         uint256 thawedTokens = 0;
@@ -383,25 +379,25 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
+    ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
         delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
         emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
     }
 
     // For backwards compatibility, delegates to the subgraph data service
     // (Note this one doesn't have splippage/rounding protection!)
-    function delegate(address serviceProvider, uint256 tokens) external notPartialPaused {
+    function delegate(address serviceProvider, uint256 tokens) external notPaused {
         _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, tokens, 0);
     }
 
     // For backwards compatibility, undelegates from the subgraph data service
-    function undelegate(address serviceProvider, uint256 shares) external notPartialPaused {
+    function undelegate(address serviceProvider, uint256 shares) external notPaused {
         _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
     }
 
     // For backwards compatibility, withdraws delegated tokens from the subgraph data service
-    function withdrawDelegated(address serviceProvider, address newServiceProvider) external notPartialPaused {
+    function withdrawDelegated(address serviceProvider, address newServiceProvider) external notPaused {
         _withdrawDelegated(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, newServiceProvider, 0);
     }
 
@@ -424,7 +420,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokens,
         uint256 tokensVerifier,
         address verifierDestination
-    ) external override notPartialPaused {
+    ) external override notPaused {
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.tokens >= tokens, HorizonStakingInsufficientTokens(prov.tokens, tokens));
@@ -497,13 +493,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokens,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
-    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
+    ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
         require(_allowedLockedVerifiers[verifier], HorizonStakingVerifierNotAllowed(verifier));
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
     // for vesting contracts
-    function setOperatorLocked(address operator, address verifier, bool allowed) external override notPartialPaused {
+    function setOperatorLocked(address operator, address verifier, bool allowed) external override notPaused {
         require(_allowedLockedVerifiers[verifier], HorizonStakingVerifierNotAllowed(verifier));
         _setOperator(operator, verifier, allowed);
     }
@@ -543,7 +539,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param verifier The verifier / data service on which they'll be allowed to operate
      * @param allowed Whether the operator is authorized or not
      */
-    function setOperator(address operator, address verifier, bool allowed) external override notPartialPaused {
+    function setOperator(address operator, address verifier, bool allowed) external override notPaused {
         _setOperator(operator, verifier, allowed);
     }
 
