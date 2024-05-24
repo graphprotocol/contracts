@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.24;
 
-import { IHorizonStakingExtension } from "../interfaces/IHorizonStakingExtension.sol";
-import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
+import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 // TODO: create custom var-name-mixedcase

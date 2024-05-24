@@ -3,9 +3,9 @@
 pragma solidity 0.8.24;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStakingMain } from "../interfaces/IHorizonStakingMain.sol";
+import { IHorizonStakingMain } from "../interfaces/internal/IHorizonStakingMain.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
+import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";

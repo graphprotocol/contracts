@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { IDataServicePausable } from "./IDataServicePausable.sol";
+import { IDataServicePausable } from "../interfaces/IDataServicePausable.sol";
 
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 import { DataService } from "../DataService.sol";

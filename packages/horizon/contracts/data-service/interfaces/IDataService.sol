@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.24;
 
-import { IGraphPayments } from "./IGraphPayments.sol";
+import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 /**
  * @title Interface of the base {DataService} contract as defined by the Graph Horizon specification.

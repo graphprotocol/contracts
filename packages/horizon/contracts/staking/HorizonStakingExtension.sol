@@ -5,8 +5,8 @@ pragma solidity 0.8.24;
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStakingExtension } from "../interfaces/IHorizonStakingExtension.sol";
-import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
+import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
 import { IL2StakingTypes } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingTypes.sol";
 import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 

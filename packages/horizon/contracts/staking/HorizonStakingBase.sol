@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.24;
 
-import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
-import { IHorizonStakingBase } from "../interfaces/IHorizonStakingBase.sol";
+import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
+import { IHorizonStakingBase } from "../interfaces/internal/IHorizonStakingBase.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 import { MathUtils } from "../libraries/MathUtils.sol";
@@ -187,14 +187,14 @@ abstract contract HorizonStakingBase is
         return pool;
     }
 
-    function etIdleStake(address serviceProvider) public view returns (uint256 tokens) {
+    function _getIdleStake(address _serviceProvider) public view returns (uint256 tokens) {
         return
-            _serviceProviders[serviceProvider].tokensStaked -
-            _serviceProviders[serviceProvider].tokensProvisioned -
-            _serviceProviders[serviceProvider].__DEPRECATED_tokensLocked;
+            _serviceProviders[_serviceProvider].tokensStaked -
+            _serviceProviders[_serviceProvider].tokensProvisioned -
+            _serviceProviders[_serviceProvider].__DEPRECATED_tokensLocked;
     }
 
-    function gtProviderTokensAvailable(address serviceProvider, address verifier) public view returns (uint256) {
-        return _provisions[serviceProvider][verifier].tokens - _provisions[serviceProvider][verifier].tokensThawing;
+    function _getProviderTokensAvailable(address _serviceProvider, address _verifier) public view returns (uint256) {
+        return _provisions[_serviceProvider][_verifier].tokens - _provisions[_serviceProvider][_verifier].tokensThawing;
     }
 }

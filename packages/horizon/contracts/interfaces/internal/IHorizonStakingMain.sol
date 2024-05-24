@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 
 import { IHorizonStakingBase } from "./IHorizonStakingBase.sol";
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 interface IHorizonStakingMain is IHorizonStakingBase {
     /**
