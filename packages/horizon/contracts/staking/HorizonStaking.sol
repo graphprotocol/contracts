@@ -2,17 +2,16 @@
 
 pragma solidity 0.8.24;
 
-import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStakingBase } from "../interfaces/IHorizonStakingBase.sol";
+import { IHorizonStakingMain } from "../interfaces/IHorizonStakingMain.sol";
+import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "../interfaces/IHorizonStakingTypes.sol";
 
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 
-import { Managed } from "./utilities/Managed.sol";
-import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
+import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 
 /**
  * @title HorizonStaking contract
@@ -22,7 +21,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * It uses a HorizonStakingExtension contract to implement the full IHorizonStaking interface through delegatecalls.
  * This is due to the contract size limit on Arbitrum (24kB like mainnet).
  */
-contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV1Storage, IHorizonStakingBase {
+contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
 
@@ -45,7 +44,6 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     uint256 private constant MIN_DELEGATION = 1e18;
 
     address private immutable STAKING_EXTENSION_ADDRESS;
-    address private immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
     error HorizonStakingInvalidVerifier(address verifier);
     error HorizonStakingVerifierAlreadyAllowed(address verifier);
@@ -71,9 +69,8 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         address controller,
         address stakingExtensionAddress,
         address subgraphDataServiceAddress
-    ) Managed(controller) {
+    ) HorizonStakingBase(controller, subgraphDataServiceAddress) {
         STAKING_EXTENSION_ADDRESS = stakingExtensionAddress;
-        SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
     }
 
     /**
@@ -117,6 +114,40 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
      */
     function stake(uint256 tokens) external override {
         stakeTo(msg.sender, tokens);
+    }
+
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
+     * @param operator Address to authorize or unauthorize
+     * @param verifier The verifier / data service on which they'll be allowed to operate
+     * @param allowed Whether the operator is authorized or not
+     */
+    function setOperator(address operator, address verifier, bool allowed) external override {
+        require(operator != msg.sender, "operator == sender");
+        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            _legacyOperatorAuth[msg.sender][operator] = allowed;
+        } else {
+            _operatorAuth[msg.sender][verifier][operator] = allowed;
+        }
+        emit OperatorSet(msg.sender, operator, verifier, allowed);
+    }
+
+    // for vesting contracts
+    function setOperatorLocked(address operator, address verifier, bool allowed) external override {
+        require(operator != msg.sender, "operator == sender");
+        require(_allowedLockedVerifiers[verifier], "VERIFIER_NOT_ALLOWED");
+        _operatorAuth[msg.sender][verifier][operator] = allowed;
+        emit OperatorSet(msg.sender, operator, verifier, allowed);
+    }
+
+    function setDelegationFeeCut(
+        address serviceProvider,
+        address verifier,
+        IGraphPayments.PaymentTypes paymentType,
+        uint256 feeCut
+    ) external override {
+        delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
+        emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
     }
 
     function setProvisionParameters(
@@ -174,7 +205,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
-        if (getIdleStake(serviceProvider) < tokens) {
+        if (_getIdleStake(serviceProvider) < tokens) {
             revert HorizonStakingInsufficientCapacity();
         }
 
@@ -200,7 +231,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
-        if (getIdleStake(serviceProvider) < tokens) {
+        if (_getIdleStake(serviceProvider) < tokens) {
             revert HorizonStakingInsufficientCapacity();
         }
         if (!_allowedLockedVerifiers[verifier]) {
@@ -247,7 +278,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         sp.nextThawRequestNonce += 1;
         ThawRequest storage thawRequest = _thawRequests[thawRequestId];
 
-        require(getProviderTokensAvailable(serviceProvider, verifier) >= tokens, "insufficient tokens available");
+        require(_getProviderTokensAvailable(serviceProvider, verifier) >= tokens, "insufficient tokens available");
         prov.tokensThawing = prov.tokensThawing + tokens;
 
         if (prov.sharesThawing == 0) {
@@ -321,7 +352,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         if (tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
         }
-        if (getIdleStake(serviceProvider) < tokens) {
+        if (_getIdleStake(serviceProvider) < tokens) {
             revert HorizonStakingInsufficientCapacity();
         }
 
@@ -415,12 +446,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
 
         tokensToSlash = tokensToSlash - providerTokensSlashed;
         if (tokensToSlash > 0) {
-            DelegationPoolInternal storage pool;
-            if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-                pool = _legacyDelegationPools[serviceProvider];
-            } else {
-                pool = _delegationPools[serviceProvider][verifier];
-            }
+            DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
             if (delegationSlashingEnabled) {
                 require(pool.tokens >= tokensToSlash, "insufficient delegated tokens");
                 _graphToken().burnTokens(tokensToSlash);
@@ -481,12 +507,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         if (tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
         }
-        DelegationPoolInternal storage pool;
-        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            pool = _legacyDelegationPools[serviceProvider];
-        } else {
-            pool = _delegationPools[serviceProvider][verifier];
-        }
+        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
         pool.tokens = pool.tokens + tokens;
         emit TokensAddedToDelegationPool(serviceProvider, verifier, tokens);
     }
@@ -505,30 +526,6 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     function setMaxThawingPeriod(uint64 maxThawingPeriod) external override onlyGovernor {
         maxThawingPeriod = _maxThawingPeriod;
         emit ParameterUpdated("maxThawingPeriod");
-    }
-
-    /**
-     * @notice Get the amount of service provider's tokens in a provision that have finished thawing
-     * @param serviceProvider The service provider address
-     * @param verifier The verifier address for which the tokens are provisioned
-     */
-    function getThawedTokens(address serviceProvider, address verifier) external view returns (uint256) {
-        Provision storage prov = _provisions[serviceProvider][verifier];
-        if (prov.nThawRequests == 0) {
-            return 0;
-        }
-        bytes32 thawRequestId = prov.firstThawRequestId;
-        uint256 tokens = 0;
-        while (thawRequestId != bytes32(0)) {
-            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
-            if (thawRequest.thawingUntil <= block.timestamp) {
-                tokens += (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
-            } else {
-                break;
-            }
-            thawRequestId = thawRequest.next;
-        }
-        return tokens;
     }
 
     /**
@@ -563,12 +560,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     // the shares are burned and replaced with shares in the thawing pool
     function undelegate(address serviceProvider, address verifier, uint256 shares) public override notPartialPaused {
         require(shares > 0, "!shares");
-        DelegationPoolInternal storage pool;
-        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            pool = _legacyDelegationPools[serviceProvider];
-        } else {
-            pool = _delegationPools[serviceProvider][verifier];
-        }
+        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
         Delegation storage delegation = pool.delegators[msg.sender];
         require(delegation.shares >= shares, "!shares-avail");
 
@@ -614,12 +606,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         address newServiceProvider,
         uint256 minSharesForNewProvider
     ) public override notPartialPaused {
-        DelegationPoolInternal storage pool;
-        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            pool = _legacyDelegationPools[serviceProvider];
-        } else {
-            pool = _delegationPools[serviceProvider][verifier];
-        }
+        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
         Delegation storage delegation = pool.delegators[msg.sender];
         uint256 thawedTokens = 0;
 
@@ -679,24 +666,6 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         }
     }
 
-    // staked tokens that are currently not provisioned, aka idle stake
-    // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
-    function getIdleStake(address serviceProvider) public view override returns (uint256 tokens) {
-        return
-            _serviceProviders[serviceProvider].tokensStaked -
-            _serviceProviders[serviceProvider].tokensProvisioned -
-            _serviceProviders[serviceProvider].__DEPRECATED_tokensLocked;
-    }
-
-    // provisioned tokens from the service provider that are not being thawed
-    // `Provision.tokens - Provision.tokensThawing`
-    function getProviderTokensAvailable(
-        address serviceProvider,
-        address verifier
-    ) public view override returns (uint256) {
-        return _provisions[serviceProvider][verifier].tokens - _provisions[serviceProvider][verifier].tokensThawing;
-    }
-
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) internal {
         if (_tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
@@ -709,12 +678,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
             revert HorizonStakingInvalidProvision(_serviceProvider, _verifier);
         }
 
-        DelegationPoolInternal storage pool;
-        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            pool = _legacyDelegationPools[_serviceProvider];
-        } else {
-            pool = _delegationPools[_serviceProvider][_verifier];
-        }
+        DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         Delegation storage delegation = pool.delegators[msg.sender];
 
         // Calculate shares to issue
@@ -813,7 +777,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         if (prov.createdAt == 0) {
             revert HorizonStakingInvalidProvision(_serviceProvider, _verifier);
         }
-        if (getIdleStake(_serviceProvider) < _tokens) {
+        if (_getIdleStake(_serviceProvider) < _tokens) {
             revert HorizonStakingInsufficientCapacity();
         }
 
@@ -822,19 +786,6 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
             _serviceProviders[_serviceProvider].tokensProvisioned +
             _tokens;
         emit ProvisionIncreased(_serviceProvider, _verifier, _tokens);
-    }
-
-    /**
-     * @dev Stake tokens on the service provider.
-     * TODO: Move to HorizonStaking after the transition period
-     * @param _serviceProvider Address of staking party
-     * @param _tokens Amount of tokens to stake
-     */
-    function _stake(address _serviceProvider, uint256 _tokens) internal {
-        // Deposit tokens into the service provider stake
-        _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
-
-        emit StakeDeposited(_serviceProvider, _tokens);
     }
 
     /**
