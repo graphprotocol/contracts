@@ -45,7 +45,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     address private immutable STAKING_EXTENSION_ADDRESS;
 
     modifier onlyAuthorized(address serviceProvider, address verifier) {
-        if (!isAuthorized(msg.sender, serviceProvider, verifier)) {
+        if (!_isAuthorized(msg.sender, serviceProvider, verifier)) {
             revert HorizonStakingNotAuthorized(msg.sender, serviceProvider, verifier);
         }
         _;
@@ -248,7 +248,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     // moves thawed stake from a provision back into the provider's available stake
     function deprovision(address serviceProvider, address verifier, uint256 tokens) external override notPartialPaused {
-        require(isAuthorized(msg.sender, serviceProvider, verifier), "!auth");
+        require(_isAuthorized(msg.sender, serviceProvider, verifier), "!auth");
         if (tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
         }
@@ -315,6 +315,26 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _delegate(serviceProvider, verifier, tokens, minSharesOut);
     }
 
+    /**
+     * @notice Add tokens to a delegation pool (without getting shares).
+     * Used by data services to pay delegation fees/rewards.
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address for which the tokens are provisioned
+     * @param tokens The amount of tokens to add to the delegation pool
+     */
+    function addToDelegationPool(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens
+    ) external override notPartialPaused {
+        if (tokens == 0) {
+            revert HorizonStakingInvalidZeroTokens();
+        }
+        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+        pool.tokens = pool.tokens + tokens;
+        emit TokensAddedToDelegationPool(serviceProvider, verifier, tokens);
+    }
+
     // undelegate tokens from a service provider
     // the shares are burned and replaced with shares in the thawing pool
     function undelegate(address serviceProvider, address verifier, uint256 shares) external override notPartialPaused {
@@ -366,31 +386,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit DelegatedTokensWithdrawn(serviceProvider, verifier, msg.sender, thawedTokens);
     }
 
-    /**
-     * @notice Add tokens to a delegation pool (without getting shares).
-     * Used by data services to pay delegation fees/rewards.
-     * @param serviceProvider The service provider address
-     * @param verifier The verifier address for which the tokens are provisioned
-     * @param tokens The amount of tokens to add to the delegation pool
-     */
-    function addToDelegationPool(
-        address serviceProvider,
-        address verifier,
-        uint256 tokens
-    ) external override notPartialPaused {
-        if (tokens == 0) {
-            revert HorizonStakingInvalidZeroTokens();
-        }
-        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-        pool.tokens = pool.tokens + tokens;
-        emit TokensAddedToDelegationPool(serviceProvider, verifier, tokens);
-    }
-
-    function setDelegationSlashingEnabled(bool enabled) external override onlyGovernor {
-        delegationSlashingEnabled = enabled;
-        emit DelegationSlashingEnabled(enabled);
-    }
-
     function setDelegationFeeCut(
         address serviceProvider,
         address verifier,
@@ -416,34 +411,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     // For backwards compatibility, withdraws delegated tokens from the subgraph data service
     function withdrawDelegated(address serviceProvider, address newServiceProvider) external {
         _withdrawDelegated(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, newServiceProvider, 0);
-    }
-
-    /*
-     * OPERATOR
-     */
-
-    /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
-     * @param operator Address to authorize or unauthorize
-     * @param verifier The verifier / data service on which they'll be allowed to operate
-     * @param allowed Whether the operator is authorized or not
-     */
-    function setOperator(address operator, address verifier, bool allowed) external override {
-        require(operator != msg.sender, "operator == sender");
-        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            _legacyOperatorAuth[msg.sender][operator] = allowed;
-        } else {
-            _operatorAuth[msg.sender][verifier][operator] = allowed;
-        }
-        emit OperatorSet(msg.sender, operator, verifier, allowed);
-    }
-
-    // for vesting contracts
-    function setOperatorLocked(address operator, address verifier, bool allowed) external override {
-        require(operator != msg.sender, "operator == sender");
-        require(_allowedLockedVerifiers[verifier], "VERIFIER_NOT_ALLOWED");
-        _operatorAuth[msg.sender][verifier][operator] = allowed;
-        emit OperatorSet(msg.sender, operator, verifier, allowed);
     }
 
     /*
@@ -546,9 +513,24 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
+    // for vesting contracts
+    function setOperatorLocked(address operator, address verifier, bool allowed) external override {
+        require(_allowedLockedVerifiers[verifier], "VERIFIER_NOT_ALLOWED");
+        _setOperator(operator, verifier, allowed);
+    }
+
+    /*
+     * GOVERNANCE
+     */
+
     function setAllowedLockedVerifier(address verifier, bool allowed) external onlyGovernor {
         _allowedLockedVerifiers[verifier] = allowed;
         emit AllowedLockedVerifierSet(verifier, allowed);
+    }
+
+    function setDelegationSlashingEnabled(bool enabled) external override onlyGovernor {
+        delegationSlashingEnabled = enabled;
+        emit DelegationSlashingEnabled(enabled);
     }
 
     // To be called at the end of the transition period, to set the deprecated thawing period to 0
@@ -562,6 +544,20 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit ParameterUpdated("maxThawingPeriod");
     }
 
+    /*
+     * OPERATOR
+     */
+
+    /**
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
+     * @param operator Address to authorize or unauthorize
+     * @param verifier The verifier / data service on which they'll be allowed to operate
+     * @param allowed Whether the operator is authorized or not
+     */
+    function setOperator(address operator, address verifier, bool allowed) external override {
+        _setOperator(operator, verifier, allowed);
+    }
+
     /**
      * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
      * @param operator The address to check for auth
@@ -572,15 +568,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address operator,
         address serviceProvider,
         address verifier
-    ) public view override returns (bool) {
-        if (operator == serviceProvider) {
-            return true;
-        }
-        if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            return _legacyOperatorAuth[serviceProvider][operator];
-        } else {
-            return _operatorAuth[serviceProvider][verifier][operator];
-        }
+    ) external view override returns (bool) {
+        return _isAuthorized(operator, serviceProvider, verifier);
     }
 
     /*
@@ -840,6 +829,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, thawedTokens);
     }
 
+    function _setOperator(address _operator, address _verifier, bool _allowed) private {
+        require(_operator != msg.sender, "operator == sender");
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            _legacyOperatorAuth[msg.sender][_operator] = _allowed;
+        } else {
+            _operatorAuth[msg.sender][_verifier][_operator] = _allowed;
+        }
+        emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
+    }
+
     function _fulfillThawRequests(address _serviceProvider, address _verifier, uint256 _tokens) private {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
         uint256 tokensRemaining = _tokens;
@@ -879,5 +878,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         prov.tokensThawing = tokensThawing;
         prov.tokens = prov.tokens - _tokens;
         _serviceProviders[_serviceProvider].tokensProvisioned -= _tokens;
+    }
+
+    function _isAuthorized(address _operator, address _serviceProvider, address _verifier) private view returns (bool) {
+        if (_operator == _serviceProvider) {
+            return true;
+        }
+        if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
+            return _legacyOperatorAuth[_serviceProvider][_operator];
+        } else {
+            return _operatorAuth[_serviceProvider][_verifier][_operator];
+        }
     }
 }
