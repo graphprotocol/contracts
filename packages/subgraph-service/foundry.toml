@@ -4,3 +4,6 @@ out = 'build'
 libs = ['node_modules', 'lib']
 test = 'test'
 cache_path  = 'cache_forge'
+optimizer = true
+optimizer-runs = 200
+via_ir = true
