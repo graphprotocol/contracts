@@ -270,7 +270,7 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
      * @notice Update the dispute period to `_disputePeriod` in seconds
      * @param disputePeriod Dispute period in seconds
      */
-    function setDisputePeriod(uint64 disputePeriod) external override {
+    function setDisputePeriod(uint64 disputePeriod) external override onlyOwner {
         _setDisputePeriod(disputePeriod);
     }
 

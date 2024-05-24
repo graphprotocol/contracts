@@ -102,7 +102,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice Deposit tokens on the caller's stake.
      * @param tokens Amount of tokens to stake
      */
-    function stake(uint256 tokens) external override {
+    function stake(uint256 tokens) external override notPartialPaused {
         _stakeTo(msg.sender, tokens);
     }
 
@@ -241,12 +241,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     // moves thawed stake from a provision back into the provider's available stake
-    function deprovision(address serviceProvider, address verifier, uint256 tokens) external override notPartialPaused {
-        require(
-            _isAuthorized(msg.sender, serviceProvider, verifier),
-            HorizonStakingNotAuthorized(msg.sender, serviceProvider, verifier)
-        );
-        require(tokens != 0, HorizonStakingInvalidZeroTokens());
+    function deprovision(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens
+    ) external override onlyAuthorized(serviceProvider, verifier) notPartialPaused {
         _fulfillThawRequests(serviceProvider, verifier, tokens);
     }
 
@@ -384,25 +383,25 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
-    ) external override {
+    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
         delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
         emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
     }
 
     // For backwards compatibility, delegates to the subgraph data service
     // (Note this one doesn't have splippage/rounding protection!)
-    function delegate(address serviceProvider, uint256 tokens) external {
+    function delegate(address serviceProvider, uint256 tokens) external notPartialPaused {
         _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, tokens, 0);
     }
 
     // For backwards compatibility, undelegates from the subgraph data service
-    function undelegate(address serviceProvider, uint256 shares) external {
+    function undelegate(address serviceProvider, uint256 shares) external notPartialPaused {
         _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
     }
 
     // For backwards compatibility, withdraws delegated tokens from the subgraph data service
-    function withdrawDelegated(address serviceProvider, address newServiceProvider) external {
+    function withdrawDelegated(address serviceProvider, address newServiceProvider) external notPartialPaused {
         _withdrawDelegated(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, newServiceProvider, 0);
     }
 
@@ -504,7 +503,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     // for vesting contracts
-    function setOperatorLocked(address operator, address verifier, bool allowed) external override {
+    function setOperatorLocked(address operator, address verifier, bool allowed) external override notPartialPaused {
         require(_allowedLockedVerifiers[verifier], HorizonStakingVerifierNotAllowed(verifier));
         _setOperator(operator, verifier, allowed);
     }
@@ -544,7 +543,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param verifier The verifier / data service on which they'll be allowed to operate
      * @param allowed Whether the operator is authorized or not
      */
-    function setOperator(address operator, address verifier, bool allowed) external override {
+    function setOperator(address operator, address verifier, bool allowed) external override notPartialPaused {
         _setOperator(operator, verifier, allowed);
     }
 
@@ -829,6 +828,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     function _fulfillThawRequests(address _serviceProvider, address _verifier, uint256 _tokens) private {
+        require(_tokens != 0, HorizonStakingInvalidZeroTokens());
         Provision storage prov = _provisions[_serviceProvider][_verifier];
         uint256 tokensRemaining = _tokens;
         uint256 sharesThawing = prov.sharesThawing;
