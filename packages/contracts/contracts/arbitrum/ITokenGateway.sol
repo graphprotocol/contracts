@@ -23,7 +23,7 @@
  *
  */
 
-pragma solidity ^0.7.6 || 0.8.24;
+pragma solidity ^0.7.6 || 0.8.26;
 
 interface ITokenGateway {
     /// @notice event deprecated in favor of DepositInitiated and WithdrawalInitiated

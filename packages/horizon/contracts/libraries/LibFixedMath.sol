@@ -18,7 +18,7 @@
 
 // SPDX-License-Identifier: Apache-2.0
 
-pragma solidity 0.8.24;
+pragma solidity 0.8.26;
 
 // solhint-disable indent
 /// @dev Signed, fixed-point, 127-bit precision math library.
