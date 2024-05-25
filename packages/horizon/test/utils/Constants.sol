@@ -10,7 +10,9 @@ abstract contract Constants {
     // GraphPayments parameters
     uint256 internal constant protocolPaymentCut = 10000;
     // Staking constants
+    uint256 internal constant MAX_THAW_REQUESTS = 100;
     uint256 internal constant MIN_PROVISION_SIZE = 1e18;
     uint32 internal constant MAX_MAX_VERIFIER_CUT = 1000000; // 100% in parts per million
-    uint64 internal constant STAKING_MAX_THAWING_PERIOD = 28 days;
+    uint64 internal constant MAX_THAWING_PERIOD = 28 days;
+    uint256 internal constant MIN_DELEGATION = 1e18;
 }

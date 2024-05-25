@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import { HorizonStakingTest } from "./HorizonStaking.t.sol";
+import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingProvisionTest is HorizonStakingTest {
 
@@ -39,8 +39,8 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         uint64 thawingPeriod
     ) public useIndexer useStake(amount) {
         vm.assume(amount > MIN_PROVISION_SIZE);
-        vm.assume(thawingPeriod > STAKING_MAX_THAWING_PERIOD);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingMaxThawingPeriodExceeded(uint64,uint64)", STAKING_MAX_THAWING_PERIOD, thawingPeriod);
+        vm.assume(thawingPeriod > MAX_THAWING_PERIOD);
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingMaxThawingPeriodExceeded(uint64,uint64)", MAX_THAWING_PERIOD, thawingPeriod);
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, 0, thawingPeriod);
     }
@@ -62,8 +62,7 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         uint64 thawingPeriod,
         uint256 tokensToAdd
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        vm.assume(tokensToAdd > 0);
-        vm.assume(amount <= type(uint256).max - tokensToAdd);
+        tokensToAdd = bound(tokensToAdd, 1, type(uint256).max - amount);
         // Set operator
         staking.setOperator(users.operator, subgraphDataServiceAddress, true);
 

@@ -54,7 +54,8 @@ abstract contract GraphBaseTest is Test, Constants {
             indexer: createUser("indexer"),
             operator: createUser("operator"),
             gateway: createUser("gateway"),
-            verifier: createUser("verifier")
+            verifier: createUser("verifier"),
+            delegator: createUser("delegator")
         });
 
         // Deploy protocol contracts
@@ -152,7 +153,7 @@ abstract contract GraphBaseTest is Test, Constants {
 
     function setupProtocol() private {
         vm.startPrank(users.governor);
-        staking.setMaxThawingPeriod(STAKING_MAX_THAWING_PERIOD);
+        staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
     }
 
     function unpauseProtocol() private {

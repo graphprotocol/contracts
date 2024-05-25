@@ -13,6 +13,8 @@ import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { Managed } from "./utilities/Managed.sol";
 import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @title HorizonStaking contract
  * @dev This contract is the main Staking contract in The Graph protocol after the Horizon upgrade.
@@ -62,6 +64,8 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     error HorizonStakingSlippageProtection(uint256 minExpectedAmount, uint256 actualAmount);
     error HorizonStakingMaxVerifierCutExceeded(uint32 maxVerifierCut, uint32 verifierCut);
     error HorizonStakingMaxThawingPeriodExceeded(uint64 maxThawingPeriod, uint64 thawingPeriod);
+    error HorizonStakingNotEnoughThawedTokens();
+    error HorizonStakingStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
 
     modifier onlyAuthorized(address serviceProvider, address verifier) {
         if (!isAuthorized(msg.sender, serviceProvider, verifier)) {
@@ -250,7 +254,10 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         sp.nextThawRequestNonce += 1;
         ThawRequest storage thawRequest = _thawRequests[thawRequestId];
 
-        require(getProviderTokensAvailable(serviceProvider, verifier) >= tokens, "insufficient tokens available");
+        uint256 providerTokensAvailable = getProviderTokensAvailable(serviceProvider, verifier);
+        if (tokens > providerTokensAvailable) {
+            revert HorizonStakingInsufficientTokens(tokens, providerTokensAvailable);
+        }
         prov.tokensThawing = prov.tokensThawing + tokens;
 
         if (prov.sharesThawing == 0) {
@@ -279,8 +286,11 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     }
 
     // moves thawed stake from a provision back into the provider's available stake
-    function deprovision(address serviceProvider, address verifier, uint256 tokens) external override notPartialPaused {
-        require(isAuthorized(msg.sender, serviceProvider, verifier), "!auth");
+    function deprovision(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens
+    ) external override notPartialPaused onlyAuthorized(serviceProvider, verifier) {
         if (tokens == 0) {
             revert HorizonStakingInvalidZeroTokens();
         }
@@ -388,6 +398,7 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     ) external override notPartialPaused {
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
+        // Todo: Should use getTokensAvailable to include delegated tokens
         if (prov.tokens < tokens) {
             revert HorizonStakingInsufficientTokens(tokens, prov.tokens);
         }
@@ -565,7 +576,9 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
     // undelegate tokens from a service provider
     // the shares are burned and replaced with shares in the thawing pool
     function undelegate(address serviceProvider, address verifier, uint256 shares) public override notPartialPaused {
-        require(shares > 0, "!shares");
+        if (shares == 0) {
+            revert HorizonStakingInvalidZeroTokens();
+        }
         DelegationPoolInternal storage pool;
         if (verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             pool = _legacyDelegationPools[serviceProvider];
@@ -573,7 +586,9 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
             pool = _delegationPools[serviceProvider][verifier];
         }
         Delegation storage delegation = pool.delegators[msg.sender];
-        require(delegation.shares >= shares, "!shares-avail");
+        if (shares > delegation.shares) {
+            revert HorizonStakingInsufficientTokens(shares, delegation.shares);
+        }
 
         uint256 tokens = (shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
 
@@ -628,7 +643,9 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
 
         uint256 sharesThawing = pool.sharesThawing;
         uint256 tokensThawing = pool.tokensThawing;
-        require(delegation.nThawRequests > 0, "no thaw requests");
+        if (delegation.nThawRequests == 0) {
+            revert HorizonStakingNotEnoughThawedTokens();
+        }
         bytes32 thawRequestId = delegation.firstThawRequestId;
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = _thawRequests[thawRequestId];
@@ -780,10 +797,14 @@ contract HorizonStaking is GraphUpgradeable, Multicall, Managed, HorizonStakingV
         uint256 sharesThawing = prov.sharesThawing;
         uint256 tokensThawing = prov.tokensThawing;
         while (tokensRemaining > 0) {
-            require(prov.nThawRequests > 0, "not enough thawed tokens");
+            if (prov.nThawRequests == 0) {
+                revert HorizonStakingNotEnoughThawedTokens();
+            }
             bytes32 thawRequestId = prov.firstThawRequestId;
             ThawRequest storage thawRequest = _thawRequests[thawRequestId];
-            require(thawRequest.thawingUntil <= block.timestamp, "thawing period not over");
+            if (thawRequest.thawingUntil > block.timestamp) {
+                revert HorizonStakingStillThawing(block.timestamp, thawRequest.thawingUntil);
+            }
             uint256 thawRequestTokens = (thawRequest.shares * tokensThawing) / sharesThawing;
             if (thawRequestTokens <= tokensRemaining) {
                 tokensRemaining = tokensRemaining - thawRequestTokens;
