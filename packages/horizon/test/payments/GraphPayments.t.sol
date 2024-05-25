@@ -42,11 +42,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
     function testCollect_RevertWhen_InsufficientAmount(
         uint256 amount,
         uint256 tokensDataService
-<<<<<<< HEAD
-    ) public useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
-=======
-    ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(0, delegationFeeCut) {
->>>>>>> 9fa803b7 (chore: staking tests refactor)
+    ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
         vm.assume(tokensDataService <= 10_000_000_000 ether);
         vm.assume(tokensDataService > amount);
 
