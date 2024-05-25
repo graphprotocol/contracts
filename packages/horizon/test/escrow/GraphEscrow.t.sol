@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStaking.t.sol";
+import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 
 contract GraphEscrowTest is HorizonStakingSharedTest {
 

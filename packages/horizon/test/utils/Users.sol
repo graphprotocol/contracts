@@ -8,4 +8,5 @@ struct Users {
     address operator;
     address gateway;
     address verifier;
+    address delegator;
 }

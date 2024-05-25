@@ -8,7 +8,10 @@ import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
 
 contract GraphEscrowCollectTest is GraphEscrowTest {
 
-    function testCollect_Tokens(uint256 amount, uint256 tokensDataService) public useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
+    function testCollect_Tokens(
+        uint256 amount,
+        uint256 tokensDataService
+    ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
         uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
         uint256 tokensDelegatoion = amount * delegationFeeCut / MAX_PPM;
         vm.assume(tokensDataService < amount - tokensProtocol - tokensDelegatoion);
@@ -16,10 +19,9 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         vm.startPrank(users.gateway);
         escrow.approveCollector(users.verifier, amount);
         _depositTokens(amount);
-        vm.stopPrank();
 
         uint256 indexerPreviousBalance = token.balanceOf(users.indexer);
-        vm.prank(users.verifier);
+        vm.startPrank(users.verifier);
         escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);
 
         uint256 indexerBalance = token.balanceOf(users.indexer);

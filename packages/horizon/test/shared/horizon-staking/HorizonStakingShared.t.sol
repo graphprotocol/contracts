@@ -8,10 +8,24 @@ import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
+    modifier useIndexer() {
+        vm.startPrank(users.indexer);
+        _;
+        vm.stopPrank();
+    }
+
+    modifier assumeProvisionTokens(uint256 tokens) {
+        vm.assume(tokens > MIN_PROVISION_SIZE);
+        vm.assume(tokens <= 10_000_000_000 ether);
+        _;
+    }
+
     modifier useProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) {
         vm.assume(tokens <= 10_000_000_000 ether);
-        vm.assume(tokens > 1e18);
-        _createProvision(tokens, maxVerifierCut, thawingPeriod);
+        vm.assume(tokens > MIN_PROVISION_SIZE);
+        vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
+        vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
+        _createProvision(subgraphDataServiceAddress, tokens, maxVerifierCut, thawingPeriod);
         _;
     }
 
@@ -28,22 +42,24 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     /* Helpers */
 
-    function _createProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) internal {
-        vm.startPrank(users.indexer);
+    function _createProvision(
+        address dataServiceAddress,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) internal {
         token.approve(address(staking), tokens);
         staking.stakeTo(users.indexer, tokens);
         staking.provision(
             users.indexer,
-            subgraphDataServiceAddress,
+            dataServiceAddress,
             tokens,
             maxVerifierCut,
             thawingPeriod
         );
-        vm.stopPrank();
     }
 
     function _setDelegationFeeCut(IGraphPayments.PaymentTypes paymentType, uint256 cut) internal {
-        vm.prank(users.indexer);
         staking.setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, cut);
     }
 }
