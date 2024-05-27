@@ -525,7 +525,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     function setMaxThawingPeriod(uint64 maxThawingPeriod) external override onlyGovernor {
-        maxThawingPeriod = _maxThawingPeriod;
+        _maxThawingPeriod = maxThawingPeriod;
         emit MaxThawingPeriodSet(_maxThawingPeriod);
     }
 

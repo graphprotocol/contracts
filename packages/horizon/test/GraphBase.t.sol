@@ -54,11 +54,13 @@ abstract contract GraphBaseTest is Test, Constants {
             indexer: createUser("indexer"),
             operator: createUser("operator"),
             gateway: createUser("gateway"),
-            verifier: createUser("verifier")
+            verifier: createUser("verifier"),
+            delegator: createUser("delegator")
         });
 
         // Deploy protocol contracts
         deployProtocolContracts();
+        setupProtocol();
         unpauseProtocol();
 
         // Label contracts
@@ -147,11 +149,15 @@ abstract contract GraphBaseTest is Test, Constants {
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));
         proxyAdmin.acceptProxy(stakingBase, stakingProxy);
         staking = IHorizonStaking(address(stakingProxy));
-        vm.stopPrank();
+    }
+
+    function setupProtocol() private {
+        vm.startPrank(users.governor);
+        staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
     }
 
     function unpauseProtocol() private {
-        vm.prank(users.governor);
+        vm.startPrank(users.governor);
         controller.setPaused(false);
     }
 

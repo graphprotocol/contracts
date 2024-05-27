@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStaking.t.sol";
+import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 
 contract GraphEscrowTest is HorizonStakingSharedTest {
 
@@ -14,13 +14,11 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
     }
 
     modifier approveEscrow(uint256 tokens) {
-        changePrank(users.gateway);
         _approveEscrow(tokens);
         _;
     }
 
     modifier useDeposit(uint256 tokens) {
-        changePrank(users.gateway);
         vm.assume(tokens > 0);
         vm.assume(tokens <= 10_000_000_000 ether);
         _depositTokens(tokens);
@@ -28,7 +26,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
     }
 
     modifier useCollector(uint256 tokens) {
-        changePrank(users.gateway);
+        vm.assume(tokens > 0);
         escrow.approveCollector(users.verifier, tokens);
         _;
     }
