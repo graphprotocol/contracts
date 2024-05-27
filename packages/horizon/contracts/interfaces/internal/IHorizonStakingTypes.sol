@@ -18,9 +18,6 @@ interface IHorizonStakingTypes {
         // time, in seconds, tokens must thaw before being withdrawn
         uint64 thawingPeriod;
         uint64 createdAt;
-        bytes32 firstThawRequestId;
-        bytes32 lastThawRequestId;
-        uint256 nThawRequests;
         // max amount that can be taken by the verifier when slashing, expressed in parts-per-million of the amount slashed
         uint32 maxVerifierCutPending;
         // time, in seconds, tokens must thaw before being withdrawn
@@ -32,8 +29,6 @@ interface IHorizonStakingTypes {
         uint256 tokensStaked;
         // tokens used in a provision
         uint256 tokensProvisioned;
-        // Next nonce to be used to generate thaw request IDs
-        uint256 nextThawRequestNonce;
     }
 
     struct DelegationPoolInternal {
@@ -59,10 +54,6 @@ interface IHorizonStakingTypes {
         uint256 shares; // Shares owned by a delegator in the pool
         uint256 __DEPRECATED_tokensLocked; // Tokens locked for undelegation
         uint256 __DEPRECATED_tokensLockedUntil; // Epoch when locked tokens can be withdrawn
-        bytes32 firstThawRequestId;
-        bytes32 lastThawRequestId;
-        uint256 nThawRequests;
-        uint256 nextThawRequestNonce;
     }
 
     struct ThawRequest {
@@ -86,7 +77,5 @@ interface IHorizonStakingTypes {
         uint256 __DEPRECATED_tokensLockedUntil;
         // tokens used in a provision
         uint256 tokensProvisioned;
-        // Next nonce to be used to generate thaw request IDs
-        uint256 nextThawRequestNonce;
     }
 }

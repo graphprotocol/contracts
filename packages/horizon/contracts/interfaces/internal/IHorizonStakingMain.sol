@@ -32,26 +32,9 @@ interface IHorizonStakingMain is IHorizonStakingBase {
      */
     event ProvisionIncreased(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
-    /**
-     * @dev Emitted when a thawing request is initiated by a service provider
-     */
-    event ProvisionThawInitiated(
-        address indexed serviceProvider,
-        address indexed verifier,
-        uint256 tokens,
-        uint64 thawingUntil,
-        bytes32 indexed thawRequestId
-    );
+    event ProvisionThawed(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
-    /**
-     * @dev Emitted when a service provider removes tokens from a provision after thawing
-     */
-    event ProvisionThawFulfilled(
-        address indexed serviceProvider,
-        address indexed verifier,
-        uint256 tokens,
-        bytes32 indexed thawRequestId
-    );
+    event TokensDeprovisioned(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
     event ProvisionSlashed(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
@@ -131,11 +114,9 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     error HorizonStakingInsufficientCapacity();
     error HorizonStakingInsufficientCapacityForLegacyAllocations();
     error HorizonStakingInsufficientTokensAvailable(uint256 tokensAvailable, uint256 tokensRequired);
-    error HorizonStakingTooManyThawRequests();
     error HorizonStakingInsufficientTokens(uint256 available, uint256 tokensRequired);
     error HorizonStakingSlippageProtection(uint256 minExpectedShares, uint256 actualShares);
     error HorizonStakingVerifierNotAllowed(address verifier);
-    error HorizonStakingNothingThawing();
     error HorizonStakingVerifierTokensTooHigh(uint256 tokensVerifier, uint256 maxVerifierTokens);
     error HorizonStakingNotEnoughDelegation(uint256 tokensAvailable, uint256 tokensRequired);
     error HorizonStakingStillThawing(uint256 until);
@@ -182,16 +163,22 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     ) external;
 
     // initiate a thawing to remove tokens from a provision
-    function thaw(address serviceProvider, address verifier, uint256 tokens) external returns (bytes32);
+    function thaw(address serviceProvider, address verifier, uint256 tokens) external;
 
     // add more tokens from idle stake to an existing provision
     function addToProvision(address serviceProvider, address verifier, uint256 tokens) external;
 
     // moves thawed stake from a provision back into the provider's available stake
-    function deprovision(address serviceProvider, address verifier, uint256 tokens) external;
+    function deprovision(address serviceProvider, address verifier, uint256 nThawRequests) external;
 
     // moves thawed stake from one provision into another provision
-    function reprovision(address serviceProvider, address oldVerifier, address newVerifier, uint256 tokens) external;
+    function reprovision(
+        address serviceProvider,
+        address oldVerifier,
+        address newVerifier,
+        uint256 nThawRequests,
+        uint256 tokens
+    ) external;
 
     // moves thawed stake back to the owner's account - stake is removed from the protocol
     function unstake(uint256 tokens) external;
@@ -207,7 +194,8 @@ interface IHorizonStakingMain is IHorizonStakingBase {
         address serviceProvider,
         address verifier,
         address newServiceProvider,
-        uint256 minSharesForNewProvider
+        uint256 minSharesForNewProvider,
+        uint256 nThawRequests
     ) external;
 
     function slash(

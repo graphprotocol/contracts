@@ -21,6 +21,26 @@ interface IHorizonStakingBase {
      */
     event StakeDelegated(address indexed serviceProvider, address indexed delegator, uint256 tokens, uint256 shares);
 
+    event ThawRequestCreated(
+        address indexed serviceProvider,
+        address indexed verifier,
+        address indexed owner,
+        uint256 shares,
+        uint64 thawingUntil,
+        bytes32 thawRequestId
+    );
+    event ThawRequestFulfilled(bytes32 indexed thawRequestId, uint256 tokens, uint256 shares, uint64 thawingUntil);
+    event ThawRequestsFulfilled(
+        address indexed serviceProvider,
+        address indexed verifier,
+        address indexed owner,
+        uint256 thawRequestsFulfilled,
+        uint256 tokens
+    );
+
+    error HorizonStakingNothingThawing();
+    error HorizonStakingTooManyThawRequests();
+
     function getStake(address serviceProvider) external view returns (uint256);
 
     function getDelegatedTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
