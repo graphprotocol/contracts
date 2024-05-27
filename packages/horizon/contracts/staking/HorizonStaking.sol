@@ -335,43 +335,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address newServiceProvider,
         uint256 minSharesForNewProvider
     ) external override notPaused {
-        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-        Delegation storage delegation = pool.delegators[msg.sender];
-        uint256 thawedTokens = 0;
-
-        uint256 sharesThawing = pool.sharesThawing;
-        uint256 tokensThawing = pool.tokensThawing;
-        require(delegation.nThawRequests > 0, HorizonStakingNothingThawing());
-        bytes32 thawRequestId = delegation.firstThawRequestId;
-        while (thawRequestId != bytes32(0)) {
-            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
-            if (thawRequest.thawingUntil <= block.timestamp) {
-                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-                tokensThawing = tokensThawing - tokens;
-                sharesThawing = sharesThawing - thawRequest.shares;
-                thawedTokens = thawedTokens + tokens;
-                delete _thawRequests[thawRequestId];
-                delegation.firstThawRequestId = thawRequest.next;
-                delegation.nThawRequests -= 1;
-                if (delegation.nThawRequests == 0) {
-                    delegation.lastThawRequestId = bytes32(0);
-                }
-            } else {
-                break;
-            }
-            thawRequestId = thawRequest.next;
-        }
-
-        pool.tokens = pool.tokens - thawedTokens;
-        pool.sharesThawing = sharesThawing;
-        pool.tokensThawing = tokensThawing;
-
-        if (newServiceProvider != address(0)) {
-            _delegate(newServiceProvider, verifier, thawedTokens, minSharesForNewProvider);
-        } else {
-            _graphToken().pushTokens(msg.sender, thawedTokens);
-        }
-        emit DelegatedTokensWithdrawn(serviceProvider, verifier, msg.sender, thawedTokens);
+        _withdrawDelegated(serviceProvider, verifier, newServiceProvider, minSharesForNewProvider);
     }
 
     function setDelegationFeeCut(
