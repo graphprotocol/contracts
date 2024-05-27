@@ -80,9 +80,9 @@ contract HorizonStakingThawTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
         vm.assume(thawAmount > amount);
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInsufficientTokens(uint256,uint256)",
-            thawAmount,
-            amount
+            "HorizonStakingInsufficientTokensAvailable(uint256,uint256)",
+            amount,
+            thawAmount
         );
         vm.expectRevert(expectedError);
         _createThawRequest(thawAmount);

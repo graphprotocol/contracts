@@ -18,7 +18,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
     function testThaw_RevertWhen_InsufficientThawAmount(
         uint256 amount
     ) public useGateway useDeposit(amount) {
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientTokensThawing()");
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowInsufficientTokensThawing()");
         vm.expectRevert(expectedError);
         escrow.thaw(users.indexer, 0);
     }
@@ -27,7 +27,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         uint256 amount
     ) public useGateway useDeposit(amount) {
         uint256 overAmount = amount + 1;
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientBalance(uint256,uint256)", amount, overAmount);
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowInsufficientBalance(uint256,uint256)", amount, overAmount);
         vm.expectRevert(expectedError);
         escrow.thaw(users.indexer, overAmount);
     }

@@ -65,7 +65,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useProvision(10_000_000 ether, 0, MAX_THAWING_PERIOD)
         useDelegation(delegationAmount)
     {
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNotEnoughThawedTokens()");
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingThawing()");
         vm.expectRevert(expectedError);
         _withdrawDelegated();
     }

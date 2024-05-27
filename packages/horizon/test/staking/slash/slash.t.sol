@@ -77,8 +77,8 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         slashAmount = bound(slashAmount, MIN_PROVISION_SIZE, amount);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingInsufficientTokens(uint256,uint256)",
-            slashAmount, 
-            0 ether
+            0 ether,
+            slashAmount
         );
         vm.expectRevert(expectedError);
         vm.startPrank(subgraphDataServiceAddress);

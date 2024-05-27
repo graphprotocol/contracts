@@ -20,7 +20,7 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
         uint256 smallerAmount
     ) public useGateway useCollector(amount) {
         vm.assume(smallerAmount < amount);
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowInsufficientAllowance(uint256,uint256)", amount, smallerAmount);
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowInconsistentAllowance(uint256,uint256)", amount, smallerAmount);
         vm.expectRevert(expectedError);
         escrow.approveCollector(users.verifier, smallerAmount);
     }
@@ -52,7 +52,7 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
     }
 
     function testCollector_RevertWhen_CancelThawIsNotThawing(uint256 amount) public useGateway useCollector(amount) {
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotThawing()");
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowNotThawing()");
         vm.expectRevert(expectedError);
         escrow.cancelThawCollector(users.verifier);
         vm.stopPrank();
@@ -70,14 +70,14 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
     }
 
     function testCollector_RevertWhen_RevokeIsNotThawing(uint256 amount) public useGateway useCollector(amount) {
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowNotThawing()");
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowNotThawing()");
         vm.expectRevert(expectedError);
         escrow.revokeCollector(users.verifier);
     }
 
     function testCollector_RevertWhen_RevokeIsStillThawing(uint256 amount) public useGateway useCollector(amount) {
         escrow.thawCollector(users.verifier);
-        bytes memory expectedError = abi.encodeWithSignature("GraphEscrowStillThawing(uint256,uint256)", block.timestamp, block.timestamp + revokeCollectorThawingPeriod);
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowStillThawing(uint256,uint256)", block.timestamp, block.timestamp + revokeCollectorThawingPeriod);
         vm.expectRevert(expectedError);
         escrow.revokeCollector(users.verifier);
     }

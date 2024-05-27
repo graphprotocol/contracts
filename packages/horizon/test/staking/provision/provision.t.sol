@@ -17,8 +17,12 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
     }
 
     function testProvision_RevertWhen_InsufficientTokens(uint256 amount) public useIndexer useStake(1000 ether) {
-        vm.assume(amount < MIN_PROVISION_SIZE);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientTokens(uint256,uint256)", MIN_PROVISION_SIZE, amount);
+        amount = bound(amount, 0, MIN_PROVISION_SIZE - 1);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInvalidTokens(uint256,uint256)",
+            amount,
+            MIN_PROVISION_SIZE
+        );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, 0, 0);
     }
@@ -29,7 +33,11 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
     ) public useIndexer useStake(amount) {
         vm.assume(amount > MIN_PROVISION_SIZE);
         vm.assume(maxVerifierCut > MAX_MAX_VERIFIER_CUT);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingMaxVerifierCutExceeded(uint32,uint32)", MAX_MAX_VERIFIER_CUT, maxVerifierCut);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInvalidMaxVerifierCut(uint32,uint32)",
+            maxVerifierCut,
+            MAX_MAX_VERIFIER_CUT
+        );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, maxVerifierCut, 0);
     }
@@ -40,7 +48,11 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
     ) public useIndexer useStake(amount) {
         vm.assume(amount > MIN_PROVISION_SIZE);
         vm.assume(thawingPeriod > MAX_THAWING_PERIOD);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingMaxThawingPeriodExceeded(uint64,uint64)", MAX_THAWING_PERIOD, thawingPeriod);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInvalidThawingPeriod(uint64,uint64)",
+            thawingPeriod,
+            MAX_THAWING_PERIOD
+        );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, 0, thawingPeriod);
     }

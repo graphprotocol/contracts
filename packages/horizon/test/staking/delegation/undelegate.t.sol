@@ -30,7 +30,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         // TODO: maybe create a changePrank
         vm.stopPrank();
         vm.startPrank(users.delegator);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroTokens()");
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroShares()");
         vm.expectRevert(expectedError);
         _undelegate(0);
     }
@@ -47,9 +47,9 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         vm.assume(overDelegationShares > delegation.shares);
 
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInsufficientTokens(uint256,uint256)",
-            overDelegationShares,
-            delegation.shares
+            "HorizonStakingInvalidSharesAmount(uint256,uint256)",
+            delegation.shares,
+            overDelegationShares
         );
         vm.expectRevert(expectedError);
         _undelegate(overDelegationShares);
@@ -69,8 +69,12 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         vm.startPrank(users.delegator);
         uint256 minShares = delegationAmount - MIN_DELEGATION + 1;
         withdrawShares = bound(withdrawShares, minShares, delegationAmount - 1);
-        
-        vm.expectRevert("!minimum-delegation");
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInsufficientTokens(uint256,uint256)",
+            delegationAmount - withdrawShares,
+            MIN_DELEGATION
+        );
+        vm.expectRevert(expectedError);
         _undelegate(withdrawShares);
     }
 }
