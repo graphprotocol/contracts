@@ -7,7 +7,6 @@ import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHo
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingThawTest is HorizonStakingTest {
-
     function testThaw_Tokens(
         uint256 amount,
         uint64 thawingPeriod,
@@ -15,12 +14,12 @@ contract HorizonStakingThawTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
         thawAmount = bound(thawAmount, 1, amount);
         bytes32 expectedThawRequestId = keccak256(
-            abi.encodePacked(users.indexer, subgraphDataServiceAddress, uint256(0))
+            abi.encodePacked(users.indexer, subgraphDataServiceAddress, users.indexer, uint256(0))
         );
         bytes32 thawRequestId = _createThawRequest(thawAmount);
         assertEq(thawRequestId, expectedThawRequestId);
 
-        ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
+        ThawRequest memory thawRequest = staking.getThawRequest(expectedThawRequestId);
         assertEq(thawRequest.shares, thawAmount);
         assertEq(thawRequest.thawingUntil, block.timestamp + thawingPeriod);
     }
@@ -52,7 +51,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         uint64 thawingPeriod
     ) public useOperator useProvision(amount, 0, thawingPeriod) {
         bytes32 thawRequestId = _createThawRequest(amount);
-        
+
         ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
         assertEq(thawRequest.shares, amount);
         assertEq(thawRequest.thawingUntil, block.timestamp + thawingPeriod);
@@ -64,7 +63,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
         vm.startPrank(users.operator);
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingNotAuthorized(address,address,address)", 
+            "HorizonStakingNotAuthorized(address,address,address)",
             users.operator,
             users.indexer,
             subgraphDataServiceAddress
@@ -96,7 +95,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         // vm.assume(thawAmount > 0);
         // vm.assume(amount / (MAX_THAW_REQUESTS + 1) > thawAmount);
         thawAmount = bound(thawAmount, 1, amount / (MAX_THAW_REQUESTS + 1));
-        
+
         for (uint256 i = 0; i < 100; i++) {
             _createThawRequest(thawAmount);
         }

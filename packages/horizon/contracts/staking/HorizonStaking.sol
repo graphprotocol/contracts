@@ -36,6 +36,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /// @dev Fixed point precision
     uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
+    /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
+    uint256 private constant MAX_THAW_REQUESTS = 100;
+
     /// @dev Minimum amount of delegation to prevent rounding attacks.
     /// TODO: remove this after L2 transfer tool for delegation is removed
     /// (delegation on L2 has its own slippage protection)
@@ -199,8 +202,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address verifier,
         uint256 tokens
-    ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
-        _thaw(serviceProvider, verifier, tokens);
+    ) external override notPaused onlyAuthorized(serviceProvider, verifier) returns (bytes32) {
+        return _thaw(serviceProvider, verifier, tokens);
     }
 
     // moves thawed stake from a provision back into the provider's available stake
@@ -226,8 +229,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 nThawRequests,
-        uint256 tokens
+        uint256 tokens,
+        uint256 nThawRequests
     )
         external
         override
@@ -293,8 +296,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     // undelegate tokens from a service provider
     // the shares are burned and replaced with shares in the thawing pool
-    function undelegate(address serviceProvider, address verifier, uint256 shares) external override notPaused {
-        _undelegate(serviceProvider, verifier, shares);
+    function undelegate(
+        address serviceProvider,
+        address verifier,
+        uint256 shares
+    ) external override notPaused returns (bytes32) {
+        return _undelegate(serviceProvider, verifier, shares);
     }
 
     function withdrawDelegated(
@@ -628,7 +635,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit ProvisionIncreased(_serviceProvider, _verifier, _tokens);
     }
 
-    function _thaw(address _serviceProvider, address _verifier, uint256 _tokens) private {
+    function _thaw(address _serviceProvider, address _verifier, uint256 _tokens) private returns (bytes32) {
         require(_tokens != 0, HorizonStakingInvalidZeroTokens());
         uint256 tokensAvailable = _getProviderTokensAvailable(_serviceProvider, _verifier);
         require(tokensAvailable >= _tokens, HorizonStakingInsufficientTokensAvailable(tokensAvailable, _tokens));
@@ -641,8 +648,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         prov.tokensThawing = prov.tokensThawing + _tokens;
         prov.sharesThawing = prov.sharesThawing + thawingShares;
 
-        _createThawRequest(_serviceProvider, _verifier, _serviceProvider, thawingShares, thawingUntil);
+        bytes32 thawRequestId = _createThawRequest(
+            _serviceProvider,
+            _verifier,
+            _serviceProvider,
+            thawingShares,
+            thawingUntil
+        );
         emit ProvisionThawed(_serviceProvider, _verifier, _tokens);
+        return thawRequestId;
     }
 
     function _deprovision(address _serviceProvider, address _verifier, uint256 _nThawRequests) private {
@@ -693,7 +707,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens);
     }
 
-    function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private {
+    function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         Delegation storage delegation = pool.delegators[msg.sender];
@@ -716,9 +730,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             );
         }
 
-        _createThawRequest(_serviceProvider, _verifier, msg.sender, thawingShares, thawingUntil);
+        bytes32 thawRequestId = _createThawRequest(
+            _serviceProvider,
+            _verifier,
+            msg.sender,
+            thawingShares,
+            thawingUntil
+        );
 
         emit TokensUndelegated(_serviceProvider, _verifier, msg.sender, tokens);
+        return thawRequestId;
     }
 
     function _withdrawDelegated(
@@ -753,6 +774,81 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
 
         emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
+    }
+
+    function _createThawRequest(
+        address _serviceProvider,
+        address _verifier,
+        address _owner,
+        uint256 _shares,
+        uint64 _thawingUntil
+    ) private returns (bytes32) {
+        LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
+        require(thawRequestList.count < MAX_THAW_REQUESTS, HorizonStakingTooManyThawRequests());
+
+        bytes32 thawRequestId = keccak256(abi.encodePacked(_serviceProvider, _verifier, _owner, thawRequestList.nonce));
+        _thawRequests[thawRequestId] = ThawRequest({ shares: _shares, thawingUntil: _thawingUntil, next: bytes32(0) });
+
+        if (thawRequestList.count != 0) _thawRequests[thawRequestList.tail].next = thawRequestId;
+        thawRequestList.add(thawRequestId);
+
+        emit ThawRequestCreated(_serviceProvider, _verifier, _owner, _shares, _thawingUntil, thawRequestId);
+        return thawRequestId;
+    }
+
+    function _fulfillThawRequests(
+        address _serviceProvider,
+        address _verifier,
+        address _owner,
+        uint256 _tokensThawing,
+        uint256 _sharesThawing,
+        uint256 _nThawRequests
+    ) private returns (uint256, uint256, uint256) {
+        LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
+        require(thawRequestList.count > 0, HorizonStakingNothingThawing());
+
+        uint256 tokensThawed = 0;
+        (uint256 thawRequestsFulfilled, bytes memory data) = thawRequestList.traverse(
+            _getNextThawRequest,
+            _fulfillThawRequest,
+            _deleteThawRequest,
+            abi.encode(tokensThawed, _tokensThawing, _sharesThawing),
+            _nThawRequests
+        );
+
+        (tokensThawed, _tokensThawing, _sharesThawing) = abi.decode(data, (uint256, uint256, uint256));
+        emit ThawRequestsFulfilled(_serviceProvider, _verifier, _owner, thawRequestsFulfilled, tokensThawed);
+        return (tokensThawed, _tokensThawing, _sharesThawing);
+    }
+
+    function _fulfillThawRequest(bytes32 _thawRequestId, bytes memory _acc) private returns (bool, bool, bytes memory) {
+        ThawRequest storage thawRequest = _thawRequests[_thawRequestId];
+
+        // early exit
+        if (thawRequest.thawingUntil > block.timestamp) {
+            return (true, false, LinkedList.NULL_BYTES);
+        }
+
+        // decode
+        (uint256 tokensThawed, uint256 tokensThawing, uint256 sharesThawing) = abi.decode(
+            _acc,
+            (uint256, uint256, uint256)
+        );
+
+        // process
+        uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+        tokensThawing = tokensThawing - tokens;
+        sharesThawing = sharesThawing - thawRequest.shares;
+        tokensThawed = tokensThawed + tokens;
+        emit ThawRequestFulfilled(_thawRequestId, tokens, thawRequest.shares, thawRequest.thawingUntil);
+
+        // encode
+        _acc = abi.encode(tokensThawed, tokensThawing, sharesThawing);
+        return (false, true, _acc);
+    }
+
+    function _deleteThawRequest(bytes32 _thawRequestId) private {
+        delete _thawRequests[_thawRequestId];
     }
 
     function _setOperator(address _operator, address _verifier, bool _allowed) private {

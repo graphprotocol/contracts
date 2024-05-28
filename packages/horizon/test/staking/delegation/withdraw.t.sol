@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
+import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
+
 contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
     modifier useUndelegate(uint256 shares) {
@@ -26,7 +28,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     }
 
     function _withdrawDelegated() private {
-        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0x0), 0);
+        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0x0), 0, 0);
     }
 
     function _expectedTokensFromThawRequest(ThawRequest memory thawRequest) private view returns (uint256) {
@@ -44,8 +46,8 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useDelegation(delegationAmount)
         useUndelegate(withdrawShares)
     {
-        Delegation memory thawingDelegation = _getDelegation();
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingDelegation.lastThawRequestId);
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, users.delegator);
+        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
 
         skip(thawRequest.thawingUntil + 1);
 

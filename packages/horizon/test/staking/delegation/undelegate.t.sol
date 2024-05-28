@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
+import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
+
 contract HorizonStakingUndelegateTest is HorizonStakingTest {
 
     function testUndelegate_Tokens(
@@ -17,8 +19,8 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         Delegation memory delegation = _getDelegation();
         _undelegate(delegation.shares);
 
-        Delegation memory thawingDelegation = _getDelegation();
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingDelegation.lastThawRequestId);
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, users.delegator);
+        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
 
         assertEq(thawRequest.shares, delegation.shares);
     }

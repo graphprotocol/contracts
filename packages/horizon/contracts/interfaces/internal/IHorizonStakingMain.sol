@@ -163,7 +163,7 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     ) external;
 
     // initiate a thawing to remove tokens from a provision
-    function thaw(address serviceProvider, address verifier, uint256 tokens) external;
+    function thaw(address serviceProvider, address verifier, uint256 tokens) external returns (bytes32);
 
     // add more tokens from idle stake to an existing provision
     function addToProvision(address serviceProvider, address verifier, uint256 tokens) external;
@@ -176,8 +176,8 @@ interface IHorizonStakingMain is IHorizonStakingBase {
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 nThawRequests,
-        uint256 tokens
+        uint256 tokens,
+        uint256 nThawRequests
     ) external;
 
     // moves thawed stake back to the owner's account - stake is removed from the protocol
@@ -187,7 +187,7 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     function delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) external;
 
     // undelegate (thaw) delegated tokens from a provision
-    function undelegate(address serviceProvider, address verifier, uint256 shares) external;
+    function undelegate(address serviceProvider, address verifier, uint256 shares) external returns (bytes32);
 
     // withdraw delegated tokens after thawing
     function withdrawDelegated(

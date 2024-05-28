@@ -10,7 +10,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     address private newDataService = makeAddr("newDataService");
 
     function _reprovision(uint256 amount) private {
-        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, amount);
+        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, amount, 0);
     }
 
     function testReprovision_MovingTokens(

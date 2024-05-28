@@ -2,7 +2,6 @@
 pragma solidity 0.8.26;
 
 import { IDataService } from "./IDataService.sol";
-import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 interface IDataServiceFees is IDataService {
     /// A locked stake claim to be released to a service provider
@@ -19,26 +18,19 @@ interface IDataServiceFees is IDataService {
 
     event StakeClaimLocked(
         address indexed serviceProvider,
-        IGraphPayments.PaymentTypes indexed feeType,
         bytes32 indexed claimId,
         uint256 tokens,
         uint256 unlockTimestamp
     );
     event StakeClaimReleased(
         address indexed serviceProvider,
-        IGraphPayments.PaymentTypes indexed feeType,
         bytes32 indexed claimId,
         uint256 tokens,
         uint256 releaseAt
     );
-    event StakeClaimsReleased(
-        address indexed serviceProvider,
-        IGraphPayments.PaymentTypes indexed feeType,
-        uint256 claimsCount,
-        uint256 tokensReleased
-    );
+    event StakeClaimsReleased(address indexed serviceProvider, uint256 claimsCount, uint256 tokensReleased);
 
     error DataServiceFeesClaimNotFound(bytes32 claimId);
 
-    function releaseStake(IGraphPayments.PaymentTypes feeType, uint256 n) external;
+    function releaseStake(uint256 n) external;
 }

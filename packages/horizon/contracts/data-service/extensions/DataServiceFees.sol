@@ -2,7 +2,6 @@
 pragma solidity 0.8.26;
 
 import { IDataServiceFees } from "../interfaces/IDataServiceFees.sol";
-import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
 import { LinkedList } from "../../libraries/LinkedList.sol";
@@ -14,19 +13,14 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     using ProvisionTracker for mapping(address => uint256);
     using LinkedList for LinkedList.List;
 
-    function releaseStake(IGraphPayments.PaymentTypes feeType, uint256 n) external virtual {
-        _releaseStake(feeType, msg.sender, n);
+    function releaseStake(uint256 n) external virtual override {
+        _releaseStake(msg.sender, n);
     }
 
-    function _lockStake(
-        IGraphPayments.PaymentTypes _feeType,
-        address _serviceProvider,
-        uint256 _tokens,
-        uint256 _unlockTimestamp
-    ) internal {
-        feesProvisionTracker[_feeType].lock(_graphStaking(), _serviceProvider, _tokens, maximumDelegationRatio);
+    function _lockStake(address _serviceProvider, uint256 _tokens, uint256 _unlockTimestamp) internal {
+        feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, maximumDelegationRatio);
 
-        LinkedList.List storage claimsList = claimsLists[_feeType][_serviceProvider];
+        LinkedList.List storage claimsList = claimsLists[_serviceProvider];
 
         // Save item and add to list
         bytes32 claimId = _buildStakeClaimId(_serviceProvider, claimsList.nonce);
@@ -40,25 +34,25 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         if (claimsList.count != 0) claims[claimsList.tail].nextClaim = claimId;
         claimsList.add(claimId);
 
-        emit StakeClaimLocked(_serviceProvider, _feeType, claimId, _tokens, _unlockTimestamp);
+        emit StakeClaimLocked(_serviceProvider, claimId, _tokens, _unlockTimestamp);
     }
 
     /// @notice Release expired stake claims for a service provider
     /// @param _n The number of stake claims to release, or 0 to release all
-    function _releaseStake(IGraphPayments.PaymentTypes _feeType, address _serviceProvider, uint256 _n) internal {
-        LinkedList.List storage claimsList = claimsLists[_feeType][_serviceProvider];
+    function _releaseStake(address _serviceProvider, uint256 _n) internal {
+        LinkedList.List storage claimsList = claimsLists[_serviceProvider];
         (uint256 claimsReleased, bytes memory data) = claimsList.traverse(
             _getNextStakeClaim,
             _processStakeClaim,
             _deleteStakeClaim,
-            abi.encode(0),
+            abi.encode(0, _serviceProvider),
             _n
         );
 
-        emit StakeClaimsReleased(_serviceProvider, _feeType, claimsReleased, abi.decode(data, (uint256)));
+        emit StakeClaimsReleased(_serviceProvider, claimsReleased, abi.decode(data, (uint256)));
     }
 
-    function _processStakeClaim(bytes32 _claimId, bytes memory acc) private returns (bool, bool, bytes memory) {
+    function _processStakeClaim(bytes32 _claimId, bytes memory _acc) private returns (bool, bool, bytes memory) {
         StakeClaim memory claim = _getStakeClaim(_claimId);
 
         // early exit
@@ -67,18 +61,15 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         }
 
         // decode
-        (IGraphPayments.PaymentTypes _feeType, address _serviceProvider) = abi.decode(
-            acc,
-            (IGraphPayments.PaymentTypes, address)
-        );
+        (uint256 tokensClaimed, address serviceProvider) = abi.decode(_acc, (uint256, address));
 
         // process
-        feesProvisionTracker[_feeType].release(_serviceProvider, claim.tokens);
-        emit StakeClaimReleased(_serviceProvider, _feeType, _claimId, claim.tokens, claim.releaseAt);
+        feesProvisionTracker.release(serviceProvider, claim.tokens);
+        emit StakeClaimReleased(serviceProvider, _claimId, claim.tokens, claim.releaseAt);
 
         // encode
-        acc = abi.encode(abi.decode(acc, (uint256)) + claim.tokens);
-        return (false, true, acc);
+        _acc = abi.encode(tokensClaimed + claim.tokens, serviceProvider);
+        return (false, true, _acc);
     }
 
     function _deleteStakeClaim(bytes32 _claimId) private {

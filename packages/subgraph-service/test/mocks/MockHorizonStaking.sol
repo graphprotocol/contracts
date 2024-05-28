@@ -30,9 +30,6 @@ contract MockHorizonStaking {
             maxVerifierCut: maxVerifierCut,
             thawingPeriod: thawingPeriod,
             createdAt: uint64(block.timestamp),
-            firstThawRequestId: bytes32(0),
-            lastThawRequestId: bytes32(0),
-            nThawRequests: 0,
             maxVerifierCutPending: maxVerifierCut,
             thawingPeriodPending: thawingPeriod
         });

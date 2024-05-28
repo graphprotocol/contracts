@@ -32,9 +32,6 @@ abstract contract HorizonStakingBase is
 
     address internal immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
-    /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
-    uint256 private constant MAX_THAW_REQUESTS = 100;
-
     constructor(address controller, address subgraphDataServiceAddress) Managed(controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
     }
@@ -105,6 +102,14 @@ abstract contract HorizonStakingBase is
 
     function getThawRequest(bytes32 thawRequestId) external view returns (ThawRequest memory) {
         return _thawRequests[thawRequestId];
+    }
+
+    function getThawRequestList(
+        address serviceProvider,
+        address verifier,
+        address owner
+    ) external view returns (LinkedList.List memory) {
+        return _thawRequestLists[serviceProvider][verifier][owner];
     }
 
     function getProvision(address serviceProvider, address verifier) external view override returns (Provision memory) {
@@ -181,84 +186,7 @@ abstract contract HorizonStakingBase is
         emit StakeDeposited(_serviceProvider, _tokens);
     }
 
-    function _createThawRequest(
-        address _serviceProvider,
-        address _verifier,
-        address _owner,
-        uint256 _shares,
-        uint64 _thawingUntil
-    ) internal {
-        LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
-        require(thawRequestList.count < MAX_THAW_REQUESTS, HorizonStakingTooManyThawRequests());
-
-        bytes32 thawRequestId = keccak256(abi.encodePacked(_serviceProvider, _verifier, _owner, thawRequestList.nonce));
-        _thawRequests[thawRequestId] = ThawRequest({ shares: _shares, thawingUntil: _thawingUntil, next: bytes32(0) });
-
-        if (thawRequestList.count != 0) _thawRequests[thawRequestList.tail].next = thawRequestId;
-        thawRequestList.add(thawRequestId);
-
-        emit ThawRequestCreated(_serviceProvider, _verifier, _owner, _shares, _thawingUntil, thawRequestId);
-    }
-
-    function _fulfillThawRequests(
-        address _serviceProvider,
-        address _verifier,
-        address _owner,
-        uint256 _tokensThawing,
-        uint256 _sharesThawing,
-        uint256 _nThawRequests
-    ) internal returns (uint256, uint256, uint256) {
-        LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
-        require(thawRequestList.count > 0, HorizonStakingNothingThawing());
-
-        uint256 tokensThawed = 0;
-        (uint256 thawRequestsFulfilled, bytes memory data) = thawRequestList.traverse(
-            _getNextThawRequest,
-            _fulfillThawRequest,
-            _deleteThawRequest,
-            abi.encode(tokensThawed, _tokensThawing, _sharesThawing),
-            _nThawRequests
-        );
-
-        (tokensThawed, _tokensThawing, _sharesThawing) = abi.decode(data, (uint256, uint256, uint256));
-        emit ThawRequestsFulfilled(_serviceProvider, _verifier, _owner, thawRequestsFulfilled, tokensThawed);
-        return (tokensThawed, _tokensThawing, _sharesThawing);
-    }
-
-    function _fulfillThawRequest(
-        bytes32 _thawRequestId,
-        bytes memory _acc
-    ) internal returns (bool, bool, bytes memory) {
-        ThawRequest storage thawRequest = _thawRequests[_thawRequestId];
-
-        // early exit
-        if (thawRequest.thawingUntil > block.timestamp) {
-            return (true, false, LinkedList.NULL_BYTES);
-        }
-
-        // decode
-        (uint256 tokensThawed, uint256 tokensThawing, uint256 sharesThawing) = abi.decode(
-            _acc,
-            (uint256, uint256, uint256)
-        );
-
-        // process
-        uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-        tokensThawing = tokensThawing - tokens;
-        sharesThawing = sharesThawing - thawRequest.shares;
-        tokensThawed = tokensThawed + tokens;
-        emit ThawRequestFulfilled(_thawRequestId, tokens, thawRequest.shares, thawRequest.thawingUntil);
-
-        // encode
-        _acc = abi.encode(tokensThawed, tokensThawing, sharesThawing);
-        return (false, true, _acc);
-    }
-
-    function _deleteThawRequest(bytes32 _thawRequestId) internal {
-        delete _thawRequests[_thawRequestId];
-    }
-
-    function _getNextThawRequest(bytes32 _thawRequestId) private view returns (bytes32) {
+    function _getNextThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
         return _thawRequests[_thawRequestId].next;
     }
 

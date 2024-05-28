@@ -216,7 +216,7 @@ contract SubgraphService is
         bytes32 subgraphDeploymentId = allocations.get(allocationId).subgraphDeploymentId;
 
         // release expired stake claims
-        _releaseStake(IGraphPayments.PaymentTypes.QueryFee, indexer, 0);
+        _releaseStake(indexer, 0);
 
         // Collect from GraphPayments
         PaymentCuts memory queryFeePaymentCuts = _getQueryFeePaymentCuts(subgraphDeploymentId);
@@ -240,7 +240,7 @@ contract SubgraphService is
             // lock stake as economic security for fees
             uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
             uint256 unlockTimestamp = block.timestamp + _disputeManager().getDisputePeriod();
-            _lockStake(IGraphPayments.PaymentTypes.QueryFee, indexer, tokensToLock, unlockTimestamp);
+            _lockStake(indexer, tokensToLock, unlockTimestamp);
 
             // calculate service and curator cuts
             tokensCurators = tokensCollected.mulPPMRoundUp(queryFeePaymentCuts.curationCut);

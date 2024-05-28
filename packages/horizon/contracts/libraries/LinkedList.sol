@@ -5,15 +5,15 @@ pragma solidity 0.8.26;
 library LinkedList {
     using LinkedList for List;
 
-    error LinkedListEmptyList();
-
-    bytes internal constant NULL_BYTES = bytes("");
     struct List {
         bytes32 head;
         bytes32 tail;
         uint256 nonce;
         uint256 count;
     }
+    bytes internal constant NULL_BYTES = bytes("");
+
+    error LinkedListEmptyList();
 
     function add(List storage self, bytes32 id) internal {
         self.tail = id;

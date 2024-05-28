@@ -5,6 +5,8 @@ pragma solidity 0.8.26;
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 import { IGraphPayments } from "../IGraphPayments.sol";
 
+import { LinkedList } from "../../libraries/LinkedList.sol";
+
 interface IHorizonStakingBase {
     /**
      * @dev Emitted when `serviceProvider` stakes `tokens` amount.
@@ -86,4 +88,10 @@ interface IHorizonStakingBase {
     function getIdleStake(address serviceProvider) external view returns (uint256 tokens);
 
     function getProviderTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
+
+    function getThawRequestList(
+        address serviceProvider,
+        address verifier,
+        address owner
+    ) external view returns (LinkedList.List memory);
 }
