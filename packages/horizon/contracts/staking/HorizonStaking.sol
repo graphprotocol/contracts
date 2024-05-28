@@ -18,8 +18,10 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * @dev This contract is the main Staking contract in The Graph protocol after the Horizon upgrade.
  * It is designed to be deployed as an upgrade to the L2Staking contract from the legacy contracts
  * package.
- * It uses a HorizonStakingExtension contract to implement the full IHorizonStaking interface through delegatecalls.
- * This is due to the contract size limit on Arbitrum (24kB like mainnet).
+ * @dev It uses a HorizonStakingExtension contract to implement the full IHorizonStaking interface through delegatecalls.
+ * This is due to the contract size limit on Arbitrum (24kB). The extension contract contains functionality to support
+ * the legacy staking functions and the transfer tools. Both can be eventually safely removed without affecting
+ * the main staking contract.
  */
 contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using TokenUtils for IGraphToken;
@@ -693,7 +695,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
 
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
-        Delegation storage delegation = pool.delegators[msg.sender];
+        DelegationInternal storage delegation = pool.delegators[msg.sender];
 
         // Calculate shares to issue
         uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
@@ -710,7 +712,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
-        Delegation storage delegation = pool.delegators[msg.sender];
+        DelegationInternal storage delegation = pool.delegators[msg.sender];
         require(delegation.shares >= _shares, HorizonStakingInvalidSharesAmount(delegation.shares, _shares));
 
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;

@@ -18,14 +18,15 @@ import { PPMMath } from "../libraries/PPMMath.sol";
 import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 
 /**
- * @title Base Staking contract
+ * @title Horizon Staking extension contract
+ * @dev This contract contains:
+ * - all the legacy staking functionality, required to support the transition period
+ * - transfer tools support functions
+ * TODO: once the transition period and the transfer tools are deemed not necessary this contract
+ * can be removed.
  * @dev The Staking contract allows Indexers to Stake on Subgraphs. Indexers Stake by creating
  * Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The
  * contract also has the slashing functionality.
- * The contract is abstract as the implementation that is deployed depends on each layer: L1Staking on mainnet
- * and L2Staking on Arbitrum.
- * Note that this contract delegates part of its functionality to a StakingExtension contract.
- * This is due to the 24kB contract size limit on Ethereum.
  */
 contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2StakingBase, IHorizonStakingExtension {
     using TokenUtils for IGraphToken;
@@ -322,7 +323,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
     ) internal {
         // Get the delegation pool of the indexer
         IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_delegationData.indexer];
-        IHorizonStakingTypes.Delegation storage delegation = pool.delegators[_delegationData.delegator];
+        IHorizonStakingTypes.DelegationInternal storage delegation = pool.delegators[_delegationData.delegator];
 
         // Calculate shares to issue (without applying any delegation tax)
         uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / pool.tokens);

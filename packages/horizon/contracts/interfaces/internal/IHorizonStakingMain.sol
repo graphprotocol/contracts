@@ -6,6 +6,23 @@ import { IHorizonStakingBase } from "./IHorizonStakingBase.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 interface IHorizonStakingMain is IHorizonStakingBase {
+    event ThawRequestCreated(
+        address indexed serviceProvider,
+        address indexed verifier,
+        address indexed owner,
+        uint256 shares,
+        uint64 thawingUntil,
+        bytes32 thawRequestId
+    );
+    event ThawRequestFulfilled(bytes32 indexed thawRequestId, uint256 tokens, uint256 shares, uint64 thawingUntil);
+    event ThawRequestsFulfilled(
+        address indexed serviceProvider,
+        address indexed verifier,
+        address indexed owner,
+        uint256 thawRequestsFulfilled,
+        uint256 tokens
+    );
+
     /**
      * @dev Emitted when `serviceProvider` withdraws `tokens` amount.
      */
@@ -129,6 +146,9 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     error HorizonStakingCallerIsServiceProvider();
     error HorizonStakingStillThawing(uint256 until);
     error HorizonStakingCannotFulfillThawRequest();
+
+    error HorizonStakingNothingThawing();
+    error HorizonStakingTooManyThawRequests();
 
     // deposit stake
     function stake(uint256 tokens) external;
@@ -268,7 +288,10 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     function isAuthorized(address operator, address serviceProvider, address verifier) external view returns (bool);
 
     function clearThawingPeriod() external;
+
     function delegate(address serviceProvider, uint256 tokens) external;
+
     function undelegate(address serviceProvider, uint256 shares) external;
+
     function withdrawDelegated(address serviceProvider, address newServiceProvider) external;
 }

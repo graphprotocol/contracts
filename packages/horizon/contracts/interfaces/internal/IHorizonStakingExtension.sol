@@ -41,6 +41,15 @@ interface IHorizonStakingExtension {
     }
 
     /**
+     * @notice Emitted when a delegator delegates through the Graph Token Gateway using the transfer tools.
+     * @dev TODO(after transfer tools): delete
+     * @param serviceProvider The address of the service provider.
+     * @param delegator The address of the delegator.
+     * @param tokens The amount of tokens delegated.
+     */
+    event StakeDelegated(address indexed serviceProvider, address indexed delegator, uint256 tokens, uint256 shares);
+
+    /**
      * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * This event also emits the POI (proof of indexing) submitted by the indexer.

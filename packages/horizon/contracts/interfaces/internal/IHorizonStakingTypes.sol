@@ -3,7 +3,6 @@
 pragma solidity 0.8.26;
 
 // TODO: create custom var-name-mixedcase
-/* solhint-disable var-name-mixedcase */
 
 interface IHorizonStakingTypes {
     struct Provision {
@@ -31,40 +30,6 @@ interface IHorizonStakingTypes {
         uint256 tokensProvisioned;
     }
 
-    struct DelegationPoolInternal {
-        uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
-        uint32 __DEPRECATED_indexingRewardCut; // in PPM
-        uint32 __DEPRECATED_queryFeeCut; // in PPM
-        uint256 __DEPRECATED_updatedAtBlock; // Block when the pool was last updated
-        uint256 tokens; // Total tokens as pool reserves
-        uint256 shares; // Total shares minted in the pool
-        mapping(address => Delegation) delegators; // Mapping of delegator => Delegation
-        uint256 tokensThawing; // Tokens thawing in the pool
-        uint256 sharesThawing; // Shares representing the thawing tokens
-    }
-
-    struct DelegationPool {
-        uint256 tokens; // Total tokens as pool reserves
-        uint256 shares; // Total shares minted in the pool
-        uint256 tokensThawing; // Tokens thawing in the pool
-        uint256 sharesThawing; // Shares representing the thawing tokens
-    }
-
-    struct Delegation {
-        uint256 shares; // Shares owned by a delegator in the pool
-        uint256 __DEPRECATED_tokensLocked; // Tokens locked for undelegation
-        uint256 __DEPRECATED_tokensLockedUntil; // Epoch when locked tokens can be withdrawn
-    }
-
-    struct ThawRequest {
-        // shares that represent the tokens being thawed
-        uint256 shares;
-        // the timestamp when the thawed funds can be removed from the provision
-        uint64 thawingUntil;
-        // id of the next thaw request in the linked list
-        bytes32 next;
-    }
-
     // the new "Indexer" struct
     struct ServiceProviderInternal {
         // Tokens on the Service Provider stake (staked by the provider)
@@ -77,5 +42,43 @@ interface IHorizonStakingTypes {
         uint256 __DEPRECATED_tokensLockedUntil;
         // tokens used in a provision
         uint256 tokensProvisioned;
+    }
+
+    struct DelegationPool {
+        uint256 tokens; // Total tokens as pool reserves
+        uint256 shares; // Total shares minted in the pool
+        uint256 tokensThawing; // Tokens thawing in the pool
+        uint256 sharesThawing; // Shares representing the thawing tokens
+    }
+
+    struct DelegationPoolInternal {
+        uint32 __DEPRECATED_cooldownBlocks;
+        uint32 __DEPRECATED_indexingRewardCut; // in PPM
+        uint32 __DEPRECATED_queryFeeCut; // in PPM
+        uint256 __DEPRECATED_updatedAtBlock; // Block when the pool was last updated
+        uint256 tokens; // Total tokens as pool reserves
+        uint256 shares; // Total shares minted in the pool
+        mapping(address => DelegationInternal) delegators; // Mapping of delegator => Delegation
+        uint256 tokensThawing; // Tokens thawing in the pool
+        uint256 sharesThawing; // Shares representing the thawing tokens
+    }
+
+    struct Delegation {
+        uint256 shares; // Shares owned by a delegator in the pool
+    }
+
+    struct DelegationInternal {
+        uint256 shares; // Shares owned by a delegator in the pool
+        uint256 __DEPRECATED_tokensLocked; // Tokens locked for undelegation
+        uint256 __DEPRECATED_tokensLockedUntil; // Epoch when locked tokens can be withdrawn
+    }
+
+    struct ThawRequest {
+        // shares that represent the tokens being thawed
+        uint256 shares;
+        // the timestamp when the thawed funds can be removed from the provision
+        uint64 thawingUntil;
+        // id of the next thaw request in the linked list
+        bytes32 next;
     }
 }

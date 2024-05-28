@@ -7,91 +7,165 @@ import { IGraphPayments } from "../IGraphPayments.sol";
 
 import { LinkedList } from "../../libraries/LinkedList.sol";
 
+/**
+ * @title Interface for the {HorizonStakingBase} contract.
+ * @dev Provides getters for {HorizonStaking} and {HorizonStakingExtension} storage variables.
+ *
+ * Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
+ * functions take `serviceProvider` and `verifier` addresses.
+ */
 interface IHorizonStakingBase {
     /**
-     * @dev Emitted when `serviceProvider` stakes `tokens` amount.
-     * @dev TODO(after transition period): move to IHorizonStakingMain
+     * @notice Emitted when a service provider stakes tokens.
+     * @dev TODO: After transition period move to IHorizonStakingMain. Temporarily it
+     * needs to be here since it's emitted by {_stake} which is used by both {HorizonStaking}
+     * and {HorizonStakingExtension}.
+     * @param serviceProvider The address of the service provider.
+     * @param tokens The amount of tokens staked.
      */
     event StakeDeposited(address indexed serviceProvider, uint256 tokens);
 
     /**
-     * @dev Emitted when `delegator` delegated `tokens` to the `serviceProvider`, the delegator
-     * gets `shares` for the delegation pool proportionally to the tokens staked.
-     * This event is here for backwards compatibility, the tokens are delegated
-     * on the subgraph data service provision.
-     * @dev TODO(after transition period): move to IHorizonStakingMain
+     * @notice Gets the details of a service provider.
+     * @param serviceProvider The address of the service provider.
      */
-    event StakeDelegated(address indexed serviceProvider, address indexed delegator, uint256 tokens, uint256 shares);
-
-    event ThawRequestCreated(
-        address indexed serviceProvider,
-        address indexed verifier,
-        address indexed owner,
-        uint256 shares,
-        uint64 thawingUntil,
-        bytes32 thawRequestId
-    );
-    event ThawRequestFulfilled(bytes32 indexed thawRequestId, uint256 tokens, uint256 shares, uint64 thawingUntil);
-    event ThawRequestsFulfilled(
-        address indexed serviceProvider,
-        address indexed verifier,
-        address indexed owner,
-        uint256 thawRequestsFulfilled,
-        uint256 tokens
-    );
-
-    error HorizonStakingNothingThawing();
-    error HorizonStakingTooManyThawRequests();
-
-    function getStake(address serviceProvider) external view returns (uint256);
-
-    function getDelegatedTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
-
-    function getTokensAvailable(
-        address serviceProvider,
-        address verifier,
-        uint32 delegationRatio
-    ) external view returns (uint256);
-
     function getServiceProvider(
         address serviceProvider
     ) external view returns (IHorizonStakingTypes.ServiceProvider memory);
 
-    function getMaxThawingPeriod() external view returns (uint64);
+    /**
+     * @notice Gets the stake of a service provider.
+     * @param serviceProvider The address of the service provider.
+     * @return The amount of tokens staked.
+     */
+    function getStake(address serviceProvider) external view returns (uint256);
 
+    /**
+     * @notice Gets the service provider's idle stake which is the stake that is not being
+     * used for any provision. Note that this only includes service provider's self stake.
+     * @param serviceProvider The address of the service provider.
+     * @return The amount of tokens that are idle.
+     */
+    function getIdleStake(address serviceProvider) external view returns (uint256);
+
+    /**
+     * @notice Gets the details of delegation pool.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @return The delegation pool details.
+     */
     function getDelegationPool(
         address serviceProvider,
         address verifier
     ) external view returns (IHorizonStakingTypes.DelegationPool memory);
 
+    /**
+     * @notice Gets the details of a delegation.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @param delegator The address of the delegator.
+     * @return The delegation details.
+     */
     function getDelegation(
-        address delegator,
         address serviceProvider,
-        address verifier
+        address verifier,
+        address delegator
     ) external view returns (IHorizonStakingTypes.Delegation memory);
 
-    function getThawRequest(bytes32 thawRequestId) external view returns (IHorizonStakingTypes.ThawRequest memory);
-
-    function getProvision(
-        address serviceProvider,
-        address verifier
-    ) external view returns (IHorizonStakingTypes.Provision memory);
-
+    /**
+     * @notice Gets the delegation fee cut for a payment type.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @param paymentType The payment type as defined by {IGraphPayments.PaymentTypes}.
+     * @return The delegation fee cut in PPM.
+     */
     function getDelegationFeeCut(
         address serviceProvider,
         address verifier,
         IGraphPayments.PaymentTypes paymentType
     ) external view returns (uint256);
 
-    // staked tokens that are currently not provisioned, aka idle stake
-    // `getStake(serviceProvider) - ServiceProvider.tokensProvisioned`
-    function getIdleStake(address serviceProvider) external view returns (uint256 tokens);
+    /**
+     * @notice Gets the details of a provision.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @return The provision details.
+     */
+    function getProvision(
+        address serviceProvider,
+        address verifier
+    ) external view returns (IHorizonStakingTypes.Provision memory);
 
+    /**
+     * @notice Gets the tokens available in a provision.
+     * Tokens available are the tokens in a provision that are not thawing. Includes service
+     * provider's and delegator's stake.
+     *
+     * Allows specifying a `delegationRatio` which caps the amount of delegated tokens that are
+     * considered available.
+     *
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @param delegationRatio The delegation ratio.
+     * @return The amount of tokens available.
+     */
+    function getTokensAvailable(
+        address serviceProvider,
+        address verifier,
+        uint32 delegationRatio
+    ) external view returns (uint256);
+
+    /**
+     * @notice Gets the service provider's tokens available in a provision.
+     * @dev Calculated as the tokens available minus the tokens thawing.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @return The amount of tokens available.
+     */
     function getProviderTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
 
+    /**
+     * @notice Gets the delegator's tokens available in a provision.
+     * @dev Calculated as the tokens available minus the tokens thawing.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @return The amount of tokens available.
+     */
+    function getDelegatedTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
+
+    /**
+     * @notice Gets a thaw request.
+     * @param thawRequestId The id of the thaw request.
+     * @return The thaw request details.
+     */
+    function getThawRequest(bytes32 thawRequestId) external view returns (IHorizonStakingTypes.ThawRequest memory);
+
+    /**
+     * @notice Gets the metadata of a thaw request list.
+     * Service provider and delegators each have their own thaw request list per provision.
+     * Metadata includes the head and tail of the list, plus the total number of thaw requests.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @param owner The owner of the thaw requests. Use either the service provider or delegator address.
+     * @return The thaw requests list metadata.
+     */
     function getThawRequestList(
         address serviceProvider,
         address verifier,
         address owner
     ) external view returns (LinkedList.List memory);
+
+    /**
+     * @notice Gets the amount of thawed tokens for a given provision.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     * @param owner The owner of the thaw requests. Use either the service provider or delegator address.
+     * @return The amount of thawed tokens.
+     */
+    function getThawedTokens(address serviceProvider, address verifier, address owner) external view returns (uint256);
+
+    /**
+     * @notice Gets the maximum allowed thawing period for a provision.
+     */
+    function getMaxThawingPeriod() external view returns (uint64);
 }

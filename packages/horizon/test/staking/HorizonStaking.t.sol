@@ -73,7 +73,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
     }
 
     function _getDelegation() internal view returns (Delegation memory) {
-        return staking.getDelegation(users.delegator, users.indexer, subgraphDataServiceAddress);
+        return staking.getDelegation(users.indexer, subgraphDataServiceAddress, users.delegator);
     }
 
     function _undelegate(uint256 shares) internal {
