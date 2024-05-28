@@ -6,6 +6,8 @@ import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStaking
 import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
+import { LinkedList } from "../libraries/LinkedList.sol";
+
 // TODO: create custom var-name-mixedcase
 /* solhint-disable var-name-mixedcase */
 
@@ -136,6 +138,9 @@ abstract contract HorizonStakingV1Storage {
         public delegationFeeCut;
 
     mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _thawRequests;
+
+    mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list)))
+        internal _thawRequestLists;
 
     // service provider => verifier => operator => authorized
     mapping(address serviceProvider => mapping(address verifier => mapping(address operator => bool authorized)))
