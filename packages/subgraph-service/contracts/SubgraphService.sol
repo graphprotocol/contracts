@@ -6,8 +6,9 @@ import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPC
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { DataServicePausable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { DataServicePausableUpgradeable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
 import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataService.sol";
 import { DataServiceRescuable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceRescuable.sol";
 import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
@@ -21,9 +22,10 @@ import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
 // TODO: contract needs to be upgradeable
 contract SubgraphService is
-    Ownable,
+    Initializable,
+    OwnableUpgradeable,
     DataService,
-    DataServicePausable,
+    DataServicePausableUpgradeable,
     DataServiceRescuable,
     DataServiceFees,
     Directory,
@@ -53,15 +55,16 @@ contract SubgraphService is
         address graphController,
         address disputeManager,
         address tapVerifier,
-        address curation,
-        uint256 minimumProvisionTokens,
-        uint32 maximumDelegationRatio
-    )
-        Ownable(msg.sender)
-        DataService(graphController)
-        Directory(address(this), tapVerifier, disputeManager, curation)
-        AllocationManager("SubgraphService", "1.0")
-    {
+        address curation
+    ) DataService(graphController) Directory(address(this), tapVerifier, disputeManager, curation) {
+        _disableInitializers();
+    }
+
+    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external initializer {
+        __Ownable_init(msg.sender);
+        __DataServicePausable_init();
+        __AllocationManager_init("SubgraphService", "1.0");
+
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
         _setDelegationRatioRange(type(uint32).min, maximumDelegationRatio);
     }

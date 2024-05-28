@@ -8,13 +8,13 @@ import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
-abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManagerV1Storage {
+abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, AllocationManagerV1Storage {
     using ProvisionTracker for mapping(address => uint256);
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
@@ -81,7 +81,12 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     error AllocationManagerAllocationSameSize(address allocationId, uint256 tokens);
     error AllocationManagerInvalidZeroPOI();
 
-    constructor(string memory name, string memory version) EIP712(name, version) {}
+    function __AllocationManager_init(string memory name, string memory version) internal {
+        __EIP712_init(name, version);
+        __AllocationManager_init_unchained(name, version);
+    }
+
+    function __AllocationManager_init_unchained(string memory name, string memory version) internal {}
 
     function setRewardsDestination(address rewardsDestination) external {
         _setRewardsDestination(msg.sender, rewardsDestination);
@@ -284,7 +289,6 @@ abstract contract AllocationManager is EIP712, GraphDirectory, AllocationManager
     }
 
     function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {
-        return
-            EIP712._hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));
+        return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));
     }
 }

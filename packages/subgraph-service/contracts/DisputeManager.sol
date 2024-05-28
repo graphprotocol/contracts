@@ -12,7 +12,8 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { Allocation } from "./libraries/Allocation.sol";
 import { Attestation } from "./libraries/Attestation.sol";
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
 import { AttestationManager } from "./utilities/AttestationManager.sol";
@@ -40,7 +41,14 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
  */
-contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeManagerV1Storage, IDisputeManager {
+contract DisputeManager is
+    Initializable,
+    OwnableUpgradeable,
+    GraphDirectory,
+    AttestationManager,
+    DisputeManagerV1Storage,
+    IDisputeManager
+{
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
 
@@ -69,26 +77,28 @@ contract DisputeManager is Ownable, GraphDirectory, AttestationManager, DisputeM
         _;
     }
 
-    // -- Functions --
+    constructor(address controller) GraphDirectory(controller) {
+        _disableInitializers();
+    }
 
     /**
      * @dev Initialize this contract.
-     * @param controller Address of Graph Controller contract
      * @param arbitrator Arbitrator role
      * @param disputePeriod Dispute period in seconds
      * @param minimumDeposit Minimum deposit required to create a Dispute
      * @param fishermanRewardCut_ Percent of slashed funds for fisherman (ppm)
      * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
-    constructor(
-        address controller,
+    function initialize(
         address arbitrator,
         uint64 disputePeriod,
         uint256 minimumDeposit,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
-    ) Ownable(msg.sender) GraphDirectory(controller) {
-        // Settings
+    ) external initializer {
+        __Ownable_init(msg.sender);
+        __AttestationManager_init();
+
         _setArbitrator(arbitrator);
         _setDisputePeriod(disputePeriod);
         _setMinimumDeposit(minimumDeposit);

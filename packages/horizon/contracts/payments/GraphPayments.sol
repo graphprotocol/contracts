@@ -4,17 +4,17 @@ pragma solidity 0.8.26;
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
-import { GraphPaymentsStorageV1Storage } from "./GraphPaymentsStorage.sol";
 
-contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Storage, IGraphPayments {
+contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, IGraphPayments {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
-
+    uint256 public immutable PROTOCOL_PAYMENT_CUT;
     event GraphPaymentsCollected(
         address indexed sender,
         address indexed receiver,
@@ -25,16 +25,13 @@ contract GraphPayments is Multicall, GraphDirectory, GraphPaymentsStorageV1Stora
         uint256 tokensProtocol
     );
 
-    // -- Events --
-
-    // -- Modifier --
-
-    // -- Parameters --
-
-    // -- Constructor --
-
     constructor(address controller, uint256 protocolPaymentCut) GraphDirectory(controller) {
         PROTOCOL_PAYMENT_CUT = protocolPaymentCut;
+        _disableInitializers();
+    }
+
+    function initialize() external initializer {
+        __Multicall_init();
     }
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver

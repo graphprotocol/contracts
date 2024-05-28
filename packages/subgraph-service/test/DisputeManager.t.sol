@@ -24,21 +24,21 @@ contract DisputeManagerTest is Test {
 
     address governor;
     address arbitrator;
-    
+
     uint256 indexerPrivateKey;
     address indexer;
-    
+
     uint256 fishermanPrivateKey;
     address fisherman;
-    
+
     uint256 allocationIDPrivateKey;
     address allocationID;
-    
+
     uint64 disputePeriod = 300; // 5 minutes
     uint256 minimumDeposit = 100 ether; // 100 GRT
     uint32 fishermanRewardPercentage = 100000; // 10%
     uint32 maxSlashingPercentage = 500000; // 50%
-    
+
     Controller controller;
     MockGRTToken graphToken;
     SubgraphService subgraphService;
@@ -53,17 +53,17 @@ contract DisputeManagerTest is Test {
 
         indexerPrivateKey = 0xB1;
         indexer = vm.addr(indexerPrivateKey);
-        
+
         fishermanPrivateKey = 0xC1;
         fisherman = vm.addr(fishermanPrivateKey);
-        
+
         allocationIDPrivateKey = 0xD1;
         allocationID = vm.addr(allocationIDPrivateKey);
 
         graphToken = new MockGRTToken();
         staking = new MockHorizonStaking(address(graphToken));
         rewardsManager = new MockRewardsManager();
-        
+
         address tapVerifier = address(0xE3);
         address curation = address(0xE4);
 
@@ -74,8 +74,8 @@ contract DisputeManagerTest is Test {
         controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
         vm.stopPrank();
 
-        disputeManager = new DisputeManager(
-            address(controller),
+        disputeManager = new DisputeManager(address(controller));
+        disputeManager.initialize(
             arbitrator,
             disputePeriod,
             minimumDeposit,
@@ -83,14 +83,8 @@ contract DisputeManagerTest is Test {
             maxSlashingPercentage
         );
 
-        subgraphService = new SubgraphService(
-            address(controller),
-            address(disputeManager),
-            tapVerifier,
-            curation,
-            1000 ether,
-            16
-        );
+        subgraphService = new SubgraphService(address(controller), address(disputeManager), tapVerifier, curation);
+        subgraphService.initialize(1000 ether, 16);
 
         disputeManager.setSubgraphService(address(subgraphService));
     }
@@ -105,17 +99,9 @@ contract DisputeManagerTest is Test {
         bytes32 digest = subgraphService.encodeAllocationProof(indexer, _allocationID);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
 
-        subgraphService.register(
-            indexer,
-            abi.encode("url", "geoHash")
-        );
+        subgraphService.register(indexer, abi.encode("url", "geoHash"));
 
-        bytes memory data = abi.encode(
-            subgraphDeployment,
-            tokens,
-            _allocationID,
-            abi.encodePacked(r, s, v)
-        );
+        bytes memory data = abi.encode(subgraphDeployment, tokens, _allocationID, abi.encodePacked(r, s, v));
         subgraphService.startService(indexer, data);
         vm.stopPrank();
     }
@@ -136,7 +122,7 @@ contract DisputeManagerTest is Test {
             subgraphDeploymentId: keccak256(abi.encodePacked("Subgraph Deployment ID"))
         });
         bytes memory attestationData = createAtestationData(receipt, allocationIDPrivateKey);
-        
+
         vm.startPrank(fisherman);
         graphToken.mint(fisherman, tokens);
         graphToken.approve(address(disputeManager), tokens);
@@ -169,10 +155,13 @@ contract DisputeManagerTest is Test {
         return (_attestationData1, _attestationData2);
     }
 
-    function createAtestationData(Attestation.Receipt memory receipt, uint256 signer) private view returns (bytes memory attestationData) {
+    function createAtestationData(
+        Attestation.Receipt memory receipt,
+        uint256 signer
+    ) private view returns (bytes memory attestationData) {
         bytes32 digest = disputeManager.encodeReceipt(receipt);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
-        
+
         return abi.encodePacked(receipt.requestCID, receipt.responseCID, receipt.subgraphDeploymentId, r, s, v);
     }
 
@@ -201,17 +190,18 @@ contract DisputeManagerTest is Test {
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
-        (bytes memory attestationData1, bytes memory attestationData2) =
-            createConflictingAttestations(
-                responseCID1, 
-                subgraphDeploymentId, 
-                responseCID2, 
-                subgraphDeploymentId
-            );
+        (bytes memory attestationData1, bytes memory attestationData2) = createConflictingAttestations(
+            responseCID1,
+            subgraphDeploymentId,
+            responseCID2,
+            subgraphDeploymentId
+        );
 
         vm.prank(fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) =
-            disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1, bytes32 disputeID2) = disputeManager.createQueryDisputeConflict(
+            attestationData1,
+            attestationData2
+        );
         assertTrue(disputeManager.isDisputeCreated(disputeID1), "Dispute 1 should be created.");
         assertTrue(disputeManager.isDisputeCreated(disputeID2), "Dispute 2 should be created.");
     }
@@ -219,7 +209,7 @@ contract DisputeManagerTest is Test {
     function test_RevertWhen_DisputeAlreadyCreated() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
         bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
-        
+
         // Create another dispute with different fisherman
         address otherFisherman = address(0x5);
         uint256 tokens = 200 ether;
@@ -236,7 +226,11 @@ contract DisputeManagerTest is Test {
         // minimum deposit is 100 ether
         vm.startPrank(fisherman);
         graphToken.mint(fisherman, 50 ether);
-        bytes memory expectedError = abi.encodeWithSignature("DisputeManagerInsufficientDeposit(uint256,uint256)", 50 ether, 100 ether);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "DisputeManagerInsufficientDeposit(uint256,uint256)",
+            50 ether,
+            100 ether
+        );
         vm.expectRevert(expectedError);
         disputeManager.createIndexingDispute(allocationID, 50 ether);
         vm.stopPrank();
@@ -259,23 +253,22 @@ contract DisputeManagerTest is Test {
         bytes32 responseCID = keccak256(abi.encodePacked("Response CID"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
-        (bytes memory attestationData1, bytes memory attestationData2) =
-            createConflictingAttestations(
-                responseCID,
-                subgraphDeploymentId,
-                responseCID,
-                subgraphDeploymentId
-            );
+        (bytes memory attestationData1, bytes memory attestationData2) = createConflictingAttestations(
+            responseCID,
+            subgraphDeploymentId,
+            responseCID,
+            subgraphDeploymentId
+        );
 
         vm.prank(fisherman);
 
         bytes memory expectedError = abi.encodeWithSignature(
             "DisputeManagerNonConflictingAttestations(bytes32,bytes32,bytes32,bytes32,bytes32,bytes32)",
-            requestCID, 
-            responseCID, 
-            subgraphDeploymentId, 
-            requestCID, 
-            responseCID, 
+            requestCID,
+            responseCID,
+            subgraphDeploymentId,
+            requestCID,
+            responseCID,
             subgraphDeploymentId
         );
         vm.expectRevert(expectedError);
@@ -289,22 +282,21 @@ contract DisputeManagerTest is Test {
         bytes32 subgraphDeploymentId1 = keccak256(abi.encodePacked("Subgraph Deployment ID 1"));
         bytes32 subgraphDeploymentId2 = keccak256(abi.encodePacked("Subgraph Deployment ID 2"));
 
-        (bytes memory attestationData1, bytes memory attestationData2) =
-            createConflictingAttestations(
-                responseCID1, 
-                subgraphDeploymentId1, 
-                responseCID2, 
-                subgraphDeploymentId2
-            );
+        (bytes memory attestationData1, bytes memory attestationData2) = createConflictingAttestations(
+            responseCID1,
+            subgraphDeploymentId1,
+            responseCID2,
+            subgraphDeploymentId2
+        );
 
         vm.prank(fisherman);
         bytes memory expectedError = abi.encodeWithSignature(
             "DisputeManagerNonConflictingAttestations(bytes32,bytes32,bytes32,bytes32,bytes32,bytes32)",
-            requestCID, 
-            responseCID1, 
-            subgraphDeploymentId1, 
-            requestCID, 
-            responseCID2, 
+            requestCID,
+            responseCID1,
+            subgraphDeploymentId1,
+            requestCID,
+            responseCID2,
             subgraphDeploymentId2
         );
         vm.expectRevert(expectedError);
@@ -342,18 +334,19 @@ contract DisputeManagerTest is Test {
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
-        (bytes memory attestationData1, bytes memory attestationData2) =
-            createConflictingAttestations(
-                responseCID1, 
-                subgraphDeploymentId, 
-                responseCID2, 
-                subgraphDeploymentId
-            );
+        (bytes memory attestationData1, bytes memory attestationData2) = createConflictingAttestations(
+            responseCID1,
+            subgraphDeploymentId,
+            responseCID2,
+            subgraphDeploymentId
+        );
 
         vm.prank(fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) =
-            disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
-        
+        (bytes32 disputeID1, bytes32 disputeID2) = disputeManager.createQueryDisputeConflict(
+            attestationData1,
+            attestationData2
+        );
+
         vm.prank(arbitrator);
         disputeManager.acceptDispute(disputeID1, 5000 ether);
 
@@ -411,21 +404,22 @@ contract DisputeManagerTest is Test {
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
-        (bytes memory attestationData1, bytes memory attestationData2) =
-            createConflictingAttestations(
-                responseCID1, 
-                subgraphDeploymentId, 
-                responseCID2, 
-                subgraphDeploymentId
-            );
+        (bytes memory attestationData1, bytes memory attestationData2) = createConflictingAttestations(
+            responseCID1,
+            subgraphDeploymentId,
+            responseCID2,
+            subgraphDeploymentId
+        );
 
         vm.prank(fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) =
-            disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1, bytes32 disputeID2) = disputeManager.createQueryDisputeConflict(
+            attestationData1,
+            attestationData2
+        );
 
         // skip to end of dispute period
         skip(disputePeriod + 1);
-        
+
         vm.prank(fisherman);
         disputeManager.cancelDispute(disputeID1);
 
@@ -466,18 +460,19 @@ contract DisputeManagerTest is Test {
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
-        (bytes memory attestationData1, bytes memory attestationData2) =
-            createConflictingAttestations(
-                responseCID1, 
-                subgraphDeploymentId, 
-                responseCID2, 
-                subgraphDeploymentId
-            );
+        (bytes memory attestationData1, bytes memory attestationData2) = createConflictingAttestations(
+            responseCID1,
+            subgraphDeploymentId,
+            responseCID2,
+            subgraphDeploymentId
+        );
 
         vm.prank(fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) =
-            disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
-        
+        (bytes32 disputeID1, bytes32 disputeID2) = disputeManager.createQueryDisputeConflict(
+            attestationData1,
+            attestationData2
+        );
+
         vm.prank(arbitrator);
         disputeManager.drawDispute(disputeID1);
 
