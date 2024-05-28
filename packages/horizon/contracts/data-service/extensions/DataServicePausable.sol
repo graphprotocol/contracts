@@ -14,11 +14,11 @@ abstract contract DataServicePausable is Pausable, DataService, IDataServicePaus
         _;
     }
 
-    function pause() public onlyPauseGuardian whenNotPaused {
+    function pause() external onlyPauseGuardian whenNotPaused {
         _pause();
     }
 
-    function unpause() public onlyPauseGuardian whenPaused {
+    function unpause() external onlyPauseGuardian whenPaused {
         _unpause();
     }
 

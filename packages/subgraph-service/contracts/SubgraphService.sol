@@ -60,7 +60,7 @@ contract SubgraphService is
         _disableInitializers();
     }
 
-    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external initializer {
+    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external override initializer {
         __Ownable_init(msg.sender);
         __DataServicePausable_init();
         __AllocationManager_init("SubgraphService", "1.0");
@@ -169,11 +169,11 @@ contract SubgraphService is
         address indexer,
         address allocationId,
         bytes32 subgraphDeploymentID
-    ) external onlyOwner {
+    ) external override onlyOwner {
         _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
     }
 
-    function setPauseGuardian(address pauseGuardian, bool allowed) external onlyOwner {
+    function setPauseGuardian(address pauseGuardian, bool allowed) external override onlyOwner {
         _setPauseGuardian(pauseGuardian, allowed);
     }
 
@@ -193,11 +193,11 @@ contract SubgraphService is
         );
     }
 
-    function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory) {
+    function getLegacyAllocation(address allocationId) external view override returns (LegacyAllocation.State memory) {
         return legacyAllocations[allocationId];
     }
 
-    function encodeAllocationProof(address indexer, address allocationId) external view returns (bytes32) {
+    function encodeAllocationProof(address indexer, address allocationId) external view override returns (bytes32) {
         return _encodeAllocationProof(indexer, allocationId);
     }
 

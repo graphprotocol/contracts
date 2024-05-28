@@ -135,7 +135,7 @@ abstract contract HorizonStakingV1Storage {
     /// (based on stake vs delegated stake proportion).
     /// The cuts are applied in GraphPayments so apply to all data services that use it.
     mapping(address serviceProvider => mapping(address verifier => mapping(IGraphPayments.PaymentTypes paymentType => uint256 feeCut)))
-        public delegationFeeCut;
+        internal _delegationFeeCut;
 
     mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _thawRequests;
 
@@ -147,7 +147,7 @@ abstract contract HorizonStakingV1Storage {
         internal _operatorAuth;
 
     // governance enables or disables delegation slashing with this flag
-    bool public delegationSlashingEnabled;
+    bool internal _delegationSlashingEnabled;
 
     // delegation pools for each service provider and verifier
     mapping(address serviceProvider => mapping(address verifier => IHorizonStakingTypes.DelegationPoolInternal delegationPool))

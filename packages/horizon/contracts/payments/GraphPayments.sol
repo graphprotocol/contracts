@@ -15,15 +15,6 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
     uint256 public immutable PROTOCOL_PAYMENT_CUT;
-    event GraphPaymentsCollected(
-        address indexed sender,
-        address indexed receiver,
-        address indexed dataService,
-        uint256 tokensReceiver,
-        uint256 tokensDelegationPool,
-        uint256 tokensDataService,
-        uint256 tokensProtocol
-    );
 
     constructor(address controller, uint256 protocolPaymentCut) GraphDirectory(controller) {
         PROTOCOL_PAYMENT_CUT = protocolPaymentCut;

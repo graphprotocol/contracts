@@ -9,9 +9,20 @@ interface IGraphPayments {
         IndexingRewards
     }
 
+    event GraphPaymentsCollected(
+        address indexed sender,
+        address indexed receiver,
+        address indexed dataService,
+        uint256 tokensReceiver,
+        uint256 tokensDelegationPool,
+        uint256 tokensDataService,
+        uint256 tokensProtocol
+    );
     // -- Errors --
 
     error GraphPaymentsInsufficientTokens(uint256 available, uint256 required);
+
+    function initialize() external;
 
     // collect funds from a sender, pay cuts and forward the rest to the receiver
     function collect(

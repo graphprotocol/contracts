@@ -72,7 +72,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         bytes32 indexed subgraphDeploymentId
     );
 
-    event RewardsDestinationSet(address indexed indexer, address rewardsDestination);
+    event RewardsDestinationSet(address indexed indexer, address indexed rewardsDestination);
 
     error AllocationManagerInvalidAllocationProof(address signer, address allocationId);
     error AllocationManagerInvalidAllocationId();

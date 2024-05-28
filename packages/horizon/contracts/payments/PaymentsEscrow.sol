@@ -52,7 +52,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     // approve a data service to collect funds
-    function approveCollector(address dataService, uint256 tokens) external {
+    function approveCollector(address dataService, uint256 tokens) external override {
         Collector storage collector = authorizedCollectors[msg.sender][dataService];
         require(tokens > collector.allowance, PaymentsEscrowInconsistentAllowance(collector.allowance, tokens));
 
@@ -62,7 +62,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     // thaw a data service's collector authorization
-    function thawCollector(address dataService) external {
+    function thawCollector(address dataService) external override {
         authorizedCollectors[msg.sender][dataService].thawEndTimestamp =
             block.timestamp +
             REVOKE_COLLECTOR_THAWING_PERIOD;
@@ -70,7 +70,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     // cancel thawing a data service's collector authorization
-    function cancelThawCollector(address dataService) external {
+    function cancelThawCollector(address dataService) external override {
         require(authorizedCollectors[msg.sender][dataService].thawEndTimestamp != 0, PaymentsEscrowNotThawing());
 
         authorizedCollectors[msg.sender][dataService].thawEndTimestamp = 0;
@@ -78,7 +78,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     // revoke authorized collector
-    function revokeCollector(address dataService) external {
+    function revokeCollector(address dataService) external override {
         Collector storage collector = authorizedCollectors[msg.sender][dataService];
 
         require(collector.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
@@ -92,14 +92,14 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     // Deposit funds into the escrow for a receiver
-    function deposit(address receiver, uint256 tokens) external {
+    function deposit(address receiver, uint256 tokens) external override {
         escrowAccounts[msg.sender][receiver].balance += tokens;
         _graphToken().pullTokens(msg.sender, tokens);
         emit Deposit(msg.sender, receiver, tokens);
     }
 
     // Requests to thaw a specific amount of escrow from a receiver's escrow account
-    function thaw(address receiver, uint256 tokens) external {
+    function thaw(address receiver, uint256 tokens) external override {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
         if (tokens == 0) {
             // if amount thawing is zero and requested amount is zero this is an invalid request.
@@ -124,7 +124,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     // Withdraws all thawed escrow from a receiver's escrow account
-    function withdraw(address receiver) external {
+    function withdraw(address receiver) external override {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
         require(account.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
         require(
@@ -150,7 +150,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         uint256 tokens,
         address dataService,
         uint256 tokensDataService
-    ) external {
+    ) external override {
         // Check if collector is authorized and has enough funds
         Collector storage collector = authorizedCollectors[payer][msg.sender];
         require(collector.authorized, PaymentsEscrowCollectorNotAuthorized(payer, msg.sender));
@@ -182,7 +182,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     // Get the balance of a sender-receiver pair
-    function getBalance(address payer, address receiver) external view returns (uint256) {
+    function getBalance(address payer, address receiver) external view override returns (uint256) {
         EscrowAccount storage account = escrowAccounts[payer][receiver];
         return account.balance - account.tokensThawing;
     }

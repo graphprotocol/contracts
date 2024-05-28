@@ -43,11 +43,11 @@ abstract contract GraphDirectory {
     ICuration private immutable GRAPH_CURATION;
 
     event GraphDirectoryInitialized(
-        IGraphToken graphToken,
-        IHorizonStaking graphStaking,
+        IGraphToken indexed graphToken,
+        IHorizonStaking indexed graphStaking,
         IGraphPayments graphPayments,
         IPaymentsEscrow graphEscrow,
-        IController graphController,
+        IController indexed graphController,
         IEpochManager graphEpochManager,
         IRewardsManager graphRewardsManager,
         ITokenGateway graphTokenGateway,

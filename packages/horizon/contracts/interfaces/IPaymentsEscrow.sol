@@ -46,6 +46,11 @@ interface IPaymentsEscrow {
     error PaymentsEscrowInsufficientAllowance(uint256 current, uint256 required);
     error PaymentsEscrowInconsistentAllowance(uint256 current, uint256 required);
     error PaymentsEscrowInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokens);
+
+    function approveCollector(address dataService, uint256 thawingPeriod) external;
+    function thawCollector(address dataService) external;
+    function cancelThawCollector(address dataService) external;
+    function revokeCollector(address dataService) external;
     // Deposit funds into the escrow for a receiver
     function deposit(address receiver, uint256 tokens) external;
 

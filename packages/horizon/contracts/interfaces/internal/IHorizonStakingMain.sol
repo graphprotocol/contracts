@@ -72,7 +72,7 @@ interface IHorizonStakingMain is IHorizonStakingBase {
 
     event DelegationSlashingEnabled(bool enabled);
 
-    event AllowedLockedVerifierSet(address verifier, bool allowed);
+    event AllowedLockedVerifierSet(address indexed verifier, bool allowed);
 
     event TokensToDelegationPoolAdded(address indexed serviceProvider, address indexed verifier, uint256 tokens);
 
@@ -96,12 +96,17 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     /**
      * @dev Emitted when an operator is allowed or denied by a service provider for a particular data service
      */
-    event OperatorSet(address indexed serviceProvider, address indexed operator, address verifier, bool allowed);
+    event OperatorSet(
+        address indexed serviceProvider,
+        address indexed operator,
+        address indexed verifier,
+        bool allowed
+    );
 
     event DelegationFeeCutSet(
         address indexed serviceProvider,
         address indexed verifier,
-        IGraphPayments.PaymentTypes paymentType,
+        IGraphPayments.PaymentTypes indexed paymentType,
         uint256 feeCut
     );
 
@@ -119,10 +124,10 @@ interface IHorizonStakingMain is IHorizonStakingBase {
     error HorizonStakingVerifierNotAllowed(address verifier);
     error HorizonStakingVerifierTokensTooHigh(uint256 tokensVerifier, uint256 maxVerifierTokens);
     error HorizonStakingNotEnoughDelegation(uint256 tokensAvailable, uint256 tokensRequired);
-    error HorizonStakingStillThawing(uint256 until);
     error HorizonStakingInvalidZeroShares();
     error HorizonStakingInvalidSharesAmount(uint256 sharesAvailable, uint256 sharesRequired);
     error HorizonStakingCallerIsServiceProvider();
+    error HorizonStakingStillThawing(uint256 until);
     error HorizonStakingCannotFulfillThawRequest();
 
     // deposit stake
@@ -261,4 +266,9 @@ interface IHorizonStakingMain is IHorizonStakingBase {
      * @param verifier The verifier / data service on which they're claiming to act
      */
     function isAuthorized(address operator, address serviceProvider, address verifier) external view returns (bool);
+
+    function clearThawingPeriod() external;
+    function delegate(address serviceProvider, uint256 tokens) external;
+    function undelegate(address serviceProvider, uint256 shares) external;
+    function withdrawDelegated(address serviceProvider, address newServiceProvider) external;
 }

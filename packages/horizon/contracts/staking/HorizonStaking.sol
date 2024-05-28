@@ -320,24 +320,24 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
-        delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
+        _delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
         emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
     }
 
     // For backwards compatibility, delegates to the subgraph data service
     // (Note this one doesn't have splippage/rounding protection!)
-    function delegate(address serviceProvider, uint256 tokens) external notPaused {
+    function delegate(address serviceProvider, uint256 tokens) external override notPaused {
         _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, tokens, 0);
     }
 
     // For backwards compatibility, undelegates from the subgraph data service
-    function undelegate(address serviceProvider, uint256 shares) external notPaused {
+    function undelegate(address serviceProvider, uint256 shares) external override notPaused {
         _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
     }
 
     // For backwards compatibility, withdraws delegated tokens from the subgraph data service
-    function withdrawDelegated(address serviceProvider, address newServiceProvider) external notPaused {
+    function withdrawDelegated(address serviceProvider, address newServiceProvider) external override notPaused {
         _withdrawDelegated(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, newServiceProvider, 0, 0);
     }
 
@@ -396,7 +396,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         tokensToSlash = tokensToSlash - providerTokensSlashed;
         if (tokensToSlash > 0) {
             DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-            if (delegationSlashingEnabled) {
+            if (_delegationSlashingEnabled) {
                 require(pool.tokens >= tokensToSlash, HorizonStakingNotEnoughDelegation(pool.tokens, tokensToSlash));
                 _graphToken().burnTokens(tokensToSlash);
                 uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION) / pool.tokens;
@@ -448,18 +448,18 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * GOVERNANCE
      */
 
-    function setAllowedLockedVerifier(address verifier, bool allowed) external onlyGovernor {
+    function setAllowedLockedVerifier(address verifier, bool allowed) external override onlyGovernor {
         _allowedLockedVerifiers[verifier] = allowed;
         emit AllowedLockedVerifierSet(verifier, allowed);
     }
 
     function setDelegationSlashingEnabled(bool enabled) external override onlyGovernor {
-        delegationSlashingEnabled = enabled;
+        _delegationSlashingEnabled = enabled;
         emit DelegationSlashingEnabled(enabled);
     }
 
     // To be called at the end of the transition period, to set the deprecated thawing period to 0
-    function clearThawingPeriod() external onlyGovernor {
+    function clearThawingPeriod() external override onlyGovernor {
         __DEPRECATED_thawingPeriod = 0;
         emit ThawingPeriodCleared();
     }

@@ -13,7 +13,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     using ProvisionTracker for mapping(address => uint256);
     using LinkedList for LinkedList.List;
 
-    function releaseStake(uint256 n) external virtual override {
+    function releaseStake(uint256 n) external virtual {
         _releaseStake(msg.sender, n);
     }
 

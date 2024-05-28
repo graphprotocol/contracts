@@ -20,7 +20,7 @@ interface ISubgraphService is IDataServiceFees {
     }
 
     event QueryFeesCollected(
-        address serviceProvider,
+        address indexed serviceProvider,
         uint256 tokensCollected,
         uint256 tokensCurators,
         uint256 tokensSubgraphService
@@ -32,6 +32,7 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceIndexerNotRegistered(address indexer);
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
 
+    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external;
     function resizeAllocation(address indexer, address allocationId, uint256 tokens) external;
 
     function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentID) external;

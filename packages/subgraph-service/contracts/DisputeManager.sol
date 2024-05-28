@@ -95,7 +95,7 @@ contract DisputeManager is
         uint256 minimumDeposit,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
-    ) external initializer {
+    ) external override initializer {
         __Ownable_init(msg.sender);
         __AttestationManager_init();
 
@@ -315,7 +315,7 @@ contract DisputeManager is
      * @notice Update the subgraph service to `_subgraphService`
      * @param subgraphService The address of the subgraph service contract
      */
-    function setSubgraphService(address subgraphService) external onlyOwner {
+    function setSubgraphService(address subgraphService) external override onlyOwner {
         _setSubgraphService(subgraphService);
     }
 
@@ -327,7 +327,7 @@ contract DisputeManager is
      * @param receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeReceipt(Attestation.Receipt memory receipt) external view returns (bytes32) {
+    function encodeReceipt(Attestation.Receipt memory receipt) external view override returns (bytes32) {
         return _encodeReceipt(receipt);
     }
 
@@ -335,7 +335,7 @@ contract DisputeManager is
      * @dev Get the verifier cut.
      * @return Verifier cut in percentage (ppm)
      */
-    function getVerifierCut() external view returns (uint32) {
+    function getVerifierCut() external view override returns (uint32) {
         return fishermanRewardCut;
     }
 
@@ -343,14 +343,14 @@ contract DisputeManager is
      * @dev Get the dispute period.
      * @return Dispute period in seconds
      */
-    function getDisputePeriod() external view returns (uint64) {
+    function getDisputePeriod() external view override returns (uint64) {
         return disputePeriod;
     }
 
     function areConflictingAttestations(
         Attestation.State memory attestation1,
         Attestation.State memory attestation2
-    ) external pure returns (bool) {
+    ) external pure override returns (bool) {
         return Attestation.areConflicting(attestation1, attestation2);
     }
 

@@ -14,19 +14,21 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
         _;
     }
 
-    function pause() public onlyPauseGuardian whenNotPaused {
+    function pause() external onlyPauseGuardian whenNotPaused {
         _pause();
     }
 
-    function unpause() public onlyPauseGuardian whenPaused {
+    function unpause() external onlyPauseGuardian whenPaused {
         _unpause();
     }
 
+    // solhint-disable-next-line func-name-mixedcase
     function __DataServicePausable_init() internal {
         __Pausable_init_unchained();
         __DataServicePausable_init_unchained();
     }
 
+    // solhint-disable-next-line func-name-mixedcase
     function __DataServicePausable_init_unchained() internal {}
 
     function _setPauseGuardian(address _pauseGuardian, bool _allowed) internal whenNotPaused {

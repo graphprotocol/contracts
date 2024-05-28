@@ -34,7 +34,7 @@ interface IDisputeManager {
     }
 
     // -- Events --
-    event ArbitratorSet(address arbitrator);
+    event ArbitratorSet(address indexed arbitrator);
     event DisputePeriodSet(uint64 disputePeriod);
     event MinimumDepositSet(uint256 minimumDeposit);
     event MaxSlashingCutSet(uint32 maxSlashingCut);
@@ -131,9 +131,13 @@ interface IDisputeManager {
         bytes32 subgraphDeploymentId2
     );
 
-    // -- Attestation --
-
-    // -- Configuration --
+    function initialize(
+        address arbitrator,
+        uint64 disputePeriod,
+        uint256 minimumDeposit,
+        uint32 fishermanRewardCut,
+        uint32 maxSlashingCut
+    ) external;
 
     function setDisputePeriod(uint64 disputePeriod) external;
 
@@ -180,4 +184,6 @@ interface IDisputeManager {
         Attestation.State memory attestation1,
         Attestation.State memory attestation2
     ) external pure returns (bool);
+
+    function setSubgraphService(address subgraphService) external;
 }

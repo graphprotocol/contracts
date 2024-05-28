@@ -121,7 +121,7 @@ abstract contract HorizonStakingBase is
         address verifier,
         IGraphPayments.PaymentTypes paymentType
     ) external view override returns (uint256) {
-        return delegationFeeCut[serviceProvider][verifier][paymentType];
+        return _delegationFeeCut[serviceProvider][verifier][paymentType];
     }
 
     // provisioned tokens from delegators that are not being thawed
