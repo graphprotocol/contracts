@@ -36,6 +36,18 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         return (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing;
     }
 
+    function _setupNewIndexer(uint256 tokens) private returns(address) {
+        address msgSender;
+        (, msgSender,) = vm.readCallers();
+        address newIndexer = createUser("newIndexer");
+        vm.startPrank(newIndexer);
+        token.approve(address(staking), tokens);
+        staking.stakeTo(newIndexer, tokens);
+        staking.provision(newIndexer,subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
+        vm.startPrank(msgSender);
+        return newIndexer;
+    }
+
     function testWithdrawDelegation_Tokens(
         uint256 delegationAmount,
         uint256 withdrawShares
@@ -70,5 +82,71 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingThawing()");
         vm.expectRevert(expectedError);
         _withdrawDelegated();
+    }
+
+    function testWithdrawDelegation_MoveToNewServiceProvider(
+        uint256 delegationAmount
+    )
+        public
+        useIndexer
+        useProvision(10_000_000 ether, 0, MAX_THAWING_PERIOD)
+        useDelegation(delegationAmount)
+        useUndelegate(delegationAmount)
+    {
+        Delegation memory thawingDelegation = _getDelegation();
+        ThawRequest memory thawRequest = staking.getThawRequest(thawingDelegation.lastThawRequestId);
+
+        skip(thawRequest.thawingUntil + 1);
+
+        // Setup new service provider
+        address newIndexer = _setupNewIndexer(10_000_000 ether);
+
+        uint256 previousBalance = token.balanceOf(users.delegator);
+        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0);
+        
+        uint256 newBalance = token.balanceOf(users.delegator);
+        assertEq(newBalance, previousBalance);
+
+        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(newIndexer, subgraphDataServiceAddress);
+        assertEq(delegatedTokens, delegationAmount);
+    }
+
+    function testWithdrawDelegation_ZeroTokens(
+        uint256 delegationAmount
+    )
+        public
+        useIndexer
+        useProvision(10_000_000 ether, 0, MAX_THAWING_PERIOD)
+        useDelegation(delegationAmount)
+        useUndelegate(delegationAmount)
+    {
+        uint256 previousBalance = token.balanceOf(users.delegator);
+        _withdrawDelegated();
+        
+        // Nothing changed since thawing period haven't finished
+        uint256 newBalance = token.balanceOf(users.delegator);
+        assertEq(newBalance, previousBalance);
+    }
+
+    function testWithdrawDelegation_MoveZeroTokensToNewServiceProvider(
+        uint256 delegationAmount
+    )
+        public
+        useIndexer
+        useProvision(10_000_000 ether, 0, MAX_THAWING_PERIOD)
+        useDelegation(delegationAmount)
+        useUndelegate(delegationAmount)
+    {
+        // Setup new service provider
+        address newIndexer = _setupNewIndexer(10_000_000 ether);
+
+        uint256 previousBalance = token.balanceOf(users.delegator);
+        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0);
+        
+        uint256 newBalance = token.balanceOf(users.delegator);
+        assertEq(newBalance, previousBalance);
+
+        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(newIndexer, subgraphDataServiceAddress);
+        assertEq(delegatedTokens, 0);
     }
 }
