@@ -3,12 +3,8 @@
 pragma solidity 0.8.26;
 
 /**
- * @title Base interface for the Staking contract.
- * @dev This interface includes only what's implemented in the base Staking contract.
- * It does not include the L1 and L2 specific functionality. It also does not include
- * several functions that are implemented in the StakingExtension contract, and are called
- * via delegatecall through the fallback function. See IStaking.sol for an interface
- * that includes the full functionality.
+ * @title Interface for {HorizonStakingExtension} contract.
+ * @notice Provides functions for managing legacy allocations and transfer tools.
  */
 interface IHorizonStakingExtension {
     /**
@@ -22,7 +18,7 @@ interface IHorizonStakingExtension {
         uint256 createdAtEpoch; // Epoch when it was created
         uint256 closedAtEpoch; // Epoch when it was closed
         uint256 collectedFees; // Collected fees for the allocation
-        uint256 DEPRECATED_effectiveAllocation; // solhint-disable-line var-name-mixedcase
+        uint256 __DEPRECATED_effectiveAllocation; // solhint-disable-line var-name-mixedcase
         uint256 accRewardsPerAllocatedToken; // Snapshot used for reward calc
         uint256 distributedRebates; // Collected rebates that have been rebated
     }

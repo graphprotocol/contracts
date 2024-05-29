@@ -9,9 +9,8 @@ import { LinkedList } from "../../libraries/LinkedList.sol";
 
 /**
  * @title Interface for the {HorizonStakingBase} contract.
- * @dev Provides getters for {HorizonStaking} and {HorizonStakingExtension} storage variables.
- *
- * Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
+ * @notice Provides getters for {HorizonStaking} and {HorizonStakingExtension} storage variables.
+ * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
  */
 interface IHorizonStakingBase {

@@ -16,8 +16,11 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 /**
  * @title HorizonStakingBase contract
- * @dev This contract is the base staking contract, to be inherited by HorizonStaking and HorizonStakingExtension.
- * It implements all storage getters for both internal and external use.
+ * @notice This contract is the base staking contract implementing storage getters for both internal
+ * and external use.
+ * @dev Implementation of the {IHorizonStakingBase} interface.
+ * @dev It's meant to be inherited by the {HorizonStaking} and {HorizonStakingExtension}
+ * contracts so some internal functions are also included here.
  */
 abstract contract HorizonStakingBase is
     Multicall,
@@ -29,8 +32,18 @@ abstract contract HorizonStakingBase is
 {
     using LinkedList for LinkedList.List;
 
+    /**
+     * @notice The address of the subgraph data service.
+     * @dev Require to handle the special case when the verifier is the subgraph data service.
+     */
     address internal immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
+    /**
+     * @dev The staking contract is upgradeable however we stil use the constructor to set
+     * a few immutable variables.
+     * @param controller The address of the Graph controller contract.
+     * @param subgraphDataServiceAddress The address of the subgraph data service.
+     */
     constructor(address controller, address subgraphDataServiceAddress) Managed(controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
     }
@@ -216,6 +229,8 @@ abstract contract HorizonStakingBase is
      * needs to be here since it's used by both {HorizonStaking} and {HorizonStakingExtension}.
      *
      * Emits a {StakeDeposited} event.
+     * @param _serviceProvider The address of the service provider.
+     * @param _tokens The amount of tokens to deposit.
      */
     function _stake(address _serviceProvider, uint256 _tokens) internal {
         _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
@@ -223,9 +238,8 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @dev Gets the idle stake of a service provider.
-     *
-     * Note that the calculation considers tokens that were locked in the legacy staking contract.
+     * @notice See {IHorizonStakingBase-getIdleStake}.
+     * @dev Note that the calculation considers tokens that were locked in the legacy staking contract.
      * TODO: update the calculation after the transition period.
      */
     function _getIdleStake(address _serviceProvider) internal view returns (uint256) {
@@ -236,10 +250,9 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @dev Gets a delegation pool.
-     *
-     * Note that there is a special case if the verifier is the subgraph data service, since
-     * in that case the pools are stored in the legacy mapping.
+     * @notice See {IHorizonStakingBase-getDelegationPool}.
+     * @dev Note that this function handles the special case where the verifier is the subgraph data service,
+     * where the pools are stored in the legacy mapping.
      */
     function _getDelegationPool(
         address _serviceProvider,
@@ -255,14 +268,14 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @dev See {IHorizonStakingBase-getProviderTokensAvailable}.
+     * @notice See {IHorizonStakingBase-getProviderTokensAvailable}.
      */
     function _getProviderTokensAvailable(address _serviceProvider, address _verifier) internal view returns (uint256) {
         return _provisions[_serviceProvider][_verifier].tokens - _provisions[_serviceProvider][_verifier].tokensThawing;
     }
 
     /**
-     * @dev See {IHorizonStakingBase-getDelegatedTokensAvailable}.
+     * @notice See {IHorizonStakingBase-getDelegatedTokensAvailable}.
      */
     function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) internal view returns (uint256) {
         DelegationPoolInternal storage poolInternal = _getDelegationPool(_serviceProvider, _verifier);
@@ -270,7 +283,7 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @dev Gets the next thaw request in the list.
+     * @notice Gets the next thaw request after `_thawRequestId`.
      */
     function _getNextThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
         return _thawRequests[_thawRequestId].next;

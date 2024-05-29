@@ -19,14 +19,12 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 
 /**
  * @title Horizon Staking extension contract
- * @dev This contract contains:
- * - all the legacy staking functionality, required to support the transition period
- * - transfer tools support functions
- * TODO: once the transition period and the transfer tools are deemed not necessary this contract
- * can be removed.
- * @dev The Staking contract allows Indexers to Stake on Subgraphs. Indexers Stake by creating
- * Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The
- * contract also has the slashing functionality.
+ * @notice The {HorizonStakingExtension} contract implements the legacy functionality required to support the transition
+ * to the Horizon Staking contract. It allows indexers to close allocations and collect pending query fees, but it
+ * does not allow for the creation of new allocations. This should allow indexers to migrate to a subgraph data service
+ * without losing rewards or having service interruptions.
+ * @dev TODO: Once the transition period and the transfer tools are deemed not necessary this contract
+ * can be removed. It's expected the transition period to last for a full allocation cycle (28 epochs).
  */
 contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2StakingBase, IHorizonStakingExtension {
     using TokenUtils for IGraphToken;
@@ -43,6 +41,12 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
         _;
     }
 
+    /**
+     * @dev The staking contract is upgradeable however we stil use the constructor to set
+     * a few immutable variables.
+     * @param controller The address of the Graph controller contract.
+     * @param subgraphDataServiceAddress The address of the subgraph data service.
+     */
     constructor(
         address controller,
         address subgraphDataServiceAddress
