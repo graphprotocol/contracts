@@ -9,8 +9,8 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
 
     address private newDataService = makeAddr("newDataService");
 
-    function _reprovision(uint256 amount) private {
-        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, amount, 0);
+    function _reprovision(uint256 tokens, uint256 nThawRequests) private {
+        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, tokens, nThawRequests);
     }
 
     function testReprovision_MovingTokens(
@@ -25,7 +25,9 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         skip(thawingPeriod + 1);
 
         _createProvision(newDataService, MIN_PROVISION_SIZE, 0, thawingPeriod);
-        _reprovision(provisionAmount);
+
+        // nThawRequests == 0 reprovisions all thaw requests
+        _reprovision(provisionAmount, 0);
         uint256 idleStake = staking.getIdleStake(users.indexer);
         assertEq(idleStake, 0 ether);
 
@@ -51,7 +53,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         // Switch back to operator
         vm.startPrank(users.operator);
         _createProvision(newDataService, MIN_PROVISION_SIZE, 0, thawingPeriod);
-        _reprovision(provisionAmount);
+        _reprovision(provisionAmount, 0);
         uint256 idleStake = staking.getIdleStake(users.indexer);
         assertEq(idleStake, 0 ether);
 
@@ -80,15 +82,15 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
             newDataService
         );
         vm.expectRevert(expectedError);
-        _reprovision(provisionAmount);
+        _reprovision(provisionAmount, 0);
     }
 
     function testReprovision_RevertWhen_NoThawingTokens(
         uint256 amount
     ) public useIndexer useProvision(amount, 0, 0) {
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingCannotFulfillThawRequest()");
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingThawing()");
         vm.expectRevert(expectedError);
-        _reprovision(amount);
+        _reprovision(amount, 0);
     }
 
     function testReprovision_RevertWhen_StillThawing(
@@ -101,30 +103,11 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         useThawRequest(provisionAmount)
     {
         vm.assume(thawingPeriod > 0);
-        bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingStillThawing(uint256)",
-            block.timestamp + thawingPeriod
-        );
-        vm.expectRevert(expectedError);
-        _reprovision(provisionAmount);
-    }
 
-    function testReprovision_RevertWhen_NotEnoughThawedTokens(
-        uint64 thawingPeriod,
-        uint256 provisionAmount,
-        uint256 newProvisionAmount
-    )
-        public
-        useIndexer
-        useProvision(provisionAmount, 0, thawingPeriod)
-        useThawRequest(provisionAmount)
-    {
-        newProvisionAmount = bound(newProvisionAmount, provisionAmount + 1, type(uint256).max - provisionAmount);
-        skip(thawingPeriod + 1);
+        _createProvision(newDataService, MIN_PROVISION_SIZE, 0, thawingPeriod);
 
-        _createProvision(newDataService, newProvisionAmount, 0, thawingPeriod);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingCannotFulfillThawRequest()");
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientCapacity()");
         vm.expectRevert(expectedError);
-        _reprovision(newProvisionAmount);
+        _reprovision(provisionAmount, 0);
     }
 }

@@ -63,8 +63,8 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         return staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
 
-    function _deprovision(uint256 amount) internal {
-        staking.deprovision(users.indexer, subgraphDataServiceAddress, amount);
+    function _deprovision(uint256 nThawRequests) internal {
+        staking.deprovision(users.indexer, subgraphDataServiceAddress, nThawRequests);
     }
 
     function _delegate(uint256 amount) internal {

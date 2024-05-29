@@ -364,8 +364,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-        uint256 availableTokens = prov.tokens + pool.tokens;
-        require(availableTokens >= tokens, HorizonStakingInsufficientTokens(prov.tokens, tokens));
+        uint256 tokensProvisionTotal = prov.tokens + pool.tokens;
+        require(tokensProvisionTotal >= tokens, HorizonStakingInsufficientTokens(prov.tokens, tokens));
 
         uint256 tokensToSlash = tokens;
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
