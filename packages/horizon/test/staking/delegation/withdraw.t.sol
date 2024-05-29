@@ -93,16 +93,13 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useDelegation(delegationAmount)
         useUndelegate(delegationAmount)
     {
-        Delegation memory thawingDelegation = _getDelegation();
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingDelegation.lastThawRequestId);
-
-        skip(thawRequest.thawingUntil + 1);
+        skip(MAX_THAWING_PERIOD + 1);
 
         // Setup new service provider
         address newIndexer = _setupNewIndexer(10_000_000 ether);
 
         uint256 previousBalance = token.balanceOf(users.delegator);
-        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0);
+        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0, 0);
         
         uint256 newBalance = token.balanceOf(users.delegator);
         assertEq(newBalance, previousBalance);
@@ -141,7 +138,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         address newIndexer = _setupNewIndexer(10_000_000 ether);
 
         uint256 previousBalance = token.balanceOf(users.delegator);
-        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0);
+        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0, 0);
         
         uint256 newBalance = token.balanceOf(users.delegator);
         assertEq(newBalance, previousBalance);
