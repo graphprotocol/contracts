@@ -161,7 +161,7 @@ abstract contract GraphBaseTest is Test, Constants {
         controller.setPaused(false);
     }
 
-    function createUser(string memory name) private returns (address) {
+    function createUser(string memory name) internal returns (address) {
         address user = makeAddr(name);
         vm.deal({ account: user, newBalance: 100 ether });
         deal({ token: address(token), to: user, give: type(uint256).max });

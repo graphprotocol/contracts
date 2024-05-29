@@ -795,10 +795,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         pool.sharesThawing = sharesThawing;
         pool.tokensThawing = tokensThawing;
 
-        if (_newServiceProvider != address(0)) {
-            _delegate(_newServiceProvider, _verifier, tokensThawed, _minSharesForNewProvider);
-        } else {
-            _graphToken().pushTokens(msg.sender, tokensThawed);
+        if (tokensThawed != 0) {
+            if (_newServiceProvider != address(0)) {
+                _delegate(_newServiceProvider, _verifier, tokensThawed, _minSharesForNewProvider);
+            } else {
+                _graphToken().pushTokens(msg.sender, tokensThawed);
+            }
         }
 
         emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
