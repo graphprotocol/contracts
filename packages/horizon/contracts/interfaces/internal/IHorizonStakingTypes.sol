@@ -127,7 +127,8 @@ interface IHorizonStakingTypes {
 
     /**
      * @notice Details of a stake thawing operation.
-     * @dev ThawRequests are stored in linked lists by service provider/delegator.
+     * @dev ThawRequests are stored in linked lists by service provider/delegator,
+     * ordered by creation timestamp.
      */
     struct ThawRequest {
         // Shares that represent the tokens being thawed

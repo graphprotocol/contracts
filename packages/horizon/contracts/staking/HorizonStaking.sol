@@ -877,11 +877,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /**
      * @notice Fulfills a thaw request.
-     * @dev This function is used as a callback in the linked list traversal.
+     * @dev This function is used as a callback in the thaw requests linked list traversal.
      *
      * Emits a {ThawRequestFulfilled} event.
      *
      * @param _thawRequestId The ID of the current thaw request
+     * @param _acc The accumulator data for the thaw requests being fulfilled
      * @return Wether the thaw request is still thawing, indicating that the traversal should continue or stop.
      * @return Wether the thaw request should be deleted
      * @return The updated accumulator data
@@ -914,7 +915,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /**
      * @notice Deletes a ThawRequest.
-     * @dev This function is used as a callback in the linked list traversal.
+     * @dev This function is used as a callback in the thaw requests linked list traversal.
      * @param _thawRequestId The ID of the thaw request to delete
      */
     function _deleteThawRequest(bytes32 _thawRequestId) private {

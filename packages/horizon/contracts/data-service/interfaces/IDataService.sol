@@ -5,18 +5,13 @@ import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 /**
  * @title Interface of the base {DataService} contract as defined by the Graph Horizon specification.
- * @dev This interface provides a guardrail for data service implementations that utilize Graph Horizon. 
+ * @notice This interface provides a guardrail for data service implementations that utilize Graph Horizon. 
  * It's expected that implementations follow the specification however much of it is intentionally loose 
  * to allow for greater flexibility when designing a data service. For specifics always check the data 
  * service implementation.
  
  * In general, this is a great starting point for data services that want to use Graph Horizon
- * to provide economic security for a service being provided. It assumes two main forms of retribution for
- * service providers:
- * - service payment, to compensate ongoing work required to serve customers requests
- * - service fees, earnt by serving customer requests, ideally leveraging {GraphPayments} to collect fees from the payer
- *
- * TIP: TODO: link to data service framework documentation
+ * to provide economic security for a service being provided. 
  */
 interface IDataService {
     /**

@@ -284,6 +284,7 @@ abstract contract HorizonStakingBase is
 
     /**
      * @notice Gets the next thaw request after `_thawRequestId`.
+     * @dev This function is used as a callback in the thaw requests linked list traversal.
      */
     function _getNextThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
         return _thawRequests[_thawRequestId].next;
