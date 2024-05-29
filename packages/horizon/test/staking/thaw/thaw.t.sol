@@ -41,8 +41,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         assertEq(thawRequest.next, thawRequestId2);
 
         ThawRequest memory thawRequest2 = staking.getThawRequest(thawRequestId2);
-        uint256 totalThawAmount = thawAmount + thawAmount2;
-        assertEq(thawRequest2.shares, (thawRequest.shares * thawAmount2) / totalThawAmount);
+        assertEq(thawRequest2.shares, thawAmount2);
         assertEq(thawRequest2.thawingUntil, block.timestamp + thawingPeriod);
     }
 

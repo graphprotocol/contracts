@@ -7,16 +7,44 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingDeprovisionTest is HorizonStakingTest {
 
-    function testDeprovision_Tokens(
+    function testDeprovision_AllRequests(
         uint256 amount,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useThawRequest(amount) {
         skip(thawingPeriod + 1);
 
-        _deprovision(amount);
+        // nThawRequests == 0 removes all thaw requests
+        _deprovision(0);
         uint256 idleStake = staking.getIdleStake(users.indexer);
         assertEq(idleStake, amount);
+    }
+
+    function testDeprovision_FirstRequestOnly(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 thawAmount
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        thawAmount = bound(thawAmount, MIN_DELEGATION, amount);
+        uint256 thawAmount1 = thawAmount / 2;
+        bytes32 thawRequestId = _createThawRequest(thawAmount1);
+        bytes32 thawRequestId2 = _createThawRequest(thawAmount - thawAmount1);
+        skip(thawingPeriod + 1);
+
+        console.log("thawAmount1: ", thawAmount1);
+        console.log("thawAmount2: ", thawAmount - thawAmount1);
+
+        ThawRequest memory thawRequest1 = staking.getThawRequest(thawRequestId);
+        ThawRequest memory thawRequest2 = staking.getThawRequest(thawRequestId2);
+        console.log("Thaw request 1 shares: ", thawRequest1.shares);
+        console.log("Thaw request 2 shares: ", thawRequest2.shares);
+
+        console.log("Idle stake before deprovision: ", staking.getIdleStake(users.indexer));
+        _deprovision(1);
+        uint256 idleStake = staking.getIdleStake(users.indexer);
+        console.log("Idle stake after deprovision: ", idleStake);
+        assertEq(idleStake, thawAmount1);
     }
 
     function testDeprovision_OperatorMovingTokens(
@@ -26,7 +54,7 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
     ) public useOperator useProvision(amount, maxVerifierCut, thawingPeriod) useThawRequest(amount) {
         skip(thawingPeriod + 1);
 
-        _deprovision(amount);
+        _deprovision(0);
         uint256 idleStake = staking.getIdleStake(users.indexer);
         assertEq(idleStake, amount);
     }
@@ -44,54 +72,26 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
             subgraphDataServiceAddress
         );
         vm.expectRevert(expectedError);
-        _deprovision(amount);
-    }
-
-    function testDeprovision_RevertWhen_ZeroTokens(
-        uint256 amount,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
-    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useThawRequest(amount) {
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroTokens()");
-        vm.expectRevert(expectedError);
         _deprovision(0);
     }
-
     function testDeprovision_RevertWhen_NoThawingTokens(
         uint256 amount,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingCannotFulfillThawRequest()");
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingThawing()");
         vm.expectRevert(expectedError);
-        _deprovision(amount);
+        _deprovision(0);
     }
 
-    function testDeprovision_RevertWhen_StillThawing(
+    function testDeprovision_StillThawing(
         uint256 amount,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useThawRequest(amount) {
         vm.assume(thawingPeriod > 0);
-        bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingStillThawing(uint256)",
-            block.timestamp + thawingPeriod
-        );
-        vm.expectRevert(expectedError);
-        _deprovision(amount);
-    }
-
-    function testDeprovision_RevertWhen_NotEnoughThawedTokens(
-        uint256 amount,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod,
-        uint256 deprovisionAmount
-    ) public  useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        vm.assume(deprovisionAmount > amount);
-        skip(thawingPeriod + 1);
-
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingCannotFulfillThawRequest()");
-        vm.expectRevert(expectedError);
-        _deprovision(deprovisionAmount);
+        _deprovision(0);
+        uint256 idleStake = staking.getIdleStake(users.indexer);
+        assertEq(idleStake, 0);
     }
 }
