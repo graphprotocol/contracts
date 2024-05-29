@@ -365,7 +365,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     ) external override notPaused {
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
-        require(prov.tokens >= tokens, HorizonStakingInsufficientTokens(prov.tokens, tokens));
+        DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+        uint256 tokensProvisionTotal = prov.tokens + pool.tokens;
+        require(tokensProvisionTotal >= tokens, HorizonStakingInsufficientTokens(prov.tokens, tokens));
 
         uint256 tokensToSlash = tokens;
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
@@ -397,7 +399,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         tokensToSlash = tokensToSlash - providerTokensSlashed;
         if (tokensToSlash > 0) {
-            DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
             if (_delegationSlashingEnabled) {
                 require(pool.tokens >= tokensToSlash, HorizonStakingNotEnoughDelegation(pool.tokens, tokensToSlash));
                 _graphToken().burnTokens(tokensToSlash);
