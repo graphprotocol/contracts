@@ -1221,6 +1221,25 @@
       "creationCodeHash": "0x20cd202f7991716a84c097da5fbd365fd27f7f35f241f82c529ad7aba18b814b",
       "runtimeCodeHash": "0x5f396ffd54b6cd6b3faded0f366c5d7e148cc54743926061be2dfd12a75391de",
       "txHash": "0x2cefbc169b8ae51c263d0298956d86a397b05f11f076b71c918551f63fe33784"
+    },
+    "SubgraphAvailabilityManager": {
+      "address": "0xf1B210a878B67A3A6787F24cfEF156611A433CeB",
+      "constructorArgs": [
+        "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
+        "0x00b9d319E3D09E83c62f453B44354049Dd93a345",
+        "3",
+        "300",
+        [
+          "0xb4d396a40BB976118Bb2c9DB9C5539e65c7Fe64A",
+          "0x633259dB4A33DB664d4C3Fa57BEc45E5030131E2",
+          "0x9FC436A69E290227b99A9CE0468a1b9D73068E80",
+          "0xC9b90ab0B9cA63fDBfB46f66BE813ea94561614d",
+          "0xf3B8F917EcFA569089CF6A0988F9a9F5155cEF83"
+        ]
+      ],
+      "creationCodeHash": "0xc34842fa42ee2f21e3a435b52fa69a122a5de795448faa890fbc63d4838f45da",
+      "runtimeCodeHash": "0xe6c0ccd0b0514dd55e58806b1c84f09805dd6202985722579c11d7e252df6b8d",
+      "txHash": "0xd1df6d74c89a29a8dac647b7d068a8be65a6b022ac7df80be0b7bcb12be60e25"
     }
   },
   "11155111": {

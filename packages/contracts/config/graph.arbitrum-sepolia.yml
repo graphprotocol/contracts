@@ -3,11 +3,11 @@ general:
   governor: &governor "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3" # EOA (TODO: update to a multisig)
   authority: &authority "0x49D4CFC037430cA9355B422bAeA7E9391e1d3215" # Authority that signs payment vouchers
   availabilityOracles: &availabilityOracles # Array of Subgraph Availability Oracles
-    - "0xb4d396a40BB976118Bb2c9DB9C5539e65c7Fe64A"
-    - "0x633259dB4A33DB664d4C3Fa57BEc45E5030131E2"
-    - "0x9FC436A69E290227b99A9CE0468a1b9D73068E80"
-    - "0xC9b90ab0B9cA63fDBfB46f66BE813ea94561614d"
-    - "0xf3B8F917EcFA569089CF6A0988F9a9F5155cEF83"
+    - "0x5e4e823Ed094c035133eEC5Ec0d08ae1Af04e9Fa"
+    - "0x5aeE4c46cF9260E85E630ca7d9D757D5D5DbaFD6"
+    - "0x7369Cf2a917296c36f506144f3dE552403d1e1f1"
+    - "0x1e1f84c07e0471fc979f6f08228b0bd34cda9e54"
+    - "0x711aEA1f358DFAf74D34B4B525F9190e631F406C"
   pauseGuardian: &pauseGuardian "0xa0444508232dA3FA6C2f96a5f105f3f0cc0d20D7" # Protocol pause guardian
   allocationExchangeOwner: &allocationExchangeOwner "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3" # Allocation Exchange owner
 
