@@ -10,29 +10,40 @@ import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
 
+/**
+ * @title PaymentsEscrow contract
+ * @dev Implements the {IPaymentsEscrow} interface
+ * @notice This contract is part of the Graph Horizon payments protocol. It holds the funds (GRT)
+ * for payments made through the payments protocol for services provided
+ * via a Graph Horizon data service.
+ */
 contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
 
-    // Authorized collectors
-    mapping(address sender => mapping(address dataService => IPaymentsEscrow.Collector collector))
+    /// @notice Authorization details for payer-collector pairs
+    mapping(address payer => mapping(address collector => IPaymentsEscrow.Collector collectorDetails))
         public authorizedCollectors;
 
-    // Stores how much escrow each sender has deposited for each receiver, as well as thawing information
-    mapping(address sender => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount))
+    /// @notice Escrow account details for payer-receiver pairs
+    mapping(address payer => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount))
         public escrowAccounts;
 
-    // The maximum thawing period (in seconds) for both escrow withdrawal and signer revocation
-    // This is a precautionary measure to avoid inadvertedly locking funds for too long
+    /// @notice The maximum thawing period (in seconds) for both escrow withdrawal and signer revocation
+    /// @dev This is a precautionary measure to avoid inadvertedly locking funds for too long
     uint256 public constant MAX_THAWING_PERIOD = 90 days;
 
-    // Thawing period for authorized collectors
+    /// @notice Thawing period in seconds for authorized collectors
     uint256 public immutable REVOKE_COLLECTOR_THAWING_PERIOD;
 
-    // The duration (in seconds) in which escrow funds are thawing before they can be withdrawn
+    /// @notice Thawing period in seconds for escrow funds withdrawal
     uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
 
-    // -- Constructor --
-
+    /**
+     * @notice Construct the PaymentsEscrow contract
+     * @param controller The address of the controller
+     * @param revokeCollectorThawingPeriod Thawing period in seconds for authorized collectors
+     * @param withdrawEscrowThawingPeriod Thawing period in seconds for escrow funds withdrawal
+     */
     constructor(
         address controller,
         uint256 revokeCollectorThawingPeriod,
@@ -51,35 +62,43 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
     }
 
-    // approve a data service to collect funds
-    function approveCollector(address dataService, uint256 tokens) external override {
-        Collector storage collector = authorizedCollectors[msg.sender][dataService];
-        require(tokens > collector.allowance, PaymentsEscrowInconsistentAllowance(collector.allowance, tokens));
+    /**
+     * @notice See {IPaymentsEscrow-approveCollector}
+     */
+    function approveCollector(address collector_, uint256 allowance) external override {
+        Collector storage collector = authorizedCollectors[msg.sender][collector_];
+        require(allowance > collector.allowance, PaymentsEscrowInconsistentAllowance(collector.allowance, allowance));
 
         collector.authorized = true;
-        collector.allowance = tokens;
-        emit AuthorizedCollector(msg.sender, dataService);
+        collector.allowance = allowance;
+        emit AuthorizedCollector(msg.sender, collector_);
     }
 
-    // thaw a data service's collector authorization
-    function thawCollector(address dataService) external override {
-        authorizedCollectors[msg.sender][dataService].thawEndTimestamp =
+    /**
+     * @notice See {IPaymentsEscrow-thawCollector}
+     */
+    function thawCollector(address collector) external override {
+        authorizedCollectors[msg.sender][collector].thawEndTimestamp =
             block.timestamp +
             REVOKE_COLLECTOR_THAWING_PERIOD;
-        emit ThawCollector(msg.sender, dataService);
+        emit ThawCollector(msg.sender, collector);
     }
 
-    // cancel thawing a data service's collector authorization
-    function cancelThawCollector(address dataService) external override {
-        require(authorizedCollectors[msg.sender][dataService].thawEndTimestamp != 0, PaymentsEscrowNotThawing());
+    /**
+     * @notice See {IPaymentsEscrow-cancelThawCollector}
+     */
+    function cancelThawCollector(address collector) external override {
+        require(authorizedCollectors[msg.sender][collector].thawEndTimestamp != 0, PaymentsEscrowNotThawing());
 
-        authorizedCollectors[msg.sender][dataService].thawEndTimestamp = 0;
-        emit CancelThawCollector(msg.sender, dataService);
+        authorizedCollectors[msg.sender][collector].thawEndTimestamp = 0;
+        emit CancelThawCollector(msg.sender, collector);
     }
 
-    // revoke authorized collector
-    function revokeCollector(address dataService) external override {
-        Collector storage collector = authorizedCollectors[msg.sender][dataService];
+    /**
+     * @notice See {IPaymentsEscrow-revokeCollector}
+     */
+    function revokeCollector(address collector_) external override {
+        Collector storage collector = authorizedCollectors[msg.sender][collector_];
 
         require(collector.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
         require(
@@ -87,43 +106,52 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
             PaymentsEscrowStillThawing(block.timestamp, collector.thawEndTimestamp)
         );
 
-        delete authorizedCollectors[msg.sender][dataService];
-        emit RevokeCollector(msg.sender, dataService);
+        delete authorizedCollectors[msg.sender][collector_];
+        emit RevokeCollector(msg.sender, collector_);
     }
 
-    // Deposit funds into the escrow for a receiver
+    /**
+     * @notice See {IPaymentsEscrow-deposit}
+     */
     function deposit(address receiver, uint256 tokens) external override {
-        escrowAccounts[msg.sender][receiver].balance += tokens;
-        _graphToken().pullTokens(msg.sender, tokens);
-        emit Deposit(msg.sender, receiver, tokens);
+        _deposit(msg.sender, receiver, tokens);
     }
 
-    // Requests to thaw a specific amount of escrow from a receiver's escrow account
+    /**
+     * @notice See {IPaymentsEscrow-depositTo}
+     */
+    function depositTo(address payer, address receiver, uint256 tokens) external override {
+        _deposit(payer, receiver, tokens);
+    }
+
+    /**
+     * @notice See {IPaymentsEscrow-thaw}
+     */
     function thaw(address receiver, uint256 tokens) external override {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
+
+        // if amount thawing is zero and requested amount is zero this is an invalid request.
+        // otherwise if amount thawing is greater than zero and requested amount is zero this
+        // is a cancel thaw request.
         if (tokens == 0) {
-            // if amount thawing is zero and requested amount is zero this is an invalid request.
-            // otherwise if amount thawing is greater than zero and requested amount is zero this
-            // is a cancel thaw request.
-            require(account.tokensThawing != 0, PaymentsEscrowInsufficientTokensThawing());
+            require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
             account.tokensThawing = 0;
             account.thawEndTimestamp = 0;
             emit CancelThaw(msg.sender, receiver);
             return;
         }
 
-        // Check if the escrow balance is sufficient
         require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
-        // Set amount to thaw
         account.tokensThawing = tokens;
-        // Set when the thaw is complete (thawing period number of seconds after current timestamp)
         account.thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
 
         emit Thaw(msg.sender, receiver, tokens, account.tokensThawing, account.thawEndTimestamp);
     }
 
-    // Withdraws all thawed escrow from a receiver's escrow account
+    /**
+     * @notice See {IPaymentsEscrow-withdraw}
+     */
     function withdraw(address receiver) external override {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
         require(account.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
@@ -135,14 +163,16 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         // Amount is the minimum between the amount being thawed and the actual balance
         uint256 tokens = account.tokensThawing > account.balance ? account.balance : account.tokensThawing;
 
-        account.balance -= tokens; // Reduce the balance by the withdrawn amount (no underflow risk)
+        account.balance -= tokens;
         account.tokensThawing = 0;
         account.thawEndTimestamp = 0;
         _graphToken().pushTokens(msg.sender, tokens);
         emit Withdraw(msg.sender, receiver, tokens);
     }
 
-    // Collect from escrow for a receiver using sender's deposit
+    /**
+     * @notice See {IPaymentsEscrow-collect}
+     */
     function collect(
         IGraphPayments.PaymentTypes paymentType,
         address payer,
@@ -156,17 +186,14 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         require(collector.authorized, PaymentsEscrowCollectorNotAuthorized(payer, msg.sender));
         require(collector.allowance >= tokens, PaymentsEscrowInsufficientAllowance(collector.allowance, tokens));
 
-        // Reduce amount from approved collector
-        collector.allowance -= tokens;
-
-        // Collect tokens from PaymentsEscrow up to amount available
+        // Check if there are enough funds in the escrow account
         EscrowAccount storage account = escrowAccounts[payer][receiver];
-        uint256 availableTokens = account.balance - account.tokensThawing;
-        require(availableTokens >= tokens, PaymentsEscrowInsufficientBalance(availableTokens, tokens));
+        require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
+        // Reduce amount from approved collector and account balance
+        collector.allowance -= tokens;
         account.balance -= tokens;
 
-        // Approve tokens so GraphPayments can pull them
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
 
         _graphToken().approve(address(_graphPayments()), tokens);
@@ -181,9 +208,22 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         emit EscrowCollected(payer, receiver, tokens);
     }
 
-    // Get the balance of a sender-receiver pair
+    /**
+     * @notice See {IPaymentsEscrow-getBalance}
+     */
     function getBalance(address payer, address receiver) external view override returns (uint256) {
         EscrowAccount storage account = escrowAccounts[payer][receiver];
         return account.balance - account.tokensThawing;
+    }
+
+    /**
+     * @notice See {IPaymentsEscrow-deposit}
+     * @param receiver The address of the receiver
+     * @param tokens The amount of tokens to deposit
+     */
+    function _deposit(address payer, address receiver, uint256 tokens) internal {
+        escrowAccounts[payer][receiver].balance += tokens;
+        _graphToken().pullTokens(msg.sender, tokens);
+        emit Deposit(payer, receiver, tokens);
     }
 }

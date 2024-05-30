@@ -11,21 +11,39 @@ import { PPMMath } from "../libraries/PPMMath.sol";
 
 import { GraphDirectory } from "../data-service/GraphDirectory.sol";
 
+/**
+ * @title GraphPayments contract
+ * @notice This contract is part of the Graph Horizon payments protocol. It's designed
+ * to pull funds (GRT) from the {PaymentsEscrow} and distribute them according to a
+ * set of pre established rules.
+ */
 contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, IGraphPayments {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
     uint256 public immutable PROTOCOL_PAYMENT_CUT;
 
+    /**
+     * @notice Constructor for the {GraphPayments} contract
+     * @dev This contract is upgradeable however we stil use the constructor to set
+     * a few immutable variables.
+     * @param controller The address of the Graph controller
+     * @param protocolPaymentCut The protocol tax in PPM
+     */
     constructor(address controller, uint256 protocolPaymentCut) GraphDirectory(controller) {
         PROTOCOL_PAYMENT_CUT = protocolPaymentCut;
         _disableInitializers();
     }
 
+    /**
+     * @notice See {IGraphPayments-initialize}
+     */
     function initialize() external initializer {
         __Multicall_init();
     }
 
-    // collect funds from a sender, pay cuts and forward the rest to the receiver
+    /**
+     * @notice See {IGraphPayments-collect}
+     */
     function collect(
         IGraphPayments.PaymentTypes paymentType,
         address receiver,
@@ -57,7 +75,7 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
         uint256 tokensReceiverRemaining = tokens - totalCut;
         _graphToken().pushTokens(receiver, tokensReceiverRemaining);
 
-        emit GraphPaymentsCollected(
+        emit PaymentCollected(
             msg.sender,
             receiver,
             dataService,
