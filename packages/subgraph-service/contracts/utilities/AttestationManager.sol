@@ -4,9 +4,10 @@ pragma solidity 0.8.26;
 import { AttestationManagerV1Storage } from "./AttestationManagerStorage.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { Attestation } from "../libraries/Attestation.sol";
 
-abstract contract AttestationManager is AttestationManagerV1Storage {
+abstract contract AttestationManager is Initializable, AttestationManagerV1Storage {
     bytes32 private constant RECEIPT_TYPE_HASH =
         keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
 
@@ -16,11 +17,11 @@ abstract contract AttestationManager is AttestationManagerV1Storage {
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
 
-    function __AttestationManager_init() internal {
+    function __AttestationManager_init() internal onlyInitializing {
         __AttestationManager_init_unchained();
     }
 
-    function __AttestationManager_init_unchained() internal {
+    function __AttestationManager_init_unchained() internal onlyInitializing {
         _domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_TYPE_HASH,

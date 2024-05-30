@@ -62,6 +62,7 @@ contract SubgraphService is
 
     function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external override initializer {
         __Ownable_init(msg.sender);
+        __DataService_init();
         __DataServicePausable_init();
         __AllocationManager_init("SubgraphService", "1.0");
 

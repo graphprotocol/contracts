@@ -81,12 +81,12 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     error AllocationManagerAllocationSameSize(address allocationId, uint256 tokens);
     error AllocationManagerInvalidZeroPOI();
 
-    function __AllocationManager_init(string memory name, string memory version) internal {
+    function __AllocationManager_init(string memory name, string memory version) internal onlyInitializing {
         __EIP712_init(name, version);
         __AllocationManager_init_unchained(name, version);
     }
 
-    function __AllocationManager_init_unchained(string memory name, string memory version) internal {}
+    function __AllocationManager_init_unchained(string memory name, string memory version) internal onlyInitializing {}
 
     function setRewardsDestination(address rewardsDestination) external {
         _setRewardsDestination(msg.sender, rewardsDestination);

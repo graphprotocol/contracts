@@ -5,6 +5,9 @@ import { IDataServiceFees } from "../interfaces/IDataServiceFees.sol";
 
 import { LinkedList } from "../../libraries/LinkedList.sol";
 
+/**
+ * @title Storage layout for the {DataServiceFees} extension contract.
+ */
 abstract contract DataServiceFeesV1Storage {
     mapping(address serviceProvider => uint256 tokens) public feesProvisionTracker;
 

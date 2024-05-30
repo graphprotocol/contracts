@@ -10,10 +10,10 @@ import { DataService } from "../DataService.sol";
 import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 
 /**
- * @title DataServiceFees
- * @notice Adds functionality to the {IDataService} contract to handle payment collateralization
- * using a Horizon provision. See {IDataServiceFees} for more details.
+ * @title DataServiceFees contract
  * @dev Implementation of the {IDataServiceFees} interface.
+ * @notice Extension for the {IDataService} contract to handle payment collateralization
+ * using a Horizon provision. See {IDataServiceFees} for more details.
  */
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);

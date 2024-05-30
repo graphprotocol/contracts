@@ -4,8 +4,8 @@ pragma solidity 0.8.26;
 import { IDataService } from "./IDataService.sol";
 
 /**
- * @title Interface for the {IDataServiceFees} contract.
- * @notice Adds functionality to the {IDataService} contract to handle payment collateralization
+ * @title Interface for the {DataServiceFees} contract.
+ * @notice Extension for the {IDataService} contract to handle payment collateralization
  * using a Horizon provision.
  *
  * It's designed to be used with the Data Service framework:
