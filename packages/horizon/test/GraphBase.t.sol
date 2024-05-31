@@ -67,7 +67,7 @@ abstract contract GraphBaseTest is Test, Constants {
         vm.label({ account: address(controller), newLabel: "Controller" });
         vm.label({ account: address(token), newLabel: "GraphToken" });
         vm.label({ account: address(payments), newLabel: "GraphPayments" });
-        vm.label({ account: address(escrow), newLabel: "GraphEscrow" });
+        vm.label({ account: address(escrow), newLabel: "PaymentsEscrow" });
         vm.label({ account: address(staking), newLabel: "HorizonStaking" });
         vm.label({ account: address(stakingExtension), newLabel: "HorizonStakingExtension" });
     }
@@ -97,7 +97,7 @@ abstract contract GraphBaseTest is Test, Constants {
         // GraphEscrow predict address
         bytes32 saltEscrow = keccak256("GraphEscrowSalt");
         bytes32 escrowHash = keccak256(bytes.concat(
-            vm.getCode("GraphEscrow.sol:GraphEscrow"),
+            vm.getCode("PaymentsEscrow.sol:PaymentsEscrow"),
             abi.encode(
                 address(controller),
                 revokeCollectorThawingPeriod,
