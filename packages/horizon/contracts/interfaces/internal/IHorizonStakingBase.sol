@@ -167,4 +167,16 @@ interface IHorizonStakingBase {
      * @notice Gets the maximum allowed thawing period for a provision.
      */
     function getMaxThawingPeriod() external view returns (uint64);
+
+    /**
+     * @notice Return true if the verifier is an allowed locked verifier.
+     * @param verifier Address of the verifier
+     * @return True if verifier is allowed locked verifier, false otherwise
+     */
+    function isAllowedLockedVerifier(address verifier) external view returns (bool);
+
+    /**
+     * @notice Return true if delegation slashing is enabled, false otherwise.
+     */
+    function isDelegationSlashingEnabled() external view returns (bool);
 }
