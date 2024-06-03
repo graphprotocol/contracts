@@ -49,7 +49,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         vm.assume(overDelegationShares > delegation.shares);
 
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInvalidSharesAmount(uint256,uint256)",
+            "HorizonStakingInsufficientShares(uint256,uint256)",
             delegation.shares,
             overDelegationShares
         );
