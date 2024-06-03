@@ -218,12 +218,13 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
 
     /**
      * @notice See {IPaymentsEscrow-deposit}
-     * @param receiver The address of the receiver
-     * @param tokens The amount of tokens to deposit
+     * @param _payer The address of the payer
+     * @param _receiver The address of the receiver
+     * @param _tokens The amount of tokens to deposit
      */
-    function _deposit(address payer, address receiver, uint256 tokens) internal {
-        escrowAccounts[payer][receiver].balance += tokens;
-        _graphToken().pullTokens(msg.sender, tokens);
-        emit Deposit(payer, receiver, tokens);
+    function _deposit(address _payer, address _receiver, uint256 _tokens) internal {
+        escrowAccounts[_payer][_receiver].balance += _tokens;
+        _graphToken().pullTokens(msg.sender, _tokens);
+        emit Deposit(_payer, _receiver, _tokens);
     }
 }

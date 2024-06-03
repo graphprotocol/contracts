@@ -135,6 +135,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     /**
      * @notice Initializes the contract and any parent contracts.
      */
+    // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init() internal onlyInitializing {
         __ProvisionManager_init_unchained();
     }
@@ -143,6 +144,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @notice Initializes the contract.
      * @dev All parameters set to their entire range as valid.
      */
+    // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init_unchained() internal onlyInitializing {
         _setProvisionTokensRange(type(uint256).min, type(uint256).max);
         _setDelegationRatioRange(type(uint32).min, type(uint32).max);
@@ -162,6 +164,52 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     function _acceptProvisionParameters(address _serviceProvider) internal virtual {
         _checkProvisionParameters(_serviceProvider, true);
         _graphStaking().acceptProvisionParameters(_serviceProvider);
+    }
+
+    // -- setters --
+
+    /**
+     * @notice Sets the range for the provision tokens.
+     * @param _min The minimum allowed value for the provision tokens.
+     * @param _max The maximum allowed value for the provision tokens.
+     */
+    function _setProvisionTokensRange(uint256 _min, uint256 _max) internal {
+        minimumProvisionTokens = _min;
+        maximumProvisionTokens = _max;
+        emit ProvisionTokensRangeSet(_min, _max);
+    }
+
+    /**
+     * @notice Sets the range for the delegation ratio.
+     * @param _min The minimum allowed value for the delegation ratio.
+     * @param _max The maximum allowed value for the delegation ratio.
+     */
+    function _setDelegationRatioRange(uint32 _min, uint32 _max) internal {
+        minimumDelegationRatio = _min;
+        maximumDelegationRatio = _max;
+        emit DelegationRatioRangeSet(_min, _max);
+    }
+
+    /**
+     * @notice Sets the range for the verifier cut.
+     * @param _min The minimum allowed value for the max verifier cut.
+     * @param _max The maximum allowed value for the max verifier cut.
+     */
+    function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
+        minimumVerifierCut = _min;
+        maximumVerifierCut = _max;
+        emit VerifierCutRangeSet(_min, _max);
+    }
+
+    /**
+     * @notice Sets the range for the thawing period.
+     * @param _min The minimum allowed value for the thawing period.
+     * @param _max The maximum allowed value for the thawing period.
+     */
+    function _setThawingPeriodRange(uint64 _min, uint64 _max) internal {
+        minimumThawingPeriod = _min;
+        maximumThawingPeriod = _max;
+        emit ThawingPeriodRangeSet(_min, _max);
     }
 
     // -- checks --
@@ -239,52 +287,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
             uint32 maxVerifierCutToCheck = _checkPending ? _provision.maxVerifierCutPending : _provision.maxVerifierCut;
             _checkValueInRange(maxVerifierCutToCheck, verifierCutMin, verifierCutMax, "maxVerifierCut");
         }
-    }
-
-    // -- setters --
-
-    /**
-     * @notice Sets the range for the provision tokens.
-     * @param _min The minimum allowed value for the provision tokens.
-     * @param _max The maximum allowed value for the provision tokens.
-     */
-    function _setProvisionTokensRange(uint256 _min, uint256 _max) internal {
-        minimumProvisionTokens = _min;
-        maximumProvisionTokens = _max;
-        emit ProvisionTokensRangeSet(_min, _max);
-    }
-
-    /**
-     * @notice Sets the range for the delegation ratio.
-     * @param _min The minimum allowed value for the delegation ratio.
-     * @param _max The maximum allowed value for the delegation ratio.
-     */
-    function _setDelegationRatioRange(uint32 _min, uint32 _max) internal {
-        minimumDelegationRatio = _min;
-        maximumDelegationRatio = _max;
-        emit DelegationRatioRangeSet(_min, _max);
-    }
-
-    /**
-     * @notice Sets the range for the verifier cut.
-     * @param _min The minimum allowed value for the max verifier cut.
-     * @param _max The maximum allowed value for the max verifier cut.
-     */
-    function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
-        minimumVerifierCut = _min;
-        maximumVerifierCut = _max;
-        emit VerifierCutRangeSet(_min, _max);
-    }
-
-    /**
-     * @notice Sets the range for the thawing period.
-     * @param _min The minimum allowed value for the thawing period.
-     * @param _max The maximum allowed value for the thawing period.
-     */
-    function _setThawingPeriodRange(uint64 _min, uint64 _max) internal {
-        minimumThawingPeriod = _min;
-        maximumThawingPeriod = _max;
-        emit ThawingPeriodRangeSet(_min, _max);
     }
 
     // -- getters --

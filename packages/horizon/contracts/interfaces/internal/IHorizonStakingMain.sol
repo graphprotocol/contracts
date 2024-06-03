@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.26;
 
-import { IHorizonStakingBase } from "./IHorizonStakingBase.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 
 /**

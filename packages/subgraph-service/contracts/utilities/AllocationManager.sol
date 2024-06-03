@@ -149,15 +149,20 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Initializes the contract and parent contracts
      */
-    function __AllocationManager_init(string memory name, string memory version) internal onlyInitializing {
-        __EIP712_init(name, version);
-        __AllocationManager_init_unchained(name, version);
+    // solhint-disable-next-line func-name-mixedcase
+    function __AllocationManager_init(string memory _name, string memory _version) internal onlyInitializing {
+        __EIP712_init(_name, _version);
+        __AllocationManager_init_unchained(_name, _version);
     }
 
     /**
      * @notice Initializes the contract
      */
-    function __AllocationManager_init_unchained(string memory name, string memory version) internal onlyInitializing {}
+    // solhint-disable-next-line func-name-mixedcase
+    function __AllocationManager_init_unchained(
+        string memory _name,
+        string memory _version
+    ) internal onlyInitializing {}
 
     /**
      * @notice Imports a legacy allocation id into the subgraph service

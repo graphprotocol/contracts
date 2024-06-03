@@ -20,7 +20,7 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
     /// @notice EIP712 domain type hash
     bytes32 private constant DOMAIN_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
-    
+
     /// @notice EIP712 domain name
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
 
@@ -33,6 +33,7 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
     /**
      * @dev Initialize the AttestationManager contract and parent contracts
      */
+    // solhint-disable-next-line func-name-mixedcase
     function __AttestationManager_init() internal onlyInitializing {
         __AttestationManager_init_unchained();
     }
@@ -40,6 +41,7 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
     /**
      * @dev Initialize the AttestationManager contract
      */
+    // solhint-disable-next-line func-name-mixedcase
     function __AttestationManager_init_unchained() internal onlyInitializing {
         _domainSeparator = keccak256(
             abi.encode(

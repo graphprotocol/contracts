@@ -560,15 +560,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-withdraw}.
      * @param _serviceProvider Address of service provider to withdraw funds from
-     * @param revertIfThawing If true, the function will revert if the tokens are still thawing
+     * @param _revertIfThawing If true, the function will revert if the tokens are still thawing
      */
-    function _withdraw(address _serviceProvider, bool revertIfThawing) private {
+    function _withdraw(address _serviceProvider, bool _revertIfThawing) private {
         // Get tokens available for withdraw and update balance
         ServiceProviderInternal storage sp = _serviceProviders[_serviceProvider];
         uint256 tokensToWithdraw = sp.__DEPRECATED_tokensLocked;
         require(tokensToWithdraw != 0, HorizonStakingInvalidZeroTokens());
 
-        if (revertIfThawing) {
+        if (_revertIfThawing) {
             require(
                 block.timestamp >= sp.__DEPRECATED_tokensLockedUntil,
                 HorizonStakingStillThawing(sp.__DEPRECATED_tokensLockedUntil)

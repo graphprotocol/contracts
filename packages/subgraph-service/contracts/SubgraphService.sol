@@ -231,11 +231,11 @@ contract SubgraphService is
      * Reverts if the payment type is not supported.
      * @dev This function is the equivalent of the `collect` function for query fees and the `closeAllocation` function
      * for indexing rewards in the legacy Staking contract.
-     * 
+     *
      * Requirements:
      * - The indexer must be registered
      * - The provision must be valid according to the subgraph service rules
-     * 
+     *
      * Emits a {ServicePaymentCollected} event. Emits payment type specific events.
      *
      * For query fees, see {SubgraphService-_collectQueryFees} for more details.
@@ -349,11 +349,11 @@ contract SubgraphService is
     /**
      * @notice Get allocation data to calculate rewards issuance
      * @dev Implements {IRewardsIssuer.getAllocationData}
-     * @dev Note that this is slightly different than {getAllocation}. It returns an 
+     * @dev Note that this is slightly different than {getAllocation}. It returns an
      * unstructured subset of the allocation data, which is the minimum required to mint rewards.
-     * 
+     *
      * Should only be used by the {RewardsManager}.
-     * 
+     *
      * @param allocationId The allocation Id
      * @return indexer The indexer address
      * @return subgraphDeploymentId Subgraph deployment id for the allocation

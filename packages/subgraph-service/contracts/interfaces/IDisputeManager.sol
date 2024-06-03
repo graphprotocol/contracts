@@ -5,7 +5,6 @@ pragma solidity 0.8.26;
 import { Attestation } from "../libraries/Attestation.sol";
 
 interface IDisputeManager {
-
     /// @notice Types of disputes that can be created
     enum DisputeType {
         Null,
@@ -58,7 +57,7 @@ interface IDisputeManager {
      * @param minimumDeposit The minimum deposit required to create a dispute.
      */
     event MinimumDepositSet(uint256 minimumDeposit);
-    
+
     /**
      * @notice Emitted when max slashing cut is set.
      * @param maxSlashingCut The maximum slashing cut that can be set.
@@ -70,7 +69,7 @@ interface IDisputeManager {
      * @param fishermanRewardCut The fisherman reward cut.
      */
     event FishermanRewardCutSet(uint32 fishermanRewardCut);
-    
+
     /**
      * @notice Emitted when subgraph service is set.
      * @param subgraphService The address of the subgraph service.
@@ -204,6 +203,8 @@ interface IDisputeManager {
 
     function cancelDispute(bytes32 disputeId) external;
 
+    function setSubgraphService(address subgraphService) external;
+
     // -- Getters --
 
     function getVerifierCut() external view returns (uint32);
@@ -220,6 +221,4 @@ interface IDisputeManager {
         Attestation.State memory attestation1,
         Attestation.State memory attestation2
     ) external pure returns (bool);
-
-    function setSubgraphService(address subgraphService) external;
 }
