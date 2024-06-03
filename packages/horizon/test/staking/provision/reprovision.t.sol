@@ -106,7 +106,11 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
 
         _createProvision(newDataService, MIN_PROVISION_SIZE, 0, thawingPeriod);
 
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientCapacity()");
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInsufficientIdleStake(uint256,uint256)",
+            provisionAmount,
+            0
+        );
         vm.expectRevert(expectedError);
         _reprovision(provisionAmount, 0);
     }

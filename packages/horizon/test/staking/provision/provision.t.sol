@@ -19,7 +19,7 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
     function testProvision_RevertWhen_InsufficientTokens(uint256 amount) public useIndexer useStake(1000 ether) {
         amount = bound(amount, 0, MIN_PROVISION_SIZE - 1);
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInvalidTokens(uint256,uint256)",
+            "HorizonStakingInsufficientTokens(uint256,uint256)",
             amount,
             MIN_PROVISION_SIZE
         );
@@ -63,7 +63,11 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
     ) public useIndexer useStake(amount) {
         vm.assume(amount > MIN_PROVISION_SIZE);
         vm.assume(provisionTokens > amount);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientCapacity()");
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInsufficientIdleStake(uint256,uint256)",
+            provisionTokens,
+            amount
+        );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, provisionTokens, 0, 0);
     }

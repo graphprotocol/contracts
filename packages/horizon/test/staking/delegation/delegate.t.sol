@@ -32,9 +32,9 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         delegationAmount = bound(delegationAmount, 1, MIN_DELEGATION - 1);
         token.approve(address(staking), delegationAmount);
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInsufficientTokens(uint256,uint256)", 
-            MIN_DELEGATION, 
-            delegationAmount
+            "HorizonStakingInsufficientTokens(uint256,uint256)",
+            delegationAmount,
+            MIN_DELEGATION
         );
         vm.expectRevert(expectedError);
         staking.delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);

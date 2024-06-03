@@ -50,7 +50,11 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         useIndexer
         useProvision(amount, maxVerifierCut, thawingPeriod)
     {
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientCapacity()");
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInsufficientIdleStake(uint256,uint256)",
+            amount,
+            0
+        );
         vm.expectRevert(expectedError);
         staking.unstake(amount);
     }
@@ -67,7 +71,11 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
     {
         skip(thawingPeriod + 1);
 
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientCapacity()");
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInsufficientIdleStake(uint256,uint256)",
+            amount,
+            0
+        );
         vm.expectRevert(expectedError);
         staking.unstake(amount);
     }
