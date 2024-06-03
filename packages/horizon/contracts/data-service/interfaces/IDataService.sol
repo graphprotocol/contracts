@@ -68,8 +68,7 @@ interface IDataService {
      * @dev Before registering, the service provider must have created a provision in the
      * Graph Horizon staking contract with parameters that are compatible with the data service.
      *
-     * Verifies the provision parameters and marks it as accepted it in the Graph Horizon
-     * staking contract using {_acceptProvision}.
+     * Verifies provision parameters and rejects registration in the event they are not valid.
      *
      * Emits a {ServiceProviderRegistered} event.
      *
@@ -82,10 +81,9 @@ interface IDataService {
     function register(address serviceProvider, bytes calldata data) external;
 
     /**
-     * @notice Accepts the provision of a service provider in the {Graph Horizon staking
+     * @notice Accepts staged parameters in the provision of a service provider in the {Graph Horizon staking
      * contract}.
-     * @dev Provides a way for the data service to revalidate and reaccept a provision that
-     * had a parameter change. Should call {_acceptProvision}.
+     * @dev Provides a way for the data service to validate and accept provision parameter changes. Call {_acceptProvision}.
      *
      * Emits a {ProvisionAccepted} event.
      *

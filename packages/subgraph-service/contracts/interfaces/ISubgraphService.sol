@@ -7,18 +7,40 @@ import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGra
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
+/**
+ * @title Interface for the {SubgraphService} contract
+ * @dev This interface extends {IDataServiceFees} and {IDataService}.
+ * @notice The Subgraph Service is a data service built on top of Graph Horizon that supports the use case of
+ * subgraph indexing and querying. The {SubgraphService} contract implements the flows described in the Data
+ * Service framework to allow indexers to register as subgraph service providers, create allocations to signal
+ * their commitment to index a subgraph, and collect fees for indexing and querying services.
+ */
 interface ISubgraphService is IDataServiceFees {
+    /// @notice Contains details for each indexer
     struct Indexer {
+        // Timestamp when the indexer registered
         uint256 registeredAt;
+        // The URL where the indexer can be reached at for queries
         string url;
+        // The indexer's geo location, expressed as a geo hash
         string geoHash;
     }
 
+    /// @notice Payment cut definitions for each payment type
     struct PaymentCuts {
+        // The cut the service provider takes from the payment
         uint128 serviceCut;
+        // The cut curators take from the payment
         uint128 curationCut;
     }
 
+    /**
+     * @notice Emitted when a subgraph service collects query fees from Graph Payments
+     * @param serviceProvider The address of the service provider
+     * @param tokensCollected The amount of tokens collected
+     * @param tokensCurators The amount of tokens curators receive
+     * @param tokensSubgraphService The amount of tokens the subgraph service receives
+     */
     event QueryFeesCollected(
         address indexed serviceProvider,
         uint256 tokensCollected,
@@ -26,22 +48,116 @@ interface ISubgraphService is IDataServiceFees {
         uint256 tokensSubgraphService
     );
 
+    /**
+     * @notice Thrown when an indexer tries to register with an empty URL
+     */
     error SubgraphServiceEmptyUrl();
-    error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes feeType);
+
+    /**
+     * @notice Thrown when an indexer tries to register but they are already registered
+     */
     error SubgraphServiceIndexerAlreadyRegistered();
+
+    /**
+     * @notice Thrown when an indexer tries to perform an operation but they are not registered
+     * @param indexer The address of the indexer that is not registered
+     */
     error SubgraphServiceIndexerNotRegistered(address indexer);
+
+    /**
+     * @notice Thrown when an indexer tries to collect fees for an unsupported payment type
+     * @param paymentType The payment type that is not supported
+     */
+    error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes paymentType);
+
+    /**
+     * @notice Thrown when the contract GRT balance is inconsistent with the payment amount collected
+     * from Graph Payments
+     * @param balanceBefore The contract GRT balance before the collection
+     * @param balanceAfter The contract GRT balance after the collection
+     * @param tokensCollected The amount of tokens collected
+     */
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
 
+    /**
+     * @notice Initialize the contract
+     * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
+     * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
+     */
     function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external;
+
+    /**
+     * @notice Change the amount of tokens in an allocation
+     * @dev Requirements:
+     * - The indexer must be registered
+     * - The provision must be valid according to the subgraph service rules
+     * - `tokens` must be different from the current allocation size
+     * - The indexer must have enough available tokens to allocate if they are upsizing the allocation
+     *
+     * Emits a {AllocationResized} event.
+     *
+     * See {AllocationManager-_resizeAllocation} for more details.
+     *
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     * @param tokens The new amount of tokens in the allocation
+     */
     function resizeAllocation(address indexer, address allocationId, uint256 tokens) external;
 
-    function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentID) external;
+    /**
+     * @notice Imports a legacy allocation id into the subgraph service
+     * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
+     * legacy staking contract.
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
+     */
+    function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentId) external;
 
+    /**
+     * @notice Sets a pause guardian
+     * @param pauseGuardian The address of the pause guardian
+     * @param allowed True if the pause guardian is allowed to pause the contract, false otherwise
+     */
     function setPauseGuardian(address pauseGuardian, bool allowed) external;
 
+    /**
+     * @notice Sets the minimum amount of provisioned tokens required to create an allocation
+     * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
+     */
+    function setMinimumProvisionTokens(uint256 minimumProvisionTokens) external;
+
+    /**
+     * @notice Sets the maximum delegation ratio allowed for an allocation
+     * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
+     */
+    function setMaximumDelegationRatio(uint32 maximumDelegationRatio) external;
+
+    /**
+     * @notice Sets the rewards destination for an indexer to receive indexing rewards
+     * @dev Emits a {RewardsDestinationSet} event
+     * @param rewardsDestination The address where indexing rewards should be sent
+     */
+    function setRewardsDestination(address rewardsDestination) external;
+
+    /**
+     * @notice Gets the details of an allocation
+     * For legacy allocations use {getLegacyAllocation}
+     * @param allocationId The id of the allocation
+     */
     function getAllocation(address allocationId) external view returns (Allocation.State memory);
 
+    /**
+     * @notice Gets the details of a legacy allocation
+     * For non-legacy allocations use {getAllocation}
+     * @param allocationId The id of the allocation
+     */
     function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory);
 
+    /**
+     * @notice Encodes the allocation proof for EIP712 signing
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     */
     function encodeAllocationProof(address indexer, address allocationId) external view returns (bytes32);
 }

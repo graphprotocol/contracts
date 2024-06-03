@@ -26,36 +26,36 @@ import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration
 abstract contract GraphDirectory {
     // -- Graph Horizon contracts --
 
-    /// @dev The Graph Token contract address
+    /// @notice The Graph Token contract address
     IGraphToken private immutable GRAPH_TOKEN;
 
-    /// @dev The Horizon Staking contract address
+    /// @notice The Horizon Staking contract address
     IHorizonStaking private immutable GRAPH_STAKING;
 
-    /// @dev The Graph Payments contract address
+    /// @notice The Graph Payments contract address
     IGraphPayments private immutable GRAPH_PAYMENTS;
 
-    /// @dev The Payments Escrow contract address
+    /// @notice The Payments Escrow contract address
     IPaymentsEscrow private immutable GRAPH_PAYMENTS_ESCROW;
 
     // -- Graph periphery contracts --
 
-    /// @dev The Graph Controller contract address
+    /// @notice The Graph Controller contract address
     IController private immutable GRAPH_CONTROLLER;
 
-    /// @dev The Epoch Manager contract address
+    /// @notice The Epoch Manager contract address
     IEpochManager private immutable GRAPH_EPOCH_MANAGER;
 
-    /// @dev The Rewards Manager contract address
+    /// @notice The Rewards Manager contract address
     IRewardsManager private immutable GRAPH_REWARDS_MANAGER;
 
-    /// @dev The Token Gateway contract address
+    /// @notice The Token Gateway contract address
     ITokenGateway private immutable GRAPH_TOKEN_GATEWAY;
 
-    /// @dev The Bridge Escrow contract address
+    /// @notice The Bridge Escrow contract address
     IBridgeEscrow private immutable GRAPH_BRIDGE_ESCROW;
 
-    /// @dev The Graph Proxy Admin contract address
+    /// @notice The Graph Proxy Admin contract address
     IGraphProxyAdmin private immutable GRAPH_PROXY_ADMIN;
 
     // -- Legacy Graph contracts --
@@ -104,6 +104,7 @@ abstract contract GraphDirectory {
      * - `controller` cannot be zero address
      *
      * Emits a {GraphDirectoryInitialized} event
+     *
      * @param controller The address of the Graph Controller contract.
      */
     constructor(address controller) {

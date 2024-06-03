@@ -20,8 +20,7 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
 
 /*
  * @title DisputeManager
- * @notice Provides a way to align the incentives of participants by having slashing as deterrent
- * for incorrect behaviour.
+ * @notice Provides a way to permissionlessly create disputes for incorrect behavior in the Subgraph Service.
  *
  * There are two types of disputes that can be created: Query disputes and Indexing disputes.
  *
@@ -55,13 +54,17 @@ contract DisputeManager is
     // -- Modifiers --
 
     /**
-     * @dev Check if the caller is the arbitrator.
+     * @notice Check if the caller is the arbitrator.
      */
     modifier onlyArbitrator() {
         require(msg.sender == arbitrator, DisputeManagerNotArbitrator());
         _;
     }
 
+    /**
+     * @notice Check if the dispute exists and is pending.
+     * @param disputeId The dispute Id
+     */
     modifier onlyPendingDispute(bytes32 disputeId) {
         require(isDisputeCreated(disputeId), DisputeManagerInvalidDispute(disputeId));
         require(
@@ -71,18 +74,26 @@ contract DisputeManager is
         _;
     }
 
+    /**
+     * @notice Check if the caller is the fisherman of the dispute.
+     * @param disputeId The dispute Id
+     */
     modifier onlyFisherman(bytes32 disputeId) {
         require(isDisputeCreated(disputeId), DisputeManagerInvalidDispute(disputeId));
         require(msg.sender == disputes[disputeId].fisherman, DisputeManagerNotFisherman());
         _;
     }
 
+    /**
+     * @notice Contract constructor
+     * @param controller Address of the controller
+     */
     constructor(address controller) GraphDirectory(controller) {
         _disableInitializers();
     }
 
     /**
-     * @dev Initialize this contract.
+     * @notice Initialize this contract.
      * @param arbitrator Arbitrator role
      * @param disputePeriod Dispute period in seconds
      * @param minimumDeposit Minimum deposit required to create a Dispute
@@ -107,7 +118,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Create an indexing dispute for the arbitrator to resolve.
+     * @notice Create an indexing dispute for the arbitrator to resolve.
      * The disputes are created in reference to an allocationId
      * This function is called by a challenger that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
@@ -123,7 +134,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Create a query dispute for the arbitrator to resolve.
+     * @notice Create a query dispute for the arbitrator to resolve.
      * This function is called by a fisherman that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
      * @param attestationData Attestation bytes submitted by the fisherman
@@ -144,7 +155,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Create query disputes for two conflicting attestations.
+     * @notice Create query disputes for two conflicting attestations.
      * A conflicting attestation is a proof presented by two different indexers
      * where for the same request on a subgraph the response is different.
      * For this type of dispute the submitter is not required to present a deposit
@@ -194,11 +205,11 @@ contract DisputeManager is
     }
 
     /**
-     * @dev The arbitrator accepts a dispute as being valid.
+     * @notice The arbitrator accepts a dispute as being valid.
      * This function will revert if the indexer is not slashable, whether because it does not have
      * any stake available or the slashing percentage is configured to be zero. In those cases
      * a dispute must be resolved using drawDispute or rejectDispute.
-     * @notice Accept a dispute with Id `disputeId`
+     * @dev Accept a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be accepted
      * @param tokensSlash Amount of tokens to slash from the indexer
      */
@@ -225,8 +236,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev The arbitrator draws dispute.
-     * @notice Ignore a dispute with Id `disputeId`
+     * @notice The arbitrator draws dispute.
+     * @dev Ignore a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be disregarded
      */
     function drawDispute(bytes32 disputeId) external override onlyArbitrator onlyPendingDispute(disputeId) {
@@ -245,9 +256,9 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Once the dispute period ends, if the disput status remains Pending,
+     * @notice Once the dispute period ends, if the disput status remains Pending,
      * the fisherman can cancel the dispute and get back their initial deposit.
-     * @notice Cancel a dispute with Id `disputeId`
+     * @dev Cancel a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be cancelled
      */
     function cancelDispute(bytes32 disputeId) external override onlyFisherman(disputeId) onlyPendingDispute(disputeId) {
@@ -267,8 +278,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Set the arbitrator address.
-     * @notice Update the arbitrator to `_arbitrator`
+     * @notice Set the arbitrator address.
+     * @dev Update the arbitrator to `_arbitrator`
      * @param arbitrator The address of the arbitration contract or party
      */
     function setArbitrator(address arbitrator) external override onlyOwner {
@@ -276,8 +287,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Set the dispute period.
-     * @notice Update the dispute period to `_disputePeriod` in seconds
+     * @notice Set the dispute period.
+     * @dev Update the dispute period to `_disputePeriod` in seconds
      * @param disputePeriod Dispute period in seconds
      */
     function setDisputePeriod(uint64 disputePeriod) external override onlyOwner {
@@ -285,8 +296,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Set the minimum deposit required to create a dispute.
-     * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
+     * @notice Set the minimum deposit required to create a dispute.
+     * @dev Update the minimum deposit to `_minimumDeposit` Graph Tokens
      * @param minimumDeposit The minimum deposit in Graph Tokens
      */
     function setMinimumDeposit(uint256 minimumDeposit) external override onlyOwner {
@@ -294,8 +305,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Set the percent reward that the fisherman gets when slashing occurs.
-     * @notice Update the reward percentage to `_percentage`
+     * @notice Set the percent reward that the fisherman gets when slashing occurs.
+     * @dev Update the reward percentage to `_percentage`
      * @param fishermanRewardCut_ Reward as a percentage of indexer stake
      */
     function setFishermanRewardCut(uint32 fishermanRewardCut_) external override onlyOwner {
@@ -303,7 +314,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Set the maximum percentage that can be used for slashing indexers.
+     * @notice Set the maximum percentage that can be used for slashing indexers.
      * @param maxSlashingCut_ Max percentage slashing for disputes
      */
     function setMaxSlashingCut(uint32 maxSlashingCut_) external override onlyOwner {
@@ -311,8 +322,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Set the subgraph service address.
-     * @notice Update the subgraph service to `_subgraphService`
+     * @notice Set the subgraph service address.
+     * @dev Update the subgraph service to `_subgraphService`
      * @param subgraphService The address of the subgraph service contract
      */
     function setSubgraphService(address subgraphService) external override onlyOwner {
@@ -320,10 +331,10 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Get the message hash that a indexer used to sign the receipt.
+     * @notice Get the message hash that a indexer used to sign the receipt.
      * Encodes a receipt using a domain separator, as described on
      * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification.
-     * @notice Return the message hash used to sign the receipt
+     * @dev Return the message hash used to sign the receipt
      * @param receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
@@ -332,7 +343,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Get the verifier cut.
+     * @notice Get the verifier cut.
      * @return Verifier cut in percentage (ppm)
      */
     function getVerifierCut() external view override returns (uint32) {
@@ -340,13 +351,18 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Get the dispute period.
+     * @notice Get the dispute period.
      * @return Dispute period in seconds
      */
     function getDisputePeriod() external view override returns (uint64) {
         return disputePeriod;
     }
 
+    /**
+     * @notice Checks if two attestations are conflicting.
+     * @param attestation1 The first attestation
+     * @param attestation2 The second attestation
+     */
     function areConflictingAttestations(
         Attestation.State memory attestation1,
         Attestation.State memory attestation2
@@ -355,8 +371,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev The arbitrator rejects a dispute as being invalid.
-     * @notice Reject a dispute with Id `disputeId`
+     * @notice The arbitrator rejects a dispute as being invalid.
+     * @dev Reject a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be rejected
      */
     function rejectDispute(bytes32 disputeId) public override onlyArbitrator onlyPendingDispute(disputeId) {
@@ -378,7 +394,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Returns the indexer that signed an attestation.
+     * @notice Returns the indexer that signed an attestation.
      * @param attestation Attestation
      * @return indexer address
      */
@@ -396,8 +412,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Return whether a dispute exists or not.
-     * @notice Return if dispute with Id `disputeId` exists
+     * @notice Return whether a dispute exists or not.
+     * @dev Return if dispute with Id `disputeId` exists
      * @param disputeId True if dispute already exists
      */
     function isDisputeCreated(bytes32 disputeId) public view override returns (bool) {
@@ -405,7 +421,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Create a query dispute passing the parsed attestation.
+     * @notice Create a query dispute passing the parsed attestation.
      * To be used in createQueryDispute() and createQueryDisputeConflict()
      * to avoid calling parseAttestation() multiple times
      * `attestationData` is only passed to be emitted
@@ -466,7 +482,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Create indexing dispute internal function.
+     * @notice Create indexing dispute internal function.
      * @param _fisherman The challenger creating the dispute
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationId Allocation disputed
@@ -508,7 +524,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Resolve the conflicting dispute if there is any for the one passed to this function.
+     * @notice Resolve the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if resolved
      */
@@ -523,7 +539,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Cancel the conflicting dispute if there is any for the one passed to this function.
+     * @notice Cancel the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if cancelled
      */
@@ -538,7 +554,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Pull deposit from submitter account.
+     * @notice Pull deposit from submitter account.
      * @param _deposit Amount of tokens to deposit
      */
     function _pullSubmitterDeposit(uint256 _deposit) private {
@@ -550,7 +566,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Make the subgraph service contract slash the indexer and reward the challenger.
+     * @notice Make the subgraph service contract slash the indexer and reward the challenger.
      * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
      * @param _indexer Address of the indexer
      * @param _tokensSlash Amount of tokens to slash from the indexer
@@ -578,8 +594,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Internal: Set the arbitrator address.
-     * @notice Update the arbitrator to `_arbitrator`
+     * @notice Internal: Set the arbitrator address.
+     * @dev Update the arbitrator to `_arbitrator`
      * @param _arbitrator The address of the arbitration contract or party
      */
     function _setArbitrator(address _arbitrator) private {
@@ -589,8 +605,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Internal: Set the dispute period.
-     * @notice Update the dispute period to `_disputePeriod` in seconds
+     * @notice Internal: Set the dispute period.
+     * @dev Update the dispute period to `_disputePeriod` in seconds
      * @param _disputePeriod Dispute period in seconds
      */
     function _setDisputePeriod(uint64 _disputePeriod) private {
@@ -600,8 +616,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Internal: Set the minimum deposit required to create a dispute.
-     * @notice Update the minimum deposit to `_minimumDeposit` Graph Tokens
+     * @notice Internal: Set the minimum deposit required to create a dispute.
+     * @dev Update the minimum deposit to `_minimumDeposit` Graph Tokens
      * @param _minimumDeposit The minimum deposit in Graph Tokens
      */
     function _setMinimumDeposit(uint256 _minimumDeposit) private {
@@ -611,8 +627,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Internal: Set the percent reward that the fisherman gets when slashing occurs.
-     * @notice Update the reward percentage to `_percentage`
+     * @notice Internal: Set the percent reward that the fisherman gets when slashing occurs.
+     * @dev Update the reward percentage to `_percentage`
      * @param _fishermanRewardCut Reward as a percentage of indexer stake
      */
     function _setFishermanRewardCut(uint32 _fishermanRewardCut) private {
@@ -623,7 +639,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Internal: Set the maximum percentage that can be used for slashing indexers.
+     * @notice Internal: Set the maximum percentage that can be used for slashing indexers.
      * @param _maxSlashingCut Max percentage slashing for disputes
      */
     function _setMaxSlashingCut(uint32 _maxSlashingCut) private {
@@ -634,8 +650,8 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Internal: Set the subgraph service address.
-     * @notice Update the subgraph service to `_subgraphService`
+     * @notice Internal: Set the subgraph service address.
+     * @dev Update the subgraph service to `_subgraphService`
      * @param _subgraphService The address of the subgraph service contract
      */
     function _setSubgraphService(address _subgraphService) private {
@@ -645,7 +661,7 @@ contract DisputeManager is
     }
 
     /**
-     * @dev Returns whether the dispute is for a conflicting attestation or not.
+     * @notice Returns whether the dispute is for a conflicting attestation or not.
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
      */

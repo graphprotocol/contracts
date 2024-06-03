@@ -767,6 +767,9 @@ interface IHorizonStakingMain {
      * the provider has provisioned stake, and up to the amount of tokens they have provisioned.
      * If the service provider's stake is not enough, the associated delegation pool might be slashed
      * depending on the value of the global delegation slashing flag.
+     *
+     * Part of the slashed tokens are sent to the `verifierDestination` as a reward.
+     *
      * @dev Requirements:
      * - `tokens` must be less than or equal to the amount of tokens provisioned by the service provider.
      * - `tokensVerifier` must be less than the provision's tokens times the provision's maximum verifier cut.

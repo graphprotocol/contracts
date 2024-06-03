@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.26;
 
+/**
+ * @title Attestation library
+ * @notice A library to handle Attestation.
+ */
 library Attestation {
-    // Receipt content sent from the service provider in response to request
+    /// @notice Receipt content sent from the service provider in response to request
     struct Receipt {
         bytes32 requestCID;
         bytes32 responseCID;
         bytes32 subgraphDeploymentId;
     }
 
-    // Attestation sent from the service provider in response to a request
+    /// @notice Attestation sent from the service provider in response to a request
     struct State {
         bytes32 requestCID;
         bytes32 responseCID;
@@ -19,7 +23,7 @@ library Attestation {
         uint8 v;
     }
 
-    // Attestation size is the sum of the receipt (96) + signature (65)
+    /// @notice Attestation size is the sum of the receipt (96) + signature (65)
     uint256 private constant ATTESTATION_SIZE_BYTES = RECEIPT_SIZE_BYTES + SIG_SIZE_BYTES;
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
 

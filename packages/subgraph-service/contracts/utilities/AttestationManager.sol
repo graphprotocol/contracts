@@ -7,20 +7,39 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { Attestation } from "../libraries/Attestation.sol";
 
+/**
+ * @title AttestationManager contract
+ * @notice A helper contract implementing attestation verification.
+ * Uses a custom implementation of EIP712 for backwards compatibility with attestations.
+ */
 abstract contract AttestationManager is Initializable, AttestationManagerV1Storage {
+    /// @notice EIP712 type hash for Receipt struct
     bytes32 private constant RECEIPT_TYPE_HASH =
         keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
 
+    /// @notice EIP712 domain type hash
     bytes32 private constant DOMAIN_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
+    
+    /// @notice EIP712 domain name
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Protocol");
+
+    /// @notice EIP712 domain version
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
+
+    /// @notice EIP712 domain salt
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
 
+    /**
+     * @dev Initialize the AttestationManager contract and parent contracts
+     */
     function __AttestationManager_init() internal onlyInitializing {
         __AttestationManager_init_unchained();
     }
 
+    /**
+     * @dev Initialize the AttestationManager contract
+     */
     function __AttestationManager_init_unchained() internal onlyInitializing {
         _domainSeparator = keccak256(
             abi.encode(

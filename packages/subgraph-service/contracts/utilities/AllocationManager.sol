@@ -14,6 +14,12 @@ import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
+/**
+ * @title AllocationManager contract
+ * @notice A helper contract implementing allocation lifecycle management.
+ * Allows opening, resizing, and closing allocations, as well as collecting indexing rewards by presenting a Proof
+ * of Indexing (POI).
+ */
 abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, AllocationManagerV1Storage {
     using ProvisionTracker for mapping(address => uint256);
     using Allocation for mapping(address => Allocation.State);
@@ -21,14 +27,16 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     using LegacyAllocation for mapping(address => LegacyAllocation.State);
     using PPMMath for uint256;
 
-    // -- Immutables --
+    ///@dev EIP712 typehash for allocation proof
     bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
 
     /**
-     * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentId`
-     * during `epoch`.
-     * `allocationId` indexer derived address used to identify the allocation.
+     * @notice Emitted when an indexer creates an allocation
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
+     * @param tokens The amount of tokens allocated
      */
     event AllocationCreated(
         address indexed indexer,
@@ -37,6 +45,16 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 tokens
     );
 
+    /**
+     * @notice Emitted when an indexer collects indexing rewards for an allocation
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
+     * @param tokensRewards The amount of tokens collected
+     * @param tokensIndexerRewards The amount of tokens collected for the indexer
+     * @param tokensDelegationRewards The amount of tokens collected for delegators
+     * @param poi The POI presented
+     */
     event IndexingRewardsCollected(
         address indexed indexer,
         address indexed allocationId,
@@ -47,6 +65,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         bytes32 poi
     );
 
+    /**
+     * @notice Emitted when an indexer resizes an allocation
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
+     * @param newTokens The new amount of tokens allocated
+     * @param oldTokens The old amount of tokens allocated
+     */
     event AllocationResized(
         address indexed indexer,
         address indexed allocationId,
@@ -56,8 +82,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     );
 
     /**
-     * @dev Emitted when `indexer` closes an allocation with id `allocationId`.
-     * An amount of `tokens` get unallocated from `subgraphDeploymentId`.
+     * @dev Emitted when an indexer closes an allocation
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
+     * @param tokens The amount of tokens allocated
      */
     event AllocationClosed(
         address indexed indexer,
@@ -66,37 +95,99 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 tokens
     );
 
+    /**
+     * @notice Emitted when a legacy allocation is migrated into the subgraph service
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
+     */
     event LegacyAllocationMigrated(
         address indexed indexer,
         address indexed allocationId,
         bytes32 indexed subgraphDeploymentId
     );
 
+    /**
+     * @notice Emitted when an indexer sets a new indexing rewards destination
+     * @param indexer The address of the indexer
+     * @param rewardsDestination The address where indexing rewards should be sent
+     */
     event RewardsDestinationSet(address indexed indexer, address indexed rewardsDestination);
 
+    /**
+     * @notice Thrown when an allocation proof is invalid
+     * Both `signer` and `allocationId` should match for a valid proof.
+     * @param signer The address that signed the proof
+     * @param allocationId The id of the allocation
+     */
     error AllocationManagerInvalidAllocationProof(address signer, address allocationId);
-    error AllocationManagerInvalidAllocationId();
-    error AllocationManagerZeroTokensAllocation(address allocationId);
-    error AllocationManagerAllocationClosed(address allocationId);
-    error AllocationManagerAllocationSameSize(address allocationId, uint256 tokens);
-    error AllocationManagerInvalidZeroPOI();
 
+    /**
+     * @notice Thrown when attempting to create an allocation with a zero allocation id
+     */
+    error AllocationManagerInvalidZeroAllocationId();
+
+    /**
+     * @notice Thrown when attempting to create an allocation with zero tokens
+     * @param allocationId The id of the allocation
+     */
+    error AllocationManagerZeroTokensAllocation(address allocationId);
+
+    /**
+     * @notice Thrown when attempting to collect indexing rewards on a closed allocationl
+     * @param allocationId The id of the allocation
+     */
+    error AllocationManagerAllocationClosed(address allocationId);
+
+    /**
+     * @notice Thrown when attempting to resize an allocation with the same size
+     * @param allocationId The id of the allocation
+     * @param tokens The amount of tokens
+     */
+    error AllocationManagerAllocationSameSize(address allocationId, uint256 tokens);
+
+    /**
+     * @notice Initializes the contract and parent contracts
+     */
     function __AllocationManager_init(string memory name, string memory version) internal onlyInitializing {
         __EIP712_init(name, version);
         __AllocationManager_init_unchained(name, version);
     }
 
+    /**
+     * @notice Initializes the contract
+     */
     function __AllocationManager_init_unchained(string memory name, string memory version) internal onlyInitializing {}
 
-    function setRewardsDestination(address rewardsDestination) external {
-        _setRewardsDestination(msg.sender, rewardsDestination);
-    }
-
+    /**
+     * @notice Imports a legacy allocation id into the subgraph service
+     * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
+     * legacy staking contract.
+     * @param _indexer The address of the indexer
+     * @param _allocationId The id of the allocation
+     * @param _subgraphDeploymentId The id of the subgraph deployment
+     */
     function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
         legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
         emit LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
     }
 
+    /**
+     * @notice Create an allocation
+     * @dev The `_allocationProof` is a 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationId)`
+     *
+     * Requirements:
+     * - `_allocationId` must not be the zero address
+     *
+     * Emits a {AllocationCreated} event
+     *
+     * @param _indexer The address of the indexer
+     * @param _allocationId The id of the allocation to be created
+     * @param _subgraphDeploymentId The subgraph deployment Id
+     * @param _tokens The amount of tokens to allocate
+     * @param _allocationProof Signed proof of allocation id address ownership
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     */
     function _allocate(
         address _indexer,
         address _allocationId,
@@ -105,23 +196,23 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         bytes memory _allocationProof,
         uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
-        require(_allocationId != address(0), AllocationManagerInvalidAllocationId());
+        require(_allocationId != address(0), AllocationManagerInvalidZeroAllocationId());
 
         _verifyAllocationProof(_indexer, _allocationId, _allocationProof);
 
         // Ensure allocation id is not reused
-        // need to check both subgraph service (on create()) and legacy allocations
+        // need to check both subgraph service (on allocations.create()) and legacy allocations
         legacyAllocations.revertIfExists(_allocationId);
         Allocation.State memory allocation = allocations.create(
             _indexer,
             _allocationId,
             _subgraphDeploymentId,
             _tokens,
-            // allos can be resized now, so we need to always take snapshot
             _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentId)
         );
 
         // Check that the indexer has enough tokens available
+        // Note that the delegation ratio ensures overdelegation cannot be used
         allocationProvisionTracker.lock(_graphStaking(), _indexer, _tokens, _delegationRatio);
 
         // Update total allocated tokens for the subgraph deployment
@@ -133,17 +224,32 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         return allocation;
     }
 
-    // Update POI timestamp and take rewards snapshot even for 0 rewards
-    // This ensures the rewards are actually skipped and not collected with the next valid POI
+    /**
+     * @notice Present a POI to collect indexing rewards for an allocation
+     * This function will mint indexing rewards using the {RewardsManager} and distribute them to the indexer and delegators.
+     *
+     * To qualify for indexing rewards:
+     * - POI must be non-zero
+     * - POI must not be stale, i.e: older than `maxPOIStaleness`
+     * - allocation must not be altruistic (allocated tokens = 0)
+     *
+     * Note that indexers are required to periodically (at most every `maxPOIStaleness`) present POIs to collect rewards.
+     * Rewards will not be issued to stale POIs, which means that indexers are advised to present a zero POI if they are
+     * unable to present a valid one to prevent being locked out of future rewards.
+     *
+     * Emits a {IndexingRewardsCollected} event.
+     *
+     * @param _data Encoded data containing:
+     * - address `allocationId`: The id of the allocation to collect rewards for
+     * - bytes32 `poi`: The POI being presented
+     */
     function _collectIndexingRewards(bytes memory _data) internal returns (uint256) {
         (address allocationId, bytes32 poi) = abi.decode(_data, (address, bytes32));
 
         Allocation.State memory allocation = allocations.get(allocationId);
+        require(allocation.isOpen(), AllocationManagerAllocationClosed(allocationId));
 
-        // Mint indexing rewards. To qualify:
-        // - POI must be non-zero
-        // - POI must not be stale, i.e: older than maxPOIStaleness
-        // - allocation must not be altruistic (tokens = 0)
+        // Mint indexing rewards if all conditions are met
         uint256 timeSinceLastPOI = block.number - Math.max(allocation.createdAt, allocation.lastPOIPresentedAt);
         uint256 tokensRewards = (timeSinceLastPOI <= maxPOIStaleness && poi != bytes32(0) && !allocation.isAltruistic())
             ? _graphRewardsManager().takeRewards(allocationId)
@@ -173,7 +279,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         }
 
         // Distribute rewards to delegators
-        // TODO: remove the uint8 cast when PRs are merged
         uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
             allocation.indexer,
             address(this),
@@ -208,6 +313,21 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         return tokensRewards;
     }
 
+    /**
+     * @notice Resize an allocation
+     * @dev Will lock or release tokens in the provision tracker depending on the new allocation size.
+     * Rewards accrued but not issued before the resize will be accounted for as pending rewards.
+     * These will be paid out when the indexer presents a POI.
+     *
+     * Requirements:
+     * - `_tokens` must be different from the current allocation size
+     *
+     * Emits a {AllocationResized} event.
+     *
+     * @param _allocationId The id of the allocation to be resized
+     * @param _tokens The new amount of tokens to allocate
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     */
     function _resizeAllocation(
         address _allocationId,
         uint256 _tokens,
@@ -245,6 +365,17 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         return allocations[_allocationId];
     }
 
+    /**
+     * @notice Close an allocation
+     * Does not require presenting a POI, use {_collectIndexingRewards} to present a POI and collect rewards
+     * @dev Note that allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
+     * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
+     * tokens for other purposes.
+     *
+     * Emits a {AllocationClosed} event
+     *
+     * @param _allocationId The id of the allocation to be closed
+     */
     function _closeAllocation(address _allocationId) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
 
@@ -266,28 +397,51 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         return allocations[_allocationId];
     }
 
+    /**
+     * @notice Sets the rewards destination for an indexer to receive indexing rewards
+     * @dev Emits a {RewardsDestinationSet} event
+     * @param _rewardsDestination The address where indexing rewards should be sent
+     */
     function _setRewardsDestination(address _indexer, address _rewardsDestination) internal {
         rewardsDestination[_indexer] = _rewardsDestination;
         emit RewardsDestinationSet(_indexer, _rewardsDestination);
     }
 
+    /**
+     * @notice Gets the details of an allocation
+     * @param _allocationId The id of the allocation
+     */
     function _getAllocation(address _allocationId) internal view returns (Allocation.State memory) {
         return allocations.get(_allocationId);
     }
 
+    /**
+     * @notice Gets the details of a legacy allocation
+     * @param _allocationId The id of the legacy allocation
+     */
     function _getLegacyAllocation(address _allocationId) internal view returns (LegacyAllocation.State memory) {
         return legacyAllocations.get(_allocationId);
     }
 
-    // -- Allocation Proof Verification --
-    // Caller must prove that they own the private key for the allocationId address
-    // The proof is an EIP712 signed message of (indexer,allocationId)
+    /**
+     * @notice Verifies ownsership of an allocation id by verifying an EIP712 allocation proof
+     * @dev Requirements:
+     * - Signer must be the allocation id address
+     * @param _indexer The address of the indexer
+     * @param _allocationId The id of the allocation
+     * @param _proof The EIP712 proof, an EIP712 signed message of (indexer,allocationId)
+     */
     function _verifyAllocationProof(address _indexer, address _allocationId, bytes memory _proof) internal view {
         bytes32 digest = _encodeAllocationProof(_indexer, _allocationId);
         address signer = ECDSA.recover(digest, _proof);
         require(signer == _allocationId, AllocationManagerInvalidAllocationProof(signer, _allocationId));
     }
 
+    /**
+     * @notice Encodes the allocation proof for EIP712 signing
+     * @param _indexer The address of the indexer
+     * @param _allocationId The id of the allocation
+     */
     function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {
         return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));
     }

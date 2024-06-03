@@ -5,14 +5,15 @@ pragma solidity 0.8.26;
 import { Attestation } from "../libraries/Attestation.sol";
 
 interface IDisputeManager {
-    // -- Dispute --
 
+    /// @notice Types of disputes that can be created
     enum DisputeType {
         Null,
         IndexingDispute,
         QueryDispute
     }
 
+    /// @notice Status of a dispute
     enum DisputeStatus {
         Null,
         Accepted,
@@ -22,23 +23,58 @@ interface IDisputeManager {
         Cancelled
     }
 
-    // Disputes contain info necessary for the Arbitrator to verify and resolve
+    /// @notice Disputes contain info necessary for the Arbitrator to verify and resolve
     struct Dispute {
+        // Indexer that is being disputed
         address indexer;
+        // Fisherman that created the dispute
         address fisherman;
+        // Amount of tokens deposited by the fisherman
         uint256 deposit;
+        // Link to a related dispute, used when creating dispute via conflicting attestations
         bytes32 relatedDisputeId;
+        // Type of dispute
         DisputeType disputeType;
+        // Status of the dispute
         DisputeStatus status;
+        // Timestamp when the dispute was created
         uint256 createdAt;
     }
 
-    // -- Events --
+    /**
+     * @notice Emitted when arbitrator is set.
+     * @param arbitrator The address of the arbitrator.
+     */
     event ArbitratorSet(address indexed arbitrator);
+
+    /**
+     * @notice Emitted when dispute period is set.
+     * @param disputePeriod The dispute period in seconds.
+     */
     event DisputePeriodSet(uint64 disputePeriod);
+
+    /**
+     * @notice Emitted when minimum deposit is set.
+     * @param minimumDeposit The minimum deposit required to create a dispute.
+     */
     event MinimumDepositSet(uint256 minimumDeposit);
+    
+    /**
+     * @notice Emitted when max slashing cut is set.
+     * @param maxSlashingCut The maximum slashing cut that can be set.
+     */
     event MaxSlashingCutSet(uint32 maxSlashingCut);
+
+    /**
+     * @notice Emitted when fisherman reward cut is set.
+     * @param fishermanRewardCut The fisherman reward cut.
+     */
     event FishermanRewardCutSet(uint32 fishermanRewardCut);
+    
+    /**
+     * @notice Emitted when subgraph service is set.
+     * @param subgraphService The address of the subgraph service.
+     */
     event SubgraphServiceSet(address indexed subgraphService);
 
     /**

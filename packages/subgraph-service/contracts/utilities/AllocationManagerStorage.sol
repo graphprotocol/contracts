@@ -5,14 +5,19 @@ import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
 abstract contract AllocationManagerV1Storage {
+    /// @notice Allocation details
     mapping(address allocationId => Allocation.State allocation) public allocations;
-    mapping(address indexer => uint256 tokens) public allocationProvisionTracker;
+
+    /// @notice Legacy allocation details
     mapping(address allocationId => LegacyAllocation.State allocation) public legacyAllocations;
 
-    /// @notice Maximum amount of since last POI was presented to qualify for indexing rewards
+    /// @notice Tracks allocated tokens per indexer
+    mapping(address indexer => uint256 tokens) public allocationProvisionTracker;
+
+    /// @notice Maximum amount of time, in seconds, allowed between presenting POIs to qualify for indexing rewards
     uint256 public maxPOIStaleness;
 
-    /// @dev Destination of accrued rewards
+    /// @notice Destination of accrued indexing rewards
     mapping(address indexer => address destination) public rewardsDestination;
 
     /// @notice Track total tokens allocated per subgraph deployment

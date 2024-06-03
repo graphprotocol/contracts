@@ -8,8 +8,7 @@ abstract contract SubgraphServiceV1Storage {
     /// @notice Service providers registered in the data service
     mapping(address indexer => ISubgraphService.Indexer details) public indexers;
 
-    // -- Fees --
-    // multiplier for how many tokens back collected query fees
+    ///@notice Multiplier for how many tokens back collected query fees
     uint256 public stakeToFeesRatio;
 
     /// @notice The fees cut taken by the subgraph service
