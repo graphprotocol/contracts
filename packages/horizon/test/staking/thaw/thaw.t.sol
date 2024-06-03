@@ -91,8 +91,6 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         uint64 thawingPeriod,
         uint256 thawAmount
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
-        // vm.assume(thawAmount > 0);
-        // vm.assume(amount / (MAX_THAW_REQUESTS + 1) > thawAmount);
         thawAmount = bound(thawAmount, 1, amount / (MAX_THAW_REQUESTS + 1));
 
         for (uint256 i = 0; i < 100; i++) {
