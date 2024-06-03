@@ -298,6 +298,15 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
     }
 
     /**
+     * @notice Retrun the time in blocks to unstake
+     * Deprecated, now enforced by each data service (verifier)
+     * @return Thawing period in blocks
+     */
+    function __DEPRECATED_getThawingPeriod() external view returns (uint64) {
+        return __DEPRECATED_thawingPeriod;
+    }
+
+    /**
      * @dev Receive an Indexer's stake from L1.
      * The specified amount is added to the indexer's stake; the indexer's
      * address is specified in the _indexerData struct.

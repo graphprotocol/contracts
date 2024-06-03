@@ -164,4 +164,10 @@ interface IHorizonStakingExtension {
      * @return Total tokens allocated to subgraph
      */
     function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentID) external view returns (uint256);
+
+    /**
+     * @notice Retrun the time in blocks to unstake
+     * @return Thawing period in blocks
+     */
+    function __DEPRECATED_getThawingPeriod() external view returns (uint64);
 }

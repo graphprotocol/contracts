@@ -224,6 +224,20 @@ abstract contract HorizonStakingBase is
     }
 
     /**
+     * @notice see {IHorizonStakingBase-isAllowedLockedVerifier}.
+     */
+    function isAllowedLockedVerifier(address verifier) external view returns (bool) {
+        return _allowedLockedVerifiers[verifier];
+    }
+
+    /**
+     * @notice See {IHorizonStakingBase-isDelegationSlashingEnabled}.
+     */
+    function isDelegationSlashingEnabled() external view returns (bool) {
+        return _delegationSlashingEnabled;
+    }
+
+    /**
      * @notice Deposit tokens into the service provider stake.
      * @dev TODO: After transition period move to IHorizonStakingMain. Temporarily it
      * needs to be here since it's used by both {HorizonStaking} and {HorizonStakingExtension}.
