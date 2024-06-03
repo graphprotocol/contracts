@@ -27,13 +27,6 @@ library LibFixedMath {
     int256 private constant FIXED_1 = int256(0x0000000000000000000000000000000080000000000000000000000000000000);
     // 2**255
     int256 private constant MIN_FIXED_VAL = type(int256).min;
-    // 1^2 (in fixed-point)
-    int256 private constant FIXED_1_SQUARED =
-        int256(0x4000000000000000000000000000000000000000000000000000000000000000);
-    // 1
-    int256 private constant LN_MAX_VAL = FIXED_1;
-    // e ^ -63.875
-    int256 private constant LN_MIN_VAL = int256(0x0000000000000000000000000000000000000000000000000000000733048c5a);
     // 0
     int256 private constant EXP_MAX_VAL = 0;
     // -63.875
@@ -42,11 +35,6 @@ library LibFixedMath {
     /// @dev Get one as a fixed-point number.
     function one() internal pure returns (int256 f) {
         f = FIXED_1;
-    }
-
-    /// @dev Returns the addition of two fixed point numbers, reverting on overflow.
-    function add(int256 a, int256 b) internal pure returns (int256 c) {
-        c = _add(a, b);
     }
 
     /// @dev Returns the addition of two fixed point numbers, reverting on overflow.
@@ -60,11 +48,6 @@ library LibFixedMath {
     /// @dev Returns the multiplication of two fixed point numbers, reverting on overflow.
     function mul(int256 a, int256 b) internal pure returns (int256 c) {
         c = _mul(a, b) / FIXED_1;
-    }
-
-    /// @dev Returns the division of two fixed point numbers.
-    function div(int256 a, int256 b) internal pure returns (int256 c) {
-        c = _div(_mul(a, FIXED_1), b);
     }
 
     /// @dev Performs (a * n) / d, without scaling for precision.
@@ -86,147 +69,14 @@ library LibFixedMath {
         return uint256(uint256(c) >> 127);
     }
 
-    /// @dev Returns the absolute value of a fixed point number.
-    function abs(int256 f) internal pure returns (int256 c) {
-        if (f == MIN_FIXED_VAL) {
-            revert("out-of-bounds");
-        }
-        if (f >= 0) {
-            c = f;
-        } else {
-            c = -f;
-        }
-    }
-
-    /// @dev Returns 1 / `x`, where `x` is a fixed-point number.
-    function invert(int256 f) internal pure returns (int256 c) {
-        c = _div(FIXED_1_SQUARED, f);
-    }
-
-    /// @dev Convert signed `n` / 1 to a fixed-point number.
-    function toFixed(int256 n) internal pure returns (int256 f) {
-        f = _mul(n, FIXED_1);
-    }
-
     /// @dev Convert signed `n` / `d` to a fixed-point number.
     function toFixed(int256 n, int256 d) internal pure returns (int256 f) {
         f = _div(_mul(n, FIXED_1), d);
     }
 
-    /// @dev Convert unsigned `n` / 1 to a fixed-point number.
-    ///      Reverts if `n` is too large to fit in a fixed-point number.
-    function toFixed(uint256 n) internal pure returns (int256 f) {
-        if (int256(n) < int256(0)) {
-            revert("out-of-bounds");
-        }
-        f = _mul(int256(n), FIXED_1);
-    }
-
-    /// @dev Convert unsigned `n` / `d` to a fixed-point number.
-    ///      Reverts if `n` / `d` is too large to fit in a fixed-point number.
-    function toFixed(uint256 n, uint256 d) internal pure returns (int256 f) {
-        if (int256(n) < int256(0)) {
-            revert("out-of-bounds");
-        }
-        if (int256(d) < int256(0)) {
-            revert("out-of-bounds");
-        }
-        f = _div(_mul(int256(n), FIXED_1), int256(d));
-    }
-
     /// @dev Convert a fixed-point number to an integer.
     function toInteger(int256 f) internal pure returns (int256 n) {
         return f / FIXED_1;
-    }
-
-    /// @dev Get the natural logarithm of a fixed-point number 0 < `x` <= LN_MAX_VAL
-    function ln(int256 x) internal pure returns (int256 r) {
-        if (x > LN_MAX_VAL) {
-            revert("out-of-bounds");
-        }
-        if (x <= 0) {
-            revert("too-small");
-        }
-        if (x == FIXED_1) {
-            return 0;
-        }
-        if (x <= LN_MIN_VAL) {
-            return EXP_MIN_VAL;
-        }
-
-        int256 y;
-        int256 z;
-        int256 w;
-        unchecked {
-            // Rewrite the input as a quotient of negative natural exponents and a single residual q, such that 1 < q < 2
-            // For example: log(0.3) = log(e^-1 * e^-0.25 * 1.0471028872385522)
-            //              = 1 - 0.25 - log(1 + 0.0471028872385522)
-            // e ^ -32
-            if (x <= int256(0x00000000000000000000000000000000000000000001c8464f76164760000000)) {
-                r -= int256(0x0000000000000000000000000000001000000000000000000000000000000000); // - 32
-                x = (x * FIXED_1) / int256(0x00000000000000000000000000000000000000000001c8464f76164760000000); // / e ^ -32
-            }
-            // e ^ -16
-            if (x <= int256(0x00000000000000000000000000000000000000f1aaddd7742e90000000000000)) {
-                r -= int256(0x0000000000000000000000000000000800000000000000000000000000000000); // - 16
-                x = (x * FIXED_1) / int256(0x00000000000000000000000000000000000000f1aaddd7742e90000000000000); // / e ^ -16
-            }
-            // e ^ -8
-            if (x <= int256(0x00000000000000000000000000000000000afe10820813d78000000000000000)) {
-                r -= int256(0x0000000000000000000000000000000400000000000000000000000000000000); // - 8
-                x = (x * FIXED_1) / int256(0x00000000000000000000000000000000000afe10820813d78000000000000000); // / e ^ -8
-            }
-            // e ^ -4
-            if (x <= int256(0x0000000000000000000000000000000002582ab704279ec00000000000000000)) {
-                r -= int256(0x0000000000000000000000000000000200000000000000000000000000000000); // - 4
-                x = (x * FIXED_1) / int256(0x0000000000000000000000000000000002582ab704279ec00000000000000000); // / e ^ -4
-            }
-            // e ^ -2
-            if (x <= int256(0x000000000000000000000000000000001152aaa3bf81cc000000000000000000)) {
-                r -= int256(0x0000000000000000000000000000000100000000000000000000000000000000); // - 2
-                x = (x * FIXED_1) / int256(0x000000000000000000000000000000001152aaa3bf81cc000000000000000000); // / e ^ -2
-            }
-            // e ^ -1
-            if (x <= int256(0x000000000000000000000000000000002f16ac6c59de70000000000000000000)) {
-                r -= int256(0x0000000000000000000000000000000080000000000000000000000000000000); // - 1
-                x = (x * FIXED_1) / int256(0x000000000000000000000000000000002f16ac6c59de70000000000000000000); // / e ^ -1
-            }
-            // e ^ -0.5
-            if (x <= int256(0x000000000000000000000000000000004da2cbf1be5828000000000000000000)) {
-                r -= int256(0x0000000000000000000000000000000040000000000000000000000000000000); // - 0.5
-                x = (x * FIXED_1) / int256(0x000000000000000000000000000000004da2cbf1be5828000000000000000000); // / e ^ -0.5
-            }
-            // e ^ -0.25
-            if (x <= int256(0x0000000000000000000000000000000063afbe7ab2082c000000000000000000)) {
-                r -= int256(0x0000000000000000000000000000000020000000000000000000000000000000); // - 0.25
-                x = (x * FIXED_1) / int256(0x0000000000000000000000000000000063afbe7ab2082c000000000000000000); // / e ^ -0.25
-            }
-            // e ^ -0.125
-            if (x <= int256(0x0000000000000000000000000000000070f5a893b608861e1f58934f97aea57d)) {
-                r -= int256(0x0000000000000000000000000000000010000000000000000000000000000000); // - 0.125
-                x = (x * FIXED_1) / int256(0x0000000000000000000000000000000070f5a893b608861e1f58934f97aea57d); // / e ^ -0.125
-            }
-            // `x` is now our residual in the range of 1 <= x <= 2 (or close enough).
-
-            // Add the taylor series for log(1 + z), where z = x - 1
-            z = y = x - FIXED_1;
-            w = (y * y) / FIXED_1;
-            r += (z * (0x100000000000000000000000000000000 - y)) / 0x100000000000000000000000000000000;
-            z = (z * w) / FIXED_1; // add y^01 / 01 - y^02 / 02
-            r += (z * (0x0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - y)) / 0x200000000000000000000000000000000;
-            z = (z * w) / FIXED_1; // add y^03 / 03 - y^04 / 04
-            r += (z * (0x099999999999999999999999999999999 - y)) / 0x300000000000000000000000000000000;
-            z = (z * w) / FIXED_1; // add y^05 / 05 - y^06 / 06
-            r += (z * (0x092492492492492492492492492492492 - y)) / 0x400000000000000000000000000000000;
-            z = (z * w) / FIXED_1; // add y^07 / 07 - y^08 / 08
-            r += (z * (0x08e38e38e38e38e38e38e38e38e38e38e - y)) / 0x500000000000000000000000000000000;
-            z = (z * w) / FIXED_1; // add y^09 / 09 - y^10 / 10
-            r += (z * (0x08ba2e8ba2e8ba2e8ba2e8ba2e8ba2e8b - y)) / 0x600000000000000000000000000000000;
-            z = (z * w) / FIXED_1; // add y^11 / 11 - y^12 / 12
-            r += (z * (0x089d89d89d89d89d89d89d89d89d89d89 - y)) / 0x700000000000000000000000000000000;
-            z = (z * w) / FIXED_1; // add y^13 / 13 - y^14 / 14
-            r += (z * (0x088888888888888888888888888888888 - y)) / 0x800000000000000000000000000000000; // add y^15 / 15 - y^16 / 16
-        }
     }
 
     /// @dev Compute the natural exponent for a fixed-point number EXP_MIN_VAL <= `x` <= 1
