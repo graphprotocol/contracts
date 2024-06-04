@@ -21,14 +21,14 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
     }
 
     modifier useStake(uint256 amount) {
-        vm.assume(amount > MIN_PROVISION_SIZE);
+        vm.assume(amount > 0);
         approve(address(staking), amount);
         staking.stake(amount);
         _;
     }
 
     modifier useStakeTo(address to, uint256 amount) {
-        vm.assume(amount > MIN_PROVISION_SIZE);
+        vm.assume(amount > 0);
         _stakeTo(to, amount);
         _;
     }

@@ -20,22 +20,16 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         assertEq(provisionTokens, amount);
     }
 
-    function testProvision_RevertWhen_InsufficientTokens(uint256 amount) public useIndexer useStake(1000 ether) {
-        amount = bound(amount, 0, MIN_PROVISION_SIZE - 1);
-        bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInsufficientTokens(uint256,uint256)",
-            amount,
-            MIN_PROVISION_SIZE
-        );
+    function testProvision_RevertWhen_ZeroTokens() public useIndexer useStake(1000 ether) {
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroTokens()");
         vm.expectRevert(expectedError);
-        staking.provision(users.indexer, subgraphDataServiceAddress, amount, 0, 0);
+        staking.provision(users.indexer, subgraphDataServiceAddress, 0, 0, 0);
     }
 
     function testProvision_RevertWhen_MaxVerifierCutTooHigh(
         uint256 amount,
         uint32 maxVerifierCut
     ) public useIndexer useStake(amount) {
-        vm.assume(amount > MIN_PROVISION_SIZE);
         vm.assume(maxVerifierCut > MAX_MAX_VERIFIER_CUT);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingInvalidMaxVerifierCut(uint32,uint32)",
@@ -50,7 +44,6 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         uint256 amount,
         uint64 thawingPeriod
     ) public useIndexer useStake(amount) {
-        vm.assume(amount > MIN_PROVISION_SIZE);
         vm.assume(thawingPeriod > MAX_THAWING_PERIOD);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingInvalidThawingPeriod(uint64,uint64)",
@@ -65,7 +58,6 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         uint256 amount,
         uint256 provisionTokens
     ) public useIndexer useStake(amount) {
-        vm.assume(amount > MIN_PROVISION_SIZE);
         vm.assume(provisionTokens > amount);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingInsufficientIdleStake(uint256,uint256)",

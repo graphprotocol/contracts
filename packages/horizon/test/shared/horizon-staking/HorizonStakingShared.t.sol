@@ -19,14 +19,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     modifier assumeProvisionTokens(uint256 tokens) {
-        vm.assume(tokens > MIN_PROVISION_SIZE);
+        vm.assume(tokens > 0);
         vm.assume(tokens <= MAX_STAKING_TOKENS);
         _;
     }
 
     modifier useProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) {
         vm.assume(tokens <= MAX_STAKING_TOKENS);
-        vm.assume(tokens > MIN_PROVISION_SIZE);
+        vm.assume(tokens > 0);
         vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
         vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
         _createProvision(subgraphDataServiceAddress, tokens, maxVerifierCut, thawingPeriod);

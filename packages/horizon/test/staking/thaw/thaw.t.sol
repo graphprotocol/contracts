@@ -35,6 +35,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         uint256 thawAmount,
         uint256 thawAmount2
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        vm.assume(amount > 1);
         thawAmount = bound(thawAmount, 1, amount - 1);
         thawAmount2 = bound(thawAmount2, 1, amount - thawAmount);
         bytes32 thawRequestId = _createThawRequest(thawAmount);
@@ -96,6 +97,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         uint64 thawingPeriod,
         uint256 thawAmount
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        vm.assume(amount >= MAX_THAW_REQUESTS + 1);
         thawAmount = bound(thawAmount, 1, amount / (MAX_THAW_REQUESTS + 1));
 
         for (uint256 i = 0; i < 100; i++) {

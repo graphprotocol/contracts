@@ -34,9 +34,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /// It is equivalent to 100% in parts-per-million
     uint32 private constant MAX_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
 
-    /// @dev Minimum size of a provision
-    uint256 private constant MIN_PROVISION_SIZE = 1e18;
-
     /// @dev Fixed point precision
     uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
@@ -599,7 +596,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint32 _maxVerifierCut,
         uint64 _thawingPeriod
     ) private {
-        require(_tokens >= MIN_PROVISION_SIZE, HorizonStakingInsufficientTokens(_tokens, MIN_PROVISION_SIZE));
+        require(_tokens > 0, HorizonStakingInvalidZeroTokens());
         require(
             _maxVerifierCut <= MAX_MAX_VERIFIER_CUT,
             HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut, MAX_MAX_VERIFIER_CUT)

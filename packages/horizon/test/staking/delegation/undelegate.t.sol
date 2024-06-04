@@ -44,7 +44,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
         Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
-        overDelegationShares = bound(overDelegationShares, delegation.shares + 1, MAX_STAKING_TOKENS);
+        overDelegationShares = bound(overDelegationShares, delegation.shares + 1, MAX_STAKING_TOKENS + 1);
 
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingInsufficientShares(uint256,uint256)",
@@ -80,7 +80,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 amount,
         uint256 delegationAmount
     ) public useIndexer {
-        amount = bound(amount, MIN_PROVISION_SIZE, MAX_STAKING_TOKENS);
+        amount = bound(amount, 1, MAX_STAKING_TOKENS);
         delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
         _createProvision(subgraphDataServiceLegacyAddress, amount, 0, 0);
 
