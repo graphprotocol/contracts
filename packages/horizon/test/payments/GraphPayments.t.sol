@@ -47,8 +47,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         uint256 amount,
         uint256 tokensDataService
     ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
-        vm.assume(tokensDataService <= MAX_STAKING_TOKENS);
-        vm.assume(tokensDataService > amount);
+        tokensDataService = bound(tokensDataService, amount + 1, MAX_STAKING_TOKENS);
 
         address escrowAddress = address(escrow);
         mint(escrowAddress, amount);

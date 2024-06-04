@@ -44,7 +44,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
         Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
-        vm.assume(overDelegationShares > delegation.shares);
+        overDelegationShares = bound(overDelegationShares, delegation.shares + 1, MAX_STAKING_TOKENS);
 
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingInsufficientShares(uint256,uint256)",
