@@ -43,7 +43,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         vm.assume(amount > 0);
         _createThawRequest(amount);
         skip(thawingPeriod + 1);
-        _deprovision(amount);
+        _deprovision(0);
         _;
     }
 

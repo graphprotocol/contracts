@@ -11,6 +11,7 @@ pragma solidity 0.8.26;
  * - they must be represented by a unique bytes32 id
  * - the id of the item must not be bytes32(0)
  * - each item must have a reference to the next item in the list
+ * - the list cannot have more than `MAX_ITEMS` items
  *
  * A contract using this library must store:
  * - a LinkedList.List to keep track of the list metadata
@@ -34,20 +35,36 @@ library LinkedList {
     /// @notice Empty bytes constant
     bytes internal constant NULL_BYTES = bytes("");
 
+    /// @notice Maximum amount of items allowed in the list
+    uint256 internal constant MAX_ITEMS = 10_000;
+
     /**
      * @notice Thrown when trying to remove an item from an empty list
      */
     error LinkedListEmptyList();
 
     /**
+     * @notice Thrown when trying to add an item to a list that has reached the maximum number of elements
+     */
+    error LinkedListMaxElementsExceeded();
+
+    /**
+     * @notice Thrown when trying to traverse a list with more iterations than elements
+     */
+    error LinkedListInvalidIterations();
+
+    /**
      * @notice Adds an item to the list.
      * The item is added to the end of the list.
      * @dev Note that this function will not take care of linking the
      * old tail to the new item. The caller should take care of this.
+     * It will also not ensure id uniqueness.
+     * @dev There is a maximum number of elements that can be added to the list.
      * @param self The list metadata
      * @param id The id of the item to add
      */
     function add(List storage self, bytes32 id) internal {
+        require(self.count < MAX_ITEMS, LinkedListMaxElementsExceeded());
         self.tail = id;
         self.nonce += 1;
         if (self.count == 0) self.head = id;
@@ -96,11 +113,13 @@ library LinkedList {
     function traverse(
         List storage self,
         function(bytes32) view returns (bytes32) getNextItem,
-        function(bytes32, bytes memory) returns (bool, bool, bytes memory) processItem,
+        function(bytes32, bytes memory) returns (bool, bytes memory) processItem,
         function(bytes32) deleteItem,
         bytes memory processInitAcc,
         uint256 iterations
     ) internal returns (uint256, bytes memory) {
+        require(iterations <= self.count, LinkedListInvalidIterations());
+
         uint256 itemCount = 0;
         bool traverseAll = iterations == 0;
         bytes memory acc = processInitAcc;
@@ -108,17 +127,12 @@ library LinkedList {
         bytes32 cursor = self.head;
 
         while (cursor != bytes32(0) && (traverseAll || iterations > 0)) {
-            (bool shouldBreak, bool shouldDelete, bytes memory acc_) = processItem(cursor, acc);
+            (bool shouldBreak, bytes memory acc_) = processItem(cursor, acc);
 
             if (shouldBreak) break;
 
             acc = acc_;
-
-            if (shouldDelete) {
-                cursor = self.remove(getNextItem, deleteItem);
-            } else {
-                cursor = getNextItem(cursor);
-            }
+            cursor = self.remove(getNextItem, deleteItem);
 
             if (!traverseAll) iterations--;
             itemCount++;

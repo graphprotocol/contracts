@@ -886,15 +886,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _thawRequestId The ID of the current thaw request
      * @param _acc The accumulator data for the thaw requests being fulfilled
      * @return Wether the thaw request is still thawing, indicating that the traversal should continue or stop.
-     * @return Wether the thaw request should be deleted
      * @return The updated accumulator data
      */
-    function _fulfillThawRequest(bytes32 _thawRequestId, bytes memory _acc) private returns (bool, bool, bytes memory) {
+    function _fulfillThawRequest(bytes32 _thawRequestId, bytes memory _acc) private returns (bool, bytes memory) {
         ThawRequest storage thawRequest = _thawRequests[_thawRequestId];
 
         // early exit
         if (thawRequest.thawingUntil > block.timestamp) {
-            return (true, false, LinkedList.NULL_BYTES);
+            return (true, LinkedList.NULL_BYTES);
         }
 
         // decode
@@ -912,7 +911,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // encode
         _acc = abi.encode(tokensThawed, tokensThawing, sharesThawing);
-        return (false, true, _acc);
+        return (false, _acc);
     }
 
     /**

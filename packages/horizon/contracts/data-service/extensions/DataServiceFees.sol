@@ -79,15 +79,14 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _claimId The id of the stake claim
      * @param _acc The accumulator for the stake claims being processed
      * @return Wether the stake claim is still locked, indicating that the traversal should continue or stop.
-     * @return Wether the stake claim should be deleted
      * @return The updated accumulator data
      */
-    function _processStakeClaim(bytes32 _claimId, bytes memory _acc) private returns (bool, bool, bytes memory) {
+    function _processStakeClaim(bytes32 _claimId, bytes memory _acc) private returns (bool, bytes memory) {
         StakeClaim memory claim = _getStakeClaim(_claimId);
 
         // early exit
         if (claim.releaseAt > block.timestamp) {
-            return (true, false, LinkedList.NULL_BYTES);
+            return (true, LinkedList.NULL_BYTES);
         }
 
         // decode
@@ -99,7 +98,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
 
         // encode
         _acc = abi.encode(tokensClaimed + claim.tokens, serviceProvider);
-        return (false, true, _acc);
+        return (false, _acc);
     }
 
     /**
