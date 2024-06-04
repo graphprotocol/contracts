@@ -49,16 +49,16 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         vm.assume(delegationAmount > MIN_DELEGATION);
         vm.assume(delegationAmount <= 10_000_000_000 ether);
         vm.startPrank(users.delegator);
-        _delegate(delegationAmount);
+        _delegate(delegationAmount, subgraphDataServiceAddress);
         vm.startPrank(msgSender);
         _;
     }
 
-    modifier useLockedVerifier() {
+    modifier useLockedVerifier(address verifier) {
         address msgSender;
         (, msgSender,) = vm.readCallers();
         resetPrank(users.governor);
-        staking.setAllowedLockedVerifier(subgraphDataServiceAddress, true);
+        staking.setAllowedLockedVerifier(verifier, true);
         resetPrank(msgSender);
         _;
     }
@@ -76,20 +76,20 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         staking.deprovision(users.indexer, subgraphDataServiceAddress, nThawRequests);
     }
 
-    function _delegate(uint256 amount) internal {
+    function _delegate(uint256 amount, address verifier) internal {
         token.approve(address(staking), amount);
-        staking.delegate(users.indexer, subgraphDataServiceAddress, amount, 0);
+        staking.delegate(users.indexer, verifier, amount, 0);
     }
 
-    function _getDelegation() internal view returns (Delegation memory) {
-        return staking.getDelegation(users.indexer, subgraphDataServiceAddress, users.delegator);
+    function _getDelegation(address verifier) internal view returns (Delegation memory) {
+        return staking.getDelegation(users.indexer, verifier, users.delegator);
     }
 
-    function _undelegate(uint256 shares) internal {
-        staking.undelegate(users.indexer, subgraphDataServiceAddress, shares);
+    function _undelegate(uint256 shares, address verifier) internal {
+        staking.undelegate(users.indexer, verifier, shares);
     }
 
-    function _getDelegationPool() internal view returns (DelegationPool memory) {
-        return staking.getDelegationPool(users.indexer, subgraphDataServiceAddress);
+    function _getDelegationPool(address verifier) internal view returns (DelegationPool memory) {
+        return staking.getDelegationPool(users.indexer, verifier);
     }
 }

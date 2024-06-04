@@ -39,4 +39,18 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         vm.expectRevert(expectedError);
         staking.delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
     }
+
+    function testDelegate_LegacySubgraphService(
+        uint256 amount,
+        uint256 delegationAmount
+    ) public useIndexer {
+        amount = bound(amount, MIN_PROVISION_SIZE, 10_000_000_000 ether);
+        delegationAmount = bound(delegationAmount, MIN_DELEGATION, 10_000_000_000 ether);
+        _createProvision(subgraphDataServiceLegacyAddress, amount, 0, 0);
+
+        resetPrank(users.delegator);
+        _delegate(delegationAmount, subgraphDataServiceLegacyAddress);
+        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceLegacyAddress);
+        assertEq(delegatedTokens, delegationAmount);
+    }
 }

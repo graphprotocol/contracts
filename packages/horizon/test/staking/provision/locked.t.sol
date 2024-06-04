@@ -9,7 +9,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
 
     function testProvisionLocked_Create(
         uint256 amount
-    ) public useIndexer useStake(amount) useLockedVerifier {
+    ) public useIndexer useStake(amount) useLockedVerifier(subgraphDataServiceAddress) {
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(provisionTokens, 0);
 
@@ -30,7 +30,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
 
     function testProvisionLocked_RevertWhen_VerifierNotAllowed(
         uint256 amount
-    ) public useIndexer useStake(amount) useLockedVerifier {
+    ) public useIndexer useStake(amount) useLockedVerifier(subgraphDataServiceAddress) {
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(provisionTokens, 0);
 
@@ -55,7 +55,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
 
     function testProvisionLocked_RevertWhen_OperatorNotAllowed(
         uint256 amount
-    ) public useIndexer useStake(amount) useLockedVerifier {
+    ) public useIndexer useStake(amount) useLockedVerifier(subgraphDataServiceAddress) {
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(provisionTokens, 0);
 

@@ -14,8 +14,8 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        Delegation memory delegation = _getDelegation();
-        _undelegate(delegation.shares);
+        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        _undelegate(delegation.shares, subgraphDataServiceAddress);
 
         LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, users.delegator);
         ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
@@ -30,7 +30,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         resetPrank(users.delegator);
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroShares()");
         vm.expectRevert(expectedError);
-        _undelegate(0);
+        _undelegate(0, subgraphDataServiceAddress);
     }
 
     function testUndelegate_RevertWhen_OverUndelegation(
@@ -39,7 +39,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 overDelegationShares
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        Delegation memory delegation = _getDelegation();
+        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
         vm.assume(overDelegationShares > delegation.shares);
 
         bytes memory expectedError = abi.encodeWithSignature(
@@ -48,7 +48,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
             overDelegationShares
         );
         vm.expectRevert(expectedError);
-        _undelegate(overDelegationShares);
+        _undelegate(overDelegationShares, subgraphDataServiceAddress);
     }
 
     function testUndelegate_RevertWhen_UndelegateLeavesInsufficientTokens(
@@ -69,6 +69,25 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
             MIN_DELEGATION
         );
         vm.expectRevert(expectedError);
-        _undelegate(withdrawShares);
+        _undelegate(withdrawShares, subgraphDataServiceAddress);
+    }
+
+    function testUndelegate_LegacySubgraphService(
+        uint256 amount,
+        uint256 delegationAmount
+    ) public useIndexer {
+        amount = bound(amount, MIN_PROVISION_SIZE, 10_000_000_000 ether);
+        delegationAmount = bound(delegationAmount, MIN_DELEGATION, 10_000_000_000 ether);
+        _createProvision(subgraphDataServiceLegacyAddress, amount, 0, 0);
+
+        resetPrank(users.delegator);
+        _delegate(delegationAmount, subgraphDataServiceLegacyAddress);
+        Delegation memory delegation = _getDelegation(subgraphDataServiceLegacyAddress);
+        _undelegate(delegation.shares, subgraphDataServiceLegacyAddress);
+
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceLegacyAddress, users.delegator);
+        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+
+        assertEq(thawRequest.shares, delegation.shares);
     }
 }

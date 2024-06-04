@@ -52,7 +52,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
 
         resetPrank(users.delegator);
-        _delegate(delegationAmount);
+        _delegate(delegationAmount, subgraphDataServiceAddress);
 
         vm.startPrank(subgraphDataServiceAddress);
         _slash(slashAmount, verifierCutAmount);
@@ -79,7 +79,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
 
         resetPrank(users.delegator);
-        _delegate(delegationAmount);
+        _delegate(delegationAmount, subgraphDataServiceAddress);
 
         vm.startPrank(subgraphDataServiceAddress);
         _slash(slashAmount, verifierCutAmount);

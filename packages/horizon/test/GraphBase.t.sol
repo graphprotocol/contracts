@@ -31,6 +31,7 @@ abstract contract GraphBaseTest is Utils, Constants {
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
 
+    address subgraphDataServiceLegacyAddress = makeAddr("subgraphDataServiceLegacyAddress");
     address subgraphDataServiceAddress = makeAddr("subgraphDataServiceAddress");
 
     /* Users */
@@ -137,12 +138,12 @@ abstract contract GraphBaseTest is Utils, Constants {
         );
         stakingExtension = new HorizonStakingExtension(
             address(controller),
-            subgraphDataServiceAddress
+            subgraphDataServiceLegacyAddress
         );
         stakingBase = new HorizonStaking(
             address(controller),
             address(stakingExtension),
-            subgraphDataServiceAddress
+            subgraphDataServiceLegacyAddress
         );
         vm.stopPrank();
 
