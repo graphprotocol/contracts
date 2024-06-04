@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingSlashTest is HorizonStakingTest {
 
+    /*
+     * MODIFIERS
+     */
+
     modifier useDelegationSlashing(bool enabled) {
         address msgSender;
         (, msgSender,) = vm.readCallers();
@@ -16,9 +20,17 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         _;
     }
 
+    /*
+     * HELPERS
+     */
+
     function _slash(uint256 amount, uint256 verifierCutAmount) private {
         staking.slash(users.indexer, amount, verifierCutAmount, subgraphDataServiceAddress);
     }
+
+    /*
+     * TESTS
+     */
 
     function testSlash_Tokens(
         uint256 amount,

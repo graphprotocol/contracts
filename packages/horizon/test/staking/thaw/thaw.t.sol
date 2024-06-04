@@ -7,6 +7,11 @@ import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHo
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingThawTest is HorizonStakingTest {
+
+    /*
+     * TESTS
+     */
+
     function testThaw_Tokens(
         uint256 amount,
         uint64 thawingPeriod,

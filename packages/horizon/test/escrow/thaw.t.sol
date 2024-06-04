@@ -7,6 +7,10 @@ import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowThawTest is GraphEscrowTest {
 
+    /*
+     * TESTS
+     */
+
     function testThaw_Tokens(uint256 amount) public useGateway useDeposit(amount) {
         escrow.thaw(users.indexer, amount);
 

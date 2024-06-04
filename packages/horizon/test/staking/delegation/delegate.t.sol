@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingDelegateTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testDelegate_Tokens(
         uint256 amount,
         uint256 delegationAmount

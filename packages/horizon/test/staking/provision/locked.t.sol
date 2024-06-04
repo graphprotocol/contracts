@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testProvisionLocked_Create(
         uint256 amount
     ) public useIndexer useStake(amount) useLockedVerifier(subgraphDataServiceAddress) {

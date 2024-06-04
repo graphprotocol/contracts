@@ -8,6 +8,10 @@ import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStaki
 
 contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
 
+    /*
+     * MODIFIERS
+     */
+
     modifier useOperator() {
         vm.startPrank(users.indexer);
         staking.setOperator(users.operator, subgraphDataServiceAddress, true);
@@ -62,6 +66,10 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         resetPrank(msgSender);
         _;
     }
+
+    /*
+     * HELPERS
+     */
 
     function _stakeTo(address to, uint256 amount) internal {
         approve(address(staking), amount);

@@ -9,6 +9,10 @@ import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStaki
 
 contract GraphPaymentsTest is HorizonStakingSharedTest {
 
+    /*
+     * TESTS
+     */
+
     function testCollect(
         uint256 amount,
         uint256 tokensDataService

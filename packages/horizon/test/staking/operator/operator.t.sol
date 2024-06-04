@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingOperatorTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testOperator_SetOperator() public useOperator {
         assertTrue(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceAddress));
     }

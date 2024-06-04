@@ -9,6 +9,10 @@ import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 
 contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
+    /*
+     * MODIFIERS
+     */
+
     modifier useUndelegate(uint256 shares) {
         vm.stopPrank();
         vm.startPrank(users.delegator);
@@ -26,6 +30,10 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _undelegate(shares, subgraphDataServiceAddress);
         _;
     }
+
+    /*
+     * HELPERS
+     */
 
     function _withdrawDelegated(address verifier) private {
         staking.withdrawDelegated(users.indexer, verifier, address(0x0), 0, 0);
@@ -47,6 +55,10 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         vm.startPrank(msgSender);
         return newIndexer;
     }
+
+    /*
+     * TESTS
+     */
 
     function testWithdrawDelegation_Tokens(
         uint256 delegationAmount,

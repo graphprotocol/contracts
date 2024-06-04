@@ -7,7 +7,9 @@ import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowCollectorTest is GraphEscrowTest {
 
-    // Collector approve tests
+    /*
+     * TESTS
+     */
 
     function testCollector_Approve(uint256 amount) public useGateway useCollector(amount) {
         (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
@@ -25,8 +27,6 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
         escrow.approveCollector(users.verifier, smallerAmount);
     }
 
-    // Collector thaw tests
-
     function testCollector_Thaw(uint256 amount) public useGateway useCollector(amount) {
         escrow.thawCollector(users.verifier);
 
@@ -34,8 +34,6 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
         assertEq(authorized, true);
         assertEq(thawEndTimestamp, block.timestamp + revokeCollectorThawingPeriod);
     }
-
-    // Collector cancel thaw tests
 
     function testCollector_CancelThaw(uint256 amount) public useGateway useCollector(amount) {
         escrow.thawCollector(users.verifier);
@@ -57,8 +55,6 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
         escrow.cancelThawCollector(users.verifier);
         vm.stopPrank();
     }
-
-    // Collector revoke tests
 
     function testCollector_Revoke(uint256 amount) public useGateway useCollector(amount) {
         escrow.thawCollector(users.verifier);

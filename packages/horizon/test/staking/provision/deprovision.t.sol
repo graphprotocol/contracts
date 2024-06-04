@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingDeprovisionTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testDeprovision_AllRequests(
         uint256 amount,
         uint32 maxVerifierCut,

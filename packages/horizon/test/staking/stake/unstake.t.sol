@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingUnstakeTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testUnstake_Tokens(
         uint256 amount,
         uint32 maxVerifierCut,

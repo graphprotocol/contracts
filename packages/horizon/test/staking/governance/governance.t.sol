@@ -7,10 +7,18 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingGovernanceTest is HorizonStakingTest {
 
+    /*
+     * MODIFIERS
+     */
+
     modifier useGovernor {
         vm.startPrank(users.governor);
         _;
     }
+
+    /*
+     * TESTS
+     */
 
     function testGovernance_SetAllowedLockedVerifier() public useGovernor {
         staking.setAllowedLockedVerifier(subgraphDataServiceAddress, true);

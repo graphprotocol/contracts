@@ -8,6 +8,10 @@ import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
+    /*
+     * MODIFIERS
+     */
+
     modifier useIndexer() {
         vm.startPrank(users.indexer);
         _;
@@ -34,13 +38,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         _;
     }
 
-    /* Set Up */
-
-    function setUp() public virtual override {
-        GraphBaseTest.setUp();  
-    }
-
-    /* Helpers */
+    /*
+     * HELPERS
+     */
 
     function _createProvision(
         address dataServiceAddress,

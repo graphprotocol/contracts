@@ -8,6 +8,10 @@ import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
 
 contract GraphEscrowCollectTest is GraphEscrowTest {
 
+    /*
+     * TESTS
+     */
+
     function testCollect_Tokens(
         uint256 amount,
         uint256 tokensDataService

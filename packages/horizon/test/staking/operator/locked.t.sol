@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingOperatorLockedTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testOperatorLocked_Set() public useIndexer useLockedVerifier(subgraphDataServiceAddress) {
         staking.setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
         assertTrue(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceAddress));

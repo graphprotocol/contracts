@@ -7,6 +7,10 @@ import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStaki
 
 contract GraphEscrowTest is HorizonStakingSharedTest {
 
+    /*
+     * MODIFIERS
+     */
+
     modifier useGateway() {
         vm.startPrank(users.gateway);
         _;
@@ -31,9 +35,9 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
         _;
     }
 
-    function setUp() public virtual override {
-        HorizonStakingSharedTest.setUp();
-    }
+    /*
+     * HELPERS
+     */
 
     function _depositTokens(uint256 tokens) internal {
         token.approve(address(escrow), tokens);

@@ -19,6 +19,10 @@ import { Utils } from "./utils/Utils.sol";
 
 abstract contract GraphBaseTest is Utils, Constants {
 
+    /*
+     * VARIABLES
+     */
+
     /* Contracts */
 
     GraphProxyAdmin public proxyAdmin;
@@ -42,7 +46,9 @@ abstract contract GraphBaseTest is Utils, Constants {
 
     Constants public constants;
 
-    /* Set Up */
+    /*
+     * SET UP
+     */
 
     function setUp() public virtual {
         // Deploy ERC20 token
@@ -171,7 +177,9 @@ abstract contract GraphBaseTest is Utils, Constants {
         return user;
     }
 
-    /* Token helpers */
+    /*
+     * TOKEN HELPERS
+     */
 
     function mint(address _address, uint256 amount) internal {
         deal({ token: address(token), to: _address, give: amount });

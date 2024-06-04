@@ -7,11 +7,23 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingReprovisionTest is HorizonStakingTest {
 
+    /*
+     * VARIABLES
+     */
+
     address private newDataService = makeAddr("newDataService");
+
+    /*
+     * HELPERS
+     */
 
     function _reprovision(uint256 tokens, uint256 nThawRequests) private {
         staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, tokens, nThawRequests);
     }
+
+    /*
+     * TESTS
+     */
 
     function testReprovision_MovingTokens(
         uint64 thawingPeriod,

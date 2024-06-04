@@ -9,6 +9,10 @@ import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 
 contract HorizonStakingUndelegateTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testUndelegate_Tokens(
         uint256 amount,
         uint256 delegationAmount

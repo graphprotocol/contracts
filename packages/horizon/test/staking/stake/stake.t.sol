@@ -7,6 +7,10 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingStakeTest is HorizonStakingTest {
 
+    /*
+     * TESTS
+     */
+
     function testStake_Tokens(uint256 amount) public useIndexer useStake(amount) {
         assertTrue(staking.getStake(address(users.indexer)) == amount);
     }
