@@ -102,6 +102,38 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) useDelegation(delegationAmount) {
         uint256 providerTokensAvailable = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        // Should not include delegated tokens
         assertEq(providerTokensAvailable, amount);
+    }
+
+    function testServiceProvider_HasStake(
+        uint256 amount
+    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) {
+        assertTrue(staking.hasStake(users.indexer));
+
+        _createThawRequest(amount);
+        skip(MAX_THAWING_PERIOD + 1);
+        _deprovision(0);
+        staking.unstake(amount);
+
+        assertFalse(staking.hasStake(users.indexer));
+    }
+
+    function testServiceProvider_GetIndexerStakedTokens(
+        uint256 amount
+    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) {
+        assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
+
+        _createThawRequest(amount);
+        // Does not discount thawing tokens
+        assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
+
+        skip(MAX_THAWING_PERIOD + 1);
+        _deprovision(0);
+        // Does not discount thawing tokens
+        assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
+
+        staking.unstake(amount);
+        assertEq(staking.getIndexerStakedTokens(users.indexer), 0);
     }
 }
