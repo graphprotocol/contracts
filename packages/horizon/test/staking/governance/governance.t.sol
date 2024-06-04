@@ -66,4 +66,19 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
         vm.expectRevert(expectedError);
         staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
     }
+
+    function testGovernance_SetCounterpartStakingAddress(address counterpartStakingAddress) public useGovernor {
+        staking.setCounterpartStakingAddress(counterpartStakingAddress);
+        bytes32 storedValue = vm.load(address(staking), bytes32(uint256(24)));
+        address storedCounterpartStakingAddress = address(uint160(uint256(storedValue)));
+        assertEq(storedCounterpartStakingAddress, counterpartStakingAddress);
+    }
+
+    function testGovernance_RevertWhen_SetCounterpartStakingAddress_NotGovernor(
+        address counterpartStakingAddress
+    ) public useIndexer {
+        bytes memory expectedError = abi.encodeWithSignature("ManagedOnlyGovernor()");
+        vm.expectRevert(expectedError);
+        staking.setCounterpartStakingAddress(counterpartStakingAddress);
+    }
 }
