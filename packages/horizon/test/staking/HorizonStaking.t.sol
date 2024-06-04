@@ -51,7 +51,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         address msgSender;
         (, msgSender,) = vm.readCallers();
         vm.assume(delegationAmount > MIN_DELEGATION);
-        vm.assume(delegationAmount <= 10_000_000_000 ether);
+        vm.assume(delegationAmount <= MAX_STAKING_TOKENS);
         vm.startPrank(users.delegator);
         _delegate(delegationAmount, subgraphDataServiceAddress);
         vm.startPrank(msgSender);

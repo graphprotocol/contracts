@@ -24,7 +24,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
 
     modifier useDeposit(uint256 tokens) {
         vm.assume(tokens > 0);
-        vm.assume(tokens <= 10_000_000_000 ether);
+        vm.assume(tokens <= MAX_STAKING_TOKENS);
         _depositTokens(tokens);
         _;
     }

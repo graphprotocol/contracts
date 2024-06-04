@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 abstract contract Constants {
     uint256 internal constant MAX_PPM = 1000000; // 100% in parts per million
     uint256 internal constant delegationFeeCut = 100000; // 10% in parts per million
+    uint256 internal constant MAX_STAKING_TOKENS = 10_000_000_000 ether;
     // GraphEscrow parameters
     uint256 internal constant withdrawEscrowThawingPeriod = 60;
     uint256 internal constant revokeCollectorThawingPeriod = 60;
