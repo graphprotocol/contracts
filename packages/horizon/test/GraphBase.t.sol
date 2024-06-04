@@ -15,8 +15,9 @@ import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtensi
 import { MockGRTToken } from "../contracts/mocks/MockGRTToken.sol";
 import { Constants } from "./utils/Constants.sol";
 import { Users } from "./utils/Users.sol";
+import { Utils } from "./utils/Utils.sol";
 
-abstract contract GraphBaseTest is Test, Constants {
+abstract contract GraphBaseTest is Utils, Constants {
 
     /* Contracts */
 

@@ -13,9 +13,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 amount,
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
-        // TODO: maybe create a changePrank
-        vm.stopPrank();
-        vm.startPrank(users.delegator);
+        resetPrank(users.delegator);
         Delegation memory delegation = _getDelegation();
         _undelegate(delegation.shares);
 
@@ -29,9 +27,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 amount,
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
-        // TODO: maybe create a changePrank
-        vm.stopPrank();
-        vm.startPrank(users.delegator);
+        resetPrank(users.delegator);
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroShares()");
         vm.expectRevert(expectedError);
         _undelegate(0);
@@ -42,9 +38,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 delegationAmount,
         uint256 overDelegationShares
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
-        // TODO: maybe create a changePrank
-        vm.stopPrank();
-        vm.startPrank(users.delegator);
+        resetPrank(users.delegator);
         Delegation memory delegation = _getDelegation();
         vm.assume(overDelegationShares > delegation.shares);
 
@@ -66,9 +60,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         useProvision(10_000_000 ether, 0, 0)
         useDelegation(delegationAmount)
     {
-        // TODO: maybe create a changePrank
-        vm.stopPrank();
-        vm.startPrank(users.delegator);
+        resetPrank(users.delegator);
         uint256 minShares = delegationAmount - MIN_DELEGATION + 1;
         withdrawShares = bound(withdrawShares, minShares, delegationAmount - 1);
         bytes memory expectedError = abi.encodeWithSignature(

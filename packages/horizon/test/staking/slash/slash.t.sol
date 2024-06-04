@@ -47,13 +47,11 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 verifierCutAmount,
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(false) {
-        // TODO: changePrank?
-        vm.stopPrank();
         delegationAmount = bound(delegationAmount, MIN_DELEGATION, 10_000_000_000 ether);
         slashAmount = bound(slashAmount, amount + 1, amount + delegationAmount);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
 
-        vm.startPrank(users.delegator);
+        resetPrank(users.delegator);
         _delegate(delegationAmount);
 
         vm.startPrank(subgraphDataServiceAddress);
@@ -76,13 +74,11 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 verifierCutAmount,
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(true) {
-        // TODO: changePrank?
-        vm.stopPrank();
         delegationAmount = bound(delegationAmount, MIN_DELEGATION, 10_000_000_000 ether);
         slashAmount = bound(slashAmount, amount + 1, amount + delegationAmount);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
 
-        vm.startPrank(users.delegator);
+        resetPrank(users.delegator);
         _delegate(delegationAmount);
 
         vm.startPrank(subgraphDataServiceAddress);

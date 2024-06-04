@@ -15,22 +15,6 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
     function testGovernance_SetAllowedLockedVerifier() public useGovernor {
         staking.setAllowedLockedVerifier(subgraphDataServiceAddress, true);
         assertTrue(staking.isAllowedLockedVerifier(subgraphDataServiceAddress));
-
-        // Use allowed verifier to set an operator with locked tokens
-        vm.startPrank(users.indexer);
-        staking.setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
-
-        assertTrue(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceAddress));
-    }
-
-    function testGovernance_RevertWhen_VerifierNotAllowed() public useGovernor {
-        staking.setAllowedLockedVerifier(subgraphDataServiceAddress, false);
-        assertFalse(staking.isAllowedLockedVerifier(subgraphDataServiceAddress));
-
-        vm.startPrank(users.indexer);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingVerifierNotAllowed(address)", subgraphDataServiceAddress);
-        vm.expectRevert(expectedError);
-        staking.setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
     }
 
     function testGovernance_RevertWhen_SetAllowedLockedVerifier_NotGovernor() public useIndexer {

@@ -54,6 +54,15 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         _;
     }
 
+    modifier useLockedVerifier() {
+        address msgSender;
+        (, msgSender,) = vm.readCallers();
+        resetPrank(users.governor);
+        staking.setAllowedLockedVerifier(subgraphDataServiceAddress, true);
+        resetPrank(msgSender);
+        _;
+    }
+
     function _stakeTo(address to, uint256 amount) internal {
         approve(address(staking), amount);
         staking.stakeTo(to, amount);
