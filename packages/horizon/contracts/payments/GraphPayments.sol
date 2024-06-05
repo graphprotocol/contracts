@@ -9,7 +9,7 @@ import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "../libraries/PPMMath.sol";
 
-import { GraphDirectory } from "../data-service/GraphDirectory.sol";
+import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 
 /**
  * @title GraphPayments contract

@@ -7,7 +7,7 @@ import { ITAPCollector } from "../../interfaces/ITAPCollector.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
 
-import { GraphDirectory } from "../../data-service/GraphDirectory.sol";
+import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**

@@ -78,17 +78,17 @@ abstract contract GraphDirectory {
      * @param graphCuration The Curation contract address
      */
     event GraphDirectoryInitialized(
-        IGraphToken indexed graphToken,
-        IHorizonStaking indexed graphStaking,
-        IGraphPayments graphPayments,
-        IPaymentsEscrow graphEscrow,
-        IController indexed graphController,
-        IEpochManager graphEpochManager,
-        IRewardsManager graphRewardsManager,
-        ITokenGateway graphTokenGateway,
-        IBridgeEscrow graphBridgeEscrow,
-        IGraphProxyAdmin graphProxyAdmin,
-        ICuration graphCuration
+        address indexed graphToken,
+        address indexed graphStaking,
+        address graphPayments,
+        address graphEscrow,
+        address indexed graphController,
+        address graphEpochManager,
+        address graphRewardsManager,
+        address graphTokenGateway,
+        address graphBridgeEscrow,
+        address graphProxyAdmin,
+        address graphCuration
     );
 
     /**
@@ -123,17 +123,17 @@ abstract contract GraphDirectory {
         GRAPH_CURATION = ICuration(_getContractFromController("Curation"));
 
         emit GraphDirectoryInitialized(
-            GRAPH_TOKEN,
-            GRAPH_STAKING,
-            GRAPH_PAYMENTS,
-            GRAPH_PAYMENTS_ESCROW,
-            GRAPH_CONTROLLER,
-            GRAPH_EPOCH_MANAGER,
-            GRAPH_REWARDS_MANAGER,
-            GRAPH_TOKEN_GATEWAY,
-            GRAPH_BRIDGE_ESCROW,
-            GRAPH_PROXY_ADMIN,
-            GRAPH_CURATION
+            address(GRAPH_TOKEN),
+            address(GRAPH_STAKING),
+            address(GRAPH_PAYMENTS),
+            address(GRAPH_PAYMENTS_ESCROW),
+            address(GRAPH_CONTROLLER),
+            address(GRAPH_EPOCH_MANAGER),
+            address(GRAPH_REWARDS_MANAGER),
+            address(GRAPH_TOKEN_GATEWAY),
+            address(GRAPH_BRIDGE_ESCROW),
+            address(GRAPH_PROXY_ADMIN),
+            address(GRAPH_CURATION)
         );
     }
 

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.26;
 
-import { GraphDirectory } from "../../data-service/GraphDirectory.sol";
+import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 
 // TODO: create custom var-name-mixedcase
 /* solhint-disable var-name-mixedcase */

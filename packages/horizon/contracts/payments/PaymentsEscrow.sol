@@ -8,7 +8,7 @@ import { IPaymentsEscrow } from "../interfaces/IPaymentsEscrow.sol";
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 
-import { GraphDirectory } from "../data-service/GraphDirectory.sol";
+import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 
 /**
  * @title PaymentsEscrow contract

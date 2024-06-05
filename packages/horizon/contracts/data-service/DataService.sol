@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import { IDataService } from "./interfaces/IDataService.sol";
 
 import { DataServiceV1Storage } from "./DataServiceStorage.sol";
-import { GraphDirectory } from "./GraphDirectory.sol";
+import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 import { ProvisionManager } from "./utilities/ProvisionManager.sol";
 
 /**

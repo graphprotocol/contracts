@@ -6,7 +6,7 @@ import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
 import { UintRange } from "../../libraries/UintRange.sol";
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { GraphDirectory } from "../GraphDirectory.sol";
+import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 
 /**
