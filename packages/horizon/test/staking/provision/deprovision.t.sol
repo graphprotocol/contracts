@@ -30,24 +30,16 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
         uint64 thawingPeriod,
         uint256 thawAmount
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        thawAmount = bound(thawAmount, MIN_DELEGATION, amount);
+        vm.assume(amount > 1);
+        thawAmount = bound(thawAmount, 2, amount);
         uint256 thawAmount1 = thawAmount / 2;
-        bytes32 thawRequestId = _createThawRequest(thawAmount1);
-        bytes32 thawRequestId2 = _createThawRequest(thawAmount - thawAmount1);
+        _createThawRequest(thawAmount1);
+        _createThawRequest(thawAmount - thawAmount1);
+
         skip(thawingPeriod + 1);
 
-        console.log("thawAmount1: ", thawAmount1);
-        console.log("thawAmount2: ", thawAmount - thawAmount1);
-
-        ThawRequest memory thawRequest1 = staking.getThawRequest(thawRequestId);
-        ThawRequest memory thawRequest2 = staking.getThawRequest(thawRequestId2);
-        console.log("Thaw request 1 shares: ", thawRequest1.shares);
-        console.log("Thaw request 2 shares: ", thawRequest2.shares);
-
-        console.log("Idle stake before deprovision: ", staking.getIdleStake(users.indexer));
         _deprovision(1);
         uint256 idleStake = staking.getIdleStake(users.indexer);
-        console.log("Idle stake after deprovision: ", idleStake);
         assertEq(idleStake, thawAmount1);
     }
 

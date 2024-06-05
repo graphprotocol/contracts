@@ -36,7 +36,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     {
         skip(thawingPeriod + 1);
 
-        _createProvision(newDataService, MIN_PROVISION_SIZE, 0, thawingPeriod);
+        _createProvision(newDataService, 1 ether, 0, thawingPeriod);
 
         // nThawRequests == 0 reprovisions all thaw requests
         _reprovision(provisionAmount, 0);
@@ -44,7 +44,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         assertEq(idleStake, 0 ether);
 
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, newDataService);
-        assertEq(provisionTokens, provisionAmount + MIN_PROVISION_SIZE);
+        assertEq(provisionTokens, provisionAmount + 1 ether);
     }
 
     function testReprovision_OperatorMovingTokens(
@@ -64,13 +64,13 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         
         // Switch back to operator
         vm.startPrank(users.operator);
-        _createProvision(newDataService, MIN_PROVISION_SIZE, 0, thawingPeriod);
+        _createProvision(newDataService, 1 ether, 0, thawingPeriod);
         _reprovision(provisionAmount, 0);
         uint256 idleStake = staking.getIdleStake(users.indexer);
         assertEq(idleStake, 0 ether);
 
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, newDataService);
-        assertEq(provisionTokens, provisionAmount + MIN_PROVISION_SIZE);
+        assertEq(provisionTokens, provisionAmount + 1 ether);
     }
 
     function testReprovision_RevertWhen_OperatorNotAuthorizedForNewDataService(
@@ -83,7 +83,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     {
         // Switch to indexer to create new provision
         vm.startPrank(users.indexer);
-        _createProvision(newDataService, MIN_PROVISION_SIZE, 0, 0);
+        _createProvision(newDataService, 1 ether, 0, 0);
 
         // Switch back to operator
         vm.startPrank(users.operator);
@@ -116,7 +116,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     {
         vm.assume(thawingPeriod > 0);
 
-        _createProvision(newDataService, MIN_PROVISION_SIZE, 0, thawingPeriod);
+        _createProvision(newDataService, 1 ether, 0, thawingPeriod);
 
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingInsufficientIdleStake(uint256,uint256)",
