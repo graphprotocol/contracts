@@ -2,11 +2,13 @@
 pragma solidity 0.8.26;
 
 import { GraphBaseTest } from "../GraphBase.t.sol";
-import { DataServiceBase } from "./DataServiceBase.sol";
+import { DataServiceBaseUpgradeable } from "./DataServiceBaseUpgradeable.sol";
+import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract DataServiceTest is GraphBaseTest {
+contract DataServiceUpgradeableTest is GraphBaseTest {
     function test_WhenTheContractIsDeployedWithAValidController() external {
-        DataServiceBase dataService = _deployDataService();
+        DataServiceBaseUpgradeable dataService = _deployDataService();
 
         (uint32 minDelegationRatio, uint32 maxDelegationRatio) = dataService.getDelegationRatioRange();
         assertEq(minDelegationRatio, type(uint32).min);
@@ -25,7 +27,17 @@ contract DataServiceTest is GraphBaseTest {
         assertEq(maxThawingPeriod, type(uint64).max);
     }
 
-    function _deployDataService() internal returns (DataServiceBase) {
-        return new DataServiceBase(address(controller));
+    function _deployDataService() internal returns (DataServiceBaseUpgradeable) {
+        // Deploy implementation
+        address implementation = address(new DataServiceBaseUpgradeable(address(controller)));
+
+        // Deploy proxy (calls initialize)
+        address proxy = UnsafeUpgrades.deployTransparentProxy(
+            implementation,
+            users.governor,
+            abi.encodeCall(DataServiceBaseUpgradeable.initialize, ())
+        );
+
+        return DataServiceBaseUpgradeable(proxy);
     }
 }

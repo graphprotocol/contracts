@@ -20,7 +20,8 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
  * contracts.
  * - If the data service implementation is upgradeable, it must initialize the contract via an external
  * initializer function with the `initializer` modifier that calls {__DataService_init} or
- * {__DataService_init_unchained}.
+ * {__DataService_init_unchained}. It's recommended the implementation constructor to also call
+ * {_disableInitializers} to prevent the implementation from being initialized.
  * - If the data service implementation is NOT upgradeable, it must initialize the contract by calling
  * {__DataService_init} or {__DataService_init_unchained} in the constructor. Note that the `initializer`
  * will be required in the constructor.

@@ -5,3 +5,4 @@ eth-gas-reporter/=node_modules/eth-gas-reporter/
 hardhat/=node_modules/hardhat/
 @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
 @openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
+openzeppelin-foundry-upgrades/=lib/openzeppelin-foundry-upgrades/src
