@@ -16,8 +16,14 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
  *
  * The derived contract MUST implement all the interfaces described in {IDataService} and in
  * accordance with the Data Service framework.
- * @dev Implementation must initialize the contract using {__DataService_init} or
- * {__DataService_init_unchained} functions.
+ * @dev A note on upgradeability: this base contract can be inherited by upgradeable or non upgradeable
+ * contracts.
+ * - If the data service implementation is upgradeable, it must initialize the contract via an external
+ * initializer function with the `initializer` modifier that calls {__DataService_init} or
+ * {__DataService_init_unchained}.
+ * - If the data service implementation is NOT upgradeable, it must initialize the contract by calling
+ * {__DataService_init} or {__DataService_init_unchained} in the constructor. Note that the `initializer`
+ * will be required in the constructor.
  */
 abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1Storage, IDataService {
     /**
