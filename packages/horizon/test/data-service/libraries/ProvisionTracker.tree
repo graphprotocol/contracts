@@ -1,0 +1,11 @@
+ProvisionTrackerTest::lock_
+├── given the provision has sufficient available tokens
+│   └── it should lock the tokens
+└── given the provision has insufficient available tokens
+    └── it should revert
+
+ProvisionTrackerTest::release_
+├── given the provision has sufficient locked tokens
+│   └── it should release the tokens
+└── given the provision has insufficient locked tokens
+    └── it should revert

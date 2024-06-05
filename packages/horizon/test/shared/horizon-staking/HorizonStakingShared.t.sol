@@ -24,7 +24,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         _;
     }
 
-    modifier useProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) {
+    modifier useProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) virtual {
         vm.assume(tokens <= MAX_STAKING_TOKENS);
         vm.assume(tokens > 0);
         vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
