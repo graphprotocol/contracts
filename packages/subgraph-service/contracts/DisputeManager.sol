@@ -119,18 +119,24 @@ contract DisputeManager is
 
     /**
      * @notice Create an indexing dispute for the arbitrator to resolve.
-     * The disputes are created in reference to an allocationId
+     * The disputes are created in reference to an allocationId and specifically
+     * a POI for that allocation.
      * This function is called by a challenger that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
      * @param allocationId The allocation to dispute
+     * @param poi The Proof of Indexing (POI) being disputed
      * @param deposit Amount of tokens staked as deposit
      */
-    function createIndexingDispute(address allocationId, uint256 deposit) external override returns (bytes32) {
+    function createIndexingDispute(
+        address allocationId,
+        bytes32 poi,
+        uint256 deposit
+    ) external override returns (bytes32) {
         // Get funds from submitter
         _pullSubmitterDeposit(deposit);
 
         // Create a dispute
-        return _createIndexingDisputeWithAllocation(msg.sender, deposit, allocationId);
+        return _createIndexingDisputeWithAllocation(msg.sender, deposit, allocationId, poi);
     }
 
     /**
@@ -486,14 +492,16 @@ contract DisputeManager is
      * @param _fisherman The challenger creating the dispute
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationId Allocation disputed
+     * @param _poi The POI being disputed
      */
     function _createIndexingDisputeWithAllocation(
         address _fisherman,
         uint256 _deposit,
-        address _allocationId
+        address _allocationId,
+        bytes32 _poi
     ) private returns (bytes32) {
         // Create a disputeId
-        bytes32 disputeId = keccak256(abi.encodePacked(_allocationId));
+        bytes32 disputeId = keccak256(abi.encodePacked(_allocationId, _poi));
 
         // Only one dispute for an allocationId at a time
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
@@ -518,7 +526,7 @@ contract DisputeManager is
             block.timestamp
         );
 
-        emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId);
+        emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId, _poi);
 
         return disputeId;
     }

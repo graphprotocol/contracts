@@ -100,7 +100,8 @@ interface IDisputeManager {
         address indexed indexer,
         address indexed fisherman,
         uint256 tokens,
-        address allocationId
+        address allocationId,
+        bytes32 poi
     );
 
     /**
@@ -193,7 +194,7 @@ interface IDisputeManager {
         bytes calldata attestationData2
     ) external returns (bytes32, bytes32);
 
-    function createIndexingDispute(address allocationId, uint256 deposit) external returns (bytes32);
+    function createIndexingDispute(address allocationId, bytes32 poi, uint256 deposit) external returns (bytes32);
 
     function acceptDispute(bytes32 disputeId, uint256 tokensSlash) external;
 

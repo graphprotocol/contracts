@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
+import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 import { DisputeManager } from "../contracts/DisputeManager.sol";
 import { IDisputeManager } from "../contracts/interfaces/IDisputeManager.sol";
@@ -72,16 +73,24 @@ contract DisputeManagerTest is Test {
         controller.setContractProxy(keccak256("GraphToken"), address(graphToken));
         controller.setContractProxy(keccak256("Staking"), address(staking));
         controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
+        controller.setContractProxy(keccak256("GraphPayments"), address(0x100));
+        controller.setContractProxy(keccak256("PaymentsEscrow"), address(0x101));
+        controller.setContractProxy(keccak256("EpochManager"), address(0x102));
+        controller.setContractProxy(keccak256("GraphTokenGateway"), address(0x103));
+        controller.setContractProxy(keccak256("GraphProxyAdmin"), address(0x104));
+        controller.setContractProxy(keccak256("Curation"), address(0x105));
         vm.stopPrank();
 
-        disputeManager = new DisputeManager(address(controller));
-        disputeManager.initialize(
-            arbitrator,
-            disputePeriod,
-            minimumDeposit,
-            fishermanRewardPercentage,
-            maxSlashingPercentage
+        address disputeManagerImplementation = address(new DisputeManager(address(controller)));
+        address disputeManagerProxy = UnsafeUpgrades.deployTransparentProxy(
+            disputeManagerImplementation,
+            governor,
+            abi.encodeCall(
+                DisputeManager.initialize,
+                (arbitrator, disputePeriod, minimumDeposit, fishermanRewardPercentage, maxSlashingPercentage)
+            )
         );
+        disputeManager = DisputeManager(disputeManagerProxy);
 
         subgraphService = new SubgraphService(address(controller), address(disputeManager), tapVerifier, curation);
         subgraphService.initialize(1000 ether, 16);
@@ -110,7 +119,7 @@ contract DisputeManagerTest is Test {
         vm.startPrank(fisherman);
         graphToken.mint(fisherman, tokens);
         graphToken.approve(address(disputeManager), tokens);
-        bytes32 _disputeID = disputeManager.createIndexingDispute(_allocationID, tokens);
+        bytes32 _disputeID = disputeManager.createIndexingDispute(_allocationID, bytes32("POI1234"), tokens);
         vm.stopPrank();
         return _disputeID;
     }
@@ -218,7 +227,7 @@ contract DisputeManagerTest is Test {
         graphToken.approve(address(disputeManager), tokens);
         bytes memory expectedError = abi.encodeWithSignature("DisputeManagerDisputeAlreadyCreated(bytes32)", disputeID);
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, tokens);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI1234"), tokens);
         vm.stopPrank();
     }
 
@@ -232,7 +241,7 @@ contract DisputeManagerTest is Test {
             100 ether
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, 50 ether);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI1234"), 50 ether);
         vm.stopPrank();
     }
 
@@ -244,7 +253,7 @@ contract DisputeManagerTest is Test {
         graphToken.approve(address(disputeManager), tokens);
         bytes memory expectedError = abi.encodeWithSignature("DisputeManagerIndexerNotFound(address)", allocationID);
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, tokens);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI1234"), tokens);
         vm.stopPrank();
     }
 

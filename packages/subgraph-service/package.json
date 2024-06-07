@@ -10,7 +10,7 @@
     "lint": "yarn lint:ts && yarn lint:sol",
     "clean": "rm -rf build cache typechain-types",
     "build": "forge build && hardhat compile",
-    "test": "FOUNDRY_PROFILE=lite forge test -vvv && hardhat test"
+    "test": "FOUNDRY_PROFILE=lite forge test -vvvv && hardhat test"
   },
   "devDependencies": {
     "@graphprotocol/contracts": "workspace:^7.0.0",
