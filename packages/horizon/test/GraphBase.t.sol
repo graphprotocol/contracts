@@ -13,6 +13,9 @@ import { IHorizonStaking } from "contracts/interfaces/IHorizonStaking.sol";
 import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
 import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtension.sol";
 import { MockGRTToken } from "../contracts/mocks/MockGRTToken.sol";
+import { EpochManagerMock } from "../contracts/mocks/EpochManagerMock.sol";
+import { RewardsManagerMock } from "../contracts/mocks/RewardsManagerMock.sol";
+import { CurationMock } from "../contracts/mocks/CurationMock.sol";
 import { Constants } from "./utils/Constants.sol";
 import { Users } from "./utils/Users.sol";
 import { Utils } from "./utils/Utils.sol";
@@ -31,6 +34,9 @@ abstract contract GraphBaseTest is Utils, Constants {
     GraphPayments public payments;
     PaymentsEscrow public escrow;
     IHorizonStaking public staking;
+    EpochManagerMock public epochManager;
+    RewardsManagerMock public rewardsManager;
+    CurationMock public curation;
     
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
@@ -84,10 +90,9 @@ abstract contract GraphBaseTest is Utils, Constants {
         vm.startPrank(users.governor);
         proxyAdmin = new GraphProxyAdmin();
         controller = new Controller();
-        vm.stopPrank();
 
         // Staking Proxy
-        vm.prank(users.deployer);
+        resetPrank(users.deployer);
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
 
         // GraphPayments predict address
@@ -118,21 +123,29 @@ abstract contract GraphBaseTest is Utils, Constants {
             users.deployer
         );
 
+        // Epoch Manager
+        epochManager = new EpochManagerMock();
+
+        // Rewards Manager
+        rewardsManager = new RewardsManagerMock(token, ALLOCATIONS_REWARD_CUT);
+
+        // Curation
+        curation = new CurationMock();
+
         // Setup controller
-        vm.startPrank(users.governor);
+        resetPrank(users.governor);
         controller.setContractProxy(keccak256("GraphToken"), address(token));
         controller.setContractProxy(keccak256("PaymentsEscrow"), predictedAddressEscrow);
         controller.setContractProxy(keccak256("GraphPayments"), predictedPaymentsAddress);
         controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
-        controller.setContractProxy(keccak256("EpochManager"), makeAddr("EpochManager"));
-        controller.setContractProxy(keccak256("RewardsManager"), makeAddr("RewardsManager"));
-        controller.setContractProxy(keccak256("Curation"), makeAddr("Curation"));
+        controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
+        controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
+        controller.setContractProxy(keccak256("Curation"), address(curation));
         controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
         controller.setContractProxy(keccak256("BridgeEscrow"), makeAddr("BridgeEscrow"));
         controller.setContractProxy(keccak256("GraphProxyAdmin"), address(proxyAdmin));
-        vm.stopPrank();
         
-        vm.startPrank(users.deployer);
+        resetPrank(users.deployer);
         payments = new GraphPayments{salt: saltPayments}(
             address(controller), 
             protocolPaymentCut
@@ -151,21 +164,21 @@ abstract contract GraphBaseTest is Utils, Constants {
             address(stakingExtension),
             subgraphDataServiceLegacyAddress
         );
-        vm.stopPrank();
 
-        vm.startPrank(users.governor);
+        resetPrank(users.governor);
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));
         proxyAdmin.acceptProxy(stakingBase, stakingProxy);
         staking = IHorizonStaking(address(stakingProxy));
     }
 
     function setupProtocol() private {
-        vm.startPrank(users.governor);
+        resetPrank(users.governor);
         staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
+        epochManager.setEpochLength(EPOCH_LENGTH);
     }
 
     function unpauseProtocol() private {
-        vm.startPrank(users.governor);
+        resetPrank(users.governor);
         controller.setPaused(false);
     }
 

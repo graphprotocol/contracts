@@ -3,7 +3,6 @@
 pragma solidity 0.8.26;
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
-import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
@@ -26,7 +25,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * @dev TODO: Once the transition period and the transfer tools are deemed not necessary this contract
  * can be removed. It's expected the transition period to last for a full allocation cycle (28 epochs).
  */
-contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2StakingBase, IHorizonStakingExtension {
+contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizonStakingExtension {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
 
@@ -442,9 +441,9 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
         // Anyone is allowed to close ONLY under two concurrent conditions
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
-        bool isIndexer = isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
+        bool isIndexerOrOperator = msg.sender == alloc.indexer || isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
         if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
-            require(isIndexer, "!auth");
+            require(isIndexerOrOperator, "!auth");
         }
 
         // Close the allocation
@@ -455,7 +454,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
         // Process non-zero-allocation rewards tracking
         if (alloc.tokens > 0) {
             // Distribute rewards if proof of indexing was presented by the indexer or operator
-            if (isIndexer && _poi != 0) {
+            if (isIndexerOrOperator && _poi != 0) {
                 _distributeRewards(_allocationID, alloc.indexer);
             } else {
                 _updateRewards(alloc.subgraphDeploymentID);
@@ -481,7 +480,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IRewardsIssuer, IL2Staki
             _allocationID,
             msg.sender,
             _poi,
-            !isIndexer
+            !isIndexerOrOperator
         );
     }
 
