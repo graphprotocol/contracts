@@ -362,6 +362,20 @@ interface IStakingBase is IStakingData {
     function getAllocation(address _allocationID) external view returns (Allocation memory);
 
     /**
+     * @dev New function to get the allocation data for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function getAllocationData(address _allocationID) external view returns (address, bytes32, uint256, uint256);
+
+    /**
+     * @dev New function to get the allocation active status for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function isActiveAllocation(address _allocationID) external view returns (bool);
+
+    /**
      * @notice Return the current state of an allocation
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation

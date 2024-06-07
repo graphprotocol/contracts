@@ -33,6 +33,7 @@ contract SubgraphService is
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => Allocation.State);
+    using Allocation for Allocation.State;
 
     /**
      * @notice Checks that an indexer is registered
@@ -370,6 +371,29 @@ contract SubgraphService is
             allo.tokens,
             allo.accRewardsPerAllocatedToken + allo.accRewardsPending
         );
+    }
+
+    /**
+     * @notice Return the total amount of tokens allocated to subgraph.
+     * @dev Implements {IRewardsIssuer.getSubgraphAllocatedTokens}
+     * @dev To be used by the {RewardsManager}.
+     * @param subgraphDeploymentId Deployment Id for the subgraph
+     * @return Total tokens allocated to subgraph
+     */
+    function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentId) external view override returns (uint256) {
+        return subgraphAllocatedTokens[subgraphDeploymentId];
+    }
+
+    /**
+     * @notice Check if an allocation is open
+     * @dev Implements {IRewardsIssuer.isAllocationActive}
+     * @dev To be used by the {RewardsManager}.
+     *
+     * @param allocationId The allocation Id
+     * @return Wether or not the allocation is active
+     */
+    function isActiveAllocation(address allocationId) external view override returns (bool) {
+        return allocations[allocationId].isOpen();
     }
 
     /**

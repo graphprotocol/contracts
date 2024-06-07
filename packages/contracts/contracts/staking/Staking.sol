@@ -473,6 +473,27 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
+     * @dev New function to get the allocation data for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function getAllocationData(
+        address _allocationID
+    ) external view override returns (address, bytes32, uint256, uint256) {
+        Allocation memory alloc = __allocations[_allocationID];
+        return (alloc.indexer, alloc.subgraphDeploymentID, alloc.tokens, alloc.accRewardsPerAllocatedToken);
+    }
+
+    /**
+     * @dev New function to get the allocation active status for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function isActiveAllocation(address _allocationID) external view override returns (bool) {
+        return _getAllocationState(_allocationID) == AllocationState.Active;
+    }
+
+    /**
      * @notice Return the current state of an allocation
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
