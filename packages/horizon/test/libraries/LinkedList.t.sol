@@ -33,12 +33,12 @@ contract LinkedListTest is Test, ListImplementation {
         }
 
         vm.expectRevert(LinkedList.LinkedListMaxElementsExceeded.selector);
-        list.add(_buildItemId(list.nonce));
+        list.addTail(_buildItemId(list.nonce));
     }
 
     function test_Remove_RevertGiven_TheListIsEmpty() external {
         vm.expectRevert(LinkedList.LinkedListEmptyList.selector);
-        list.remove(_getNextItem, _deleteItem);
+        list.removeHead(_getNextItem, _deleteItem);
     }
 
     function test_Remove_GivenTheListIsNotEmpty() external {
@@ -119,7 +119,7 @@ contract LinkedListTest is Test, ListImplementation {
 
         Item memory beforeHeadItem = items[beforeHead];
 
-        list.remove(_getNextItem, _deleteItem);
+        list.removeHead(_getNextItem, _deleteItem);
 
         uint256 afterNonce = list.nonce;
         uint256 afterCount = list.count;

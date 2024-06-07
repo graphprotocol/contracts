@@ -38,6 +38,7 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
      */
     // solhint-disable-next-line func-name-mixedcase
     function __DataService_init() internal onlyInitializing {
+        __ProvisionManager_init_unchained();
         __DataService_init_unchained();
     }
 
@@ -45,7 +46,5 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
      * @notice Initializes the contract.
      */
     // solhint-disable-next-line func-name-mixedcase
-    function __DataService_init_unchained() internal onlyInitializing {
-        __ProvisionManager_init_unchained();
-    }
+    function __DataService_init_unchained() internal onlyInitializing {}
 }

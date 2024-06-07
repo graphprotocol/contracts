@@ -17,8 +17,9 @@ interface IDataService {
     /**
      * @notice Emitted when a service provider is registered with the data service.
      * @param serviceProvider The address of the service provider.
+     * @param data Custom data, usage defined by the data service.
      */
-    event ServiceProviderRegistered(address indexed serviceProvider);
+    event ServiceProviderRegistered(address indexed serviceProvider, bytes data);
 
     /**
      * @notice Emitted when a service provider accepts a provision in {Graph Horizon staking contract}.
@@ -29,14 +30,16 @@ interface IDataService {
     /**
      * @notice Emitted when a service provider starts providing the service.
      * @param serviceProvider The address of the service provider.
+     * @param data Custom data, usage defined by the data service.
      */
-    event ServiceStarted(address indexed serviceProvider);
+    event ServiceStarted(address indexed serviceProvider, bytes data);
 
     /**
      * @notice Emitted when a service provider stops providing the service.
      * @param serviceProvider The address of the service provider.
+     * @param data Custom data, usage defined by the data service.
      */
-    event ServiceStopped(address indexed serviceProvider);
+    event ServiceStopped(address indexed serviceProvider, bytes data);
 
     /**
      * @notice Emitted when a service provider collects payment.

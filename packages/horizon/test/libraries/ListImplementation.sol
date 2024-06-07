@@ -22,7 +22,7 @@ contract ListImplementation {
         if (_list.count != 0) {
             items[_list.tail].next = _id;
         }
-        _list.add(_id);
+        _list.addTail(_id);
         return _id;
     }
 

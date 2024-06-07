@@ -22,7 +22,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     /**
      * @notice See {IDataServiceFees-releaseStake}
      */
-    function releaseStake(uint256 n) external virtual {
+    function releaseStake(uint256 n) external virtual override {
         _releaseStake(msg.sender, n);
     }
 
@@ -52,7 +52,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
             nextClaim: bytes32(0)
         });
         if (claimsList.count != 0) claims[claimsList.tail].nextClaim = claimId;
-        claimsList.add(claimId);
+        claimsList.addTail(claimId);
 
         emit StakeClaimLocked(_serviceProvider, claimId, _tokens, _unlockTimestamp);
     }

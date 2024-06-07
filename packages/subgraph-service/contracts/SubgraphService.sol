@@ -128,7 +128,7 @@ contract SubgraphService is
             _setRewardsDestination(indexer, rewardsDestination);
         }
 
-        emit ServiceProviderRegistered(indexer);
+        emit ServiceProviderRegistered(indexer, data);
     }
 
     /**
@@ -193,7 +193,7 @@ contract SubgraphService is
             (bytes32, uint256, address, bytes)
         );
         _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, maximumDelegationRatio);
-        emit ServiceStarted(indexer);
+        emit ServiceStarted(indexer, data);
     }
 
     /**
@@ -221,7 +221,7 @@ contract SubgraphService is
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         _closeAllocation(allocationId);
-        emit ServiceStopped(indexer);
+        emit ServiceStopped(indexer, data);
     }
 
     /**

@@ -63,7 +63,7 @@ library LinkedList {
      * @param self The list metadata
      * @param id The id of the item to add
      */
-    function add(List storage self, bytes32 id) internal {
+    function addTail(List storage self, bytes32 id) internal {
         require(self.count < MAX_ITEMS, LinkedListMaxElementsExceeded());
         self.tail = id;
         self.nonce += 1;
@@ -80,7 +80,7 @@ library LinkedList {
      * @param deleteItem A function to delete an item. This should delete the item from
      * the contract storage. It takes the id of the item to delete.
      */
-    function remove(
+    function removeHead(
         List storage self,
         function(bytes32) view returns (bytes32) getNextItem,
         function(bytes32) deleteItem
@@ -96,13 +96,13 @@ library LinkedList {
 
     /**
      * @notice Traverses the list and processes each item.
+     * It deletes the processed items from both the list and the storage mapping.
      * @param self The list metadata
      * @param getNextItem A function to get the next item in the list. It should take
      * the id of the current item and return the id of the next item.
      * @param processItem A function to process an item. The function should take the id of the item
      * and an accumulator, and return:
      * - a boolean indicating whether the traversal should stop
-     * - a boolean indicating whether the item should be deleted
      * - an accumulator to pass data between iterations
      * @param deleteItem A function to delete an item. This should delete the item from
      * the contract storage. It takes the id of the item to delete.
@@ -132,7 +132,7 @@ library LinkedList {
             if (shouldBreak) break;
 
             acc = acc_;
-            cursor = self.remove(getNextItem, deleteItem);
+            cursor = self.removeHead(getNextItem, deleteItem);
 
             if (!traverseAll) iterations--;
             itemCount++;

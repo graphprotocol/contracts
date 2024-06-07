@@ -830,7 +830,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _thawRequests[thawRequestId] = ThawRequest({ shares: _shares, thawingUntil: _thawingUntil, next: bytes32(0) });
 
         if (thawRequestList.count != 0) _thawRequests[thawRequestList.tail].next = thawRequestId;
-        thawRequestList.add(thawRequestId);
+        thawRequestList.addTail(thawRequestId);
 
         emit ThawRequestCreated(_serviceProvider, _verifier, _owner, _shares, _thawingUntil, thawRequestId);
         return thawRequestId;

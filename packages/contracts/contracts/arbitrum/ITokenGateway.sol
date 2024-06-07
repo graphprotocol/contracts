@@ -47,8 +47,8 @@ interface ITokenGateway {
     // );
 
     function outboundTransfer(
-        address oken,
-        address t,
+        address token,
+        address to,
         uint256 amunt,
         uint256 maxas,
         uint256 gasPiceBid,
