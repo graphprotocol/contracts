@@ -47,6 +47,17 @@ contract HorizonStakingExtensionTest is HorizonStakingTest {
         });
     }
 
+    function _storeDelegationPool(uint256 tokens, uint32 indexingRewardCut, uint32 queryFeeCut) internal {
+        bytes32 baseSlot = keccak256(abi.encode(users.indexer, uint256(20)));
+        bytes32 feeCutValues = bytes32(
+            (uint256(indexingRewardCut) << uint256(32)) |
+            (uint256(queryFeeCut) << uint256(64))
+        );
+        bytes32 tokensSlot = bytes32(uint256(baseSlot) + 2);
+        vm.store(address(staking), baseSlot, feeCutValues);
+        vm.store(address(staking), tokensSlot, bytes32(tokens));
+    }
+
     /*
      * HELPERS
      */

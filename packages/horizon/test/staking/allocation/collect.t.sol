@@ -65,14 +65,6 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         vm.store(address(staking), slot, newProtocolTaxValue);
     }
 
-    function _storeDelegationPool(uint256 tokens, uint32 queryFeeCut) private {
-        bytes32 baseSlot = keccak256(abi.encode(users.indexer, uint256(20)));
-        bytes32 queryFeeCutValue = bytes32(uint256(queryFeeCut) << uint256(64));
-        bytes32 tokensSlot = bytes32(uint256(baseSlot) + 2);
-        vm.store(address(staking), baseSlot, queryFeeCutValue);
-        vm.store(address(staking), tokensSlot, bytes32(tokens));
-    }
-
     /*
      * TESTS
      */
@@ -114,7 +106,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         _storeAllocation(allocationTokens);
         _storeProtocolTaxAndCuration(curationPercentage, protocolTaxPercentage);
-        _storeDelegationPool(delegationTokens, queryFeeCut);
+        _storeDelegationPool(delegationTokens, 0, queryFeeCut);
         curation.signal(_subgraphDeploymentID, curationTokens);
 
         resetPrank(users.gateway);
