@@ -2,11 +2,13 @@
 
 pragma solidity 0.8.26;
 
+import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
+
 /**
  * @title Interface for {HorizonStakingExtension} contract.
  * @notice Provides functions for managing legacy allocations and transfer tools.
  */
-interface IHorizonStakingExtension {
+interface IHorizonStakingExtension is IRewardsIssuer {
     /**
      * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
      * An allocation is created in the allocate() function and closed in closeAllocation()

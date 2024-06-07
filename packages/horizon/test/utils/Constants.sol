@@ -15,4 +15,8 @@ abstract contract Constants {
     uint32 internal constant MAX_MAX_VERIFIER_CUT = 1000000; // 100% in parts per million
     uint64 internal constant MAX_THAWING_PERIOD = 28 days;
     uint256 internal constant MIN_DELEGATION = 1 ether;
+    // Epoch manager
+    uint256 internal constant EPOCH_LENGTH = 1;
+    // Rewards manager
+    uint256 internal constant ALLOCATIONS_REWARD_CUT = 100 ether;
 }
