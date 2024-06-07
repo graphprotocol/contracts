@@ -8,6 +8,7 @@ pragma solidity 0.8.26;
  */
 library Denominations {
     /// @notice The address of the native token, i.e ETH
+    /// @dev This convention is taken from https://eips.ethereum.org/EIPS/eip-7528
     address internal constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /**

@@ -16,6 +16,6 @@ module.exports = [
     },
   },
   {
-    ignores: ['typechain-types/*'],
+    ignores: ['typechain-types/*', 'lib/*'],
   },
 ]

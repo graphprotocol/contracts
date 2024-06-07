@@ -11,7 +11,6 @@ import { IController } from "@graphprotocol/contracts/contracts/governance/ICont
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
 import { ITokenGateway } from "@graphprotocol/contracts/contracts/arbitrum/ITokenGateway.sol";
-import { IBridgeEscrow } from "../../contracts/interfaces/IBridgeEscrow.sol";
 import { IGraphProxyAdmin } from "../../contracts/interfaces/IGraphProxyAdmin.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 
@@ -53,10 +52,6 @@ contract GraphDirectoryImplementation is GraphDirectory {
 
     function graphTokenGateway() external view returns (ITokenGateway) {
         return _graphTokenGateway();
-    }
-
-    function graphBridgeEscrow() external view returns (IBridgeEscrow) {
-        return _graphBridgeEscrow();
     }
 
     function graphProxyAdmin() external view returns (IGraphProxyAdmin) {

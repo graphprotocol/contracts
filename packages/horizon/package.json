@@ -2,7 +2,7 @@
   "name": "@graphprotocol/horizon",
   "version": "0.0.1",
   "description": "",
-  "author": "The Graph Team",
+  "author": "The Graph core devs",
   "license": "GPL-2.0-or-later",
   "scripts": {
     "lint:ts": "eslint '**/*.{js,ts}' --fix",

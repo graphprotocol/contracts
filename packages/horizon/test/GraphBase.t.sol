@@ -142,7 +142,6 @@ abstract contract GraphBaseTest is Utils, Constants {
         controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
         controller.setContractProxy(keccak256("Curation"), address(curation));
         controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
-        controller.setContractProxy(keccak256("BridgeEscrow"), makeAddr("BridgeEscrow"));
         controller.setContractProxy(keccak256("GraphProxyAdmin"), address(proxyAdmin));
         
         resetPrank(users.deployer);

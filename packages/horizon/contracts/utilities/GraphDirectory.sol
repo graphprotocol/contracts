@@ -11,7 +11,6 @@ import { IController } from "@graphprotocol/contracts/contracts/governance/ICont
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
 import { ITokenGateway } from "@graphprotocol/contracts/contracts/arbitrum/ITokenGateway.sol";
-import { IBridgeEscrow } from "../interfaces/IBridgeEscrow.sol";
 import { IGraphProxyAdmin } from "../interfaces/IGraphProxyAdmin.sol";
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
@@ -52,9 +51,6 @@ abstract contract GraphDirectory {
     /// @notice The Token Gateway contract address
     ITokenGateway private immutable GRAPH_TOKEN_GATEWAY;
 
-    /// @notice The Bridge Escrow contract address
-    IBridgeEscrow private immutable GRAPH_BRIDGE_ESCROW;
-
     /// @notice The Graph Proxy Admin contract address
     IGraphProxyAdmin private immutable GRAPH_PROXY_ADMIN;
 
@@ -73,7 +69,6 @@ abstract contract GraphDirectory {
      * @param graphEpochManager The Epoch Manager contract address
      * @param graphRewardsManager The Rewards Manager contract address
      * @param graphTokenGateway The Token Gateway contract address
-     * @param graphBridgeEscrow The Bridge Escrow contract address
      * @param graphProxyAdmin The Graph Proxy Admin contract address
      * @param graphCuration The Curation contract address
      */
@@ -86,7 +81,6 @@ abstract contract GraphDirectory {
         address graphEpochManager,
         address graphRewardsManager,
         address graphTokenGateway,
-        address graphBridgeEscrow,
         address graphProxyAdmin,
         address graphCuration
     );
@@ -118,7 +112,6 @@ abstract contract GraphDirectory {
         GRAPH_EPOCH_MANAGER = IEpochManager(_getContractFromController("EpochManager"));
         GRAPH_REWARDS_MANAGER = IRewardsManager(_getContractFromController("RewardsManager"));
         GRAPH_TOKEN_GATEWAY = ITokenGateway(_getContractFromController("GraphTokenGateway"));
-        GRAPH_BRIDGE_ESCROW = IBridgeEscrow(_getContractFromController("BridgeEscrow"));
         GRAPH_PROXY_ADMIN = IGraphProxyAdmin(_getContractFromController("GraphProxyAdmin"));
         GRAPH_CURATION = ICuration(_getContractFromController("Curation"));
 
@@ -131,7 +124,6 @@ abstract contract GraphDirectory {
             address(GRAPH_EPOCH_MANAGER),
             address(GRAPH_REWARDS_MANAGER),
             address(GRAPH_TOKEN_GATEWAY),
-            address(GRAPH_BRIDGE_ESCROW),
             address(GRAPH_PROXY_ADMIN),
             address(GRAPH_CURATION)
         );
@@ -191,13 +183,6 @@ abstract contract GraphDirectory {
      */
     function _graphTokenGateway() internal view returns (ITokenGateway) {
         return GRAPH_TOKEN_GATEWAY;
-    }
-
-    /**
-     * @notice Get the Bridge Escrow contract
-     */
-    function _graphBridgeEscrow() internal view returns (IBridgeEscrow) {
-        return GRAPH_BRIDGE_ESCROW;
     }
 
     /**

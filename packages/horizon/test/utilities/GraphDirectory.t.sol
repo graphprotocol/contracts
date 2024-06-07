@@ -19,7 +19,6 @@ contract GraphDirectoryTest is GraphBaseTest {
             _getContractFromController("EpochManager"),
             _getContractFromController("RewardsManager"),
             _getContractFromController("GraphTokenGateway"),
-            _getContractFromController("BridgeEscrow"),
             _getContractFromController("GraphProxyAdmin"),
             _getContractFromController("Curation")
         );
@@ -49,7 +48,6 @@ contract GraphDirectoryTest is GraphBaseTest {
         assertEq(_getContractFromController("EpochManager"), address(directory.graphEpochManager()));
         assertEq(_getContractFromController("RewardsManager"), address(directory.graphRewardsManager()));
         assertEq(_getContractFromController("GraphTokenGateway"), address(directory.graphTokenGateway()));
-        assertEq(_getContractFromController("BridgeEscrow"), address(directory.graphBridgeEscrow()));
         assertEq(_getContractFromController("GraphProxyAdmin"), address(directory.graphProxyAdmin()));
         assertEq(_getContractFromController("Curation"), address(directory.graphCuration()));
     }
