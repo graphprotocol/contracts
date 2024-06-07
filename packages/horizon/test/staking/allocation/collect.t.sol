@@ -150,4 +150,36 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         assertEq(curation.curation(_subgraphDeploymentID), curationTokens + curationCutTokens);
         assertEq(staking.getDelegationPool(users.indexer, subgraphDataServiceLegacyAddress).tokens, delegationTokens + delegationFeeCut);
     }
+
+    function testCollect_WithBeneficiaryAddress(
+        uint256 provisionTokens,
+        uint256 allocationTokens,
+        uint256 collectTokens
+    ) public useIndexer useRebateParameters {
+        provisionTokens = bound(provisionTokens, 1, MAX_STAKING_TOKENS);
+        allocationTokens = bound(allocationTokens, 0, MAX_STAKING_TOKENS);
+        collectTokens = bound(collectTokens, 0, MAX_STAKING_TOKENS);
+
+        _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
+        _storeAllocation(allocationTokens);
+
+        address beneficiary = makeAddr("beneficiary");
+        _storeRewardsDestination(beneficiary);
+
+        resetPrank(users.gateway);
+        approve(address(staking), collectTokens);
+        staking.collect(collectTokens, _allocationId);
+
+        uint256 newRebates = ExponentialRebates.exponentialRebates(
+            collectTokens,
+            allocationTokens,
+            alphaNumerator,
+            alphaDenominator,
+            lambdaNumerator,
+            lambdaDenominator
+        );
+        uint256 payment = newRebates > collectTokens ? collectTokens : newRebates;
+
+        assertEq(token.balanceOf(beneficiary), payment);
+    }
 }

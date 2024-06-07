@@ -29,6 +29,26 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
         assertEq(staking.getStake(address(users.indexer)), tokens + ALLOCATIONS_REWARD_CUT);
     }
 
+    function testCloseAllocation_WithBeneficiaryAddress(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
+        _storeAllocation(tokens);
+        _storeMaxAllocationEpochs();
+        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, 0);
+
+        address beneficiary = makeAddr("beneficiary");
+        _storeRewardsDestination(beneficiary);
+
+        // Skip 15 epochs
+        vm.roll(15);
+
+        staking.closeAllocation(_allocationId, _poi);
+        IHorizonStakingExtension.Allocation memory allocation = staking.getAllocation(_allocationId);
+        assertEq(allocation.closedAtEpoch, epochManager.currentEpoch());
+
+        // Stake should be updated with rewards
+        assertEq(token.balanceOf(beneficiary), ALLOCATIONS_REWARD_CUT);
+    }
+
     function testCloseAllocation_RevertWhen_NotActive() public {
         vm.expectRevert("!active");
         staking.closeAllocation(_allocationId, _poi);

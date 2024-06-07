@@ -77,4 +77,10 @@ contract HorizonStakingExtensionTest is HorizonStakingTest {
         uint256 slot = 13;
         vm.store(address(staking), bytes32(slot), bytes32(MAX_ALLOCATION_EPOCHS) << 128);
     }
+
+    function _storeRewardsDestination(address destination) internal {
+        uint256 rewardsDestinationSlot = 23;
+        bytes32 rewardsDestinationSlotBaseSlot = keccak256(abi.encode(users.indexer, rewardsDestinationSlot));
+        vm.store(address(staking), rewardsDestinationSlotBaseSlot, bytes32(uint256(uint160(destination))));
+    }
 }
