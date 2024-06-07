@@ -11,12 +11,6 @@ abstract contract ProvisionManagerV1Storage {
     /// @notice The maximum amount of tokens allowed to register a provision in the data service
     uint256 public maximumProvisionTokens;
 
-    /// @notice Minimum delegation to self stake ratio required
-    uint32 public minimumDelegationRatio;
-
-    /// @notice Maximum delegation to self stake ratio allowed for a service provider
-    uint32 public maximumDelegationRatio;
-
     /// @notice The minimum thawing period required to register a provision in the data service
     uint64 public minimumThawingPeriod;
 
@@ -28,6 +22,10 @@ abstract contract ProvisionManagerV1Storage {
 
     /// @notice The maximum verifier cut allowed to register a provision in the data service
     uint32 public maximumVerifierCut;
+
+    /// @notice How much delegation the service provider can effectively use
+    /// @dev Max calculated as service provider's stake * delegationRatio
+    uint32 public delegationRatio;
 
     /// @dev Gap to allow adding variables in future upgrades
     uint256[50] private __gap;

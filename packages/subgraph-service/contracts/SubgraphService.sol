@@ -82,14 +82,14 @@ contract SubgraphService is
      * @dev The thawingPeriod and verifierCut ranges are not set here because they are variables
      * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.
      */
-    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external override initializer {
+    function initialize(uint256 minimumProvisionTokens, uint32 delegationRatio) external override initializer {
         __Ownable_init(msg.sender);
         __DataService_init();
         __DataServicePausable_init();
         __AllocationManager_init("SubgraphService", "1.0");
 
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
-        _setDelegationRatioRange(type(uint32).min, maximumDelegationRatio);
+        _setDelegationRatio(delegationRatio);
     }
 
     /**
@@ -192,7 +192,7 @@ contract SubgraphService is
             data,
             (bytes32, uint256, address, bytes)
         );
-        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, maximumDelegationRatio);
+        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, delegationRatio);
         emit ServiceStarted(indexer, data);
     }
 
@@ -297,7 +297,7 @@ contract SubgraphService is
         onlyRegisteredIndexer(indexer)
         whenNotPaused
     {
-        _resizeAllocation(allocationId, tokens, maximumDelegationRatio);
+        _resizeAllocation(allocationId, tokens, delegationRatio);
     }
 
     /**
@@ -333,10 +333,10 @@ contract SubgraphService is
     }
 
     /**
-     * @notice See {ISubgraphService.setMaximumDelegationRatio}
+     * @notice See {ISubgraphService.setDelegationRatio}
      */
-    function setMaximumDelegationRatio(uint32 maximumDelegationRatio) external override onlyOwner {
-        _setDelegationRatioRange(type(uint32).min, maximumDelegationRatio);
+    function setDelegationRatio(uint32 delegationRatio) external override onlyOwner {
+        _setDelegationRatio(delegationRatio);
     }
 
     /**

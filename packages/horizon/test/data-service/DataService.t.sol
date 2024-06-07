@@ -8,9 +8,8 @@ contract DataServiceTest is GraphBaseTest {
     function test_WhenTheContractIsDeployedWithAValidController() external {
         DataServiceBase dataService = _deployDataService();
 
-        (uint32 minDelegationRatio, uint32 maxDelegationRatio) = dataService.getDelegationRatioRange();
-        assertEq(minDelegationRatio, type(uint32).min);
-        assertEq(maxDelegationRatio, type(uint32).max);
+        uint32 delegationRatio = dataService.getDelegationRatio();
+        assertEq(delegationRatio, type(uint32).min);
 
         (uint256 minTokens, uint256 maxTokens) = dataService.getProvisionTokensRange();
         assertEq(minTokens, type(uint256).min);

@@ -128,10 +128,10 @@ interface ISubgraphService is IDataServiceFees {
     function setMinimumProvisionTokens(uint256 minimumProvisionTokens) external;
 
     /**
-     * @notice Sets the maximum delegation ratio allowed for an allocation
-     * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
+     * @notice Sets the delegation ratio
+     * @param delegationRatio The delegation ratio
      */
-    function setMaximumDelegationRatio(uint32 maximumDelegationRatio) external;
+    function setDelegationRatio(uint32 delegationRatio) external;
 
     /**
      * @notice Sets the rewards destination for an indexer to receive indexing rewards

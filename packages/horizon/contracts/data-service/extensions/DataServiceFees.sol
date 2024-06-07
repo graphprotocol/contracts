@@ -39,7 +39,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _unlockTimestamp The timestamp when the tokens can be released
      */
     function _lockStake(address _serviceProvider, uint256 _tokens, uint256 _unlockTimestamp) internal {
-        feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, maximumDelegationRatio);
+        feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, delegationRatio);
 
         LinkedList.List storage claimsList = claimsLists[_serviceProvider];
 

@@ -17,7 +17,6 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
  * if the parameter is out of range.
  * The parameters are:
  * - Provision parameters (thawing period and verifier cut)
- * - Delegation ratio
  * - Provision tokens
  */
 abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionManagerV1Storage {
@@ -31,11 +30,10 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     event ProvisionTokensRangeSet(uint256 min, uint256 max);
 
     /**
-     * @notice Emitted when the delegation ratio range is set.
-     * @param min The minimum allowed value for the delegation ratio.
-     * @param max The maximum allowed value for the delegation ratio.
+     * @notice Emitted when the delegation ratio is set.
+     * @param ratio The delegation ratio
      */
-    event DelegationRatioRangeSet(uint32 min, uint32 max);
+    event DelegationRatioSet(uint32 ratio);
 
     /**
      * @notice Emitted when the verifier cut range is set.
@@ -91,7 +89,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     modifier onlyValidProvision(address serviceProvider) virtual {
         IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
         _checkProvisionTokens(provision);
-        _checkProvisionDelegationRatio(provision, serviceProvider);
         _checkProvisionParameters(provision, false);
         _;
     }
@@ -124,12 +121,11 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     }
 
     /**
-     * @notice External getter for the delegation ratio range
-     * @return Minimum delegation ratio allowed
-     * @return Maximum delegation ratio allowed
+     * @notice External getter for the delegation ratio
+     * @return The delegation ratio
      */
-    function getDelegationRatioRange() external view returns (uint32, uint32) {
-        return _getDelegationRatioRange();
+    function getDelegationRatio() external view returns (uint32) {
+        return _getDelegationRatio();
     }
 
     /**
@@ -147,7 +143,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init_unchained() internal onlyInitializing {
         _setProvisionTokensRange(type(uint256).min, type(uint256).max);
-        _setDelegationRatioRange(type(uint32).min, type(uint32).max);
         _setVerifierCutRange(type(uint32).min, type(uint32).max);
         _setThawingPeriodRange(type(uint64).min, type(uint64).max);
     }
@@ -167,6 +162,14 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     }
 
     // -- setters --
+    /**
+     * @notice Sets the delegation ratio.
+     * @param _ratio The delegation ratio to be set
+     */
+    function _setDelegationRatio(uint32 _ratio) internal {
+        delegationRatio = _ratio;
+        emit DelegationRatioSet(_ratio);
+    }
 
     /**
      * @notice Sets the range for the provision tokens.
@@ -177,17 +180,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         minimumProvisionTokens = _min;
         maximumProvisionTokens = _max;
         emit ProvisionTokensRangeSet(_min, _max);
-    }
-
-    /**
-     * @notice Sets the range for the delegation ratio.
-     * @param _min The minimum allowed value for the delegation ratio.
-     * @param _max The maximum allowed value for the delegation ratio.
-     */
-    function _setDelegationRatioRange(uint32 _min, uint32 _max) internal {
-        minimumDelegationRatio = _min;
-        maximumDelegationRatio = _max;
-        emit DelegationRatioRangeSet(_min, _max);
     }
 
     /**
@@ -232,32 +224,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     }
 
     /**
-     * @notice Checks if the delegation ratio of a service provider is within the valid range.
-     * @param _serviceProvider The address of the service provider.
-     */
-    function _checkProvisionDelegationRatio(address _serviceProvider) internal view virtual {
-        IHorizonStaking.Provision memory provision = _getProvision(_serviceProvider);
-        _checkProvisionDelegationRatio(provision, _serviceProvider);
-    }
-
-    /**
-     * @notice Checks if the delegation ratio of a service provider is within the valid range.
-     * @param _provision The provision to check.
-     * @param _serviceProvider The address of the service provider.
-     */
-    function _checkProvisionDelegationRatio(
-        IHorizonStaking.Provision memory _provision,
-        address _serviceProvider
-    ) internal view virtual {
-        (uint32 delegationRatioMin, uint32 delegationRatioMax) = _getDelegationRatioRange();
-        if (delegationRatioMin == type(uint32).min && delegationRatioMax == type(uint32).max) return;
-
-        uint256 delegatedTokens = _graphStaking().getDelegatedTokensAvailable(_serviceProvider, address(this));
-        uint256 delegationRatioToCheck = uint32(delegatedTokens / (_provision.tokens - _provision.tokensThawing));
-        _checkValueInRange(delegationRatioToCheck, delegationRatioMin, delegationRatioMax, "delegationRatio");
-    }
-
-    /**
      * @notice Checks if the provision parameters of a service provider are within the valid range.
      * @param _serviceProvider The address of the service provider.
      * @param _checkPending If true, checks the pending provision parameters.
@@ -292,21 +258,20 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     // -- getters --
 
     /**
+     * @notice Gets the delegation ratio.
+     * @return The delegation ratio
+     */
+    function _getDelegationRatio() internal view virtual returns (uint32) {
+        return delegationRatio;
+    }
+
+    /**
      * @notice Gets the range for the provision tokens.
      * @return min The minimum allowed value for the provision tokens.
      * @return max The maximum allowed value for the provision tokens.
      */
     function _getProvisionTokensRange() internal view virtual returns (uint256 min, uint256 max) {
         return (minimumProvisionTokens, maximumProvisionTokens);
-    }
-
-    /**
-     * @notice Gets the range for the delegation ratio.
-     * @return min The minimum allowed value for the delegation ratio.
-     * @return max The maximum allowed value for the delegation ratio.
-     */
-    function _getDelegationRatioRange() internal view virtual returns (uint32 min, uint32 max) {
-        return (minimumDelegationRatio, maximumDelegationRatio);
     }
 
     /**
