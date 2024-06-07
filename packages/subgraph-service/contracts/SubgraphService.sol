@@ -74,7 +74,7 @@ contract SubgraphService is
         address disputeManager,
         address tapCollector,
         address curation
-    ) DataService(graphController) Directory(address(this), tapCollector, disputeManager, curation) {
+    ) DataService(graphController) Directory(address(this), disputeManager, tapCollector, curation) {
         _disableInitializers();
     }
 

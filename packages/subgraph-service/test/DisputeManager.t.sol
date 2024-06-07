@@ -92,8 +92,15 @@ contract DisputeManagerTest is Test {
         );
         disputeManager = DisputeManager(disputeManagerProxy);
 
-        subgraphService = new SubgraphService(address(controller), address(disputeManager), tapVerifier, curation);
-        subgraphService.initialize(1000 ether, 16);
+        address subgraphServiceImplementation = address(
+            new SubgraphService(address(controller), address(disputeManager), tapVerifier, curation)
+        );
+        address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
+            subgraphServiceImplementation,
+            governor,
+            abi.encodeCall(SubgraphService.initialize, (1000 ether, 16))
+        );
+        subgraphService = SubgraphService(subgraphServiceProxy);
 
         disputeManager.setSubgraphService(address(subgraphService));
     }
@@ -108,18 +115,18 @@ contract DisputeManagerTest is Test {
         bytes32 digest = subgraphService.encodeAllocationProof(indexer, _allocationID);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
 
-        subgraphService.register(indexer, abi.encode("url", "geoHash"));
+        subgraphService.register(indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = abi.encode(subgraphDeployment, tokens, _allocationID, abi.encodePacked(r, s, v));
         subgraphService.startService(indexer, data);
         vm.stopPrank();
     }
 
-    function createIndexingDispute(address _allocationID, uint256 tokens) private returns (bytes32 disputeID) {
+    function createIndexingDispute(address _allocationID, bytes32 _poi, uint256 tokens) private returns (bytes32 disputeID) {
         vm.startPrank(fisherman);
         graphToken.mint(fisherman, tokens);
         graphToken.approve(address(disputeManager), tokens);
-        bytes32 _disputeID = disputeManager.createIndexingDispute(_allocationID, bytes32("POI1234"), tokens);
+        bytes32 _disputeID = disputeManager.createIndexingDispute(_allocationID, _poi, tokens);
         vm.stopPrank();
         return _disputeID;
     }
@@ -181,7 +188,7 @@ contract DisputeManagerTest is Test {
     function testCreateIndexingDispute() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
 
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI1"), 200 ether);
         assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
     }
 
@@ -217,7 +224,7 @@ contract DisputeManagerTest is Test {
 
     function test_RevertWhen_DisputeAlreadyCreated() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI1"), 200 ether);
 
         // Create another dispute with different fisherman
         address otherFisherman = address(0x5);
@@ -227,7 +234,7 @@ contract DisputeManagerTest is Test {
         graphToken.approve(address(disputeManager), tokens);
         bytes memory expectedError = abi.encodeWithSignature("DisputeManagerDisputeAlreadyCreated(bytes32)", disputeID);
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI1234"), tokens);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"), tokens);
         vm.stopPrank();
     }
 
@@ -241,7 +248,7 @@ contract DisputeManagerTest is Test {
             100 ether
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI1234"), 50 ether);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI3"), 50 ether);
         vm.stopPrank();
     }
 
@@ -253,7 +260,7 @@ contract DisputeManagerTest is Test {
         graphToken.approve(address(disputeManager), tokens);
         bytes memory expectedError = abi.encodeWithSignature("DisputeManagerIndexerNotFound(address)", allocationID);
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI1234"), tokens);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI4"), tokens);
         vm.stopPrank();
     }
 
@@ -316,7 +323,7 @@ contract DisputeManagerTest is Test {
 
     function testAcceptIndexingDispute() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI1"), 200 ether);
 
         vm.prank(arbitrator);
         disputeManager.acceptDispute(disputeID, 5000 ether);
@@ -371,7 +378,7 @@ contract DisputeManagerTest is Test {
     function test_RevertIf_CallerIsNotArbitrator_AcceptDispute() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
 
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI1"), 200 ether);
 
         // attempt to accept dispute as fisherman
         vm.prank(fisherman);
@@ -381,11 +388,11 @@ contract DisputeManagerTest is Test {
 
     function test_RevertIf_SlashingOverMaxSlashPercentage() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI101"), 200 ether);
 
         // max slashing percentage is 50%
         vm.prank(arbitrator);
-        bytes memory expectedError = abi.encodeWithSignature("DisputeManagerInvalidSlashAmount(uint256)", 6000 ether);
+        bytes memory expectedError = abi.encodeWithSignature("DisputeManagerInvalidTokensSlash(uint256)", 6000 ether);
         vm.expectRevert(expectedError);
         disputeManager.acceptDispute(disputeID, 6000 ether);
     }
@@ -394,7 +401,7 @@ contract DisputeManagerTest is Test {
 
     function testCancelDispute() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI1"),  200 ether);
 
         // skip to end of dispute period
         skip(disputePeriod + 1);
@@ -442,7 +449,7 @@ contract DisputeManagerTest is Test {
 
     function test_RevertIf_CallerIsNotFisherman_CancelDispute() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI1"), 200 ether);
 
         vm.prank(arbitrator);
         vm.expectRevert(bytes4(keccak256("DisputeManagerNotFisherman()")));
@@ -453,7 +460,7 @@ contract DisputeManagerTest is Test {
 
     function testDrawDispute() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID, bytes32("POI32"), 200 ether);
 
         vm.prank(arbitrator);
         disputeManager.drawDispute(disputeID);
@@ -495,7 +502,7 @@ contract DisputeManagerTest is Test {
 
     function test_RevertIf_CallerIsNotArbitrator_DrawDispute() public {
         createProvisionAndAllocate(allocationID, 10000 ether);
-        bytes32 disputeID = createIndexingDispute(allocationID, 200 ether);
+        bytes32 disputeID = createIndexingDispute(allocationID,bytes32("POI1"), 200 ether);
 
         // attempt to draw dispute as fisherman
         vm.prank(fisherman);

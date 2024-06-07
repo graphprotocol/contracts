@@ -7,3 +7,6 @@
 [submodule "packages/horizon/lib/openzeppelin-foundry-upgrades"]
 	path = packages/horizon/lib/openzeppelin-foundry-upgrades
 	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
+[submodule "packages/subgraph-service/lib/openzeppelin-foundry-upgrades"]
+	path = packages/subgraph-service/lib/openzeppelin-foundry-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
