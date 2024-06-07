@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 
-import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
+import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";

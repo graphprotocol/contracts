@@ -14,7 +14,7 @@ import { Attestation } from "./libraries/Attestation.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { GraphDirectory } from "@graphprotocol/horizon/contracts/data-service/GraphDirectory.sol";
+import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
 import { AttestationManager } from "./utilities/AttestationManager.sol";
 
