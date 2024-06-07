@@ -653,7 +653,6 @@ describe('Rewards', () => {
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
         expect(event.allocationID).eq(allocationID1)
-        expect(event.epoch).eq(await epochManager.currentEpoch())
         expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
         // After state
@@ -692,7 +691,7 @@ describe('Rewards', () => {
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
           .emit(rewardsManager, 'RewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+          .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
       it('does not revert with an underflow if the minimum signal changes, and signal came after allocation', async function () {
@@ -710,7 +709,7 @@ describe('Rewards', () => {
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
           .emit(rewardsManager, 'RewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+          .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
       it('does not revert if signal was already under minimum', async function () {
@@ -727,7 +726,7 @@ describe('Rewards', () => {
 
         await expect(tx)
           .emit(rewardsManager, 'RewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+          .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
       it('should distribute rewards on closed allocation and send to destination', async function () {
@@ -761,7 +760,6 @@ describe('Rewards', () => {
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
         expect(event.allocationID).eq(allocationID1)
-        expect(event.epoch).eq(await epochManager.currentEpoch())
         expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
         // After state
@@ -853,7 +851,7 @@ describe('Rewards', () => {
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenied')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch())
+          .withArgs(indexer1.address, allocationID1)
       })
     })
   })

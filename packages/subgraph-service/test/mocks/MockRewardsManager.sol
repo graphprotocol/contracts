@@ -12,7 +12,7 @@ contract MockRewardsManager is IRewardsManager {
 
     function setMinimumSubgraphSignal(uint256) external {}
 
-    function setRewardsIssuer(address, bool) external {}
+    function setSubgraphService(address) external {}
 
     // -- Denylist --
 

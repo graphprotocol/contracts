@@ -5,9 +5,9 @@ pragma solidity ^0.7.6 || 0.8.26;
 interface IRewardsIssuer {
     /**
      * @dev Get allocation data to calculate rewards issuance
-     * @param allocationId The allocation ID
+     * @param allocationId The allocation Id
      * @return indexer The indexer address
-     * @return subgraphDeploymentID Subgraph deployment id for the allocation
+     * @return subgraphDeploymentId Subgraph deployment id for the allocation
      * @return tokens Amount of allocated tokens
      * @return accRewardsPerAllocatedToken Rewards snapshot
      */
@@ -16,5 +16,19 @@ interface IRewardsIssuer {
     )
         external
         view
-        returns (address indexer, bytes32 subgraphDeploymentID, uint256 tokens, uint256 accRewardsPerAllocatedToken);
+        returns (address indexer, bytes32 subgraphDeploymentId, uint256 tokens, uint256 accRewardsPerAllocatedToken);
+
+    /**
+     * @notice Return the total amount of tokens allocated to subgraph.
+     * @param _subgraphDeploymentId Deployment Id for the subgraph
+     * @return Total tokens allocated to subgraph
+     */
+    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentId) external view returns (uint256);
+
+    /**
+     * @notice Wether or not an allocation is active (i.e open)
+     * @param _allocationId Allocation Id
+     * @return Wether or not the allocation is active
+     */
+    function isActiveAllocation(address _allocationId) external view returns (bool);
 }

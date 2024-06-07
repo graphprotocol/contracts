@@ -19,7 +19,7 @@ interface IRewardsManager {
 
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external;
 
-    function setRewardsIssuer(address _rewardsIssuer, bool _allowed) external;
+    function setSubgraphService(address _subgraphService) external;
 
     // -- Denylist --
 
