@@ -2,9 +2,8 @@
 pragma solidity 0.8.26;
 
 import { GraphBaseTest } from "../GraphBase.t.sol";
-import { DataServiceBaseUpgradeable } from "./DataServiceBaseUpgradeable.sol";
+import { DataServiceBaseUpgradeable } from "./implementations/DataServiceBaseUpgradeable.sol";
 import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract DataServiceUpgradeableTest is GraphBaseTest {
     function test_WhenTheContractIsDeployedWithAValidController() external {
@@ -30,7 +29,7 @@ contract DataServiceUpgradeableTest is GraphBaseTest {
         // Deploy implementation
         address implementation = address(new DataServiceBaseUpgradeable(address(controller)));
 
-        // Deploy proxy (calls initialize)
+        // Deploy proxy
         address proxy = UnsafeUpgrades.deployTransparentProxy(
             implementation,
             users.governor,

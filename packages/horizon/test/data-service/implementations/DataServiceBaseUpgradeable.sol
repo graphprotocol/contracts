@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.26;
 
-import { DataService } from "../../contracts/data-service/DataService.sol";
-import { IGraphPayments } from "./../../contracts/interfaces/IGraphPayments.sol";
+import { DataService } from "../../../contracts/data-service/DataService.sol";
+import { IGraphPayments } from "./../../../contracts/interfaces/IGraphPayments.sol";
 
 contract DataServiceBaseUpgradeable is DataService {
     constructor(address controller) DataService(controller) {

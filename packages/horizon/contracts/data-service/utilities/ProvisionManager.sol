@@ -59,6 +59,13 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     error ProvisionManagerInvalidValue(bytes message, uint256 value, uint256 min, uint256 max);
 
     /**
+     * @notice Thrown when attempting to set a range where min is greater than max.
+     * @param min The minimum value.
+     * @param max The maximum value.
+     */
+    error ProvisionManagerInvalidRange(uint256 min, uint256 max);
+
+    /**
      * @notice Thrown when the caller is not authorized to manage the provision of a service provider.
      * @param caller The address of the caller.
      * @param serviceProvider The address of the service provider.
@@ -156,7 +163,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      *
      * @param _serviceProvider The address of the service provider.
      */
-    function _acceptProvisionParameters(address _serviceProvider) internal virtual {
+    function _acceptProvisionParameters(address _serviceProvider) internal {
         _checkProvisionParameters(_serviceProvider, true);
         _graphStaking().acceptProvisionParameters(_serviceProvider);
     }
@@ -177,6 +184,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _max The maximum allowed value for the provision tokens.
      */
     function _setProvisionTokensRange(uint256 _min, uint256 _max) internal {
+        require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
         minimumProvisionTokens = _min;
         maximumProvisionTokens = _max;
         emit ProvisionTokensRangeSet(_min, _max);
@@ -188,6 +196,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _max The maximum allowed value for the max verifier cut.
      */
     function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
+        require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
         minimumVerifierCut = _min;
         maximumVerifierCut = _max;
         emit VerifierCutRangeSet(_min, _max);
@@ -199,6 +208,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _max The maximum allowed value for the thawing period.
      */
     function _setThawingPeriodRange(uint64 _min, uint64 _max) internal {
+        require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
         minimumThawingPeriod = _min;
         maximumThawingPeriod = _max;
         emit ThawingPeriodRangeSet(_min, _max);
@@ -261,7 +271,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @notice Gets the delegation ratio.
      * @return The delegation ratio
      */
-    function _getDelegationRatio() internal view virtual returns (uint32) {
+    function _getDelegationRatio() internal view returns (uint32) {
         return delegationRatio;
     }
 
