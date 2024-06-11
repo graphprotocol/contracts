@@ -295,6 +295,16 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
     }
 
     /**
+     * @notice Retrun the time in blocks to unstake
+     * Deprecated, now enforced by each data service (verifier)
+     * @return Thawing period in blocks
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function __DEPRECATED_getThawingPeriod() external view returns (uint64) {
+        return __DEPRECATED_thawingPeriod;
+    }
+
+    /**
      * @notice (Legacy) Return true if operator is allowed for the service provider on the subgraph data service.
      * @dev TODO: Delete after the transition period
      * @param operator Address of the operator
@@ -303,15 +313,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
      */
     function isOperator(address operator, address serviceProvider) public view override returns (bool) {
         return _legacyOperatorAuth[serviceProvider][operator];
-    }
-
-    /**
-     * @notice Retrun the time in blocks to unstake
-     * Deprecated, now enforced by each data service (verifier)
-     * @return Thawing period in blocks
-     */
-    function __DEPRECATED_getThawingPeriod() external view returns (uint64) {
-        return __DEPRECATED_thawingPeriod;
     }
 
     /**
@@ -450,7 +451,8 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
         // Anyone is allowed to close ONLY under two concurrent conditions
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
-        bool isIndexerOrOperator = msg.sender == alloc.indexer || isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
+        bool isIndexerOrOperator = msg.sender == alloc.indexer ||
+            isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
         if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
             require(isIndexerOrOperator, "!auth");
         }

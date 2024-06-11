@@ -164,5 +164,6 @@ interface IHorizonStakingExtension is IRewardsIssuer {
      * @notice Retrun the time in blocks to unstake
      * @return Thawing period in blocks
      */
+    // solhint-disable-next-line func-name-mixedcase
     function __DEPRECATED_getThawingPeriod() external view returns (uint64);
 }
