@@ -236,7 +236,9 @@ contract DataServiceTest is HorizonStakingSharedTest {
     ) external givenProvisionParametersChanged useIndexer {
         // bound to valid values
         maxVerifierCut = uint32(bound(maxVerifierCut, dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX()));
-        thawingPeriod = uint64(bound(thawingPeriod, dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX()));
+        thawingPeriod = uint64(
+            bound(thawingPeriod, dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX())
+        );
 
         // set provision parameter ranges
         dataService.setVerifierCutRange(dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX());
@@ -249,12 +251,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        staking.setProvisionParameters(
-            users.indexer,
-            address(dataService),
-            maxVerifierCut,
-            thawingPeriod
-        );
+        staking.setProvisionParameters(users.indexer, address(dataService), maxVerifierCut, thawingPeriod);
 
         // accept provision parameters
         vm.expectEmit();
@@ -329,13 +326,15 @@ contract DataServiceTest is HorizonStakingSharedTest {
         );
 
         // accept provision parameters
-        vm.expectEmit();
-        emit IHorizonStakingMain.ProvisionParametersSet(
-            users.indexer,
-            address(dataService),
-            maxVerifierCut,
-            dataService.THAWING_PERIOD_MIN()
-        );
+        if (maxVerifierCut != dataService.VERIFIER_CUT_MIN()) {
+            vm.expectEmit();
+            emit IHorizonStakingMain.ProvisionParametersSet(
+                users.indexer,
+                address(dataService),
+                maxVerifierCut,
+                dataService.THAWING_PERIOD_MIN()
+            );
+        }
         dataService.acceptProvisionParameters(users.indexer);
     }
 
