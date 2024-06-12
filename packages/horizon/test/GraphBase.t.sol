@@ -84,6 +84,9 @@ abstract contract GraphBaseTest is Utils, Constants {
         vm.label({ account: address(escrow), newLabel: "PaymentsEscrow" });
         vm.label({ account: address(staking), newLabel: "HorizonStaking" });
         vm.label({ account: address(stakingExtension), newLabel: "HorizonStakingExtension" });
+
+        // Ensure caller is back to the original msg.sender
+        vm.stopPrank();
     }
 
     function deployProtocolContracts() private {
