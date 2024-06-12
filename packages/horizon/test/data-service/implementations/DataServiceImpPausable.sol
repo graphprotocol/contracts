@@ -14,6 +14,9 @@ contract DataServiceImpPausable is DataServicePausable {
     uint64 public constant THAWING_PERIOD_MIN = 15;
     uint64 public constant THAWING_PERIOD_MAX = 76;
 
+    event PausedProtectedFn();
+    event UnpausedProtectedFn();
+
     constructor(address controller) DataService(controller) initializer {
         __DataService_init();
     }
@@ -32,5 +35,13 @@ contract DataServiceImpPausable is DataServicePausable {
 
     function setPauseGuardian(address pauseGuardian, bool allowed) external {
         _setPauseGuardian(pauseGuardian, allowed);
+    }
+
+    function pausedProtectedFn() external whenNotPaused {
+        emit PausedProtectedFn();
+    }
+
+    function unpausedProtectedFn() external whenPaused {
+        emit UnpausedProtectedFn();
     }
 }

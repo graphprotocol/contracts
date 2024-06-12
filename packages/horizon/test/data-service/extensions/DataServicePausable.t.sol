@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.26;
 
-import "forge-std/Test.sol";
-import {HorizonStakingSharedTest} from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
-import {DataServiceImpPausable} from "../implementations/DataServiceImpPausable.sol";
-import {IDataServicePausable} from "./../../../contracts/data-service/interfaces/IDataServicePausable.sol";
+import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
+import { DataServiceImpPausable } from "../implementations/DataServiceImpPausable.sol";
+import { IDataServicePausable } from "./../../../contracts/data-service/interfaces/IDataServicePausable.sol";
 
 contract DataServicePausableTest is HorizonStakingSharedTest {
     DataServiceImpPausable dataService;
@@ -69,6 +68,34 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
     function test_SetPauseGuardian_WhenRemovingAPauseGuardian() external {
         _assert_setPauseGuardian(address(this), true);
         _assert_setPauseGuardian(address(this), false);
+    }
+
+    function test_PausedProtectedFn_RevertWhen_TheProtocolIsPaused() external {
+        _assert_setPauseGuardian(address(this), true);
+        _assert_pause();
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        dataService.pausedProtectedFn();
+    }
+
+    function test_PausedProtectedFn_WhenTheProtocolIsNotPaused() external {
+        vm.expectEmit();
+        emit DataServiceImpPausable.PausedProtectedFn();
+        dataService.pausedProtectedFn();
+    }
+
+    function test_UnpausedProtectedFn_WhenTheProtocolIsPaused() external {
+        _assert_setPauseGuardian(address(this), true);
+        _assert_pause();
+
+        vm.expectEmit();
+        emit DataServiceImpPausable.UnpausedProtectedFn();
+        dataService.unpausedProtectedFn();
+    }
+
+    function test_UnpausedProtectedFn_RevertWhen_TheProtocolIsNotPaused() external {
+        vm.expectRevert(abi.encodeWithSignature("ExpectedPause()"));
+        dataService.unpausedProtectedFn();
     }
 
     function _assert_pause() private {
