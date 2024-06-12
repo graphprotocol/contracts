@@ -1,3 +1,0 @@
-DataServiceUpgradeableTest
-└── when the contract is deployed with a valid controller
-    └── it should set all it's ranges to max

@@ -2,15 +2,17 @@
 pragma solidity 0.8.26;
 
 import { DataService } from "../../../contracts/data-service/DataService.sol";
+import { DataServicePausableUpgradeable } from "../../../contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
 import { IGraphPayments } from "./../../../contracts/interfaces/IGraphPayments.sol";
 
-contract DataServiceBaseUpgradeable is DataService {
+contract DataServiceImpPausableUpgradeable is DataServicePausableUpgradeable {
     constructor(address controller) DataService(controller) {
         _disableInitializers();
     }
 
     function initialize() external initializer {
         __DataService_init();
+        __DataServicePausable_init();
     }
 
     function register(address serviceProvider, bytes calldata data) external {}
