@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.26;
 
-import "forge-std/Console.sol";
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { DataServiceImpFees } from "../implementations/DataServiceImpFees.sol";
 import { IDataServiceFees } from "../../../contracts/data-service/interfaces/IDataServiceFees.sol";
