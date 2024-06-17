@@ -1,0 +1,21 @@
+DataServiceFeesTest::lock_
+├── when zero tokens are locked
+│   └── it should revert
+├── when the provision has enough tokens
+│   ├── it should lock the tokens
+│   ├── it should create a stake claim
+│   ├── it should update the claims list
+│   └── it should emit a an event
+├── when the provision has just enough tokens
+│   ├── it should lock the tokens
+│   ├── it should create a stake claim
+│   ├── it should update the claims list
+│   └── it should emit a an event
+└──when the provision has not enough tokens
+    └── it should revert
+
+DataServiceFeesTest::release_
+├── when n is valid 
+│   └── it should release all expired claims
+└── when n is not valid
+    └── it should release at most n expired claims

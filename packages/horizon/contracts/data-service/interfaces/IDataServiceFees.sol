@@ -79,6 +79,11 @@ interface IDataServiceFees is IDataService {
     error DataServiceFeesClaimNotFound(bytes32 claimId);
 
     /**
+     * @notice Emitted when trying to lock zero tokens in a stake claim
+     */
+    error DataServiceFeesZeroTokens();
+
+    /**
      * @notice Releases expired stake claims for the caller.
      * @dev This function is only meant to be called if the service provider has enough
      * stake claims that releasing them all at once would exceed the block gas limit.

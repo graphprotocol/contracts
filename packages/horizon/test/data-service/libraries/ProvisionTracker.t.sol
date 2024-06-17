@@ -28,21 +28,10 @@ library ProvisionTrackerWrapper {
 contract ProvisionTrackerTest is HorizonStakingSharedTest, ProvisionTrackerImplementation {
     using ProvisionTrackerWrapper for mapping(address => uint256);
 
-    modifier useProvision(
-        uint256 tokens,
-        uint32,
-        uint64
-    ) override {
-        vm.assume(tokens > 0);
-        vm.assume(tokens <= MAX_STAKING_TOKENS);
-        _createProvision(address(this), tokens, 0, 0);
-        _;
-    }
-
     function test_Lock_GivenTheProvisionHasSufficientAvailableTokens(
         uint256 tokens,
         uint256 steps
-    ) external useIndexer useProvision(tokens, 0, 0) {
+    ) external useIndexer useProvisionDataService(address(this), tokens, 0, 0) {
         vm.assume(tokens > 0);
         vm.assume(steps > 0);
         vm.assume(steps < 100);
@@ -63,7 +52,7 @@ contract ProvisionTrackerTest is HorizonStakingSharedTest, ProvisionTrackerImple
 
     function test_Lock_RevertGiven_TheProvisionHasInsufficientAvailableTokens(
         uint256 tokens
-    ) external useIndexer useProvision(tokens, 0, 0) {
+    ) external useIndexer useProvisionDataService(address(this), tokens, 0, 0) {
         uint256 tokensToLock = tokens + 1;
         vm.expectRevert(
             abi.encodeWithSelector(ProvisionTracker.ProvisionTrackerInsufficientTokens.selector, tokens, tokensToLock)
@@ -74,7 +63,7 @@ contract ProvisionTrackerTest is HorizonStakingSharedTest, ProvisionTrackerImple
     function test_Release_GivenTheProvisionHasSufficientLockedTokens(
         uint256 tokens,
         uint256 steps
-    ) external useIndexer useProvision(tokens, 0, 0) {
+    ) external useIndexer useProvisionDataService(address(this), tokens, 0, 0) {
         vm.assume(tokens > 0);
         vm.assume(steps > 0);
         vm.assume(steps < 100);
@@ -97,7 +86,7 @@ contract ProvisionTrackerTest is HorizonStakingSharedTest, ProvisionTrackerImple
         assertEq(provisionTracker[users.indexer], delta);
     }
 
-    function test_Release_RevertGiven_TheProvisionHasInsufficientLockedTokens(uint256 tokens) external useIndexer useProvision(tokens, 0, 0) {
+    function test_Release_RevertGiven_TheProvisionHasInsufficientLockedTokens(uint256 tokens) external useIndexer useProvisionDataService(address(this), tokens, 0, 0) {
         // setup
         provisionTracker.lock(staking, users.indexer, tokens, uint32(0));
 

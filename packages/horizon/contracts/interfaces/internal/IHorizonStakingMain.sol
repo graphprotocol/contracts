@@ -612,7 +612,7 @@ interface IHorizonStakingMain {
      * @dev This two step update process prevents the service provider from changing the parameters
      * without the verifier's consent.
      *
-     * Emits a {ProvisionParametersStaged} event.
+     * Emits a {ProvisionParametersStaged} event if at least one of the parameters changed.
      *
      * @param serviceProvider The service provider address
      * @param verifier The verifier address

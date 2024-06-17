@@ -5,14 +5,13 @@ pragma solidity 0.8.26;
 import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
 
 contract EpochManagerMock is IEpochManager {
-
     // -- Variables --
-    
+
     uint256 public epochLength;
     uint256 public lastRunEpoch;
     uint256 public lastLengthUpdateEpoch;
     uint256 public lastLengthUpdateBlock;
-    
+
     // -- Configuration --
 
     function setEpochLength(uint256 _epochLength) public {

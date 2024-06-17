@@ -1,3 +1,71 @@
-DataService
+DataServiceTest::constructor_
 └── when the contract is deployed with a valid controller
     └── it should set all it's ranges to max
+
+DataServiceTest::delegationRatio_
+├── when setting the delegation ratio
+│   ├── it should emit an event
+│   └── it should set the range
+└── when getting the delegation ratio
+    └── it should return the correct value
+
+DataServiceTest::provisionTokens_
+├── when setting a valid range
+│   ├── it should emit an event
+│   └── it should set the range
+├── when setting an invalid range
+│   └── it should revert
+├── when getting the range
+│   └── it should return the correct value
+├── when getting the range with an overriden getter
+│   └── it should return the correct value
+├── when checking a valid provision
+│   └── it should not revert
+├── when checking with an overriden checker
+│   └── it should not revert
+└── when checking an invalid provision
+    └── it should revert
+
+DataServiceTest::verifierCut_
+├── when setting a valid range
+│   ├── it should emit an event
+│   └── it should set the range
+├── when setting an invalid range
+│   └── it should revert
+├── when getting the range
+│   └── it should return the correct value
+├── when getting the range with an overriden getter
+│   └── it should return the correct value
+├── when checking a valid provision
+│   └── it should not revert
+├── when checking with an overriden checker
+│   └── it should not revert
+└── when checking an invalid provision
+    └── it should revert
+
+DataServiceTest::thawingPeriod_
+├── when setting a valid range
+│   ├── it should emit an event
+│   └── it should set the range
+├── when setting an invalid range
+│   └── it should revert
+├── when getting the range
+│   └── it should return the correct value
+├── when getting the range with an overriden getter
+│   └── it should return the correct value
+├── when checking a valid provision
+│   └── it should not revert
+├── when checking with an overriden checker
+│   └── it should not revert
+└── when checking an invalid provision
+    └── it should revert
+
+DataServiceTest::provisionParameters_
+└── given provision parameters changed
+    ├── when the new parameters are valid
+    │   ├── it should emit an event
+    │   └── it should set the new parameters
+    ├── when the new thawing period is invalid
+    │   └── it should revert
+    └── when the new verifier cut is invalid
+        └── it should revert

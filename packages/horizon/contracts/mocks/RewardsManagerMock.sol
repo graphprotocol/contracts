@@ -5,7 +5,6 @@ pragma solidity 0.8.26;
 import { MockGRTToken } from "./MockGRTToken.sol";
 
 contract RewardsManagerMock {
-
     // -- Variables --
     MockGRTToken public token;
     uint256 private rewards;

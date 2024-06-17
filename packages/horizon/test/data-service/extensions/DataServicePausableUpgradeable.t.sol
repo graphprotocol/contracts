@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.26;
 
-import { GraphBaseTest } from "../GraphBase.t.sol";
-import { DataServiceBaseUpgradeable } from "./implementations/DataServiceBaseUpgradeable.sol";
+import { GraphBaseTest } from "../../GraphBase.t.sol";
+import { DataServiceImpPausableUpgradeable } from "../implementations/DataServiceImpPausableUpgradeable.sol";
 import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
-contract DataServiceUpgradeableTest is GraphBaseTest {
+contract DataServicePausableUpgradeableTest is GraphBaseTest {
     function test_WhenTheContractIsDeployed() external {
-        (DataServiceBaseUpgradeable dataService, DataServiceBaseUpgradeable implementation) = _deployDataService();
+        (
+            DataServiceImpPausableUpgradeable dataService,
+            DataServiceImpPausableUpgradeable implementation
+        ) = _deployDataService();
 
         // via proxy - ensure that the proxy was initialized correctly
         // these calls validate proxy storage was correctly initialized
@@ -32,17 +35,20 @@ contract DataServiceUpgradeableTest is GraphBaseTest {
         assertEq(dataService.controller(), address(controller));
     }
 
-    function _deployDataService() internal returns (DataServiceBaseUpgradeable, DataServiceBaseUpgradeable) {
+    function _deployDataService()
+        internal
+        returns (DataServiceImpPausableUpgradeable, DataServiceImpPausableUpgradeable)
+    {
         // Deploy implementation
-        address implementation = address(new DataServiceBaseUpgradeable(address(controller)));
+        address implementation = address(new DataServiceImpPausableUpgradeable(address(controller)));
 
         // Deploy proxy
         address proxy = UnsafeUpgrades.deployTransparentProxy(
             implementation,
             users.governor,
-            abi.encodeCall(DataServiceBaseUpgradeable.initialize, ())
+            abi.encodeCall(DataServiceImpPausableUpgradeable.initialize, ())
         );
 
-        return (DataServiceBaseUpgradeable(proxy), DataServiceBaseUpgradeable(implementation));
+        return (DataServiceImpPausableUpgradeable(proxy), DataServiceImpPausableUpgradeable(implementation));
     }
 }

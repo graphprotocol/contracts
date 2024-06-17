@@ -7,7 +7,6 @@ import { GraphBaseTest } from "../../GraphBase.t.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
-
     /*
      * MODIFIERS
      */
@@ -24,12 +23,22 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         _;
     }
 
-    modifier useProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) virtual {
-        vm.assume(tokens <= MAX_STAKING_TOKENS);
-        vm.assume(tokens > 0);
-        vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
-        vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
-        _createProvision(subgraphDataServiceAddress, tokens, maxVerifierCut, thawingPeriod);
+    modifier useProvision(
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) virtual {
+        _useProvision(subgraphDataServiceAddress, tokens, maxVerifierCut, thawingPeriod);
+        _;
+    }
+
+    modifier useProvisionDataService(
+        address dataService,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) {
+        _useProvision(dataService, tokens, maxVerifierCut, thawingPeriod);
         _;
     }
 
@@ -42,6 +51,19 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
      * HELPERS
      */
 
+    function _useProvision(
+        address dataService,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) internal {
+        vm.assume(tokens <= MAX_STAKING_TOKENS);
+        vm.assume(tokens > 0);
+        vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
+        vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
+        _createProvision(dataService, tokens, maxVerifierCut, thawingPeriod);
+    }
+
     function _createProvision(
         address dataServiceAddress,
         uint256 tokens,
@@ -50,13 +72,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     ) internal {
         token.approve(address(staking), tokens);
         staking.stakeTo(users.indexer, tokens);
-        staking.provision(
-            users.indexer,
-            dataServiceAddress,
-            tokens,
-            maxVerifierCut,
-            thawingPeriod
-        );
+        staking.provision(users.indexer, dataServiceAddress, tokens, maxVerifierCut, thawingPeriod);
     }
 
     function _setDelegationFeeCut(IGraphPayments.PaymentTypes paymentType, uint256 cut) internal {

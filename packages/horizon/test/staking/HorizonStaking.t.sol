@@ -12,6 +12,13 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
      * MODIFIERS
      */
 
+    modifier usePausedStaking() {
+        vm.startPrank(users.governor);
+        controller.setPaused(true);
+        vm.stopPrank();
+        _;
+    }
+
     modifier useOperator() {
         vm.startPrank(users.indexer);
         staking.setOperator(users.operator, subgraphDataServiceAddress, true);

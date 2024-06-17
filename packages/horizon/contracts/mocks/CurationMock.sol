@@ -5,7 +5,6 @@ pragma solidity 0.8.26;
 import { MockGRTToken } from "./MockGRTToken.sol";
 
 contract CurationMock {
-
     mapping(bytes32 => uint256) public curation;
 
     function signal(bytes32 _subgraphDeploymentID, uint256 _tokens) public {
