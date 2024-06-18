@@ -83,7 +83,7 @@ contract MockHorizonStaking {
 
     // provisioned tokens that are not being used
     // `Provision.tokens - Provision.tokensThawing`
-    function getTokensAvailable(address serviceProvider, address verifier, uint32 delegationRatio) external view returns (uint256 tokens) {
+    function getTokensAvailable(address serviceProvider, address verifier, uint32) external view returns (uint256 tokens) {
         return _provisions[verifier][serviceProvider].tokens;
     }
 
@@ -97,7 +97,7 @@ contract MockHorizonStaking {
         return true;
     }
 
-    function getDelegationPool(address serviceProvider, address verifier) external view returns (IHorizonStakingTypes.DelegationPool memory) {
+    function getDelegationPool(address, address) external pure returns (IHorizonStakingTypes.DelegationPool memory) {
         return IHorizonStakingTypes.DelegationPool({
             tokens: 0,
             shares: 0,
