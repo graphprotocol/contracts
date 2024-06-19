@@ -4,6 +4,11 @@ pragma solidity 0.8.26;
 import "forge-std/Test.sol";
 
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
+import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
+import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
+import { HorizonStaking } from "@graphprotocol/horizon/contracts/staking/HorizonStaking.sol";
+import { HorizonStakingExtension } from "@graphprotocol/horizon/contracts/staking/HorizonStakingExtension.sol";
+import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
 import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 import { SubgraphService } from "../contracts/SubgraphService.sol";
@@ -13,7 +18,6 @@ import { Constants } from "./utils/Constants.sol";
 import { Utils } from "./utils/Utils.sol";
 
 import { MockGRTToken } from "./mocks/MockGRTToken.sol";
-import { MockHorizonStaking } from "./mocks/MockHorizonStaking.sol";
 import { MockRewardsManager } from "./mocks/MockRewardsManager.sol";
 
 abstract contract SubgraphBaseTest is Utils, Constants {
@@ -24,12 +28,16 @@ abstract contract SubgraphBaseTest is Utils, Constants {
 
     /* Contracts */
 
+    GraphProxyAdmin public proxyAdmin;
     Controller controller;
     SubgraphService subgraphService;
     DisputeManager disputeManager;
+    IHorizonStaking staking;
+
+    HorizonStaking private stakingBase;
+    HorizonStakingExtension private stakingExtension;
 
     MockGRTToken token;
-    MockHorizonStaking staking;
     MockRewardsManager rewardsManager;
 
     /* Users */
@@ -58,21 +66,26 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         });
 
         deployProtocolContracts();
+        setupProtocol();
+        unpauseProtocol();
         vm.stopPrank();
     }
 
     function deployProtocolContracts() private {
+        resetPrank(users.governor);
+        proxyAdmin = new GraphProxyAdmin();
+        controller = new Controller();
+        
         resetPrank(users.deployer);
-        staking = new MockHorizonStaking(address(token));
+        GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
         rewardsManager = new MockRewardsManager();
 
         address tapVerifier = address(0xE3);
         address curation = address(0xE4);
 
         resetPrank(users.governor);
-        controller = new Controller();
         controller.setContractProxy(keccak256("GraphToken"), address(token));
-        controller.setContractProxy(keccak256("Staking"), address(staking));
+        controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
         controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
         controller.setContractProxy(keccak256("GraphPayments"), makeAddr("GraphPayments"));
         controller.setContractProxy(keccak256("PaymentsEscrow"), makeAddr("PaymentsEscrow"));
@@ -104,6 +117,31 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         subgraphService = SubgraphService(subgraphServiceProxy);
 
         disputeManager.setSubgraphService(address(subgraphService));
+
+        stakingExtension = new HorizonStakingExtension(
+            address(controller),
+            address(subgraphService)
+        );
+        stakingBase = new HorizonStaking(
+            address(controller),
+            address(stakingExtension),
+            address(subgraphService)
+        );
+
+        resetPrank(users.governor);
+        proxyAdmin.upgrade(stakingProxy, address(stakingBase));
+        proxyAdmin.acceptProxy(stakingBase, stakingProxy);
+        staking = IHorizonStaking(address(stakingProxy));
+    }
+
+    function setupProtocol() private {
+        resetPrank(users.governor);
+        staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
+    }
+
+    function unpauseProtocol() private {
+        resetPrank(users.governor);
+        controller.setPaused(false);
     }
 
     function createUser(string memory name) private returns (address) {

@@ -10,4 +10,6 @@ abstract contract Constants {
     // Subgraph Service
     uint256 internal constant minimumProvisionTokens = 1000 ether;
     uint32 internal constant delegationRatio = 16;
+    // Staking
+    uint64 internal constant MAX_THAWING_PERIOD = 28 days;
 }
