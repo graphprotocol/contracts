@@ -9,56 +9,19 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { IDisputeManager } from "../../contracts/interfaces/IDisputeManager.sol";
 import { Attestation } from "../../contracts/libraries/Attestation.sol";
 
-import { GraphBaseTest } from "../GraphBaseTest.t.sol";
+import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
 
-contract DisputeManagerTest is GraphBaseTest {
+contract DisputeManagerTest is SubgraphServiceSharedTest {
     using PPMMath for uint256;
-
-    /*
-     * VARIABLES
-     */
-
-    uint256 allocationIDPrivateKey;
-    address allocationID;
 
     /*
      * MODIFIERS
      */
 
-    modifier useIndexer {
-        vm.startPrank(users.indexer);
-        _;
-        vm.stopPrank();
-    }
-
     modifier useFisherman {
         vm.startPrank(users.fisherman);
         _;
         vm.stopPrank();
-    }
-
-    modifier useProvision(uint256 tokens) {
-        vm.assume(tokens > minimumProvisionTokens);
-        vm.assume(tokens < 10_000_000_000 ether);
-        staking.provision(tokens, address(subgraphService), maxSlashingPercentage, disputePeriod);
-        bytes32 subgraphDeployment = keccak256(abi.encodePacked("Subgraph Deployment ID"));
-        bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, allocationID);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
-
-        subgraphService.register(users.indexer, abi.encode("url", "geoHash", address(0)));
-
-        bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, abi.encodePacked(r, s, v));
-        subgraphService.startService(users.indexer, data);
-        _;
-    }
-
-    /*
-     * SET UP
-     */
-
-    function setUp() public override {
-        super.setUp();
-        (allocationID, allocationIDPrivateKey) = makeAddrAndKey("allocationId");
     }
 
     /*

@@ -16,7 +16,7 @@ import { MockGRTToken } from "./mocks/MockGRTToken.sol";
 import { MockHorizonStaking } from "./mocks/MockHorizonStaking.sol";
 import { MockRewardsManager } from "./mocks/MockRewardsManager.sol";
 
-abstract contract GraphBaseTest is Utils, Constants {
+abstract contract SubgraphBaseTest is Utils, Constants {
 
     /*
      * VARIABLES
@@ -53,7 +53,8 @@ abstract contract GraphBaseTest is Utils, Constants {
             verifier: createUser("verifier"),
             delegator: createUser("delegator"),
             arbitrator: createUser("arbitrator"),
-            fisherman: createUser("fisherman")
+            fisherman: createUser("fisherman"),
+            rewardsDestination: createUser("rewardsDestination")
         });
 
         deployProtocolContracts();
@@ -61,14 +62,14 @@ abstract contract GraphBaseTest is Utils, Constants {
     }
 
     function deployProtocolContracts() private {
-        changePrank(users.deployer);
+        resetPrank(users.deployer);
         staking = new MockHorizonStaking(address(token));
         rewardsManager = new MockRewardsManager();
 
         address tapVerifier = address(0xE3);
         address curation = address(0xE4);
 
-        changePrank(users.governor);
+        resetPrank(users.governor);
         controller = new Controller();
         controller.setContractProxy(keccak256("GraphToken"), address(token));
         controller.setContractProxy(keccak256("Staking"), address(staking));
@@ -80,7 +81,7 @@ abstract contract GraphBaseTest is Utils, Constants {
         controller.setContractProxy(keccak256("GraphProxyAdmin"), makeAddr("GraphProxyAdmin"));
         controller.setContractProxy(keccak256("Curation"), makeAddr("Curation"));
 
-        changePrank(users.deployer);
+        resetPrank(users.deployer);
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
         address disputeManagerProxy = UnsafeUpgrades.deployTransparentProxy(
             disputeManagerImplementation,
