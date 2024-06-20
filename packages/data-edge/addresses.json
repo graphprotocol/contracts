@@ -3,7 +3,8 @@
     "EBODataEdge": "0xADE906194C923b28F03F48BC5D9D987AAE21fFab"
   },
   "42161": {
-    "EBOEventfulDataEdge": "0x633bb9790d7c4c59991cebd377c0ed6501a35ebe"
+    "EBOEventfulDataEdge": "0x633bb9790d7c4c59991cebd377c0ed6501a35ebe",
+    "SAOEventfulDataEdge": "0xeD16cEbd4fa74a0016E1149cc03563Db4B223aec"
   },
   "421614": {
     "EBOEventfulDataEdge": "0x9b9402939133F27c6eba81a321dfBFa1feE6714E",
