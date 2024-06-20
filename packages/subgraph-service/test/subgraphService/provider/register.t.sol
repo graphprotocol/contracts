@@ -5,8 +5,8 @@ import "forge-std/Test.sol";
 
 import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
-import { ISubgraphService } from "../../contracts/interfaces/ISubgraphService.sol";
-import { SubgraphServiceTest } from "./SubgraphService.t.sol";
+import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
@@ -15,7 +15,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
      */
 
     function testRegister_Indexer(uint256 tokens) public useIndexer {
-        tokens = bound(tokens, minimumProvisionTokens, 10_000_000_000 ether);
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
         _createProvision(tokens);
         bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
         vm.expectEmit(address(subgraphService));
@@ -37,17 +37,39 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     function testRegister_RevertIf_AlreadyRegistered(
         uint256 tokens
     ) public useIndexer useProvision(tokens) {
-        bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerAlreadyRegistered.selector));
-        subgraphService.register(users.indexer, data);
+        _registerIndexer(users.rewardsDestination);
     }
 
     function testRegister_RevertWhen_InvalidProvision() public useIndexer {
-        bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
         vm.expectRevert(abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerProvisionNotFound.selector,
             users.indexer
         ));
-        subgraphService.register(users.indexer, data);
+        _registerIndexer(users.rewardsDestination);
+    }
+
+    function testRegister_RevertWhen_NotAuthorized() public {
+        resetPrank(users.operator);
+        vm.expectRevert(abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerNotAuthorized.selector,
+            users.operator,
+            users.indexer
+        ));
+        _registerIndexer(users.rewardsDestination);
+    }
+
+    function testRegister_RevertWhen_InvalidProvisionValues(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, 1, minimumProvisionTokens - 1);
+        _createProvision(tokens);
+
+        vm.expectRevert(abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerInvalidValue.selector, 
+            "tokens",
+            tokens,
+            minimumProvisionTokens,
+            maximumProvisionTokens
+        ));
+        _registerIndexer(address(0));
     }
 }
