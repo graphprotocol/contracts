@@ -34,6 +34,7 @@ export const GraphNetworkL2ContractNameList = [
   'L2GNS',
   'L2Staking',
   'L2GraphTokenGateway',
+  'SubgraphAvailabilityManager',
 ] as const
 
 export const GraphNetworkContractNameList = [

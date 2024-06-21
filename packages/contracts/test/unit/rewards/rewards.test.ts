@@ -213,21 +213,6 @@ describe('Rewards', () => {
           .withArgs(subgraphDeploymentID1, blockNum + 1)
         expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
       })
-
-      it('reject deny subgraph w/ many if not the oracle', async function () {
-        const deniedSubgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
-        const tx = rewardsManager.connect(oracle).setDeniedMany(deniedSubgraphs, [true, true])
-        await expect(tx).revertedWith('Caller must be the subgraph availability oracle')
-      })
-
-      it('should deny subgraph w/ many', async function () {
-        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
-
-        const deniedSubgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
-        await rewardsManager.connect(oracle).setDeniedMany(deniedSubgraphs, [true, true])
-        expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
-        expect(await rewardsManager.isDenied(subgraphDeploymentID2)).eq(true)
-      })
     })
   })
 

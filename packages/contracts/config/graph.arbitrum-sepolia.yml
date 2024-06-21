@@ -2,7 +2,12 @@ general:
   arbitrator: &arbitrator "0x1726A5d52e279d02ff4732eCeB2D67BFE5Add328" # EOA (TODO: update to a multisig)
   governor: &governor "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3" # EOA (TODO: update to a multisig)
   authority: &authority "0x49D4CFC037430cA9355B422bAeA7E9391e1d3215" # Authority that signs payment vouchers
-  availabilityOracle: &availabilityOracle "0x5e4e823Ed094c035133eEC5Ec0d08ae1Af04e9Fa" # Subgraph Availability Oracle
+  availabilityOracles: &availabilityOracles # Array of Subgraph Availability Oracles
+    - "0x5e4e823Ed094c035133eEC5Ec0d08ae1Af04e9Fa"
+    - "0x5aeE4c46cF9260E85E630ca7d9D757D5D5DbaFD6"
+    - "0x7369Cf2a917296c36f506144f3dE552403d1e1f1"
+    - "0x1e1f84c07e0471fc979f6f08228b0bd34cda9e54"
+    - "0x711aEA1f358DFAf74D34B4B525F9190e631F406C"
   pauseGuardian: &pauseGuardian "0xa0444508232dA3FA6C2f96a5f105f3f0cc0d20D7" # Protocol pause guardian
   allocationExchangeOwner: &allocationExchangeOwner "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3" # Allocation Exchange owner
 
@@ -131,7 +136,7 @@ contracts:
       - fn: "setIssuancePerBlock"
         issuancePerBlock: "6036500000000000000" # per block increase of total supply, blocks in a year = 365*60*60*24/12
       - fn: "setSubgraphAvailabilityOracle"
-        subgraphAvailabilityOracle: *availabilityOracle
+        subgraphAvailabilityOracle: "${{SubgraphAvailabilityManager.address}}"
       - fn: "syncAllContracts"
   AllocationExchange:
     init:
@@ -149,3 +154,10 @@ contracts:
       - fn: "syncAllContracts"
       - fn: "setPauseGuardian"
         pauseGuardian: *pauseGuardian
+  SubgraphAvailabilityManager:
+    init:
+      governor: *governor
+      rewardsManager: "${{RewardsManager.address}}"
+      executionThreshold: 5
+      voteTimeLimit: 300
+      oracles: *availabilityOracles
