@@ -384,14 +384,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     function _closeAllocation(address _allocationId) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
 
-        allocations.close(_allocationId);
-        allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
-
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
         allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
+
+        allocations.close(_allocationId);
+        allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
 
         // Update total allocated tokens for the subgraph deployment
         subgraphAllocatedTokens[allocation.subgraphDeploymentId] =

@@ -14,7 +14,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
      * TESTS
      */
 
-    function testAccept_Provision(uint256 tokens) public useIndexer useProvision(tokens) {
+    function testAccept_Provision(uint256 tokens) public useIndexer useAllocation(tokens) {
         vm.expectEmit(address(subgraphService));
         emit IDataService.ProvisionAccepted(users.indexer);
         subgraphService.acceptProvision(users.indexer, "");

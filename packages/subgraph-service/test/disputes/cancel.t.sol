@@ -15,7 +15,7 @@ contract DisputeManagerCancelDisputeTest is DisputeManagerTest {
     function testCancel_Dispute(
         uint256 tokens,
         uint256 tokensDispute
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
@@ -31,7 +31,7 @@ contract DisputeManagerCancelDisputeTest is DisputeManagerTest {
 
     function testCancel_QueryDisputeConflicting(
         uint256 tokens
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
@@ -63,7 +63,7 @@ contract DisputeManagerCancelDisputeTest is DisputeManagerTest {
     function testCancel_RevertIf_CallerIsNotFisherman(
         uint256 tokens,
         uint256 tokensDispute
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
 

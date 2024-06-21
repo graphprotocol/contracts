@@ -5,9 +5,12 @@ import "forge-std/Test.sol";
 
 import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
-import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
+
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
+import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { LegacyAllocation } from "../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
@@ -46,6 +49,9 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         assertEq(allocation.lastPOIPresentedAt, 0);
         assertEq(allocation.accRewardsPerAllocatedToken, 0);
         assertEq(allocation.accRewardsPending, 0);
+
+        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
+        assertEq(subgraphAllocatedTokens, tokens);
     }
 
     function testStart_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer {
@@ -117,6 +123,43 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
             AllocationManager.AllocationManagerInvalidAllocationProof.selector,
             signer,
             allocationID
+        ));
+        subgraphService.startService(users.indexer, data);
+    }
+
+    function testStart_RevertWhen_ArealdyExists(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+
+        _createProvision(tokens);
+        _registerIndexer(address(0));
+
+        bytes32 slot = keccak256(abi.encode(allocationID, uint256(158)));
+        vm.store(address(subgraphService), slot, bytes32(uint256(uint160(users.indexer))));
+        vm.store(address(subgraphService), bytes32(uint256(slot) + 1), subgraphDeployment);
+
+        bytes memory data = _generateData(tokens);
+        vm.expectRevert(abi.encodeWithSelector(
+            LegacyAllocation.LegacyAllocationExists.selector,
+            allocationID
+        ));
+        subgraphService.startService(users.indexer, data);
+    }
+
+    function testStart_RevertWhen_NotEnoughTokens(
+        uint256 tokens,
+        uint256 lockTokens
+    ) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS - 1);
+        lockTokens = bound(lockTokens, tokens + 1, MAX_TOKENS);
+
+        _createProvision(tokens);
+        _registerIndexer(address(0));
+
+        bytes memory data = _generateData(lockTokens);
+        vm.expectRevert(abi.encodeWithSelector(
+            ProvisionTracker.ProvisionTrackerInsufficientTokens.selector,
+            tokens,
+            lockTokens
         ));
         subgraphService.startService(users.indexer, data);
     }

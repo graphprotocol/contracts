@@ -15,7 +15,7 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
     function testCreate_IndexingDispute(
         uint256 tokens,
         uint256 tokensDispute
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
         assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
@@ -24,7 +24,7 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
     function testCreate_QueryDispute(
         uint256 tokens,
         uint256 tokensDispute
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         bytes32 disputeID = _createQueryDispute(tokensDispute);
         assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
@@ -32,7 +32,7 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
 
     function testCreate_QueryDisputeConflict(
         uint256 tokens
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
@@ -56,7 +56,7 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
     function testCreate_RevertWhen_DisputeAlreadyCreated(
         uint256 tokens,
         uint256 tokensDispute
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
 

@@ -18,7 +18,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokens,
         uint256 tokensDispute,
         uint256 tokensSlash
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
@@ -37,7 +37,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokens,
         uint256 tokensDispute,
         uint256 tokensSlash
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
@@ -55,7 +55,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
     function testAccept_QueryDisputeConflicting(
         uint256 tokens,
         uint256 tokensSlash
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
@@ -93,7 +93,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokens,
         uint256 tokensDispute,
         uint256 tokensSlash
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
@@ -109,7 +109,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokens,
         uint256 tokensDispute,
         uint256 tokensSlash
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, uint256(maxSlashingPercentage).mulPPM(tokens) + 1, type(uint256).max);
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI101"), tokensDispute);

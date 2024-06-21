@@ -36,7 +36,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testRegister_RevertIf_AlreadyRegistered(
         uint256 tokens
-    ) public useIndexer useProvision(tokens) {
+    ) public useIndexer useAllocation(tokens) {
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerAlreadyRegistered.selector));
         _registerIndexer(users.rewardsDestination);
     }

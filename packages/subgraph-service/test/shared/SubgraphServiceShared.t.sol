@@ -25,7 +25,7 @@ abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
         vm.stopPrank();
     }
 
-    modifier useProvision(uint256 tokens) {
+    modifier useAllocation(uint256 tokens) {
         vm.assume(tokens > minimumProvisionTokens);
         vm.assume(tokens < 10_000_000_000 ether);
         _createProvision(tokens);
