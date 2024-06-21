@@ -12,14 +12,17 @@ import '@nomiclabs/hardhat-waffle'
 import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
-import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
+
+import * as tdly from "@tenderly/hardhat-tenderly";
+tdly.setup();
 
 // Tasks
 
 import './tasks/craft-calldata'
 import './tasks/post-calldata'
+import './tasks/deploy'
 
 // Networks
 
