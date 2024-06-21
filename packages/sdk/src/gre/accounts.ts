@@ -25,8 +25,15 @@ export async function getNamedAccounts(
   const namedAccounts = namedAccountList.reduce(
     async (accountsPromise, name) => {
       const accounts = await accountsPromise
-      const address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
-      accounts[name] = await SignerWithAddress.create(provider.getSigner(address))
+      let address
+      try {
+        address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
+      } catch (e) {
+        // Skip if not found
+      }
+      if (address) {
+        accounts[name] = await SignerWithAddress.create(provider.getSigner(address))
+      }
       return accounts
     },
     Promise.resolve({} as NamedAccounts),
@@ -46,10 +53,13 @@ export async function getTestAccounts(
 ): Promise<SignerWithAddress[]> {
   // Get list of privileged accounts we don't want as test accounts
   const namedAccounts = await getNamedAccounts(provider, graphConfigPath)
-  const blacklist = namedAccountList.map((a) => {
-    const account = namedAccounts[a]
-    return account.address
-  })
+  const blacklist = namedAccountList.reduce((accounts: string[], name) => {
+    const account = namedAccounts[name]
+    if (account) {
+      accounts.push(account.address)
+    }
+    return accounts
+  }, [])
   blacklist.push((await getDeployer(provider)).address)
 
   // Get signers and filter out blacklisted accounts

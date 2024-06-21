@@ -6,8 +6,8 @@ import { ethers } from 'hardhat'
 
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-import { SubgraphAvailabilityManager } from '../../build/types/SubgraphAvailabilityManager'
-import { IRewardsManager } from '../../build/types/IRewardsManager'
+import { SubgraphAvailabilityManager } from '../../../build/types/SubgraphAvailabilityManager'
+import { IRewardsManager } from '../../../build/types/IRewardsManager'
 
 import { NetworkFixture } from '../lib/fixtures'
 
@@ -64,7 +64,6 @@ describe('SubgraphAvailabilityManager', () => {
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     rewardsManager = contracts.RewardsManager as IRewardsManager
-    console.log('Llega hasta aca?')
     const deployResult = await deploy(DeployType.Deploy, governor, {
       name: 'SubgraphAvailabilityManager',
       args: [governor.address, rewardsManager.address, executionThreshold, voteTimeLimit, oracles],
