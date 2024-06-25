@@ -26,8 +26,42 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
     function testStop_Allocation(uint256 tokens) public useIndexer useAllocation(tokens) {
         assertTrue(subgraphService.isActiveAllocation(allocationID));
         bytes memory data = abi.encode(allocationID);
-        // vm.expectEmit(address(subgraphService));
-        // emit IDataService.ServiceStopped(users.indexer, data);
+        vm.expectEmit(address(subgraphService));
+        emit IDataService.ServiceStopped(users.indexer, data);
+        subgraphService.stopService(users.indexer, data);
+
+        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
+        assertEq(subgraphAllocatedTokens, 0);
+    }
+
+    function testStop_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
+        resetPrank(users.operator);
+        bytes memory data = abi.encode(allocationID);
+        vm.expectRevert(abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerNotAuthorized.selector,
+            users.operator,
+            users.indexer
+        ));
+        subgraphService.stopService(users.indexer, data);
+    }
+
+    function testStop_RevertWhen_NotRegistered() public useIndexer {
+        bytes memory data = abi.encode(allocationID);
+        vm.expectRevert(abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
+            users.indexer
+        ));
+        subgraphService.stopService(users.indexer, data);
+    }
+
+    function testStop_RevertWhen_NotOpen(uint256 tokens) public useIndexer useAllocation(tokens) {
+        bytes memory data = abi.encode(allocationID);
+        subgraphService.stopService(users.indexer, data);
+        vm.expectRevert(abi.encodeWithSelector(
+            Allocation.AllocationClosed.selector,
+            allocationID,
+            block.timestamp
+        ));
         subgraphService.stopService(users.indexer, data);
     }
 }
