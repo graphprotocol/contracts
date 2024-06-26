@@ -25,7 +25,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
      * SET UP
      */
 
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
     }
 

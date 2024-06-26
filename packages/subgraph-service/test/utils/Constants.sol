@@ -14,4 +14,9 @@ abstract contract Constants {
     uint32 internal constant delegationRatio = 16;
     // Staking
     uint64 internal constant MAX_THAWING_PERIOD = 28 days;
+    // GraphEscrow parameters
+    uint256 internal constant withdrawEscrowThawingPeriod = 60;
+    uint256 internal constant revokeCollectorThawingPeriod = 60;
+    // GraphPayments parameters
+    uint256 internal constant protocolPaymentCut = 10000;
 }
