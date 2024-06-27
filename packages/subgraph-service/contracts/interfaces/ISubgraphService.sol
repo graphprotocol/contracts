@@ -49,6 +49,20 @@ interface ISubgraphService is IDataServiceFees {
     );
 
     /**
+     * @notice Emitted when the stake to fees ratio is set.
+     * @param ratio The stake to fees ratio
+     */
+    event StakeToFeesRatioSet(uint256 ratio);
+
+    /**
+     * @notice Emmited when payment cuts are set for a payment type
+     * @param paymentType The payment type
+     * @param serviceCut The service cut for the payment type
+     * @param curationCut The curation cut for the payment type
+     */
+    event PaymentCutsSet(IGraphPayments.PaymentTypes paymentType, uint128 serviceCut, uint128 curationCut);
+
+    /**
      * @notice Thrown when an indexer tries to register with an empty URL
      */
     error SubgraphServiceEmptyUrl();
@@ -132,6 +146,28 @@ interface ISubgraphService is IDataServiceFees {
      * @param delegationRatio The delegation ratio
      */
     function setDelegationRatio(uint32 delegationRatio) external;
+
+    /**
+     * @notice Sets the stake to fees ratio
+     * @param stakeToFeesRatio The stake to fees ratio
+     */
+    function setStakeToFeesRatio(uint256 stakeToFeesRatio) external;
+
+    /**
+     * @notice Sets the max POI staleness
+     * See {AllocationManagerV1Storage-maxPOIStaleness} for more details.
+     * @param maxPOIStaleness The max POI staleness in seconds
+     */
+    function setMaxPOIStaleness(uint256 maxPOIStaleness) external;
+
+    /**
+     * @notice Sets the payment cuts for a payment type
+     * @dev Emits a {PaymentCutsSet} event
+     * @param paymentType The payment type
+     * @param serviceCut The service cut for the payment type
+     * @param curationCut The curation cut for the payment type
+     */
+    function setPaymentCuts(IGraphPayments.PaymentTypes paymentType, uint128 serviceCut, uint128 curationCut) external;
 
     /**
      * @notice Sets the rewards destination for an indexer to receive indexing rewards

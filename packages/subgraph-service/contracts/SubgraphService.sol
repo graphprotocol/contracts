@@ -341,6 +341,29 @@ contract SubgraphService is
     }
 
     /**
+     * @notice See {ISubgraphService.setStakeToFeesRatio}
+     */
+    function setStakeToFeesRatio(uint256 _stakeToFeesRatio) external override onlyOwner {
+        stakeToFeesRatio = _stakeToFeesRatio;
+        emit StakeToFeesRatioSet(_stakeToFeesRatio);
+    }
+
+    /**
+     * @notice See {ISubgraphService.setMaxPOIStaleness}
+     */
+    function setMaxPOIStaleness(uint256 maxPOIStaleness) external override onlyOwner {
+        _setMaxPOIStaleness(maxPOIStaleness);
+    }
+
+    /**
+     * @notice See {ISubgraphService.setPaymentCuts}
+     */
+    function setPaymentCuts(IGraphPayments.PaymentTypes paymentType, uint128 serviceCut, uint128 curationCut) external override onlyOwner {
+        paymentCuts[paymentType] = PaymentCuts(serviceCut, curationCut);
+        emit PaymentCutsSet(paymentType, serviceCut, curationCut);
+    }
+
+    /**
      * @notice See {ISubgraphService.getAllocation}
      */
     function getAllocation(address allocationId) external view override returns (Allocation.State memory) {

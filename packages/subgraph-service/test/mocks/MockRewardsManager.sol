@@ -4,8 +4,32 @@ pragma solidity 0.8.26;
 import "forge-std/Test.sol";
 
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
+import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
+
+import { MockGRTToken } from "./MockGRTToken.sol";
+
+interface IRewardsIssuer {
+    function getAllocationData(
+        address allocationId
+    )
+        external
+        view
+        returns (address indexer, bytes32 subgraphDeploymentId, uint256 tokens, uint256 accRewardsPerAllocatedToken);
+}
 
 contract MockRewardsManager is IRewardsManager {
+    using PPMMath for uint256;
+
+    MockGRTToken public token;
+    uint256 public rewardsPerSignal;
+
+    uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
+
+    constructor(MockGRTToken _token, uint256 _rewardsPerSignal) {
+        token = _token;
+        rewardsPerSignal = _rewardsPerSignal;
+    }
+
     // -- Config --
 
     function setIssuancePerBlock(uint256) external {}
@@ -40,7 +64,20 @@ contract MockRewardsManager is IRewardsManager {
 
     function updateAccRewardsPerSignal() external returns (uint256) {}
 
-    function takeRewards(address) external returns (uint256) {}
+    function takeRewards(address _allocationID) external returns (uint256) {
+        address rewardsIssuer = msg.sender;
+        (
+            ,
+            ,
+            uint256 tokens,
+            uint256 accRewardsPerAllocatedToken
+        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationID);
+
+        uint256 accRewardsPerTokens = tokens.mulPPM(rewardsPerSignal);
+        uint256 rewards = accRewardsPerTokens - accRewardsPerAllocatedToken;
+        token.mint(rewardsIssuer, rewards);
+        return rewards;
+    }
 
     // -- Hooks --
 

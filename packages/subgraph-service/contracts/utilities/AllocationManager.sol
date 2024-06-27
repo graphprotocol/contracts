@@ -115,6 +115,12 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     event RewardsDestinationSet(address indexed indexer, address indexed rewardsDestination);
 
     /**
+     * @notice Emitted when the maximum POI staleness is updated
+     * @param maxPOIStaleness The max POI staleness in seconds
+     */
+    event MaxPOIStalenessSet(uint256 maxPOIStaleness);
+
+    /**
      * @notice Thrown when an allocation proof is invalid
      * Both `signer` and `allocationId` should match for a valid proof.
      * @param signer The address that signed the proof
@@ -384,14 +390,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     function _closeAllocation(address _allocationId) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
 
-        allocations.close(_allocationId);
-        allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
-
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
         allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
+
+        allocations.close(_allocationId);
+        allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
 
         // Update total allocated tokens for the subgraph deployment
         subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
@@ -410,6 +416,16 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     function _setRewardsDestination(address _indexer, address _rewardsDestination) internal {
         rewardsDestination[_indexer] = _rewardsDestination;
         emit RewardsDestinationSet(_indexer, _rewardsDestination);
+    }
+
+    /**
+     * @notice Sets the maximum amount of time, in seconds, allowed between presenting POIs to qualify for indexing rewards
+     * @dev Emits a {MaxPOIStalenessSet} event
+     * @param _maxPOIStaleness The max POI staleness in seconds
+     */
+    function _setMaxPOIStaleness(uint256 _maxPOIStaleness) internal {
+        maxPOIStaleness = _maxPOIStaleness;
+        emit MaxPOIStalenessSet(_maxPOIStaleness);
     }
 
     /**
