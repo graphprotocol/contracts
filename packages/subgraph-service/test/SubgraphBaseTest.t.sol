@@ -23,6 +23,7 @@ import { SubgraphService } from "../contracts/SubgraphService.sol";
 import { Users } from "./utils/Users.sol";
 import { Utils } from "./utils/Utils.sol";
 
+import { MockCuration } from "./mocks/MockCuration.sol";
 import { MockGRTToken } from "./mocks/MockGRTToken.sol";
 import { MockRewardsManager } from "./mocks/MockRewardsManager.sol";
 
@@ -46,6 +47,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
 
+    MockCuration curation;
     MockGRTToken token;
     MockRewardsManager rewardsManager;
 
@@ -87,7 +89,8 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         
         resetPrank(users.deployer);
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
-        rewardsManager = new MockRewardsManager();
+        rewardsManager = new MockRewardsManager(token, rewardsPerSignal);
+        curation = new MockCuration();
 
         // GraphPayments predict address
         bytes32 saltGraphPayments = keccak256("GraphPaymentsSalt");
@@ -126,7 +129,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         controller.setContractProxy(keccak256("EpochManager"), makeAddr("EpochManager"));
         controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
         controller.setContractProxy(keccak256("GraphProxyAdmin"), makeAddr("GraphProxyAdmin"));
-        controller.setContractProxy(keccak256("Curation"), makeAddr("Curation"));
+        controller.setContractProxy(keccak256("Curation"), address(curation));
 
         resetPrank(users.deployer);
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
@@ -141,9 +144,8 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         disputeManager = DisputeManager(disputeManagerProxy);
 
         tapCollector = new TAPCollector("TAPCollector", "1", address(controller));
-        address curation = address(0xE4);
         address subgraphServiceImplementation = address(
-            new SubgraphService(address(controller), address(disputeManager), address(tapCollector), curation)
+            new SubgraphService(address(controller), address(disputeManager), address(tapCollector), address(curation))
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
             subgraphServiceImplementation,
@@ -183,6 +185,10 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     function setupProtocol() private {
         resetPrank(users.governor);
         staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
+        resetPrank(users.deployer);
+        subgraphService.setStakeToFeesRatio(stakeToFeesRatio);
+        subgraphService.setMaxPOIStaleness(maxPOIStaleness);
+        subgraphService.setPaymentCuts(IGraphPayments.PaymentTypes.QueryFee, serviceCut, curationCut);
     }
 
     function unpauseProtocol() private {

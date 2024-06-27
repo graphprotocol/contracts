@@ -9,7 +9,7 @@ abstract contract SubgraphServiceV1Storage {
     mapping(address indexer => ISubgraphService.Indexer details) public indexers;
 
     ///@notice Multiplier for how many tokens back collected query fees
-    uint256 public stakeToFeesRatio;
+    uint32 public stakeToFeesRatio;
 
     /// @notice The fees cut taken by the subgraph service
     mapping(IGraphPayments.PaymentTypes paymentType => ISubgraphService.PaymentCuts paymentCuts) public paymentCuts;

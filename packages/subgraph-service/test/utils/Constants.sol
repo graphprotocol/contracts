@@ -12,6 +12,10 @@ abstract contract Constants {
     uint256 internal constant minimumProvisionTokens = 1000 ether;
     uint256 internal constant maximumProvisionTokens = type(uint256).max;
     uint32 internal constant delegationRatio = 16;
+    uint32 public constant stakeToFeesRatio = 2;
+    uint256 public constant maxPOIStaleness = 28 days;
+    uint128 public constant serviceCut = 10000; 
+    uint128 public constant curationCut = 10000;
     // Staking
     uint64 internal constant MAX_THAWING_PERIOD = 28 days;
     // GraphEscrow parameters
@@ -19,4 +23,6 @@ abstract contract Constants {
     uint256 internal constant revokeCollectorThawingPeriod = 60;
     // GraphPayments parameters
     uint256 internal constant protocolPaymentCut = 10000;
+    // RewardsMananger parameters
+    uint256 public constant rewardsPerSignal = 10000;
 }

@@ -7,6 +7,7 @@ cache_path  = 'cache_forge'
 optimizer = true
 optimizer-runs = 200
 via_ir = true
+fs_permissions = [{ access = "read", path = "./"}]
 
 [profile.lite]
 optimizer = false
