@@ -19,8 +19,6 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
-import "forge-std/console.sol";
-
 contract SubgraphService is
     Initializable,
     OwnableUpgradeable,
@@ -345,7 +343,7 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.setStakeToFeesRatio}
      */
-    function setStakeToFeesRatio(uint32 _stakeToFeesRatio) external override onlyOwner {
+    function setStakeToFeesRatio(uint256 _stakeToFeesRatio) external override onlyOwner {
         stakeToFeesRatio = _stakeToFeesRatio;
         emit StakeToFeesRatioSet(_stakeToFeesRatio);
     }

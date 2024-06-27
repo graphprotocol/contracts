@@ -52,7 +52,7 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Emitted when the stake to fees ratio is set.
      * @param ratio The stake to fees ratio
      */
-    event StakeToFeesRatioSet(uint32 ratio);
+    event StakeToFeesRatioSet(uint256 ratio);
 
     /**
      * @notice Emmited when payment cuts are set for a payment type
@@ -151,7 +151,7 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Sets the stake to fees ratio
      * @param stakeToFeesRatio The stake to fees ratio
      */
-    function setStakeToFeesRatio(uint32 stakeToFeesRatio) external;
+    function setStakeToFeesRatio(uint256 stakeToFeesRatio) external;
 
     /**
      * @notice Sets the max POI staleness
