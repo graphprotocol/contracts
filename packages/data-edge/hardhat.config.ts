@@ -61,6 +61,12 @@ function getAccountMnemonic() {
   return process.env.MNEMONIC || ''
 }
 
+function getAccountPath() {
+  const index = process.env.ACCOUNT_INDEX ? parseInt(process.env.ACCOUNT_INDEX) : 0
+  const hdPath = `m/44'/60'/0'/0/${index}`
+  return hdPath
+}
+
 function getDefaultProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
 }
@@ -74,6 +80,7 @@ function setupDefaultNetworkProviders(buidlerConfig) {
       gasPrice: netConfig.gasPrice || 'auto',
       accounts: {
         mnemonic: getAccountMnemonic(),
+        path: getAccountPath(),
       },
     }
   }
