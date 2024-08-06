@@ -51,20 +51,25 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         address msgSender;
         (, msgSender,) = vm.readCallers();
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = Attestation.Receipt({
-            requestCID: keccak256(abi.encodePacked("Request CID")),
-            responseCID: keccak256(abi.encodePacked("Response CID")),
-            subgraphDeploymentId: keccak256(abi.encodePacked("Subgraph Deployment ID"))
-        });
+        Attestation.Receipt memory receipt = _createAttestationReceipt();
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
 
         uint256 beforeFishermanBalance = token.balanceOf(users.fisherman);
         token.approve(address(disputeManager), disputeDeposit);
         bytes32 _disputeID = disputeManager.createQueryDispute(attestationData);
+        assertTrue(disputeManager.isDisputeCreated(_disputeID), "Dispute should be created.");
         uint256 afterFishermanBalance = token.balanceOf(users.fisherman);
         assertEq(afterFishermanBalance, beforeFishermanBalance - disputeDeposit, "Fisherman should be charged the dispute deposit");
         resetPrank(msgSender);
         return _disputeID;
+    }
+
+    function _createAttestationReceipt() internal pure returns (Attestation.Receipt memory receipt) {
+        return Attestation.Receipt({
+            requestCID: keccak256(abi.encodePacked("Request CID")),
+            responseCID: keccak256(abi.encodePacked("Response CID")),
+            subgraphDeploymentId: keccak256(abi.encodePacked("Subgraph Deployment ID"))
+        });
     }
 
     function _createConflictingAttestations(
@@ -94,7 +99,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
     function _createAtestationData(
         Attestation.Receipt memory receipt,
         uint256 signer
-    ) private view returns (bytes memory attestationData) {
+    ) internal view returns (bytes memory attestationData) {
         bytes32 digest = disputeManager.encodeReceipt(receipt);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
 

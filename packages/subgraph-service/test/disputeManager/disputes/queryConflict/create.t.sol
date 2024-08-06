@@ -3,30 +3,17 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
-import { DisputeManagerTest } from "../DisputeManager.t.sol";
+import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManager.sol";
+import { Attestation } from "../../../../contracts/libraries/Attestation.sol";
+import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
-contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
+contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
 
     /*
      * TESTS
      */
 
-    function testCreate_IndexingDispute(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
-        assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
-    }
-
-    function testCreate_QueryDispute(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
-        bytes32 disputeID = _createQueryDispute();
-        assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
-    }
-
-    function testCreate_QueryDisputeConflict(
+    function test_Query_Conflict_Create_DisputeAttestation(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
@@ -49,49 +36,7 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
         assertTrue(disputeManager.isDisputeCreated(disputeID2), "Dispute 2 should be created.");
     }
 
-    function testCreate_RevertWhen_DisputeAlreadyCreated(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
-
-        // Create another dispute with different fisherman
-        address otherFisherman = makeAddr("otherFisherman");
-        resetPrank(otherFisherman);
-        mint(otherFisherman, disputeDeposit);
-        token.approve(address(disputeManager), disputeDeposit);
-        bytes memory expectedError = abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerDisputeAlreadyCreated.selector,
-            disputeID
-        );
-        vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"));
-        vm.stopPrank();
-    }
-
-    function testCreate_RevertIf_TokensNotApproved() public useFisherman {
-        bytes memory expectedError = abi.encodeWithSignature(
-            "ERC20InsufficientAllowance(address,uint256,uint256)",
-            address(disputeManager),
-            0,
-            disputeDeposit
-        );
-        vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI3"));
-        vm.stopPrank();
-    }
-
-    function testCreate_RevertIf_AllocationDoesNotExist() public useFisherman {
-        token.approve(address(disputeManager), disputeDeposit);
-        bytes memory expectedError = abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerIndexerNotFound.selector,
-            allocationID
-        );
-        vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI4"));
-        vm.stopPrank();
-    }
-
-    function testCreate_RevertIf_ConflictingAttestationsResponsesAreTheSame() public useFisherman {
+    function test_Query_Conflict_Create_RevertIf_AttestationsResponsesAreTheSame() public useFisherman {
         bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
         bytes32 responseCID = keccak256(abi.encodePacked("Response CID"));
         bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
@@ -116,7 +61,7 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
         disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
     }
 
-    function testCreate_RevertIf_ConflictingAttestationsHaveDifferentSubgraph() public {
+    function test_Query_Conflict_Create_RevertIf_AttestationsHaveDifferentSubgraph() public {
         bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));

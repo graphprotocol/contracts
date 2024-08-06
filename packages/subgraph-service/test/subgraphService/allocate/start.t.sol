@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
@@ -25,11 +26,19 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         return abi.encode(subgraphDeployment, tokens, allocationID, abi.encodePacked(r, s, v));
     }
 
+    function _generateRandomHexBytes(uint256 length) internal view returns (bytes memory) {
+        bytes memory randomBytes = new bytes(length);
+        for (uint256 i = 0; i < length; i++) {
+            randomBytes[i] = bytes1(uint8(uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, i))) % 256));
+        }
+        return randomBytes;
+    }
+
     /*
      * TESTS
      */
 
-    function testStart_Allocation(uint256 tokens) public useIndexer {
+    function test_Allocation_Start(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(tokens);
@@ -54,7 +63,33 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         assertEq(subgraphAllocatedTokens, tokens);
     }
 
-    function testStart_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer {
+    function test_Allocation_Start_AllowsZeroTokens(uint256 tokens) public  useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+
+        _createProvision(tokens);
+        _registerIndexer(address(0));
+
+        bytes memory data = _generateData(0);
+        subgraphService.startService(users.indexer, data);
+
+        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
+        assertEq(subgraphAllocatedTokens, 0);
+    }
+
+    function test_Allocation_Start_ByOperator(uint256 tokens) public useOperator {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+
+        _createProvision(tokens);
+        _registerIndexer(address(0));
+
+        bytes memory data = _generateData(tokens);
+        subgraphService.startService(users.indexer, data);
+
+        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
+        assertEq(subgraphAllocatedTokens, tokens);
+    }
+
+    function test_Allocation_Start_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(tokens);
@@ -70,7 +105,7 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         subgraphService.startService(users.indexer, data);
     }
 
-    function testStart_RevertWhen_NoValidProvision(uint256 tokens) public useIndexer {
+    function test_Allocation_Start_RevertWhen_NoValidProvision(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
         
         bytes memory data = _generateData(tokens);
@@ -81,7 +116,7 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         subgraphService.startService(users.indexer, data);
     }
 
-    function testStart_RevertWhen_NotRegistered(uint256 tokens) public useIndexer {
+    function test_Allocation_Start_RevertWhen_NotRegistered(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(tokens);
@@ -94,7 +129,7 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         subgraphService.startService(users.indexer, data);
     }
 
-    function testStart_RevertWhen_ZeroAllocationId(uint256 tokens) public useIndexer {
+    function test_Allocation_Start_RevertWhen_ZeroAllocationId(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(tokens);
@@ -109,7 +144,7 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         subgraphService.startService(users.indexer, data);
     }
 
-    function testStart_RevertWhen_InvalidSignature(uint256 tokens) public useIndexer {
+    function test_Allocation_Start_RevertWhen_InvalidSignature(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(tokens);
@@ -127,7 +162,21 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         subgraphService.startService(users.indexer, data);
     }
 
-    function testStart_RevertWhen_ArealdyExists(uint256 tokens) public useIndexer {
+    function test_Allocation_Start_RevertWhen_InvalidData(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+
+        _createProvision(tokens);
+        _registerIndexer(address(0));
+
+        bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, _generateRandomHexBytes(32));
+        vm.expectRevert(abi.encodeWithSelector(
+            ECDSA.ECDSAInvalidSignatureLength.selector,
+            32
+        ));
+        subgraphService.startService(users.indexer, data);
+    }
+
+    function test_Allocation_Start_RevertWhen_ArealdyExists(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(tokens);
@@ -145,7 +194,23 @@ contract SubgraphServiceAllocateStartTest is SubgraphServiceTest {
         subgraphService.startService(users.indexer, data);
     }
 
-    function testStart_RevertWhen_NotEnoughTokens(
+    function test_Allocation_Start_RevertWhen_ReusingAllocationId(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+
+        _createProvision(tokens);
+        _registerIndexer(address(0));
+
+        bytes memory data = _generateData(tokens);
+        subgraphService.startService(users.indexer, data);
+
+        vm.expectRevert(abi.encodeWithSelector(
+            Allocation.AllocationAlreadyExists.selector,
+            allocationID
+        ));
+        subgraphService.startService(users.indexer, data);
+    }
+
+    function test_Allocation_Start_RevertWhen_NotEnoughTokens(
         uint256 tokens,
         uint256 lockTokens
     ) public useIndexer {

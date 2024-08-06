@@ -50,9 +50,11 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
      */
 
     function test_Constructor(
-        uint32 fishermanRewardPercentage
+        uint32 fishermanRewardPercentage,
+        uint32 maxSlashingPercentage
     ) public useDeployer {
         vm.assume(fishermanRewardPercentage <= disputeManager.MAX_FISHERMAN_REWARD_CUT());
+        vm.assume(maxSlashingPercentage <= PPMMath.MAX_PPM);
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
         address proxy = _initializeDisputeManager(
             disputeManagerImplementation,

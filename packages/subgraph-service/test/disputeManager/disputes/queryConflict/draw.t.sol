@@ -4,28 +4,16 @@ pragma solidity 0.8.26;
 import "forge-std/Test.sol";
 
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
-import { DisputeManagerTest } from "../DisputeManager.t.sol";
+import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManager.sol";
+import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
-contract DisputeManagerDrawDisputeTest is DisputeManagerTest {
+contract DisputeManagerQueryConflictDrawDisputeTest is DisputeManagerTest {
 
     /*
      * TESTS
      */
 
-    function testDraw_Dispute(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
-        uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI32"));
-
-        resetPrank(users.arbitrator);
-        disputeManager.drawDispute(disputeID);
-
-        assertEq(token.balanceOf(users.fisherman), fishermanPreviousBalance, "Fisherman should receive their deposit back.");
-    }
-
-    function testDraw_QueryDisputeConflicting(
+    function test_Query_Conflict_Draw_Dispute(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
@@ -54,14 +42,29 @@ contract DisputeManagerDrawDisputeTest is DisputeManagerTest {
         assertTrue(status2 == IDisputeManager.DisputeStatus.Drawn, "Dispute 2 should be drawn.");
     }
 
-    function testDraw_RevertIf_CallerIsNotArbitrator(
+    function test_Query_Conflict_Draw_RevertIf_CallerIsNotArbitrator(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        bytes32 disputeID = _createIndexingDispute(allocationID,bytes32("POI1"));
+        bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
+        bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
+        bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
+
+        (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
+            responseCID1,
+            subgraphDeploymentId,
+            responseCID2,
+            subgraphDeploymentId
+        );
+
+        resetPrank(users.fisherman);
+        (bytes32 disputeID1,) = disputeManager.createQueryDisputeConflict(
+            attestationData1,
+            attestationData2
+        );
 
         // attempt to draw dispute as fisherman
         resetPrank(users.fisherman);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
-        disputeManager.drawDispute(disputeID);
+        disputeManager.drawDispute(disputeID1);
     }
 }
