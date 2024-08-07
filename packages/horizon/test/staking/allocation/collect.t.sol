@@ -141,6 +141,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         assertEq(staking.getStake(address(users.indexer)), provisionTokens + payment);
         assertEq(curation.curation(_subgraphDeploymentID), curationTokens + curationCutTokens);
         assertEq(staking.getDelegationPool(users.indexer, subgraphDataServiceLegacyAddress).tokens, delegationTokens + delegationFeeCut);
+        assertEq(token.balanceOf(address(payments)), 0);
     }
 
     function testCollect_WithBeneficiaryAddress(

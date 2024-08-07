@@ -68,6 +68,7 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
 
         // Pay delegators
         if (tokensDelegationPool > 0) {
+            _graphToken().approve(address(_graphStaking()), tokensDelegationPool);
             _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
         }
 
