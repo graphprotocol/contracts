@@ -31,7 +31,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         uint256 indexerBalance = token.balanceOf(users.indexer);
         uint256 indexerExpectedPayment = amount - tokensDataService - tokensProtocol - tokensDelegatoion;
         assertEq(indexerBalance - indexerPreviousBalance, indexerExpectedPayment);
-        assertTrue(true);
+        assertEq(token.balanceOf(address(payments)), 0);
     }
 
     function testCollect_RevertWhen_CollectorNotAuthorized(uint256 amount) public {
