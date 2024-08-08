@@ -221,6 +221,7 @@ contract SubgraphService is
         bytes calldata data
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
+        require(allocations[allocationId].indexer == indexer, SubgraphServiceIndexerNotAuthorized(indexer, allocationId));
         _closeAllocation(allocationId);
         emit ServiceStopped(indexer, data);
     }
@@ -250,13 +251,13 @@ contract SubgraphService is
         address indexer,
         IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
-    ) external override onlyValidProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyProvisionAuthorized(indexer) onlyValidProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
             paymentCollected = _collectQueryFees(data);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
-            paymentCollected = _collectIndexingRewards(data);
+            paymentCollected = _collectIndexingRewards(indexer, data);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -484,7 +485,9 @@ contract SubgraphService is
         ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
         address indexer = signedRav.rav.serviceProvider;
         address allocationId = abi.decode(signedRav.rav.metadata, (address));
-        bytes32 subgraphDeploymentId = allocations.get(allocationId).subgraphDeploymentId;
+        Allocation.State memory allocation = allocations.get(allocationId);
+        require(allocation.indexer == indexer, SubgraphServiceIndexerNotAuthorized(indexer, allocationId));
+        bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
         // release expired stake claims
         _releaseStake(indexer, 0);
