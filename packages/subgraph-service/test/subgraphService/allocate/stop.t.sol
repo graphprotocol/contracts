@@ -34,6 +34,21 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
         assertEq(subgraphAllocatedTokens, 0);
     }
 
+    function testStop_RevertWhen_IndexerIsNotTheAllocationOwner(uint256 tokens) public useIndexer useAllocation(tokens) {
+        // Setup new indexer
+        address newIndexer = makeAddr("newIndexer");
+        _createAndStartAllocation(newIndexer, tokens);
+
+        // Attempt to close other indexer's allocation
+        bytes memory data = abi.encode(allocationID);
+        vm.expectRevert(abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceIndexerNotAuthorized.selector,
+            newIndexer,
+            allocationID
+        ));
+        subgraphService.stopService(newIndexer, data);
+    }
+
     function testStop_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.operator);
         bytes memory data = abi.encode(allocationID);

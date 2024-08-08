@@ -153,6 +153,13 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     error AllocationManagerAllocationSameSize(address allocationId, uint256 tokens);
 
     /**
+     * @notice Thrown when an indexer is not allocation owner
+     * @param allocationId The id of the allocation
+     * @param indexer The address of the indexer
+     */
+    error AllocationManagerIndexerNotAuthorized(address indexer, address allocationId);
+
+    /**
      * @notice Initializes the contract and parent contracts
      */
     // solhint-disable-next-line func-name-mixedcase
@@ -250,14 +257,16 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      *
      * Emits a {IndexingRewardsCollected} event.
      *
+     * @param indexer The address of the indexer
      * @param _data Encoded data containing:
      * - address `allocationId`: The id of the allocation to collect rewards for
      * - bytes32 `poi`: The POI being presented
      */
-    function _collectIndexingRewards(bytes memory _data) internal returns (uint256) {
+    function _collectIndexingRewards(address indexer, bytes memory _data) internal returns (uint256) {
         (address allocationId, bytes32 poi) = abi.decode(_data, (address, bytes32));
 
         Allocation.State memory allocation = allocations.get(allocationId);
+        require(allocation.indexer == indexer, AllocationManagerIndexerNotAuthorized(indexer, allocationId));
         require(allocation.isOpen(), AllocationManagerAllocationClosed(allocationId));
 
         // Mint indexing rewards if all conditions are met

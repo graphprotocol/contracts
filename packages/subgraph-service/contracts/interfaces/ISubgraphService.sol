@@ -94,6 +94,13 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
 
     /**
+     * @notice Thrown when an indexer tries to perform an operation but they are not authorized
+     * @param indexer The address of the indexer
+     * @param allocationId The id of the allocation
+     */
+    error SubgraphServiceIndexerNotAuthorized(address indexer, address allocationId);
+
+    /**
      * @notice Initialize the contract
      * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
      * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
