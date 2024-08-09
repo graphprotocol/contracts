@@ -221,7 +221,7 @@ contract SubgraphService is
         bytes calldata data
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
-        require(allocations[allocationId].indexer == indexer, SubgraphServiceIndexerNotAuthorized(indexer, allocationId));
+        require(allocations[allocationId].indexer == indexer, SubgraphServiceInvalidIndexer(indexer));
         _closeAllocation(allocationId);
         emit ServiceStopped(indexer, data);
     }
@@ -255,7 +255,7 @@ contract SubgraphService is
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            paymentCollected = _collectQueryFees(data);
+            paymentCollected = _collectQueryFees(indexer, data);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             paymentCollected = _collectIndexingRewards(indexer, data);
         } else {
@@ -485,12 +485,13 @@ contract SubgraphService is
      *
      * @param _data Encoded data containing a signed RAV
      */
-    function _collectQueryFees(bytes memory _data) private returns (uint256 feesCollected) {
+    function _collectQueryFees(address indexer, bytes memory _data) private returns (uint256 feesCollected) {
         ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
-        address indexer = signedRav.rav.serviceProvider;
+        address serviceProvider = signedRav.rav.serviceProvider;
+        require(indexer == serviceProvider, SubgraphServiceInvalidIndexer(indexer));
         address allocationId = abi.decode(signedRav.rav.metadata, (address));
         Allocation.State memory allocation = allocations.get(allocationId);
-        require(allocation.indexer == indexer, SubgraphServiceIndexerNotAuthorized(indexer, allocationId));
+        require(allocation.indexer == indexer, SubgraphServiceInvalidAllocationIndexer(indexer, allocationId));
         bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
         // release expired stake claims

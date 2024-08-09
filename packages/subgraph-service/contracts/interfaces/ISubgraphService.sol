@@ -94,11 +94,17 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
 
     /**
-     * @notice Thrown when an indexer tries to perform an operation but they are not authorized
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
+     * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
+     * @param indexer The address of the expected indexer.
      */
-    error SubgraphServiceIndexerNotAuthorized(address indexer, address allocationId);
+    error SubgraphServiceInvalidIndexer(address indexer);
+
+    /**
+     * @notice Thrown when the indexer in the allocation state does not match the expected indexer.
+     * @param indexer The address of the expected indexer.
+     * @param allocationId The id of the allocation.
+     */
+    error SubgraphServiceInvalidAllocationIndexer(address indexer, address allocationId);
 
     /**
      * @notice Initialize the contract

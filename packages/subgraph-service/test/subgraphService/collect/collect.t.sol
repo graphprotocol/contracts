@@ -140,11 +140,25 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
         bytes memory data = _getQueryFeeEncodedData(newIndexer, uint128(tokens));
-        // Attempt to collect from other indexer's allocation
         vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexerNotAuthorized.selector,
+            ISubgraphService.SubgraphServiceInvalidAllocationIndexer.selector,
             newIndexer,
             allocationID
+        ));
+        subgraphService.collect(newIndexer, paymentType, data);
+    }
+
+    function testCollect_QueryFees_RevertWhen_CollectingOtherIndexersFees(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.QueryFee;
+        // Setup new indexer
+        address newIndexer = makeAddr("newIndexer");
+        _createAndStartAllocation(newIndexer, tokens);
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens));
+        vm.expectRevert(abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceInvalidIndexer.selector,
+            newIndexer
         ));
         subgraphService.collect(newIndexer, paymentType, data);
     }
