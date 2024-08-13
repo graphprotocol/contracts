@@ -221,7 +221,7 @@ contract SubgraphService is
         bytes calldata data
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
-        require(allocations[allocationId].indexer == indexer, SubgraphServiceInvalidIndexer(indexer));
+        require(allocations[allocationId].indexer == indexer, SubgraphServiceAllocationNotAuthorized(indexer, allocationId));
         _closeAllocation(allocationId);
         emit ServiceStopped(indexer, data);
     }
@@ -483,19 +483,23 @@ contract SubgraphService is
      * Emits a {StakeClaimLocked} event.
      * Emits a {QueryFeesCollected} event.
      *
+     * @param _indexer The address of the indexer
      * @param _data Encoded data containing a signed RAV
      */
-    function _collectQueryFees(address indexer, bytes memory _data) private returns (uint256 feesCollected) {
+    function _collectQueryFees(address _indexer, bytes memory _data) private returns (uint256 feesCollected) {
         ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
-        address serviceProvider = signedRav.rav.serviceProvider;
-        require(indexer == serviceProvider, SubgraphServiceInvalidIndexer(indexer));
+        address indexer = signedRav.rav.serviceProvider;
+        require(_indexer == indexer, SubgraphServiceIndexerMismatch(indexer, _indexer));
         address allocationId = abi.decode(signedRav.rav.metadata, (address));
         Allocation.State memory allocation = allocations.get(allocationId);
-        require(allocation.indexer == indexer, SubgraphServiceInvalidAllocationIndexer(indexer, allocationId));
+
+        // Not strictly necessary: if an indexer collects another's voucher, they lock their stake with no gains.
+        // We include the check to guard against potential malicious payers deceiving the indexer.
+        require(allocation.indexer == _indexer, SubgraphServiceAllocationNotAuthorized(_indexer, allocationId));
         bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
         // release expired stake claims
-        _releaseStake(indexer, 0);
+        _releaseStake(_indexer, 0);
 
         // Collect from GraphPayments
         PaymentCuts memory queryFeePaymentCuts = _getQueryFeePaymentCuts(subgraphDeploymentId);
@@ -519,7 +523,7 @@ contract SubgraphService is
             // lock stake as economic security for fees
             uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
             uint256 unlockTimestamp = block.timestamp + _disputeManager().getDisputePeriod();
-            _lockStake(indexer, tokensToLock, unlockTimestamp);
+            _lockStake(_indexer, tokensToLock, unlockTimestamp);
 
             // calculate service and curator cuts
             tokensCurators = tokensCollected.mulPPMRoundUp(queryFeePaymentCuts.curationCut);
@@ -535,7 +539,7 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesCollected(indexer, tokensCollected, tokensCurators, tokensSubgraphService);
+        emit QueryFeesCollected(_indexer, tokensCollected, tokensCurators, tokensSubgraphService);
         return tokensCollected;
     }
 
