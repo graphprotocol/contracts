@@ -95,16 +95,17 @@ interface ISubgraphService is IDataServiceFees {
 
     /**
      * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
-     * @param indexer The address of the expected indexer.
+     * @param providedIndexer The address of the provided indexer.
+     * @param expectedIndexer The address of the expected indexer.
      */
-    error SubgraphServiceInvalidIndexer(address indexer);
+    error SubgraphServiceIndexerMismatch(address providedIndexer, address expectedIndexer);
 
     /**
      * @notice Thrown when the indexer in the allocation state does not match the expected indexer.
      * @param indexer The address of the expected indexer.
      * @param allocationId The id of the allocation.
      */
-    error SubgraphServiceInvalidAllocationIndexer(address indexer, address allocationId);
+    error SubgraphServiceAllocationNotAuthorized(address indexer, address allocationId);
 
     /**
      * @notice Initialize the contract

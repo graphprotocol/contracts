@@ -42,8 +42,9 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
         // Attempt to close other indexer's allocation
         bytes memory data = abi.encode(allocationID);
         vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceInvalidIndexer.selector,
-            newIndexer
+            ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
+            newIndexer,
+            allocationID
         ));
         subgraphService.stopService(newIndexer, data);
     }

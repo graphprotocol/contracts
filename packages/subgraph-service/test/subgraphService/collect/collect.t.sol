@@ -86,7 +86,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         
         _approveCollector(tokensPayment128);
         subgraphService.collect(users.indexer, paymentType, data);
-        
+
         uint256 indexerBalance = token.balanceOf(users.indexer);
         uint256 tokensProtocol = tokensPayment128.mulPPM(protocolPaymentCut);
         uint256 curationTokens = tokensPayment128.mulPPMRoundUp(curationCut);
@@ -141,7 +141,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _createAndStartAllocation(newIndexer, tokens);
         bytes memory data = _getQueryFeeEncodedData(newIndexer, uint128(tokens));
         vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceInvalidAllocationIndexer.selector,
+            ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
             newIndexer,
             allocationID
         ));
@@ -157,7 +157,8 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _createAndStartAllocation(newIndexer, tokens);
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens));
         vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceInvalidIndexer.selector,
+            ISubgraphService.SubgraphServiceIndexerMismatch.selector,
+            users.indexer,
             newIndexer
         ));
         subgraphService.collect(newIndexer, paymentType, data);
@@ -173,7 +174,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         bytes memory data = abi.encode(allocationID, bytes32("POI1"));
         // Attempt to collect from other indexer's allocation
         vm.expectRevert(abi.encodeWithSelector(
-            AllocationManager.AllocationManagerIndexerNotAuthorized.selector,
+            AllocationManager.AllocationManagerNotAuthorized.selector,
             newIndexer,
             allocationID
         ));
