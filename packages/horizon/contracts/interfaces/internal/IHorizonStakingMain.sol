@@ -339,12 +339,6 @@ interface IHorizonStakingMain {
     error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
 
     /**
-     * @notice Thrown when an unauthorized sender attempts to deposit tokens into the delegation pool.
-     * @param sender The message sender address
-     */
-    error HorizonStakingInvalidDelegationPoolSender(address sender);
-
-    /**
      * @notice Thrown when attempting to create a provision with an invalid maximum verifier cut.
      * @param maxVerifierCut The maximum verifier cut
      * @param maxMaxVerifierCut The maximum `maxVerifierCut` allowed
@@ -667,6 +661,7 @@ interface IHorizonStakingMain {
      *
      * @dev Requirements:
      * - `tokens` cannot be zero.
+     * - Caller must have previously approved this contract to pull tokens from their balance.
      *
      * Emits a {TokensToDelegationPoolAdded} event.
      *

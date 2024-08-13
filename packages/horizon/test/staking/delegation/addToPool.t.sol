@@ -54,20 +54,6 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         assertEq(token.balanceOf(address(staking)), stakingPreviousBalance + delegationAmount);
     }
 
-    function test_Delegation_AddToPool_RevertWhen_InvalidSender(
-        uint256 amount,
-        uint256 delegationAmount
-    ) public useIndexer useProvision(amount, 0, 0) useValidDelegationAmount(delegationAmount) {
-        vm.assume(delegationAmount > 0);
-        vm.startPrank(users.delegator);
-        bytes memory expectedError = abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationPoolSender.selector,
-            users.delegator
-        );
-        vm.expectRevert(expectedError);
-        staking.addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationAmount);
-    }
-
     function test_Delegation_AddToPool_RevertWhen_ZeroTokens(
         uint256 amount
     ) public useIndexer useProvision(amount, 0, 0) {
