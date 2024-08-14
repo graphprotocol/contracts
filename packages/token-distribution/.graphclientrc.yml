@@ -2,13 +2,13 @@ sources:
   - name: graph-network
     handler:
       graphql:
-        endpoint: https://api.thegraph.com/subgraphs/name/graphprotocol/graph-network-mainnet
+        endpoint: https://gateway.thegraph.com/api/${STUDIO_API_KEY}/subgraphs/id/9Co7EQe5PgW3ugCUJrJgRv4u9zdEuDJf8NvMWftNsBH8
         retry: 5
 
   - name: token-distribution
     handler:
       graphql:
-        endpoint: https://api.thegraph.com/subgraphs/name/graphprotocol/token-distribution
+        endpoint: https://gateway.thegraph.com/api/${STUDIO_API_KEY}/subgraphs/id/ChfAJn6jQEBjVqtdUiThfG6sWy2Sr5XQPNucE9DkgXSN
         retry: 5
     transforms:
       - autoPagination:
