@@ -24,14 +24,7 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
      */
 
     function testStop_Allocation(uint256 tokens) public useIndexer useAllocation(tokens) {
-        assertTrue(subgraphService.isActiveAllocation(allocationID));
-        bytes memory data = abi.encode(allocationID);
-        vm.expectEmit(address(subgraphService));
-        emit IDataService.ServiceStopped(users.indexer, data);
-        subgraphService.stopService(users.indexer, data);
-
-        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
-        assertEq(subgraphAllocatedTokens, 0);
+        _stopAllocation(users.indexer, allocationID);
     }
 
     function testStop_RevertWhen_IndexerIsNotTheAllocationOwner(uint256 tokens) public useIndexer useAllocation(tokens) {

@@ -96,15 +96,8 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         assertEq(indexerBalance, indexerPreviousBalance + expectedIndexerTokensPayment);
     }
 
-    function testCollect_IndexingFees(uint256 tokens) public useIndexer useAllocation(tokens) {
-        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI1"));
-
-        uint256 indexerPreviousProvisionBalance = staking.getProviderTokensAvailable(users.indexer, address(subgraphService));
-        subgraphService.collect(users.indexer, paymentType, data);
-
-        uint256 indexerProvisionBalance = staking.getProviderTokensAvailable(users.indexer, address(subgraphService));
-        assertEq(indexerProvisionBalance, indexerPreviousProvisionBalance + tokens.mulPPM(rewardsPerSignal));
+    function testCollect_IndexingRewards(uint256 tokens) public useIndexer useAllocation(tokens) {
+        _collectIndexingRewards(users.indexer, allocationID, tokens);
     }
 
     function testCollect_RevertWhen_InvalidPayment(

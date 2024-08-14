@@ -340,20 +340,26 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * These will be paid out when the indexer presents a POI.
      *
      * Requirements:
+     * - `_indexer` must be the owner of the allocation
+     * - Allocation must be open
      * - `_tokens` must be different from the current allocation size
      *
      * Emits a {AllocationResized} event.
      *
+     * @param _indexer The address of the indexer
      * @param _allocationId The id of the allocation to be resized
      * @param _tokens The new amount of tokens to allocate
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      */
     function _resizeAllocation(
+        address _indexer,
         address _allocationId,
         uint256 _tokens,
         uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
+        require(allocation.indexer == _indexer, AllocationManagerNotAuthorized(_indexer, _allocationId));
+        require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
         require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
 
         // Update provision tracker
@@ -378,8 +384,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         allocations[_allocationId].accRewardsPending += accRewardsPending;
 
         // Update total allocated tokens for the subgraph deployment
-        // underflow: subgraphAllocatedTokens should at least be oldTokens so it can't underflow
-        subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
+        if (_tokens > oldTokens) {
+            subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
+        } else {
+            subgraphAllocatedTokens[allocation.subgraphDeploymentId] -= (oldTokens - _tokens);
+        }
 
         emit AllocationResized(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, _tokens, oldTokens);
         return allocations[_allocationId];

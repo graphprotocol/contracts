@@ -49,9 +49,13 @@ abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
      */
 
     function _createProvision(uint256 tokens) internal {
-        token.approve(address(staking), tokens);
-        staking.stakeTo(users.indexer, tokens);
+        _stakeTo(users.indexer, tokens);
         staking.provision(users.indexer, address(subgraphService), tokens, maxSlashingPercentage, disputePeriod);
+    }
+
+    function _addToProvision(address _indexer, uint256 _tokens) internal {
+        _stakeTo(_indexer, _tokens);
+        staking.addToProvision(_indexer, address(subgraphService), _tokens);
     }
 
     function _registerIndexer(address rewardsDestination) internal {
@@ -64,5 +68,14 @@ abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
 
         bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, abi.encodePacked(r, s, v));
         subgraphService.startService(users.indexer, data);
+    }
+
+    /*
+     * PRIVATE
+     */
+
+    function _stakeTo(address _indexer, uint256 _tokens) internal {
+        token.approve(address(staking), _tokens);
+        staking.stakeTo(_indexer, _tokens);
     }
 }
