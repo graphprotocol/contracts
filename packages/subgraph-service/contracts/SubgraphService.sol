@@ -299,7 +299,7 @@ contract SubgraphService is
         onlyRegisteredIndexer(indexer)
         whenNotPaused
     {
-        _resizeAllocation(allocationId, tokens, delegationRatio);
+        _resizeAllocation(indexer, allocationId, tokens, delegationRatio);
     }
 
     /**

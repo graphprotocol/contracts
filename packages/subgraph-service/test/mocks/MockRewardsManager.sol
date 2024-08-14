@@ -22,12 +22,15 @@ contract MockRewardsManager is IRewardsManager {
 
     MockGRTToken public token;
     uint256 public rewardsPerSignal;
+    uint256 public rewardsPerSubgraphAllocationUpdate;
+    mapping(bytes32 => bool) public subgraphs;
 
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
 
-    constructor(MockGRTToken _token, uint256 _rewardsPerSignal) {
+    constructor(MockGRTToken _token, uint256 _rewardsPerSignal, uint256 _rewardsPerSubgraphAllocationUpdate) {
         token = _token;
         rewardsPerSignal = _rewardsPerSignal;
+        rewardsPerSubgraphAllocationUpdate = _rewardsPerSubgraphAllocationUpdate;
     }
 
     // -- Config --
@@ -83,7 +86,12 @@ contract MockRewardsManager is IRewardsManager {
 
     function onSubgraphSignalUpdate(bytes32) external pure returns (uint256) {}
 
-    function onSubgraphAllocationUpdate(bytes32) external pure returns (uint256) {
+    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) external returns (uint256) {
+        if (subgraphs[_subgraphDeploymentID]) {
+            return rewardsPerSubgraphAllocationUpdate;
+        }
+
+        subgraphs[_subgraphDeploymentID] = true;
         return 0;
     }
 }

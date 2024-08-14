@@ -25,4 +25,5 @@ abstract contract Constants {
     uint256 internal constant protocolPaymentCut = 10000;
     // RewardsMananger parameters
     uint256 public constant rewardsPerSignal = 10000;
+    uint256 public constant rewardsPerSubgraphAllocationUpdate = 1000;
 }

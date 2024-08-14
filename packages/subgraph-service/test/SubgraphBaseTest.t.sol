@@ -89,7 +89,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         
         resetPrank(users.deployer);
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
-        rewardsManager = new MockRewardsManager(token, rewardsPerSignal);
+        rewardsManager = new MockRewardsManager(token, rewardsPerSignal, rewardsPerSubgraphAllocationUpdate);
         curation = new MockCuration();
 
         // GraphPayments predict address
