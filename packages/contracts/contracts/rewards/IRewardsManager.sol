@@ -43,6 +43,8 @@ interface IRewardsManager {
 
     function getRewards(address _allocationID) external view returns (uint256);
 
+    function calcRewards(uint256 _tokens, uint256 _accRewardsPerAllocatedToken) external pure returns (uint256);
+
     // -- Updates --
 
     function updateAccRewardsPerSignal() external returns (uint256);

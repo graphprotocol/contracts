@@ -63,6 +63,8 @@ contract MockRewardsManager is IRewardsManager {
 
     function getRewards(address) external view returns (uint256) {}
 
+    function calcRewards(uint256, uint256) external pure returns (uint256) {}
+
     // -- Updates --
 
     function updateAccRewardsPerSignal() external returns (uint256) {}

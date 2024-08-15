@@ -374,14 +374,17 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 accRewardsPerAllocatedToken = _graphRewardsManager().onSubgraphAllocationUpdate(
             allocation.subgraphDeploymentId
         );
-        uint256 accRewardsPending = !allocation.isAltruistic()
+        uint256 accRewardsPerAllocatedTokenPending = !allocation.isAltruistic()
             ? accRewardsPerAllocatedToken - allocation.accRewardsPerAllocatedToken
             : 0;
 
         // Update the allocation
         allocations[_allocationId].tokens = _tokens;
         allocations[_allocationId].accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        allocations[_allocationId].accRewardsPending += accRewardsPending;
+        allocations[_allocationId].accRewardsPending += _graphRewardsManager().calcRewards(
+            oldTokens,
+            accRewardsPerAllocatedTokenPending
+        );
 
         // Update total allocated tokens for the subgraph deployment
         if (_tokens > oldTokens) {

@@ -357,12 +357,30 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        (, bytes32 subgraphDeploymentId, uint256 tokens, uint256 alloAccRewardsPerAllocatedToken) = IRewardsIssuer(
-            rewardsIssuer
-        ).getAllocationData(_allocationID);
+        (
+            ,
+            bytes32 subgraphDeploymentId,
+            uint256 tokens,
+            uint256 alloAccRewardsPerAllocatedToken,
+            uint256 accRewardsPending
+        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationID);
 
         (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(subgraphDeploymentId);
-        return _calcRewards(tokens, alloAccRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+        return
+            accRewardsPending.add(_calcRewards(tokens, alloAccRewardsPerAllocatedToken, accRewardsPerAllocatedToken));
+    }
+
+    /**
+     * @dev Calculate rewards for a given accumulated rewards per allocated token.
+     * @param _tokens Tokens allocated
+     * @param _accRewardsPerAllocatedToken Allocation accumulated rewards per token
+     * @return Rewards amount
+     */
+    function calcRewards(
+        uint256 _tokens,
+        uint256 _accRewardsPerAllocatedToken
+    ) external pure override returns (uint256) {
+        return _accRewardsPerAllocatedToken.mul(_tokens).div(FIXED_POINT_SCALING_FACTOR);
     }
 
     /**
@@ -400,7 +418,8 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
             address indexer,
             bytes32 subgraphDeploymentID,
             uint256 tokens,
-            uint256 accRewardsPerAllocatedToken
+            uint256 accRewardsPerAllocatedToken,
+            uint256 accRewardsPending
         ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationID);
 
         uint256 updatedAccRewardsPerAllocatedToken = onSubgraphAllocationUpdate(subgraphDeploymentID);
@@ -412,7 +431,9 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
         }
 
         // Calculate rewards accrued by this allocation
-        uint256 rewards = _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken);
+        uint256 rewards = accRewardsPending.add(
+            _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
+        );
         if (rewards > 0) {
             // Mint directly to rewards issuer for the reward amount
             // The rewards issuer contract will do bookkeeping of the reward and

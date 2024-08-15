@@ -10,13 +10,20 @@ interface IRewardsIssuer {
      * @return subgraphDeploymentId Subgraph deployment id for the allocation
      * @return tokens Amount of allocated tokens
      * @return accRewardsPerAllocatedToken Rewards snapshot
+     * @return accRewardsPending Tokens pending to be claimed
      */
     function getAllocationData(
         address allocationId
     )
         external
         view
-        returns (address indexer, bytes32 subgraphDeploymentId, uint256 tokens, uint256 accRewardsPerAllocatedToken);
+        returns (
+            address indexer,
+            bytes32 subgraphDeploymentId,
+            uint256 tokens,
+            uint256 accRewardsPerAllocatedToken,
+            uint256 accRewardsPending
+        );
 
     /**
      * @notice Return the total amount of tokens allocated to subgraph.

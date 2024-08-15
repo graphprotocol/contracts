@@ -26,8 +26,7 @@ library Allocation {
         uint256 lastPOIPresentedAt;
         // Accumulated rewards per allocated token
         uint256 accRewardsPerAllocatedToken;
-        // Accumulated rewards per allocated token that are pending to be claimed
-        // due to an allocation resize
+        // Accumulated rewards that are pending to be claimed due allocation resize
         uint256 accRewardsPending;
     }
 

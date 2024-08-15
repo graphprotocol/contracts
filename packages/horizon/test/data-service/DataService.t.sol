@@ -254,13 +254,15 @@ contract DataServiceTest is HorizonStakingSharedTest {
         staking.setProvisionParameters(users.indexer, address(dataService), maxVerifierCut, thawingPeriod);
 
         // accept provision parameters
-        vm.expectEmit();
-        emit IHorizonStakingMain.ProvisionParametersSet(
-            users.indexer,
-            address(dataService),
-            maxVerifierCut,
-            thawingPeriod
-        );
+        if (maxVerifierCut != dataService.VERIFIER_CUT_MIN() || thawingPeriod != dataService.THAWING_PERIOD_MIN()) {
+            vm.expectEmit();
+            emit IHorizonStakingMain.ProvisionParametersSet(
+                users.indexer,
+                address(dataService),
+                maxVerifierCut,
+                thawingPeriod
+            );
+        }
         dataService.acceptProvisionParameters(users.indexer);
     }
 

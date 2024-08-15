@@ -221,7 +221,10 @@ contract SubgraphService is
         bytes calldata data
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
-        require(allocations[allocationId].indexer == indexer, SubgraphServiceAllocationNotAuthorized(indexer, allocationId));
+        require(
+            allocations[allocationId].indexer == indexer,
+            SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
+        );
         _closeAllocation(allocationId);
         emit ServiceStopped(indexer, data);
     }
@@ -251,7 +254,14 @@ contract SubgraphService is
         address indexer,
         IGraphPayments.PaymentTypes paymentType,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyValidProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    )
+        external
+        override
+        onlyProvisionAuthorized(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+        whenNotPaused
+    {
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
@@ -359,7 +369,11 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.setPaymentCuts}
      */
-    function setPaymentCuts(IGraphPayments.PaymentTypes paymentType, uint128 serviceCut, uint128 curationCut) external override onlyOwner {
+    function setPaymentCuts(
+        IGraphPayments.PaymentTypes paymentType,
+        uint128 serviceCut,
+        uint128 curationCut
+    ) external override onlyOwner {
         paymentCuts[paymentType] = PaymentCuts(serviceCut, curationCut);
         emit PaymentCutsSet(paymentType, serviceCut, curationCut);
     }
@@ -387,13 +401,14 @@ contract SubgraphService is
      */
     function getAllocationData(
         address allocationId
-    ) external view override returns (address, bytes32, uint256, uint256) {
+    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
         Allocation.State memory allo = allocations[allocationId];
         return (
             allo.indexer,
             allo.subgraphDeploymentId,
             allo.tokens,
-            allo.accRewardsPerAllocatedToken + allo.accRewardsPending
+            allo.accRewardsPerAllocatedToken,
+            allo.accRewardsPending
         );
     }
 

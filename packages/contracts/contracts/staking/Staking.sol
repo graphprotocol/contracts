@@ -479,9 +479,9 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      */
     function getAllocationData(
         address _allocationID
-    ) external view override returns (address, bytes32, uint256, uint256) {
+    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
         Allocation memory alloc = __allocations[_allocationID];
-        return (alloc.indexer, alloc.subgraphDeploymentID, alloc.tokens, alloc.accRewardsPerAllocatedToken);
+        return (alloc.indexer, alloc.subgraphDeploymentID, alloc.tokens, alloc.accRewardsPerAllocatedToken, 0);
     }
 
     /**

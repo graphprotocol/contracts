@@ -14,24 +14,46 @@ contract SubgraphServiceAllocateResizeTest is SubgraphServiceTest {
      */
 
     function _setupResize(address _indexer, uint256 _tokens) private {
-        
         token.approve(address(staking), _tokens);
         staking.stakeTo(_indexer, _tokens);
         staking.addToProvision(_indexer, address(subgraphService), _tokens);
     }
 
     function _resizeAllocation(address _indexer, address _allocationID, bytes32 _subgraphDeployment, uint256 _tokens) private {
-        uint256 oldAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(_subgraphDeployment);
+        // before
+        uint256 beforeSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(_subgraphDeployment);
+        uint256 beforeAllocatedTokens = subgraphService.allocationProvisionTracker(_indexer);
+        Allocation.State memory beforeAllocation = subgraphService.getAllocation(_allocationID);
+
+        uint256 allocatedTokensDelta;
+        if (_tokens > beforeAllocation.tokens) {
+            allocatedTokensDelta = _tokens - beforeAllocation.tokens;
+        } else {
+            allocatedTokensDelta = beforeAllocation.tokens - _tokens;
+        }
+
+        // resize
         vm.expectEmit(address(subgraphService));
-        emit AllocationManager.AllocationResized(_indexer, _allocationID, _subgraphDeployment, _tokens, oldAllocatedTokens);
+        emit AllocationManager.AllocationResized(_indexer, _allocationID, _subgraphDeployment, _tokens, beforeSubgraphAllocatedTokens);
         subgraphService.resizeAllocation(_indexer, _allocationID, _tokens);
 
-        Allocation.State memory allocation = subgraphService.getAllocation(_allocationID);
-        assertEq(allocation.tokens, _tokens);
-        assertEq(allocation.accRewardsPerAllocatedToken, rewardsPerSubgraphAllocationUpdate);
+        // after
+        uint256 afterSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(_subgraphDeployment);
+        uint256 afterAllocatedTokens = subgraphService.allocationProvisionTracker(_indexer);
+        Allocation.State memory afterAllocation = subgraphService.getAllocation(_allocationID);
+        uint256 accRewardsPerAllocatedTokenDelta = afterAllocation.accRewardsPerAllocatedToken - beforeAllocation.accRewardsPerAllocatedToken;
+        uint256 afterAccRewardsPending = rewardsManager.calcRewards(beforeAllocation.tokens, accRewardsPerAllocatedTokenDelta);
 
-        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(_subgraphDeployment);
-        assertEq(subgraphAllocatedTokens, _tokens);
+        //assert
+        if (_tokens > beforeAllocation.tokens) {
+            assertEq(afterAllocatedTokens, beforeAllocatedTokens + allocatedTokensDelta);
+        } else {
+            assertEq(afterAllocatedTokens, beforeAllocatedTokens - allocatedTokensDelta);
+        }
+        assertEq(afterAllocation.tokens, _tokens);
+        assertEq(afterAllocation.accRewardsPerAllocatedToken, rewardsPerSubgraphAllocationUpdate);
+        assertEq(afterAllocation.accRewardsPending, afterAccRewardsPending);
+        assertEq(afterSubgraphAllocatedTokens, _tokens);
     }
 
     /*

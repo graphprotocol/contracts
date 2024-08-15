@@ -1469,7 +1469,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@defi-wonderland/smock@npm:^2.0.7":
+"@defi-wonderland/smock@npm:^2.4.0":
   version: 2.4.0
   resolution: "@defi-wonderland/smock@npm:2.4.0"
   dependencies:
@@ -2802,7 +2802,7 @@ __metadata:
   resolution: "@graphprotocol/contracts@workspace:packages/contracts"
   dependencies:
     "@arbitrum/sdk": "npm:~3.1.13"
-    "@defi-wonderland/smock": "npm:^2.0.7"
+    "@defi-wonderland/smock": "npm:^2.4.0"
     "@ethersproject/experimental": "npm:^5.6.0"
     "@graphprotocol/common-ts": "npm:^1.8.3"
     "@graphprotocol/sdk": "workspace:^0.5.0"
