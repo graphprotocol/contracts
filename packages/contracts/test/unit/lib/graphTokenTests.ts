@@ -55,7 +55,7 @@ export function grtTests(isL2: boolean): void {
     return permit
   }
 
-  async function createPermitTransaction(permit: Permit, signer: string, salt: string) {
+  function createPermitTransaction(permit: Permit, signer: string, salt: string) {
     const signature: Signature = signPermit(signer, graph.chainId, grt.address, permit, salt)
     const wallet = new ethers.Wallet(signer, graph.provider)
     return grt
