@@ -2,6 +2,7 @@ name: CI - packages/token-distribution
 
 env:
   CI: true
+  STUDIO_API_KEY: ${{ secrets.STUDIO_API_KEY }}
 
 on:
   push:
