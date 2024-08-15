@@ -238,14 +238,15 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
      * @notice Return allocation data by ID.
      * @dev To be called by the Rewards Manager to calculate rewards issuance.
      * @dev TODO: Remove after Horizon transition period
+     * @dev Note that the accRewardsPending field is not used and will always be zero.
      * @param allocationID Address used as allocation identifier
      * @return Allocation data
      */
     function getAllocationData(
         address allocationID
-    ) external view override returns (address, bytes32, uint256, uint256) {
+    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
         Allocation memory allo = __DEPRECATED_allocations[allocationID];
-        return (allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken);
+        return (allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken, 0);
     }
 
     /**

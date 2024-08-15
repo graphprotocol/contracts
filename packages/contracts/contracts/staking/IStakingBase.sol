@@ -366,7 +366,9 @@ interface IStakingBase is IStakingData {
      * @dev Note that this is only to make tests pass, as the staking contract with
      * this changes will never get deployed. HorizonStaking is taking it's place.
      */
-    function getAllocationData(address _allocationID) external view returns (address, bytes32, uint256, uint256);
+    function getAllocationData(
+        address _allocationID
+    ) external view returns (address, bytes32, uint256, uint256, uint256);
 
     /**
      * @dev New function to get the allocation active status for the rewards manager

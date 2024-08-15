@@ -26,12 +26,13 @@ contract HorizonStakingAllocationTest is HorizonStakingExtensionTest {
     }
 
     function testAllocation_GetAllocationData() public useAllocation {
-        (address indexer, bytes32 subgraphDeploymentID, uint256 tokens, uint256 accRewardsPerAllocatedToken) = 
+        (address indexer, bytes32 subgraphDeploymentID, uint256 tokens, uint256 accRewardsPerAllocatedToken, uint256 accRewardsPending) = 
             staking.getAllocationData(_allocationId);
         assertEq(indexer, _allocation.indexer);
         assertEq(subgraphDeploymentID, _allocation.subgraphDeploymentID);
         assertEq(tokens, _allocation.tokens);
         assertEq(accRewardsPerAllocatedToken, _allocation.accRewardsPerAllocatedToken);
+        assertEq(accRewardsPending, 0);
     }
 
     function testAllocation_GetAllocationState_Active() public useAllocation {
