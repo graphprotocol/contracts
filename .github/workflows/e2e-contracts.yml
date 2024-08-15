@@ -34,6 +34,10 @@ jobs:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Build
+        run: |
+          pushd packages/contracts
+          yarn build || yarn build
       - name: Run e2e tests
         run: |
           git clone https://github.com/OffchainLabs/nitro-testnode/

@@ -21,3 +21,5 @@ jobs:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Build
+        run: yarn build || yarn build

@@ -25,6 +25,10 @@ jobs:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Build
+        run: |
+          pushd packages/token-distribution
+          yarn build
       - name: Run tests
         run: |
           pushd packages/token-distribution
