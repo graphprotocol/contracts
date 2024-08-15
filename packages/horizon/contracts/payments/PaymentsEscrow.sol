@@ -217,6 +217,37 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     }
 
     /**
+     * @notice See {IPaymentsEscrow-isCollectorAuthorized}
+     */
+    function isCollectorAuthorized(
+        address payer,
+        address collector
+    ) external view override returns (bool authorized) {
+        return authorizedCollectors[payer][collector].authorized;
+    }
+
+    /**
+     * @notice See {IPaymentsEscrow-isCollectorThawing}
+     */
+    function isCollectorThawing(
+        address payer,
+        address collector
+    ) external view returns (bool thawing) {
+        return authorizedCollectors[payer][collector].thawEndTimestamp != 0;
+    }
+
+    /**
+     * @notice See {IPaymentsEscrow-getCollectorThawTimeRemaining}
+     */
+    function getCollectorThawTimeRemaining(address payer, address collector) external view returns (uint256) {
+        Collector storage collectorDetails = authorizedCollectors[payer][collector];
+        if (collectorDetails.thawEndTimestamp <= block.timestamp) {
+            return 0;
+        }
+        return collectorDetails.thawEndTimestamp - block.timestamp;
+    }
+
+    /**
      * @notice See {IPaymentsEscrow-deposit}
      * @param _payer The address of the payer
      * @param _receiver The address of the receiver
