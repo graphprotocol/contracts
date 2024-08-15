@@ -19,7 +19,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokensDispute,
         uint256 tokensSlash
     ) public useIndexer useAllocation(tokens) {
-        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+        tokensSlash = bound(tokensSlash, 1, tokens);
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
@@ -38,7 +38,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokensDispute,
         uint256 tokensSlash
     ) public useIndexer useAllocation(tokens) {
-        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+        tokensSlash = bound(tokensSlash, 1, tokens);
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
@@ -56,7 +56,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokens,
         uint256 tokensSlash
     ) public useIndexer useAllocation(tokens) {
-        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+        tokensSlash = bound(tokensSlash, 1, tokens);
 
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
@@ -94,7 +94,7 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 tokensDispute,
         uint256 tokensSlash
     ) public useIndexer useAllocation(tokens) {
-        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+        tokensSlash = bound(tokensSlash, 1, tokens);
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
@@ -105,16 +105,15 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
-    function testAccept_RevertWhen_SlashingOverMaxSlashPercentage(
+    function testAccept_RevertWhen_SlashingOverMaxTokens(
         uint256 tokens,
         uint256 tokensDispute,
         uint256 tokensSlash
     ) public useIndexer useAllocation(tokens) {
-        tokensSlash = bound(tokensSlash, uint256(maxSlashingPercentage).mulPPM(tokens) + 1, type(uint256).max);
+        tokensSlash = bound(tokensSlash, tokens + 1, type(uint256).max);
         tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI101"), tokensDispute);
 
-        // max slashing percentage is 50%
         resetPrank(users.arbitrator);
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerInvalidTokensSlash.selector, 

@@ -98,14 +98,12 @@ contract DisputeManager is
      * @param disputePeriod Dispute period in seconds
      * @param minimumDeposit Minimum deposit required to create a Dispute
      * @param fishermanRewardCut_ Percent of slashed funds for fisherman (ppm)
-     * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
     function initialize(
         address arbitrator,
         uint64 disputePeriod,
         uint256 minimumDeposit,
-        uint32 fishermanRewardCut_,
-        uint32 maxSlashingCut_
+        uint32 fishermanRewardCut_
     ) external override initializer {
         __Ownable_init(msg.sender);
         __AttestationManager_init();
@@ -114,7 +112,6 @@ contract DisputeManager is
         _setDisputePeriod(disputePeriod);
         _setMinimumDeposit(minimumDeposit);
         _setFishermanRewardCut(fishermanRewardCut_);
-        _setMaxSlashingCut(maxSlashingCut_);
     }
 
     /**
@@ -317,14 +314,6 @@ contract DisputeManager is
      */
     function setFishermanRewardCut(uint32 fishermanRewardCut_) external override onlyOwner {
         _setFishermanRewardCut(fishermanRewardCut_);
-    }
-
-    /**
-     * @notice Set the maximum percentage that can be used for slashing indexers.
-     * @param maxSlashingCut_ Max percentage slashing for disputes
-     */
-    function setMaxSlashingCut(uint32 maxSlashingCut_) external override onlyOwner {
-        _setMaxSlashingCut(maxSlashingCut_);
     }
 
     /**
@@ -587,10 +576,7 @@ contract DisputeManager is
             address(subgraphService)
         );
         uint256 totalProvisionTokens = provision.tokens + pool.tokens; // slashable tokens
-
-        // Get slash amount
-        uint256 maxTokensSlash = uint256(maxSlashingCut).mulPPM(totalProvisionTokens);
-        require(_tokensSlash != 0 && _tokensSlash <= maxTokensSlash, DisputeManagerInvalidTokensSlash(_tokensSlash));
+        require(_tokensSlash != 0 && _tokensSlash <= totalProvisionTokens, DisputeManagerInvalidTokensSlash(_tokensSlash));
 
         // Rewards amount can only be extracted from service poriver tokens so
         // we grab the minimum between the slash amount and indexer's tokens
@@ -644,17 +630,6 @@ contract DisputeManager is
         require(PPMMath.isValidPPM(_fishermanRewardCut), DisputeManagerInvalidFishermanReward(_fishermanRewardCut));
         fishermanRewardCut = _fishermanRewardCut;
         emit FishermanRewardCutSet(fishermanRewardCut);
-    }
-
-    /**
-     * @notice Internal: Set the maximum percentage that can be used for slashing indexers.
-     * @param _maxSlashingCut Max percentage slashing for disputes
-     */
-    function _setMaxSlashingCut(uint32 _maxSlashingCut) private {
-        // Must be within 0% to 100% (inclusive)
-        require(PPMMath.isValidPPM(_maxSlashingCut), DisputeManagerInvalidMaxSlashingCut(_maxSlashingCut));
-        maxSlashingCut = _maxSlashingCut;
-        emit MaxSlashingCutSet(maxSlashingCut);
     }
 
     /**

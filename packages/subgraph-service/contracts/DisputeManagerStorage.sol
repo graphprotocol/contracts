@@ -21,9 +21,6 @@ abstract contract DisputeManagerV1Storage {
     /// @notice Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute. In PPM.
     uint32 public fishermanRewardCut;
 
-    /// @notice Maximum percentage of indexer stake that can be slashed on a dispute. In PPM.
-    uint32 public maxSlashingCut;
-
     /// @notice List of disputes created
     mapping(bytes32 disputeId => IDisputeManager.Dispute dispute) public disputes;
 }

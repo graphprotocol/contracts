@@ -50,7 +50,7 @@ abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
 
     function _createProvision(uint256 tokens) internal {
         _stakeTo(users.indexer, tokens);
-        staking.provision(users.indexer, address(subgraphService), tokens, maxSlashingPercentage, disputePeriod);
+        staking.provision(users.indexer, address(subgraphService), tokens, maxVerifierCut, disputePeriod);
     }
 
     function _addToProvision(address _indexer, uint256 _tokens) internal {

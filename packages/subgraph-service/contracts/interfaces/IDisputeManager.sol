@@ -59,12 +59,6 @@ interface IDisputeManager {
     event MinimumDepositSet(uint256 minimumDeposit);
 
     /**
-     * @notice Emitted when max slashing cut is set.
-     * @param maxSlashingCut The maximum slashing cut that can be set.
-     */
-    event MaxSlashingCutSet(uint32 maxSlashingCut);
-
-    /**
      * @notice Emitted when fisherman reward cut is set.
      * @param fishermanRewardCut The fisherman reward cut.
      */
@@ -149,7 +143,6 @@ interface IDisputeManager {
     error DisputeManagerInvalidDispute(bytes32 disputeId);
     error DisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
     error DisputeManagerInvalidFishermanReward(uint32 cut);
-    error DisputeManagerInvalidMaxSlashingCut(uint32 maxSlashingCut);
     error DisputeManagerInvalidTokensSlash(uint256 tokensSlash);
     error DisputeManagerDisputeNotPending(IDisputeManager.DisputeStatus status);
     error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
@@ -171,8 +164,7 @@ interface IDisputeManager {
         address arbitrator,
         uint64 disputePeriod,
         uint256 minimumDeposit,
-        uint32 fishermanRewardCut,
-        uint32 maxSlashingCut
+        uint32 fishermanRewardCut
     ) external;
 
     function setDisputePeriod(uint64 disputePeriod) external;
@@ -182,8 +174,6 @@ interface IDisputeManager {
     function setMinimumDeposit(uint256 minimumDeposit) external;
 
     function setFishermanRewardCut(uint32 cut) external;
-
-    function setMaxSlashingCut(uint32 maxCut) external;
 
     // -- Dispute --
 
