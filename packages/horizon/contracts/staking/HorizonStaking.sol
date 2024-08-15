@@ -147,7 +147,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-withdraw}.
      */
     function withdraw() external override notPaused {
-        _withdraw(msg.sender, true);
+        _withdraw(msg.sender);
     }
 
     /*
@@ -540,8 +540,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             emit StakeWithdrawn(serviceProvider, _tokens);
         } else {
             // Before locking more tokens, withdraw any unlocked ones if possible
-            if (sp.__DEPRECATED_tokensLockedUntil != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
-                _withdraw(serviceProvider, false);
+            if (sp.__DEPRECATED_tokensLocked != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
+                _withdraw(serviceProvider);
             }
             // TODO remove after the transition period
             // Take into account period averaging for multiple unstake requests
@@ -564,22 +564,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-withdraw}.
      * @param _serviceProvider Address of service provider to withdraw funds from
-     * @param _revertIfThawing If true, the function will revert if the tokens are still thawing
      */
-    function _withdraw(address _serviceProvider, bool _revertIfThawing) private {
+    function _withdraw(address _serviceProvider) private {
         // Get tokens available for withdraw and update balance
         ServiceProviderInternal storage sp = _serviceProviders[_serviceProvider];
         uint256 tokensToWithdraw = sp.__DEPRECATED_tokensLocked;
         require(tokensToWithdraw != 0, HorizonStakingInvalidZeroTokens());
-
-        if (_revertIfThawing) {
-            require(
-                block.timestamp >= sp.__DEPRECATED_tokensLockedUntil,
-                HorizonStakingStillThawing(sp.__DEPRECATED_tokensLockedUntil)
-            );
-        } else {
-            return;
-        }
+        require(
+            block.number >= sp.__DEPRECATED_tokensLockedUntil,
+            HorizonStakingStillThawing(sp.__DEPRECATED_tokensLockedUntil)
+        );
 
         // Reset locked tokens
         sp.__DEPRECATED_tokensLocked = 0;
