@@ -3,6 +3,9 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
+import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
+import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
+
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingSlashTest is HorizonStakingTest {
@@ -24,8 +27,43 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
      * HELPERS
      */
 
-    function _slash(uint256 amount, uint256 verifierCutAmount) private {
-        staking.slash(users.indexer, amount, verifierCutAmount, subgraphDataServiceAddress);
+    function _slash(uint256 tokens, uint256 verifierCutAmount) private {
+        uint256 beforeProviderTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        uint256 beforeDelegationTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        bool isDelegationSlashingEnabled = staking.isDelegationSlashingEnabled();
+
+        // Calculate expected tokens after slashing
+        uint256 providerTokensSlashed = MathUtils.min(beforeProviderTokens, tokens);
+        uint256 expectedProviderTokensAfterSlashing = beforeProviderTokens - providerTokensSlashed;
+
+        uint256 delegationTokensSlashed = MathUtils.min(beforeDelegationTokens, tokens - providerTokensSlashed);
+        uint256 expectedDelegationTokensAfterSlashing = beforeDelegationTokens - (isDelegationSlashingEnabled ? delegationTokensSlashed : 0);
+
+        vm.expectEmit(address(staking));
+        if (verifierCutAmount > 0) {
+            emit IHorizonStakingMain.VerifierTokensSent(users.indexer, subgraphDataServiceAddress, subgraphDataServiceAddress, verifierCutAmount);
+        }
+        emit IHorizonStakingMain.ProvisionSlashed(users.indexer, subgraphDataServiceAddress, providerTokensSlashed);
+
+        if (isDelegationSlashingEnabled) {
+            emit IHorizonStakingMain.DelegationSlashed(users.indexer, subgraphDataServiceAddress, delegationTokensSlashed);
+        } else {
+            emit IHorizonStakingMain.DelegationSlashingSkipped(users.indexer, subgraphDataServiceAddress, delegationTokensSlashed);
+        }
+        staking.slash(users.indexer, tokens, verifierCutAmount, subgraphDataServiceAddress);
+
+        if (!isDelegationSlashingEnabled) {
+            expectedDelegationTokensAfterSlashing = beforeDelegationTokens;
+        }
+        
+        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        assertEq(provisionTokens, expectedProviderTokensAfterSlashing);
+
+        uint256 delegationTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        assertEq(delegationTokens, expectedDelegationTokensAfterSlashing);
+ 
+        uint256 verifierTokens = token.balanceOf(subgraphDataServiceAddress);
+        assertEq(verifierTokens, verifierCutAmount);
     }
 
     /*
@@ -33,114 +71,82 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
      */
 
     function testSlash_Tokens(
-        uint256 amount,
+        uint256 tokens,
         uint32 maxVerifierCut,
-        uint256 slashAmount,
+        uint256 slashTokens,
         uint256 verifierCutAmount
-    ) public useIndexer useProvision(amount, maxVerifierCut, 0) {
+    ) public useIndexer useProvision(tokens, maxVerifierCut, 0) {
         verifierCutAmount = bound(verifierCutAmount, 0, maxVerifierCut);
-        slashAmount = bound(slashAmount, 1, amount);
-        uint256 maxVerifierTokens = (slashAmount * maxVerifierCut) / MAX_PPM;
+        slashTokens = bound(slashTokens, 1, tokens);
+        uint256 maxVerifierTokens = (slashTokens * maxVerifierCut) / MAX_PPM;
         vm.assume(verifierCutAmount <= maxVerifierTokens);
         
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashAmount, verifierCutAmount);
-        
-        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        assertEq(provisionTokens, amount - slashAmount);
-
-        uint256 verifierTokens = token.balanceOf(subgraphDataServiceAddress);
-        assertEq(verifierTokens, verifierCutAmount);
+        _slash(slashTokens, verifierCutAmount);
     }
 
-    function testSlash_RevertWhen_TooManyTokens(
-        uint256 amount,
-        uint32 maxVerifierCut,
-        uint256 verifierCutAmount
-    ) public useIndexer useProvision(amount, maxVerifierCut, 0) {
-        uint256 maxVerifierTokens = (amount * maxVerifierCut) / MAX_PPM;
-        verifierCutAmount = bound(verifierCutAmount, maxVerifierTokens + 1, MAX_STAKING_TOKENS);
-
-        vm.startPrank(subgraphDataServiceAddress);
-        bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingTooManyTokens(uint256,uint256)",
-            verifierCutAmount,
-            maxVerifierTokens
-        );
-        vm.expectRevert(expectedError);
-        _slash(amount, verifierCutAmount);
-    }
-
-    function testSlash_DelegationDisabled_SlashingOverProvisionTokens(
-        uint256 amount,
-        uint256 slashAmount,
+    function testSlash_DelegationDisabled_SlashingOverProviderTokens(
+        uint256 tokens,
+        uint256 slashTokens,
         uint256 verifierCutAmount,
-        uint256 delegationAmount
-    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(false) {
-        delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
-        slashAmount = bound(slashAmount, amount + 1, amount + delegationAmount);
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(false) {
+        vm.assume(slashTokens > tokens);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
-        uint256 maxVerifierTokens = (amount * MAX_MAX_VERIFIER_CUT) / MAX_PPM;
+        uint256 maxVerifierTokens = (tokens * MAX_MAX_VERIFIER_CUT) / MAX_PPM;
         vm.assume(verifierCutAmount <= maxVerifierTokens);
 
         resetPrank(users.delegator);
-        _delegate(delegationAmount, subgraphDataServiceAddress);
+        _delegate(delegationTokens, subgraphDataServiceAddress);
 
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashAmount, verifierCutAmount);
-
-        uint256 provisionProviderTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        assertEq(provisionProviderTokens, 0 ether);
-
-        uint256 verifierTokens = token.balanceOf(address(subgraphDataServiceAddress));
-        assertEq(verifierTokens, verifierCutAmount);
-
-        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        // No slashing occurred for delegation
-        assertEq(delegatedTokens, delegationAmount);
+        _slash(slashTokens, verifierCutAmount);
     }
 
-    function testSlash_DelegationEnabled_SlashingOverProvisionTokens(
-        uint256 amount,
-        uint256 slashAmount,
+    function testSlash_DelegationEnabled_SlashingOverProviderTokens(
+        uint256 tokens,
+        uint256 slashTokens,
         uint256 verifierCutAmount,
-        uint256 delegationAmount
-    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(true) {
-        delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
-        slashAmount = bound(slashAmount, amount + 1, amount + delegationAmount);
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(true) {
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        slashTokens = bound(slashTokens, tokens + 1, tokens + delegationTokens);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
-        uint256 maxVerifierTokens = (amount * MAX_MAX_VERIFIER_CUT) / MAX_PPM;
+        uint256 maxVerifierTokens = (tokens * MAX_MAX_VERIFIER_CUT) / MAX_PPM;
         vm.assume(verifierCutAmount <= maxVerifierTokens);
 
         resetPrank(users.delegator);
-        _delegate(delegationAmount, subgraphDataServiceAddress);
+        _delegate(delegationTokens, subgraphDataServiceAddress);
 
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashAmount, verifierCutAmount);
+        _slash(slashTokens, verifierCutAmount);
+    }
+
+    function testSlash_OverProvisionSize(
+        uint256 tokens,
+        uint256 slashTokens,
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) {
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        vm.assume(slashTokens > tokens + delegationTokens);
         
-        uint256 provisionProviderTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        assertEq(provisionProviderTokens, 0 ether);
-
-        uint256 verifierTokens = token.balanceOf(address(subgraphDataServiceAddress));
-        assertEq(verifierTokens, verifierCutAmount);
-
-        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        uint256 slashedDelegation = slashAmount - amount;
-        assertEq(delegatedTokens, delegationAmount - slashedDelegation);
+        vm.startPrank(subgraphDataServiceAddress);
+        _slash(slashTokens, 0);
     }
 
     function testSlash_RevertWhen_NoProvision(
-        uint256 amount,
-        uint256 slashAmount
-    ) public useIndexer useStake(amount) {
-        slashAmount = bound(slashAmount, 1, amount);
-        bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInsufficientTokens(uint256,uint256)",
-            0 ether,
-            slashAmount
+        uint256 tokens,
+        uint256 slashTokens
+    ) public useIndexer useStake(tokens) {
+        vm.assume(slashTokens > 0);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IHorizonStakingMain.HorizonStakingInsufficientTokens.selector,
+            0,
+            slashTokens
         );
         vm.expectRevert(expectedError);
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashAmount, 0);
+        staking.slash(users.indexer, slashTokens, 0, subgraphDataServiceAddress);
     }
 }

@@ -360,9 +360,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         Provision storage prov = _provisions[serviceProvider][verifier];
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
         uint256 tokensProvisionTotal = prov.tokens + pool.tokens;
-        require(tokensProvisionTotal >= tokens, HorizonStakingInsufficientTokens(prov.tokens, tokens));
+        require(tokensProvisionTotal != 0, HorizonStakingInsufficientTokens(tokensProvisionTotal, tokens));
 
-        uint256 tokensToSlash = tokens;
+        uint256 tokensToSlash = MathUtils.min(tokens, tokensProvisionTotal);
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
         if (providerTokensSlashed > 0) {
             uint256 maxVerifierTokens = prov.tokens.mulPPM(prov.maxVerifierCut);
@@ -390,10 +390,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             emit ProvisionSlashed(serviceProvider, verifier, providerTokensSlashed);
         }
 
+        // Since tokensToSlash is already limited above, this subtraction will remain within pool.tokens.
         tokensToSlash = tokensToSlash - providerTokensSlashed;
         if (tokensToSlash > 0) {
             if (_delegationSlashingEnabled) {
-                require(pool.tokens >= tokensToSlash, HorizonStakingNotEnoughDelegation(pool.tokens, tokensToSlash));
                 _graphToken().burnTokens(tokensToSlash);
                 uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION) / pool.tokens;
                 pool.tokens = pool.tokens - tokensToSlash;

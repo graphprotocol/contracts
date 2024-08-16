@@ -390,14 +390,6 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingInsufficientShares(uint256 shares, uint256 minShares);
 
-    // -- Errors: slashing --
-    /**
-     * @notice Thrown when delegation pool reserves are not enough to cover slashing amount.
-     * @param tokens The actual token amount in the delegation pool
-     * @param tokensToSlash The amount to be slashed
-     */
-    error HorizonStakingNotEnoughDelegation(uint256 tokens, uint256 tokensToSlash);
-
     // -- Errors: thaw requests --
 
     error HorizonStakingNothingThawing();
