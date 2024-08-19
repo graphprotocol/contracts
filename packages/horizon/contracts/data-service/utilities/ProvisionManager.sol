@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
 
 import { UintRange } from "../../libraries/UintRange.sol";
+import { PPMMath } from "../../libraries/PPMMath.sol";
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
@@ -150,7 +151,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init_unchained() internal onlyInitializing {
         _setProvisionTokensRange(type(uint256).min, type(uint256).max);
-        _setVerifierCutRange(type(uint32).min, type(uint32).max);
+        _setVerifierCutRange(type(uint32).min, uint32(PPMMath.MAX_PPM));
         _setThawingPeriodRange(type(uint64).min, type(uint64).max);
     }
 
@@ -197,6 +198,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
         require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
+        require(_max <= PPMMath.MAX_PPM, ProvisionManagerInvalidRange(_min, _max));
         minimumVerifierCut = _min;
         maximumVerifierCut = _max;
         emit VerifierCutRangeSet(_min, _max);

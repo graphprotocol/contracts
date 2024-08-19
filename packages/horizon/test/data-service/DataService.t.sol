@@ -22,7 +22,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
     function test_Constructor_WhenTheContractIsDeployedWithAValidController() external view {
         _assert_delegationRatio(type(uint32).min);
         _assert_provisionTokens_range(type(uint256).min, type(uint256).max);
-        _assert_verifierCut_range(type(uint32).min, type(uint32).max);
+        _assert_verifierCut_range(type(uint32).min, uint32(PPMMath.MAX_PPM));
         _assert_thawingPeriod_range(type(uint64).min, type(uint64).max);
     }
 
@@ -106,11 +106,20 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
     function test_VerifierCut_WhenSettingAValidRange(uint32 min, uint32 max) external {
         vm.assume(min <= max);
+        vm.assume(max <= uint32(PPMMath.MAX_PPM));
         _assert_set_verifierCut_range(min, max);
     }
 
     function test_VerifierCut_RevertWhen_SettingAnInvalidRange(uint32 min, uint32 max) external {
         vm.assume(min > max);
+
+        vm.expectRevert(abi.encodeWithSelector(ProvisionManager.ProvisionManagerInvalidRange.selector, min, max));
+        dataService.setVerifierCutRange(min, max);
+    }
+
+    function test_VerifierCut_RevertWhen_SettingAnInvalidMax(uint32 min, uint32 max) external {
+        vm.assume(max > uint32(PPMMath.MAX_PPM));
+        vm.assume(min <= max);
 
         vm.expectRevert(abi.encodeWithSelector(ProvisionManager.ProvisionManagerInvalidRange.selector, min, max));
         dataService.setVerifierCutRange(min, max);

@@ -464,11 +464,11 @@ contract SubgraphService is
     /**
      * @notice Getter for the accepted verifier cut range for provisions
      * @return min The minimum verifier cut which is defined by {DisputeManager-getVerifierCut}
-     * @return max The maximum is unbounded
+     * @return max The maximum is 100% in PPM
      */
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
         uint32 verifierCut = _disputeManager().getVerifierCut();
-        return (verifierCut, type(uint32).max);
+        return (verifierCut, uint32(PPMMath.MAX_PPM));
     }
 
     /**
