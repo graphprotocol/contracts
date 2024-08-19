@@ -198,7 +198,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
         require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
-        require(_max <= PPMMath.MAX_PPM, ProvisionManagerInvalidRange(_min, _max));
+        require(PPMMath.isValidPPM(_max), ProvisionManagerInvalidRange(_min, _max));
         minimumVerifierCut = _min;
         maximumVerifierCut = _max;
         emit VerifierCutRangeSet(_min, _max);
