@@ -5,6 +5,8 @@ import { GraphBaseTest } from "../GraphBase.t.sol";
 import { DataServiceBaseUpgradeable } from "./implementations/DataServiceBaseUpgradeable.sol";
 import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
+import { PPMMath } from "./../../contracts/libraries/PPMMath.sol";
+
 contract DataServiceUpgradeableTest is GraphBaseTest {
     function test_WhenTheContractIsDeployed() external {
         (DataServiceBaseUpgradeable dataService, DataServiceBaseUpgradeable implementation) = _deployDataService();
@@ -20,7 +22,7 @@ contract DataServiceUpgradeableTest is GraphBaseTest {
 
         (uint32 minVerifierCut, uint32 maxVerifierCut) = dataService.getVerifierCutRange();
         assertEq(minVerifierCut, type(uint32).min);
-        assertEq(maxVerifierCut, type(uint32).max);
+        assertEq(maxVerifierCut, uint32(PPMMath.MAX_PPM));
 
         (uint64 minThawingPeriod, uint64 maxThawingPeriod) = dataService.getThawingPeriodRange();
         assertEq(minThawingPeriod, type(uint64).min);

@@ -17,10 +17,10 @@ abstract contract ProvisionManagerV1Storage {
     /// @notice The maximum thawing period allowed to register a provision in the data service
     uint64 public maximumThawingPeriod;
 
-    /// @notice The minimum verifier cut required to register a provision in the data service
+    /// @notice The minimum verifier cut required to register a provision in the data service (in PPM)
     uint32 public minimumVerifierCut;
 
-    /// @notice The maximum verifier cut allowed to register a provision in the data service
+    /// @notice The maximum verifier cut allowed to register a provision in the data service (in PPM)
     uint32 public maximumVerifierCut;
 
     /// @notice How much delegation the service provider can effectively use
