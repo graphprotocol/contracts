@@ -3,9 +3,9 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { HorizonStakingTest } from "../HorizonStaking.t.sol";
+import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 
-import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
+import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingUndelegateTest is HorizonStakingTest {
 
@@ -20,11 +20,6 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         resetPrank(users.delegator);
         Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
         _undelegate(delegation.shares, subgraphDataServiceAddress);
-
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, users.delegator);
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
-
-        assertEq(thawRequest.shares, delegation.shares);
     }
 
     function testUndelegate_RevertWhen_ZeroTokens(
@@ -52,7 +47,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
             overDelegationShares
         );
         vm.expectRevert(expectedError);
-        _undelegate(overDelegationShares, subgraphDataServiceAddress);
+        staking.undelegate(users.indexer, subgraphDataServiceAddress, overDelegationShares);
     }
 
     function testUndelegate_RevertWhen_UndelegateLeavesInsufficientTokens(
@@ -73,7 +68,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
             MIN_DELEGATION
         );
         vm.expectRevert(expectedError);
-        _undelegate(withdrawShares, subgraphDataServiceAddress);
+        staking.undelegate(users.indexer, subgraphDataServiceAddress, withdrawShares);
     }
 
     function testUndelegate_LegacySubgraphService(
@@ -88,10 +83,26 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _delegate(delegationAmount, subgraphDataServiceLegacyAddress);
         Delegation memory delegation = _getDelegation(subgraphDataServiceLegacyAddress);
         _undelegate(delegation.shares, subgraphDataServiceLegacyAddress);
+    }
 
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceLegacyAddress, users.delegator);
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+    function testUndelegate_RevertWhen_InvalidPool(
+        uint256 tokens,
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing(true) {
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        resetPrank(users.delegator);
+        _delegate(delegationTokens, subgraphDataServiceAddress);
 
-        assertEq(thawRequest.shares, delegation.shares);
+        resetPrank(subgraphDataServiceAddress);
+        _slash(tokens + delegationTokens, 0);
+        
+        resetPrank(users.delegator);
+        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        vm.expectRevert(abi.encodeWithSelector(
+            IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
+            users.indexer,
+            subgraphDataServiceAddress
+        ));
+        staking.undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 }

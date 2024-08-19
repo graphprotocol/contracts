@@ -390,6 +390,13 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingInsufficientShares(uint256 shares, uint256 minShares);
 
+    /**
+     * @notice Thrown when as a result of slashing delegation pool has no tokens but has shares.
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address
+     */
+    error HorizonStakingInvalidDelegationPool(address serviceProvider, address verifier);
+
     // -- Errors: thaw requests --
 
     error HorizonStakingNothingThawing();

@@ -3,7 +3,11 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
+import { IHorizonStakingMain } from "../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingTypes } from "../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { LinkedList } from "../../contracts/libraries/LinkedList.sol";
+import { MathUtils } from "../../contracts/libraries/MathUtils.sol";
+
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 
 contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
@@ -74,6 +78,15 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         _;
     }
 
+    modifier useDelegationSlashing(bool enabled) {
+        address msgSender;
+        (, msgSender,) = vm.readCallers();
+        resetPrank(users.governor);
+        staking.setDelegationSlashingEnabled(enabled);
+        resetPrank(msgSender);
+        _;
+    }
+
     /*
      * HELPERS
      */
@@ -91,17 +104,26 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         staking.deprovision(users.indexer, subgraphDataServiceAddress, nThawRequests);
     }
 
-    function _delegate(uint256 amount, address verifier) internal {
-        token.approve(address(staking), amount);
-        staking.delegate(users.indexer, verifier, amount, 0);
+    function _delegate(uint256 _tokens, address _verifier) internal {
+        token.approve(address(staking), _tokens);
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.TokensDelegated(users.indexer, _verifier, users.delegator, _tokens);
+        staking.delegate(users.indexer, _verifier, _tokens, 0);
+        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, _verifier);
+        assertEq(delegatedTokens, _tokens);
     }
 
     function _getDelegation(address verifier) internal view returns (Delegation memory) {
         return staking.getDelegation(users.indexer, verifier, users.delegator);
     }
 
-    function _undelegate(uint256 shares, address verifier) internal {
-        staking.undelegate(users.indexer, verifier, shares);
+    function _undelegate(uint256 _shares, address _verifier) internal {
+        staking.undelegate(users.indexer, _verifier, _shares);
+
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, _verifier, users.delegator);
+        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+
+        assertEq(thawRequest.shares, _shares);
     }
 
     function _getDelegationPool(address verifier) internal view returns (DelegationPool memory) {
@@ -123,5 +145,44 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 2), bytes32(_tokensLocked));
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 3), bytes32(_tokensLockedUntil));
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 4), bytes32(_tokensProvisioned));
+    }
+
+    function _slash(uint256 tokens, uint256 verifierCutAmount) internal {
+        uint256 beforeProviderTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        uint256 beforeDelegationTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        bool isDelegationSlashingEnabled = staking.isDelegationSlashingEnabled();
+
+        // Calculate expected tokens after slashing
+        uint256 providerTokensSlashed = MathUtils.min(beforeProviderTokens, tokens);
+        uint256 expectedProviderTokensAfterSlashing = beforeProviderTokens - providerTokensSlashed;
+
+        uint256 delegationTokensSlashed = MathUtils.min(beforeDelegationTokens, tokens - providerTokensSlashed);
+        uint256 expectedDelegationTokensAfterSlashing = beforeDelegationTokens - (isDelegationSlashingEnabled ? delegationTokensSlashed : 0);
+
+        vm.expectEmit(address(staking));
+        if (verifierCutAmount > 0) {
+            emit IHorizonStakingMain.VerifierTokensSent(users.indexer, subgraphDataServiceAddress, subgraphDataServiceAddress, verifierCutAmount);
+        }
+        emit IHorizonStakingMain.ProvisionSlashed(users.indexer, subgraphDataServiceAddress, providerTokensSlashed);
+
+        if (isDelegationSlashingEnabled) {
+            emit IHorizonStakingMain.DelegationSlashed(users.indexer, subgraphDataServiceAddress, delegationTokensSlashed);
+        } else {
+            emit IHorizonStakingMain.DelegationSlashingSkipped(users.indexer, subgraphDataServiceAddress, delegationTokensSlashed);
+        }
+        staking.slash(users.indexer, tokens, verifierCutAmount, subgraphDataServiceAddress);
+
+        if (!isDelegationSlashingEnabled) {
+            expectedDelegationTokensAfterSlashing = beforeDelegationTokens;
+        }
+        
+        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        assertEq(provisionTokens, expectedProviderTokensAfterSlashing);
+
+        uint256 delegationTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        assertEq(delegationTokens, expectedDelegationTokensAfterSlashing);
+ 
+        uint256 verifierTokens = token.balanceOf(subgraphDataServiceAddress);
+        assertEq(verifierTokens, verifierCutAmount);
     }
 }

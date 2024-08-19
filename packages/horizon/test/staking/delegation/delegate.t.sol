@@ -3,6 +3,8 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
+import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
+
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingDelegateTest is HorizonStakingTest {
@@ -14,9 +16,10 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
     function testDelegate_Tokens(
         uint256 amount,
         uint256 delegationAmount
-    ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
-        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        assertEq(delegatedTokens, delegationAmount);
+    ) public useIndexer useProvision(amount, 0, 0) {
+        delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        resetPrank(users.delegator);
+        _delegate(delegationAmount, subgraphDataServiceAddress);
     }
 
     function testDelegate_RevertWhen_ZeroTokens(
@@ -56,5 +59,26 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         _delegate(delegationAmount, subgraphDataServiceLegacyAddress);
         uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceLegacyAddress);
         assertEq(delegatedTokens, delegationAmount);
+    }
+
+    function testDelegate_RevertWhen_InvalidPool(
+        uint256 tokens,
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing(true) {
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        resetPrank(users.delegator);
+        _delegate(delegationTokens, subgraphDataServiceAddress);
+
+        resetPrank(subgraphDataServiceAddress);
+        _slash(tokens + delegationTokens, 0);
+        
+        resetPrank(users.delegator);
+        token.approve(address(staking), delegationTokens);
+        vm.expectRevert(abi.encodeWithSelector(
+            IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
+            users.indexer,
+            subgraphDataServiceAddress
+        ));
+        staking.delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
     }
 }
