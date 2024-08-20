@@ -81,4 +81,27 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         ));
         staking.delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
     }
+
+    function testDelegate_RevertWhen_ThawingShares_InvalidPool(
+        uint256 tokens,
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing(true) {
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        resetPrank(users.delegator);
+        _delegate(delegationTokens, subgraphDataServiceAddress);
+        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        _undelegate(delegation.shares, subgraphDataServiceAddress);
+
+        resetPrank(subgraphDataServiceAddress);
+        _slash(tokens + delegationTokens, 0);
+        
+        resetPrank(users.delegator);
+        token.approve(address(staking), delegationTokens);
+        vm.expectRevert(abi.encodeWithSelector(
+            IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
+            users.indexer,
+            subgraphDataServiceAddress
+        ));
+        staking.delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
+    }
 }

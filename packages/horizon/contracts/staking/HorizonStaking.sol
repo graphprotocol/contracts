@@ -714,7 +714,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         DelegationInternal storage delegation = pool.delegators[msg.sender];
 
         require(
-            pool.tokens != 0 || pool.shares == 0,
+            pool.tokens != 0 || (pool.shares == 0 && pool.sharesThawing == 0),
             HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier)
         );
 
