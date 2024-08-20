@@ -25,10 +25,12 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 amount,
         uint256 delegationAmount,
         uint256 undelegateSteps
-    ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
+    ) public useIndexer useProvision(amount, 0, 0) {
         undelegateSteps = bound(undelegateSteps, 1, 10);
+        delegationAmount = bound(delegationAmount, MIN_DELEGATION + 10 wei, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
         Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
 
         // there is a min delegation amount of 1 ether after undelegating

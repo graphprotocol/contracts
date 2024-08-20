@@ -337,6 +337,8 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
      * The specified amount is added to the delegator's delegation; the delegator's
      * address and the indexer's address are specified in the _delegationData struct.
      * Note that no delegation tax is applied here.
+     * @dev Note that L1 staking contract only allows delegation transfer if the indexer has already transferred,
+     * this means the corresponding delegation pool exists.
      * @param _tokens Amount of tokens that were transferred
      * @param _delegationData struct containing the delegator's address and the indexer's address
      */
@@ -356,7 +358,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
         }
 
         // Calculate shares to issue (without applying any delegation tax)
-        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / pool.tokens);
+        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
 
         if (shares == 0 || _tokens < MINIMUM_DELEGATION) {
             // If no shares would be issued (probably a rounding issue or attack),
