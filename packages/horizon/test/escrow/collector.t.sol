@@ -10,45 +10,34 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
     function _approveCollector(uint256 tokens) internal {
         escrow.approveCollector(users.verifier, tokens);
 
-        bool authorized = escrow.isCollectorAuthorized(users.gateway, users.verifier);
-        bool isThawing = escrow.isCollectorThawing(users.gateway, users.verifier);
-        uint256 thawEndTimeRemaining = escrow.getCollectorThawTimeRemaining(users.gateway, users.verifier);
+        (bool authorized, uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
         assertTrue(authorized);
-        assertFalse(isThawing);
-        assertEq(thawEndTimeRemaining, 0);
+        assertEq(allowance, tokens);
+        assertEq(thawEndTimestamp, 0);
     }
 
     function _thawCollector() internal {
         escrow.thawCollector(users.verifier);
 
-        bool authorized = escrow.isCollectorAuthorized(users.gateway, users.verifier);
-        bool isThawing = escrow.isCollectorThawing(users.gateway, users.verifier);
-        uint256 thawEndTimeRemaining = escrow.getCollectorThawTimeRemaining(users.gateway, users.verifier);
+        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
         assertTrue(authorized);
-        assertTrue(isThawing);
-        assertEq(thawEndTimeRemaining, revokeCollectorThawingPeriod);
+        assertEq(thawEndTimestamp, block.timestamp + revokeCollectorThawingPeriod);
     }
 
     function _cancelThawCollector() internal {
         escrow.cancelThawCollector(users.verifier);
 
-        bool authorized = escrow.isCollectorAuthorized(users.gateway, users.verifier);
-        bool isThawing = escrow.isCollectorThawing(users.gateway, users.verifier);
-        uint256 thawEndTimeRemaining = escrow.getCollectorThawTimeRemaining(users.gateway, users.verifier);
+        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
         assertTrue(authorized);
-        assertFalse(isThawing);
-        assertEq(thawEndTimeRemaining, 0);
+        assertEq(thawEndTimestamp, 0);
     }
 
     function _revokeCollector() internal {
         escrow.revokeCollector(users.verifier);
 
-        bool authorized = escrow.isCollectorAuthorized(users.gateway, users.verifier);
-        bool isThawing = escrow.isCollectorThawing(users.gateway, users.verifier);
-        uint256 thawEndTimeRemaining = escrow.getCollectorThawTimeRemaining(users.gateway, users.verifier);
+        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
         assertFalse(authorized);
-        assertFalse(isThawing);
-        assertEq(thawEndTimeRemaining, 0);
+        assertEq(thawEndTimestamp, 0);
     }
 
     /*
