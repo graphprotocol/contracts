@@ -296,35 +296,4 @@ interface IPaymentsEscrow {
      * @param receiver The address of the receiver
      */
     function getBalance(address payer, address receiver) external view returns (uint256);
-
-    /**
-     * @notice Checks if a collector is authorized by a payer.
-     * @param payer The address of the payer.
-     * @param collector The address of the collector.
-     * @return authorized Whether the collector is authorized.
-    */
-    function isCollectorAuthorized(
-        address payer,
-        address collector
-    ) external view returns (bool authorized);
-
-    /**
-     * @notice Checks if a collector is currently in the process of being thawed by a payer.
-     * @param payer The address of the payer.
-     * @param collector The address of the collector.
-     * @return thawing True if the collector is currently thawing, false otherwise.
-     */
-    function isCollectorThawing(
-        address payer,
-        address collector
-    ) external view returns (bool thawing);
-
-
-    /**
-     * @notice Returns the remaining time until a collector can be revoked by a payer.
-     * @param payer The address of the payer.
-     * @param collector The address of the collector.
-     * @return remainingTime The remaining time in seconds until the collector can be revoked. Returns 0 if not thawing.
-     */
-    function getCollectorThawTimeRemaining(address payer, address collector) external view returns (uint256);
 }
