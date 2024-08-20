@@ -14,12 +14,10 @@ contract DisputeManagerDrawDisputeTest is DisputeManagerTest {
      */
 
     function testDraw_Dispute(
-        uint256 tokens,
-        uint256 tokensDispute
+        uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI32"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI32"));
 
         resetPrank(users.arbitrator);
         disputeManager.drawDispute(disputeID);
@@ -57,11 +55,9 @@ contract DisputeManagerDrawDisputeTest is DisputeManagerTest {
     }
 
     function testDraw_RevertIf_CallerIsNotArbitrator(
-        uint256 tokens,
-        uint256 tokensDispute
+        uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
-        bytes32 disputeID =_createIndexingDispute(allocationID,bytes32("POI1"), tokens);
+        bytes32 disputeID = _createIndexingDispute(allocationID,bytes32("POI1"));
 
         // attempt to draw dispute as fisherman
         resetPrank(users.fisherman);

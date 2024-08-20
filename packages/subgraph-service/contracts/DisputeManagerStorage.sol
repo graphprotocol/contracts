@@ -15,8 +15,8 @@ abstract contract DisputeManagerV1Storage {
     /// @notice dispute period in seconds
     uint64 public disputePeriod;
 
-    /// @notice Minimum deposit required to create a Dispute
-    uint256 public minimumDeposit;
+    /// @notice Deposit required to create a Dispute
+    uint256 public disputeDeposit;
 
     /// @notice Percentage of indexer slashed funds to assign as a reward to fisherman in successful dispute. In PPM.
     uint32 public fishermanRewardCut;

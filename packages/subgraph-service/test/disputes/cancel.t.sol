@@ -13,12 +13,10 @@ contract DisputeManagerCancelDisputeTest is DisputeManagerTest {
      */
 
     function testCancel_Dispute(
-        uint256 tokens,
-        uint256 tokensDispute
+        uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         // skip to end of dispute period
         skip(disputePeriod + 1);
@@ -61,11 +59,9 @@ contract DisputeManagerCancelDisputeTest is DisputeManagerTest {
     }
 
     function testCancel_RevertIf_CallerIsNotFisherman(
-        uint256 tokens,
-        uint256 tokensDispute
+        uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         resetPrank(users.arbitrator);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotFisherman.selector));

@@ -28,17 +28,20 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
      * HELPERS
      */
 
-    function _createIndexingDispute(address _allocationID, bytes32 _poi, uint256 tokens) internal returns (bytes32 disputeID) {
+    function _createIndexingDispute(address _allocationID, bytes32 _poi) internal returns (bytes32 disputeID) {
         address msgSender;
         (, msgSender,) = vm.readCallers();
         resetPrank(users.fisherman);
-        token.approve(address(disputeManager), tokens);
-        bytes32 _disputeID = disputeManager.createIndexingDispute(_allocationID, _poi, tokens);
+        uint256 beforeFishermanBalance = token.balanceOf(users.fisherman);
+        token.approve(address(disputeManager), disputeDeposit);
+        bytes32 _disputeID = disputeManager.createIndexingDispute(_allocationID, _poi);
+        uint256 afterFishermanBalance = token.balanceOf(users.fisherman);
+        assertEq(afterFishermanBalance, beforeFishermanBalance - disputeDeposit, "Fisherman should be charged the dispute deposit");
         resetPrank(msgSender);
         return _disputeID;
     }
 
-    function _createQueryDispute(uint256 tokens) internal returns (bytes32 disputeID) {
+    function _createQueryDispute() internal returns (bytes32 disputeID) {
         address msgSender;
         (, msgSender,) = vm.readCallers();
         resetPrank(users.fisherman);
@@ -49,8 +52,11 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         });
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
 
-        token.approve(address(disputeManager), tokens);
-        bytes32 _disputeID = disputeManager.createQueryDispute(attestationData, tokens);
+        uint256 beforeFishermanBalance = token.balanceOf(users.fisherman);
+        token.approve(address(disputeManager), disputeDeposit);
+        bytes32 _disputeID = disputeManager.createQueryDispute(attestationData);
+        uint256 afterFishermanBalance = token.balanceOf(users.fisherman);
+        assertEq(afterFishermanBalance, beforeFishermanBalance - disputeDeposit, "Fisherman should be charged the dispute deposit");
         resetPrank(msgSender);
         return _disputeID;
     }

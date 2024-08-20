@@ -97,14 +97,14 @@ contract DisputeManager is
      * @notice Initialize this contract.
      * @param arbitrator Arbitrator role
      * @param disputePeriod Dispute period in seconds
-     * @param minimumDeposit Minimum deposit required to create a Dispute
+     * @param disputeDeposit Deposit required to create a Dispute
      * @param fishermanRewardCut_ Percent of slashed funds for fisherman (ppm)
      * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
     function initialize(
         address arbitrator,
         uint64 disputePeriod,
-        uint256 minimumDeposit,
+        uint256 disputeDeposit,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
     ) external override initializer {
@@ -113,7 +113,7 @@ contract DisputeManager is
 
         _setArbitrator(arbitrator);
         _setDisputePeriod(disputePeriod);
-        _setMinimumDeposit(minimumDeposit);
+        _setDisputeDeposit(disputeDeposit);
         _setFishermanRewardCut(fishermanRewardCut_);
         _setMaxSlashingCut(maxSlashingCut_);
     }
@@ -122,40 +122,45 @@ contract DisputeManager is
      * @notice Create an indexing dispute for the arbitrator to resolve.
      * The disputes are created in reference to an allocationId and specifically
      * a POI for that allocation.
-     * This function is called by a challenger that will need to `_deposit` at
-     * least `minimumDeposit` GRT tokens.
+     * This function is called by a challenger and it will pull `disputeDeposit` GRT tokens.
+     * 
+     * Requirements:
+     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount 
+     *   of tokens from their balance.
+     * 
      * @param allocationId The allocation to dispute
      * @param poi The Proof of Indexing (POI) being disputed
-     * @param deposit Amount of tokens staked as deposit
      */
     function createIndexingDispute(
         address allocationId,
-        bytes32 poi,
-        uint256 deposit
+        bytes32 poi
     ) external override returns (bytes32) {
         // Get funds from submitter
-        _pullSubmitterDeposit(deposit);
+        _pullSubmitterDeposit();
 
         // Create a dispute
-        return _createIndexingDisputeWithAllocation(msg.sender, deposit, allocationId, poi);
+        return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi);
     }
 
     /**
      * @notice Create a query dispute for the arbitrator to resolve.
-     * This function is called by a fisherman that will need to `_deposit` at
-     * least `minimumDeposit` GRT tokens.
-     * @param attestationData Attestation bytes submitted by the fisherman
-     * @param deposit Amount of tokens staked as deposit
+     * This function is called by a challenger and it will pull `disputeDeposit` GRT tokens.
+     * 
+     * * Requirements:
+     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount 
+     *   of tokens from their balance.
+     * 
+     * @param attestationData Attestation bytes submitted by the challenger
      */
-    function createQueryDispute(bytes calldata attestationData, uint256 deposit) external override returns (bytes32) {
+    function createQueryDispute(bytes calldata attestationData) external override returns (bytes32) {
         // Get funds from submitter
-        _pullSubmitterDeposit(deposit);
+        _pullSubmitterDeposit();
 
         // Create a dispute
         return
             _createQueryDisputeWithAttestation(
                 msg.sender,
-                deposit,
+                disputeDeposit,
                 Attestation.parse(attestationData),
                 attestationData
             );
@@ -303,12 +308,12 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Set the minimum deposit required to create a dispute.
-     * @dev Update the minimum deposit to `_minimumDeposit` Graph Tokens
-     * @param minimumDeposit The minimum deposit in Graph Tokens
+     * @notice Set the dispute deposit required to create a dispute.
+     * @dev Update the dispute deposit to `_disputeDeposit` Graph Tokens
+     * @param disputeDeposit The dispute deposit in Graph Tokens
      */
-    function setMinimumDeposit(uint256 minimumDeposit) external override onlyOwner {
-        _setMinimumDeposit(minimumDeposit);
+    function setDisputeDeposit(uint256 disputeDeposit) external override onlyOwner {
+        _setDisputeDeposit(disputeDeposit);
     }
 
     /**
@@ -577,15 +582,11 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Pull deposit from submitter account.
-     * @param _deposit Amount of tokens to deposit
+     * @notice Pull `disputeDeposit` from submitter account.
      */
-    function _pullSubmitterDeposit(uint256 _deposit) private {
-        // Ensure that fisherman has staked at least the minimum amount
-        require(_deposit >= minimumDeposit, DisputeManagerInsufficientDeposit(_deposit, minimumDeposit));
-
+    function _pullSubmitterDeposit() private {
         // Transfer tokens to deposit from fisherman to this contract
-        _graphToken().pullTokens(msg.sender, _deposit);
+        _graphToken().pullTokens(msg.sender, disputeDeposit);
     }
 
     /**
@@ -642,14 +643,14 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Internal: Set the minimum deposit required to create a dispute.
-     * @dev Update the minimum deposit to `_minimumDeposit` Graph Tokens
-     * @param _minimumDeposit The minimum deposit in Graph Tokens
+     * @notice Internal: Set the dispute deposit required to create a dispute.
+     * @dev Update the dispute deposit to `_disputeDeposit` Graph Tokens
+     * @param _disputeDeposit The dispute deposit in Graph Tokens
      */
-    function _setMinimumDeposit(uint256 _minimumDeposit) private {
-        require(_minimumDeposit != 0, DisputeManagerInvalidMinimumDeposit(_minimumDeposit));
-        minimumDeposit = _minimumDeposit;
-        emit MinimumDepositSet(minimumDeposit);
+    function _setDisputeDeposit(uint256 _disputeDeposit) private {
+        require(_disputeDeposit != 0, DisputeManagerInvalidDisputeDeposit(_disputeDeposit));
+        disputeDeposit = _disputeDeposit;
+        emit DisputeDepositSet(disputeDeposit);
     }
 
     /**

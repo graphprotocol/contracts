@@ -55,10 +55,10 @@ interface IDisputeManager {
     event DisputePeriodSet(uint64 disputePeriod);
 
     /**
-     * @notice Emitted when minimum deposit is set.
-     * @param minimumDeposit The minimum deposit required to create a dispute.
+     * @notice Emitted when dispute deposit is set.
+     * @param disputeDeposit The dispute deposit required to create a dispute.
      */
-    event MinimumDepositSet(uint256 minimumDeposit);
+    event DisputeDepositSet(uint256 disputeDeposit);
 
     /**
      * @notice Emitted when max slashing cut is set.
@@ -151,12 +151,11 @@ interface IDisputeManager {
     error DisputeManagerDisputePeriodZero();
     error DisputeManagerZeroTokens();
     error DisputeManagerInvalidDispute(bytes32 disputeId);
-    error DisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
+    error DisputeManagerInvalidDisputeDeposit(uint256 disputeDeposit);
     error DisputeManagerInvalidFishermanReward(uint32 cut);
     error DisputeManagerInvalidMaxSlashingCut(uint32 maxSlashingCut);
     error DisputeManagerInvalidTokensSlash(uint256 tokensSlash, uint256 maxTokensSlash);
     error DisputeManagerDisputeNotPending(IDisputeManager.DisputeStatus status);
-    error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
     error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
     error DisputeManagerDisputePeriodNotFinished();
     error DisputeManagerMustAcceptRelatedDispute(bytes32 disputeId, bytes32 relatedDisputeId);
@@ -174,7 +173,7 @@ interface IDisputeManager {
     function initialize(
         address arbitrator,
         uint64 disputePeriod,
-        uint256 minimumDeposit,
+        uint256 disputeDeposit,
         uint32 fishermanRewardCut,
         uint32 maxSlashingCut
     ) external;
@@ -183,7 +182,7 @@ interface IDisputeManager {
 
     function setArbitrator(address arbitrator) external;
 
-    function setMinimumDeposit(uint256 minimumDeposit) external;
+    function setDisputeDeposit(uint256 disputeDeposit) external;
 
     function setFishermanRewardCut(uint32 cut) external;
 
@@ -191,14 +190,14 @@ interface IDisputeManager {
 
     // -- Dispute --
 
-    function createQueryDispute(bytes calldata attestationData, uint256 deposit) external returns (bytes32);
+    function createQueryDispute(bytes calldata attestationData) external returns (bytes32);
 
     function createQueryDisputeConflict(
         bytes calldata attestationData1,
         bytes calldata attestationData2
     ) external returns (bytes32, bytes32);
 
-    function createIndexingDispute(address allocationId, bytes32 poi, uint256 deposit) external returns (bytes32);
+    function createIndexingDispute(address allocationId, bytes32 poi) external returns (bytes32);
 
     function acceptDispute(bytes32 disputeId, uint256 tokensSlash) external;
 

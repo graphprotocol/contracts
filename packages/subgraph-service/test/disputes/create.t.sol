@@ -13,20 +13,16 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
      */
 
     function testCreate_IndexingDispute(
-        uint256 tokens,
-        uint256 tokensDispute
+        uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
         assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
     }
 
     function testCreate_QueryDispute(
-        uint256 tokens,
-        uint256 tokensDispute
+        uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
-        bytes32 disputeID = _createQueryDispute(tokensDispute);
+        bytes32 disputeID = _createQueryDispute();
         assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
     }
 
@@ -54,51 +50,44 @@ contract DisputeManagerCreateDisputeTest is DisputeManagerTest {
     }
 
     function testCreate_RevertWhen_DisputeAlreadyCreated(
-        uint256 tokens,
-        uint256 tokensDispute
+        uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         // Create another dispute with different fisherman
         address otherFisherman = makeAddr("otherFisherman");
         resetPrank(otherFisherman);
-        mint(otherFisherman, tokensDispute);
-        token.approve(address(disputeManager), tokensDispute);
+        mint(otherFisherman, disputeDeposit);
+        token.approve(address(disputeManager), disputeDeposit);
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerDisputeAlreadyCreated.selector,
             disputeID
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"));
         vm.stopPrank();
     }
 
-    function testCreate_RevertIf_DepositUnderMinimum(
-        uint256 tokensDispute
-    ) public useFisherman {
-        tokensDispute = bound(tokensDispute, 1, minimumDeposit - 1);
-        bytes memory expectedError = abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerInsufficientDeposit.selector,
-            tokensDispute,
-            minimumDeposit
+    function testCreate_RevertIf_TokensNotApproved() public useFisherman {
+        bytes memory expectedError = abi.encodeWithSignature(
+            "ERC20InsufficientAllowance(address,uint256,uint256)",
+            address(disputeManager),
+            0,
+            disputeDeposit
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI3"), tokensDispute);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI3"));
         vm.stopPrank();
     }
 
-    function testCreate_RevertIf_AllocationDoesNotExist(
-        uint256 tokens
-    ) public useFisherman {
-        tokens = bound(tokens, minimumDeposit, 10_000_000_000 ether);
-        token.approve(address(disputeManager), tokens);
+    function testCreate_RevertIf_AllocationDoesNotExist() public useFisherman {
+        token.approve(address(disputeManager), disputeDeposit);
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerIndexerNotFound.selector,
             allocationID
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI4"), tokens);
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI4"));
         vm.stopPrank();
     }
 

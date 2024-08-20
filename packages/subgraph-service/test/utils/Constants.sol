@@ -5,7 +5,7 @@ abstract contract Constants {
     uint256 internal constant MAX_TOKENS = 10_000_000_000 ether;
     // Dispute Manager
     uint64 internal constant disputePeriod = 300; // 5 minutes
-    uint256 internal constant minimumDeposit = 100 ether; // 100 GRT
+    uint256 internal constant disputeDeposit = 100 ether; // 100 GRT
     uint32 internal constant fishermanRewardPercentage = 100000; // 10%
     uint32 internal constant maxSlashingPercentage = 500000; // 50%
     // Subgraph Service

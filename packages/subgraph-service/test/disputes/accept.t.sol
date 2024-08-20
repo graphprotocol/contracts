@@ -17,7 +17,6 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
 
     function testAccept_IndexingDispute(
         uint256 tokens,
-        uint256 tokensDispute,
         uint256 tokensSlash,
         uint256 delegationAmount
     ) public useIndexer useAllocation(tokens) {
@@ -29,10 +28,9 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(users.indexer);
         uint256 tokensSlashCap = stakeSnapshot.mulPPM(maxSlashingPercentage);
         tokensSlash = bound(tokensSlash, 1, tokensSlashCap);
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         resetPrank(users.arbitrator);
         disputeManager.acceptDispute(disputeID, tokensSlash);
@@ -44,7 +42,6 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
 
     function testAccept_QueryDispute(
         uint256 tokens,
-        uint256 tokensDispute,
         uint256 tokensSlash,
         uint256 delegationAmount
     ) public useIndexer useAllocation(tokens) {
@@ -56,10 +53,9 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(users.indexer);
         uint256 tokensSlashCap = stakeSnapshot.mulPPM(maxSlashingPercentage);
         tokensSlash = bound(tokensSlash, 1, tokensSlashCap);
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
-        bytes32 disputeID = _createQueryDispute(tokensDispute);
+        bytes32 disputeID = _createQueryDispute();
 
         resetPrank(users.arbitrator);
         disputeManager.acceptDispute(disputeID, tokensSlash);
@@ -120,7 +116,6 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
 
     function testAccept_IndexingDispute_RevertIf_SlashAmountTooHigh(
         uint256 tokens,
-        uint256 tokensDispute,
         uint256 tokensSlash,
         uint256 delegationAmount
     ) public useIndexer useAllocation(tokens) {
@@ -132,9 +127,8 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(users.indexer);
         uint256 tokensSlashCap = stakeSnapshot.mulPPM(maxSlashingPercentage);
         tokensSlash = bound(tokensSlash, tokensSlashCap + 1 wei, type(uint256).max);
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         resetPrank(users.arbitrator);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -148,7 +142,6 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
 
     function testAccept_QueryDispute_RevertIf_SlashAmountTooHigh(
         uint256 tokens,
-        uint256 tokensDispute,
         uint256 tokensSlash,
         uint256 delegationAmount
     ) public useIndexer useAllocation(tokens) {
@@ -160,9 +153,8 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(users.indexer);
         uint256 tokensSlashCap = stakeSnapshot.mulPPM(maxSlashingPercentage);
         tokensSlash = bound(tokensSlash, tokensSlashCap + 1 wei, type(uint256).max);
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
-        bytes32 disputeID = _createQueryDispute(tokensDispute);
+        bytes32 disputeID = _createQueryDispute();
 
         resetPrank(users.arbitrator);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -176,7 +168,6 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
 
     function testAccept_ConflictingQueryDispute_RevertIf_SlashAmountTooHigh(
         uint256 tokens,
-        uint256 tokensDispute,
         uint256 tokensSlash,
         uint256 delegationAmount
     ) public useIndexer useAllocation(tokens) {
@@ -188,7 +179,6 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(users.indexer);
         uint256 tokensSlashCap = stakeSnapshot.mulPPM(maxSlashingPercentage);
         tokensSlash = bound(tokensSlash, tokensSlashCap + 1 wei, type(uint256).max);
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
@@ -219,13 +209,11 @@ contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {
 
     function testAccept_RevertIf_CallerIsNotArbitrator(
         uint256 tokens,
-        uint256 tokensDispute,
         uint256 tokensSlash
     ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
-        tokensDispute = bound(tokensDispute, minimumDeposit, tokens);
 
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), tokensDispute);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         // attempt to accept dispute as fisherman
         resetPrank(users.fisherman);
