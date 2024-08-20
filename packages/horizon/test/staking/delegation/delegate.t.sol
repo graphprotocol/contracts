@@ -75,7 +75,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         resetPrank(users.delegator);
         token.approve(address(staking), delegationTokens);
         vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
+            IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
             users.indexer,
             subgraphDataServiceAddress
         ));

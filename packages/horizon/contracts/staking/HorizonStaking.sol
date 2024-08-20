@@ -715,7 +715,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         require(
             pool.tokens != 0 || pool.shares == 0,
-            HorizonStakingInvalidDelegationPool(_serviceProvider, _verifier)
+            HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier)
         );
 
         // Calculate shares to issue
@@ -740,7 +740,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         DelegationInternal storage delegation = pool.delegators[msg.sender];
         require(delegation.shares >= _shares, HorizonStakingInsufficientShares(delegation.shares, _shares));
-        require(pool.tokens != 0, HorizonStakingInvalidDelegationPool(_serviceProvider, _verifier));
+        require(pool.tokens != 0, HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier));
 
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
         uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
@@ -782,7 +782,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 _nThawRequests
     ) private {
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
-        require(pool.tokens != 0, HorizonStakingInvalidDelegationPool(_serviceProvider, _verifier));
+        require(pool.tokens != 0, HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier));
 
         uint256 tokensThawed = 0;
         uint256 sharesThawing = pool.sharesThawing;

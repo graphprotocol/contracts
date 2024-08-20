@@ -395,7 +395,7 @@ interface IHorizonStakingMain {
      * @param serviceProvider The service provider address
      * @param verifier The verifier address
      */
-    error HorizonStakingInvalidDelegationPool(address serviceProvider, address verifier);
+    error HorizonStakingInvalidDelegationPoolState(address serviceProvider, address verifier);
 
     // -- Errors: thaw requests --
 

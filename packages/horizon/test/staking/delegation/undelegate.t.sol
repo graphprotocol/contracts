@@ -99,7 +99,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         resetPrank(users.delegator);
         Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
         vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
+            IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
             users.indexer,
             subgraphDataServiceAddress
         ));

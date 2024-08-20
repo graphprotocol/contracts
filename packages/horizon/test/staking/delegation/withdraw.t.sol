@@ -194,7 +194,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         
         resetPrank(users.delegator);
         vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
+            IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
             users.indexer,
             subgraphDataServiceAddress
         ));
