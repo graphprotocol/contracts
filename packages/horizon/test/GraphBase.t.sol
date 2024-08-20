@@ -43,6 +43,10 @@ abstract contract GraphBaseTest is Utils, Constants {
 
     address subgraphDataServiceLegacyAddress = makeAddr("subgraphDataServiceLegacyAddress");
     address subgraphDataServiceAddress = makeAddr("subgraphDataServiceAddress");
+    
+    // We use these addresses to mock calls from the counterpart staking contract
+    address graphTokenGatewayAddress = makeAddr("GraphTokenGateway");
+    address counterpartStaking = makeAddr("counterpartStaking");
 
     /* Users */
 
@@ -144,7 +148,7 @@ abstract contract GraphBaseTest is Utils, Constants {
         controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
         controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
         controller.setContractProxy(keccak256("Curation"), address(curation));
-        controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
+        controller.setContractProxy(keccak256("GraphTokenGateway"), graphTokenGatewayAddress);
         controller.setContractProxy(keccak256("GraphProxyAdmin"), address(proxyAdmin));
         
         resetPrank(users.deployer);
@@ -171,6 +175,8 @@ abstract contract GraphBaseTest is Utils, Constants {
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));
         proxyAdmin.acceptProxy(stakingBase, stakingProxy);
         staking = IHorizonStaking(address(stakingProxy));
+
+        staking.setCounterpartStakingAddress(address(counterpartStaking));
     }
 
     function setupProtocol() private {

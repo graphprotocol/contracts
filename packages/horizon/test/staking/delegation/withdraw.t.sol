@@ -28,7 +28,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
             vm.assume(remainingTokens >= MIN_DELEGATION);
         }
         
-        _undelegate(shares, subgraphDataServiceAddress);
+        _undelegate(users.indexer, subgraphDataServiceAddress, shares);
         _;
     }
 
@@ -165,9 +165,9 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _createProvision(subgraphDataServiceLegacyAddress, 10_000_000 ether, 0, MAX_THAWING_PERIOD);
 
         resetPrank(users.delegator);
-        _delegate(delegationAmount, subgraphDataServiceLegacyAddress);
+        _delegateLegacy(users.indexer, delegationAmount);
         Delegation memory delegation = _getDelegation(subgraphDataServiceLegacyAddress);
-        _undelegate(delegation.shares, subgraphDataServiceLegacyAddress);
+        _undelegateLegacy(users.indexer, delegation.shares);
 
         LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceLegacyAddress, users.delegator);
         ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
@@ -183,9 +183,9 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing(true) {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
-        _delegate(delegationTokens, subgraphDataServiceAddress);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
         Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
-        _undelegate(delegation.shares, subgraphDataServiceAddress);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
 
         skip(MAX_THAWING_PERIOD + 1);
 

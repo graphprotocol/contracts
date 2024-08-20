@@ -62,4 +62,6 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         vm.expectRevert(expectedError);
         staking.addToDelegationPool(users.indexer, subgraphDataServiceAddress, 0);
     }
+
+    // TODO: test recovering an invalid delegation pool
 }

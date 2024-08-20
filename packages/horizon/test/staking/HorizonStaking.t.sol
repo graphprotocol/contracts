@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
+import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 import { IHorizonStakingMain } from "../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingTypes } from "../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
@@ -11,6 +12,7 @@ import { MathUtils } from "../../contracts/libraries/MathUtils.sol";
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 
 contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
+    using stdStorage for StdStorage;
 
     /*
      * MODIFIERS
@@ -60,18 +62,18 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
 
     modifier useDelegation(uint256 delegationAmount) {
         address msgSender;
-        (, msgSender,) = vm.readCallers();
+        (, msgSender, ) = vm.readCallers();
         vm.assume(delegationAmount > MIN_DELEGATION);
         vm.assume(delegationAmount <= MAX_STAKING_TOKENS);
         vm.startPrank(users.delegator);
-        _delegate(delegationAmount, subgraphDataServiceAddress);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
         vm.startPrank(msgSender);
         _;
     }
 
     modifier useLockedVerifier(address verifier) {
         address msgSender;
-        (, msgSender,) = vm.readCallers();
+        (, msgSender, ) = vm.readCallers();
         resetPrank(users.governor);
         staking.setAllowedLockedVerifier(verifier, true);
         resetPrank(msgSender);
@@ -80,7 +82,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
 
     modifier useDelegationSlashing(bool enabled) {
         address msgSender;
-        (, msgSender,) = vm.readCallers();
+        (, msgSender, ) = vm.readCallers();
         resetPrank(users.governor);
         staking.setDelegationSlashingEnabled(enabled);
         resetPrank(msgSender);
@@ -104,26 +106,167 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         staking.deprovision(users.indexer, subgraphDataServiceAddress, nThawRequests);
     }
 
-    function _delegate(uint256 _tokens, address _verifier) internal {
-        token.approve(address(staking), _tokens);
-        vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.TokensDelegated(users.indexer, _verifier, users.delegator, _tokens);
-        staking.delegate(users.indexer, _verifier, _tokens, 0);
-        uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, _verifier);
-        assertEq(delegatedTokens, _tokens);
+    function _delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) internal {
+        __delegate(serviceProvider, verifier, tokens, minSharesOut, false);
     }
 
+    function _delegateLegacy(address serviceProvider, uint256 tokens) internal {
+        __delegate(serviceProvider, subgraphDataServiceLegacyAddress, tokens, 0, true);
+    }
+
+
+    struct DelegateData {
+        DelegationPool pool;
+        Delegation delegation;
+        uint256 storagePoolTokens;
+        uint256 delegatedTokens;
+        uint256 delegatorBalance;
+        uint256 stakingBalance;
+    }
+
+    function __delegate(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint256 minSharesOut,
+        bool legacy
+    ) internal {
+        (, address delegator, ) = vm.readCallers();
+
+        // before
+        DelegateData memory beforeData = DelegateData({
+            pool: staking.getDelegationPool(serviceProvider, verifier),
+            delegation: staking.getDelegation(serviceProvider, verifier, delegator),
+            storagePoolTokens: uint256(vm.load(address(staking), _getSlotPoolTokens(serviceProvider, verifier, legacy))),
+            delegatedTokens: staking.getDelegatedTokensAvailable(serviceProvider, verifier),
+            delegatorBalance: token.balanceOf(delegator),
+            stakingBalance: token.balanceOf(address(staking))
+        });
+
+        uint256 calcShares = (beforeData.pool.tokens == 0)
+            ? tokens
+            : ((tokens * beforeData.pool.shares) / (beforeData.pool.tokens - beforeData.pool.tokensThawing));
+
+        // delegate
+        token.approve(address(staking), tokens);
+        vm.expectEmit();
+        emit IHorizonStakingMain.TokensDelegated(serviceProvider, verifier, delegator, tokens);
+        if (legacy) {
+            staking.delegate(serviceProvider, tokens);
+        } else {
+            staking.delegate(serviceProvider, verifier, tokens, minSharesOut);
+        }
+
+        // after
+        DelegateData memory afterData = DelegateData({
+            pool: staking.getDelegationPool(serviceProvider, verifier),
+            delegation: staking.getDelegation(serviceProvider, verifier, delegator),
+            storagePoolTokens: uint256(vm.load(address(staking), _getSlotPoolTokens(serviceProvider, verifier, legacy))),
+            delegatedTokens: staking.getDelegatedTokensAvailable(serviceProvider, verifier),
+            delegatorBalance: token.balanceOf(delegator),
+            stakingBalance: token.balanceOf(address(staking))
+        });
+
+        uint256 deltaShares = afterData.delegation.shares - beforeData.delegation.shares;
+
+        // assertions
+        assertEq(beforeData.pool.tokens + tokens, afterData.pool.tokens);
+        assertEq(beforeData.pool.shares + calcShares, afterData.pool.shares);
+        assertEq(beforeData.pool.tokensThawing, afterData.pool.tokensThawing);
+        assertEq(beforeData.pool.sharesThawing, afterData.pool.sharesThawing);
+        assertGe(deltaShares, minSharesOut);
+        assertEq(calcShares, deltaShares);
+        assertEq(beforeData.delegatedTokens + tokens, afterData.delegatedTokens);
+        // Ensure correct slot is being updated, pools are stored in different storage locations for legacy subgraph data service
+        assertEq(beforeData.storagePoolTokens + tokens, afterData.storagePoolTokens);
+        assertEq(beforeData.delegatorBalance - tokens, afterData.delegatorBalance);
+        assertEq(beforeData.stakingBalance + tokens, afterData.stakingBalance);
+    }
+
+    function _undelegate(address serviceProvider, address verifier, uint256 shares) internal {
+        __undelegate(serviceProvider, verifier, shares, false);
+    }
+
+    function _undelegateLegacy(address serviceProvider, uint256 shares) internal {
+        __undelegate(serviceProvider, subgraphDataServiceLegacyAddress, shares, true);
+    }
+
+    function __undelegate(address serviceProvider, address verifier, uint256 shares, bool legacy) internal {
+        (, address delegator, ) = vm.readCallers();
+
+        // Delegation pool data is stored in a different storage slot for the legacy subgraph data service
+        bytes32 slotPoolShares;
+        if (legacy) {
+            slotPoolShares = bytes32(uint256(keccak256(abi.encode(serviceProvider, 20))) + 3);
+        } else {
+            slotPoolShares = bytes32(
+                uint256(keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, 33))))) + 3
+            );
+        }
+
+        // before
+        DelegationPool memory beforePool = staking.getDelegationPool(serviceProvider, verifier);
+        Delegation memory beforeDelegation = staking.getDelegation(serviceProvider, verifier, delegator);
+        LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
+        uint256 beforeStoragePoolShares = uint256(vm.load(address(staking), slotPoolShares));
+        uint256 beforeDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
+
+        uint256 calcTokens = ((beforePool.tokens - beforePool.tokensThawing) * shares) / beforePool.shares;
+        uint256 calcThawingShares = beforePool.tokensThawing == 0
+            ? calcTokens
+            : (beforePool.sharesThawing * calcTokens) / beforePool.tokensThawing;
+        uint64 calcThawingUntil = staking.getProvision(serviceProvider, verifier).thawingPeriod +
+            uint64(block.timestamp);
+        bytes32 calcThawRequestId = keccak256(
+            abi.encodePacked(serviceProvider, verifier, delegator, beforeThawRequestList.nonce)
+        );
+
+        // undelegate
+        vm.expectEmit();
+        emit IHorizonStakingMain.ThawRequestCreated(
+            serviceProvider,
+            verifier,
+            delegator,
+            calcThawingShares,
+            calcThawingUntil,
+            calcThawRequestId
+        );
+        vm.expectEmit();
+        emit IHorizonStakingMain.TokensUndelegated(serviceProvider, verifier, delegator, calcTokens);
+        if (legacy) {
+            staking.undelegate(serviceProvider, shares);
+        } else {
+            staking.undelegate(serviceProvider, verifier, shares);
+        }
+
+        // after
+        DelegationPool memory afterPool = staking.getDelegationPool(users.indexer, verifier);
+        Delegation memory afterDelegation = staking.getDelegation(serviceProvider, verifier, delegator);
+        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
+        ThawRequest memory afterThawRequest = staking.getThawRequest(calcThawRequestId);
+        uint256 afterStoragePoolShares = uint256(vm.load(address(staking), slotPoolShares));
+        uint256 afterDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
+
+        // assertions
+        assertEq(beforePool.shares, afterPool.shares + shares);
+        assertEq(beforePool.tokens, afterPool.tokens);
+        assertEq(beforePool.tokensThawing + calcTokens, afterPool.tokensThawing);
+        assertEq(beforePool.sharesThawing + calcThawingShares, afterPool.sharesThawing);
+        assertEq(beforeDelegation.shares - shares, afterDelegation.shares);
+        assertEq(afterThawRequest.shares, calcThawingShares);
+        assertEq(afterThawRequest.thawingUntil, calcThawingUntil);
+        assertEq(afterThawRequest.next, bytes32(0));
+        assertEq(calcThawRequestId, afterThawRequestList.tail);
+        assertEq(beforeThawRequestList.nonce + 1, afterThawRequestList.nonce);
+        assertEq(beforeThawRequestList.count + 1, afterThawRequestList.count);
+        assertEq(afterDelegatedTokens + calcTokens, beforeDelegatedTokens);
+        // Ensure correct slot is being updated, pools are stored in different storage locations for legacy subgraph data service
+        assertEq(beforeStoragePoolShares, afterStoragePoolShares + shares);
+    }
+
+    // todo remove these
     function _getDelegation(address verifier) internal view returns (Delegation memory) {
         return staking.getDelegation(users.indexer, verifier, users.delegator);
-    }
-
-    function _undelegate(uint256 _shares, address _verifier) internal {
-        staking.undelegate(users.indexer, _verifier, _shares);
-
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, _verifier, users.delegator);
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
-
-        assertEq(thawRequest.shares, _shares);
     }
 
     function _getDelegationPool(address verifier) internal view returns (DelegationPool memory) {
@@ -157,32 +300,58 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         uint256 expectedProviderTokensAfterSlashing = beforeProviderTokens - providerTokensSlashed;
 
         uint256 delegationTokensSlashed = MathUtils.min(beforeDelegationTokens, tokens - providerTokensSlashed);
-        uint256 expectedDelegationTokensAfterSlashing = beforeDelegationTokens - (isDelegationSlashingEnabled ? delegationTokensSlashed : 0);
+        uint256 expectedDelegationTokensAfterSlashing = beforeDelegationTokens -
+            (isDelegationSlashingEnabled ? delegationTokensSlashed : 0);
 
         vm.expectEmit(address(staking));
         if (verifierCutAmount > 0) {
-            emit IHorizonStakingMain.VerifierTokensSent(users.indexer, subgraphDataServiceAddress, subgraphDataServiceAddress, verifierCutAmount);
+            emit IHorizonStakingMain.VerifierTokensSent(
+                users.indexer,
+                subgraphDataServiceAddress,
+                subgraphDataServiceAddress,
+                verifierCutAmount
+            );
         }
         emit IHorizonStakingMain.ProvisionSlashed(users.indexer, subgraphDataServiceAddress, providerTokensSlashed);
 
         if (isDelegationSlashingEnabled) {
-            emit IHorizonStakingMain.DelegationSlashed(users.indexer, subgraphDataServiceAddress, delegationTokensSlashed);
+            emit IHorizonStakingMain.DelegationSlashed(
+                users.indexer,
+                subgraphDataServiceAddress,
+                delegationTokensSlashed
+            );
         } else {
-            emit IHorizonStakingMain.DelegationSlashingSkipped(users.indexer, subgraphDataServiceAddress, delegationTokensSlashed);
+            emit IHorizonStakingMain.DelegationSlashingSkipped(
+                users.indexer,
+                subgraphDataServiceAddress,
+                delegationTokensSlashed
+            );
         }
         staking.slash(users.indexer, tokens, verifierCutAmount, subgraphDataServiceAddress);
 
         if (!isDelegationSlashingEnabled) {
             expectedDelegationTokensAfterSlashing = beforeDelegationTokens;
         }
-        
+
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(provisionTokens, expectedProviderTokensAfterSlashing);
 
         uint256 delegationTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(delegationTokens, expectedDelegationTokensAfterSlashing);
- 
+
         uint256 verifierTokens = token.balanceOf(subgraphDataServiceAddress);
         assertEq(verifierTokens, verifierCutAmount);
     }
+
+    function _getSlotPoolTokens(address serviceProvider, address verifier, bool legacy) private returns (bytes32) {
+        bytes32 slotPoolTokens;
+        if (legacy) {
+            slotPoolTokens = bytes32(uint256(keccak256(abi.encode(serviceProvider, 20))) + 2);
+        } else {
+            slotPoolTokens = bytes32(
+                uint256(keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, 33))))) + 2
+            );
+        }
+        return slotPoolTokens;
+    } 
 }
