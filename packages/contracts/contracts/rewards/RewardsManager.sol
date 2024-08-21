@@ -128,22 +128,6 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Denies to claim rewards for multiple subgraph.
-     * NOTE: Can only be called by the subgraph availability oracle
-     * @param _subgraphDeploymentID Array of subgraph deployment ID
-     * @param _deny Array of denied status for claiming rewards for each subgraph
-     */
-    function setDeniedMany(
-        bytes32[] calldata _subgraphDeploymentID,
-        bool[] calldata _deny
-    ) external override onlySubgraphAvailabilityOracle {
-        require(_subgraphDeploymentID.length == _deny.length, "!length");
-        for (uint256 i = 0; i < _subgraphDeploymentID.length; i++) {
-            _setDenied(_subgraphDeploymentID[i], _deny[i]);
-        }
-    }
-
-    /**
      * @dev Internal: Denies to claim rewards for a subgraph.
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny Whether to set the subgraph as denied for claiming rewards or not
