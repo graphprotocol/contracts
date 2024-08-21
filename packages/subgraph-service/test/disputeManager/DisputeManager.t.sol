@@ -18,6 +18,12 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
      * MODIFIERS
      */
 
+    modifier useGovernor() {
+        vm.startPrank(users.governor);
+        _;
+        vm.stopPrank();
+    }
+
     modifier useFisherman {
         vm.startPrank(users.fisherman);
         _;

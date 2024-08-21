@@ -52,6 +52,11 @@ contract DisputeManager is
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
 
+    // -- Constants --
+
+    // Maximum value for fisherman reward cut in PPM
+    uint32 public constant MAX_FISHERMAN_REWARD_CUT = 500000;
+
     // -- Modifiers --
 
     /**
@@ -659,8 +664,7 @@ contract DisputeManager is
      * @param _fishermanRewardCut Reward as a percentage of indexer stake
      */
     function _setFishermanRewardCut(uint32 _fishermanRewardCut) private {
-        // Must be within 0% to 100% (inclusive)
-        require(PPMMath.isValidPPM(_fishermanRewardCut), DisputeManagerInvalidFishermanReward(_fishermanRewardCut));
+        require(_fishermanRewardCut <= MAX_FISHERMAN_REWARD_CUT, DisputeManagerInvalidFishermanReward(_fishermanRewardCut));
         fishermanRewardCut = _fishermanRewardCut;
         emit FishermanRewardCutSet(fishermanRewardCut);
     }

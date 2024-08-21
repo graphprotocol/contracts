@@ -3,29 +3,31 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IDisputeManager } from "../../contracts/interfaces/IDisputeManager.sol";
-import { DisputeManagerTest } from "./DisputeManager.t.sol";
+import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
+import { DisputeManagerTest } from "../DisputeManager.t.sol";
 
-contract DisputeManagerDrawDisputeTest is DisputeManagerTest {
+contract DisputeManagerCancelDisputeTest is DisputeManagerTest {
 
     /*
      * TESTS
      */
 
-    function testDraw_Dispute(
+    function testCancel_Dispute(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI32"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
-        resetPrank(users.arbitrator);
-        disputeManager.drawDispute(disputeID);
+        // skip to end of dispute period
+        skip(disputePeriod + 1);
+
+        resetPrank(users.fisherman);
+        disputeManager.cancelDispute(disputeID);
 
         assertEq(token.balanceOf(users.fisherman), fishermanPreviousBalance, "Fisherman should receive their deposit back.");
     }
 
-    function testDraw_QueryDisputeConflicting(
+    function testCancel_QueryDisputeConflicting(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
@@ -45,23 +47,24 @@ contract DisputeManagerDrawDisputeTest is DisputeManagerTest {
             attestationData2
         );
 
-        resetPrank(users.arbitrator);
-        disputeManager.drawDispute(disputeID1);
+        // skip to end of dispute period
+        skip(disputePeriod + 1);
+
+        disputeManager.cancelDispute(disputeID1);
 
         (, , , , , IDisputeManager.DisputeStatus status1, ,) = disputeManager.disputes(disputeID1);
         (, , , , , IDisputeManager.DisputeStatus status2, ,) = disputeManager.disputes(disputeID2);
-        assertTrue(status1 == IDisputeManager.DisputeStatus.Drawn, "Dispute 1 should be drawn.");
-        assertTrue(status2 == IDisputeManager.DisputeStatus.Drawn, "Dispute 2 should be drawn.");
+        assertTrue(status1 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 1 should be cancelled.");
+        assertTrue(status2 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 2 should be cancelled.");
     }
 
-    function testDraw_RevertIf_CallerIsNotArbitrator(
+    function testCancel_RevertIf_CallerIsNotFisherman(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        bytes32 disputeID = _createIndexingDispute(allocationID,bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
-        // attempt to draw dispute as fisherman
-        resetPrank(users.fisherman);
-        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
-        disputeManager.drawDispute(disputeID);
+        resetPrank(users.arbitrator);
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotFisherman.selector));
+        disputeManager.cancelDispute(disputeID);
     }
 }

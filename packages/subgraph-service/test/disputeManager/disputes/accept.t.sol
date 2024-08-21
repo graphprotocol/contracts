@@ -4,8 +4,8 @@ pragma solidity 0.8.26;
 import "forge-std/Test.sol";
 
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IDisputeManager } from "../../contracts/interfaces/IDisputeManager.sol";
-import { DisputeManagerTest } from "./DisputeManager.t.sol";
+import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
+import { DisputeManagerTest } from "../DisputeManager.t.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract DisputeManagerAcceptDisputeTest is DisputeManagerTest {

@@ -142,6 +142,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             )
         );
         disputeManager = DisputeManager(disputeManagerProxy);
+        disputeManager.transferOwnership(users.governor);
 
         tapCollector = new TAPCollector("TAPCollector", "1", address(controller));
         address subgraphServiceImplementation = address(
@@ -153,8 +154,6 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             abi.encodeCall(SubgraphService.initialize, (minimumProvisionTokens, delegationRatio))
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
-
-        disputeManager.setSubgraphService(address(subgraphService));
 
         stakingExtension = new HorizonStakingExtension(
             address(controller),
@@ -177,6 +176,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         );
 
         resetPrank(users.governor);
+        disputeManager.setSubgraphService(address(subgraphService));
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));
         proxyAdmin.acceptProxy(stakingBase, stakingProxy);
         staking = IHorizonStaking(address(stakingProxy));
