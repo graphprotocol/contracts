@@ -352,6 +352,11 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingInvalidThawingPeriod(uint64 thawingPeriod, uint64 maxThawingPeriod);
 
+    /**
+     * @notice Thrown when attempting to create a provision for a data service that already has a provision.
+     */
+    error HorizonStakingProvisionAlreadyExists();
+
     // -- Errors: stake --
 
     /**

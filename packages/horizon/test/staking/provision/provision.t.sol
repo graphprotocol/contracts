@@ -6,7 +6,6 @@ import "forge-std/Test.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingProvisionTest is HorizonStakingTest {
-
     /*
      * TESTS
      */
@@ -68,6 +67,21 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         staking.provision(users.indexer, subgraphDataServiceAddress, provisionTokens, 0, 0);
     }
 
+    function testProvision_RevertWhen_AlreadyExists(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) public useIndexer useProvision(amount / 2, maxVerifierCut, thawingPeriod) {
+        resetPrank(users.indexer);
+
+        token.approve(address(staking), amount / 2);
+        staking.stake(amount / 2);
+
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingProvisionAlreadyExists()");
+        vm.expectRevert(expectedError);
+        staking.provision(users.indexer, subgraphDataServiceAddress, amount / 2, maxVerifierCut, thawingPeriod);
+    }
+
     function testProvision_OperatorAddTokensToProvision(
         uint256 amount,
         uint32 maxVerifierCut,
@@ -94,7 +108,7 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
         vm.startPrank(users.operator);
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingNotAuthorized(address,address,address)", 
+            "HorizonStakingNotAuthorized(address,address,address)",
             users.operator,
             users.indexer,
             subgraphDataServiceAddress

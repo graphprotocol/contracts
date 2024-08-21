@@ -606,6 +606,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _thawingPeriod <= _maxThawingPeriod,
             HorizonStakingInvalidThawingPeriod(_thawingPeriod, _maxThawingPeriod)
         );
+        require(_provisions[_serviceProvider][_verifier].createdAt == 0, HorizonStakingProvisionAlreadyExists());
         uint256 tokensIdle = _getIdleStake(_serviceProvider);
         require(_tokens <= tokensIdle, HorizonStakingInsufficientIdleStake(_tokens, tokensIdle));
 
