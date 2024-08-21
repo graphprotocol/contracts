@@ -129,6 +129,32 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         );
         _onTokenTransfer_ReceiveDelegation(counterpartStaking, amount, data);
     }
+    function testOnTransfer_ReceiveDelegation_WhenAllThawing(uint256 amountReceived, uint256 amountDelegated) public {
+        amountReceived = bound(amountReceived, 1 ether, MAX_STAKING_TOKENS);
+        amountDelegated = bound(amountDelegated, 1 ether, MAX_STAKING_TOKENS);
+
+        // create provision and legacy delegation pool - this is done by the bridge when indexers move to L2
+        resetPrank(users.indexer);
+        _createProvision(subgraphDataServiceLegacyAddress, 100 ether, 0, 1 days);
+
+        resetPrank(users.delegator);
+        _delegateLegacy(users.indexer, amountDelegated);
+
+        // send amount to staking contract - this should be done by the bridge
+        resetPrank(users.delegator);
+        token.transfer(address(staking), amountReceived);
+
+        // thaw all delegation before receiving new delegation from L1
+        resetPrank(users.delegator);
+        _undelegateLegacy(users.indexer, amountDelegated);
+
+        resetPrank(graphTokenGatewayAddress);
+        bytes memory data = abi.encode(
+            uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE),
+            abi.encode(users.indexer, users.delegator)
+        );
+        _onTokenTransfer_ReceiveDelegation(counterpartStaking, amountReceived, data);
+    }
 
     /**
      * HELPERS
@@ -153,7 +179,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         );
         uint256 beforeDelegatorBalance = token.balanceOf(delegator);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
-        uint256 calcShares = (beforePool.tokens == 0)
+        uint256 calcShares = (beforePool.tokens == 0 || beforePool.tokens == beforePool.tokensThawing)
             ? tokens
             : ((tokens * beforePool.shares) / (beforePool.tokens - beforePool.tokensThawing));
 

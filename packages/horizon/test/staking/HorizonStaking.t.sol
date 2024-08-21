@@ -143,7 +143,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
             stakingBalance: token.balanceOf(address(staking))
         });
 
-        uint256 calcShares = (beforeData.pool.tokens == 0)
+        uint256 calcShares = (beforeData.pool.tokens == 0 || beforeData.pool.tokens == beforeData.pool.tokensThawing)
             ? tokens
             : ((tokens * beforeData.pool.shares) / (beforeData.pool.tokens - beforeData.pool.tokensThawing));
 

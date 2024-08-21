@@ -37,6 +37,21 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
     }
 
+    function testDelegate_Tokens_WhenAllThawing(
+        uint256 amount,
+        uint256 delegationAmount
+    ) public useIndexer useProvision(amount, 0, 1 days) {
+        delegationAmount = bound(delegationAmount, 1 ether, MAX_STAKING_TOKENS);
+
+        vm.startPrank(users.delegator);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
+
+        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
+
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0); 
+    }
+
     function testDelegate_RevertWhen_ZeroTokens(uint256 amount) public useIndexer useProvision(amount, 0, 0) {
         vm.startPrank(users.delegator);
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroTokens()");

@@ -720,7 +720,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
 
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
+        uint256 shares = (pool.tokens == 0 || pool.tokens == pool.tokensThawing)
+            ? _tokens
+            : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
         require(shares != 0 && shares >= _minSharesOut, HorizonStakingSlippageProtection(shares, _minSharesOut));
 
         pool.tokens = pool.tokens + _tokens;

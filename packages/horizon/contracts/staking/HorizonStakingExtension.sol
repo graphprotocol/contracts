@@ -358,7 +358,9 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
         }
 
         // Calculate shares to issue (without applying any delegation tax)
-        uint256 shares = (pool.tokens == 0) ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
+        uint256 shares = (pool.tokens == 0 || pool.tokens == pool.tokensThawing)
+            ? _tokens
+            : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
 
         if (shares == 0 || _tokens < MINIMUM_DELEGATION) {
             // If no shares would be issued (probably a rounding issue or attack),
