@@ -21,7 +21,7 @@ contract DataServiceImpFees is DataServiceFees {
 
     function stopService(address serviceProvider, bytes calldata data) external {}
 
-    function collect(address serviceProvider, IGraphPayments.PaymentTypes, bytes calldata data) external {
+    function collect(address serviceProvider, IGraphPayments.PaymentTypes, bytes calldata data) external returns (uint256) {
         uint256 amount = abi.decode(data, (uint256));
         _releaseStake(serviceProvider, 0);
         _lockStake(serviceProvider, amount * STAKE_TO_FEES_RATIO, block.timestamp + LOCK_DURATION);

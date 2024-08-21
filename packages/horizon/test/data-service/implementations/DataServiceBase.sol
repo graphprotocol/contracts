@@ -25,7 +25,7 @@ contract DataServiceBase is DataService {
 
     function stopService(address serviceProvider, bytes calldata data) external {}
 
-    function collect(address serviceProvider, IGraphPayments.PaymentTypes feeType, bytes calldata data) external {}
+    function collect(address serviceProvider, IGraphPayments.PaymentTypes feeType, bytes calldata data) external returns (uint256) {}
 
     function slash(address serviceProvider, bytes calldata data) external {}
 

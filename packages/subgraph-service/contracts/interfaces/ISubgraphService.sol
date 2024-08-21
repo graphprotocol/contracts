@@ -26,27 +26,13 @@ interface ISubgraphService is IDataServiceFees {
         string geoHash;
     }
 
-    /// @notice Payment cut definitions for each payment type
-    struct PaymentCuts {
-        // The cut the service provider takes from the payment
-        uint128 serviceCut;
-        // The cut curators take from the payment
-        uint128 curationCut;
-    }
-
     /**
      * @notice Emitted when a subgraph service collects query fees from Graph Payments
      * @param serviceProvider The address of the service provider
      * @param tokensCollected The amount of tokens collected
      * @param tokensCurators The amount of tokens curators receive
-     * @param tokensSubgraphService The amount of tokens the subgraph service receives
      */
-    event QueryFeesCollected(
-        address indexed serviceProvider,
-        uint256 tokensCollected,
-        uint256 tokensCurators,
-        uint256 tokensSubgraphService
-    );
+    event QueryFeesCollected(address indexed serviceProvider, uint256 tokensCollected, uint256 tokensCurators);
 
     /**
      * @notice Emitted when the stake to fees ratio is set.
@@ -55,12 +41,16 @@ interface ISubgraphService is IDataServiceFees {
     event StakeToFeesRatioSet(uint256 ratio);
 
     /**
-     * @notice Emmited when payment cuts are set for a payment type
-     * @param paymentType The payment type
-     * @param serviceCut The service cut for the payment type
-     * @param curationCut The curation cut for the payment type
+     * @notice Emmited when curator cuts are set
+     * @param curationCut The curation cut
      */
-    event PaymentCutsSet(IGraphPayments.PaymentTypes paymentType, uint128 serviceCut, uint128 curationCut);
+    event CurationCutSet(uint256 curationCut);
+
+    /**
+     * Thrown when trying to set a curation cut that is not a valid PPM value
+     * @param curationCut The curation cut value
+     */
+    error SubgraphServiceInvalidCurationCut(uint256 curationCut);
 
     /**
      * @notice Thrown when an indexer tries to register with an empty URL
@@ -89,9 +79,9 @@ interface ISubgraphService is IDataServiceFees {
      * from Graph Payments
      * @param balanceBefore The contract GRT balance before the collection
      * @param balanceAfter The contract GRT balance after the collection
-     * @param tokensCollected The amount of tokens collected
+     * @param tokensDataService The amount of tokens sent to the subgraph service
      */
-    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensCollected);
+    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensDataService);
 
     /**
      * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
@@ -175,13 +165,11 @@ interface ISubgraphService is IDataServiceFees {
     function setMaxPOIStaleness(uint256 maxPOIStaleness) external;
 
     /**
-     * @notice Sets the payment cuts for a payment type
-     * @dev Emits a {PaymentCutsSet} event
-     * @param paymentType The payment type
-     * @param serviceCut The service cut for the payment type
+     * @notice Sets the curators payment cut for query fees
+     * @dev Emits a {CuratorCutSet} event
      * @param curationCut The curation cut for the payment type
      */
-    function setPaymentCuts(IGraphPayments.PaymentTypes paymentType, uint128 serviceCut, uint128 curationCut) external;
+    function setCurationCut(uint256 curationCut) external;
 
     /**
      * @notice Sets the rewards destination for an indexer to receive indexing rewards

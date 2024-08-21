@@ -14,8 +14,7 @@ abstract contract Constants {
     uint32 internal constant delegationRatio = 16;
     uint256 public constant stakeToFeesRatio = 2;
     uint256 public constant maxPOIStaleness = 28 days;
-    uint128 public constant serviceCut = 10000; 
-    uint128 public constant curationCut = 10000;
+    uint256 public constant curationCut = 10000;
     // Staking
     uint64 internal constant MAX_THAWING_PERIOD = 28 days;
     // GraphEscrow parameters

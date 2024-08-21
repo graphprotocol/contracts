@@ -24,10 +24,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
      * HELPERS
      */
 
-    function _getQueryFeeEncodedData(
-        address indexer,
-        uint128 tokens
-    ) private view returns (bytes memory) {
+    function _getQueryFeeEncodedData(address indexer, uint128 tokens) private view returns (bytes memory) {
         ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(indexer, tokens);
         bytes32 messageHash = tapCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
@@ -36,19 +33,23 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         return abi.encode(signedRAV);
     }
 
-    function _getRAV(address indexer, uint128 tokens) private view returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
-        return ITAPCollector.ReceiptAggregateVoucher({
-            dataService: address(subgraphService),
-            serviceProvider: indexer,
-            timestampNs: 0,
-            valueAggregate: tokens,
-            metadata: abi.encode(allocationID)
-        });
+    function _getRAV(
+        address indexer,
+        uint128 tokens
+    ) private view returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
+        return
+            ITAPCollector.ReceiptAggregateVoucher({
+                dataService: address(subgraphService),
+                serviceProvider: indexer,
+                timestampNs: 0,
+                valueAggregate: tokens,
+                metadata: abi.encode(allocationID)
+            });
     }
 
-    function _approveCollector(uint128 tokens) private {
+    function _approveCollector(uint256 tokens) private {
         address msgSender;
-        (, msgSender,) = vm.readCallers();
+        (, msgSender, ) = vm.readCallers();
         resetPrank(signer);
         mint(signer, tokens);
         escrow.approveCollector(address(tapCollector), tokens);
@@ -72,56 +73,84 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
      */
 
     function testCollect_QueryFees(
-        uint256 tokens,
+        uint256 tokensAllocated,
         uint256 tokensPayment
-    ) public useIndexer useAllocation(tokens) {
-        vm.assume(tokens > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokens / stakeToFeesRatio > type(uint128).max ? type(uint128).max : tokens / stakeToFeesRatio;
+    ) public useIndexer useAllocation(tokensAllocated) {
+        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
+        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
+            ? type(uint128).max
+            : tokensAllocated / stakeToFeesRatio;
         tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
-        uint128 tokensPayment128 = uint128(tokensPayment);
-        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.QueryFee;
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, tokensPayment128);
-        
+
+        _approveCollector(tokensPayment);
+
         uint256 indexerPreviousBalance = token.balanceOf(users.indexer);
-        
-        _approveCollector(tokensPayment128);
-        subgraphService.collect(users.indexer, paymentType, data);
+
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment));
+        uint256 tokensCollected = subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
 
         uint256 indexerBalance = token.balanceOf(users.indexer);
-        uint256 tokensProtocol = tokensPayment128.mulPPM(protocolPaymentCut);
-        uint256 curationTokens = tokensPayment128.mulPPMRoundUp(curationCut);
-        uint256 dataServiceTokens = tokensPayment128.mulPPM(serviceCut + curationCut) - curationTokens;
+        uint256 tokensProtocol = tokensCollected.mulPPM(protocolPaymentCut);
+        uint256 curationTokens = tokensCollected.mulPPM(curationCut);
 
-        uint256 expectedIndexerTokensPayment = tokensPayment128 - tokensProtocol - dataServiceTokens - curationTokens;
+        uint256 expectedIndexerTokensPayment = tokensCollected - tokensProtocol - curationTokens;
         assertEq(indexerBalance, indexerPreviousBalance + expectedIndexerTokensPayment);
+    }
+
+    function testCollect_MultipleQueryFees(
+        uint256 tokensAllocated,
+        uint256 numPayments
+    ) public useIndexer useAllocation(tokensAllocated) {
+        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
+        numPayments = bound(numPayments, 1, 10);
+        uint256 tokensPayment = tokensAllocated / stakeToFeesRatio / numPayments;
+
+        _approveCollector(tokensAllocated);
+
+        uint256 accTokensPayment = 0;
+        for (uint i = 0; i < numPayments; i++) {
+            accTokensPayment = accTokensPayment + tokensPayment;
+            uint256 indexerPreviousBalance = token.balanceOf(users.indexer);
+
+            bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(accTokensPayment));
+            uint256 tokensCollected = subgraphService.collect(
+                users.indexer,
+                IGraphPayments.PaymentTypes.QueryFee,
+                data
+            );
+
+            uint256 indexerBalance = token.balanceOf(users.indexer);
+            uint256 tokensProtocol = tokensCollected.mulPPM(protocolPaymentCut);
+            uint256 curationTokens = tokensCollected.mulPPM(curationCut);
+
+            uint256 expectedIndexerTokensPayment = tokensCollected - tokensProtocol - curationTokens;
+            assertEq(indexerBalance, indexerPreviousBalance + expectedIndexerTokensPayment);
+        }
     }
 
     function testCollect_IndexingRewards(uint256 tokens) public useIndexer useAllocation(tokens) {
         _collectIndexingRewards(users.indexer, allocationID, tokens);
     }
 
-    function testCollect_RevertWhen_InvalidPayment(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function testCollect_RevertWhen_InvalidPayment(uint256 tokens) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes invalidPaymentType = IGraphPayments.PaymentTypes.IndexingFee;
-        vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceInvalidPaymentType.selector,
-            invalidPaymentType
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidPaymentType.selector, invalidPaymentType)
+        );
         subgraphService.collect(users.indexer, invalidPaymentType, "");
     }
 
-    function testCollect_RevertWhen_NotAuthorized(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function testCollect_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.QueryFee;
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens));
         resetPrank(users.operator);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProvisionManager.ProvisionManagerNotAuthorized.selector,
-            users.operator,
-            users.indexer
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProvisionManager.ProvisionManagerNotAuthorized.selector,
+                users.operator,
+                users.indexer
+            )
+        );
         subgraphService.collect(users.indexer, paymentType, data);
     }
 
@@ -133,11 +162,13 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
         bytes memory data = _getQueryFeeEncodedData(newIndexer, uint128(tokens));
-        vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
-            newIndexer,
-            allocationID
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
+                newIndexer,
+                allocationID
+            )
+        );
         subgraphService.collect(newIndexer, paymentType, data);
     }
 
@@ -149,11 +180,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens));
-        vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexerMismatch.selector,
-            users.indexer,
-            newIndexer
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerMismatch.selector, users.indexer, newIndexer)
+        );
         subgraphService.collect(newIndexer, paymentType, data);
     }
 
@@ -166,11 +195,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _createAndStartAllocation(newIndexer, tokens);
         bytes memory data = abi.encode(allocationID, bytes32("POI1"));
         // Attempt to collect from other indexer's allocation
-        vm.expectRevert(abi.encodeWithSelector(
-            AllocationManager.AllocationManagerNotAuthorized.selector,
-            newIndexer,
-            allocationID
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(AllocationManager.AllocationManagerNotAuthorized.selector, newIndexer, allocationID)
+        );
         subgraphService.collect(newIndexer, paymentType, data);
     }
 }

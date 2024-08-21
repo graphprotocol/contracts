@@ -125,8 +125,13 @@ interface IDataService {
      * @param serviceProvider The address of the service provider.
      * @param feeType The type of fee to collect as defined in {GraphPayments}.
      * @param data Custom data, usage defined by the data service.
+     * @return The amount of tokens collected.
      */
-    function collect(address serviceProvider, IGraphPayments.PaymentTypes feeType, bytes calldata data) external;
+    function collect(
+        address serviceProvider,
+        IGraphPayments.PaymentTypes feeType,
+        bytes calldata data
+    ) external returns (uint256);
 
     /**
      * @notice Slash a service provider for misbehaviour.

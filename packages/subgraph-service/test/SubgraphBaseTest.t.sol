@@ -188,7 +188,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         resetPrank(users.deployer);
         subgraphService.setStakeToFeesRatio(stakeToFeesRatio);
         subgraphService.setMaxPOIStaleness(maxPOIStaleness);
-        subgraphService.setPaymentCuts(IGraphPayments.PaymentTypes.QueryFee, serviceCut, curationCut);
+        subgraphService.setCurationCut(curationCut);
     }
 
     function unpauseProtocol() private {

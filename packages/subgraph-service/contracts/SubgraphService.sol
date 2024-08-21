@@ -261,6 +261,7 @@ contract SubgraphService is
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
+        returns (uint256)
     {
         uint256 paymentCollected = 0;
 
@@ -273,6 +274,7 @@ contract SubgraphService is
         }
 
         emit ServicePaymentCollected(indexer, paymentType, paymentCollected);
+        return paymentCollected;
     }
 
     /**
@@ -367,15 +369,12 @@ contract SubgraphService is
     }
 
     /**
-     * @notice See {ISubgraphService.setPaymentCuts}
+     * @notice See {ISubgraphService.setCurationCut}
      */
-    function setPaymentCuts(
-        IGraphPayments.PaymentTypes paymentType,
-        uint128 serviceCut,
-        uint128 curationCut
-    ) external override onlyOwner {
-        paymentCuts[paymentType] = PaymentCuts(serviceCut, curationCut);
-        emit PaymentCutsSet(paymentType, serviceCut, curationCut);
+    function setCurationCut(uint256 curationCut) external override onlyOwner {
+        require(PPMMath.isValidPPM(curationCut), SubgraphServiceInvalidCurationCut(curationCut));
+        curationFeesCut = curationCut;
+        emit CurationCutSet(curationCut);
     }
 
     /**
@@ -512,33 +511,27 @@ contract SubgraphService is
         // release expired stake claims
         _releaseStake(_indexer, 0);
 
-        // Collect from GraphPayments
-        PaymentCuts memory queryFeePaymentCuts = _getQueryFeePaymentCuts(subgraphDeploymentId);
-        uint256 totalCut = queryFeePaymentCuts.serviceCut + queryFeePaymentCuts.curationCut;
-
+        // Collect from GraphPayments - only curators cut is sent back to the subgraph service
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
+
+        uint256 curationCut = _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0;
         uint256 tokensCollected = _tapCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
-            abi.encode(signedRav, totalCut)
+            abi.encode(signedRav, curationCut)
         );
-        uint256 tokensDataService = tokensCollected.mulPPM(totalCut);
+        uint256 tokensCurators = tokensCollected.mulPPM(curationCut);
+
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
         require(
-            balanceBefore + tokensDataService == balanceAfter,
-            SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensDataService)
+            balanceBefore + tokensCurators == balanceAfter,
+            SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensCurators)
         );
 
-        uint256 tokensCurators = 0;
-        uint256 tokensSubgraphService = 0;
         if (tokensCollected > 0) {
             // lock stake as economic security for fees
             uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
             uint256 unlockTimestamp = block.timestamp + _disputeManager().getDisputePeriod();
             _lockStake(_indexer, tokensToLock, unlockTimestamp);
-
-            // calculate service and curator cuts
-            tokensCurators = tokensCollected.mulPPMRoundUp(queryFeePaymentCuts.curationCut);
-            tokensSubgraphService = tokensDataService - tokensCurators;
 
             if (tokensCurators > 0) {
                 // curation collection changes subgraph signal so we take rewards snapshot
@@ -550,23 +543,7 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesCollected(_indexer, tokensCollected, tokensCurators, tokensSubgraphService);
+        emit QueryFeesCollected(_indexer, tokensCollected, tokensCurators);
         return tokensCollected;
-    }
-
-    /**
-     * @notice Gets the payment cuts for query fees
-     * Checks if the subgraph is curated and adjusts the curation cut accordingly
-     * @param _subgraphDeploymentId The subgraph deployment id
-     */
-    function _getQueryFeePaymentCuts(bytes32 _subgraphDeploymentId) private view returns (PaymentCuts memory) {
-        PaymentCuts memory queryFeePaymentCuts = paymentCuts[IGraphPayments.PaymentTypes.QueryFee];
-
-        // Only pay curation fees if the subgraph is curated
-        if (!_curation().isCurated(_subgraphDeploymentId)) {
-            queryFeePaymentCuts.curationCut = 0;
-        }
-
-        return queryFeePaymentCuts;
     }
 }
