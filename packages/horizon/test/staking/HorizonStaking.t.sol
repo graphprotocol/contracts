@@ -290,9 +290,9 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 4), bytes32(_tokensProvisioned));
     }
 
-    function _slash(uint256 tokens, uint256 verifierCutAmount) internal {
-        uint256 beforeProviderTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        uint256 beforeDelegationTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
+    function _slash(address serviceProvider, address verifier, uint256 tokens, uint256 verifierCutAmount) internal {
+        uint256 beforeProviderTokens = staking.getProviderTokensAvailable(serviceProvider, verifier);
+        uint256 beforeDelegationTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
         bool isDelegationSlashingEnabled = staking.isDelegationSlashingEnabled();
 
         // Calculate expected tokens after slashing
@@ -306,40 +306,40 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         vm.expectEmit(address(staking));
         if (verifierCutAmount > 0) {
             emit IHorizonStakingMain.VerifierTokensSent(
-                users.indexer,
-                subgraphDataServiceAddress,
-                subgraphDataServiceAddress,
+                serviceProvider,
+                verifier,
+                verifier,
                 verifierCutAmount
             );
         }
-        emit IHorizonStakingMain.ProvisionSlashed(users.indexer, subgraphDataServiceAddress, providerTokensSlashed);
+        emit IHorizonStakingMain.ProvisionSlashed(serviceProvider, verifier, providerTokensSlashed);
 
         if (isDelegationSlashingEnabled) {
             emit IHorizonStakingMain.DelegationSlashed(
-                users.indexer,
-                subgraphDataServiceAddress,
+                serviceProvider,
+                verifier,
                 delegationTokensSlashed
             );
         } else {
             emit IHorizonStakingMain.DelegationSlashingSkipped(
-                users.indexer,
-                subgraphDataServiceAddress,
+                serviceProvider,
+                verifier,
                 delegationTokensSlashed
             );
         }
-        staking.slash(users.indexer, tokens, verifierCutAmount, subgraphDataServiceAddress);
+        staking.slash(serviceProvider, tokens, verifierCutAmount, verifier);
 
         if (!isDelegationSlashingEnabled) {
             expectedDelegationTokensAfterSlashing = beforeDelegationTokens;
         }
 
-        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        uint256 provisionTokens = staking.getProviderTokensAvailable(serviceProvider, verifier);
         assertEq(provisionTokens, expectedProviderTokensAfterSlashing);
 
-        uint256 delegationTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
+        uint256 delegationTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
         assertEq(delegationTokens, expectedDelegationTokensAfterSlashing);
 
-        uint256 verifierTokens = token.balanceOf(subgraphDataServiceAddress);
+        uint256 verifierTokens = token.balanceOf(verifier);
         assertEq(verifierTokens, verifierCutAmount);
     }
 

@@ -190,7 +190,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         skip(MAX_THAWING_PERIOD + 1);
 
         resetPrank(subgraphDataServiceAddress);
-        _slash(tokens + delegationTokens, 0);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
         
         resetPrank(users.delegator);
         vm.expectRevert(abi.encodeWithSelector(

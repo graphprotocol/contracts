@@ -101,6 +101,35 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         _onTokenTransfer_ReceiveDelegation(counterpartStaking, amount, data);
     }
 
+    function testOnTransfer_ReceiveDelegation_WhenInvalidPool(uint256 amount) public useDelegationSlashing(true) {
+        amount = bound(amount, 1 ether, MAX_STAKING_TOKENS);
+        uint256 originalDelegationAmount = 10 ether;
+        uint256 provisionSize = 100 ether;
+
+        // create provision and legacy delegation pool - this is done by the bridge when indexers move to L2
+        resetPrank(users.indexer);
+        _createProvision(subgraphDataServiceLegacyAddress, provisionSize, 0, 1 days);
+
+        // initialize the delegation pool
+        resetPrank(users.delegator);
+        _delegateLegacy(users.indexer, originalDelegationAmount);
+
+        // slash the entire provision
+        resetPrank(subgraphDataServiceLegacyAddress);
+        _slash(users.indexer, subgraphDataServiceLegacyAddress, provisionSize + originalDelegationAmount, 0);
+
+        // send amount to staking contract - this should be done by the bridge
+        resetPrank(users.delegator);
+        token.transfer(address(staking), amount);
+
+        resetPrank(graphTokenGatewayAddress);
+        bytes memory data = abi.encode(
+            uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE),
+            abi.encode(users.indexer, users.delegator)
+        );
+        _onTokenTransfer_ReceiveDelegation(counterpartStaking, amount, data);
+    }
+
     /**
      * HELPERS
      */
@@ -128,8 +157,11 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
             ? tokens
             : ((tokens * beforePool.shares) / (beforePool.tokens - beforePool.tokensThawing));
 
+        bool earlyExit = (calcShares == 0 || tokens < 1 ether) ||
+            (beforePool.tokens == 0 && (beforePool.shares != 0 || beforePool.sharesThawing != 0));
+
         // onTokenTransfer
-        if (calcShares == 0 || tokens < 1 ether) {
+        if (earlyExit) {
             vm.expectEmit();
             emit Transfer(address(staking), delegator, tokens);
             vm.expectEmit();
@@ -158,7 +190,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         uint256 deltaShares = afterDelegation.shares - beforeDelegation.shares;
 
         // assertions
-        if (calcShares == 0 || tokens < 1 ether) {
+        if (earlyExit) {
             assertEq(beforePool.tokens, afterPool.tokens);
             assertEq(beforePool.shares, afterPool.shares);
             assertEq(beforePool.tokensThawing, afterPool.tokensThawing);

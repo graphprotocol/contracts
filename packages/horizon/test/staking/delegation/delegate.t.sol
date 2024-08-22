@@ -78,7 +78,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         resetPrank(subgraphDataServiceAddress);
-        _slash(tokens + delegationTokens, 0);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
         
         resetPrank(users.delegator);
         token.approve(address(staking), delegationTokens);
@@ -101,7 +101,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
 
         resetPrank(subgraphDataServiceAddress);
-        _slash(tokens + delegationTokens, 0);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
         
         resetPrank(users.delegator);
         token.approve(address(staking), delegationTokens);

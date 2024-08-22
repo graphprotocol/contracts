@@ -122,7 +122,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         resetPrank(subgraphDataServiceAddress);
-        _slash(tokens + delegationTokens, 0);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
         
         resetPrank(users.delegator);
         Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);

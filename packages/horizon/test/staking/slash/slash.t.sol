@@ -33,7 +33,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         vm.assume(verifierCutAmount <= maxVerifierTokens);
         
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashTokens, verifierCutAmount);
+        _slash(users.indexer, subgraphDataServiceAddress, slashTokens, verifierCutAmount);
     }
 
     function testSlash_DelegationDisabled_SlashingOverProviderTokens(
@@ -52,7 +52,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashTokens, verifierCutAmount);
+        _slash(users.indexer, subgraphDataServiceAddress, slashTokens, verifierCutAmount);
     }
 
     function testSlash_DelegationEnabled_SlashingOverProviderTokens(
@@ -71,7 +71,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashTokens, verifierCutAmount);
+        _slash(users.indexer, subgraphDataServiceAddress, slashTokens, verifierCutAmount);
     }
 
     function testSlash_OverProvisionSize(
@@ -83,7 +83,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         vm.assume(slashTokens > tokens + delegationTokens);
         
         vm.startPrank(subgraphDataServiceAddress);
-        _slash(slashTokens, 0);
+        _slash(users.indexer, subgraphDataServiceAddress, slashTokens, 0);
     }
 
     function testSlash_RevertWhen_NoProvision(
