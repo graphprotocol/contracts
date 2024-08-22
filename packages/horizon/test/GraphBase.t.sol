@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
 import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";
 import { GraphPayments } from "contracts/payments/GraphPayments.sol";
@@ -114,19 +115,15 @@ abstract contract GraphBaseTest is Utils, Constants {
             users.deployer
         );
         
-        // GraphEscrow predict address
-        bytes32 saltEscrow = keccak256("GraphEscrowSalt");
-        bytes32 escrowHash = keccak256(bytes.concat(
-            vm.getCode("PaymentsEscrow.sol:PaymentsEscrow"),
-            abi.encode(
-                address(controller),
-                revokeCollectorThawingPeriod,
-                withdrawEscrowThawingPeriod
-            )
+        // PaymentsEscrow
+        bytes32 escrowProxySalt = keccak256("PaymentsEscrowSalt");
+        bytes32 escrowProxyHash = keccak256(bytes.concat(
+            vm.getCode("TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"),
+            abi.encode(address(controller))
         ));
-        address predictedAddressEscrow = vm.computeCreate2Address(
-            saltEscrow,
-            escrowHash,
+        address predictedEscrowProxyAddress = vm.computeCreate2Address(
+            escrowProxySalt,
+            escrowProxyHash,
             users.deployer
         );
 
@@ -142,7 +139,7 @@ abstract contract GraphBaseTest is Utils, Constants {
         // Setup controller
         resetPrank(users.governor);
         controller.setContractProxy(keccak256("GraphToken"), address(token));
-        controller.setContractProxy(keccak256("PaymentsEscrow"), predictedAddressEscrow);
+        controller.setContractProxy(keccak256("PaymentsEscrow"), predictedEscrowProxyAddress);
         controller.setContractProxy(keccak256("GraphPayments"), predictedPaymentsAddress);
         controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
         controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
@@ -153,14 +150,21 @@ abstract contract GraphBaseTest is Utils, Constants {
         
         resetPrank(users.deployer);
         payments = new GraphPayments{salt: saltPayments}(
-            address(controller), 
+            address(controller),
             protocolPaymentCut
         );
-        escrow = new PaymentsEscrow{salt: saltEscrow}(
-            address(controller),
-            revokeCollectorThawingPeriod,
-            withdrawEscrowThawingPeriod
-        );
+
+        address escrowImplementation = address(new PaymentsEscrow(address(controller), revokeCollectorThawingPeriod, withdrawEscrowThawingPeriod));
+        address escrowProxy = address(new TransparentUpgradeableProxy{salt: escrowProxySalt}(
+            escrowImplementation,
+            users.governor,
+            abi.encodeCall(
+                PaymentsEscrow.initialize,
+                ()
+            )
+        ));
+        escrow = PaymentsEscrow(escrowProxy);
+
         stakingExtension = new HorizonStakingExtension(
             address(controller),
             subgraphDataServiceLegacyAddress

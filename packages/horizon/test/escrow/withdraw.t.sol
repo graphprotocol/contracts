@@ -8,18 +8,6 @@ import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 contract GraphEscrowWithdrawTest is GraphEscrowTest {
 
     /*
-     * MODIFIERS
-     */
-
-    modifier depositAndThawTokens(uint256 amount, uint256 thawAmount) {
-        vm.assume(thawAmount > 0);  
-        vm.assume(amount > thawAmount);
-        _depositTokens(amount);
-        escrow.thaw(users.indexer, thawAmount);
-        _;
-    }
-
-    /*
      * TESTS
      */
 

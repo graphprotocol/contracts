@@ -114,6 +114,11 @@ interface IPaymentsEscrow {
     // -- Errors --
 
     /**
+     * @notice Thrown when a protected function is called and the contract is paused.
+     */
+    error PaymentsEscrowIsPaused();
+
+    /**
      * @notice Thrown when the available balance is insufficient to perform an operation
      * @param balance The current balance
      * @param minBalance The minimum required balance
@@ -167,6 +172,11 @@ interface IPaymentsEscrow {
      * @param tokens The amount of tokens collected
      */
     error PaymentsEscrowInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokens);
+
+    /**
+     * @notice Initialize the contract
+     */
+    function initialize() external;
 
     /**
      * @notice Authorize a collector to collect funds from the payer's escrow

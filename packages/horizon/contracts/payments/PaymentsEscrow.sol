@@ -5,7 +5,8 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 import { IPaymentsEscrow } from "../interfaces/IPaymentsEscrow.sol";
 
-import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 
 import { GraphDirectory } from "../utilities/GraphDirectory.sol";
@@ -17,7 +18,12 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
  * for payments made through the payments protocol for services provided
  * via a Graph Horizon data service.
  */
-contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
+contract PaymentsEscrow is
+    Initializable,
+    MulticallUpgradeable,
+    GraphDirectory,
+    IPaymentsEscrow
+{
     using TokenUtils for IGraphToken;
 
     /// @notice Authorization details for payer-collector pairs
@@ -37,6 +43,11 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
 
     /// @notice Thawing period in seconds for escrow funds withdrawal
     uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
+
+    modifier notPaused() {
+        require(!_graphController().paused(), PaymentsEscrowIsPaused());
+        _;
+    }
 
     /**
      * @notice Construct the PaymentsEscrow contract
@@ -62,10 +73,18 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
     }
 
+
+    /**
+     * @notice See {PaymentsEscrow.initialize}
+     */
+    function initialize() external override initializer {
+        __Multicall_init();
+    }
+
     /**
      * @notice See {IPaymentsEscrow-approveCollector}
      */
-    function approveCollector(address collector_, uint256 allowance) external override {
+    function approveCollector(address collector_, uint256 allowance) external override notPaused {
         Collector storage collector = authorizedCollectors[msg.sender][collector_];
         require(allowance > collector.allowance, PaymentsEscrowInconsistentAllowance(collector.allowance, allowance));
 
@@ -77,7 +96,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     /**
      * @notice See {IPaymentsEscrow-thawCollector}
      */
-    function thawCollector(address collector) external override {
+    function thawCollector(address collector) external override notPaused {
         authorizedCollectors[msg.sender][collector].thawEndTimestamp =
             block.timestamp +
             REVOKE_COLLECTOR_THAWING_PERIOD;
@@ -87,7 +106,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     /**
      * @notice See {IPaymentsEscrow-cancelThawCollector}
      */
-    function cancelThawCollector(address collector) external override {
+    function cancelThawCollector(address collector) external override notPaused {
         require(authorizedCollectors[msg.sender][collector].thawEndTimestamp != 0, PaymentsEscrowNotThawing());
 
         authorizedCollectors[msg.sender][collector].thawEndTimestamp = 0;
@@ -97,7 +116,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     /**
      * @notice See {IPaymentsEscrow-revokeCollector}
      */
-    function revokeCollector(address collector_) external override {
+    function revokeCollector(address collector_) external override notPaused {
         Collector storage collector = authorizedCollectors[msg.sender][collector_];
 
         require(collector.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
@@ -113,21 +132,21 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     /**
      * @notice See {IPaymentsEscrow-deposit}
      */
-    function deposit(address receiver, uint256 tokens) external override {
+    function deposit(address receiver, uint256 tokens) external override notPaused {
         _deposit(msg.sender, receiver, tokens);
     }
 
     /**
      * @notice See {IPaymentsEscrow-depositTo}
      */
-    function depositTo(address payer, address receiver, uint256 tokens) external override {
+    function depositTo(address payer, address receiver, uint256 tokens) external override notPaused {
         _deposit(payer, receiver, tokens);
     }
 
     /**
      * @notice See {IPaymentsEscrow-thaw}
      */
-    function thaw(address receiver, uint256 tokens) external override {
+    function thaw(address receiver, uint256 tokens) external override notPaused {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
 
         // if amount thawing is zero and requested amount is zero this is an invalid request.
@@ -152,7 +171,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
     /**
      * @notice See {IPaymentsEscrow-withdraw}
      */
-    function withdraw(address receiver) external override {
+    function withdraw(address receiver) external override notPaused {
         EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
         require(account.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
         require(
@@ -180,7 +199,7 @@ contract PaymentsEscrow is Multicall, GraphDirectory, IPaymentsEscrow {
         uint256 tokens,
         address dataService,
         uint256 tokensDataService
-    ) external override {
+    ) external override notPaused {
         // Check if collector is authorized and has enough funds
         Collector storage collector = authorizedCollectors[payer][msg.sender];
         require(collector.authorized, PaymentsEscrowCollectorNotAuthorized(payer, msg.sender));
