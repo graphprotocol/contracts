@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.26;
 
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IDataServiceRescuable } from "../interfaces/IDataServiceRescuable.sol";
 
@@ -66,7 +67,7 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     function _rescueTokens(address _to, address _token, uint256 _tokens) internal {
         require(_tokens != 0, DataServiceRescuableCannotRescueZero());
 
-        if (Denominations.isNativeToken(_token)) payable(_to).transfer(_tokens);
+        if (Denominations.isNativeToken(_token)) Address.sendValue(payable(_to), _tokens);
         else SafeERC20.safeTransfer(IERC20(_token), _to, _tokens);
 
         emit TokensRescued(msg.sender, _to, _tokens);
