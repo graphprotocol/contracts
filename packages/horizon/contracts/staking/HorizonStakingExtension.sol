@@ -349,7 +349,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
         IHorizonStakingTypes.DelegationInternal storage delegation = pool.delegators[_delegationData.delegator];
 
         // If pool is in an invalid state, return the tokens to the delegator
-        if (pool.tokens == 0 && (pool.shares == 0 || pool.sharesThawing == 0)) {
+        if (pool.tokens == 0 && (pool.shares != 0 || pool.sharesThawing != 0)) {
             _graphToken().transfer(_delegationData.delegator, _tokens);
             emit TransferredDelegationReturnedToDelegator(_delegationData.indexer, _delegationData.delegator, _tokens);
             return;
