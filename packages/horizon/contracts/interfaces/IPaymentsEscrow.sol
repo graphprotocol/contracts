@@ -159,19 +159,17 @@ interface IPaymentsEscrow {
     error PaymentsEscrowInsufficientAllowance(uint256 allowance, uint256 minAllowance);
 
     /**
-     * @notice Thrown when attempting to decrease a collector's allowance
-     * @param current The current allowance
-     * @param target The target allowance
-     */
-    error PaymentsEscrowInconsistentAllowance(uint256 current, uint256 target);
-
-    /**
      * @notice Thrown when the contract balance is not consistent with the collection amount
      * @param balanceBefore The balance before the collection
      * @param balanceAfter The balance after the collection
      * @param tokens The amount of tokens collected
      */
     error PaymentsEscrowInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokens);
+
+    /**
+     * @notice Thrown when operating a zero token amount is not allowed.
+     */
+    error PaymentsEscrowInvalidZeroTokens();
 
     /**
      * @notice Initialize the contract
@@ -184,12 +182,12 @@ interface IPaymentsEscrow {
      * To reduce it the authorization must be revoked and a new one must be created.
      *
      * Requirements:
-     * - `allowance` must be greater than the current allowance
+     * - `allowance` must be greater than zero
      *
      * Emits an {AuthorizedCollector} event
      *
      * @param collector The address of the collector
-     * @param allowance The amount of tokens the collector is allowed to collect
+     * @param allowance The amount of tokens to add to the collector's allowance
      */
     function approveCollector(address collector, uint256 allowance) external;
 

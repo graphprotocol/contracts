@@ -85,11 +85,10 @@ contract PaymentsEscrow is
      * @notice See {IPaymentsEscrow-approveCollector}
      */
     function approveCollector(address collector_, uint256 allowance) external override notPaused {
+        require(allowance != 0, PaymentsEscrowInvalidZeroTokens());
         Collector storage collector = authorizedCollectors[msg.sender][collector_];
-        require(allowance > collector.allowance, PaymentsEscrowInconsistentAllowance(collector.allowance, allowance));
-
         collector.authorized = true;
-        collector.allowance = allowance;
+        collector.allowance += allowance;
         emit AuthorizedCollector(msg.sender, collector_);
     }
 
