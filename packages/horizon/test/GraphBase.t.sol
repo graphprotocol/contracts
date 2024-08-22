@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
+import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
 import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
 import { Controller } from "@graphprotocol/contracts/contracts/governance/Controller.sol";
@@ -104,26 +105,44 @@ abstract contract GraphBaseTest is Utils, Constants {
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
 
         // GraphPayments predict address
-        bytes32 saltPayments = keccak256("GraphPaymentsSalt");
-        bytes32 paymentsHash = keccak256(bytes.concat(
-            vm.getCode("GraphPayments.sol:GraphPayments"),
-            abi.encode(address(controller), protocolPaymentCut)
-        ));
-        address predictedPaymentsAddress = vm.computeCreate2Address(
-            saltPayments,
-            paymentsHash,
+        bytes memory paymentsParameters = abi.encode(address(controller), protocolPaymentCut);
+        bytes memory paymentsBytecode = abi.encodePacked(
+            type(GraphPayments).creationCode,
+            paymentsParameters
+        );
+        address predictedPaymentsAddress = _computeAddress(
+            "GraphPayments",
+            paymentsBytecode,
             users.deployer
         );
         
         // PaymentsEscrow
-        bytes32 escrowProxySalt = keccak256("PaymentsEscrowSalt");
-        bytes32 escrowProxyHash = keccak256(bytes.concat(
-            vm.getCode("TransparentUpgradeableProxy.sol:TransparentUpgradeableProxy"),
-            abi.encode(address(controller))
-        ));
-        address predictedEscrowProxyAddress = vm.computeCreate2Address(
-            escrowProxySalt,
-            escrowProxyHash,
+        bytes memory escrowImplementationParameters = abi.encode(
+            address(controller),
+            revokeCollectorThawingPeriod,withdrawEscrowThawingPeriod
+        );
+        bytes memory escrowImplementationBytecode = abi.encodePacked(
+            type(PaymentsEscrow).creationCode,
+            escrowImplementationParameters
+        );
+        address predictedEscrowImplementationAddress = _computeAddress(
+            "PaymentsEscrow",
+            escrowImplementationBytecode,
+            users.deployer
+        );
+
+        bytes memory escrowProxyParameters = abi.encode(
+            predictedEscrowImplementationAddress,
+            users.governor,
+            abi.encodeCall(PaymentsEscrow.initialize, ())
+        );
+        bytes memory escrowProxyBytecode = abi.encodePacked(
+            type(TransparentUpgradeableProxy).creationCode,
+            escrowProxyParameters
+        );
+        address predictedEscrowProxyAddress = _computeAddress(
+            "TransparentUpgradeableProxy",
+            escrowProxyBytecode,
             users.deployer
         );
 
@@ -149,21 +168,15 @@ abstract contract GraphBaseTest is Utils, Constants {
         controller.setContractProxy(keccak256("GraphProxyAdmin"), address(proxyAdmin));
         
         resetPrank(users.deployer);
-        payments = new GraphPayments{salt: saltPayments}(
-            address(controller),
-            protocolPaymentCut
-        );
+        address paymentsAddress = _deployContract("GraphPayments", paymentsBytecode);
+        assertEq(paymentsAddress, predictedPaymentsAddress);
+        payments = GraphPayments(paymentsAddress);
 
-        address escrowImplementation = address(new PaymentsEscrow(address(controller), revokeCollectorThawingPeriod, withdrawEscrowThawingPeriod));
-        address escrowProxy = address(new TransparentUpgradeableProxy{salt: escrowProxySalt}(
-            escrowImplementation,
-            users.governor,
-            abi.encodeCall(
-                PaymentsEscrow.initialize,
-                ()
-            )
-        ));
-        escrow = PaymentsEscrow(escrowProxy);
+        address escrowImplementationAddress = _deployContract("PaymentsEscrow", escrowImplementationBytecode);
+        address escrowProxyAddress = _deployContract("TransparentUpgradeableProxy", escrowProxyBytecode);
+        assertEq(escrowImplementationAddress, predictedEscrowImplementationAddress);
+        assertEq(escrowProxyAddress, predictedEscrowProxyAddress);
+        escrow = PaymentsEscrow(escrowProxyAddress);
 
         stakingExtension = new HorizonStakingExtension(
             address(controller),
@@ -212,5 +225,19 @@ abstract contract GraphBaseTest is Utils, Constants {
 
     function approve(address spender, uint256 amount) internal {
         token.approve(spender, amount);
+    }
+
+    /*
+     * PRIVATE
+     */
+
+    function _computeAddress(string memory contractName, bytes memory bytecode, address deployer) private pure returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(contractName, "Salt"));
+        return Create2.computeAddress(salt, keccak256(bytecode), deployer);
+    }
+
+    function _deployContract(string memory contractName, bytes memory bytecode) private returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(contractName, "Salt"));
+        return Create2.deploy(0, salt, bytecode);
     }
 }
