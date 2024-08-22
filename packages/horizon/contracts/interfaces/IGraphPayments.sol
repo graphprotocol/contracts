@@ -46,11 +46,6 @@ interface IGraphPayments {
     error GraphPaymentsInsufficientTokens(uint256 tokens, uint256 minTokens);
 
     /**
-     * @notice Initialize the contract
-     */
-    function initialize() external;
-
-    /**
      * @notice Collects funds from a payer.
      * It will pay cuts to all relevant parties and forward the rest to the receiver.
      * @param paymentType The type of payment as defined in {IGraphPayments}

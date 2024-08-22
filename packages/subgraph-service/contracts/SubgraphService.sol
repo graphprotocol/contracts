@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
@@ -15,6 +16,7 @@ import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 
+import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
@@ -34,6 +36,7 @@ contract SubgraphService is
     using PPMMath for uint256;
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
+    using TokenUtils for IGraphToken;
 
     /**
      * @notice Checks that an indexer is registered
@@ -79,18 +82,20 @@ contract SubgraphService is
     }
 
     /**
-     * @notice See {ISubgraphService.initialize}
+     * @notice Initialize the contract
      * @dev The thawingPeriod and verifierCut ranges are not set here because they are variables
      * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.
+     * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
+     * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
      */
-    function initialize(uint256 minimumProvisionTokens, uint32 delegationRatio) external override initializer {
+    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external initializer {
         __Ownable_init(msg.sender);
         __DataService_init();
         __DataServicePausable_init();
         __AllocationManager_init("SubgraphService", "1.0");
 
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
-        _setDelegationRatio(delegationRatio);
+        _setDelegationRatio(maximumDelegationRatio);
     }
 
     /**
@@ -561,7 +566,7 @@ contract SubgraphService is
                 _graphRewardsManager().onSubgraphSignalUpdate(subgraphDeploymentId);
 
                 // Send GRT and bookkeep by calling collect()
-                _graphToken().transfer(address(_curation()), tokensCurators);
+                _graphToken().pushTokens(address(_curation()), tokensCurators);
                 _curation().collect(subgraphDeploymentId, tokensCurators);
             }
         }

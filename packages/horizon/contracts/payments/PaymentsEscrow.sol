@@ -75,9 +75,9 @@ contract PaymentsEscrow is
 
 
     /**
-     * @notice See {PaymentsEscrow.initialize}
+     * @notice Initialize the contract
      */
-    function initialize() external override initializer {
+    function initialize() external initializer {
         __Multicall_init();
     }
 

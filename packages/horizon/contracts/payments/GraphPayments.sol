@@ -35,7 +35,7 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
     }
 
     /**
-     * @notice See {IGraphPayments-initialize}
+     * @notice Initialize the contract
      */
     function initialize() external initializer {
         __Multicall_init();

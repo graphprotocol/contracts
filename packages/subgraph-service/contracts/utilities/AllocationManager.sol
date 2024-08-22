@@ -2,10 +2,13 @@
 pragma solidity 0.8.26;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
+import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Allocation } from "../libraries/Allocation.sol";
@@ -25,6 +28,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     using Allocation for Allocation.State;
     using LegacyAllocation for mapping(address => LegacyAllocation.State);
     using PPMMath for uint256;
+    using TokenUtils for IGraphToken;
 
     ///@dev EIP712 typehash for allocation proof
     bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
@@ -305,7 +309,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
             _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
         } else {
-            _graphToken().transfer(rewardsDestination, tokensIndexerRewards);
+            _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
         }
 
         emit IndexingRewardsCollected(

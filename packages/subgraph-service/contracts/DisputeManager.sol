@@ -112,7 +112,7 @@ contract DisputeManager is
         uint256 disputeDeposit,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
-    ) external override initializer {
+    ) external initializer {
         __Ownable_init(msg.sender);
         __AttestationManager_init();
 

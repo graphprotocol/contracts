@@ -347,7 +347,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
         IL2StakingTypes.ReceiveDelegationData memory _delegationData
     ) internal {
         // Get the delegation pool of the indexer
-        IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_delegationData.indexer];
+        DelegationPoolInternal storage pool = _legacyDelegationPools[_delegationData.indexer];
         IHorizonStakingTypes.DelegationInternal storage delegation = pool.delegators[_delegationData.delegator];
 
         // If pool is in an invalid state, return the tokens to the delegator
@@ -366,7 +366,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
             // If no shares would be issued (probably a rounding issue or attack),
             // or if the amount is under the minimum delegation (which could be part of a rounding attack),
             // return the tokens to the delegator
-            _graphToken().transfer(_delegationData.delegator, _tokens);
+            _graphToken().pushTokens(_delegationData.delegator, _tokens);
             emit TransferredDelegationReturnedToDelegator(_delegationData.indexer, _delegationData.delegator, _tokens);
         } else {
             // Update the delegation pool
@@ -516,7 +516,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
      */
     function _collectDelegationQueryRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
-        IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
+        DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && uint256(pool.__DEPRECATED_queryFeeCut).isValidPPM()) {
             uint256 indexerCut = uint256(pool.__DEPRECATED_queryFeeCut).mulPPM(_tokens);
             delegationRewards = _tokens - indexerCut;
@@ -534,7 +534,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
      */
     function _collectDelegationIndexingRewards(address _indexer, uint256 _tokens) private returns (uint256) {
         uint256 delegationRewards = 0;
-        IHorizonStakingTypes.DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
+        DelegationPoolInternal storage pool = _legacyDelegationPools[_indexer];
         if (pool.tokens > 0 && uint256(pool.__DEPRECATED_indexingRewardCut).isValidPPM()) {
             uint256 indexerCut = uint256(pool.__DEPRECATED_indexingRewardCut).mulPPM(_tokens);
             delegationRewards = _tokens - indexerCut;

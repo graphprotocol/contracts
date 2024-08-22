@@ -265,6 +265,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokens,
         uint256 minSharesOut
     ) external override notPaused {
+        require(tokens != 0, HorizonStakingInvalidZeroTokens());
         _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, verifier, tokens, minSharesOut);
     }
@@ -325,6 +326,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-delegate}.
      */
     function delegate(address serviceProvider, uint256 tokens) external override notPaused {
+        require(tokens != 0, HorizonStakingInvalidZeroTokens());
         _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, tokens, 0);
     }
@@ -711,8 +713,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * have been done before calling this function.
      */
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
-        require(_tokens != 0, HorizonStakingInvalidZeroTokens());
-
         // TODO: remove this after L2 transfer tool for delegation is removed
         require(_tokens >= MIN_DELEGATION, HorizonStakingInsufficientTokens(_tokens, MIN_DELEGATION));
         require(

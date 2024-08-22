@@ -172,11 +172,6 @@ interface IPaymentsEscrow {
     error PaymentsEscrowInvalidZeroTokens();
 
     /**
-     * @notice Initialize the contract
-     */
-    function initialize() external;
-
-    /**
      * @notice Authorize a collector to collect funds from the payer's escrow
      * @dev This function can only be used to increase the allowance of a collector.
      * To reduce it the authorization must be revoked and a new one must be created.

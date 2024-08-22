@@ -118,13 +118,6 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceAllocationIsAltruistic(address allocationId);
 
     /**
-     * @notice Initialize the contract
-     * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
-     * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
-     */
-    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external;
-
-    /**
      * @notice Close a stale allocation
      * @dev This function can be permissionlessly called when the allocation is stale.
      * This ensures rewards for other allocations are not diluted by an inactive allocation
@@ -141,6 +134,7 @@ interface ISubgraphService is IDataServiceFees {
     function closeStaleAllocation(address allocationId) external;
 
     /**
+
      * @notice Change the amount of tokens in an allocation
      * @dev Requirements:
      * - The indexer must be registered

@@ -170,14 +170,6 @@ interface IDisputeManager {
         bytes32 subgraphDeploymentId2
     );
 
-    function initialize(
-        address arbitrator,
-        uint64 disputePeriod,
-        uint256 disputeDeposit,
-        uint32 fishermanRewardCut,
-        uint32 maxSlashingCut
-    ) external;
-
     function setDisputePeriod(uint64 disputePeriod) external;
 
     function setArbitrator(address arbitrator) external;
