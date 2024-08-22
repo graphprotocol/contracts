@@ -24,7 +24,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     /// @notice The EIP712 typehash for the ReceiptAggregateVoucher struct
     bytes32 private constant EIP712_RAV_TYPEHASH =
         keccak256(
-            "ReceiptAggregateVoucher(address dataService, address serviceProvider,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
+            "ReceiptAggregateVoucher(address dataService,address serviceProvider,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
         );
 
     /// @notice Tracks the amount of tokens already collected by a data service from a payer to a receiver
