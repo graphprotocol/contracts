@@ -38,6 +38,8 @@ interface IDisputeManager {
         DisputeStatus status;
         // Timestamp when the dispute was created
         uint256 createdAt;
+        // Stake snapshot of the indexer at the time of the dispute (includes delegation up to the delegation ratio)
+        uint256 stakeSnapshot;
     }
 
     /**
@@ -87,7 +89,8 @@ interface IDisputeManager {
         address indexed fisherman,
         uint256 tokens,
         bytes32 subgraphDeploymentId,
-        bytes attestation
+        bytes attestation,
+        uint256 stakeSnapshot
     );
 
     /**
@@ -101,7 +104,8 @@ interface IDisputeManager {
         address indexed fisherman,
         uint256 tokens,
         address allocationId,
-        bytes32 poi
+        bytes32 poi,
+        uint256 stakeSnapshot
     );
 
     /**
@@ -150,7 +154,7 @@ interface IDisputeManager {
     error DisputeManagerInvalidMinimumDeposit(uint256 minimumDeposit);
     error DisputeManagerInvalidFishermanReward(uint32 cut);
     error DisputeManagerInvalidMaxSlashingCut(uint32 maxSlashingCut);
-    error DisputeManagerInvalidTokensSlash(uint256 tokensSlash);
+    error DisputeManagerInvalidTokensSlash(uint256 tokensSlash, uint256 maxTokensSlash);
     error DisputeManagerDisputeNotPending(IDisputeManager.DisputeStatus status);
     error DisputeManagerInsufficientDeposit(uint256 deposit, uint256 minimumDeposit);
     error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
@@ -222,4 +226,6 @@ interface IDisputeManager {
         Attestation.State memory attestation1,
         Attestation.State memory attestation2
     ) external pure returns (bool);
+
+    function getStakeSnapshot(address indexer) external view returns (uint256);
 }

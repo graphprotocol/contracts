@@ -54,8 +54,8 @@ contract DisputeManagerCancelDisputeTest is DisputeManagerTest {
 
         disputeManager.cancelDispute(disputeID1);
 
-        (, , , , , IDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
-        (, , , , , IDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
+        (, , , , , IDisputeManager.DisputeStatus status1, ,) = disputeManager.disputes(disputeID1);
+        (, , , , , IDisputeManager.DisputeStatus status2, ,) = disputeManager.disputes(disputeID2);
         assertTrue(status1 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 1 should be cancelled.");
         assertTrue(status2 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 2 should be cancelled.");
     }

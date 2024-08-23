@@ -50,8 +50,8 @@ contract DisputeManagerDrawDisputeTest is DisputeManagerTest {
         resetPrank(users.arbitrator);
         disputeManager.drawDispute(disputeID1);
 
-        (, , , , , IDisputeManager.DisputeStatus status1, ) = disputeManager.disputes(disputeID1);
-        (, , , , , IDisputeManager.DisputeStatus status2, ) = disputeManager.disputes(disputeID2);
+        (, , , , , IDisputeManager.DisputeStatus status1, ,) = disputeManager.disputes(disputeID1);
+        (, , , , , IDisputeManager.DisputeStatus status2, ,) = disputeManager.disputes(disputeID2);
         assertTrue(status1 == IDisputeManager.DisputeStatus.Drawn, "Dispute 1 should be drawn.");
         assertTrue(status2 == IDisputeManager.DisputeStatus.Drawn, "Dispute 2 should be drawn.");
     }

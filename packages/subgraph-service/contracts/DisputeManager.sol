@@ -9,6 +9,7 @@ import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
+import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { Attestation } from "./libraries/Attestation.sol";
 
@@ -229,7 +230,7 @@ contract DisputeManager is
         dispute.status = IDisputeManager.DisputeStatus.Accepted;
 
         // Slash
-        uint256 tokensToReward = _slashIndexer(dispute.indexer, tokensSlash);
+        uint256 tokensToReward = _slashIndexer(dispute.indexer, tokensSlash, dispute.stakeSnapshot);
 
         // Give the fisherman their reward and their deposit back
         _graphToken().pushTokens(dispute.fisherman, tokensToReward + dispute.deposit);
@@ -365,6 +366,15 @@ contract DisputeManager is
     }
 
     /**
+     * @notice Get the stake snapshot for an indexer.
+     * @param indexer The indexer address
+     */
+    function getStakeSnapshot(address indexer) external view override returns (uint256) {
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
+        return _getStakeSnapshot(indexer, provision.tokens);
+    }
+
+    /**
      * @notice Checks if two attestations are conflicting.
      * @param attestation1 The first attestation
      * @param attestation2 The second attestation
@@ -465,6 +475,7 @@ contract DisputeManager is
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
 
         // Store dispute
+        uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
         disputes[disputeId] = Dispute(
             indexer,
             _fisherman,
@@ -472,7 +483,8 @@ contract DisputeManager is
             0, // no related dispute,
             DisputeType.QueryDispute,
             IDisputeManager.DisputeStatus.Pending,
-            block.timestamp
+            block.timestamp,
+            stakeSnapshot
         );
 
         emit QueryDisputeCreated(
@@ -481,7 +493,8 @@ contract DisputeManager is
             _fisherman,
             _deposit,
             _attestation.subgraphDeploymentId,
-            _attestationData
+            _attestationData,
+            stakeSnapshot
         );
 
         return disputeId;
@@ -516,6 +529,7 @@ contract DisputeManager is
         require(provision.tokens != 0, DisputeManagerZeroTokens());
 
         // Store dispute
+        uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
         disputes[disputeId] = Dispute(
             alloc.indexer,
             _fisherman,
@@ -523,10 +537,11 @@ contract DisputeManager is
             0,
             DisputeType.IndexingDispute,
             IDisputeManager.DisputeStatus.Pending,
-            block.timestamp
+            block.timestamp,
+            stakeSnapshot
         );
 
-        emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId, _poi);
+        emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId, _poi, stakeSnapshot);
 
         return disputeId;
     }
@@ -578,21 +593,24 @@ contract DisputeManager is
      * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
      * @param _indexer Address of the indexer
      * @param _tokensSlash Amount of tokens to slash from the indexer
+     * @param _tokensStakeSnapshot Snapshot of the indexer's stake at the time of the dispute creation
      */
-    function _slashIndexer(address _indexer, uint256 _tokensSlash) private returns (uint256) {
+    function _slashIndexer(
+        address _indexer,
+        uint256 _tokensSlash,
+        uint256 _tokensStakeSnapshot
+    ) private returns (uint256) {
         // Get slashable amount for indexer
         IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_indexer, address(subgraphService));
-        IHorizonStaking.DelegationPool memory pool = _graphStaking().getDelegationPool(
-            _indexer,
-            address(subgraphService)
+
+        // Ensure slash amount is within the cap
+        uint256 maxTokensSlash = _tokensStakeSnapshot.mulPPM(maxSlashingCut);
+        require(
+            _tokensSlash != 0 && _tokensSlash <= maxTokensSlash,
+            DisputeManagerInvalidTokensSlash(_tokensSlash, maxTokensSlash)
         );
-        uint256 totalProvisionTokens = provision.tokens + pool.tokens; // slashable tokens
 
-        // Get slash amount
-        uint256 maxTokensSlash = uint256(maxSlashingCut).mulPPM(totalProvisionTokens);
-        require(_tokensSlash != 0 && _tokensSlash <= maxTokensSlash, DisputeManagerInvalidTokensSlash(_tokensSlash));
-
-        // Rewards amount can only be extracted from service poriver tokens so
+        // Rewards amount can only be extracted from service provider tokens so
         // we grab the minimum between the slash amount and indexer's tokens
         uint256 maxRewardableTokens = Math.min(_tokensSlash, provision.tokens);
         uint256 tokensRewards = uint256(fishermanRewardCut).mulPPM(maxRewardableTokens);
@@ -677,5 +695,23 @@ contract DisputeManager is
         bytes32 relatedId = _dispute.relatedDisputeId;
         // this is so the check returns false when rejecting the related dispute.
         return relatedId != 0 && disputes[relatedId].status == IDisputeManager.DisputeStatus.Pending;
+    }
+
+    /**
+     * @notice Get the total stake snapshot for and indexer.
+     * @dev A few considerations:
+     * - We include both indexer and delegators stake.
+     * - Thawing stake is not excluded from the snapshot.
+     * - Delegators stake is capped at the delegation ratio to prevent delegators from inflating the snapshot
+     *   to increase the indexer slash amount.
+     * @param _indexer Indexer address
+     * @param _indexerStake Indexer's stake
+     * @return Total stake snapshot
+     */
+    function _getStakeSnapshot(address _indexer, uint256 _indexerStake) private view returns (uint256) {
+        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(subgraphService)).tokens;
+        uint256 delegatorsStakeMax = _indexerStake * uint256(subgraphService.getDelegationRatio());
+        uint256 stakeSnapshot = _indexerStake + MathUtils.min(delegatorsStake, delegatorsStakeMax);
+        return stakeSnapshot;
     }
 }

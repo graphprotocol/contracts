@@ -47,4 +47,32 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
      */
     // solhint-disable-next-line func-name-mixedcase
     function __DataService_init_unchained() internal onlyInitializing {}
+
+    /**
+     * @notice See {IDataService-getThawingPeriodRange}.
+     */
+    function getThawingPeriodRange() external view returns (uint64, uint64) {
+        return _getThawingPeriodRange();
+    }
+
+    /**
+     * @notice See {IDataService-getVerifierCutRange}.
+     */
+    function getVerifierCutRange() external view returns (uint32, uint32) {
+        return _getVerifierCutRange();
+    }
+
+    /**
+     * @notice See {IDataService-getProvisionTokensRange}.
+     */
+    function getProvisionTokensRange() external view returns (uint256, uint256) {
+        return _getProvisionTokensRange();
+    }
+
+    /**
+     * @notice See {IDataService-getDelegationRatio}.
+     */
+    function getDelegationRatio() external view returns (uint32) {
+        return _getDelegationRatio();
+    }
 }

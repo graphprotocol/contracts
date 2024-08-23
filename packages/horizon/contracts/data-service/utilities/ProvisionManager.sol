@@ -102,41 +102,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     }
 
     /**
-     * @notice External getter for the thawing period range
-     * @return Minimum thawing period allowed
-     * @return Maximum thawing period allowed
-     */
-    function getThawingPeriodRange() external view returns (uint64, uint64) {
-        return _getThawingPeriodRange();
-    }
-
-    /**
-     * @notice External getter for the verifier cut range
-     * @return Minimum verifier cut allowed
-     * @return Maximum verifier cut allowed
-     */
-    function getVerifierCutRange() external view returns (uint32, uint32) {
-        return _getVerifierCutRange();
-    }
-
-    /**
-     * @notice External getter for the provision tokens range
-     * @return Minimum provision tokens allowed
-     * @return Maximum provision tokens allowed
-     */
-    function getProvisionTokensRange() external view returns (uint256, uint256) {
-        return _getProvisionTokensRange();
-    }
-
-    /**
-     * @notice External getter for the delegation ratio
-     * @return The delegation ratio
-     */
-    function getDelegationRatio() external view returns (uint32) {
-        return _getDelegationRatio();
-    }
-
-    /**
      * @notice Initializes the contract and any parent contracts.
      */
     // solhint-disable-next-line func-name-mixedcase

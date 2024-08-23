@@ -70,6 +70,11 @@ abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
         subgraphService.startService(users.indexer, data);
     }
 
+    function _delegate(uint256 tokens) internal {
+        token.approve(address(staking), tokens);
+        staking.delegate(users.indexer, address(subgraphService), tokens, 0);
+    }
+
     /*
      * PRIVATE
      */

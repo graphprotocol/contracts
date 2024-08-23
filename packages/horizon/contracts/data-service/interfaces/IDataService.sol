@@ -139,4 +139,31 @@ interface IDataService {
      * @param data Custom data, usage defined by the data service.
      */
     function slash(address serviceProvider, bytes calldata data) external;
+
+    /**
+     * @notice External getter for the thawing period range
+     * @return Minimum thawing period allowed
+     * @return Maximum thawing period allowed
+     */
+    function getThawingPeriodRange() external view returns (uint64, uint64);
+
+    /**
+     * @notice External getter for the verifier cut range
+     * @return Minimum verifier cut allowed
+     * @return Maximum verifier cut allowed
+     */
+    function getVerifierCutRange() external view returns (uint32, uint32);
+
+    /**
+     * @notice External getter for the provision tokens range
+     * @return Minimum provision tokens allowed
+     * @return Maximum provision tokens allowed
+     */
+    function getProvisionTokensRange() external view returns (uint256, uint256);
+
+    /**
+     * @notice External getter for the delegation ratio
+     * @return The delegation ratio
+     */
+    function getDelegationRatio() external view returns (uint32);
 }
