@@ -6,7 +6,6 @@ import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGra
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Allocation } from "../libraries/Allocation.sol";
@@ -258,10 +257,9 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
         // Mint indexing rewards if all conditions are met
-        uint256 timeSinceLastPOI = block.number - Math.max(allocation.createdAt, allocation.lastPOIPresentedAt);
-        uint256 tokensRewards = (timeSinceLastPOI <= maxPOIStaleness &&
-            _poi != bytes32(0) &&
-            !allocation.isAltruistic())
+        uint256 tokensRewards = (!allocation.isStale(maxPOIStaleness) &&
+            !allocation.isAltruistic() &&
+            _poi != bytes32(0))
             ? _graphRewardsManager().takeRewards(_allocationId)
             : 0;
 

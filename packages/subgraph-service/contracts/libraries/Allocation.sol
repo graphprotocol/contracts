@@ -172,8 +172,8 @@ library Allocation {
      * @param staleThreshold The time in blocks to consider an allocation stale
      */
     function isStale(State memory self, uint256 staleThreshold) internal view returns (bool) {
-        uint256 timeSinceLastPOI = block.number - Math.max(self.createdAt, self.lastPOIPresentedAt);
-        return self.isOpen() && timeSinceLastPOI <= staleThreshold;
+        uint256 timeSinceLastPOI = block.timestamp - Math.max(self.createdAt, self.lastPOIPresentedAt);
+        return self.isOpen() && timeSinceLastPOI > staleThreshold;
     }
 
     /**
