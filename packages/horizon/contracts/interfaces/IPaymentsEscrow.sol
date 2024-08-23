@@ -28,8 +28,6 @@ interface IPaymentsEscrow {
     /// @notice Details for a payer-collector pair
     /// @dev Collectors can be removed only after a thawing period
     struct Collector {
-        // Whether the collector is authorized to collect funds
-        bool authorized;
         // Amount of tokens the collector is allowed to collect
         uint256 allowance;
         // Timestamp at which the collector thawing period ends (zero if not thawing)
@@ -83,15 +81,13 @@ interface IPaymentsEscrow {
      * @notice Emitted when a payer thaws funds from the escrow for a payer-receiver pair
      * @param payer The address of the payer
      * @param receiver The address of the receiver
-     * @param tokens The amount of tokens thawed
-     * @param totalTokensThawing The total amount of tokens being thawed
+     * @param tokens The amount of tokens being thawed
      * @param thawEndTimestamp The timestamp at which the thawing period ends
      */
     event Thaw(
         address indexed payer,
         address indexed receiver,
         uint256 tokens,
-        uint256 totalTokensThawing,
         uint256 thawEndTimestamp
     );
 
@@ -143,13 +139,6 @@ interface IPaymentsEscrow {
      * @param maxThawingPeriod The maximum thawing period
      */
     error PaymentsEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
-
-    /**
-     * @notice Thrown when a collector is not authorized to collect funds
-     * @param payer The address of the payer
-     * @param collector The amount of tokens the collector is allowed to collect
-     */
-    error PaymentsEscrowCollectorNotAuthorized(address payer, address collector);
 
     /**
      * @notice Thrown when a collector has insufficient allowance to collect funds

@@ -127,23 +127,22 @@ library LinkedList {
         require(iterations <= self.count, LinkedListInvalidIterations());
 
         uint256 itemCount = 0;
-        bool traverseAll = iterations == 0;
-        bytes memory acc = processInitAcc;
+        iterations = (iterations == 0) ? self.count : iterations;
 
         bytes32 cursor = self.head;
 
-        while (cursor != bytes32(0) && (traverseAll || iterations > 0)) {
-            (bool shouldBreak, bytes memory acc_) = processItem(cursor, acc);
+        while (cursor != bytes32(0) && iterations > 0) {
+            (bool shouldBreak, bytes memory acc_) = processItem(cursor, processInitAcc);
 
             if (shouldBreak) break;
 
-            acc = acc_;
+            processInitAcc = acc_;
             cursor = self.removeHead(getNextItem, deleteItem);
 
-            if (!traverseAll) iterations--;
+            iterations--;
             itemCount++;
         }
 
-        return (itemCount, acc);
+        return (itemCount, processInitAcc);
     }
 }

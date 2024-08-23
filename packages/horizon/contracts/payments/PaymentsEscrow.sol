@@ -87,7 +87,6 @@ contract PaymentsEscrow is
     function approveCollector(address collector_, uint256 allowance) external override notPaused {
         require(allowance != 0, PaymentsEscrowInvalidZeroTokens());
         Collector storage collector = authorizedCollectors[msg.sender][collector_];
-        collector.authorized = true;
         collector.allowance += allowance;
         emit AuthorizedCollector(msg.sender, collector_);
     }
@@ -164,7 +163,7 @@ contract PaymentsEscrow is
         account.tokensThawing = tokens;
         account.thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
 
-        emit Thaw(msg.sender, receiver, tokens, account.tokensThawing, account.thawEndTimestamp);
+        emit Thaw(msg.sender, receiver, tokens, account.thawEndTimestamp);
     }
 
     /**
@@ -201,7 +200,6 @@ contract PaymentsEscrow is
     ) external override notPaused {
         // Check if collector is authorized and has enough funds
         Collector storage collector = authorizedCollectors[payer][msg.sender];
-        require(collector.authorized, PaymentsEscrowCollectorNotAuthorized(payer, msg.sender));
         require(collector.allowance >= tokens, PaymentsEscrowInsufficientAllowance(collector.allowance, tokens));
 
         // Check if there are enough funds in the escrow account

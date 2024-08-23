@@ -3,8 +3,10 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
+import { IPaymentsEscrow } from "../../contracts/interfaces/IPaymentsEscrow.sol";
+
+import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowCollectTest is GraphEscrowTest {
 
@@ -35,9 +37,14 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
     }
 
     function testCollect_RevertWhen_CollectorNotAuthorized(uint256 amount) public {
+        vm.assume(amount > 0);
         vm.startPrank(users.verifier);
         uint256 dataServiceCut = 30000; // 3%
-        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowCollectorNotAuthorized(address,address)", users.gateway, users.verifier);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IPaymentsEscrow.PaymentsEscrowInsufficientAllowance.selector,
+            0,
+            amount
+        );
         vm.expectRevert(expectedError);
         escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, dataServiceCut);
         vm.stopPrank();

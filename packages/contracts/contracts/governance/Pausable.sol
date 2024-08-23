@@ -66,6 +66,6 @@ abstract contract Pausable {
     function _setPauseGuardian(address newPauseGuardian) internal {
         address oldPauseGuardian = pauseGuardian;
         pauseGuardian = newPauseGuardian;
-        emit NewPauseGuardian(oldPauseGuardian, pauseGuardian);
+        emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
     }
 }

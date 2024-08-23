@@ -14,13 +14,45 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
      */
 
     function _approveCollector(uint256 tokens) internal {
-        (, uint256 beforeAllowance,) = escrow.authorizedCollectors(users.gateway, users.verifier);
+        (uint256 beforeAllowance,) = escrow.authorizedCollectors(users.gateway, users.verifier);
         vm.expectEmit(address(escrow));
         emit IPaymentsEscrow.AuthorizedCollector(users.gateway, users.verifier);
         escrow.approveCollector(users.verifier, tokens);
-        (bool authorized, uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
-        assertEq(authorized, true);
+        (uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
         assertEq(allowance - beforeAllowance, tokens);
+        assertEq(thawEndTimestamp, 0);
+    }
+
+    function _thawCollector() internal {
+        (uint256 beforeAllowance,) = escrow.authorizedCollectors(users.gateway, users.verifier);
+        vm.expectEmit(address(escrow));
+        emit IPaymentsEscrow.ThawCollector(users.gateway, users.verifier);
+        escrow.thawCollector(users.verifier);
+
+        (uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
+        assertEq(allowance, beforeAllowance);
+        assertEq(thawEndTimestamp, block.timestamp + revokeCollectorThawingPeriod);
+    }
+
+    function _cancelThawCollector() internal {
+        (uint256 beforeAllowance, uint256 beforeThawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
+        assertTrue(beforeThawEndTimestamp != 0, "Collector should be thawing");
+        vm.expectEmit(address(escrow));
+        emit IPaymentsEscrow.CancelThawCollector(users.gateway, users.verifier);
+        escrow.cancelThawCollector(users.verifier);
+
+        (uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
+        assertEq(allowance, beforeAllowance);
+        assertEq(thawEndTimestamp, 0);
+    }
+
+    function _revokeCollector() internal {
+        vm.expectEmit(address(escrow));
+        emit IPaymentsEscrow.RevokeCollector(users.gateway, users.verifier);
+        escrow.revokeCollector(users.verifier);
+
+        (uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
+        assertEq(allowance, 0);
         assertEq(thawEndTimestamp, 0);
     }
 
@@ -50,25 +82,12 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
     }
 
     function testCollector_Thaw(uint256 amount) public useGateway useCollector(amount) {
-        escrow.thawCollector(users.verifier);
-
-        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
-        assertEq(authorized, true);
-        assertEq(thawEndTimestamp, block.timestamp + revokeCollectorThawingPeriod);
+        _thawCollector();
     }
 
     function testCollector_CancelThaw(uint256 amount) public useGateway useCollector(amount) {
-        escrow.thawCollector(users.verifier);
-
-        (bool authorized,, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
-        assertEq(authorized, true);
-        assertEq(thawEndTimestamp, block.timestamp + revokeCollectorThawingPeriod);
-
-        escrow.cancelThawCollector(users.verifier);
-
-        (authorized,, thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
-        assertEq(authorized, true);
-        assertEq(thawEndTimestamp, 0);
+        _thawCollector();
+        _cancelThawCollector();
     }
 
     function testCollector_RevertWhen_CancelThawIsNotThawing(uint256 amount) public useGateway useCollector(amount) {
@@ -79,12 +98,9 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
     }
 
     function testCollector_Revoke(uint256 amount) public useGateway useCollector(amount) {
-        escrow.thawCollector(users.verifier);
+        _thawCollector();
         skip(revokeCollectorThawingPeriod + 1);
-        escrow.revokeCollector(users.verifier);
-
-        (bool authorized,,) = escrow.authorizedCollectors(users.gateway, users.verifier);
-        assertEq(authorized, false);
+        _revokeCollector();
     }
 
     function testCollector_RevertWhen_RevokeIsNotThawing(uint256 amount) public useGateway useCollector(amount) {

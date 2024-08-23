@@ -260,8 +260,10 @@ contract DisputeManager is
     function drawDispute(bytes32 disputeId) external override onlyArbitrator onlyPendingDispute(disputeId) {
         Dispute storage dispute = disputes[disputeId];
 
-        // Return deposit to the fisherman
-        _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
+        // Return deposit to the fisherman if any
+        if (dispute.deposit > 0) {
+            _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
+        }
 
         // resolve related dispute if any
         _drawDisputeInConflict(dispute);
@@ -284,8 +286,10 @@ contract DisputeManager is
         // Check if dispute period has finished
         require(dispute.createdAt + disputePeriod < block.timestamp, DisputeManagerDisputePeriodNotFinished());
 
-        // Return deposit to the fisherman
-        _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
+        // Return deposit to the fisherman if any
+        if (dispute.deposit > 0) {
+            _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
+        }
 
         // resolve related dispute if any
         _cancelDisputeInConflict(dispute);
@@ -633,7 +637,7 @@ contract DisputeManager is
     function _setArbitrator(address _arbitrator) private {
         require(_arbitrator != address(0), DisputeManagerInvalidZeroAddress());
         arbitrator = _arbitrator;
-        emit ArbitratorSet(arbitrator);
+        emit ArbitratorSet(_arbitrator);
     }
 
     /**
@@ -644,7 +648,7 @@ contract DisputeManager is
     function _setDisputePeriod(uint64 _disputePeriod) private {
         require(_disputePeriod != 0, DisputeManagerDisputePeriodZero());
         disputePeriod = _disputePeriod;
-        emit DisputePeriodSet(disputePeriod);
+        emit DisputePeriodSet(_disputePeriod);
     }
 
     /**
@@ -655,7 +659,7 @@ contract DisputeManager is
     function _setDisputeDeposit(uint256 _disputeDeposit) private {
         require(_disputeDeposit != 0, DisputeManagerInvalidDisputeDeposit(_disputeDeposit));
         disputeDeposit = _disputeDeposit;
-        emit DisputeDepositSet(disputeDeposit);
+        emit DisputeDepositSet(_disputeDeposit);
     }
 
     /**
@@ -666,7 +670,7 @@ contract DisputeManager is
     function _setFishermanRewardCut(uint32 _fishermanRewardCut) private {
         require(_fishermanRewardCut <= MAX_FISHERMAN_REWARD_CUT, DisputeManagerInvalidFishermanReward(_fishermanRewardCut));
         fishermanRewardCut = _fishermanRewardCut;
-        emit FishermanRewardCutSet(fishermanRewardCut);
+        emit FishermanRewardCutSet(_fishermanRewardCut);
     }
 
     /**

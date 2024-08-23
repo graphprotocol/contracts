@@ -273,13 +273,11 @@ abstract contract HorizonStakingBase is
         address _serviceProvider,
         address _verifier
     ) internal view returns (DelegationPoolInternal storage) {
-        DelegationPoolInternal storage pool;
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
-            pool = _legacyDelegationPools[_serviceProvider];
+            return _legacyDelegationPools[_serviceProvider];
         } else {
-            pool = _delegationPools[_serviceProvider][_verifier];
+            return _delegationPools[_serviceProvider][_verifier];
         }
-        return pool;
     }
 
     /**

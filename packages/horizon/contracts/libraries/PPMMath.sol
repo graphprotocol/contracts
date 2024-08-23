@@ -51,6 +51,6 @@ library PPMMath {
      * @param value The value to check.
      */
     function isValidPPM(uint256 value) internal pure returns (bool) {
-        return value >= 0 && value <= MAX_PPM;
+        return value <= MAX_PPM;
     }
 }

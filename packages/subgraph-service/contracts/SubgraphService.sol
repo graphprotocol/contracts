@@ -48,23 +48,6 @@ contract SubgraphService is
     }
 
     /**
-     * @notice Checks that a provision is valid
-     * @dev A valid provision is defined as one that:
-     * - has at least the minimum amount of tokens requiered by the subgraph service
-     * - has a thawing period at least equal to {DisputeManager.disputePeriod}
-     * - has a verifier cut at most equal to {DisputeManager.verifierCut}
-     *
-     * Note that no delegation ratio is enforced here.
-     *
-     * @param indexer The address of the indexer
-     */
-    modifier onlyValidProvision(address indexer) override {
-        _checkProvisionTokens(indexer);
-        _checkProvisionParameters(indexer, false);
-        _;
-    }
-
-    /**
      * @notice Constructor for the SubgraphService contract
      * @dev DataService and Directory constructors set a bunch of immutable variables
      * @param graphController The address of the Graph Controller contract
