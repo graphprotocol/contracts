@@ -9,6 +9,7 @@ import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPC
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
+import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
@@ -16,6 +17,7 @@ import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     using PPMMath for uint128;
     using PPMMath for uint256;
+    using Allocation for Allocation.State;
 
     address signer;
     uint256 signerPrivateKey;
@@ -130,6 +132,27 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testCollect_IndexingRewards(uint256 tokens) public useIndexer useAllocation(tokens) {
         _collectIndexingRewards(users.indexer, allocationID, tokens);
+
+        Allocation.State memory afterAllocation = subgraphService.getAllocation(allocationID);
+        assertEq(afterAllocation.isOpen(), true);
+    }
+
+    function testCollect_IndexingRewards_When_OverAllocated(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens * 2, 10_000_000_000 ether);
+        
+        // setup allocation
+        _createProvision(tokens);
+        _registerIndexer(address(0));
+        _startService(tokens);
+
+        // thaw some tokens to become over allocated
+        staking.thaw(users.indexer, address(subgraphService), tokens / 2);
+
+        // this collection should close the allocation
+        _collectIndexingRewards(users.indexer, allocationID, tokens);
+        
+        Allocation.State memory afterAllocation = subgraphService.getAllocation(allocationID);
+        assertEq(afterAllocation.isOpen(), false);
     }
 
     function testCollect_RevertWhen_InvalidPayment(uint256 tokens) public useIndexer useAllocation(tokens) {

@@ -256,7 +256,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation to collect rewards for
      * @param _poi The POI being presented
      */
-    function _collectIndexingRewards(address _allocationId, bytes32 _poi, uint32 _delegationRatio) internal returns (uint256) {
+    function _collectIndexingRewards(
+        address _allocationId,
+        bytes32 _poi,
+        uint32 _delegationRatio
+    ) internal returns (uint256) {
         Allocation.State memory allocation = allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
@@ -313,7 +317,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             _poi
         );
 
-        // Check if the allocation is over-allocated and close it if necessary
+        // Check if the indexer is over-allocated and close the allocation if necessary
         if (!allocationProvisionTracker.check(_graphStaking(), allocation.indexer, _delegationRatio)) {
             _closeAllocation(_allocationId);
         }
