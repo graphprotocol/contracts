@@ -85,9 +85,9 @@ interface IHorizonStakingTypes {
     struct DelegationPoolInternal {
         // (Deprecated) Time, in blocks, an indexer must wait before updating delegation parameters
         uint32 __DEPRECATED_cooldownBlocks;
-        // (Deprecated) Percentage of indexing rewards for the delegation pool, in PPM
+        // (Deprecated) Percentage of indexing rewards for the service provider, in PPM
         uint32 __DEPRECATED_indexingRewardCut;
-        // (Deprecated) Percentage of query fees for the delegation pool, in PPM
+        // (Deprecated) Percentage of query fees for the service provider, in PPM
         uint32 __DEPRECATED_queryFeeCut;
         // (Deprecated) Block when the delegation parameters were last updated
         uint256 __DEPRECATED_updatedAtBlock;

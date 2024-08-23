@@ -193,7 +193,7 @@ library Allocation {
     }
 
     /**
-     * @notice Checks if an allocation is closed
+     * @notice Checks if an allocation is alturistic
      * @param self The allocation
      */
     function isAltruistic(State memory self) internal pure returns (bool) {

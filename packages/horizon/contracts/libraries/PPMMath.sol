@@ -34,7 +34,9 @@ library PPMMath {
     }
 
     /**
-     * @notice Multiplies two values, one of which must be in PPM, and rounds up the result.
+     * @notice Multiplies two values, the second one must be in PPM, and rounds up the result.
+     * @dev requirements:
+     * - The second value must be in PPM.
      * @param a The first value.
      * @param b The second value.
      */

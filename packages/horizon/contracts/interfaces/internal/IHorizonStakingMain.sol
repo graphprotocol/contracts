@@ -514,9 +514,10 @@ interface IHorizonStakingMain {
      * This function can be called by the service provider or by an operator authorized by the provider
      * for this specific verifier.
      * @dev Requirements:
-     * - `tokens` cannot be zero and must be over the data service minimum required.
-     * - Provision parameters must be within the range allowed by the verifier (`maxVerifierCut` and `thawingPeriod`)
+     * - `tokens` cannot be zero.
      * - The `serviceProvider` must have enough idle stake to cover the tokens to provision.
+     * - `maxVerifierCut` must be less than or equal to `MAX_MAX_VERIFIER_CUT`.
+     * - `thawingPeriod` must be less than or equal to `_maxThawingPeriod`.
      *
      * Emits a {ProvisionCreated} event.
      *
@@ -688,7 +689,6 @@ interface IHorizonStakingMain {
      * - Then after the thawing period, the tokens are removed from the provision using {withdrawDelegated}.
      *
      * Requirements:
-     * - Must have previously initiated a thaw request using {undelegate}.
      * - `shares` cannot be zero.
      *
      * Emits a {TokensUndelegated} and {ThawRequestCreated} event.
@@ -822,7 +822,7 @@ interface IHorizonStakingMain {
     ) external;
 
     /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a verifier.
      *
      * @dev See {setOperator}.
      * Additional requirements:
