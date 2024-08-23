@@ -120,7 +120,8 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
                         _rav.dataService,
                         _rav.serviceProvider,
                         _rav.timestampNs,
-                        _rav.valueAggregate
+                        _rav.valueAggregate,
+                        _rav.metadata
                     )
                 )
             );
