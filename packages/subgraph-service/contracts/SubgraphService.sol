@@ -290,7 +290,7 @@ contract SubgraphService is
      * - uint256 `tokens`: The amount of tokens to slash
      * - uint256 `reward`: The amount of tokens to reward the slasher
      */
-    function slash(address indexer, bytes calldata data) external override onlyDisputeManager whenNotPaused {
+    function slash(address indexer, bytes calldata data) external override onlyDisputeManager {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
         _graphStaking().slash(indexer, tokens, reward, address(_disputeManager()));
         emit ServiceProviderSlashed(indexer, tokens);
