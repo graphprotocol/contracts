@@ -78,7 +78,7 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
     ) public useIndexer useAllocation(tokens) {
         address permissionlessBob = makeAddr("permissionlessBob");
         
-        vm.warp(maxPOIStaleness + 1);
+        skip(maxPOIStaleness + 1);
 
         resetPrank(permissionlessBob);
         subgraphService.closeStaleAllocation(allocationID);
