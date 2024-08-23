@@ -318,6 +318,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
+        require(PPMMath.isValidPPM(feeCut), HorizonStakingInvalidDelegationFeeCut(feeCut));
         _delegationFeeCut[serviceProvider][verifier][paymentType] = feeCut;
         emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
     }
@@ -468,9 +469,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-setDelegationSlashingEnabled}.
      */
-    function setDelegationSlashingEnabled(bool enabled) external override onlyGovernor {
-        _delegationSlashingEnabled = enabled;
-        emit DelegationSlashingEnabled(enabled);
+    function setDelegationSlashingEnabled() external override onlyGovernor {
+        _delegationSlashingEnabled = true;
+        emit DelegationSlashingEnabled(_delegationSlashingEnabled);
     }
 
     /**

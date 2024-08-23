@@ -180,7 +180,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     function testWithdrawDelegation_RevertWhen_InvalidPool(
         uint256 tokens,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing(true) {
+    ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing() {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);

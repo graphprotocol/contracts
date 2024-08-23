@@ -3,8 +3,10 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { HorizonStakingTest } from "../HorizonStaking.t.sol";
+import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
+
+import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingServiceProviderTest is HorizonStakingTest {
 
@@ -31,21 +33,14 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         assertEq(sp.tokensProvisioned, amount);
     }
 
-    function testServiceProvider_GetDelegationFeeCut(
-        uint256 queryCut,
-        uint256 indexingCut,
-        uint256 rewardsCut
+    function testServiceProvider_SetDelegationFeeCut(
+        uint256 feeCut,
+        uint8 paymentTypeInput
     ) public useIndexer {
-        _setDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, queryCut);
-        _setDelegationFeeCut(IGraphPayments.PaymentTypes.IndexingFee, indexingCut);
-        _setDelegationFeeCut(IGraphPayments.PaymentTypes.IndexingRewards, rewardsCut);
-
-        uint256 queryFeeCut = staking.getDelegationFeeCut(users.indexer, subgraphDataServiceAddress, IGraphPayments.PaymentTypes.QueryFee);
-        uint256 indexingFeeCut = staking.getDelegationFeeCut(users.indexer, subgraphDataServiceAddress, IGraphPayments.PaymentTypes.IndexingFee);
-        uint256 indexingRewardsCut = staking.getDelegationFeeCut(users.indexer, subgraphDataServiceAddress, IGraphPayments.PaymentTypes.IndexingRewards);
-        assertEq(queryFeeCut, queryCut);
-        assertEq(indexingFeeCut, indexingCut);
-        assertEq(indexingRewardsCut, rewardsCut);
+        vm.assume(paymentTypeInput < 3);
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes(paymentTypeInput);
+        feeCut = bound(feeCut, 0, MAX_PPM);
+        _setDelegationFeeCut(paymentType, feeCut);
     }
 
     function testServiceProvider_GetProvision(
@@ -135,5 +130,19 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
 
         staking.unstake(amount);
         assertEq(staking.getIndexerStakedTokens(users.indexer), 0);
+    }
+
+    function testServiceProvider_RevertIf_InvalidDelegationFeeCut(
+        uint256 cut,
+        uint8 paymentTypeInput
+    ) public useIndexer {
+        vm.assume(paymentTypeInput < 3);
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes(paymentTypeInput);
+        cut = bound(cut, MAX_PPM + 1, MAX_PPM + 100);
+        vm.expectRevert(abi.encodeWithSelector(
+            IHorizonStakingMain.HorizonStakingInvalidDelegationFeeCut.selector,
+            cut
+        ));
+        staking.setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, cut);
     }
 }

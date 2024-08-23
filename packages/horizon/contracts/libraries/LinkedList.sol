@@ -54,6 +54,11 @@ library LinkedList {
     error LinkedListInvalidIterations();
 
     /**
+     * @notice Thrown when trying to add an item with id equal to bytes32(0)
+     */
+    error LinkedListInvalidZeroId();
+
+    /**
      * @notice Adds an item to the list.
      * The item is added to the end of the list.
      * @dev Note that this function will not take care of linking the
@@ -65,6 +70,7 @@ library LinkedList {
      */
     function addTail(List storage self, bytes32 id) internal {
         require(self.count < MAX_ITEMS, LinkedListMaxElementsExceeded());
+        require(id != bytes32(0), LinkedListInvalidZeroId());
         self.tail = id;
         self.nonce += 1;
         if (self.count == 0) self.head = id;

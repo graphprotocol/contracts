@@ -31,15 +31,15 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
         staking.setAllowedLockedVerifier(subgraphDataServiceAddress, true);
     }
 
-    function testGovernance_SetDelgationSlashing(bool enabled) public useGovernor {
-        staking.setDelegationSlashingEnabled(enabled);
-        assertEq(staking.isDelegationSlashingEnabled(), enabled);
+    function testGovernance_SetDelgationSlashingEnabled() public useGovernor {
+        staking.setDelegationSlashingEnabled();
+        assertTrue(staking.isDelegationSlashingEnabled());
     }
 
-    function testGovernance_SetDelgationSlashing_NotGovernor(bool enabled) public useIndexer {
+    function testGovernance_SetDelgationSlashing_NotGovernor() public useIndexer {
         bytes memory expectedError = abi.encodeWithSignature("ManagedOnlyGovernor()");
         vm.expectRevert(expectedError);
-        staking.setDelegationSlashingEnabled(enabled);
+        staking.setDelegationSlashingEnabled();
     }
 
     function testGovernance_ClearThawingPeriod(uint32 thawingPeriod) public useGovernor {

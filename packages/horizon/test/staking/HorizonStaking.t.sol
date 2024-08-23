@@ -80,11 +80,11 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         _;
     }
 
-    modifier useDelegationSlashing(bool enabled) {
+    modifier useDelegationSlashing() {
         address msgSender;
         (, msgSender, ) = vm.readCallers();
         resetPrank(users.governor);
-        staking.setDelegationSlashingEnabled(enabled);
+        staking.setDelegationSlashingEnabled();
         resetPrank(msgSender);
         _;
     }

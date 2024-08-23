@@ -72,4 +72,20 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         ));
         _registerIndexer(address(0));
     }
+
+    function testRegister_RevertIf_EmptyUrl(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        _createProvision(tokens);
+        bytes memory data = abi.encode("", "geoHash", users.rewardsDestination);
+        vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceEmptyUrl.selector));
+        subgraphService.register(users.indexer, data);
+    }
+
+    function testRegister_RevertIf_EmptyGeohash(uint256 tokens) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        _createProvision(tokens);
+        bytes memory data = abi.encode("url", "", users.rewardsDestination);
+        vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceEmptyGeohash.selector));
+        subgraphService.register(users.indexer, data);
+    }
 }

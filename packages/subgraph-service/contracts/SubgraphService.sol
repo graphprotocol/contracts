@@ -126,6 +126,7 @@ contract SubgraphService is
         );
 
         require(bytes(url).length > 0, SubgraphServiceEmptyUrl());
+        require(bytes(geohash).length > 0, SubgraphServiceEmptyGeohash());
         require(indexers[indexer].registeredAt == 0, SubgraphServiceIndexerAlreadyRegistered());
 
         // Register the indexer

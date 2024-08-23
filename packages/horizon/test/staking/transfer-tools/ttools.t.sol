@@ -44,6 +44,18 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         staking.onTokenTransfer(counterpartStaking, 0, data);
     }
 
+    function testOnTransfer_RevertWhen_ProvisionNotFound(uint256 amount) public {
+        amount = bound(amount, 1 ether, MAX_STAKING_TOKENS);
+
+        resetPrank(graphTokenGatewayAddress);
+        bytes memory data = abi.encode(
+            uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE),
+            abi.encode(users.indexer, users.delegator)
+        );
+        vm.expectRevert(bytes("!provision"));
+        staking.onTokenTransfer(counterpartStaking, amount, data);
+    }
+
     function testOnTransfer_ReceiveDelegation_RevertWhen_InvalidData() public {
         resetPrank(graphTokenGatewayAddress);
 
@@ -101,7 +113,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         _onTokenTransfer_ReceiveDelegation(counterpartStaking, amount, data);
     }
 
-    function testOnTransfer_ReceiveDelegation_WhenInvalidPool(uint256 amount) public useDelegationSlashing(true) {
+    function testOnTransfer_ReceiveDelegation_WhenInvalidPool(uint256 amount) public useDelegationSlashing() {
         amount = bound(amount, 1 ether, MAX_STAKING_TOKENS);
         uint256 originalDelegationAmount = 10 ether;
         uint256 provisionSize = 100 ether;
@@ -196,7 +208,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
             vm.expectEmit();
             emit IHorizonStakingExtension.StakeDelegated(serviceProvider, delegator, tokens, calcShares);
         }
-        staking.onTokenTransfer(counterpartStaking, tokens, data);
+        staking.onTokenTransfer(from, tokens, data);
 
         // after
         DelegationPool memory afterPool = staking.getDelegationPool(serviceProvider, subgraphDataServiceLegacyAddress);

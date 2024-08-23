@@ -4,6 +4,7 @@ pragma solidity 0.8.26;
 import "forge-std/Test.sol";
 
 import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
+import { GraphPayments } from "../../contracts/payments/GraphPayments.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 
@@ -12,6 +13,18 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
     /*
      * TESTS
      */
+
+    function testConstructor_RevertIf_InvalidProtocolPaymentCut(uint256 protocolPaymentCut) public {
+        protocolPaymentCut = bound(protocolPaymentCut, MAX_PPM + 1, MAX_PPM + 100);
+
+        resetPrank(users.deployer);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IGraphPayments.GraphPaymentsInvalidProtocolPaymentCut.selector,
+            protocolPaymentCut
+        );
+        vm.expectRevert(expectedError);
+        new GraphPayments(address(controller), protocolPaymentCut);
+    }
 
     function testCollect(
         uint256 amount,

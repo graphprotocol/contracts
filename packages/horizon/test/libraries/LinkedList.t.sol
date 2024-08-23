@@ -14,6 +14,11 @@ contract LinkedListTest is Test, ListImplementation {
         list = LinkedList.List({head: bytes32(0), tail: bytes32(0), nonce: 0, count: 0});
     }
 
+    function test_Add_RevertGiven_TheItemIdIsZero() external {
+        vm.expectRevert(LinkedList.LinkedListInvalidZeroId.selector);
+        list.addTail(bytes32(0));
+    }
+
     function test_Add_GivenTheListIsEmpty() external {
         _assert_addItem(_buildItemId(list.nonce), 0);
     }

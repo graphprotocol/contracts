@@ -346,6 +346,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
         uint256 _tokens,
         IL2StakingTypes.ReceiveDelegationData memory _delegationData
     ) internal {
+        require(_provisions[_delegationData.indexer][SUBGRAPH_DATA_SERVICE_ADDRESS].createdAt != 0, "!provision");
         // Get the delegation pool of the indexer
         DelegationPoolInternal storage pool = _legacyDelegationPools[_delegationData.indexer];
         IHorizonStakingTypes.DelegationInternal storage delegation = pool.delegators[_delegationData.delegator];

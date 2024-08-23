@@ -39,11 +39,17 @@ interface IGraphPayments {
     );
 
     /**
-     * @notice Emitted when there are insufficient tokens to pay the required amount
+     * @notice Thrown when there are insufficient tokens to pay the required amount
      * @param tokens The amount of tokens available
      * @param minTokens The amount of tokens being collected
      */
     error GraphPaymentsInsufficientTokens(uint256 tokens, uint256 minTokens);
+
+    /**
+     * @notice Thrown when the protocol payment cut is invalid
+     * @param protocolPaymentCut The protocol payment cut
+     */
+    error GraphPaymentsInvalidProtocolPaymentCut(uint256 protocolPaymentCut);
 
     /**
      * @notice Collects funds from a payer.

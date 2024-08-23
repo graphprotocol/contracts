@@ -30,6 +30,7 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
      * @param protocolPaymentCut The protocol tax in PPM
      */
     constructor(address controller, uint256 protocolPaymentCut) GraphDirectory(controller) {
+        require(PPMMath.isValidPPM(protocolPaymentCut), GraphPaymentsInvalidProtocolPaymentCut(protocolPaymentCut));
         PROTOCOL_PAYMENT_CUT = protocolPaymentCut;
         _disableInitializers();
     }

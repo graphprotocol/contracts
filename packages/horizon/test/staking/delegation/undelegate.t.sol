@@ -116,7 +116,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
     function testUndelegate_RevertWhen_InvalidPool(
         uint256 tokens,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing(true) {
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);

@@ -427,6 +427,12 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingCallerIsServiceProvider();
 
+    /**
+     * @notice Thrown when trying to set a delegation fee cut that is not valid.
+     * @param feeCut The fee cut
+     */
+    error HorizonStakingInvalidDelegationFeeCut(uint256 feeCut);
+
     // -- Functions --
 
     /**
@@ -839,11 +845,10 @@ interface IHorizonStakingMain {
     function setAllowedLockedVerifier(address verifier, bool allowed) external;
 
     /**
-     * @notice Set the global delegation slashing flag.
+     * @notice Set the global delegation slashing flag to true.
      * @dev This function can only be called by the contract governor.
-     * @param enabled Whether delegation slashing is enabled or disabled.
      */
-    function setDelegationSlashingEnabled(bool enabled) external;
+    function setDelegationSlashingEnabled() external;
 
     /**
      * @notice Clear the legacy global thawing period.

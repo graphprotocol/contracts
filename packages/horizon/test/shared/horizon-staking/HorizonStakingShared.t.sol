@@ -77,5 +77,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     function _setDelegationFeeCut(IGraphPayments.PaymentTypes paymentType, uint256 cut) internal {
         staking.setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, cut);
+        uint256 delegationFeeCut = staking.getDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType);
+        assertEq(delegationFeeCut, cut);
     }
 }

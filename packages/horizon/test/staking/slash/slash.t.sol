@@ -61,7 +61,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 slashTokens,
         uint256 verifierCutAmount,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(false) {
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) {
         vm.assume(slashTokens > tokens);
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
@@ -80,7 +80,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 slashTokens,
         uint256 verifierCutAmount,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing(true) {
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing() {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         slashTokens = bound(slashTokens, tokens + 1, tokens + delegationTokens);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);

@@ -58,6 +58,11 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceEmptyUrl();
 
     /**
+     * @notice Thrown when an indexer tries to register with an empty geohash
+     */
+    error SubgraphServiceEmptyGeohash();
+
+    /**
      * @notice Thrown when an indexer tries to register but they are already registered
      */
     error SubgraphServiceIndexerAlreadyRegistered();
