@@ -28,7 +28,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
         assertEq(allocation.closedAtEpoch, epochManager.currentEpoch());
 
         // Stake should be updated with rewards
-        assertEq(staking.getStake(address(users.indexer)), tokens + ALLOCATIONS_REWARD_CUT);
+        assertEq(staking.getStake(address(users.indexer)), tokens * 2 + ALLOCATIONS_REWARD_CUT);
     }
 
     function testCloseAllocation_WithBeneficiaryAddress(uint256 tokens) public useIndexer {
@@ -77,7 +77,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
         assertEq(allocation.closedAtEpoch, epochManager.currentEpoch());
 
         // No rewards distributed
-        assertEq(staking.getStake(address(users.indexer)), tokens);
+        assertEq(staking.getStake(address(users.indexer)), tokens * 2);
     }
 
     function testCloseAllocation_RevertWhen_ZeroTokensNotAuthorized() public useIndexer {
@@ -93,13 +93,16 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
     }
 
     function testCloseAllocation_WithDelegation(uint256 tokens, uint256 delegationTokens, uint32 indexingRewardCut) public useIndexer {
-        tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
+        tokens = bound(tokens, 2, MAX_STAKING_TOKENS);
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         vm.assume(indexingRewardCut <= MAX_PPM);
 
-        _storeAllocation(tokens);
+        uint256 legacyAllocationTokens = tokens / 2;
+        uint256 provisionTokens = tokens - legacyAllocationTokens;
+
+        _storeAllocation(legacyAllocationTokens);
         _storeMaxAllocationEpochs();
-        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, 0);
+        _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         _storeDelegationPool(delegationTokens, indexingRewardCut, 0);
 
         // Skip 15 epochs

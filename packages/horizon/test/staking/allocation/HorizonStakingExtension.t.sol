@@ -77,6 +77,7 @@ contract HorizonStakingExtensionTest is HorizonStakingTest {
 
         uint256 serviceProviderSlot = 14;
         bytes32 serviceProviderBaseSlot = keccak256(abi.encode(_allocation.indexer, serviceProviderSlot));
+        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 0), bytes32(tokens));
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 1), bytes32(tokens));
 
         uint256 subgraphsAllocationsSlot = 16;

@@ -84,7 +84,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         assertEq(staking.getStake(address(users.indexer)), 0);
     }
 
-    function testCollect_Tokens(
+    function testCollect_Tokenss(
         uint256 provisionTokens,
         uint256 allocationTokens,
         uint256 collectTokens,
@@ -103,10 +103,10 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         vm.assume(protocolTaxPercentage <= MAX_PPM);
         vm.assume(queryFeeCut <= MAX_PPM);
         resetPrank(users.indexer);
-        _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         _storeAllocation(allocationTokens);
         _storeProtocolTaxAndCuration(curationPercentage, protocolTaxPercentage);
         _storeDelegationPool(delegationTokens, 0, queryFeeCut);
+        _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         curation.signal(_subgraphDeploymentID, curationTokens);
 
         resetPrank(users.gateway);
@@ -138,7 +138,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
             payment -= delegationFeeCut;
         }
 
-        assertEq(staking.getStake(address(users.indexer)), provisionTokens + payment);
+        assertEq(staking.getStake(address(users.indexer)), allocationTokens + provisionTokens + payment);
         assertEq(curation.curation(_subgraphDeploymentID), curationTokens + curationCutTokens);
         assertEq(staking.getDelegationPool(users.indexer, subgraphDataServiceLegacyAddress).tokens, delegationTokens + delegationFeeCut);
         assertEq(token.balanceOf(address(payments)), 0);

@@ -537,15 +537,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         ServiceProviderInternal storage sp = _serviceProviders[serviceProvider];
         uint256 stakedTokens = sp.tokensStaked;
-        // Check that the service provider's stake minus the tokens to unstake is sufficient
-        // to cover existing allocations
-        // TODO this is only needed until legacy allocations are closed,
-        // so we should remove it after the transition period
-        uint256 remainingTokens = stakedTokens - _tokens;
-        require(
-            remainingTokens >= sp.__DEPRECATED_tokensAllocated,
-            HorizonStakingInsufficientStakeForLegacyAllocations(remainingTokens, sp.__DEPRECATED_tokensAllocated)
-        );
 
         // This is also only during the transition period: we need
         // to ensure tokens stay locked after closing legacy allocations.

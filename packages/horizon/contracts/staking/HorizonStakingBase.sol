@@ -260,6 +260,7 @@ abstract contract HorizonStakingBase is
         return
             _serviceProviders[_serviceProvider].tokensStaked -
             _serviceProviders[_serviceProvider].tokensProvisioned -
+            _serviceProviders[_serviceProvider].__DEPRECATED_tokensAllocated -
             _serviceProviders[_serviceProvider].__DEPRECATED_tokensLocked;
     }
 
