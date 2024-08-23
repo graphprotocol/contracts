@@ -256,7 +256,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation to collect rewards for
      * @param _poi The POI being presented
      */
-    function _collectIndexingRewards(address _allocationId, bytes32 _poi) internal returns (uint256) {
+    function _collectIndexingRewards(address _allocationId, bytes32 _poi, uint32 _delegationRatio) internal returns (uint256) {
         Allocation.State memory allocation = allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
@@ -277,39 +277,30 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         // Any pending rewards should have been collected now
         allocations.clearPendingRewards(_allocationId);
 
-        if (tokensRewards == 0) {
-            emit IndexingRewardsCollected(
+        uint256 tokensIndexerRewards = 0;
+        uint256 tokensDelegationRewards = 0;
+        if (tokensRewards != 0) {
+            // Distribute rewards to delegators
+            uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
                 allocation.indexer,
-                _allocationId,
-                allocation.subgraphDeploymentId,
-                0,
-                0,
-                0,
-                _poi
+                address(this),
+                IGraphPayments.PaymentTypes.IndexingFee
             );
-            return tokensRewards;
-        }
+            tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
+            if (tokensDelegationRewards > 0) {
+                _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
+                _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
+            }
 
-        // Distribute rewards to delegators
-        uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
-            allocation.indexer,
-            address(this),
-            IGraphPayments.PaymentTypes.IndexingFee
-        );
-        uint256 tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
-        if (tokensDelegationRewards > 0) {
-            _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
-            _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
-        }
-
-        // Distribute rewards to indexer
-        uint256 tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
-        address rewardsDestination = rewardsDestination[allocation.indexer];
-        if (rewardsDestination == address(0)) {
-            _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
-            _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
-        } else {
-            _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
+            // Distribute rewards to indexer
+            tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
+            address rewardsDestination = rewardsDestination[allocation.indexer];
+            if (rewardsDestination == address(0)) {
+                _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
+                _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
+            } else {
+                _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
+            }
         }
 
         emit IndexingRewardsCollected(
@@ -321,6 +312,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             tokensDelegationRewards,
             _poi
         );
+
+        // Check if the allocation is over-allocated and close it if necessary
+        if (!allocationProvisionTracker.check(_graphStaking(), allocation.indexer, _delegationRatio)) {
+            _closeAllocation(_allocationId);
+        }
 
         return tokensRewards;
     }

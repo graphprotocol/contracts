@@ -267,7 +267,7 @@ contract SubgraphService is
                 allocations.get(allocationId).indexer == indexer,
                 SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
             );
-            paymentCollected = _collectIndexingRewards(allocationId, poi);
+            paymentCollected = _collectIndexingRewards(allocationId, poi, delegationRatio);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
