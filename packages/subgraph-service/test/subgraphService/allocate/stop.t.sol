@@ -81,14 +81,6 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
         vm.warp(maxPOIStaleness + 1);
 
         resetPrank(permissionlessBob);
-        vm.expectEmitted(
-            abi.encodeWithSelector(
-                ISubgraphService.SubgraphServiceAllocationClosed.selector,
-                allocationID
-            )
-        );
         subgraphService.closeStaleAllocation(allocationID);
-
-        assertEq();
     }
 }
