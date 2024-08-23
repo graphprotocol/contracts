@@ -363,9 +363,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(tokensProvisionTotal != 0, HorizonStakingInsufficientTokens(tokensProvisionTotal, tokens));
 
         uint256 tokensToSlash = MathUtils.min(tokens, tokensProvisionTotal);
+
+        // Slash service provider first
+        // - A portion goes to verifier as reward
+        // - A portion gets burned
         uint256 providerTokensSlashed = MathUtils.min(prov.tokens, tokensToSlash);
         if (providerTokensSlashed > 0) {
-            uint256 maxVerifierTokens = prov.tokens.mulPPM(prov.maxVerifierCut);
+            // Pay verifier reward - must be within the maxVerifierCut percentage
+            uint256 maxVerifierTokens = providerTokensSlashed.mulPPM(prov.maxVerifierCut);
             require(
                 maxVerifierTokens >= tokensVerifier,
                 HorizonStakingTooManyTokens(tokensVerifier, maxVerifierTokens)
@@ -374,32 +379,45 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 _graphToken().pushTokens(verifierDestination, tokensVerifier);
                 emit VerifierTokensSent(serviceProvider, verifier, verifierDestination, tokensVerifier);
             }
+
+            // Burn remainder
             _graphToken().burnTokens(providerTokensSlashed - tokensVerifier);
-            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
+
+            // Provision accounting
             // TODO check for rounding issues
+            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
             prov.tokensThawing =
                 (prov.tokensThawing * (FIXED_POINT_PRECISION - provisionFractionSlashed)) /
                 (FIXED_POINT_PRECISION);
             prov.tokens = prov.tokens - providerTokensSlashed;
+
+            // Service provider accounting
             _serviceProviders[serviceProvider].tokensProvisioned =
                 _serviceProviders[serviceProvider].tokensProvisioned -
                 providerTokensSlashed;
             _serviceProviders[serviceProvider].tokensStaked =
                 _serviceProviders[serviceProvider].tokensStaked -
                 providerTokensSlashed;
+
             emit ProvisionSlashed(serviceProvider, verifier, providerTokensSlashed);
         }
 
+        // Slash delegators if needed
+        // - Slashed delegation is entirely burned
         // Since tokensToSlash is already limited above, this subtraction will remain within pool.tokens.
         tokensToSlash = tokensToSlash - providerTokensSlashed;
         if (tokensToSlash > 0) {
             if (_delegationSlashingEnabled) {
+                // Burn tokens
                 _graphToken().burnTokens(tokensToSlash);
+
+                // Delegation pool accounting
                 uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION) / pool.tokens;
                 pool.tokens = pool.tokens - tokensToSlash;
                 pool.tokensThawing =
                     (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
                     FIXED_POINT_PRECISION;
+
                 emit DelegationSlashed(serviceProvider, verifier, tokensToSlash);
             } else {
                 emit DelegationSlashingSkipped(serviceProvider, verifier, tokensToSlash);

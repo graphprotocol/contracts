@@ -27,13 +27,33 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 slashTokens,
         uint256 verifierCutAmount
     ) public useIndexer useProvision(tokens, maxVerifierCut, 0) {
-        verifierCutAmount = bound(verifierCutAmount, 0, maxVerifierCut);
         slashTokens = bound(slashTokens, 1, tokens);
         uint256 maxVerifierTokens = (slashTokens * maxVerifierCut) / MAX_PPM;
         vm.assume(verifierCutAmount <= maxVerifierTokens);
         
         vm.startPrank(subgraphDataServiceAddress);
         _slash(users.indexer, subgraphDataServiceAddress, slashTokens, verifierCutAmount);
+    }
+
+    function testSlash_Tokens_RevertWhen_TooManyVerifierTokens(
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint256 slashTokens,
+        uint256 verifierCutAmount
+    ) public useIndexer useProvision(tokens, maxVerifierCut, 0) {
+        slashTokens = bound(slashTokens, 1, tokens);
+        uint256 maxVerifierTokens = (slashTokens * maxVerifierCut) / MAX_PPM;
+        vm.assume(verifierCutAmount > maxVerifierTokens);
+        
+        vm.startPrank(subgraphDataServiceAddress);
+        vm.assume(slashTokens > 0);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IHorizonStakingMain.HorizonStakingTooManyTokens.selector,
+            verifierCutAmount,
+            maxVerifierTokens
+        );
+        vm.expectRevert(expectedError);
+        staking.slash(users.indexer, slashTokens, verifierCutAmount, subgraphDataServiceAddress);
     }
 
     function testSlash_DelegationDisabled_SlashingOverProviderTokens(
