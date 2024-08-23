@@ -161,12 +161,16 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         // Setup new indexer
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
+
+        // This data is for user.indexer allocationId
         bytes memory data = _getQueryFeeEncodedData(newIndexer, uint128(tokens));
+
+        resetPrank(newIndexer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
+                ISubgraphService.SubgraphServiceInvalidRAV.selector,
                 newIndexer,
-                allocationID
+                users.indexer
             )
         );
         subgraphService.collect(newIndexer, paymentType, data);
@@ -196,7 +200,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         bytes memory data = abi.encode(allocationID, bytes32("POI1"));
         // Attempt to collect from other indexer's allocation
         vm.expectRevert(
-            abi.encodeWithSelector(AllocationManager.AllocationManagerNotAuthorized.selector, newIndexer, allocationID)
+            abi.encodeWithSelector(ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector, newIndexer, allocationID)
         );
         subgraphService.collect(newIndexer, paymentType, data);
     }

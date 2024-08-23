@@ -222,7 +222,7 @@ contract SubgraphService is
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         require(
-            allocations[allocationId].indexer == indexer,
+            allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
         _closeAllocation(allocationId);
@@ -266,9 +266,19 @@ contract SubgraphService is
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            paymentCollected = _collectQueryFees(indexer, data);
+            ITAPCollector.SignedRAV memory signedRav = abi.decode(data, (ITAPCollector.SignedRAV));
+            require(
+                signedRav.rav.serviceProvider == indexer,
+                SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, indexer)
+            );
+            paymentCollected = _collectQueryFees(signedRav);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
-            paymentCollected = _collectIndexingRewards(indexer, data);
+            (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
+            require(
+                allocations.get(allocationId).indexer == indexer,
+                SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
+            );
+            paymentCollected = _collectIndexingRewards(allocationId, poi);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -298,6 +308,19 @@ contract SubgraphService is
     }
 
     /**
+     * @notice See {ISubgraphService.closeStaleAllocation}
+     */
+    function closeStaleAllocation(address allocationId) external override {
+        Allocation.State memory allocation = allocations.get(allocationId);
+        require(
+            allocation.isStale(maxPOIStaleness),
+            SubgraphServiceAllocationNotStale(allocationId, allocation.lastPOIPresentedAt)
+        );
+        require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
+        _closeAllocation(allocationId);
+    }
+
+    /**
      * @notice See {ISubgraphService.resizeAllocation}
      */
     function resizeAllocation(
@@ -311,7 +334,11 @@ contract SubgraphService is
         onlyRegisteredIndexer(indexer)
         whenNotPaused
     {
-        _resizeAllocation(indexer, allocationId, tokens, delegationRatio);
+        require(
+            allocations.get(allocationId).indexer == indexer,
+            SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
+        );
+        _resizeAllocation(allocationId, tokens, delegationRatio);
     }
 
     /**
@@ -493,23 +520,19 @@ contract SubgraphService is
      * Emits a {StakeClaimLocked} event.
      * Emits a {QueryFeesCollected} event.
      *
-     * @param _indexer The address of the indexer
-     * @param _data Encoded data containing a signed RAV
+     * @param _signedRav Signed RAV
      */
-    function _collectQueryFees(address _indexer, bytes memory _data) private returns (uint256 feesCollected) {
-        ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
-        address indexer = signedRav.rav.serviceProvider;
-        require(_indexer == indexer, SubgraphServiceIndexerMismatch(indexer, _indexer));
-        address allocationId = abi.decode(signedRav.rav.metadata, (address));
+    function _collectQueryFees(ITAPCollector.SignedRAV memory _signedRav) private returns (uint256 feesCollected) {
+        address indexer = _signedRav.rav.serviceProvider;
+        address allocationId = abi.decode(_signedRav.rav.metadata, (address));
         Allocation.State memory allocation = allocations.get(allocationId);
 
-        // Not strictly necessary: if an indexer collects another's voucher, they lock their stake with no gains.
-        // We include the check to guard against potential malicious payers deceiving the indexer.
-        require(allocation.indexer == _indexer, SubgraphServiceAllocationNotAuthorized(_indexer, allocationId));
+        // Check RAV is consistent - RAV indexer must match the allocation's indexer
+        require(allocation.indexer == indexer, SubgraphServiceInvalidRAV(indexer, allocation.indexer));
         bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
         // release expired stake claims
-        _releaseStake(_indexer, 0);
+        _releaseStake(indexer, 0);
 
         // Collect from GraphPayments - only curators cut is sent back to the subgraph service
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
@@ -517,7 +540,7 @@ contract SubgraphService is
         uint256 curationCut = _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0;
         uint256 tokensCollected = _tapCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
-            abi.encode(signedRav, curationCut)
+            abi.encode(_signedRav, curationCut)
         );
         uint256 tokensCurators = tokensCollected.mulPPM(curationCut);
 
@@ -531,7 +554,7 @@ contract SubgraphService is
             // lock stake as economic security for fees
             uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
             uint256 unlockTimestamp = block.timestamp + _disputeManager().getDisputePeriod();
-            _lockStake(_indexer, tokensToLock, unlockTimestamp);
+            _lockStake(indexer, tokensToLock, unlockTimestamp);
 
             if (tokensCurators > 0) {
                 // curation collection changes subgraph signal so we take rewards snapshot
@@ -543,7 +566,7 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesCollected(_indexer, tokensCollected, tokensCurators);
+        emit QueryFeesCollected(indexer, tokensCollected, tokensCurators);
         return tokensCollected;
     }
 }

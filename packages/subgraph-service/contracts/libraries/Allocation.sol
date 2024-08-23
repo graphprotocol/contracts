@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.26;
 
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+
 /**
  * @title Allocation library
  * @notice A library to handle Allocations.
@@ -162,6 +164,16 @@ library Allocation {
      */
     function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
         return _get(self, allocationId);
+    }
+
+    /**
+     * @notice Checks if an allocation is stale
+     * @param self The allocation
+     * @param staleThreshold The time in blocks to consider an allocation stale
+     */
+    function isStale(State memory self, uint256 staleThreshold) internal view returns (bool) {
+        uint256 timeSinceLastPOI = block.number - Math.max(self.createdAt, self.lastPOIPresentedAt);
+        return self.isOpen() && timeSinceLastPOI <= staleThreshold;
     }
 
     /**

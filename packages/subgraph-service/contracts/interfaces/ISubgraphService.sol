@@ -98,11 +98,47 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceAllocationNotAuthorized(address indexer, address allocationId);
 
     /**
+     * @notice Thrown when collecting a RAV where the RAV indexer is not the same as the allocation indexer
+     * @param ravIndexer The address of the RAV indexer
+     * @param allocationIndexer The address of the allocation indexer
+     */
+    error SubgraphServiceInvalidRAV(address ravIndexer, address allocationIndexer);
+
+    /**
+     * @notice Thrown when trying to force close an allocation that is not stale
+     * @param allocationId The id of the allocation
+     * @param lastPOIPresentedAt The timestamp when the last POI was presented
+     */
+    error SubgraphServiceAllocationNotStale(address allocationId, uint256 lastPOIPresentedAt);
+
+    /**
+     * @notice Thrown when trying to force close an altruistic allocation
+     * @param allocationId The id of the allocation
+     */
+    error SubgraphServiceAllocationIsAltruistic(address allocationId);
+
+    /**
      * @notice Initialize the contract
      * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
      * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
      */
     function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external;
+
+    /**
+     * @notice Close a stale allocation
+     * @dev This function can be permissionlessly called when the allocation is stale.
+     * This ensures rewards for other allocations are not diluted by an inactive allocation
+     *
+     * Requirements:
+     * - Allocation must exist and be open
+     * - Allocation must be stale
+     * - Allocation cannot be altruistic
+     *
+     * Emits a {AllocationClosed} event.
+     *
+     * @param allocationId The id of the allocation
+     */
+    function closeStaleAllocation(address allocationId) external;
 
     /**
      * @notice Change the amount of tokens in an allocation

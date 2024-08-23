@@ -153,13 +153,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     error AllocationManagerAllocationSameSize(address allocationId, uint256 tokens);
 
     /**
-     * @notice Thrown when an indexer is not allocation owner
-     * @param allocationId The id of the allocation
-     * @param indexer The address of the indexer
-     */
-    error AllocationManagerNotAuthorized(address indexer, address allocationId);
-
-    /**
      * @notice Initializes the contract and parent contracts
      */
     // solhint-disable-next-line func-name-mixedcase
@@ -257,43 +250,40 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      *
      * Emits a {IndexingRewardsCollected} event.
      *
-     * @param _indexer The address of the indexer
-     * @param _data Encoded data containing:
-     * - address `allocationId`: The id of the allocation to collect rewards for
-     * - bytes32 `poi`: The POI being presented
+     * @param _allocationId The id of the allocation to collect rewards for
+     * @param _poi The POI being presented
      */
-    function _collectIndexingRewards(address _indexer, bytes memory _data) internal returns (uint256) {
-        (address allocationId, bytes32 poi) = abi.decode(_data, (address, bytes32));
-
-        Allocation.State memory allocation = allocations.get(allocationId);
-        require(allocation.indexer == _indexer, AllocationManagerNotAuthorized(_indexer, allocationId));
-        require(allocation.isOpen(), AllocationManagerAllocationClosed(allocationId));
+    function _collectIndexingRewards(address _allocationId, bytes32 _poi) internal returns (uint256) {
+        Allocation.State memory allocation = allocations.get(_allocationId);
+        require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
         // Mint indexing rewards if all conditions are met
         uint256 timeSinceLastPOI = block.number - Math.max(allocation.createdAt, allocation.lastPOIPresentedAt);
-        uint256 tokensRewards = (timeSinceLastPOI <= maxPOIStaleness && poi != bytes32(0) && !allocation.isAltruistic())
-            ? _graphRewardsManager().takeRewards(allocationId)
+        uint256 tokensRewards = (timeSinceLastPOI <= maxPOIStaleness &&
+            _poi != bytes32(0) &&
+            !allocation.isAltruistic())
+            ? _graphRewardsManager().takeRewards(_allocationId)
             : 0;
 
         // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
         allocations.snapshotRewards(
-            allocationId,
+            _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
-        allocations.presentPOI(allocationId);
+        allocations.presentPOI(_allocationId);
 
         // Any pending rewards should have been collected now
-        allocations.clearPendingRewards(allocationId);
+        allocations.clearPendingRewards(_allocationId);
 
         if (tokensRewards == 0) {
             emit IndexingRewardsCollected(
                 allocation.indexer,
-                allocationId,
+                _allocationId,
                 allocation.subgraphDeploymentId,
                 0,
                 0,
                 0,
-                poi
+                _poi
             );
             return tokensRewards;
         }
@@ -322,12 +312,12 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
         emit IndexingRewardsCollected(
             allocation.indexer,
-            allocationId,
+            _allocationId,
             allocation.subgraphDeploymentId,
             tokensRewards,
             tokensIndexerRewards,
             tokensDelegationRewards,
-            poi
+            _poi
         );
 
         return tokensRewards;
@@ -346,19 +336,16 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      *
      * Emits a {AllocationResized} event.
      *
-     * @param _indexer The address of the indexer
      * @param _allocationId The id of the allocation to be resized
      * @param _tokens The new amount of tokens to allocate
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      */
     function _resizeAllocation(
-        address _indexer,
         address _allocationId,
         uint256 _tokens,
         uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
         Allocation.State memory allocation = allocations.get(_allocationId);
-        require(allocation.indexer == _indexer, AllocationManagerNotAuthorized(_indexer, _allocationId));
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
         require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
 

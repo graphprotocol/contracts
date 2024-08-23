@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
+import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 
 contract SubgraphServiceAllocateResizeTest is SubgraphServiceTest {
 
@@ -100,7 +101,7 @@ contract SubgraphServiceAllocateResizeTest is SubgraphServiceTest {
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
         vm.expectRevert(abi.encodeWithSelector(
-            AllocationManager.AllocationManagerNotAuthorized.selector,
+            ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
             newIndexer,
             allocationID
         ));
