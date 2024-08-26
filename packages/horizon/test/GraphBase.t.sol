@@ -54,10 +54,6 @@ abstract contract GraphBaseTest is Utils, Constants {
 
     Users internal users;
 
-    /* Constants */
-
-    Constants public constants;
-
     /*
      * SET UP
      */

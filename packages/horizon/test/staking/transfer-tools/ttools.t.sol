@@ -69,7 +69,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
 
         // create provision and legacy delegation pool - this is done by the bridge when indexers move to L2
         resetPrank(users.indexer);
-        _createProvision(subgraphDataServiceLegacyAddress, 100 ether, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 0);
 
         resetPrank(users.delegator);
         _delegateLegacy(users.indexer, 1 ether);
@@ -92,7 +92,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
 
         // create provision and legacy delegation pool - this is done by the bridge when indexers move to L2
         resetPrank(users.indexer);
-        _createProvision(subgraphDataServiceLegacyAddress, 100 ether, 0, 1 days);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 1 days);
 
         resetPrank(users.delegator);
         _delegateLegacy(users.indexer, originalDelegationAmount);
@@ -120,7 +120,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
 
         // create provision and legacy delegation pool - this is done by the bridge when indexers move to L2
         resetPrank(users.indexer);
-        _createProvision(subgraphDataServiceLegacyAddress, provisionSize, 0, 1 days);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionSize, 0, 1 days);
 
         // initialize the delegation pool
         resetPrank(users.delegator);
@@ -147,7 +147,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
 
         // create provision and legacy delegation pool - this is done by the bridge when indexers move to L2
         resetPrank(users.indexer);
-        _createProvision(subgraphDataServiceLegacyAddress, 100 ether, 0, 1 days);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 1 days);
 
         resetPrank(users.delegator);
         _delegateLegacy(users.indexer, amountDelegated);

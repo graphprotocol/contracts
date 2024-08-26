@@ -11,8 +11,9 @@ contract HorizonStakingStakeTest is HorizonStakingTest {
      * TESTS
      */
 
-    function testStake_Tokens(uint256 amount) public useIndexer useStake(amount) {
-        assertTrue(staking.getStake(address(users.indexer)) == amount);
+    function testStake_Tokens(uint256 amount) public useIndexer {
+        amount = bound(amount, 1, MAX_STAKING_TOKENS);
+        _stake(amount);
     }
 
     function testStake_RevertWhen_ZeroTokens() public useIndexer {
@@ -21,8 +22,9 @@ contract HorizonStakingStakeTest is HorizonStakingTest {
         staking.stake(0);
     }
 
-    function testStakeTo_Tokens(uint256 amount) public useOperator useStakeTo(users.indexer, amount) {
-        assertTrue(staking.getStake(address(users.indexer)) == amount);
+    function testStakeTo_Tokens(uint256 amount) public useOperator {
+        amount = bound(amount, 1, MAX_STAKING_TOKENS);
+        _stakeTo(users.indexer, amount);
     }
 
     function testStakeTo_RevertWhen_ZeroTokens() public useOperator {

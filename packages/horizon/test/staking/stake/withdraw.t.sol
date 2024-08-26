@@ -29,14 +29,14 @@ contract HorizonStakingWithdrawTest is HorizonStakingTest {
     function testWithdraw_Tokens(uint256 tokens, uint256 tokensLocked) public useIndexer {
         vm.assume(tokens > 0);
         tokensLocked = bound(tokensLocked, 1, tokens);
-        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
         _storeServiceProvider(users.indexer, tokens, 0, tokensLocked, block.timestamp, 0);
         _withdrawLockedTokens(tokensLocked);
     }
 
     function testWithdraw_RevertWhen_ZeroTokens(uint256 tokens) public useIndexer {
         vm.assume(tokens > 0);
-        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
         _storeServiceProvider(users.indexer, tokens, 0, 0, block.timestamp, 0);
         vm.expectRevert(abi.encodeWithSelector(
             IHorizonStakingMain.HorizonStakingInvalidZeroTokens.selector
@@ -47,7 +47,7 @@ contract HorizonStakingWithdrawTest is HorizonStakingTest {
     function testWithdraw_RevertWhen_StillThawing(uint256 tokens, uint256 tokensLocked) public useIndexer {
         vm.assume(tokens > 0);
         tokensLocked = bound(tokensLocked, 1, tokens);
-        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
         uint256 thawUntil = block.timestamp + 1;
         _storeServiceProvider(users.indexer, tokens, 0, tokensLocked, thawUntil, 0);
         vm.expectRevert(abi.encodeWithSelector(

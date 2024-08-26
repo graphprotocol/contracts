@@ -78,7 +78,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
     function testDelegate_LegacySubgraphService(uint256 amount, uint256 delegationAmount) public useIndexer {
         amount = bound(amount, 1 ether, MAX_STAKING_TOKENS);
         delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
-        _createProvision(subgraphDataServiceLegacyAddress, amount, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, amount, 0, 0);
 
         resetPrank(users.delegator);
         _delegateLegacy(users.indexer, delegationAmount);

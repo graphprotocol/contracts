@@ -18,7 +18,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
         _storeAllocation(tokens);
         _storeMaxAllocationEpochs();
-        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         // Skip 15 epochs
         vm.roll(15);
@@ -35,7 +35,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
         _storeAllocation(tokens);
         _storeMaxAllocationEpochs();
-        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         address beneficiary = makeAddr("beneficiary");
         _storeRewardsDestination(beneficiary);
@@ -66,7 +66,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
         _storeAllocation(tokens);
         _storeMaxAllocationEpochs();
-        _createProvision(subgraphDataServiceLegacyAddress, tokens, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         // Skip to over the max allocation epochs
         vm.roll(MAX_ALLOCATION_EPOCHS + 2);
@@ -102,7 +102,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingExtensionTest {
 
         _storeAllocation(legacyAllocationTokens);
         _storeMaxAllocationEpochs();
-        _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         _storeDelegationPool(delegationTokens, indexingRewardCut, 0);
 
         // Skip 15 epochs

@@ -59,13 +59,12 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     }
 
     function _setupNewIndexer(uint256 tokens) private returns(address) {
-        address msgSender;
-        (, msgSender,) = vm.readCallers();
+        (, address msgSender,) = vm.readCallers();
+
         address newIndexer = createUser("newIndexer");
         vm.startPrank(newIndexer);
-        token.approve(address(staking), tokens);
-        staking.stakeTo(newIndexer, tokens);
-        staking.provision(newIndexer,subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
+        _createProvision(newIndexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
+
         vm.startPrank(msgSender);
         return newIndexer;
     }
@@ -162,7 +161,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
     function testWithdrawDelegation_LegacySubgraphService(uint256 delegationAmount) public useIndexer {
         delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
-        _createProvision(subgraphDataServiceLegacyAddress, 10_000_000 ether, 0, MAX_THAWING_PERIOD);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 10_000_000 ether, 0, MAX_THAWING_PERIOD);
 
         resetPrank(users.delegator);
         _delegateLegacy(users.indexer, delegationAmount);

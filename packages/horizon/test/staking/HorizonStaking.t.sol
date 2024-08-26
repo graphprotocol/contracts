@@ -33,19 +33,6 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         vm.stopPrank();
     }
 
-    modifier useStake(uint256 amount) {
-        vm.assume(amount > 0);
-        approve(address(staking), amount);
-        staking.stake(amount);
-        _;
-    }
-
-    modifier useStakeTo(address to, uint256 amount) {
-        vm.assume(amount > 0);
-        _stakeTo(to, amount);
-        _;
-    }
-
     modifier useThawRequest(uint256 thawAmount) {
         vm.assume(thawAmount > 0);
         _createThawRequest(thawAmount);
@@ -92,11 +79,6 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
     /*
      * HELPERS
      */
-
-    function _stakeTo(address to, uint256 amount) internal {
-        approve(address(staking), amount);
-        staking.stakeTo(to, amount);
-    }
 
     function _createThawRequest(uint256 thawAmount) internal returns (bytes32) {
         return staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);

@@ -106,7 +106,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         _storeAllocation(allocationTokens);
         _storeProtocolTaxAndCuration(curationPercentage, protocolTaxPercentage);
         _storeDelegationPool(delegationTokens, 0, queryFeeCut);
-        _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         curation.signal(_subgraphDeploymentID, curationTokens);
 
         resetPrank(users.gateway);
@@ -153,7 +153,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         allocationTokens = bound(allocationTokens, 0, MAX_STAKING_TOKENS);
         collectTokens = bound(collectTokens, 0, MAX_STAKING_TOKENS);
 
-        _createProvision(subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         _storeAllocation(allocationTokens);
 
         address beneficiary = makeAddr("beneficiary");
