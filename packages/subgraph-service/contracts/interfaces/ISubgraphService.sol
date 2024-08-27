@@ -41,7 +41,7 @@ interface ISubgraphService is IDataServiceFees {
     event StakeToFeesRatioSet(uint256 ratio);
 
     /**
-     * @notice Emmited when curator cuts are set
+     * @notice Emitted when curator cuts are set
      * @param curationCut The curation cut
      */
     event CurationCutSet(uint256 curationCut);
@@ -139,7 +139,6 @@ interface ISubgraphService is IDataServiceFees {
     function closeStaleAllocation(address allocationId) external;
 
     /**
-
      * @notice Change the amount of tokens in an allocation
      * @dev Requirements:
      * - The indexer must be registered
