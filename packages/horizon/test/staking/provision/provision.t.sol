@@ -10,13 +10,12 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
      * TESTS
      */
 
-    function testProvision_Create(
-        uint256 amount,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
-    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        assertEq(provisionTokens, amount);
+    function testProvision_Create(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) public useIndexer {
+        tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
+        maxVerifierCut = uint32(bound(maxVerifierCut, 0, MAX_MAX_VERIFIER_CUT));
+        thawingPeriod = uint32(bound(thawingPeriod, 0, MAX_THAWING_PERIOD));
+
+        _createProvision(users.indexer, subgraphDataServiceAddress, tokens, maxVerifierCut, thawingPeriod);
     }
 
     function testProvision_RevertWhen_ZeroTokens() public useIndexer useStake(1000 ether) {
@@ -87,18 +86,12 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         uint32 maxVerifierCut,
         uint64 thawingPeriod,
         uint256 tokensToAdd
-    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        tokensToAdd = bound(tokensToAdd, 1, type(uint256).max - amount);
-        // Set operator
-        staking.setOperator(users.operator, subgraphDataServiceAddress, true);
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useOperator {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
 
         // Add more tokens to the provision
-        vm.startPrank(users.operator);
         _stakeTo(users.indexer, tokensToAdd);
-        staking.addToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
-
-        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
-        assertEq(provisionTokens, amount + tokensToAdd);
+        _addToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
     }
 
     function testProvision_RevertWhen_OperatorNotAuthorized(

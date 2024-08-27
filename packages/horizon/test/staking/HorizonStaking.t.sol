@@ -25,14 +25,6 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         _;
     }
 
-    modifier useOperator() {
-        vm.startPrank(users.indexer);
-        staking.setOperator(users.operator, subgraphDataServiceAddress, true);
-        vm.startPrank(users.operator);
-        _;
-        vm.stopPrank();
-    }
-
     modifier useThawRequest(uint256 thawAmount) {
         vm.assume(thawAmount > 0);
         _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);

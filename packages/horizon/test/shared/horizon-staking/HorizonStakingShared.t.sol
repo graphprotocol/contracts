@@ -23,6 +23,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.stopPrank();
     }
 
+    modifier useOperator() {
+        vm.startPrank(users.indexer);
+        staking.setOperator(users.operator, subgraphDataServiceAddress, true);
+        vm.startPrank(users.operator);
+        _;
+        vm.stopPrank();
+    }
+
     modifier useStake(uint256 amount) {
         vm.assume(amount > 0);
         _stake(amount);
@@ -241,7 +249,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // assert
         assertEq(afterSenderBalance - beforeSenderBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
         assertEq(beforeStakingBalance - afterStakingBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
-        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked - beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.tokensStaked,
+            beforeServiceProvider.tokensStaked - beforeServiceProvider.__DEPRECATED_tokensLocked
+        );
         assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
         assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
         assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, 0);
@@ -282,6 +293,43 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.thawingPeriodPending, thawingPeriod);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
         assertEq(afterServiceProvider.tokensProvisioned, tokens + beforeServiceProvider.tokensProvisioned);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
+    }
+
+    function _addToProvision(address serviceProvider, address verifier, uint256 tokens) internal {
+        // before
+        IHorizonStaking.Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
+        IHorizonStaking.ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(
+            serviceProvider
+        );
+
+        // addToProvision
+        vm.expectEmit();
+        emit IHorizonStakingMain.ProvisionIncreased(serviceProvider, verifier, tokens);
+        staking.addToProvision(serviceProvider, verifier, tokens);
+
+        // after
+        IHorizonStaking.Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
+        IHorizonStaking.ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(
+            serviceProvider
+        );
+
+        // assert
+        assertEq(afterProvision.tokens, beforeProvision.tokens + tokens);
+        assertEq(afterProvision.tokensThawing, beforeProvision.tokensThawing);
+        assertEq(afterProvision.sharesThawing, beforeProvision.sharesThawing);
+        assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCut);
+        assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriod);
+        assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
+        assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned + tokens);
         assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
         assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
         assertEq(
