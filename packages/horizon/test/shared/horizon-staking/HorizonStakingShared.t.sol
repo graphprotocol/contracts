@@ -54,10 +54,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _useProvision(address dataService, uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) internal {
-        vm.assume(tokens <= MAX_STAKING_TOKENS);
-        vm.assume(tokens > 0);
-        vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
-        vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
+        tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
+        maxVerifierCut = uint32(bound(maxVerifierCut, 0, MAX_MAX_VERIFIER_CUT));
+        thawingPeriod = uint32(bound(thawingPeriod, 0, MAX_THAWING_PERIOD));
 
         _createProvision(users.indexer, dataService, tokens, maxVerifierCut, thawingPeriod);
     }
@@ -217,6 +216,38 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
     }
 
+    function _withdraw() internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        // before
+        IHorizonStaking.ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(
+            msgSender
+        );
+        uint256 beforeSenderBalance = token.balanceOf(msgSender);
+        uint256 beforeStakingBalance = token.balanceOf(address(staking));
+
+        // withdraw
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.StakeWithdrawn(msgSender, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        staking.withdraw();
+
+        // after
+        IHorizonStaking.ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(
+            msgSender
+        );
+        uint256 afterSenderBalance = token.balanceOf(msgSender);
+        uint256 afterStakingBalance = token.balanceOf(address(staking));
+
+        // assert
+        assertEq(afterSenderBalance - beforeSenderBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(beforeStakingBalance - afterStakingBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked - beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, 0);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLockedUntil, 0);
+    }
+
     function _provision(
         address serviceProvider,
         address verifier,
@@ -293,5 +324,22 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 slot = 13;
         bytes32 value = bytes32(uint256(_thawingPeriod));
         vm.store(address(staking), bytes32(slot), value);
+    }
+
+    function _setStorage_ServiceProvider(
+        address _indexer,
+        uint256 _tokensStaked,
+        uint256 _tokensAllocated,
+        uint256 _tokensLocked,
+        uint256 _tokensLockedUntil,
+        uint256 _tokensProvisioned
+    ) internal {
+        uint256 serviceProviderSlot = 14;
+        bytes32 serviceProviderBaseSlot = keccak256(abi.encode(_indexer, serviceProviderSlot));
+        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot)), bytes32(_tokensStaked));
+        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 1), bytes32(_tokensAllocated));
+        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 2), bytes32(_tokensLocked));
+        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 3), bytes32(_tokensLockedUntil));
+        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 4), bytes32(_tokensProvisioned));
     }
 }

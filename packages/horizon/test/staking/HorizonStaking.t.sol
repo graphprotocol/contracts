@@ -247,23 +247,6 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         return staking.getDelegationPool(users.indexer, verifier);
     }
 
-    function _storeServiceProvider(
-        address _indexer,
-        uint256 _tokensStaked,
-        uint256 _tokensAllocated,
-        uint256 _tokensLocked,
-        uint256 _tokensLockedUntil,
-        uint256 _tokensProvisioned
-    ) internal {
-        uint256 serviceProviderSlot = 14;
-        bytes32 serviceProviderBaseSlot = keccak256(abi.encode(_indexer, serviceProviderSlot));
-        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot)), bytes32(_tokensStaked));
-        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 1), bytes32(_tokensAllocated));
-        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 2), bytes32(_tokensLocked));
-        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 3), bytes32(_tokensLockedUntil));
-        vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 4), bytes32(_tokensProvisioned));
-    }
-
     function _slash(address serviceProvider, address verifier, uint256 tokens, uint256 verifierCutAmount) internal {
         uint256 beforeProviderTokens = staking.getProviderTokensAvailable(serviceProvider, verifier);
         uint256 beforeDelegationTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);

@@ -34,7 +34,7 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
     ) public useIndexer useProvision(tokens, maxVerifierCut, thawingPeriod) {
         tokensToUnstake = bound(tokensToUnstake, 1, tokens);
 
-        // vm.store to simulate locking period
+        // simulate transition period
         _setStorage_DeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
 
         // thaw, wait and deprovision
@@ -56,10 +56,10 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         tokensToUnstake = bound(tokensToUnstake, 1, tokens);
         tokensLocked = bound(tokensLocked, 1, MAX_STAKING_TOKENS);
 
-        // vm.store to simulate locked tokens with past locking period
+        // simulate locked tokens with past locking period
         _setStorage_DeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
         token.transfer(address(staking), tokensLocked);
-        _storeServiceProvider(users.indexer, tokensLocked, 0, tokensLocked, block.number, 0);
+        _setStorage_ServiceProvider(users.indexer, tokensLocked, 0, tokensLocked, block.number, 0);
 
         // create provision, thaw and deprovision
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
@@ -84,10 +84,10 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         vm.assume(tokensThawingUntilBlock > block.number);
         vm.assume(tokensThawingUntilBlock < block.number + THAWING_PERIOD_IN_BLOCKS);
 
-        // vm.store to simulate locked tokens still thawing
+        // simulate locked tokens still thawing
         _setStorage_DeprecatedThawingPeriod(THAWING_PERIOD_IN_BLOCKS);
         token.transfer(address(staking), tokensThawing);
-        _storeServiceProvider(users.indexer, tokensThawing, 0, tokensThawing, tokensThawingUntilBlock, 0);
+        _setStorage_ServiceProvider(users.indexer, tokensThawing, 0, tokensThawing, tokensThawingUntilBlock, 0);
 
         // create provision, thaw and deprovision
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
