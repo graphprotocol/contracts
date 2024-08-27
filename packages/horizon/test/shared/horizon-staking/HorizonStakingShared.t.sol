@@ -8,6 +8,7 @@ import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol
 import { IHorizonStaking } from "../../../contracts/interfaces/IHorizonStaking.sol";
 import { IHorizonStakingBase } from "../../../contracts/interfaces/internal/IHorizonStakingBase.sol";
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
 
@@ -95,7 +96,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // before
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
-        IHorizonStaking.ServiceProvider memory beforeServiceProvider = staking.getServiceProvider(serviceProvider);
+        IHorizonStaking.ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(
+            serviceProvider
+        );
 
         // stakeTo
         token.approve(address(staking), tokens);
@@ -106,12 +109,21 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // after
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterSenderBalance = token.balanceOf(msgSender);
-        IHorizonStaking.ServiceProvider memory afterServiceProvider = staking.getServiceProvider(serviceProvider);
+        IHorizonStaking.ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(
+            serviceProvider
+        );
 
         // assert
         assertEq(afterStakingBalance, beforeStakingBalance + tokens);
         assertEq(afterSenderBalance, beforeSenderBalance - tokens);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked + tokens);
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
     }
 
     function _unstake(uint256 _tokens) internal {
@@ -122,61 +134,87 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // before
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
-        IHorizonStaking.ServiceProvider memory beforeServiceProvider = staking.getServiceProvider(msgSender);
+        IHorizonStaking.ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(
+            msgSender
+        );
+
+        bool withdrawCalled = beforeServiceProvider.__DEPRECATED_tokensLocked != 0 &&
+            block.number >= beforeServiceProvider.__DEPRECATED_tokensLockedUntil;
+
+        if (deprecatedThawingPeriod != 0 && beforeServiceProvider.__DEPRECATED_tokensLocked > 0) {
+            deprecatedThawingPeriod = MathUtils.weightedAverageRoundingUp(
+                MathUtils.diffOrZero(
+                    withdrawCalled ? 0 : beforeServiceProvider.__DEPRECATED_tokensLockedUntil,
+                    block.number
+                ),
+                withdrawCalled ? 0 : beforeServiceProvider.__DEPRECATED_tokensLocked,
+                deprecatedThawingPeriod,
+                _tokens
+            );
+        }
 
         // unstake
         if (deprecatedThawingPeriod == 0) {
             vm.expectEmit(address(staking));
             emit IHorizonStakingMain.StakeWithdrawn(msgSender, _tokens);
-            staking.unstake(_tokens);
         } else {
-            // TODO
+            if (withdrawCalled) {
+                vm.expectEmit(address(staking));
+                emit IHorizonStakingMain.StakeWithdrawn(msgSender, beforeServiceProvider.__DEPRECATED_tokensLocked);
+            }
+
+            vm.expectEmit(address(staking));
+            emit IHorizonStakingMain.StakeLocked(
+                msgSender,
+                withdrawCalled ? _tokens : beforeServiceProvider.__DEPRECATED_tokensLocked + _tokens,
+                block.number + deprecatedThawingPeriod
+            );
         }
+        staking.unstake(_tokens);
 
         // after
         uint256 afterSenderBalance = token.balanceOf(msgSender);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
-        IHorizonStaking.ServiceProvider memory afterServiceProvider = staking.getServiceProvider(msgSender);
+        IHorizonStaking.ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(
+            msgSender
+        );
 
         // assert
         if (deprecatedThawingPeriod == 0) {
-            assertEq(afterSenderBalance - beforeSenderBalance, _tokens);
+            assertEq(afterSenderBalance, _tokens + beforeSenderBalance);
             assertEq(afterStakingBalance, beforeStakingBalance - _tokens);
             assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked - _tokens);
+            assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
+            assertEq(
+                afterServiceProvider.__DEPRECATED_tokensAllocated,
+                beforeServiceProvider.__DEPRECATED_tokensAllocated
+            );
+            assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+            assertEq(
+                afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+                beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+            );
         } else {
-            // TODO
+            assertEq(
+                afterServiceProvider.tokensStaked,
+                withdrawCalled
+                    ? beforeServiceProvider.tokensStaked - beforeServiceProvider.__DEPRECATED_tokensLocked
+                    : beforeServiceProvider.tokensStaked
+            );
+            assertEq(
+                afterServiceProvider.__DEPRECATED_tokensLocked,
+                _tokens + (withdrawCalled ? 0 : beforeServiceProvider.__DEPRECATED_tokensLocked)
+            );
+            assertEq(afterServiceProvider.__DEPRECATED_tokensLockedUntil, block.number + deprecatedThawingPeriod);
+            assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
+            assertEq(
+                afterServiceProvider.__DEPRECATED_tokensAllocated,
+                beforeServiceProvider.__DEPRECATED_tokensAllocated
+            );
+            uint256 tokensTransferred = (withdrawCalled ? beforeServiceProvider.__DEPRECATED_tokensLocked : 0);
+            assertEq(afterSenderBalance, beforeSenderBalance + tokensTransferred);
+            assertEq(afterStakingBalance, beforeStakingBalance - tokensTransferred);
         }
-    }
-
-    function _unstakeDuringLockingPeriod(
-        uint256 _tokens,
-        uint256 _tokensStillThawing,
-        uint256 _tokensToWithdraw,
-        uint32 _oldLockingPeriod
-    ) internal {
-        uint256 previousIndexerTokens = token.balanceOf(users.indexer);
-        uint256 previousIndexerIdleStake = staking.getIdleStake(users.indexer);
-
-        vm.expectEmit(address(staking));
-        uint256 lockingPeriod = block.number + THAWING_PERIOD_IN_BLOCKS;
-        if (_tokensStillThawing > 0) {
-            lockingPeriod =
-                block.number +
-                MathUtils.weightedAverageRoundingUp(
-                    MathUtils.diffOrZero(_oldLockingPeriod, block.number),
-                    _tokensStillThawing,
-                    THAWING_PERIOD_IN_BLOCKS,
-                    _tokens
-                );
-        }
-        emit IHorizonStakingMain.StakeLocked(users.indexer, _tokens + _tokensStillThawing, lockingPeriod);
-        staking.unstake(_tokens);
-
-        uint256 idleStake = staking.getIdleStake(users.indexer);
-        assertEq(idleStake, previousIndexerIdleStake - _tokens);
-
-        uint256 newIndexerBalance = token.balanceOf(users.indexer);
-        assertEq(newIndexerBalance - previousIndexerTokens, _tokensToWithdraw);
     }
 
     function _provision(
@@ -187,7 +225,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint64 thawingPeriod
     ) internal {
         // before
-        IHorizonStaking.ServiceProvider memory beforeServiceProvider = staking.getServiceProvider(serviceProvider);
+        IHorizonStaking.ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(
+            serviceProvider
+        );
 
         // provision
         vm.expectEmit();
@@ -196,7 +236,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         IHorizonStaking.Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
-        IHorizonStaking.ServiceProvider memory afterServiceProvider = staking.getServiceProvider(serviceProvider);
+        IHorizonStaking.ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(
+            serviceProvider
+        );
 
         // assert
         assertEq(afterProvision.tokens, tokens);
@@ -207,6 +249,49 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, uint64(block.timestamp));
         assertEq(afterProvision.maxVerifierCutPending, maxVerifierCut);
         assertEq(afterProvision.thawingPeriodPending, thawingPeriod);
+        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
         assertEq(afterServiceProvider.tokensProvisioned, tokens + beforeServiceProvider.tokensProvisioned);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
+    }
+
+    function _thaw(address serviceProvider, address verifier, uint256 tokens) internal returns (bytes32) {
+        // thaw
+        return staking.thaw(serviceProvider, verifier, tokens);
+    }
+
+    function _deprovision(uint256 nThawRequests) internal {
+        staking.deprovision(users.indexer, subgraphDataServiceAddress, nThawRequests);
+    }
+
+    /*
+     * STORAGE HELPERS
+     */
+    function _getStorage_ServiceProviderInternal(
+        address serviceProvider
+    ) internal view returns (IHorizonStaking.ServiceProviderInternal memory) {
+        uint256 slotNumber = 14;
+        uint256 baseSlotUint = uint256(keccak256(abi.encode(serviceProvider, slotNumber)));
+
+        IHorizonStakingTypes.ServiceProviderInternal memory serviceProviderInternal = IHorizonStakingTypes
+            .ServiceProviderInternal({
+                tokensStaked: uint256(vm.load(address(staking), bytes32(baseSlotUint))),
+                __DEPRECATED_tokensAllocated: uint256(vm.load(address(staking), bytes32(baseSlotUint + 1))),
+                __DEPRECATED_tokensLocked: uint256(vm.load(address(staking), bytes32(baseSlotUint + 2))),
+                __DEPRECATED_tokensLockedUntil: uint256(vm.load(address(staking), bytes32(baseSlotUint + 3))),
+                tokensProvisioned: uint256(vm.load(address(staking), bytes32(baseSlotUint + 4)))
+            });
+
+        return serviceProviderInternal;
+    }
+
+    function _setStorage_DeprecatedThawingPeriod(uint32 _thawingPeriod) internal {
+        uint256 slot = 13;
+        bytes32 value = bytes32(uint256(_thawingPeriod));
+        vm.store(address(staking), bytes32(slot), value);
     }
 }

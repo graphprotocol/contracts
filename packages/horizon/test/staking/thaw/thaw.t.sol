@@ -21,7 +21,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         bytes32 expectedThawRequestId = keccak256(
             abi.encodePacked(users.indexer, subgraphDataServiceAddress, users.indexer, uint256(0))
         );
-        bytes32 thawRequestId = _createThawRequest(thawAmount);
+        bytes32 thawRequestId = _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
         assertEq(thawRequestId, expectedThawRequestId);
 
         ThawRequest memory thawRequest = staking.getThawRequest(expectedThawRequestId);
@@ -38,8 +38,8 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         vm.assume(amount > 1);
         thawAmount = bound(thawAmount, 1, amount - 1);
         thawAmount2 = bound(thawAmount2, 1, amount - thawAmount);
-        bytes32 thawRequestId = _createThawRequest(thawAmount);
-        bytes32 thawRequestId2 = _createThawRequest(thawAmount2);
+        bytes32 thawRequestId = _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+        bytes32 thawRequestId2 = _thaw(users.indexer, subgraphDataServiceAddress, thawAmount2);
 
         ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
         assertEq(thawRequest.shares, thawAmount);
@@ -55,7 +55,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         uint256 amount,
         uint64 thawingPeriod
     ) public useOperator useProvision(amount, 0, thawingPeriod) {
-        bytes32 thawRequestId = _createThawRequest(amount);
+        bytes32 thawRequestId = _thaw(users.indexer, subgraphDataServiceAddress, amount);
 
         ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
         assertEq(thawRequest.shares, amount);
@@ -74,7 +74,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
             subgraphDataServiceAddress
         );
         vm.expectRevert(expectedError);
-        _createThawRequest(amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, amount);
     }
 
     function testThaw_RevertWhen_InsufficientTokensAvailable(
@@ -89,7 +89,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
             thawAmount
         );
         vm.expectRevert(expectedError);
-        _createThawRequest(thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
 
     function testThaw_RevertWhen_OverMaxThawRequests(
@@ -101,12 +101,12 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         thawAmount = bound(thawAmount, 1, amount / (MAX_THAW_REQUESTS + 1));
 
         for (uint256 i = 0; i < 100; i++) {
-            _createThawRequest(thawAmount);
+            _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
         }
 
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingTooManyThawRequests()");
         vm.expectRevert(expectedError);
-        _createThawRequest(thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
 
     function testThaw_RevertWhen_ThawingZeroTokens(
@@ -116,6 +116,6 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         uint256 thawAmount = 0 ether;
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidZeroTokens()");
         vm.expectRevert(expectedError);
-        _createThawRequest(thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
 }

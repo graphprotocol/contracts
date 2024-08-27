@@ -33,8 +33,8 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
         vm.assume(amount > 1);
         thawAmount = bound(thawAmount, 2, amount);
         uint256 thawAmount1 = thawAmount / 2;
-        _createThawRequest(thawAmount1);
-        _createThawRequest(thawAmount - thawAmount1);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount1);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount - thawAmount1);
 
         skip(thawingPeriod + 1);
 

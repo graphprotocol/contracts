@@ -35,13 +35,13 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
 
     modifier useThawRequest(uint256 thawAmount) {
         vm.assume(thawAmount > 0);
-        _createThawRequest(thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
         _;
     }
 
     modifier useThawAndDeprovision(uint256 amount, uint64 thawingPeriod) {
         vm.assume(amount > 0);
-        _createThawRequest(amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, amount);
         skip(thawingPeriod + 1);
         _deprovision(0);
         _;
@@ -79,14 +79,6 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
     /*
      * HELPERS
      */
-
-    function _createThawRequest(uint256 thawAmount) internal returns (bytes32) {
-        return staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
-    }
-
-    function _deprovision(uint256 nThawRequests) internal {
-        staking.deprovision(users.indexer, subgraphDataServiceAddress, nThawRequests);
-    }
 
     function _delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) internal {
         __delegate(serviceProvider, verifier, tokens, minSharesOut, false);
