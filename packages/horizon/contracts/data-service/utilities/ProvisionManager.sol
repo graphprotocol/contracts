@@ -226,7 +226,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         }
 
         (uint32 verifierCutMin, uint32 verifierCutMax) = _getVerifierCutRange();
-        if (verifierCutMin != type(uint32).min || verifierCutMax != type(uint32).max) {
+        if (verifierCutMin != type(uint32).min || verifierCutMax != uint32(PPMMath.MAX_PPM)) {
             uint32 maxVerifierCutToCheck = _checkPending ? _provision.maxVerifierCutPending : _provision.maxVerifierCut;
             _checkValueInRange(maxVerifierCutToCheck, verifierCutMin, verifierCutMax, "maxVerifierCut");
         }
