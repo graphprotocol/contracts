@@ -10,7 +10,7 @@ interface IRewardsIssuer {
      * @return subgraphDeploymentId Subgraph deployment id for the allocation
      * @return tokens Amount of allocated tokens
      * @return accRewardsPerAllocatedToken Rewards snapshot
-     * @return accRewardsPending Tokens pending to be claimed
+     * @return accRewardsPending Snapshot of accumulated rewards from previous allocation resizing, pending to be claimed
      */
     function getAllocationData(
         address allocationId
