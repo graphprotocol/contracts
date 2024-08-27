@@ -10,6 +10,7 @@ import { IHorizonStakingBase } from "../../../contracts/interfaces/internal/IHor
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
+import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
@@ -62,9 +63,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _useProvision(address dataService, uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) internal {
-        tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
-        maxVerifierCut = uint32(bound(maxVerifierCut, 0, MAX_MAX_VERIFIER_CUT));
-        thawingPeriod = uint32(bound(thawingPeriod, 0, MAX_THAWING_PERIOD));
+        // use assume instead of bound to avoid the bounding falling out of scope
+        vm.assume(tokens > 0);
+        vm.assume(tokens <= MAX_STAKING_TOKENS);
+        vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
+        vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
 
         _createProvision(users.indexer, dataService, tokens, maxVerifierCut, thawingPeriod);
     }
@@ -339,8 +342,69 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _thaw(address serviceProvider, address verifier, uint256 tokens) internal returns (bytes32) {
+        // before
+        IHorizonStaking.Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
+        LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
+            serviceProvider,
+            verifier,
+            serviceProvider
+        );
+        IHorizonStaking.ThawRequest memory beforeTailThawRequest = staking.getThawRequest(beforeThawRequestList.tail);
+
+        bytes32 expectedThawRequestId = keccak256(
+            abi.encodePacked(users.indexer, subgraphDataServiceAddress, users.indexer, uint256(0))
+        );
+        uint256 thawingShares = beforeProvision.sharesThawing == 0
+            ? tokens
+            : (beforeProvision.sharesThawing * tokens) / beforeProvision.tokensThawing;
+
         // thaw
-        return staking.thaw(serviceProvider, verifier, tokens);
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.ThawRequestCreated(
+            serviceProvider,
+            verifier,
+            serviceProvider,
+            thawingShares,
+            uint64(block.timestamp + beforeProvision.thawingPeriod),
+            expectedThawRequestId
+        );
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.ProvisionThawed(serviceProvider, verifier, tokens);
+        bytes32 thawRequestId = staking.thaw(serviceProvider, verifier, tokens);
+
+        // after
+        IHorizonStaking.Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
+        IHorizonStaking.ThawRequest memory afterThawRequest = staking.getThawRequest(thawRequestId);
+        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+            serviceProvider,
+            verifier,
+            serviceProvider
+        );
+
+        // assert
+        assertEq(afterProvision.tokens, beforeProvision.tokens);
+        assertEq(afterProvision.tokensThawing, beforeProvision.tokensThawing + tokens);
+        assertEq(afterProvision.sharesThawing, beforeProvision.sharesThawing + thawingShares);
+        assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCut);
+        assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriod);
+        assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
+        assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(thawRequestId, expectedThawRequestId);
+        assertEq(afterThawRequest.shares, thawingShares);
+        assertEq(afterThawRequest.thawingUntil, block.timestamp + beforeProvision.thawingPeriod);
+        assertEq(afterThawRequest.next, bytes32(0));
+        assertEq(
+            afterThawRequestList.head,
+            beforeThawRequestList.count == 0 ? thawRequestId : beforeThawRequestList.head
+        );
+        assertEq(afterThawRequestList.tail, thawRequestId);
+        assertEq(afterThawRequestList.count, beforeThawRequestList.count + 1);
+        if (beforeThawRequestList.count != 0) {
+            assertEq(beforeTailThawRequest.next, thawRequestId);
+        }
+
+        return thawRequestId;
     }
 
     function _deprovision(uint256 nThawRequests) internal {

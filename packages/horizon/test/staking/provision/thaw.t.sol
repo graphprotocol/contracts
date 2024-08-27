@@ -7,26 +7,18 @@ import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHo
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingThawTest is HorizonStakingTest {
-
     /*
      * TESTS
      */
 
-    function testThaw_Tokens(
+    function testThaw_Tokenss(
         uint256 amount,
         uint64 thawingPeriod,
         uint256 thawAmount
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
         thawAmount = bound(thawAmount, 1, amount);
-        bytes32 expectedThawRequestId = keccak256(
-            abi.encodePacked(users.indexer, subgraphDataServiceAddress, users.indexer, uint256(0))
-        );
-        bytes32 thawRequestId = _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
-        assertEq(thawRequestId, expectedThawRequestId);
 
-        ThawRequest memory thawRequest = staking.getThawRequest(expectedThawRequestId);
-        assertEq(thawRequest.shares, thawAmount);
-        assertEq(thawRequest.thawingUntil, block.timestamp + thawingPeriod);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
 
     function testThaw_MultipleRequests(
