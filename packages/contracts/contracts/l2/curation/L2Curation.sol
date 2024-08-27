@@ -70,7 +70,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
     /**
      * @dev Emitted when the subgraph service is set.
      */
-    event SubgraphServiceSet(address indexed oldSubgraphService, address indexed newSubgraphService);
+    event SubgraphServiceSet(address indexed newSubgraphService);
 
     /**
      * @dev Modifier for functions that can only be called by the GNS contract
@@ -141,9 +141,8 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
      * @param _subgraphService Address of the subgraph service contract
      */
     function setSubgraphService(address _subgraphService) external override onlyGovernor {
-        address oldSubgraphService = subgraphService;
         subgraphService = _subgraphService;
-        emit SubgraphServiceSet(oldSubgraphService, _subgraphService);
+        emit SubgraphServiceSet(_subgraphService);
     }
 
     /**
