@@ -349,10 +349,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             verifier,
             serviceProvider
         );
-        IHorizonStaking.ThawRequest memory beforeTailThawRequest = staking.getThawRequest(beforeThawRequestList.tail);
 
         bytes32 expectedThawRequestId = keccak256(
-            abi.encodePacked(users.indexer, subgraphDataServiceAddress, users.indexer, uint256(0))
+            abi.encodePacked(users.indexer, subgraphDataServiceAddress, users.indexer, beforeThawRequestList.nonce)
         );
         uint256 thawingShares = beforeProvision.sharesThawing == 0
             ? tokens
@@ -380,6 +379,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             verifier,
             serviceProvider
         );
+        IHorizonStaking.ThawRequest memory afterPreviousTailThawRequest = staking.getThawRequest(beforeThawRequestList.tail);
 
         // assert
         assertEq(afterProvision.tokens, beforeProvision.tokens);
@@ -400,8 +400,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
         assertEq(afterThawRequestList.tail, thawRequestId);
         assertEq(afterThawRequestList.count, beforeThawRequestList.count + 1);
+        assertEq(afterThawRequestList.nonce, beforeThawRequestList.nonce + 1);
         if (beforeThawRequestList.count != 0) {
-            assertEq(beforeTailThawRequest.next, thawRequestId);
+            assertEq(afterPreviousTailThawRequest.next, thawRequestId);
         }
 
         return thawRequestId;
