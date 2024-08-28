@@ -481,6 +481,124 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterThawRequestList.nonce, beforeThawRequestList.nonce);
     }
 
+    function _reprovision(
+        address serviceProvider,
+        address verifier,
+        address newVerifier,
+        uint256 tokens,
+        uint256 nThawRequests
+    ) internal {
+        // before
+        Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
+        Provision memory beforeProvisionNewVerifier = staking.getProvision(serviceProvider, newVerifier);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
+            serviceProvider,
+            verifier,
+            serviceProvider
+        );
+
+        (
+            uint256 calcTokensThawed,
+            uint256 calcTokensThawing,
+            uint256 calcSharesThawing,
+            ThawRequest[] memory calcThawRequestsFulfilledList,
+            bytes32[] memory calcThawRequestsFulfilledListIds,
+            uint256[] memory calcThawRequestsFulfilledListTokens
+        ) = calcThawRequestData(serviceProvider, verifier, serviceProvider, nThawRequests);
+
+        // reprovision
+        for (uint i = 0; i < calcThawRequestsFulfilledList.length; i++) {
+            ThawRequest memory thawRequest = calcThawRequestsFulfilledList[i];
+            vm.expectEmit(address(staking));
+            emit IHorizonStakingMain.ThawRequestFulfilled(
+                calcThawRequestsFulfilledListIds[i],
+                calcThawRequestsFulfilledListTokens[i],
+                thawRequest.shares,
+                thawRequest.thawingUntil
+            );
+        }
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.ThawRequestsFulfilled(
+            serviceProvider,
+            verifier,
+            serviceProvider,
+            calcThawRequestsFulfilledList.length,
+            calcTokensThawed
+        );
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.TokensDeprovisioned(serviceProvider, verifier, calcTokensThawed);
+        vm.expectEmit();
+        emit IHorizonStakingMain.ProvisionIncreased(serviceProvider, newVerifier, tokens);
+        staking.reprovision(serviceProvider, verifier, newVerifier, tokens, nThawRequests);
+
+        // after
+        Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
+        Provision memory afterProvisionNewVerifier = staking.getProvision(serviceProvider, newVerifier);
+        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+            serviceProvider,
+            verifier,
+            serviceProvider
+        );
+
+        // assert: provision old verifier
+        assertEq(afterProvision.tokens, beforeProvision.tokens - calcTokensThawed);
+        assertEq(afterProvision.tokensThawing, calcTokensThawing);
+        assertEq(afterProvision.sharesThawing, calcSharesThawing);
+        assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCut);
+        assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriod);
+        assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
+        assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+
+        // assert: provision new verifier
+        assertEq(afterProvisionNewVerifier.tokens, beforeProvisionNewVerifier.tokens + tokens);
+        assertEq(afterProvisionNewVerifier.tokensThawing, beforeProvisionNewVerifier.tokensThawing);
+        assertEq(afterProvisionNewVerifier.sharesThawing, beforeProvisionNewVerifier.sharesThawing);
+        assertEq(afterProvisionNewVerifier.maxVerifierCut, beforeProvisionNewVerifier.maxVerifierCut);
+        assertEq(afterProvisionNewVerifier.thawingPeriod, beforeProvisionNewVerifier.thawingPeriod);
+        assertEq(afterProvisionNewVerifier.createdAt, beforeProvisionNewVerifier.createdAt);
+        assertEq(afterProvisionNewVerifier.maxVerifierCutPending, beforeProvisionNewVerifier.maxVerifierCutPending);
+        assertEq(afterProvisionNewVerifier.thawingPeriodPending, beforeProvisionNewVerifier.thawingPeriodPending);
+
+        // assert: service provider
+        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned + tokens - calcTokensThawed);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
+
+        // assert: thaw request list old verifier
+        for (uint i = 0; i < calcThawRequestsFulfilledListIds.length; i++) {
+            ThawRequest memory thawRequest = staking.getThawRequest(calcThawRequestsFulfilledListIds[i]);
+            assertEq(thawRequest.shares, 0);
+            assertEq(thawRequest.thawingUntil, 0);
+            assertEq(thawRequest.next, bytes32(0));
+        }
+        if (calcThawRequestsFulfilledList.length == 0) {
+            assertEq(afterThawRequestList.head, beforeThawRequestList.head);
+        } else {
+            assertEq(
+                afterThawRequestList.head,
+                calcThawRequestsFulfilledList.length == beforeThawRequestList.count
+                    ? bytes32(0)
+                    : calcThawRequestsFulfilledList[calcThawRequestsFulfilledList.length - 1].next
+            );
+        }
+        assertEq(
+            afterThawRequestList.tail,
+            calcThawRequestsFulfilledList.length == beforeThawRequestList.count
+                ? bytes32(0)
+                : beforeThawRequestList.tail
+        );
+        assertEq(afterThawRequestList.count, beforeThawRequestList.count - calcThawRequestsFulfilledList.length);
+        assertEq(afterThawRequestList.nonce, beforeThawRequestList.nonce);
+    }
+
     /*
      * STORAGE HELPERS
      */

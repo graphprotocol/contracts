@@ -103,7 +103,5 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
         _thaw(users.indexer, subgraphDataServiceAddress, amount);
 
         _deprovision(users.indexer, subgraphDataServiceAddress, 0);
-        uint256 idleStake = staking.getIdleStake(users.indexer);
-        assertEq(idleStake, 0);
     }
 }

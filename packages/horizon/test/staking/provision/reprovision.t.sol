@@ -13,14 +13,6 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     address private newDataService = makeAddr("newDataService");
 
     /*
-     * HELPERS
-     */
-
-    function _reprovision(uint256 tokens, uint256 nThawRequests) private {
-        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, tokens, nThawRequests);
-    }
-
-    /*
      * TESTS
      */
 
@@ -33,13 +25,29 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
 
         _createProvision(users.indexer, newDataService, 1 ether, 0, thawingPeriod);
 
-        // nThawRequests == 0 reprovisions all thaw requests
-        _reprovision(provisionAmount, 0);
-        uint256 idleStake = staking.getIdleStake(users.indexer);
-        assertEq(idleStake, 0 ether);
+        _reprovision(users.indexer, subgraphDataServiceAddress, newDataService, provisionAmount, 0);
+    }
 
-        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, newDataService);
-        assertEq(provisionTokens, provisionAmount + 1 ether);
+    function testReprovision_TokensOverThawingTokens() public useIndexer {
+        uint64 thawingPeriod = 1 days;
+
+        // create provision A, thaw 10 ether, skip time so they are fully thawed
+        _createProvision(users.indexer, subgraphDataServiceAddress, 100 ether, 0, thawingPeriod);
+        _thaw(users.indexer, subgraphDataServiceAddress, 10 ether);
+        skip(thawingPeriod + 1);
+
+        // create provision B
+        _createProvision(users.indexer, newDataService, 1 ether, 0, thawingPeriod);
+
+        // reprovision 100 ether from A to B
+        // this should revert because there are only 10 ether that thawed and the service provider
+        // doesn't have additional idle stake to cover the difference
+        vm.expectRevert();
+        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, 100 ether, 0);
+
+        // now add some idle stake and try again, it should not revert
+        _stake(100 ether);
+        _reprovision(users.indexer, subgraphDataServiceAddress, newDataService, 100 ether, 0);
     }
 
     function testReprovision_OperatorMovingTokens(
@@ -56,12 +64,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         // Switch back to operator
         vm.startPrank(users.operator);
         _createProvision(users.indexer, newDataService, 1 ether, 0, thawingPeriod);
-        _reprovision(provisionAmount, 0);
-        uint256 idleStake = staking.getIdleStake(users.indexer);
-        assertEq(idleStake, 0 ether);
-
-        uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, newDataService);
-        assertEq(provisionTokens, provisionAmount + 1 ether);
+        _reprovision(users.indexer, subgraphDataServiceAddress, newDataService, provisionAmount, 0);
     }
 
     function testReprovision_RevertWhen_OperatorNotAuthorizedForNewDataService(
@@ -82,13 +85,13 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
             newDataService
         );
         vm.expectRevert(expectedError);
-        _reprovision(provisionAmount, 0);
+        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, provisionAmount, 0);
     }
 
     function testReprovision_RevertWhen_NoThawingTokens(uint256 amount) public useIndexer useProvision(amount, 0, 0) {
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingThawing()");
         vm.expectRevert(expectedError);
-        _reprovision(amount, 0);
+        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, amount, 0);
     }
 
     function testReprovision_RevertWhen_StillThawing(
@@ -106,6 +109,6 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
             0
         );
         vm.expectRevert(expectedError);
-        _reprovision(provisionAmount, 0);
+        staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, provisionAmount, 0);
     }
 }
