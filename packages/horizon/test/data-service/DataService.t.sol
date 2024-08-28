@@ -261,7 +261,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        staking.setProvisionParameters(users.indexer, address(dataService), maxVerifierCut, thawingPeriod);
+        _setProvisionParameters(users.indexer, address(dataService), maxVerifierCut, thawingPeriod);
 
         // accept provision parameters
         if (maxVerifierCut != dataService.VERIFIER_CUT_MIN() || thawingPeriod != dataService.THAWING_PERIOD_MIN()) {
@@ -294,7 +294,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        staking.setProvisionParameters(
+        _setProvisionParameters(
             users.indexer,
             address(dataService),
             dataService.VERIFIER_CUT_MIN(),
@@ -332,7 +332,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        staking.setProvisionParameters(
+        _setProvisionParameters(
             users.indexer,
             address(dataService),
             maxVerifierCut,

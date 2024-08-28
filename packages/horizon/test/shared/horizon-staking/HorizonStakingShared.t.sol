@@ -564,7 +564,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // assert: service provider
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
-        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned + tokens - calcTokensThawed);
+        assertEq(
+            afterServiceProvider.tokensProvisioned,
+            beforeServiceProvider.tokensProvisioned + tokens - calcTokensThawed
+        );
         assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
         assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
         assertEq(
@@ -597,6 +600,76 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
         assertEq(afterThawRequestList.count, beforeThawRequestList.count - calcThawRequestsFulfilledList.length);
         assertEq(afterThawRequestList.nonce, beforeThawRequestList.nonce);
+    }
+
+    function _setProvisionParameters(
+        address serviceProvider,
+        address verifier,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) internal {
+        // before
+        Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
+
+        // setProvisionParameters
+        if (beforeProvision.maxVerifierCut != maxVerifierCut || beforeProvision.thawingPeriod != thawingPeriod) {
+            vm.expectEmit();
+            emit IHorizonStakingMain.ProvisionParametersStaged(
+                serviceProvider,
+                verifier,
+                maxVerifierCut,
+                thawingPeriod
+            );
+        }
+        staking.setProvisionParameters(serviceProvider, verifier, maxVerifierCut, thawingPeriod);
+
+        // after
+        Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
+
+        // assert
+        assertEq(afterProvision.tokens, beforeProvision.tokens);
+        assertEq(afterProvision.tokensThawing, beforeProvision.tokensThawing);
+        assertEq(afterProvision.sharesThawing, beforeProvision.sharesThawing);
+        assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCut);
+        assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriod);
+        assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.maxVerifierCutPending, maxVerifierCut);
+        assertEq(afterProvision.thawingPeriodPending, thawingPeriod);
+    }
+
+    function _acceptProvisionParameters(address serviceProvider) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        // before
+        Provision memory beforeProvision = staking.getProvision(serviceProvider, msgSender);
+
+        // acceptProvisionParameters
+        if (
+            beforeProvision.maxVerifierCutPending != beforeProvision.maxVerifierCut ||
+            beforeProvision.thawingPeriodPending != beforeProvision.thawingPeriod
+        ) {
+            vm.expectEmit();
+            emit IHorizonStakingMain.ProvisionParametersSet(
+                serviceProvider,
+                msgSender,
+                beforeProvision.maxVerifierCutPending,
+                beforeProvision.thawingPeriodPending
+            );
+        }
+        staking.acceptProvisionParameters(serviceProvider);
+
+        // after
+        Provision memory afterProvision = staking.getProvision(serviceProvider, msgSender);
+
+        // assert
+        assertEq(afterProvision.tokens, beforeProvision.tokens);
+        assertEq(afterProvision.tokensThawing, beforeProvision.tokensThawing);
+        assertEq(afterProvision.sharesThawing, beforeProvision.sharesThawing);
+        assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCutPending);
+        assertEq(afterProvision.maxVerifierCut, afterProvision.maxVerifierCutPending);
+        assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriodPending);
+        assertEq(afterProvision.thawingPeriod, afterProvision.thawingPeriodPending);
+        assertEq(afterProvision.createdAt, beforeProvision.createdAt);
     }
 
     /*
