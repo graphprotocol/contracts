@@ -108,7 +108,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
 
         _thaw(users.indexer, subgraphDataServiceAddress, amount);
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
         staking.unstake(amount);
 
         assertFalse(staking.hasStake(users.indexer));
@@ -124,7 +124,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
 
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
         // Does not discount thawing tokens
         assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
 

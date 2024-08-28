@@ -21,7 +21,7 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         // thaw, wait and deprovision
         _thaw(users.indexer, subgraphDataServiceAddress, tokens);
         skip(thawingPeriod + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
 
         _unstake(tokensToUnstake);
     }
@@ -40,7 +40,7 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         // thaw, wait and deprovision
         _thaw(users.indexer, subgraphDataServiceAddress, tokens);
         skip(thawingPeriod + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
 
         // unstake
         _unstake(tokensToUnstake);
@@ -65,7 +65,7 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
         _thaw(users.indexer, subgraphDataServiceAddress, tokens);
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
 
         // unstake
         _unstake(tokensToUnstake);
@@ -93,7 +93,7 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
         _thaw(users.indexer, subgraphDataServiceAddress, tokens);
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
 
         // unstake
         _unstake(tokensToUnstake);
@@ -132,7 +132,8 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         uint256 amount,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
-    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useThawRequest(amount) {
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        _thaw(users.indexer, subgraphDataServiceAddress, amount);
         skip(thawingPeriod + 1);
 
         bytes memory expectedError = abi.encodeWithSignature(

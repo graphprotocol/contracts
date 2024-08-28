@@ -5,13 +5,12 @@ import "forge-std/Test.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 import { IHorizonStakingMain } from "../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingTypes } from "../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 import { LinkedList } from "../../contracts/libraries/LinkedList.sol";
 import { MathUtils } from "../../contracts/libraries/MathUtils.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 
-contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
+contract HorizonStakingTest is HorizonStakingSharedTest {
     using stdStorage for StdStorage;
 
     /*
@@ -25,17 +24,11 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
         _;
     }
 
-    modifier useThawRequest(uint256 thawAmount) {
-        vm.assume(thawAmount > 0);
-        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
-        _;
-    }
-
     modifier useThawAndDeprovision(uint256 amount, uint64 thawingPeriod) {
         vm.assume(amount > 0);
         _thaw(users.indexer, subgraphDataServiceAddress, amount);
         skip(thawingPeriod + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
         _;
     }
 
@@ -81,6 +74,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest, IHorizonStakingTypes {
     }
 
 
+    // struct required to avoid stack too deep errors >.<
     struct DelegateData {
         DelegationPool pool;
         Delegation delegation;

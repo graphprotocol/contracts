@@ -6,7 +6,6 @@ import "forge-std/Test.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingReprovisionTest is HorizonStakingTest {
-
     /*
      * VARIABLES
      */
@@ -28,12 +27,8 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     function testReprovision_MovingTokens(
         uint64 thawingPeriod,
         uint256 provisionAmount
-    )
-        public
-        useIndexer
-        useProvision(provisionAmount, 0, thawingPeriod)
-        useThawRequest(provisionAmount)
-    {
+    ) public useIndexer useProvision(provisionAmount, 0, thawingPeriod) {
+        _thaw(users.indexer, subgraphDataServiceAddress, provisionAmount);
         skip(thawingPeriod + 1);
 
         _createProvision(users.indexer, newDataService, 1 ether, 0, thawingPeriod);
@@ -50,18 +45,14 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     function testReprovision_OperatorMovingTokens(
         uint64 thawingPeriod,
         uint256 provisionAmount
-    )
-        public
-        useOperator
-        useProvision(provisionAmount, 0, thawingPeriod)
-        useThawRequest(provisionAmount)
-    {
+    ) public useOperator useProvision(provisionAmount, 0, thawingPeriod) {
+        _thaw(users.indexer, subgraphDataServiceAddress, provisionAmount);
         skip(thawingPeriod + 1);
 
         // Switch to indexer to set operator for new data service
         vm.startPrank(users.indexer);
         staking.setOperator(users.operator, newDataService, true);
-        
+
         // Switch back to operator
         vm.startPrank(users.operator);
         _createProvision(users.indexer, newDataService, 1 ether, 0, thawingPeriod);
@@ -75,12 +66,9 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
 
     function testReprovision_RevertWhen_OperatorNotAuthorizedForNewDataService(
         uint256 provisionAmount
-    )
-        public
-        useOperator
-        useProvision(provisionAmount, 0, 0)
-        useThawRequest(provisionAmount)
-    {
+    ) public useOperator useProvision(provisionAmount, 0, 0) {
+        _thaw(users.indexer, subgraphDataServiceAddress, provisionAmount);
+
         // Switch to indexer to create new provision
         vm.startPrank(users.indexer);
         _createProvision(users.indexer, newDataService, 1 ether, 0, 0);
@@ -97,9 +85,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         _reprovision(provisionAmount, 0);
     }
 
-    function testReprovision_RevertWhen_NoThawingTokens(
-        uint256 amount
-    ) public useIndexer useProvision(amount, 0, 0) {
+    function testReprovision_RevertWhen_NoThawingTokens(uint256 amount) public useIndexer useProvision(amount, 0, 0) {
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingThawing()");
         vm.expectRevert(expectedError);
         _reprovision(amount, 0);
@@ -108,13 +94,9 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
     function testReprovision_RevertWhen_StillThawing(
         uint64 thawingPeriod,
         uint256 provisionAmount
-    )
-        public
-        useIndexer
-        useProvision(provisionAmount, 0, thawingPeriod)
-        useThawRequest(provisionAmount)
-    {
+    ) public useIndexer useProvision(provisionAmount, 0, thawingPeriod) {
         vm.assume(thawingPeriod > 0);
+        _thaw(users.indexer, subgraphDataServiceAddress, provisionAmount);
 
         _createProvision(users.indexer, newDataService, 1 ether, 0, thawingPeriod);
 
