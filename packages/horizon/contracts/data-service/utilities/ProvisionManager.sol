@@ -220,16 +220,12 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         bool _checkPending
     ) internal view virtual {
         (uint64 thawingPeriodMin, uint64 thawingPeriodMax) = _getThawingPeriodRange();
-        if (thawingPeriodMin != type(uint64).min || thawingPeriodMax != type(uint64).max) {
-            uint64 thawingPeriodToCheck = _checkPending ? _provision.thawingPeriodPending : _provision.thawingPeriod;
-            _checkValueInRange(thawingPeriodToCheck, thawingPeriodMin, thawingPeriodMax, "thawingPeriod");
-        }
+        uint64 thawingPeriodToCheck = _checkPending ? _provision.thawingPeriodPending : _provision.thawingPeriod;
+        _checkValueInRange(thawingPeriodToCheck, thawingPeriodMin, thawingPeriodMax, "thawingPeriod");
 
         (uint32 verifierCutMin, uint32 verifierCutMax) = _getVerifierCutRange();
-        if (verifierCutMin != type(uint32).min || verifierCutMax != uint32(PPMMath.MAX_PPM)) {
-            uint32 maxVerifierCutToCheck = _checkPending ? _provision.maxVerifierCutPending : _provision.maxVerifierCut;
-            _checkValueInRange(maxVerifierCutToCheck, verifierCutMin, verifierCutMax, "maxVerifierCut");
-        }
+        uint32 maxVerifierCutToCheck = _checkPending ? _provision.maxVerifierCutPending : _provision.maxVerifierCut;
+        _checkValueInRange(maxVerifierCutToCheck, verifierCutMin, verifierCutMax, "maxVerifierCut");
     }
 
     // -- getters --
