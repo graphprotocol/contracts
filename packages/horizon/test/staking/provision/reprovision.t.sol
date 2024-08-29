@@ -59,7 +59,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
 
         // Switch to indexer to set operator for new data service
         vm.startPrank(users.indexer);
-        staking.setOperator(users.operator, newDataService, true);
+        _setOperator(users.operator, newDataService, true);
 
         // Switch back to operator
         vm.startPrank(users.operator);

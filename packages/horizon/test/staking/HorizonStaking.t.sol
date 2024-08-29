@@ -47,7 +47,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
         address msgSender;
         (, msgSender, ) = vm.readCallers();
         resetPrank(users.governor);
-        staking.setAllowedLockedVerifier(verifier, true);
+        _setAllowedLockedVerifier(verifier, true);
         resetPrank(msgSender);
         _;
     }

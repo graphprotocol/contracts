@@ -74,7 +74,7 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         resetPrank(users.indexer);
 
         token.approve(address(staking), amount / 2);
-        staking.stake(amount / 2);
+        _stake(amount / 2);
 
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingProvisionAlreadyExists()");
         vm.expectRevert(expectedError);

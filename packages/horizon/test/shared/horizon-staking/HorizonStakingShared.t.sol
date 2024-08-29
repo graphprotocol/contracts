@@ -25,7 +25,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     modifier useOperator() {
         vm.startPrank(users.indexer);
-        staking.setOperator(users.operator, subgraphDataServiceAddress, true);
+        _setOperator(users.operator, subgraphDataServiceAddress, true);
         vm.startPrank(users.operator);
         _;
         vm.stopPrank();
@@ -256,13 +256,38 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) internal {
+        __provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod, false);
+    }
+
+    function _provisionLocked(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) internal {
+        __provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod, true);
+    }
+
+    function __provision(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        bool locked
+    ) private {
         // before
         ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
 
         // provision
         vm.expectEmit();
         emit IHorizonStakingMain.ProvisionCreated(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
-        staking.provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
+        if (locked) {
+            staking.provisionLocked(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
+        } else {
+            staking.provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
+        }
 
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
@@ -672,6 +697,57 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
     }
 
+    function _setOperator(address operator, address verifier, bool allow) internal {
+        __setOperator(operator, verifier, allow, false);
+    }
+
+    function _setOperatorLocked(address operator, address verifier, bool allow) internal {
+        __setOperator(operator, verifier, allow, true);
+    }
+
+    function __setOperator(address operator, address verifier, bool allow, bool locked) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        // staking contract knows the address of the legacy subgraph service
+        // but we cannot read it as it's an immutable, we have to use the global var :/
+        bool legacy = verifier == subgraphDataServiceLegacyAddress;
+
+        // before
+        bool beforeOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
+        bool beforeOperatorAllowedGetter = staking.isAuthorized(operator, msgSender, verifier);
+        assertEq(beforeOperatorAllowed, beforeOperatorAllowedGetter);
+
+        // setOperator
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.OperatorSet(msgSender, operator, verifier, allow);
+        if (locked) {
+            staking.setOperatorLocked(operator, verifier, allow);
+        } else {
+            staking.setOperator(operator, verifier, allow);
+        }
+
+        // after
+        bool afterOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
+        bool afterOperatorAllowedGetter = staking.isAuthorized(operator, msgSender, verifier);
+        assertEq(afterOperatorAllowed, afterOperatorAllowedGetter);
+
+        // assert
+        assertEq(afterOperatorAllowed, allow);
+    }
+
+    function _setAllowedLockedVerifier(address verifier, bool allowed) internal {
+        // setAllowedLockedVerifier
+        vm.expectEmit();
+        emit IHorizonStakingMain.AllowedLockedVerifierSet(verifier, allowed);
+        staking.setAllowedLockedVerifier(verifier, allowed);
+
+        // after
+        bool afterAllowed = staking.isAllowedLockedVerifier(verifier);
+
+        // assert
+        assertEq(afterAllowed, allowed);
+    }
+
     /*
      * STORAGE HELPERS
      */
@@ -690,6 +766,31 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         });
 
         return serviceProviderInternal;
+    }
+
+    function _getStorage_OperatorAuth(
+        address serviceProvider,
+        address operator,
+        address verifier,
+        bool legacy
+    ) internal view returns (bool) {
+        uint256 baseSlot = legacy ? 21 : 31;
+        uint256 slot;
+
+        if (legacy) {
+            slot = uint256(keccak256(abi.encode(serviceProvider, keccak256(abi.encode(operator, baseSlot)))));
+        } else {
+            console.log("TEST");
+            slot = uint256(
+                keccak256(
+                    abi.encode(
+                        operator,
+                        keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, baseSlot))))
+                    )
+                )
+            );
+        }
+        return vm.load(address(staking), bytes32(slot)) == bytes32(uint256(1));
     }
 
     function _setStorage_DeprecatedThawingPeriod(uint32 _thawingPeriod) internal {

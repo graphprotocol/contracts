@@ -11,8 +11,8 @@ contract HorizonStakingOperatorTest is HorizonStakingTest {
      * TESTS
      */
 
-    function testOperator_SetOperator() public useOperator {
-        assertTrue(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceAddress));
+    function testOperator_SetOperator() public useIndexer {
+        _setOperator(users.operator, subgraphDataServiceAddress, true);
     }
 
     function testOperator_RevertWhen_CallerIsServiceProvider() public useIndexer {
@@ -22,10 +22,7 @@ contract HorizonStakingOperatorTest is HorizonStakingTest {
     }
 
     function testOperator_RemoveOperator() public useIndexer {
-        staking.setOperator(users.operator, subgraphDataServiceAddress, true);
-        assertTrue(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceAddress));
-
-        staking.setOperator(users.operator, subgraphDataServiceAddress, false);
-        assertFalse(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceAddress));
+        _setOperator(users.operator, subgraphDataServiceAddress, true);
+        _setOperator(users.operator, subgraphDataServiceAddress, false);
     }
 }

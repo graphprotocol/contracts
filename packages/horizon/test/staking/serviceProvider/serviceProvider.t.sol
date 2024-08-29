@@ -25,7 +25,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         assertEq(sp.tokensStaked, amount);
         assertEq(sp.tokensProvisioned, amount);
 
-        staking.setOperator(users.operator, subgraphDataServiceAddress, true);
+        _setOperator(users.operator, subgraphDataServiceAddress, true);
         resetPrank(users.operator);
         _stakeTo(users.indexer, operatorAmount);
         sp = staking.getServiceProvider(users.indexer);
