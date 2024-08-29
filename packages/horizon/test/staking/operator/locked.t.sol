@@ -12,8 +12,7 @@ contract HorizonStakingOperatorLockedTest is HorizonStakingTest {
      */
 
     function testOperatorLocked_Set() public useIndexer useLockedVerifier(subgraphDataServiceAddress) {
-        staking.setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
-        assertTrue(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceAddress));
+        _setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
     }
 
     function testOperatorLocked_RevertWhen_VerifierNotAllowed() public useIndexer {
@@ -29,7 +28,6 @@ contract HorizonStakingOperatorLockedTest is HorizonStakingTest {
     }
 
     function testOperatorLocked_SetLegacySubgraphService() public useIndexer useLockedVerifier(subgraphDataServiceLegacyAddress) {
-        staking.setOperatorLocked(users.operator, subgraphDataServiceLegacyAddress, true);
-        assertTrue(staking.isAuthorized(users.operator, users.indexer, subgraphDataServiceLegacyAddress));
+        _setOperatorLocked(users.operator, subgraphDataServiceLegacyAddress, true);
     }
 }

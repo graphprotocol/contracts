@@ -778,9 +778,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 slot;
 
         if (legacy) {
-            slot = uint256(keccak256(abi.encode(serviceProvider, keccak256(abi.encode(operator, baseSlot)))));
+            slot = uint256(keccak256(abi.encode(operator, keccak256(abi.encode(serviceProvider, baseSlot)))));
         } else {
-            console.log("TEST");
             slot = uint256(
                 keccak256(
                     abi.encode(

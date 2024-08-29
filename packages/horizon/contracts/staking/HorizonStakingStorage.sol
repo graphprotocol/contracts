@@ -105,7 +105,7 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Operator allow list (legacy)
     /// Only used when the verifier is the subgraph data service.
-    mapping(address legacyOperator => mapping(address serviceProvider => bool authorized)) internal _legacyOperatorAuth;
+    mapping(address serviceProvider => mapping(address legacyOperator => bool authorized)) internal _legacyOperatorAuth;
 
     // -- Asset Holders --
 
