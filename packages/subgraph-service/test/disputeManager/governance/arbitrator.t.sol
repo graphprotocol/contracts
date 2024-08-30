@@ -3,8 +3,8 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManager.sol";
-import { DisputeManagerTest } from "../../DisputeManager.t.sol";
+import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
+import { DisputeManagerTest } from "../DisputeManager.t.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract DisputeManagerGovernanceArbitratorTest is DisputeManagerTest {
