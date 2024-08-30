@@ -18,12 +18,7 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
  * for payments made through the payments protocol for services provided
  * via a Graph Horizon data service.
  */
-contract PaymentsEscrow is
-    Initializable,
-    MulticallUpgradeable,
-    GraphDirectory,
-    IPaymentsEscrow
-{
+contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
 
     /// @notice Authorization details for payer-collector pairs
@@ -72,7 +67,6 @@ contract PaymentsEscrow is
         REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
         WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
     }
-
 
     /**
      * @notice Initialize the contract

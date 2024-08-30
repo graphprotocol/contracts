@@ -286,7 +286,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
         assertEq(verifierTokens, verifierCutAmount);
     }
 
-    function _getSlotPoolTokens(address serviceProvider, address verifier, bool legacy) private returns (bytes32) {
+    function _getSlotPoolTokens(address serviceProvider, address verifier, bool legacy) private pure returns (bytes32) {
         bytes32 slotPoolTokens;
         if (legacy) {
             slotPoolTokens = bytes32(uint256(keccak256(abi.encode(serviceProvider, 20))) + 2);

@@ -84,12 +84,7 @@ interface IPaymentsEscrow {
      * @param tokens The amount of tokens being thawed
      * @param thawEndTimestamp The timestamp at which the thawing period ends
      */
-    event Thaw(
-        address indexed payer,
-        address indexed receiver,
-        uint256 tokens,
-        uint256 thawEndTimestamp
-    );
+    event Thaw(address indexed payer, address indexed receiver, uint256 tokens, uint256 thawEndTimestamp);
 
     /**
      * @notice Emitted when a payer withdraws funds from the escrow for a payer-receiver pair

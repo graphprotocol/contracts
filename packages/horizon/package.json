@@ -9,8 +9,8 @@
     "lint:sol": "prettier --write contracts/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint": "yarn lint:ts && yarn lint:sol",
     "clean": "rm -rf build cache typechain-types",
-    "build": "forge build && hardhat compile",
-    "test": "FOUNDRY_PROFILE=lite forge test -vvv && hardhat test"
+    "build": "forge build contracts && hardhat compile",
+    "test": "FOUNDRY_PROFILE=test forge test -vvv && hardhat test"
   },
   "devDependencies": {
     "@graphprotocol/contracts": "workspace:^7.0.0",
