@@ -748,6 +748,148 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterAllowed, allowed);
     }
 
+    function _delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) internal {
+        __delegate(serviceProvider, verifier, tokens, minSharesOut, false);
+    }
+
+    function _delegate(address serviceProvider, uint256 tokens) internal {
+        __delegate(serviceProvider, subgraphDataServiceLegacyAddress, tokens, 0, true);
+    }
+
+    function __delegate(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens,
+        uint256 minSharesOut,
+        bool legacy
+    ) internal {
+        (, address delegator, ) = vm.readCallers();
+
+        // before
+        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(
+            serviceProvider,
+            verifier,
+            legacy
+        );
+        DelegationInternal memory beforeDelegation = _getStorage_Delegation(
+            serviceProvider,
+            verifier,
+            delegator,
+            legacy
+        );
+        uint256 beforeDelegatorBalance = token.balanceOf(delegator);
+        uint256 beforeStakingBalance = token.balanceOf(address(staking));
+
+        uint256 calcShares = (beforePool.tokens == 0 || beforePool.tokens == beforePool.tokensThawing)
+            ? tokens
+            : ((tokens * beforePool.shares) / (beforePool.tokens - beforePool.tokensThawing));
+
+        // delegate
+        token.approve(address(staking), tokens);
+        vm.expectEmit();
+        emit IHorizonStakingMain.TokensDelegated(serviceProvider, verifier, delegator, tokens);
+        if (legacy) {
+            staking.delegate(serviceProvider, tokens);
+        } else {
+            staking.delegate(serviceProvider, verifier, tokens, minSharesOut);
+        }
+
+        // after
+        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+            serviceProvider,
+            verifier,
+            legacy
+        );
+        DelegationInternal memory afterDelegation = _getStorage_Delegation(
+            serviceProvider,
+            verifier,
+            delegator,
+            legacy
+        );
+        uint256 afterDelegatorBalance = token.balanceOf(delegator);
+        uint256 afterStakingBalance = token.balanceOf(address(staking));
+
+        uint256 deltaShares = afterDelegation.shares - beforeDelegation.shares;
+
+        // assertions
+        assertEq(beforePool.tokens + tokens, afterPool.tokens);
+        assertEq(beforePool.shares + calcShares, afterPool.shares);
+        assertEq(beforePool.tokensThawing, afterPool.tokensThawing);
+        assertEq(beforePool.sharesThawing, afterPool.sharesThawing);
+        assertGe(deltaShares, minSharesOut);
+        assertEq(calcShares, deltaShares);
+        assertEq(beforePool.tokens + tokens, afterPool.tokens);
+        assertEq(beforeDelegatorBalance - tokens, afterDelegatorBalance);
+        assertEq(beforeStakingBalance + tokens, afterStakingBalance);
+    }
+
+    function _undelegate(address serviceProvider, address verifier, uint256 shares) internal {
+        __undelegate(serviceProvider, verifier, shares, false);
+    }
+
+    function _undelegate(address serviceProvider, uint256 shares) internal {
+        __undelegate(serviceProvider, subgraphDataServiceLegacyAddress, shares, true);
+    }
+
+    function __undelegate(address serviceProvider, address verifier, uint256 shares, bool legacy) internal {
+        (, address delegator, ) = vm.readCallers();
+
+        // before
+        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
+        DelegationInternal memory beforeDelegation = _getStorage_Delegation(serviceProvider, verifier, delegator, legacy);
+        LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
+        uint256 beforeDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
+
+        uint256 calcTokens = ((beforePool.tokens - beforePool.tokensThawing) * shares) / beforePool.shares;
+        uint256 calcThawingShares = beforePool.tokensThawing == 0
+            ? calcTokens
+            : (beforePool.sharesThawing * calcTokens) / beforePool.tokensThawing;
+        uint64 calcThawingUntil = staking.getProvision(serviceProvider, verifier).thawingPeriod +
+            uint64(block.timestamp);
+        bytes32 calcThawRequestId = keccak256(
+            abi.encodePacked(serviceProvider, verifier, delegator, beforeThawRequestList.nonce)
+        );
+
+        // undelegate
+        vm.expectEmit();
+        emit IHorizonStakingMain.ThawRequestCreated(
+            serviceProvider,
+            verifier,
+            delegator,
+            calcThawingShares,
+            calcThawingUntil,
+            calcThawRequestId
+        );
+        vm.expectEmit();
+        emit IHorizonStakingMain.TokensUndelegated(serviceProvider, verifier, delegator, calcTokens);
+        if (legacy) {
+            staking.undelegate(serviceProvider, shares);
+        } else {
+            staking.undelegate(serviceProvider, verifier, shares);
+        }
+
+        // after
+        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(users.indexer, verifier, legacy);
+        DelegationInternal memory afterDelegation = _getStorage_Delegation(serviceProvider, verifier, delegator, legacy);
+        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
+        ThawRequest memory afterThawRequest = staking.getThawRequest(calcThawRequestId);
+        uint256 afterDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
+
+        // assertions
+        assertEq(beforePool.shares, afterPool.shares + shares);
+        assertEq(beforePool.tokens, afterPool.tokens);
+        assertEq(beforePool.tokensThawing + calcTokens, afterPool.tokensThawing);
+        assertEq(beforePool.sharesThawing + calcThawingShares, afterPool.sharesThawing);
+        assertEq(beforeDelegation.shares - shares, afterDelegation.shares);
+        assertEq(afterThawRequest.shares, calcThawingShares);
+        assertEq(afterThawRequest.thawingUntil, calcThawingUntil);
+        assertEq(afterThawRequest.next, bytes32(0));
+        assertEq(calcThawRequestId, afterThawRequestList.tail);
+        assertEq(beforeThawRequestList.nonce + 1, afterThawRequestList.nonce);
+        assertEq(beforeThawRequestList.count + 1, afterThawRequestList.count);
+        assertEq(afterDelegatedTokens + calcTokens, beforeDelegatedTokens);
+    }
+
     /*
      * STORAGE HELPERS
      */
@@ -774,17 +916,17 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address verifier,
         bool legacy
     ) internal view returns (bool) {
-        uint256 baseSlot = legacy ? 21 : 31;
+        uint256 slotNumber = legacy ? 21 : 31;
         uint256 slot;
 
         if (legacy) {
-            slot = uint256(keccak256(abi.encode(operator, keccak256(abi.encode(serviceProvider, baseSlot)))));
+            slot = uint256(keccak256(abi.encode(operator, keccak256(abi.encode(serviceProvider, slotNumber)))));
         } else {
             slot = uint256(
                 keccak256(
                     abi.encode(
                         operator,
-                        keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, baseSlot))))
+                        keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, slotNumber))))
                     )
                 )
             );
@@ -813,6 +955,85 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 2), bytes32(_tokensLocked));
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 3), bytes32(_tokensLockedUntil));
         vm.store(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 4), bytes32(_tokensProvisioned));
+    }
+
+    // DelegationPoolInternal contains a mapping, solidity doesn't allow constructing structs with
+    // nested mappings on memory: "Struct containing a (nested) mapping cannot be constructed"
+    // So we use a custom struct here and remove the nested mapping which we don't need anyways
+    struct DelegationPoolInternalTest {
+        // (Deprecated) Time, in blocks, an indexer must wait before updating delegation parameters
+        // (Deprecated) Percentage of indexing rewards for the service provider, in PPM
+        // (Deprecated) Percentage of query fees for the service provider, in PPM
+        uint256 __DEPRECATED_packed_data;
+        // (Deprecated) Block when the delegation parameters were last updated
+        uint256 __DEPRECATED_updatedAtBlock;
+        // Total tokens as pool reserves
+        uint256 tokens;
+        // Total shares minted in the pool
+        uint256 shares;
+        // Delegation details by delegator
+        uint256 _gap_delegators_mapping;
+        // Tokens thawing in the pool
+        uint256 tokensThawing;
+        // Shares representing the thawing tokens
+        uint256 sharesThawing;
+    }
+
+    function _getStorage_DelegationPoolInternal(
+        address serviceProvider,
+        address verifier,
+        bool legacy
+    ) internal view returns (DelegationPoolInternalTest memory) {
+        uint256 slotNumber = legacy ? 20 : 33;
+        uint256 baseSlot;
+        if (legacy) {
+            baseSlot = uint256(keccak256(abi.encode(serviceProvider, slotNumber)));
+        } else {
+            baseSlot = uint256(keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, slotNumber)))));
+        }
+
+        DelegationPoolInternalTest memory delegationPoolInternal = DelegationPoolInternalTest({
+            __DEPRECATED_packed_data: uint256(vm.load(address(staking), bytes32(baseSlot))),
+            __DEPRECATED_updatedAtBlock: uint256(vm.load(address(staking), bytes32(baseSlot + 1))),
+            tokens: uint256(vm.load(address(staking), bytes32(baseSlot + 2))),
+            shares: uint256(vm.load(address(staking), bytes32(baseSlot + 3))),
+            _gap_delegators_mapping: uint256(vm.load(address(staking), bytes32(baseSlot + 4))),
+            tokensThawing: uint256(vm.load(address(staking), bytes32(baseSlot + 5))),
+            sharesThawing: uint256(vm.load(address(staking), bytes32(baseSlot + 6)))
+        });
+
+        return delegationPoolInternal;
+    }
+
+    function _getStorage_Delegation(
+        address serviceProvider,
+        address verifier,
+        address delegator,
+        bool legacy
+    ) internal view returns (DelegationInternal memory) {
+        uint256 slotNumber = legacy ? 20 : 33;
+        uint256 baseSlot;
+
+        // DelegationPool
+        if (legacy) {
+            baseSlot = uint256(keccak256(abi.encode(serviceProvider, slotNumber)));
+        } else {
+            baseSlot = uint256(keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, slotNumber)))));
+        }
+
+        // delegators slot in DelegationPool
+        baseSlot += 4;
+
+        // Delegation
+        baseSlot = uint256(keccak256(abi.encode(delegator, baseSlot)));
+
+        DelegationInternal memory delegation = DelegationInternal({
+            shares: uint256(vm.load(address(staking), bytes32(baseSlot))),
+            __DEPRECATED_tokensLocked: uint256(vm.load(address(staking), bytes32(baseSlot + 1))),
+            __DEPRECATED_tokensLockedUntil: uint256(vm.load(address(staking), bytes32(baseSlot + 2)))
+        });
+
+        return delegation;
     }
 
     /*

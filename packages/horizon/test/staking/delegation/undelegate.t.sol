@@ -107,10 +107,10 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, amount, 0, 0);
 
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, delegationAmount);
+        _delegate(users.indexer, delegationAmount);
 
         Delegation memory delegation = _getDelegation(subgraphDataServiceLegacyAddress);
-        _undelegateLegacy(users.indexer, delegation.shares);
+        _undelegate(users.indexer, delegation.shares);
     }
 
     function testUndelegate_RevertWhen_InvalidPool(

@@ -164,9 +164,9 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 10_000_000 ether, 0, MAX_THAWING_PERIOD);
 
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, delegationAmount);
+        _delegate(users.indexer, delegationAmount);
         Delegation memory delegation = _getDelegation(subgraphDataServiceLegacyAddress);
-        _undelegateLegacy(users.indexer, delegation.shares);
+        _undelegate(users.indexer, delegation.shares);
 
         LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceLegacyAddress, users.delegator);
         ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);

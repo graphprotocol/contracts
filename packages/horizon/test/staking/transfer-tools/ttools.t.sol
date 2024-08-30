@@ -72,7 +72,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 0);
 
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, 1 ether);
+        _delegate(users.indexer, 1 ether);
 
         // send amount to staking contract - this should be done by the bridge
         resetPrank(users.delegator);
@@ -95,7 +95,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 1 days);
 
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, originalDelegationAmount);
+        _delegate(users.indexer, originalDelegationAmount);
 
         // send amount to staking contract - this should be done by the bridge
         resetPrank(users.delegator);
@@ -103,7 +103,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
 
         // thaw some delegation before receiving new delegation from L1
         resetPrank(users.delegator);
-        _undelegateLegacy(users.indexer, originalDelegationAmount / 10);
+        _undelegate(users.indexer, originalDelegationAmount / 10);
 
         resetPrank(graphTokenGatewayAddress);
         bytes memory data = abi.encode(
@@ -124,7 +124,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
 
         // initialize the delegation pool
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, originalDelegationAmount);
+        _delegate(users.indexer, originalDelegationAmount);
 
         // slash the entire provision
         resetPrank(subgraphDataServiceLegacyAddress);
@@ -150,7 +150,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 1 days);
 
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, amountDelegated);
+        _delegate(users.indexer, amountDelegated);
 
         // send amount to staking contract - this should be done by the bridge
         resetPrank(users.delegator);
@@ -158,7 +158,7 @@ contract HorizonStakingTransferToolsTest is HorizonStakingTest {
 
         // thaw all delegation before receiving new delegation from L1
         resetPrank(users.delegator);
-        _undelegateLegacy(users.indexer, amountDelegated);
+        _undelegate(users.indexer, amountDelegated);
 
         resetPrank(graphTokenGatewayAddress);
         bytes memory data = abi.encode(
