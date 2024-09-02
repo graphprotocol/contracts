@@ -17,11 +17,11 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     modifier useUndelegate(uint256 shares) {
         vm.stopPrank();
         vm.startPrank(users.delegator);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         shares = bound(shares, 1, delegation.shares);
         
         if (shares != delegation.shares) {
-            DelegationPool memory pool = _getDelegationPool(subgraphDataServiceAddress);
+            DelegationPoolInternalTest memory pool = _getStorage_DelegationPoolInternal(users.indexer, subgraphDataServiceAddress, false);
             uint256 tokens = (shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
             uint256 newTokensThawing = pool.tokensThawing + tokens;
             uint256 remainingTokens = (delegation.shares * (pool.tokens - newTokensThawing)) / pool.shares;
@@ -35,29 +35,6 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     /*
      * HELPERS
      */
-
-    function _withdrawDelegated(address _verifier, address _newIndexer) private {
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, _verifier, users.delegator);
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
-
-        uint256 previousBalance = token.balanceOf(users.delegator);
-        uint256 expectedTokens = _expectedTokensFromThawRequest(thawRequest, _verifier);
-        staking.withdrawDelegated(users.indexer, _verifier, _newIndexer, 0, 0);
-
-        if (_newIndexer != address(0)) {
-            uint256 delegatedTokens = staking.getDelegatedTokensAvailable(_newIndexer, _verifier);
-            assertEq(delegatedTokens, expectedTokens);
-        } else {
-            uint256 newBalance = token.balanceOf(users.delegator);
-            assertEq(newBalance - previousBalance, expectedTokens);
-        }
-    }
-
-    function _expectedTokensFromThawRequest(ThawRequest memory thawRequest, address verifier) private view returns (uint256) {
-        DelegationPool memory pool = _getDelegationPool(verifier);
-        return (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing;
-    }
-
     function _setupNewIndexer(uint256 tokens) private returns(address) {
         (, address msgSender,) = vm.readCallers();
 
@@ -88,7 +65,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         skip(thawRequest.thawingUntil + 1);
 
-        _withdrawDelegated(subgraphDataServiceAddress, address(0));
+        _withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 0);
     }
 
     function testWithdrawDelegation_RevertWhen_NotThawing(
@@ -117,7 +94,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         // Setup new service provider
         address newIndexer = _setupNewIndexer(10_000_000 ether);
-        _withdrawDelegated(subgraphDataServiceAddress, newIndexer);
+        _withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0, 0);
     }
 
     function testWithdrawDelegation_ZeroTokens(
@@ -130,7 +107,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useUndelegate(delegationAmount)
     {
         uint256 previousBalance = token.balanceOf(users.delegator);
-        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 0);
+        _withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 0);
         
         // Nothing changed since thawing period haven't finished
         uint256 newBalance = token.balanceOf(users.delegator);
@@ -150,7 +127,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         address newIndexer = _setupNewIndexer(10_000_000 ether);
 
         uint256 previousBalance = token.balanceOf(users.delegator);
-        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0, 0);
+        _withdrawDelegated(users.indexer, subgraphDataServiceAddress, newIndexer, 0, 0);
         
         uint256 newBalance = token.balanceOf(users.delegator);
         assertEq(newBalance, previousBalance);
@@ -165,7 +142,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         resetPrank(users.delegator);
         _delegate(users.indexer, delegationAmount);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceLegacyAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, true);
         _undelegate(users.indexer, delegation.shares);
 
         LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceLegacyAddress, users.delegator);
@@ -173,7 +150,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         skip(thawRequest.thawingUntil + 1);
 
-        _withdrawDelegated(subgraphDataServiceLegacyAddress, address(0));
+        _withdrawDelegated(users.indexer, address(0));
     }
 
     function testWithdrawDelegation_RevertWhen_InvalidPool(
@@ -183,7 +160,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
 
         skip(MAX_THAWING_PERIOD + 1);

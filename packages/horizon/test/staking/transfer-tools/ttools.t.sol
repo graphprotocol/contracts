@@ -9,8 +9,6 @@ import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL
 import { IHorizonStakingExtension } from "../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
 
 contract HorizonStakingTransferToolsTest is HorizonStakingTest {
-    event Transfer(address indexed from, address indexed to, uint tokens);
-
     /*
      * TESTS
      */

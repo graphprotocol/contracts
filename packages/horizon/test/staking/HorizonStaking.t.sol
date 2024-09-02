@@ -65,17 +65,6 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
      * HELPERS
      */
 
-   
-
-    // todo remove these
-    function _getDelegation(address verifier) internal view returns (Delegation memory) {
-        return staking.getDelegation(users.indexer, verifier, users.delegator);
-    }
-
-    function _getDelegationPool(address verifier) internal view returns (DelegationPool memory) {
-        return staking.getDelegationPool(users.indexer, verifier);
-    }
-
     function _slash(address serviceProvider, address verifier, uint256 tokens, uint256 verifierCutAmount) internal {
         uint256 beforeProviderTokens = staking.getProviderTokensAvailable(serviceProvider, verifier);
         uint256 beforeDelegationTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);

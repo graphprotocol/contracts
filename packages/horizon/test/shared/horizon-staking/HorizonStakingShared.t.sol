@@ -13,6 +13,9 @@ import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
     using LinkedList for LinkedList.List;
+
+    event Transfer(address indexed from, address indexed to, uint tokens);
+
     /*
      * MODIFIERS
      */
@@ -349,7 +352,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
 
         bytes32 expectedThawRequestId = keccak256(
-            abi.encodePacked(users.indexer, subgraphDataServiceAddress, users.indexer, beforeThawRequestList.nonce)
+            abi.encodePacked(users.indexer, verifier, users.indexer, beforeThawRequestList.nonce)
         );
         uint256 thawingShares = beforeProvision.sharesThawing == 0
             ? tokens
@@ -423,7 +426,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             ThawRequest[] memory calcThawRequestsFulfilledList,
             bytes32[] memory calcThawRequestsFulfilledListIds,
             uint256[] memory calcThawRequestsFulfilledListTokens
-        ) = calcThawRequestData(serviceProvider, verifier, serviceProvider, nThawRequests);
+        ) = calcThawRequestData(serviceProvider, verifier, serviceProvider, nThawRequests, false);
 
         // deprovision
         for (uint i = 0; i < calcThawRequestsFulfilledList.length; i++) {
@@ -524,7 +527,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             ThawRequest[] memory calcThawRequestsFulfilledList,
             bytes32[] memory calcThawRequestsFulfilledListIds,
             uint256[] memory calcThawRequestsFulfilledListTokens
-        ) = calcThawRequestData(serviceProvider, verifier, serviceProvider, nThawRequests);
+        ) = calcThawRequestData(serviceProvider, verifier, serviceProvider, nThawRequests, false);
 
         // reprovision
         for (uint i = 0; i < calcThawRequestsFulfilledList.length; i++) {
@@ -699,7 +702,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         __setOperator(operator, verifier, allow, true);
     }
 
-    function __setOperator(address operator, address verifier, bool allow, bool locked) internal {
+    function __setOperator(address operator, address verifier, bool allow, bool locked) private {
         (, address msgSender, ) = vm.readCallers();
 
         // staking contract knows the address of the legacy subgraph service
@@ -756,7 +759,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 tokens,
         uint256 minSharesOut,
         bool legacy
-    ) internal {
+    ) private {
         (, address delegator, ) = vm.readCallers();
 
         // before
@@ -810,9 +813,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(beforePool.shares + calcShares, afterPool.shares);
         assertEq(beforePool.tokensThawing, afterPool.tokensThawing);
         assertEq(beforePool.sharesThawing, afterPool.sharesThawing);
+        assertEq(beforeDelegation.shares + calcShares, afterDelegation.shares);
+        assertEq(beforeDelegation.__DEPRECATED_tokensLocked, afterDelegation.__DEPRECATED_tokensLocked);
+        assertEq(beforeDelegation.__DEPRECATED_tokensLockedUntil, afterDelegation.__DEPRECATED_tokensLockedUntil);
         assertGe(deltaShares, minSharesOut);
         assertEq(calcShares, deltaShares);
-        assertEq(beforePool.tokens + tokens, afterPool.tokens);
         assertEq(beforeDelegatorBalance - tokens, afterDelegatorBalance);
         assertEq(beforeStakingBalance + tokens, afterStakingBalance);
     }
@@ -825,7 +830,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         __undelegate(serviceProvider, subgraphDataServiceLegacyAddress, shares, true);
     }
 
-    function __undelegate(address serviceProvider, address verifier, uint256 shares, bool legacy) internal {
+    function __undelegate(address serviceProvider, address verifier, uint256 shares, bool legacy) private {
         (, address delegator, ) = vm.readCallers();
 
         // before
@@ -900,6 +905,227 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(beforeThawRequestList.nonce + 1, afterThawRequestList.nonce);
         assertEq(beforeThawRequestList.count + 1, afterThawRequestList.count);
         assertEq(afterDelegatedTokens + calcTokens, beforeDelegatedTokens);
+    }
+
+    function _withdrawDelegated(
+        address serviceProvider,
+        address verifier,
+        address newServiceProvider,
+        uint256 minSharesForNewProvider,
+        uint256 nThawRequests
+    ) internal {
+        __withdrawDelegated(
+            serviceProvider,
+            verifier,
+            newServiceProvider,
+            minSharesForNewProvider,
+            nThawRequests,
+            false
+        );
+    }
+
+    function _withdrawDelegated(address serviceProvider, address newServiceProvider) internal {
+        __withdrawDelegated(serviceProvider, subgraphDataServiceLegacyAddress, newServiceProvider, 0, 0, true);
+    }
+
+    function __withdrawDelegated(
+        address _serviceProvider,
+        address _verifier,
+        address _newServiceProvider,
+        uint256 _minSharesForNewProvider,
+        uint256 _nThawRequests,
+        bool legacy
+    ) private {
+        (, address msgSender, ) = vm.readCallers();
+
+        bool reDelegate = _newServiceProvider != address(0);
+
+        // before
+        DelegationPoolInternalTest memory beforeDelegationPool = _getStorage_DelegationPoolInternal(
+            _serviceProvider,
+            _verifier,
+            legacy
+        );
+        DelegationPoolInternalTest memory beforeNewDelegationPool = _getStorage_DelegationPoolInternal(
+            _newServiceProvider,
+            _verifier,
+            legacy
+        );
+        DelegationInternal memory beforeNewDelegation = _getStorage_Delegation(
+            _newServiceProvider,
+            _verifier,
+            msgSender,
+            legacy
+        );
+        LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
+            _serviceProvider,
+            _verifier,
+            msgSender
+        );
+        uint256 beforeSenderBalance = token.balanceOf(msgSender);
+        uint256 beforeStakingBalance = token.balanceOf(address(staking));
+
+        (
+            uint256 calcTokensThawed,
+            uint256 calcTokensThawing,
+            uint256 calcSharesThawing,
+            ThawRequest[] memory calcThawRequestsFulfilledList,
+            bytes32[] memory calcThawRequestsFulfilledListIds,
+            uint256[] memory calcThawRequestsFulfilledListTokens
+        ) = calcThawRequestData(_serviceProvider, _verifier, msgSender, _nThawRequests, true);
+
+        // withdrawDelegated
+        for (uint i = 0; i < calcThawRequestsFulfilledList.length; i++) {
+            ThawRequest memory thawRequest = calcThawRequestsFulfilledList[i];
+            vm.expectEmit(address(staking));
+            emit IHorizonStakingMain.ThawRequestFulfilled(
+                calcThawRequestsFulfilledListIds[i],
+                calcThawRequestsFulfilledListTokens[i],
+                thawRequest.shares,
+                thawRequest.thawingUntil
+            );
+        }
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.ThawRequestsFulfilled(
+            _serviceProvider,
+            _verifier,
+            msgSender,
+            calcThawRequestsFulfilledList.length,
+            calcTokensThawed
+        );
+        if (calcTokensThawed != 0) {
+            vm.expectEmit();
+            if (reDelegate) {
+                emit IHorizonStakingMain.TokensDelegated(_newServiceProvider, _verifier, msgSender, calcTokensThawed);
+            } else {
+                emit Transfer(address(staking), msgSender, calcTokensThawed);
+            }
+        }
+        vm.expectEmit();
+        emit IHorizonStakingMain.DelegatedTokensWithdrawn(_serviceProvider, _verifier, msgSender, calcTokensThawed);
+        staking.withdrawDelegated(
+            _serviceProvider,
+            _verifier,
+            _newServiceProvider,
+            _minSharesForNewProvider,
+            _nThawRequests
+        );
+
+        // after
+        DelegationPoolInternalTest memory afterDelegationPool = _getStorage_DelegationPoolInternal(
+            _serviceProvider,
+            _verifier,
+            legacy
+        );
+        DelegationPoolInternalTest memory afterNewDelegationPool = _getStorage_DelegationPoolInternal(
+            _newServiceProvider,
+            _verifier,
+            legacy
+        );
+        DelegationInternal memory afterNewDelegation = _getStorage_Delegation(
+            _newServiceProvider,
+            _verifier,
+            msgSender,
+            legacy
+        );
+        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+            _serviceProvider,
+            _verifier,
+            msgSender
+        );
+        uint256 afterSenderBalance = token.balanceOf(msgSender);
+        uint256 afterStakingBalance = token.balanceOf(address(staking));
+
+        // assert
+        assertEq(afterDelegationPool.tokens, beforeDelegationPool.tokens - calcTokensThawed);
+        assertEq(afterDelegationPool.shares, beforeDelegationPool.shares);
+        assertEq(afterDelegationPool.tokensThawing, calcTokensThawing);
+        assertEq(afterDelegationPool.sharesThawing, calcSharesThawing);
+
+        for (uint i = 0; i < calcThawRequestsFulfilledListIds.length; i++) {
+            ThawRequest memory thawRequest = staking.getThawRequest(calcThawRequestsFulfilledListIds[i]);
+            assertEq(thawRequest.shares, 0);
+            assertEq(thawRequest.thawingUntil, 0);
+            assertEq(thawRequest.next, bytes32(0));
+        }
+        if (calcThawRequestsFulfilledList.length == 0) {
+            assertEq(afterThawRequestList.head, beforeThawRequestList.head);
+        } else {
+            assertEq(
+                afterThawRequestList.head,
+                calcThawRequestsFulfilledList.length == beforeThawRequestList.count
+                    ? bytes32(0)
+                    : calcThawRequestsFulfilledList[calcThawRequestsFulfilledList.length - 1].next
+            );
+        }
+        assertEq(
+            afterThawRequestList.tail,
+            calcThawRequestsFulfilledList.length == beforeThawRequestList.count
+                ? bytes32(0)
+                : beforeThawRequestList.tail
+        );
+        assertEq(afterThawRequestList.count, beforeThawRequestList.count - calcThawRequestsFulfilledList.length);
+        assertEq(afterThawRequestList.nonce, beforeThawRequestList.nonce);
+
+        if (reDelegate) {
+            uint256 calcShares = (afterNewDelegationPool.tokens == 0 ||
+                afterNewDelegationPool.tokens == afterNewDelegationPool.tokensThawing)
+                ? calcTokensThawed
+                : ((calcTokensThawed * afterNewDelegationPool.shares) /
+                    (afterNewDelegationPool.tokens - afterNewDelegationPool.tokensThawing));
+            uint256 deltaShares = afterNewDelegation.shares - beforeNewDelegation.shares;
+
+            assertEq(afterNewDelegationPool.tokens, beforeNewDelegationPool.tokens + calcTokensThawed);
+            assertEq(afterNewDelegationPool.shares, beforeNewDelegationPool.shares + calcShares);
+            assertEq(afterNewDelegationPool.tokensThawing, beforeNewDelegationPool.tokensThawing);
+            assertEq(afterNewDelegationPool.sharesThawing, beforeNewDelegationPool.sharesThawing);
+            assertEq(afterNewDelegation.shares, beforeNewDelegation.shares + calcShares);
+            assertEq(afterNewDelegation.__DEPRECATED_tokensLocked, beforeNewDelegation.__DEPRECATED_tokensLocked);
+            assertEq(
+                afterNewDelegation.__DEPRECATED_tokensLockedUntil,
+                beforeNewDelegation.__DEPRECATED_tokensLockedUntil
+            );
+            assertGe(deltaShares, _minSharesForNewProvider);
+            assertEq(calcShares, deltaShares);
+            assertEq(afterSenderBalance - beforeSenderBalance, 0);
+            assertEq(beforeStakingBalance - afterStakingBalance, 0);
+        } else {
+            assertEq(beforeStakingBalance - afterStakingBalance, calcTokensThawed);
+            assertEq(afterSenderBalance - beforeSenderBalance, calcTokensThawed);
+        }
+    }
+
+    function _addToDelegationPool(address serviceProvider, address verifier, uint256 tokens) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        // staking contract knows the address of the legacy subgraph service
+        // but we cannot read it as it's an immutable, we have to use the global var :/
+        bool legacy = verifier == subgraphDataServiceLegacyAddress;
+
+        // before
+        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
+        uint256 beforeSenderBalance = token.balanceOf(msgSender);
+        uint256 beforeStakingBalance = token.balanceOf(address(staking));
+
+        // addToDelegationPool
+        vm.expectEmit();
+        emit Transfer(msgSender, address(staking), tokens);
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.TokensToDelegationPoolAdded(serviceProvider, verifier, tokens);
+        staking.addToDelegationPool(serviceProvider, verifier, tokens);
+
+        // after
+        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
+        uint256 afterSenderBalance = token.balanceOf(msgSender);
+        uint256 afterStakingBalance = token.balanceOf(address(staking));
+
+        // assert
+        assertEq(beforeSenderBalance - tokens, afterSenderBalance);
+        assertEq(beforeStakingBalance + tokens, afterStakingBalance);
+        assertEq(beforePool.tokens + tokens, afterPool.tokens);
+        assertEq(beforePool.shares, afterPool.shares);
+        assertEq(beforePool.tokensThawing, afterPool.tokensThawing);
+        assertEq(beforePool.sharesThawing, afterPool.sharesThawing);
     }
 
     function _setDelegationFeeCut(
@@ -1073,7 +1299,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address serviceProvider,
         address verifier,
         address owner,
-        uint256 iterations
+        uint256 iterations,
+        bool delegation
     ) private view returns (uint256, uint256, uint256, ThawRequest[] memory, bytes32[] memory, uint256[] memory) {
         LinkedList.List memory thawRequestList = staking.getThawRequestList(serviceProvider, verifier, owner);
         if (thawRequestList.count == 0) {
@@ -1081,10 +1308,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         Provision memory prov = staking.getProvision(serviceProvider, verifier);
+        DelegationPool memory pool = staking.getDelegationPool(serviceProvider, verifier);
 
         uint256 tokensThawed = 0;
-        uint256 tokensThawing = prov.tokensThawing;
-        uint256 sharesThawing = prov.sharesThawing;
+        uint256 tokensThawing = delegation ? pool.tokensThawing : prov.tokensThawing;
+        uint256 sharesThawing = delegation ? pool.sharesThawing : prov.sharesThawing;
         uint256 thawRequestsFulfilled = 0;
 
         bytes32 thawRequestId = thawRequestList.head;
@@ -1092,7 +1320,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
             if (thawRequest.thawingUntil <= block.timestamp) {
                 thawRequestsFulfilled++;
-                uint256 tokens = (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
+                uint256 tokens = delegation
+                    ? (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing
+                    : (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
                 tokensThawed += tokens;
                 tokensThawing -= tokens;
                 sharesThawing -= thawRequest.shares;
@@ -1111,7 +1341,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         while (thawRequestId != bytes32(0) && (iterations == 0 || i < iterations)) {
             ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
             if (thawRequest.thawingUntil <= block.timestamp) {
-                uint256 tokens = (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
+                uint256 tokens = delegation
+                    ? (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing
+                    : (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
                 thawRequestsFulfilledListTokens[i] = tokens;
                 thawRequestsFulfilledListIds[i] = thawRequestId;
                 thawRequestsFulfilledList[i] = staking.getThawRequest(thawRequestId);
