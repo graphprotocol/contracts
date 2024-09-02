@@ -57,7 +57,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     modifier useDelegationFeeCut(IGraphPayments.PaymentTypes paymentType, uint256 cut) {
-        _setDelegationFeeCut(paymentType, cut);
+        _setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, cut);
         _;
     }
 
@@ -83,12 +83,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     ) internal {
         _stakeTo(serviceProvider, tokens);
         _provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
-    }
-
-    function _setDelegationFeeCut(IGraphPayments.PaymentTypes paymentType, uint256 cut) internal {
-        staking.setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, cut);
-        uint256 delegationFeeCut = staking.getDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType);
-        assertEq(delegationFeeCut, cut);
     }
 
     /*
@@ -835,8 +829,17 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         (, address delegator, ) = vm.readCallers();
 
         // before
-        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
-        DelegationInternal memory beforeDelegation = _getStorage_Delegation(serviceProvider, verifier, delegator, legacy);
+        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(
+            serviceProvider,
+            verifier,
+            legacy
+        );
+        DelegationInternal memory beforeDelegation = _getStorage_Delegation(
+            serviceProvider,
+            verifier,
+            delegator,
+            legacy
+        );
         LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
         uint256 beforeDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
 
@@ -869,8 +872,17 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         // after
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(users.indexer, verifier, legacy);
-        DelegationInternal memory afterDelegation = _getStorage_Delegation(serviceProvider, verifier, delegator, legacy);
+        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+            users.indexer,
+            verifier,
+            legacy
+        );
+        DelegationInternal memory afterDelegation = _getStorage_Delegation(
+            serviceProvider,
+            verifier,
+            delegator,
+            legacy
+        );
         LinkedList.List memory afterThawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
         ThawRequest memory afterThawRequest = staking.getThawRequest(calcThawRequestId);
         uint256 afterDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
@@ -888,6 +900,24 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(beforeThawRequestList.nonce + 1, afterThawRequestList.nonce);
         assertEq(beforeThawRequestList.count + 1, afterThawRequestList.count);
         assertEq(afterDelegatedTokens + calcTokens, beforeDelegatedTokens);
+    }
+
+    function _setDelegationFeeCut(
+        address serviceProvider,
+        address verifier,
+        IGraphPayments.PaymentTypes paymentType,
+        uint256 feeCut
+    ) internal {
+        // setDelegationFeeCut
+        vm.expectEmit();
+        emit IHorizonStakingMain.DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
+        staking.setDelegationFeeCut(serviceProvider, verifier, paymentType, feeCut);
+
+        // after
+        uint256 afterDelegationFeeCut = staking.getDelegationFeeCut(serviceProvider, verifier, paymentType);
+
+        // assert
+        assertEq(afterDelegationFeeCut, feeCut);
     }
 
     /*

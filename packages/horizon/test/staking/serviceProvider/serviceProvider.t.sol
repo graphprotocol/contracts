@@ -40,7 +40,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         vm.assume(paymentTypeInput < 3);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes(paymentTypeInput);
         feeCut = bound(feeCut, 0, MAX_PPM);
-        _setDelegationFeeCut(paymentType, feeCut);
+        _setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, feeCut);
     }
 
     function testServiceProvider_GetProvision(
@@ -60,7 +60,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         assertEq(p.maxVerifierCutPending, maxVerifierCut);
         assertEq(p.thawingPeriodPending, thawingPeriod);
 
-        staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
         p = staking.getProvision(users.indexer, subgraphDataServiceAddress);
         assertEq(p.tokensThawing, thawAmount);
     }
@@ -75,7 +75,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         uint256 tokensAvailable = staking.getTokensAvailable(users.indexer, subgraphDataServiceAddress, 0);
         assertEq(tokensAvailable, amount);
 
-        staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
         tokensAvailable = staking.getTokensAvailable(users.indexer, subgraphDataServiceAddress, 0);
         assertEq(tokensAvailable, amount - thawAmount);
     }
