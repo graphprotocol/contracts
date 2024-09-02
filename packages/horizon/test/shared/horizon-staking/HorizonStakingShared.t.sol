@@ -7,6 +7,7 @@ import { GraphBaseTest } from "../../GraphBase.t.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
 import { IHorizonStakingBase } from "../../../contracts/interfaces/internal/IHorizonStakingBase.sol";
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingExtension } from "../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
 
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
@@ -732,19 +733,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterOperatorAllowed, allow);
     }
 
-    function _setAllowedLockedVerifier(address verifier, bool allowed) internal {
-        // setAllowedLockedVerifier
-        vm.expectEmit();
-        emit IHorizonStakingMain.AllowedLockedVerifierSet(verifier, allowed);
-        staking.setAllowedLockedVerifier(verifier, allowed);
-
-        // after
-        bool afterAllowed = staking.isAllowedLockedVerifier(verifier);
-
-        // assert
-        assertEq(afterAllowed, allowed);
-    }
-
     function _delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) internal {
         __delegate(serviceProvider, verifier, tokens, minSharesOut, false);
     }
@@ -1103,7 +1091,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool legacy = verifier == subgraphDataServiceLegacyAddress;
 
         // before
-        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
+        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(
+            serviceProvider,
+            verifier,
+            legacy
+        );
         uint256 beforeSenderBalance = token.balanceOf(msgSender);
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
 
@@ -1115,7 +1107,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         staking.addToDelegationPool(serviceProvider, verifier, tokens);
 
         // after
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
+        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+            serviceProvider,
+            verifier,
+            legacy
+        );
         uint256 afterSenderBalance = token.balanceOf(msgSender);
         uint256 afterStakingBalance = token.balanceOf(address(staking));
 
@@ -1144,6 +1140,71 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // assert
         assertEq(afterDelegationFeeCut, feeCut);
+    }
+
+    function _setAllowedLockedVerifier(address verifier, bool allowed) internal {
+        // setAllowedLockedVerifier
+        vm.expectEmit();
+        emit IHorizonStakingMain.AllowedLockedVerifierSet(verifier, allowed);
+        staking.setAllowedLockedVerifier(verifier, allowed);
+
+        // after
+        bool afterAllowed = staking.isAllowedLockedVerifier(verifier);
+
+        // assert
+        assertEq(afterAllowed, allowed);
+    }
+
+    function _setDelegationSlashingEnabled() internal {
+        // setDelegationSlashingEnabled
+        vm.expectEmit();
+        emit IHorizonStakingMain.DelegationSlashingEnabled(true);
+        staking.setDelegationSlashingEnabled();
+
+        // after
+        bool afterEnabled = staking.isDelegationSlashingEnabled();
+
+        // assert
+        assertEq(afterEnabled, true);
+    }
+
+    function _clearThawingPeriod() internal {
+        // clearThawingPeriod
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.ThawingPeriodCleared();
+        staking.clearThawingPeriod();
+
+        // after
+        uint64 afterThawingPeriod = staking.__DEPRECATED_getThawingPeriod();
+
+        // assert
+        assertEq(afterThawingPeriod, 0);
+    }
+
+    function _setMaxThawingPeriod(uint64 maxThawingPeriod) internal {
+        // setMaxThawingPeriod
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingMain.MaxThawingPeriodSet(maxThawingPeriod);
+        staking.setMaxThawingPeriod(maxThawingPeriod);
+
+        // after
+        uint64 afterMaxThawingPeriod = staking.getMaxThawingPeriod();
+
+        // assert
+        assertEq(afterMaxThawingPeriod, maxThawingPeriod);
+    }
+
+    function _setCounterpartStakingAddress(address counterpartStakingAddress) internal {
+        // setCounterpartStakingAddress
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingExtension.CounterpartStakingAddressSet(counterpartStakingAddress);
+        staking.setCounterpartStakingAddress(counterpartStakingAddress);
+
+        // after
+        address afterCounterpartStakingAddress = _getStorage_CounterpartStakingAddress();
+
+        // assert
+        assertEq(afterCounterpartStakingAddress, counterpartStakingAddress);
     }
 
     /*
@@ -1290,6 +1351,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         });
 
         return delegation;
+    }
+
+    function _setStorage_DEPRECATED_ThawingPeriod(uint64 thawingPeriod) internal {
+        vm.store(address(staking), bytes32(uint256(13)), bytes32(uint256(thawingPeriod)));
+    }
+
+    function _getStorage_CounterpartStakingAddress() internal view returns (address) {
+        uint256 slot = 24;
+        return address(uint160(uint256(vm.load(address(staking), bytes32(slot)))));
     }
 
     /*
