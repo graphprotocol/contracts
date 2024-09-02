@@ -16,7 +16,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testRegister_Indexer(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(tokens);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
         bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
         vm.expectEmit(address(subgraphService));
         emit IDataService.ServiceProviderRegistered(
@@ -38,7 +38,8 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerAlreadyRegistered.selector));
-        _registerIndexer(users.rewardsDestination);
+        bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
+        _register(users.indexer, data);
     }
 
     function testRegister_RevertWhen_InvalidProvision() public useIndexer {
@@ -46,7 +47,8 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
             ProvisionManager.ProvisionManagerProvisionNotFound.selector,
             users.indexer
         ));
-        _registerIndexer(users.rewardsDestination);
+        bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
+        _register(users.indexer, data);
     }
 
     function testRegister_RevertWhen_NotAuthorized() public {
@@ -56,12 +58,13 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
             users.operator,
             users.indexer
         ));
-        _registerIndexer(users.rewardsDestination);
+        bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
+        _register(users.indexer, data);
     }
 
     function testRegister_RevertWhen_InvalidProvisionValues(uint256 tokens) public useIndexer {
         tokens = bound(tokens, 1, minimumProvisionTokens - 1);
-        _createProvision(tokens);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
 
         vm.expectRevert(abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerInvalidValue.selector, 
@@ -70,12 +73,12 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
             minimumProvisionTokens,
             maximumProvisionTokens
         ));
-        _registerIndexer(address(0));
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
     }
 
     function testRegister_RevertIf_EmptyUrl(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(tokens);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
         bytes memory data = abi.encode("", "geoHash", users.rewardsDestination);
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceEmptyUrl.selector));
         subgraphService.register(users.indexer, data);
@@ -83,7 +86,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testRegister_RevertIf_EmptyGeohash(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(tokens);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
         bytes memory data = abi.encode("url", "", users.rewardsDestination);
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceEmptyGeohash.selector));
         subgraphService.register(users.indexer, data);

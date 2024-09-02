@@ -13,14 +13,13 @@ contract DisputeManagerGovernanceMaxSlashingCutTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Governance_SetMaxSlashingCut() public useGovernor {
-        uint32 maxSlashingCut = 1000;
-        disputeManager.setMaxSlashingCut(maxSlashingCut);
-        assertEq(disputeManager.maxSlashingCut(), maxSlashingCut, "Max slashing cut should be set.");
+    function test_Governance_SetMaxSlashingCut(uint32 maxSlashingCut) public useGovernor {
+        vm.assume(maxSlashingCut <= MAX_PPM);
+        _setMaxSlashingCut(maxSlashingCut);
     }
 
-    function test_Governance_RevertWhen_NotPPM() public useGovernor {
-        uint32 maxSlashingCut = 10000000;
+    function test_Governance_RevertWhen_NotPPM(uint32 maxSlashingCut) public useGovernor {
+        vm.assume(maxSlashingCut > MAX_PPM);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidMaxSlashingCut.selector, maxSlashingCut));
         disputeManager.setMaxSlashingCut(maxSlashingCut);
     }

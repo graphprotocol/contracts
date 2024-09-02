@@ -20,15 +20,11 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
     ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
-        uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
+        resetPrank(users.fisherman);
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
-
+        
         resetPrank(users.arbitrator);
-        disputeManager.acceptDispute(disputeID, tokensSlash);
-
-        uint256 fishermanReward = tokensSlash.mulPPM(fishermanRewardPercentage);
-        uint256 fishermanExpectedBalance = fishermanPreviousBalance + fishermanReward;
-        assertEq(token.balanceOf(users.fisherman), fishermanExpectedBalance, "Fisherman should receive 50% of slashed tokens.");
+        _acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Indexing_Accept_RevertIf_CallerIsNotArbitrator(
@@ -37,7 +33,8 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
     ) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         // attempt to accept dispute as fisherman
         resetPrank(users.fisherman);
@@ -49,8 +46,9 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         uint256 tokens,
         uint256 tokensSlash
     ) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
         tokensSlash = bound(tokensSlash, uint256(maxSlashingPercentage).mulPPM(tokens) + 1, type(uint256).max);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI101"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"));
 
         // max slashing percentage is 50%
         resetPrank(users.arbitrator);

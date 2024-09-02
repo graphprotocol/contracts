@@ -15,8 +15,7 @@ contract DisputeManagerGovernanceArbitratorTest is DisputeManagerTest {
 
     function test_Governance_SetArbitrator() public useGovernor {
         address arbitrator = makeAddr("newArbitrator");
-        disputeManager.setArbitrator(arbitrator);
-        assertEq(disputeManager.arbitrator(), arbitrator, "Arbitrator should be set.");
+        _setArbitrator(arbitrator);
     }
 
     function test_Governance_RevertWhen_ZeroAddress() public useGovernor {

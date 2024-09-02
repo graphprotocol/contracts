@@ -13,10 +13,9 @@ contract DisputeManagerGovernanceFishermanRewardCutTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Governance_SetFishermanRewardCut() public useGovernor {
-        uint32 fishermanRewardCut = 1000;
-        disputeManager.setFishermanRewardCut(fishermanRewardCut);
-        assertEq(disputeManager.fishermanRewardCut(), fishermanRewardCut, "Fisherman reward cut should be set.");
+    function test_Governance_SetFishermanRewardCut(uint32 fishermanRewardCut) public useGovernor {
+        vm.assume(fishermanRewardCut <= disputeManager.MAX_FISHERMAN_REWARD_CUT());
+        _setFishermanRewardCut(fishermanRewardCut);
     }
 
     function test_Governance_RevertWhen_OverMaximumValue(uint32 fishermanRewardCut) public useGovernor {

@@ -9,6 +9,10 @@ import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
 
+    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
+    bytes32 private responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
+    bytes32 private responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
+
     /*
      * TESTS
      */
@@ -16,71 +20,83 @@ contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
     function test_Query_Conflict_Create_DisputeAttestation(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
-        bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
-        bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
-
-        (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            responseCID1,
-            subgraphDeploymentId,
-            responseCID2,
-            subgraphDeploymentId
-        );
-
         resetPrank(users.fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) = disputeManager.createQueryDisputeConflict(
-            attestationData1,
-            attestationData2
+        (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
+            requestCID,
+            subgraphDeployment,
+            responseCID1,
+            responseCID2,
+            allocationIDPrivateKey,
+            allocationIDPrivateKey
         );
-        assertTrue(disputeManager.isDisputeCreated(disputeID1), "Dispute 1 should be created.");
-        assertTrue(disputeManager.isDisputeCreated(disputeID2), "Dispute 2 should be created.");
+
+        _createQueryDisputeConflict(attestationData1, attestationData2);
+    }
+
+    function test_Query_Conflict_Create_DisputeAttestationDifferentIndexers(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        // Setup new indexer
+        address newIndexer = makeAddr("newIndexer");
+        uint256 newAllocationIDKey = uint256(keccak256(abi.encodePacked("newAllocationID")));
+        mint(newIndexer, tokens);
+        resetPrank(newIndexer);
+        _createProvision(newIndexer, tokens, maxSlashingPercentage, disputePeriod);
+        _register(newIndexer, abi.encode("url", "geoHash", 0x0));
+        bytes memory data = _createSubgraphAllocationData(newIndexer, subgraphDeployment, newAllocationIDKey, tokens);
+        _startService(newIndexer, data);
+
+        // Create query conflict dispute
+        resetPrank(users.fisherman);
+        (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
+            requestCID,
+            subgraphDeployment,
+            responseCID1,
+            responseCID2,
+            allocationIDPrivateKey,
+            newAllocationIDKey
+        );
+
+        _createQueryDisputeConflict(attestationData1, attestationData2);
     }
 
     function test_Query_Conflict_Create_RevertIf_AttestationsResponsesAreTheSame() public useFisherman {
-        bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
-        bytes32 responseCID = keccak256(abi.encodePacked("Response CID"));
-        bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
-
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            responseCID,
-            subgraphDeploymentId,
-            responseCID,
-            subgraphDeploymentId
+            requestCID,
+            subgraphDeployment,
+            responseCID1,
+            responseCID1,
+            allocationIDPrivateKey,
+            allocationIDPrivateKey
         );
 
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerNonConflictingAttestations.selector,
             requestCID,
-            responseCID,
-            subgraphDeploymentId,
+            responseCID1,
+            subgraphDeployment,
             requestCID,
-            responseCID,
-            subgraphDeploymentId
+            responseCID1,
+            subgraphDeployment
         );
         vm.expectRevert(expectedError);
         disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
     }
 
-    function test_Query_Conflict_Create_RevertIf_AttestationsHaveDifferentSubgraph() public {
-        bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
-        bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
-        bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
-        bytes32 subgraphDeploymentId1 = keccak256(abi.encodePacked("Subgraph Deployment ID 1"));
+    function test_Query_Conflict_Create_RevertIf_AttestationsHaveDifferentSubgraph() public useFisherman {
         bytes32 subgraphDeploymentId2 = keccak256(abi.encodePacked("Subgraph Deployment ID 2"));
+        
+        Attestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeployment);
+        bytes memory attestationData1 = _createAtestationData(receipt1, allocationIDPrivateKey);
 
-        (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            responseCID1,
-            subgraphDeploymentId1,
-            responseCID2,
-            subgraphDeploymentId2
-        );
+        Attestation.Receipt memory receipt2 = _createAttestationReceipt(requestCID, responseCID2, subgraphDeploymentId2);
+        bytes memory attestationData2 = _createAtestationData(receipt2, allocationIDPrivateKey);
 
-        vm.prank(users.fisherman);
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerNonConflictingAttestations.selector,
             requestCID,
             responseCID1,
-            subgraphDeploymentId1,
+            subgraphDeployment,
             requestCID,
             responseCID2,
             subgraphDeploymentId2

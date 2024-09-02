@@ -3,9 +3,9 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { SubgraphBaseTest } from "../SubgraphBaseTest.t.sol";
+import { HorizonStakingSharedTest } from "./HorizonStakingShared.t.sol";
 
-abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
+abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
     /*
      * VARIABLES
@@ -28,9 +28,10 @@ abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
     modifier useAllocation(uint256 tokens) {
         vm.assume(tokens > minimumProvisionTokens);
         vm.assume(tokens < 10_000_000_000 ether);
-        _createProvision(tokens);
-        _registerIndexer(address(0));
-        _startService(tokens);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+        bytes memory data = _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIDPrivateKey, tokens);
+        _startService(users.indexer, data);
         _;
     }
 
@@ -48,39 +49,33 @@ abstract contract SubgraphServiceSharedTest is SubgraphBaseTest {
      * HELPERS
      */
 
-    function _createProvision(uint256 tokens) internal {
-        _stakeTo(users.indexer, tokens);
-        staking.provision(users.indexer, address(subgraphService), tokens, maxSlashingPercentage, disputePeriod);
+    function _register(address _indexer, bytes memory _data) internal {
+        subgraphService.register(_indexer, _data);
     }
 
-    function _addToProvision(address _indexer, uint256 _tokens) internal {
-        _stakeTo(_indexer, _tokens);
-        staking.addToProvision(_indexer, address(subgraphService), _tokens);
+    function _createSubgraphAllocationData(
+        address _indexer,
+        bytes32 _subgraphDeployment,
+        uint256 _allocationIdPrivateKey,
+        uint256 _tokens
+    ) internal view returns (bytes memory) {
+        address allocationId = vm.addr(_allocationIdPrivateKey);
+        bytes32 digest = subgraphService.encodeAllocationProof(_indexer, allocationId);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_allocationIdPrivateKey, digest);
+
+        return abi.encode(_subgraphDeployment, _tokens, allocationId, abi.encodePacked(r, s, v));
     }
 
-    function _registerIndexer(address rewardsDestination) internal {
-        subgraphService.register(users.indexer, abi.encode("url", "geoHash", rewardsDestination));
+    function _startService(address indexer, bytes memory data) internal {
+        subgraphService.startService(indexer, data);
     }
 
-    function _startService(uint256 tokens) internal {
-        bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, allocationID);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
-
-        bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, abi.encodePacked(r, s, v));
-        subgraphService.startService(users.indexer, data);
+    function _stopService(address _indexer, bytes memory _data) internal {
+        subgraphService.stopService(_indexer, _data);
     }
 
     function _delegate(uint256 tokens) internal {
         token.approve(address(staking), tokens);
         staking.delegate(users.indexer, address(subgraphService), tokens, 0);
-    }
-
-    /*
-     * PRIVATE
-     */
-
-    function _stakeTo(address _indexer, uint256 _tokens) internal {
-        token.approve(address(staking), _tokens);
-        staking.stakeTo(_indexer, _tokens);
     }
 }

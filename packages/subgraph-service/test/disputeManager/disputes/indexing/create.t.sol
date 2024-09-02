@@ -15,13 +15,39 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
     function test_Indexing_Create_Dispute(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
-        assertTrue(disputeManager.isDisputeCreated(disputeID), "Dispute should be created.");
+        resetPrank(users.fisherman);
+        _createIndexingDispute(allocationID, bytes32("POI1"));
+    }
+
+    function test_Indexing_Create_MultipleDisputes() public {
+        uint256 tokens = 10000 ether;
+        uint8 numIndexers = 10;
+        uint256[] memory allocationIDPrivateKeys = new uint256[](numIndexers);
+        for (uint i = 0; i < numIndexers; i++) {
+            string memory indexerName = string(abi.encodePacked("Indexer ", i));
+            address indexer = createUser(indexerName);
+            vm.assume(indexer != address(0));
+
+            resetPrank(indexer);
+            mint(indexer, tokens);
+            _createProvision(indexer, tokens, maxSlashingPercentage, disputePeriod);
+            _register(indexer, abi.encode("url", "geoHash", address(0)));
+            uint256 allocationIDPrivateKey = uint256(keccak256(abi.encodePacked(i)));
+            bytes memory data = _createSubgraphAllocationData(indexer, subgraphDeployment, allocationIDPrivateKey, tokens);
+            _startService(indexer, data);
+            allocationIDPrivateKeys[i] = allocationIDPrivateKey;
+        }
+
+        resetPrank(users.fisherman);
+        for (uint i = 0; i < allocationIDPrivateKeys.length; i++) {
+            _createIndexingDispute(vm.addr(allocationIDPrivateKeys[i]), bytes32("POI1"));
+        }
     }
 
     function test_Indexing_Create_RevertWhen_DisputeAlreadyCreated(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
 
         // Create another dispute with different fisherman
@@ -74,12 +100,9 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         subgraphService.stopService(users.indexer, data);
         // Thaw, deprovision and unstake
         address subgraphDataServiceAddress = address(subgraphService);
-        staking.thaw(users.indexer, subgraphDataServiceAddress, tokens);
-        skip(MAX_THAWING_PERIOD + 1);
-        staking.deprovision(users.indexer, subgraphDataServiceAddress, 0);
-        staking.unstake(tokens);
+        _thawDeprovisionAndUnstake(users.indexer, subgraphDataServiceAddress, tokens);
 
-        // Create dispute
+        // Attempt to create dispute
         resetPrank(users.fisherman);
         token.approve(address(disputeManager), tokens);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerZeroTokens.selector));

@@ -13,10 +13,9 @@ contract DisputeManagerGovernanceDisputeDepositTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Governance_SetDisputeDeposit() public useGovernor {
-        uint256 disputeDeposit = 100 ether;
-        disputeManager.setDisputeDeposit(disputeDeposit);
-        assertEq(disputeManager.disputeDeposit(), disputeDeposit, "Dispute deposit should be set.");
+    function test_Governance_SetDisputeDeposit(uint256 disputeDeposit) public useGovernor {
+        vm.assume(disputeDeposit > 0);
+        _setDisputeDeposit(disputeDeposit);
     }
 
     function test_Governance_RevertWhen_ZeroValue() public useGovernor {

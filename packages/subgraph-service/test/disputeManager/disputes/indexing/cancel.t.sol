@@ -13,13 +13,13 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
      */
 
     function test_Indexing_Cancel_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
         uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
 
         // skip to end of dispute period
         skip(disputePeriod + 1);
 
-        resetPrank(users.fisherman);
         disputeManager.cancelDispute(disputeID);
 
         assertEq(token.balanceOf(users.fisherman), fishermanPreviousBalance, "Fisherman should receive their deposit back.");
@@ -28,6 +28,7 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
     function test_Indexing_Cancel_RevertIf_CallerIsNotFisherman(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
 
         resetPrank(users.arbitrator);
@@ -38,9 +39,9 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
     function test_Indexing_Cancel_RevertIf_DisputePeriodNotOver(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
 
-        resetPrank(users.fisherman);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerDisputePeriodNotFinished.selector));
         disputeManager.cancelDispute(disputeID);
     }

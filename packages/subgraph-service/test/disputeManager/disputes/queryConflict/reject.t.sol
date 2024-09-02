@@ -15,22 +15,21 @@ contract DisputeManagerQueryConflictRejectDisputeTest is DisputeManagerTest {
     function test_Query_Conflict_Reject_Revert(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
+        bytes32 requestCID = keccak256(abi.encodePacked("Request CID"));
         bytes32 responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
         bytes32 responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
-        bytes32 subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
+            requestCID,
+            subgraphDeployment,
             responseCID1,
-            subgraphDeploymentId,
             responseCID2,
-            subgraphDeploymentId
+            allocationIDPrivateKey,
+            allocationIDPrivateKey
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) = disputeManager.createQueryDisputeConflict(
-            attestationData1,
-            attestationData2
-        );
+        (bytes32 disputeID1, bytes32 disputeID2) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
         resetPrank(users.arbitrator);
         vm.expectRevert(abi.encodeWithSelector(

@@ -141,9 +141,10 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         tokens = bound(tokens, minimumProvisionTokens * 2, 10_000_000_000 ether);
         
         // setup allocation
-        _createProvision(tokens);
-        _registerIndexer(address(0));
-        _startService(tokens);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+        bytes memory data = _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIDPrivateKey, tokens);
+        _startService(users.indexer, data);
 
         // thaw some tokens to become over allocated
         staking.thaw(users.indexer, address(subgraphService), tokens / 2);
