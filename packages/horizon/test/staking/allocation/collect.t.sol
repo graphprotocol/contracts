@@ -3,12 +3,11 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
-import { HorizonStakingExtensionTest } from "./HorizonStakingExtension.t.sol";
-import { IHorizonStakingExtension } from "../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
+import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 import { ExponentialRebates } from "../../../contracts/staking/libraries/ExponentialRebates.sol";
 import { PPMMath } from "../../../contracts/libraries/PPMMath.sol";
 
-contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
+contract HorizonStakingCollectAllocationTest is HorizonStakingTest {
     using PPMMath for uint256;
 
     uint32 private alphaNumerator = 100;
@@ -36,7 +35,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         uint256 alphaDenominatorOffset = 24;
         bytes32 alphaValues = bytes32(
             (uint256(alphaNumerator) << (8 * alphaNumeratorOffset)) |
-            (uint256(alphaDenominator) << (8 * alphaDenominatorOffset))
+                (uint256(alphaDenominator) << (8 * alphaDenominatorOffset))
         );
         vm.store(address(staking), bytes32(alphaSlot), alphaValues);
 
@@ -46,7 +45,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         uint256 lambdaDenominatorOffset = 24;
         bytes32 lambdaValues = bytes32(
             (uint256(lambdaNumerator) << (8 * lambdaNumeratorOffset)) |
-            (uint256(lambdaDenominator) << (8 * lambdaDenominatorOffset))
+                (uint256(lambdaDenominator) << (8 * lambdaDenominatorOffset))
         );
         vm.store(address(staking), bytes32(lambdaSlot), lambdaValues);
     }
@@ -58,9 +57,10 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         bytes32 originalValue = vm.load(address(staking), slot);
 
         bytes32 newProtocolTaxValue = bytes32(
-            (uint256(originalValue) & ~((0xFFFFFFFF << (8 * curationOffset)) | (0xFFFFFFFF << (8 * protocolTaxOffset))) | 
-            (uint256(curationPercentage) << (8 * curationOffset))) |
-            (uint256(taxPercentage) << (8 * protocolTaxOffset))
+            ((uint256(originalValue) &
+                ~((0xFFFFFFFF << (8 * curationOffset)) | (0xFFFFFFFF << (8 * protocolTaxOffset)))) |
+                (uint256(curationPercentage) << (8 * curationOffset))) |
+                (uint256(taxPercentage) << (8 * protocolTaxOffset))
         );
         vm.store(address(staking), slot, newProtocolTaxValue);
     }
@@ -69,7 +69,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
      * TESTS
      */
 
-    function testCollectAllocation_RevertWhen_InvalidAllocationId(uint256 tokens) public useAllocation {
+    function testCollectAllocation_RevertWhen_InvalidAllocationId(uint256 tokens) public useIndexer useAllocation(1 ether) {
         vm.expectRevert("!alloc");
         staking.collect(tokens, address(0));
     }
@@ -79,7 +79,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         staking.collect(tokens, _allocationId);
     }
 
-    function testCollectAllocation_ZeroTokens() public useAllocation {
+    function testCollectAllocation_ZeroTokens() public useIndexer useAllocation(1 ether) {
         staking.collect(0, _allocationId);
         assertEq(staking.getStake(address(users.indexer)), 0);
     }
@@ -93,7 +93,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         uint32 protocolTaxPercentage,
         uint256 delegationTokens,
         uint32 queryFeeCut
-    ) public useRebateParameters {
+    ) public useIndexer useRebateParameters useAllocation(1 ether) {
         provisionTokens = bound(provisionTokens, 1, MAX_STAKING_TOKENS);
         allocationTokens = bound(allocationTokens, 0, MAX_STAKING_TOKENS);
         collectTokens = bound(collectTokens, 0, MAX_STAKING_TOKENS);
@@ -103,9 +103,8 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         vm.assume(protocolTaxPercentage <= MAX_PPM);
         vm.assume(queryFeeCut <= MAX_PPM);
         resetPrank(users.indexer);
-        _storeAllocation(allocationTokens);
         _storeProtocolTaxAndCuration(curationPercentage, protocolTaxPercentage);
-        _storeDelegationPool(delegationTokens, 0, queryFeeCut);
+        _setStorage_DelegationPool(users.indexer, delegationTokens, 0, queryFeeCut);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         curation.signal(_subgraphDeploymentID, curationTokens);
 
@@ -115,13 +114,13 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
 
         uint256 protocolTaxTokens = collectTokens.mulPPMRoundUp(protocolTaxPercentage);
         uint256 queryFees = collectTokens - protocolTaxTokens;
-        
+
         uint256 curationCutTokens = 0;
         if (curationTokens > 0) {
             curationCutTokens = queryFees.mulPPMRoundUp(curationPercentage);
             queryFees -= curationCutTokens;
         }
-        
+
         uint256 newRebates = ExponentialRebates.exponentialRebates(
             queryFees,
             allocationTokens,
@@ -140,7 +139,10 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
 
         assertEq(staking.getStake(address(users.indexer)), allocationTokens + provisionTokens + payment);
         assertEq(curation.curation(_subgraphDeploymentID), curationTokens + curationCutTokens);
-        assertEq(staking.getDelegationPool(users.indexer, subgraphDataServiceLegacyAddress).tokens, delegationTokens + delegationFeeCut);
+        assertEq(
+            staking.getDelegationPool(users.indexer, subgraphDataServiceLegacyAddress).tokens,
+            delegationTokens + delegationFeeCut
+        );
         assertEq(token.balanceOf(address(payments)), 0);
     }
 
@@ -148,16 +150,15 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingExtensionTest {
         uint256 provisionTokens,
         uint256 allocationTokens,
         uint256 collectTokens
-    ) public useIndexer useRebateParameters {
+    ) public useIndexer useRebateParameters useAllocation(1 ether) {
         provisionTokens = bound(provisionTokens, 1, MAX_STAKING_TOKENS);
         allocationTokens = bound(allocationTokens, 0, MAX_STAKING_TOKENS);
         collectTokens = bound(collectTokens, 0, MAX_STAKING_TOKENS);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
-        _storeAllocation(allocationTokens);
 
         address beneficiary = makeAddr("beneficiary");
-        _storeRewardsDestination(beneficiary);
+        _setStorage_RewardsDestination(users.indexer, beneficiary);
 
         resetPrank(users.gateway);
         approve(address(staking), collectTokens);

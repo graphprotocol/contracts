@@ -20,6 +20,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     event Transfer(address indexed from, address indexed to, uint tokens);
 
+    address internal _allocationId = makeAddr("allocationId");
+    bytes32 internal constant _subgraphDeploymentID = keccak256("subgraphDeploymentID");
+    uint256 internal constant MAX_ALLOCATION_EPOCHS = 28;
+
     /*
      * MODIFIERS
      */
@@ -78,6 +82,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         _createProvision(users.indexer, dataService, tokens, maxVerifierCut, thawingPeriod);
     }
 
+    modifier useAllocation(uint256 tokens) {
+        _createAllocation(users.indexer, _allocationId, _subgraphDeploymentID, tokens);
+        _;
+    }
+
     /*
      * HELPERS: these are shortcuts to perform common actions that often involve multiple contract calls
      */
@@ -90,6 +99,28 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     ) internal {
         _stakeTo(serviceProvider, tokens);
         _provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
+    }
+
+    function _createAllocation(
+        address serviceProvider,
+        address allocationId,
+        bytes32 subgraphDeploymentID,
+        uint256 tokens
+    ) internal {
+        IHorizonStakingExtension.Allocation memory _allocation = IHorizonStakingExtension.Allocation({
+            indexer: serviceProvider,
+            subgraphDeploymentID: subgraphDeploymentID,
+            tokens: tokens,
+            createdAtEpoch: block.timestamp,
+            closedAtEpoch: 0,
+            collectedFees: 0,
+            __DEPRECATED_effectiveAllocation: 0,
+            accRewardsPerAllocatedToken: 0,
+            distributedRebates: 0
+        });
+        _setStorage_allocation(_allocation, allocationId, 0);
+
+        token.transfer(address(staking), tokens);
     }
 
     /*
@@ -1378,7 +1409,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(beforeVerifierBalance + verifierCutAmount, afterVerifierBalance);
 
         assertEq(afterServiceProvider.tokensStaked + providerTokensSlashed, beforeServiceProvider.tokensStaked);
-        assertEq(afterServiceProvider.tokensProvisioned + providerTokensSlashed, beforeServiceProvider.tokensProvisioned);
+        assertEq(
+            afterServiceProvider.tokensProvisioned + providerTokensSlashed,
+            beforeServiceProvider.tokensProvisioned
+        );
     }
 
     /*
@@ -1534,6 +1568,82 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _getStorage_CounterpartStakingAddress() internal view returns (address) {
         uint256 slot = 24;
         return address(uint160(uint256(vm.load(address(staking), bytes32(slot)))));
+    }
+
+    function _setStorage_allocation(
+        IHorizonStakingExtension.Allocation memory allocation,
+        address allocationId,
+        uint256 tokens
+    ) internal {
+        // __DEPRECATED_allocations
+        uint256 allocationsSlot = 15;
+        bytes32 allocationBaseSlot = keccak256(abi.encode(allocationId, allocationsSlot));
+        vm.store(address(staking), allocationBaseSlot, bytes32(uint256(uint160(allocation.indexer))));
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 1), allocation.subgraphDeploymentID);
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 2), bytes32(tokens));
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 3), bytes32(allocation.createdAtEpoch));
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 4), bytes32(allocation.closedAtEpoch));
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 5), bytes32(allocation.collectedFees));
+        vm.store(
+            address(staking),
+            bytes32(uint256(allocationBaseSlot) + 6),
+            bytes32(allocation.__DEPRECATED_effectiveAllocation)
+        );
+        vm.store(
+            address(staking),
+            bytes32(uint256(allocationBaseSlot) + 7),
+            bytes32(allocation.accRewardsPerAllocatedToken)
+        );
+        vm.store(address(staking), bytes32(uint256(allocationBaseSlot) + 8), bytes32(allocation.distributedRebates));
+
+        // _serviceProviders
+        uint256 serviceProviderSlot = 14;
+        bytes32 serviceProviderBaseSlot = keccak256(abi.encode(allocation.indexer, serviceProviderSlot));
+        uint256 currentTokensStaked = uint256(vm.load(address(staking), serviceProviderBaseSlot));
+        uint256 currentTokensProvisioned = uint256(
+            vm.load(address(staking), bytes32(uint256(serviceProviderBaseSlot) + 1))
+        );
+        vm.store(
+            address(staking),
+            bytes32(uint256(serviceProviderBaseSlot) + 0),
+            bytes32(currentTokensStaked + tokens)
+        );
+        vm.store(
+            address(staking),
+            bytes32(uint256(serviceProviderBaseSlot) + 1),
+            bytes32(currentTokensProvisioned + tokens)
+        );
+
+        // __DEPRECATED_subgraphAllocations
+        uint256 subgraphsAllocationsSlot = 16;
+        bytes32 subgraphAllocationsBaseSlot = keccak256(
+            abi.encode(allocation.subgraphDeploymentID, subgraphsAllocationsSlot)
+        );
+        uint256 currentAllocatedTokens = uint256(vm.load(address(staking), subgraphAllocationsBaseSlot));
+        vm.store(address(staking), subgraphAllocationsBaseSlot, bytes32(currentAllocatedTokens + tokens));
+    }
+
+
+    function _setStorage_RewardsDestination(address serviceProvider, address destination) internal {
+        uint256 rewardsDestinationSlot = 23;
+        bytes32 rewardsDestinationSlotBaseSlot = keccak256(abi.encode(serviceProvider, rewardsDestinationSlot));
+        vm.store(address(staking), rewardsDestinationSlotBaseSlot, bytes32(uint256(uint160(destination))));
+    }
+
+    function _setStorage_MaxAllocationEpochs() internal {
+        uint256 slot = 13;
+        vm.store(address(staking), bytes32(slot), bytes32(MAX_ALLOCATION_EPOCHS) << 128);
+    }
+
+    function _setStorage_DelegationPool(address serviceProvider, uint256 tokens, uint32 indexingRewardCut, uint32 queryFeeCut) internal {
+        bytes32 baseSlot = keccak256(abi.encode(serviceProvider, uint256(20)));
+        bytes32 feeCutValues = bytes32(
+            (uint256(indexingRewardCut) << uint256(32)) |
+            (uint256(queryFeeCut) << uint256(64))
+        );
+        bytes32 tokensSlot = bytes32(uint256(baseSlot) + 2);
+        vm.store(address(staking), baseSlot, feeCutValues);
+        vm.store(address(staking), tokensSlot, bytes32(tokens));
     }
 
     /*
