@@ -12,9 +12,11 @@ import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL
 
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
+import { PPMMath } from "../../../contracts/libraries/PPMMath.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
     using LinkedList for LinkedList.List;
+    using PPMMath for uint256;
 
     event Transfer(address indexed from, address indexed to, uint tokens);
 
@@ -1286,6 +1288,97 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             assertEq(beforeDelegatorBalance, afterDelegatorBalance);
             assertEq(beforeStakingBalance, afterStakingBalance);
         }
+    }
+
+    function _slash(address serviceProvider, address verifier, uint256 tokens, uint256 verifierCutAmount) internal {
+        bool isDelegationSlashingEnabled = staking.isDelegationSlashingEnabled();
+
+        // staking contract knows the address of the legacy subgraph service
+        // but we cannot read it as it's an immutable, we have to use the global var :/
+        bool legacy = verifier == subgraphDataServiceLegacyAddress;
+
+        // before
+        Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
+        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(
+            serviceProvider,
+            verifier,
+            legacy
+        );
+        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        uint256 beforeStakingBalance = token.balanceOf(address(staking));
+        uint256 beforeVerifierBalance = token.balanceOf(verifier);
+
+        // Calculate expected tokens after slashing
+        uint256 tokensToSlash = MathUtils.min(tokens, beforeProvision.tokens + beforePool.tokens);
+        uint256 providerTokensSlashed = MathUtils.min(beforeProvision.tokens, tokensToSlash);
+        uint256 delegationTokensSlashed = tokensToSlash - providerTokensSlashed;
+
+        if (tokensToSlash > 0) {
+            if (verifierCutAmount > 0) {
+                vm.expectEmit(address(token));
+                emit Transfer(address(staking), verifier, verifierCutAmount);
+                vm.expectEmit(address(staking));
+                emit IHorizonStakingMain.VerifierTokensSent(serviceProvider, verifier, verifier, verifierCutAmount);
+            }
+            if (providerTokensSlashed - verifierCutAmount > 0) {
+                vm.expectEmit(address(token));
+                emit Transfer(address(staking), address(0), providerTokensSlashed - verifierCutAmount);
+            }
+            vm.expectEmit(address(staking));
+            emit IHorizonStakingMain.ProvisionSlashed(serviceProvider, verifier, providerTokensSlashed);
+        }
+
+        if (delegationTokensSlashed > 0) {
+            if (isDelegationSlashingEnabled) {
+                vm.expectEmit(address(token));
+                emit Transfer(address(staking), address(0), delegationTokensSlashed);
+                vm.expectEmit(address(staking));
+                emit IHorizonStakingMain.DelegationSlashed(serviceProvider, verifier, delegationTokensSlashed);
+            } else {
+                vm.expectEmit(address(staking));
+                emit IHorizonStakingMain.DelegationSlashingSkipped(serviceProvider, verifier, delegationTokensSlashed);
+            }
+        }
+        staking.slash(serviceProvider, tokens, verifierCutAmount, verifier);
+
+        // after
+        Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
+        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+            serviceProvider,
+            verifier,
+            legacy
+        );
+        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        uint256 afterStakingBalance = token.balanceOf(address(staking));
+        uint256 afterVerifierBalance = token.balanceOf(verifier);
+
+        uint256 tokensSlashed = providerTokensSlashed + (isDelegationSlashingEnabled ? delegationTokensSlashed : 0);
+        uint256 provisionThawingTokens = (beforeProvision.tokensThawing *
+            (1e18 - ((providerTokensSlashed * 1e18) / beforeProvision.tokens))) / (1e18);
+
+        // assert
+        assertEq(afterProvision.tokens + providerTokensSlashed, beforeProvision.tokens);
+        assertEq(afterProvision.tokensThawing, provisionThawingTokens);
+        assertEq(afterProvision.sharesThawing, beforeProvision.sharesThawing);
+        assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCut);
+        assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
+        assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriod);
+        assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+
+        if (isDelegationSlashingEnabled) {
+            uint256 poolThawingTokens = (beforePool.tokensThawing *
+                (1e18 - ((delegationTokensSlashed * 1e18) / beforePool.tokens))) / (1e18);
+            assertEq(afterPool.tokens + delegationTokensSlashed, beforePool.tokens);
+            assertEq(afterPool.shares, beforePool.shares);
+            assertEq(afterPool.tokensThawing, poolThawingTokens);
+            assertEq(afterPool.sharesThawing, beforePool.sharesThawing);
+        }
+
+        assertEq(beforeStakingBalance - tokensSlashed, afterStakingBalance);
+        assertEq(beforeVerifierBalance + verifierCutAmount, afterVerifierBalance);
+
+        assertEq(afterServiceProvider.tokensStaked + providerTokensSlashed, beforeServiceProvider.tokensStaked);
+        assertEq(afterServiceProvider.tokensProvisioned + providerTokensSlashed, beforeServiceProvider.tokensProvisioned);
     }
 
     /*

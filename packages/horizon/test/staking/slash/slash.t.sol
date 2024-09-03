@@ -8,15 +8,6 @@ import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHor
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingSlashTest is HorizonStakingTest {
-
-    /*
-     * MODIFIERS
-     */
-
-    /*
-     * HELPERS
-     */
-
     /*
      * TESTS
      */
