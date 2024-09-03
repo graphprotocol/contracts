@@ -36,6 +36,15 @@ abstract contract HorizonStakingSharedTest is SubgraphBaseTest {
         staking.unstake(_tokens);
     }
 
+    function _setProvisionParameters(
+        address _indexer,
+        address _verifier,
+        uint32 _maxVerifierCut,
+        uint64 _thawingPeriod
+    ) internal {
+        staking.setProvisionParameters(_indexer, _verifier, _maxVerifierCut, _thawingPeriod);
+    }
+
     /*
      * PRIVATE
      */

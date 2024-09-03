@@ -3,6 +3,11 @@ pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
+import { Allocation } from "../../contracts/libraries/Allocation.sol";
+import { AllocationManager } from "../../contracts/utilities/AllocationManager.sol";
+import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
+import { ISubgraphService } from "../../contracts/interfaces/ISubgraphService.sol";
+
 import { HorizonStakingSharedTest } from "./HorizonStakingShared.t.sol";
 
 abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
@@ -46,12 +51,97 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     }
 
     /*
-     * HELPERS
+     * ACTIONS
      */
 
     function _register(address _indexer, bytes memory _data) internal {
+        (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
+            _data,
+            (string, string, address)
+        );
+
+        vm.expectEmit(address(subgraphService));
+        emit IDataService.ServiceProviderRegistered(
+            _indexer,
+            _data
+        );
+
+        // Register indexer
         subgraphService.register(_indexer, _data);
+
+        // Check registered indexer data
+        ISubgraphService.Indexer memory indexer = _getIndexer(_indexer);
+        assertEq(indexer.registeredAt, block.timestamp);
+        assertEq(indexer.url, url);
+        assertEq(indexer.geoHash, geohash);
+
+        // Check rewards destination
+        assertEq(subgraphService.rewardsDestination(_indexer), rewardsDestination);
     }
+
+    function _startService(address _indexer, bytes memory _data) internal {
+        (bytes32 subgraphDeploymentId, uint256 tokens, address allocationId,) = abi.decode(
+            _data,
+            (bytes32, uint256, address, bytes)
+        );
+        uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeploymentId);
+
+        vm.expectEmit(address(subgraphService));
+        emit IDataService.ServiceStarted(_indexer, _data);
+
+        // TODO: improve this
+        uint256 accRewardsPerAllocatedToken = 0;
+        if (rewardsManager.subgraphs(subgraphDeploymentId)) {
+            accRewardsPerAllocatedToken = rewardsManager.rewardsPerSubgraphAllocationUpdate();
+        }
+
+        // Start service
+        subgraphService.startService(_indexer, _data);
+
+        // Check allocation data
+        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        assertEq(allocation.tokens, tokens);
+        assertEq(allocation.indexer, _indexer);
+        assertEq(allocation.subgraphDeploymentId, subgraphDeploymentId);
+        assertEq(allocation.createdAt, block.timestamp);
+        assertEq(allocation.closedAt, 0);
+        assertEq(allocation.lastPOIPresentedAt, 0);        
+        assertEq(allocation.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+        assertEq(allocation.accRewardsPending, 0);
+
+        // Check subgraph deployment allocated tokens
+        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeploymentId);
+        assertEq(subgraphAllocatedTokens, previousSubgraphAllocatedTokens + tokens);
+    }
+
+    function _stopService(address _indexer, bytes memory _data) internal {
+        address allocationId = abi.decode(_data, (address));
+        assertTrue(subgraphService.isActiveAllocation(allocationId));
+
+        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(allocation.subgraphDeploymentId);
+        
+        vm.expectEmit(address(subgraphService));
+        emit AllocationManager.AllocationClosed(_indexer, allocationId, allocation.subgraphDeploymentId, allocation.tokens);
+        emit IDataService.ServiceStopped(_indexer, _data);
+
+        // stop allocation
+        subgraphService.stopService(_indexer, _data);
+
+        // update allocation
+        allocation = subgraphService.getAllocation(allocationId);
+
+        // check allocation
+        assertEq(allocation.closedAt, block.timestamp);
+
+        // check subgraph deployment allocated tokens
+        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
+        assertEq(subgraphAllocatedTokens, previousSubgraphAllocatedTokens - allocation.tokens);
+    }
+
+    /*
+     * HELPERS
+     */
 
     function _createSubgraphAllocationData(
         address _indexer,
@@ -66,16 +156,21 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         return abi.encode(_subgraphDeployment, _tokens, allocationId, abi.encodePacked(r, s, v));
     }
 
-    function _startService(address indexer, bytes memory data) internal {
-        subgraphService.startService(indexer, data);
-    }
-
-    function _stopService(address _indexer, bytes memory _data) internal {
-        subgraphService.stopService(_indexer, _data);
-    }
-
     function _delegate(uint256 tokens) internal {
         token.approve(address(staking), tokens);
         staking.delegate(users.indexer, address(subgraphService), tokens, 0);
+    }
+
+    /*
+     * PRIVATE FUNCTIONS
+     */
+
+    function _getIndexer(address _indexer) private view returns (ISubgraphService.Indexer memory) {
+        (uint256 registeredAt, string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
+        return ISubgraphService.Indexer({
+            registeredAt: registeredAt,
+            url: url,
+            geoHash: geoHash
+        });
     }
 }

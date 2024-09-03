@@ -97,7 +97,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
     ) public useIndexer useAllocation(tokens) {
         // Close allocation
         bytes memory data = abi.encode(allocationID);
-        subgraphService.stopService(users.indexer, data);
+        _stopService(users.indexer, data);
         // Thaw, deprovision and unstake
         address subgraphDataServiceAddress = address(subgraphService);
         _thawDeprovisionAndUnstake(users.indexer, subgraphDataServiceAddress, tokens);

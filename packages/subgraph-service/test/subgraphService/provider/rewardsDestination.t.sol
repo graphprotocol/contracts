@@ -8,21 +8,19 @@ import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
-contract SubgraphServiceRewardsDestinationTest is SubgraphServiceTest {
+contract SubgraphServiceProviderRewardsDestinationTest is SubgraphServiceTest {
 
     /*
      * TESTS
      */
 
-    function test_RewardsDestination_Set(uint256 tokens) public useIndexer useAllocation(tokens) {
-        assertEq(subgraphService.rewardsDestination(users.indexer), address(0));
-
+    function test_SubgraphService_Provider_RewardsDestination_Set(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
         // Should be able to use new address
-        subgraphService.setRewardsDestination(users.rewardsDestination);
-        assertEq(subgraphService.rewardsDestination(users.indexer), users.rewardsDestination);
+        _setRewardsDestination(users.rewardsDestination);
 
         // Should be able to set back to address zero
-        subgraphService.setRewardsDestination(address(0));
-        assertEq(subgraphService.rewardsDestination(users.indexer), address(0));
+        _setRewardsDestination(address(0));
     }
 }
