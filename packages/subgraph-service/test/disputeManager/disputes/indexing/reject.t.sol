@@ -14,14 +14,10 @@ contract DisputeManagerIndexingRejectDisputeTest is DisputeManagerTest {
 
     function test_Indexing_Reject_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         resetPrank(users.arbitrator);
-        disputeManager.rejectDispute(disputeID);
-
-        uint256 fishermanExpectedBalance = fishermanPreviousBalance - disputeDeposit;
-        assertEq(token.balanceOf(users.fisherman), fishermanExpectedBalance, "Fisherman should lose the deposit.");
+        _rejectDispute(disputeID);
     }
 
     function test_Indexing_Reject_RevertIf_CallerIsNotArbitrator(

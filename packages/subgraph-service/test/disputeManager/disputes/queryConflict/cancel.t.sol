@@ -29,17 +29,9 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) = _createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1,) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
-        // skip to end of dispute period
-        skip(disputePeriod + 1);
-
-        disputeManager.cancelDispute(disputeID1);
-
-        (, , , , , IDisputeManager.DisputeStatus status1, , ) = disputeManager.disputes(disputeID1);
-        (, , , , , IDisputeManager.DisputeStatus status2, , ) = disputeManager.disputes(disputeID2);
-        assertTrue(status1 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 1 should be cancelled.");
-        assertTrue(status2 == IDisputeManager.DisputeStatus.Cancelled, "Dispute 2 should be cancelled.");
+        _cancelDispute(disputeID1);
     }
 
     function test_Query_Conflict_Cancel_RevertIf_CallerIsNotFisherman(

@@ -30,7 +30,7 @@ contract DisputeManagerDisputeTest is DisputeManagerTest {
         disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
-    function test_Accept_RevertIf_SlashZeroTokens(
+    function test_Dispute_Accept_RevertIf_SlashZeroTokens(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);

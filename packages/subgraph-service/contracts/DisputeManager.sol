@@ -296,6 +296,8 @@ contract DisputeManager is
 
         // store dispute status
         dispute.status = IDisputeManager.DisputeStatus.Cancelled;
+
+        emit DisputeCancelled(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**

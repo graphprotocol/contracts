@@ -250,7 +250,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
 
     function _acceptDispute(bytes32 _disputeId, uint256 _tokensSlash) internal {
         IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
-        uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
+        address fisherman = dispute.fisherman;
+        uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
         uint256 disputeDeposit = dispute.deposit;
         uint256 fishermanRewardPercentage = disputeManager.fishermanRewardCut();
@@ -264,7 +265,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
 
         // Check fisherman's got their reward and their deposit (if any) back
         uint256 fishermanExpectedBalance = fishermanPreviousBalance + fishermanReward + disputeDeposit;
-        assertEq(token.balanceOf(users.fisherman), fishermanExpectedBalance, "Fisherman should get their reward and deposit back");
+        assertEq(token.balanceOf(fisherman), fishermanExpectedBalance, "Fisherman should get their reward and deposit back");
 
         // Check indexer was slashed by the correct amount
         uint256 expectedIndexerTokensAvailable;
@@ -283,6 +284,95 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         if (dispute.relatedDisputeId != bytes32(0)) {
             IDisputeManager.Dispute memory relatedDispute = _getDispute(dispute.relatedDisputeId);
             assertEq(uint8(relatedDispute.status), uint8(IDisputeManager.DisputeStatus.Rejected), "Related dispute status should be rejected");
+        }
+    }
+
+    function _drawDispute(bytes32 _disputeId) internal {
+        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
+        address fisherman = dispute.fisherman;
+        uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
+        uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
+
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.DisputeDrawn(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
+
+        // Draw the dispute
+        disputeManager.drawDispute(_disputeId);
+
+        // Check that the fisherman got their deposit back
+        uint256 fishermanExpectedBalance = fishermanPreviousBalance + dispute.deposit;
+        assertEq(token.balanceOf(fisherman), fishermanExpectedBalance, "Fisherman should receive their deposit back.");
+
+        // Check that indexer was not slashed
+        assertEq(staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService)), indexerTokensAvailable, "Indexer should not be slashed");
+
+        // Check dispute status
+        dispute = _getDispute(_disputeId);
+        assertEq(uint8(dispute.status), uint8(IDisputeManager.DisputeStatus.Drawn), "Dispute status should be drawn");
+
+        // If there's a related dispute, check that it was drawn too
+        if (dispute.relatedDisputeId != bytes32(0)) {
+            IDisputeManager.Dispute memory relatedDispute = _getDispute(dispute.relatedDisputeId);
+            assertEq(uint8(relatedDispute.status), uint8(IDisputeManager.DisputeStatus.Drawn), "Related dispute status should be drawn");
+        }
+    }
+
+    function _rejectDispute(bytes32 _disputeId) internal {
+        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
+        address fisherman = dispute.fisherman;
+        uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
+        uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
+
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.DisputeRejected(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
+
+        // Reject the dispute
+        disputeManager.rejectDispute(_disputeId);
+
+        // Check that the fisherman didn't get their deposit back
+        assertEq(token.balanceOf(users.fisherman), fishermanPreviousBalance, "Fisherman should lose the deposit.");
+
+        // Check that indexer was not slashed
+        assertEq(staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService)), indexerTokensAvailable, "Indexer should not be slashed");
+
+        // Check dispute status
+        dispute = _getDispute(_disputeId);
+        assertEq(uint8(dispute.status), uint8(IDisputeManager.DisputeStatus.Rejected), "Dispute status should be rejected");
+        // Checl related id is empty
+        assertEq(dispute.relatedDisputeId, bytes32(0), "Related dispute ID should be empty");
+    }
+
+    function _cancelDispute(bytes32 _disputeId) internal {
+        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
+        address fisherman = dispute.fisherman;
+        uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
+        uint256 disputePeriod = disputeManager.disputePeriod();
+        uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
+
+        // skip to end of dispute period
+        skip(disputePeriod + 1);
+
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.DisputeCancelled(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
+
+        // Cancel the dispute
+        disputeManager.cancelDispute(_disputeId);
+
+        // Check that the fisherman got their deposit back
+        uint256 fishermanExpectedBalance = fishermanPreviousBalance + dispute.deposit;
+        assertEq(token.balanceOf(users.fisherman), fishermanExpectedBalance, "Fisherman should receive their deposit back.");
+
+        // Check that indexer was not slashed
+        assertEq(staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService)), indexerTokensAvailable, "Indexer should not be slashed");
+
+        // Check dispute status
+        dispute = _getDispute(_disputeId);
+        assertEq(uint8(dispute.status), uint8(IDisputeManager.DisputeStatus.Cancelled), "Dispute status should be cancelled");
+
+        // If there's a related dispute, check that it was cancelled too
+        if (dispute.relatedDisputeId != bytes32(0)) {
+            IDisputeManager.Dispute memory relatedDispute = _getDispute(dispute.relatedDisputeId);
+            assertEq(uint8(relatedDispute.status), uint8(IDisputeManager.DisputeStatus.Cancelled), "Related dispute status should be cancelled");
         }
     }
 

@@ -19,18 +19,11 @@ contract DisputeManagerQueryCancelDisputeTest is DisputeManagerTest {
 
     function test_Query_Cancel_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
         Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
-        // skip to end of dispute period
-        skip(disputePeriod + 1);
-
-        resetPrank(users.fisherman);
-        disputeManager.cancelDispute(disputeID);
-
-        assertEq(token.balanceOf(users.fisherman), fishermanPreviousBalance, "Fisherman should receive their deposit back.");
+        _cancelDispute(disputeID);
     }
 
     function test_Query_Cancel_RevertIf_CallerIsNotFisherman(

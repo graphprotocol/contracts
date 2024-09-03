@@ -15,13 +15,10 @@ contract DisputeManagerIndexingDrawDisputeTest is DisputeManagerTest {
 
     function test_Indexing_Draw_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
         bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI32"));
 
         resetPrank(users.arbitrator);
-        disputeManager.drawDispute(disputeID);
-
-        assertEq(token.balanceOf(users.fisherman), fishermanPreviousBalance, "Fisherman should receive their deposit back.");
+        _drawDispute(disputeID);
     }
 
     function test_Indexing_Draw_RevertIf_CallerIsNotArbitrator(

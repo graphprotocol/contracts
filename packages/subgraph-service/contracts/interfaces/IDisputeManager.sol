@@ -143,6 +143,12 @@ interface IDisputeManager {
      */
     event DisputeLinked(bytes32 indexed disputeId1, bytes32 indexed disputeId2);
 
+    /**
+     * @dev Emitted when a dispute is cancelled by the fisherman.
+     * The event emits the amount `tokens` returned to the fisherman.
+     */
+    event DisputeCancelled(bytes32 indexed disputeId, address indexed indexer, address indexed fisherman, uint256 tokens);
+
     // -- Errors --
 
     error DisputeManagerNotArbitrator();

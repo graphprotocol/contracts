@@ -22,15 +22,12 @@ contract DisputeManagerQueryDrawDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        uint256 fishermanPreviousBalance = token.balanceOf(users.fisherman);
         Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
         resetPrank(users.arbitrator);
-        disputeManager.drawDispute(disputeID);
-
-        assertEq(token.balanceOf(users.fisherman), fishermanPreviousBalance, "Fisherman should receive their deposit back.");
+        _drawDispute(disputeID);
     }
 
     function test_Query_Draw_RevertIf_CallerIsNotArbitrator(
@@ -42,7 +39,6 @@ contract DisputeManagerQueryDrawDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createQueryDispute(attestationData);
 
         // attempt to draw dispute as fisherman
-        resetPrank(users.fisherman);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
         disputeManager.drawDispute(disputeID);
     }

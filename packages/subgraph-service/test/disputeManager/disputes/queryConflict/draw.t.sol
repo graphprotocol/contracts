@@ -30,15 +30,10 @@ contract DisputeManagerQueryConflictDrawDisputeTest is DisputeManagerTest {
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1, bytes32 disputeID2) = _createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1,) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
         resetPrank(users.arbitrator);
-        disputeManager.drawDispute(disputeID1);
-
-        (, , , , , IDisputeManager.DisputeStatus status1, ,) = disputeManager.disputes(disputeID1);
-        (, , , , , IDisputeManager.DisputeStatus status2, ,) = disputeManager.disputes(disputeID2);
-        assertTrue(status1 == IDisputeManager.DisputeStatus.Drawn, "Dispute 1 should be drawn.");
-        assertTrue(status2 == IDisputeManager.DisputeStatus.Drawn, "Dispute 2 should be drawn.");
+        _drawDispute(disputeID1);
     }
 
     function test_Query_Conflict_Draw_RevertIf_CallerIsNotArbitrator(
