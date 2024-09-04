@@ -150,7 +150,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingTest {
         uint256 provisionTokens,
         uint256 allocationTokens,
         uint256 collectTokens
-    ) public useIndexer useRebateParameters useAllocation(1 ether) {
+    ) public useIndexer useRebateParameters useAllocation(allocationTokens) {
         provisionTokens = bound(provisionTokens, 1, MAX_STAKING_TOKENS);
         allocationTokens = bound(allocationTokens, 0, MAX_STAKING_TOKENS);
         collectTokens = bound(collectTokens, 0, MAX_STAKING_TOKENS);

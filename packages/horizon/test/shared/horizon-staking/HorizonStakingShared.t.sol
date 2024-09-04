@@ -101,12 +101,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         _provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod);
     }
 
+    // This allows setting up contract state with legacy allocations
     function _createAllocation(
         address serviceProvider,
         address allocationId,
         bytes32 subgraphDeploymentID,
         uint256 tokens
     ) internal {
+        _setStorage_MaxAllocationEpochs(MAX_ALLOCATION_EPOCHS);
+
         IHorizonStakingExtension.Allocation memory _allocation = IHorizonStakingExtension.Allocation({
             indexer: serviceProvider,
             subgraphDeploymentID: subgraphDeploymentID,
@@ -118,7 +121,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             accRewardsPerAllocatedToken: 0,
             distributedRebates: 0
         });
-        _setStorage_allocation(_allocation, allocationId, 0);
+        _setStorage_allocation(_allocation, allocationId, tokens);
+
+        // delegation pool initialized
+        _setStorage_DelegationPool(serviceProvider, 0, uint32(PPMMath.MAX_PPM), uint32(PPMMath.MAX_PPM));
 
         token.transfer(address(staking), tokens);
     }
@@ -1415,6 +1421,120 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
     }
 
+    // Current rewards manager is mocked and assumed to mint fixed rewards
+    function _closeAllocation(address allocationId, bytes32 poi) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        // before
+        IHorizonStakingExtension.Allocation memory beforeAllocation = staking.getAllocation(allocationId);
+        DelegationPoolInternalTest memory beforePool = _getStorage_DelegationPoolInternal(
+            beforeAllocation.indexer,
+            subgraphDataServiceLegacyAddress,
+            true
+        );
+        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(
+            beforeAllocation.indexer
+        );
+        uint256 beforeSubgraphAllocations = _getStorage_SubgraphAllocations(beforeAllocation.subgraphDeploymentID);
+
+        bool isAuth = staking.isAuthorized(msgSender, beforeAllocation.indexer, subgraphDataServiceLegacyAddress);
+        address rewardsDestination = _getStorage_RewardsDestination(beforeAllocation.indexer);
+
+        uint256 beforeStakingBalance = token.balanceOf(address(staking));
+        uint256 beforeIndexerBalance = token.balanceOf(beforeAllocation.indexer);
+        uint256 beforeBeneficiaryBalance = token.balanceOf(rewardsDestination);
+
+        uint256 calcRewards = ALLOCATIONS_REWARD_CUT;
+        uint256 calcDelegatorRewards = ALLOCATIONS_REWARD_CUT -
+            uint256(beforePool.__DEPRECATED_indexingRewardCut).mulPPM(calcRewards);
+        uint256 calcIndexerRewards = ALLOCATIONS_REWARD_CUT - (beforePool.tokens > 0 ? calcDelegatorRewards : 0);
+
+        // closeAllocation
+        vm.expectEmit(address(staking));
+        emit IHorizonStakingExtension.AllocationClosed(
+            beforeAllocation.indexer,
+            beforeAllocation.subgraphDeploymentID,
+            epochManager.currentEpoch(),
+            beforeAllocation.tokens,
+            allocationId,
+            msgSender,
+            poi,
+            !isAuth
+        );
+        staking.closeAllocation(allocationId, poi);
+
+        // after
+        IHorizonStakingExtension.Allocation memory afterAllocation = staking.getAllocation(allocationId);
+        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
+            beforeAllocation.indexer,
+            subgraphDataServiceLegacyAddress,
+            true
+        );
+        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(
+            beforeAllocation.indexer
+        );
+        uint256 afterSubgraphAllocations = _getStorage_SubgraphAllocations(beforeAllocation.subgraphDeploymentID);
+        uint256 afterStakingBalance = token.balanceOf(address(staking));
+        uint256 afterIndexerBalance = token.balanceOf(beforeAllocation.indexer);
+        uint256 afterBeneficiaryBalance = token.balanceOf(rewardsDestination);
+
+        if (beforeAllocation.tokens > 0) {
+            if (isAuth && poi != 0) {
+                if (rewardsDestination != address(0)) {
+                    assertEq(beforeStakingBalance + calcRewards - calcIndexerRewards, afterStakingBalance);
+                    assertEq(beforeIndexerBalance, afterIndexerBalance);
+                    assertEq(beforeBeneficiaryBalance + calcIndexerRewards, afterBeneficiaryBalance);
+                } else {
+                    assertEq(beforeStakingBalance + calcRewards, afterStakingBalance);
+                    assertEq(beforeIndexerBalance, afterIndexerBalance);
+                    assertEq(beforeBeneficiaryBalance, afterBeneficiaryBalance);
+                }
+            } else {
+                assertEq(beforeStakingBalance, afterStakingBalance);
+                assertEq(beforeIndexerBalance, afterIndexerBalance);
+                assertEq(beforeBeneficiaryBalance, afterBeneficiaryBalance);
+            }
+        } else {
+            assertEq(beforeStakingBalance, afterStakingBalance);
+            assertEq(beforeIndexerBalance, afterIndexerBalance);
+            assertEq(beforeBeneficiaryBalance, afterBeneficiaryBalance);
+        }
+
+        assertEq(afterAllocation.indexer, beforeAllocation.indexer);
+        assertEq(afterAllocation.subgraphDeploymentID, beforeAllocation.subgraphDeploymentID);
+        assertEq(afterAllocation.tokens, beforeAllocation.tokens);
+        assertEq(afterAllocation.createdAtEpoch, beforeAllocation.createdAtEpoch);
+        assertEq(afterAllocation.closedAtEpoch, epochManager.currentEpoch());
+        assertEq(afterAllocation.collectedFees, beforeAllocation.collectedFees);
+        assertEq(afterAllocation.__DEPRECATED_effectiveAllocation, beforeAllocation.__DEPRECATED_effectiveAllocation);
+        assertEq(afterAllocation.accRewardsPerAllocatedToken, beforeAllocation.accRewardsPerAllocatedToken);
+        assertEq(afterAllocation.distributedRebates, beforeAllocation.distributedRebates);
+
+        if (beforeAllocation.tokens > 0 && isAuth && poi != 0 && rewardsDestination == address(0)) {
+            assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked + calcIndexerRewards);
+        } else {
+            assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
+        }
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensAllocated + beforeAllocation.tokens,
+            beforeServiceProvider.__DEPRECATED_tokensAllocated
+        );
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
+
+        assertEq(afterSubgraphAllocations + beforeAllocation.tokens, beforeSubgraphAllocations);
+        
+        if (beforeAllocation.tokens > 0 && isAuth && poi != 0 && beforePool.tokens > 0) {
+            assertEq(afterPool.tokens, beforePool.tokens + calcDelegatorRewards);
+        } else {
+            assertEq(afterPool.tokens, beforePool.tokens);
+        }
+    }
+
     /*
      * STORAGE HELPERS
      */
@@ -1487,9 +1607,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     // So we use a custom struct here and remove the nested mapping which we don't need anyways
     struct DelegationPoolInternalTest {
         // (Deprecated) Time, in blocks, an indexer must wait before updating delegation parameters
+        uint32 __DEPRECATED_cooldownBlocks;
         // (Deprecated) Percentage of indexing rewards for the service provider, in PPM
+        uint32 __DEPRECATED_indexingRewardCut;
         // (Deprecated) Percentage of query fees for the service provider, in PPM
-        uint256 __DEPRECATED_packed_data;
+        uint32 __DEPRECATED_queryFeeCut;
         // (Deprecated) Block when the delegation parameters were last updated
         uint256 __DEPRECATED_updatedAtBlock;
         // Total tokens as pool reserves
@@ -1517,8 +1639,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             baseSlot = uint256(keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, slotNumber)))));
         }
 
+        uint256 packedData = uint256(vm.load(address(staking), bytes32(baseSlot)));
+
         DelegationPoolInternalTest memory delegationPoolInternal = DelegationPoolInternalTest({
-            __DEPRECATED_packed_data: uint256(vm.load(address(staking), bytes32(baseSlot))),
+            __DEPRECATED_cooldownBlocks: uint32(packedData & 0xFFFFFFFF),
+            __DEPRECATED_indexingRewardCut: uint32((packedData >> 32) & 0xFFFFFFFF),
+            __DEPRECATED_queryFeeCut: uint32((packedData >> 64) & 0xFFFFFFFF),
             __DEPRECATED_updatedAtBlock: uint256(vm.load(address(staking), bytes32(baseSlot + 1))),
             tokens: uint256(vm.load(address(staking), bytes32(baseSlot + 2))),
             shares: uint256(vm.load(address(staking), bytes32(baseSlot + 3))),
@@ -1623,6 +1749,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), subgraphAllocationsBaseSlot, bytes32(currentAllocatedTokens + tokens));
     }
 
+    function _getStorage_SubgraphAllocations(bytes32 subgraphDeploymentID) internal view returns (uint256) {
+        uint256 subgraphsAllocationsSlot = 16;
+        bytes32 subgraphAllocationsBaseSlot = keccak256(abi.encode(subgraphDeploymentID, subgraphsAllocationsSlot));
+        return uint256(vm.load(address(staking), subgraphAllocationsBaseSlot));
+    }
 
     function _setStorage_RewardsDestination(address serviceProvider, address destination) internal {
         uint256 rewardsDestinationSlot = 23;
@@ -1630,16 +1761,34 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), rewardsDestinationSlotBaseSlot, bytes32(uint256(uint160(destination))));
     }
 
-    function _setStorage_MaxAllocationEpochs() internal {
-        uint256 slot = 13;
-        vm.store(address(staking), bytes32(slot), bytes32(MAX_ALLOCATION_EPOCHS) << 128);
+    function _getStorage_RewardsDestination(address serviceProvider) internal view returns (address) {
+        uint256 rewardsDestinationSlot = 23;
+        bytes32 rewardsDestinationSlotBaseSlot = keccak256(abi.encode(serviceProvider, rewardsDestinationSlot));
+        return address(uint160(uint256(vm.load(address(staking), rewardsDestinationSlotBaseSlot))));
     }
 
-    function _setStorage_DelegationPool(address serviceProvider, uint256 tokens, uint32 indexingRewardCut, uint32 queryFeeCut) internal {
+    function _setStorage_MaxAllocationEpochs(uint256 maxAllocationEpochs) internal {
+        uint256 slot = 13;
+        vm.store(address(staking), bytes32(slot), bytes32(maxAllocationEpochs) << 128);
+
+        uint256 readMaxAllocationEpochs = _getStorage_MaxAllocationEpochs();
+        assertEq(readMaxAllocationEpochs, maxAllocationEpochs);
+    }
+
+    function _getStorage_MaxAllocationEpochs() internal view returns (uint64) {
+        uint256 slot = 13;
+        return uint64(uint256(vm.load(address(staking), bytes32(slot)) >> 128));
+    }
+
+    function _setStorage_DelegationPool(
+        address serviceProvider,
+        uint256 tokens,
+        uint32 indexingRewardCut,
+        uint32 queryFeeCut
+    ) internal {
         bytes32 baseSlot = keccak256(abi.encode(serviceProvider, uint256(20)));
         bytes32 feeCutValues = bytes32(
-            (uint256(indexingRewardCut) << uint256(32)) |
-            (uint256(queryFeeCut) << uint256(64))
+            (uint256(indexingRewardCut) << uint256(32)) | (uint256(queryFeeCut) << uint256(64))
         );
         bytes32 tokensSlot = bytes32(uint256(baseSlot) + 2);
         vm.store(address(staking), baseSlot, feeCutValues);

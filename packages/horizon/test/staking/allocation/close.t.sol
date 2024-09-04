@@ -18,24 +18,16 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
 
     function testCloseAllocation(uint256 tokens) public useIndexer useAllocation(1 ether) {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
-        _setStorage_MaxAllocationEpochs();
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         // Skip 15 epochs
         vm.roll(15);
 
-        staking.closeAllocation(_allocationId, _poi);
-        IHorizonStakingExtension.Allocation memory allocation = staking.getAllocation(_allocationId);
-        assertEq(allocation.closedAtEpoch, epochManager.currentEpoch());
-
-        // Stake should be updated with rewards
-        assertEq(staking.getStake(address(users.indexer)), tokens * 2 + ALLOCATIONS_REWARD_CUT);
+        _closeAllocation(_allocationId, _poi);
     }
 
     function testCloseAllocation_WithBeneficiaryAddress(uint256 tokens) public useIndexer useAllocation(1 ether) {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
-
-        _setStorage_MaxAllocationEpochs();
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         address beneficiary = makeAddr("beneficiary");
@@ -44,12 +36,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         // Skip 15 epochs
         vm.roll(15);
 
-        staking.closeAllocation(_allocationId, _poi);
-        IHorizonStakingExtension.Allocation memory allocation = staking.getAllocation(_allocationId);
-        assertEq(allocation.closedAtEpoch, epochManager.currentEpoch());
-
-        // Stake should be updated with rewards
-        assertEq(token.balanceOf(beneficiary), ALLOCATIONS_REWARD_CUT);
+        _closeAllocation(_allocationId, _poi);
     }
 
     function testCloseAllocation_RevertWhen_NotActive() public {
@@ -65,26 +52,17 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
 
     function testCloseAllocation_AfterMaxEpochs_AnyoneCanClose(uint256 tokens) public useIndexer useAllocation(1 ether) {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
-        _setStorage_MaxAllocationEpochs();
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         // Skip to over the max allocation epochs
-        vm.roll(MAX_ALLOCATION_EPOCHS + 2);
+        vm.roll((MAX_ALLOCATION_EPOCHS + 1)* EPOCH_LENGTH + 1);
 
         resetPrank(users.delegator);
-        staking.closeAllocation(_allocationId, 0x0);
-        IHorizonStakingExtension.Allocation memory allocation = staking.getAllocation(_allocationId);
-        assertEq(allocation.closedAtEpoch, epochManager.currentEpoch());
-
-        // No rewards distributed
-        assertEq(staking.getStake(address(users.indexer)), tokens * 2);
+        _closeAllocation(_allocationId, 0x0);
     }
 
     function testCloseAllocation_RevertWhen_ZeroTokensNotAuthorized() public useIndexer useAllocation(1 ether){
-        _setStorage_MaxAllocationEpochs();
-
-        // Skip to over the max allocation epochs
-        vm.roll(MAX_ALLOCATION_EPOCHS + 2);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 0);
 
         resetPrank(users.delegator);
         vm.expectRevert("!auth");
@@ -99,20 +77,12 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         uint256 legacyAllocationTokens = tokens / 2;
         uint256 provisionTokens = tokens - legacyAllocationTokens;
 
-        _setStorage_MaxAllocationEpochs();
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, provisionTokens, 0, 0);
         _setStorage_DelegationPool(users.indexer, delegationTokens, indexingRewardCut, 0);
 
         // Skip 15 epochs
         vm.roll(15);
 
-        staking.closeAllocation(_allocationId, _poi);
-        IHorizonStakingExtension.Allocation memory allocation = staking.getAllocation(_allocationId);
-        assertEq(allocation.closedAtEpoch, epochManager.currentEpoch());
-
-        uint256 indexerRewardCut = ALLOCATIONS_REWARD_CUT.mulPPM(indexingRewardCut);
-        uint256 delegationFeeCut = ALLOCATIONS_REWARD_CUT - indexerRewardCut;
-        assertEq(staking.getStake(address(users.indexer)), tokens + indexerRewardCut);
-        assertEq(staking.getDelegationPool(users.indexer, subgraphDataServiceLegacyAddress).tokens, delegationTokens + delegationFeeCut);
+        _closeAllocation(_allocationId, _poi);
     }
 }
