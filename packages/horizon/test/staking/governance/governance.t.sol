@@ -40,9 +40,9 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
         staking.setDelegationSlashingEnabled();
     }
 
-    function testGovernance_ClearThawingPeriod(uint64 thawingPeriod) public useGovernor {
+    function testGovernance_ClearThawingPeriod(uint32 thawingPeriod) public useGovernor {
         // simulate previous thawing period
-        _setStorage_DEPRECATED_ThawingPeriod(thawingPeriod);
+        _setStorage_DeprecatedThawingPeriod(thawingPeriod);
         
         _clearThawingPeriod();
     }
