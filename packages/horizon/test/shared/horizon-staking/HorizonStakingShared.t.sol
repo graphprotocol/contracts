@@ -1711,12 +1711,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return vm.load(address(staking), bytes32(slot)) == bytes32(uint256(1));
     }
 
-    // function _setStorage_DeprecatedThawingPeriod(uint32 _thawingPeriod) internal {
-    //     uint256 slot = 13;
-    //     bytes32 value = bytes32(uint256(_thawingPeriod));
-    //     vm.store(address(staking), bytes32(slot), value);
-    // }
-
     function _setStorage_DeprecatedThawingPeriod(uint32 _thawingPeriod) internal {
         uint256 slot = 13;
 
@@ -1960,44 +1954,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.store(address(staking), tokensSlot, bytes32(tokens));
     }
 
-    // function _setStorage_RebateParameters(
-    //     uint32 alphaNumerator,
-    //     uint32 alphaDenominator,
-    //     uint32 lambdaNumerator,
-    //     uint32 lambdaDenominator
-    // ) internal {
-    //     // Store alpha numerator and denominator
-    //     uint256 alphaSlot = 13;
-    //     uint256 alphaNumeratorOffset = 20;
-    //     uint256 alphaDenominatorOffset = 24;
-    //     bytes32 alphaValues = bytes32(
-    //         (uint256(alphaNumerator) << (8 * alphaNumeratorOffset)) |
-    //             (uint256(alphaDenominator) << (8 * alphaDenominatorOffset))
-    //     );
-    //     vm.store(address(staking), bytes32(alphaSlot), alphaValues);
-
-    //     // Store lambda numerator and denominator
-    //     uint256 lambdaSlot = 25;
-    //     uint256 lambdaNumeratorOffset = 20;
-    //     uint256 lambdaDenominatorOffset = 24;
-    //     bytes32 lambdaValues = bytes32(
-    //         (uint256(lambdaNumerator) << (8 * lambdaNumeratorOffset)) |
-    //             (uint256(lambdaDenominator) << (8 * lambdaDenominatorOffset))
-    //     );
-    //     vm.store(address(staking), bytes32(lambdaSlot), lambdaValues);
-
-    //     (
-    //         uint32 readAlphaNumerator,
-    //         uint32 readAlphaDenominator,
-    //         uint32 readLambdaNumerator,
-    //         uint32 readLambdaDenominator
-    //     ) = _getStorage_RebateParameters();
-    //     assertEq(readAlphaNumerator, alphaNumerator);
-    //     assertEq(readAlphaDenominator, alphaDenominator);
-    //     assertEq(readLambdaNumerator, lambdaNumerator);
-    //     assertEq(readLambdaDenominator, lambdaDenominator);
-    // }
-
     function _setStorage_RebateParameters(
         uint32 alphaNumerator,
         uint32 alphaDenominator,
@@ -2061,16 +2017,16 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // Read alpha numerator and denominator
         uint256 alphaSlot = 13;
         uint256 alphaValues = uint256(vm.load(address(staking), bytes32(alphaSlot)));
-        uint32 alphaNumerator = uint32(alphaValues >> 160);
-        uint32 alphaDenominator = uint32(alphaValues >> 192);
+        uint32 alphaNumerator_ = uint32(alphaValues >> 160);
+        uint32 alphaDenominator_ = uint32(alphaValues >> 192);
 
         // Read lambda numerator and denominator
         uint256 lambdaSlot = 25;
         uint256 lambdaValues = uint256(vm.load(address(staking), bytes32(lambdaSlot)));
-        uint32 lambdaNumerator = uint32(lambdaValues >> 160);
-        uint32 lambdaDenominator = uint32(lambdaValues >> 192);
+        uint32 lambdaNumerator_ = uint32(lambdaValues >> 160);
+        uint32 lambdaDenominator_ = uint32(lambdaValues >> 192);
 
-        return (alphaNumerator, alphaDenominator, lambdaNumerator, lambdaDenominator);
+        return (alphaNumerator_, alphaDenominator_, lambdaNumerator_, lambdaDenominator_);
     }
 
     // function _setStorage_ProtocolTaxAndCuration(uint32 curationPercentage, uint32 taxPercentage) private {
