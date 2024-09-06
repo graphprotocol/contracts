@@ -7,6 +7,7 @@ import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 
 contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
 
@@ -28,7 +29,9 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         vm.assume(resizeTokens != tokens);
 
         mint(users.indexer, resizeTokens);
-        _collectIndexingRewards(users.indexer, allocationID, tokens);
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        bytes memory data = abi.encode(allocationID, bytes32("POI1"));
+        _collect(users.indexer, paymentType, data);
         _addToProvision(users.indexer, resizeTokens);
         _resizeAllocation(users.indexer, allocationID, resizeTokens);
     }

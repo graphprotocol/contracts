@@ -147,7 +147,12 @@ interface IDisputeManager {
      * @dev Emitted when a dispute is cancelled by the fisherman.
      * The event emits the amount `tokens` returned to the fisherman.
      */
-    event DisputeCancelled(bytes32 indexed disputeId, address indexed indexer, address indexed fisherman, uint256 tokens);
+    event DisputeCancelled(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        uint256 tokens
+    );
 
     // -- Errors --
 
@@ -219,10 +224,10 @@ interface IDisputeManager {
 
     function getAttestationIndexer(Attestation.State memory attestation) external view returns (address);
 
+    function getStakeSnapshot(address indexer) external view returns (uint256);
+
     function areConflictingAttestations(
         Attestation.State memory attestation1,
         Attestation.State memory attestation2
     ) external pure returns (bool);
-
-    function getStakeSnapshot(address indexer) external view returns (uint256);
 }

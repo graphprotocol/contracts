@@ -40,6 +40,18 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         _;
     }
 
+    modifier useDelegation(uint256 tokens) {
+        // 1e18 is the minimum delegation amount until L2 transfers are removed
+        vm.assume(tokens > 1e18);
+        vm.assume(tokens < 10_000_000_000 ether);
+        (, address msgSender,) = vm.readCallers();
+        resetPrank(users.delegator);
+        token.approve(address(staking), tokens);
+        _delegate(users.indexer, address(subgraphService), tokens, 0);
+        resetPrank(msgSender);
+        _;
+    }
+
     /*
      * SET UP
      */

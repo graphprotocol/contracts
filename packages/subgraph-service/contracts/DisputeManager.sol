@@ -128,18 +128,15 @@ contract DisputeManager is
      * The disputes are created in reference to an allocationId and specifically
      * a POI for that allocation.
      * This function is called by a challenger and it will pull `disputeDeposit` GRT tokens.
-     * 
+     *
      * Requirements:
-     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount 
+     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount
      *   of tokens from their balance.
-     * 
+     *
      * @param allocationId The allocation to dispute
      * @param poi The Proof of Indexing (POI) being disputed
      */
-    function createIndexingDispute(
-        address allocationId,
-        bytes32 poi
-    ) external override returns (bytes32) {
+    function createIndexingDispute(address allocationId, bytes32 poi) external override returns (bytes32) {
         // Get funds from submitter
         _pullSubmitterDeposit();
 
@@ -150,11 +147,11 @@ contract DisputeManager is
     /**
      * @notice Create a query dispute for the arbitrator to resolve.
      * This function is called by a challenger and it will pull `disputeDeposit` GRT tokens.
-     * 
+     *
      * * Requirements:
-     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount 
+     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount
      *   of tokens from their balance.
-     * 
+     *
      * @param attestationData Attestation bytes submitted by the challenger
      */
     function createQueryDispute(bytes calldata attestationData) external override returns (bytes32) {
@@ -670,7 +667,10 @@ contract DisputeManager is
      * @param _fishermanRewardCut Reward as a percentage of indexer stake
      */
     function _setFishermanRewardCut(uint32 _fishermanRewardCut) private {
-        require(_fishermanRewardCut <= MAX_FISHERMAN_REWARD_CUT, DisputeManagerInvalidFishermanReward(_fishermanRewardCut));
+        require(
+            _fishermanRewardCut <= MAX_FISHERMAN_REWARD_CUT,
+            DisputeManagerInvalidFishermanReward(_fishermanRewardCut)
+        );
         fishermanRewardCut = _fishermanRewardCut;
         emit FishermanRewardCutSet(_fishermanRewardCut);
     }

@@ -49,7 +49,7 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Constructor(
+    function test_DisputeManager_Constructor(
         uint32 fishermanRewardPercentage,
         uint32 maxSlashingPercentage
     ) public useDeployer {
@@ -72,7 +72,7 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         assertEq(disputeManager.fishermanRewardCut(), fishermanRewardPercentage);
     }
 
-    function test_Constructor_RevertIf_ControllerAddressIsZero() public useDeployer {
+    function test_DisputeManager_Constructor_RevertIf_ControllerAddressIsZero() public useDeployer {
         bytes memory expectedError = abi.encodeWithSelector(
             GraphDirectory.GraphDirectoryInvalidZeroAddress.selector,
             "Controller"
@@ -81,7 +81,7 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         new DisputeManager(address(0));
     }
 
-    function test_Constructor_RevertIf_ArbitratorAddressIsZero() public useDeployer {
+    function test_DisputeManager_Constructor_RevertIf_ArbitratorAddressIsZero() public useDeployer {
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerInvalidZeroAddress.selector
@@ -97,7 +97,7 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         );
     }
 
-    function test_Constructor_RevertIf_InvalidDisputePeriod() public useDeployer {
+    function test_DisputeManager_Constructor_RevertIf_InvalidDisputePeriod() public useDeployer {
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerDisputePeriodZero.selector
@@ -113,7 +113,7 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         );
     }
 
-    function test_Constructor_RevertIf_InvalidDisputeDeposit() public useDeployer {
+    function test_DisputeManager_Constructor_RevertIf_InvalidDisputeDeposit() public useDeployer {
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerInvalidDisputeDeposit.selector,
@@ -130,7 +130,7 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         );
     }
 
-    function test_Constructor_RevertIf_InvalidFishermanRewardPercentage(uint32 _fishermanRewardPercentage) public useDeployer {
+    function test_DisputeManager_Constructor_RevertIf_InvalidFishermanRewardPercentage(uint32 _fishermanRewardPercentage) public useDeployer {
         vm.assume(_fishermanRewardPercentage > disputeManager.MAX_FISHERMAN_REWARD_CUT());
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
         bytes memory expectedError = abi.encodeWithSelector(
@@ -148,7 +148,7 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
         );
     }
 
-    function test_Constructor_RevertIf_InvalidMaxSlashingPercentage(uint32 _maxSlashingPercentage) public useDeployer {
+    function test_DisputeManager_Constructor_RevertIf_InvalidMaxSlashingPercentage(uint32 _maxSlashingPercentage) public useDeployer {
         vm.assume(_maxSlashingPercentage > PPMMath.MAX_PPM);
         address disputeManagerImplementation = address(new DisputeManager(address(controller)));
         bytes memory expectedError = abi.encodeWithSelector(

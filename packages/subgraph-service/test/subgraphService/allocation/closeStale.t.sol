@@ -43,9 +43,8 @@ contract SubgraphServiceAllocationCloseStaleTest is SubgraphServiceTest {
             // Skip forward
             skip(timeBetweenPOIs);
 
-            // TODO: Should use _collect() action
             bytes memory data = abi.encode(allocationID, bytes32("POI1"));
-            subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
+            _collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
         }
 
         // Skip forward so that the allocation is stale
@@ -69,9 +68,8 @@ contract SubgraphServiceAllocationCloseStaleTest is SubgraphServiceTest {
             
             resetPrank(users.indexer);
 
-            // TODO: Should use _collect() action
             bytes memory data = abi.encode(allocationID, bytes32("POI1"));
-            subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
+            _collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
             
             resetPrank(permissionlessBob);
             vm.expectRevert(

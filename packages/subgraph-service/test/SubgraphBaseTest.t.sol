@@ -40,9 +40,9 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     SubgraphService subgraphService;
     DisputeManager disputeManager;
     IHorizonStaking staking;
-    IGraphPayments graphPayments;
+    GraphPayments graphPayments;
     IPaymentsEscrow escrow;
-    ITAPCollector tapCollector;
+    TAPCollector tapCollector;
 
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
