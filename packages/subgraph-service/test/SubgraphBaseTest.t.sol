@@ -40,9 +40,9 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     SubgraphService subgraphService;
     DisputeManager disputeManager;
     IHorizonStaking staking;
-    IGraphPayments graphPayments;
+    GraphPayments graphPayments;
     IPaymentsEscrow escrow;
-    ITAPCollector tapCollector;
+    TAPCollector tapCollector;
 
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
@@ -196,7 +196,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         controller.setPaused(false);
     }
 
-    function createUser(string memory name) private returns (address) {
+    function createUser(string memory name) internal returns (address) {
         address user = makeAddr(name);
         vm.deal({ account: user, newBalance: 100 ether });
         deal({ token: address(token), to: user, give: 10_000_000_000 ether });

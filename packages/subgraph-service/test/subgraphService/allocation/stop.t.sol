@@ -13,20 +13,18 @@ import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService
 import { LegacyAllocation } from "../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
-contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
-    /*
-     * Helpers
-     */
+contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
 
     /*
      * TESTS
      */
 
-    function testStop_Allocation(uint256 tokens) public useIndexer useAllocation(tokens) {
-        _stopAllocation(users.indexer, allocationID);
+    function test_SubgraphService_Allocation_Stop(uint256 tokens) public useIndexer useAllocation(tokens) {
+        bytes memory data = abi.encode(allocationID);
+        _stopService(users.indexer, data);
     }
 
-    function testStop_RevertWhen_IndexerIsNotTheAllocationOwner(
+    function test_SubgraphService_Allocation_Stop_RevertWhen_IndexerIsNotTheAllocationOwner(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         // Setup new indexer
@@ -45,7 +43,7 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
         subgraphService.stopService(newIndexer, data);
     }
 
-    function testStop_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Stop_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.operator);
         bytes memory data = abi.encode(allocationID);
         vm.expectRevert(
@@ -58,7 +56,7 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
         subgraphService.stopService(users.indexer, data);
     }
 
-    function testStop_RevertWhen_NotRegistered() public useIndexer {
+    function test_SubgraphService_Allocation_Stop_RevertWhen_NotRegistered() public useIndexer {
         bytes memory data = abi.encode(allocationID);
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerNotRegistered.selector, users.indexer)
@@ -66,21 +64,10 @@ contract SubgraphServiceAllocateStopTest is SubgraphServiceTest {
         subgraphService.stopService(users.indexer, data);
     }
 
-    function testStop_RevertWhen_NotOpen(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Stop_RevertWhen_NotOpen(uint256 tokens) public useIndexer useAllocation(tokens) {
         bytes memory data = abi.encode(allocationID);
-        subgraphService.stopService(users.indexer, data);
+        _stopService(users.indexer, data);
         vm.expectRevert(abi.encodeWithSelector(Allocation.AllocationClosed.selector, allocationID, block.timestamp));
         subgraphService.stopService(users.indexer, data);
-    }
-
-    function testCloseStaleAllocation(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
-        address permissionlessBob = makeAddr("permissionlessBob");
-        
-        skip(maxPOIStaleness + 1);
-
-        resetPrank(permissionlessBob);
-        subgraphService.closeStaleAllocation(allocationID);
     }
 }
