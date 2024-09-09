@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -17,10 +17,10 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(provisionTokens, 0);
 
-        staking.setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
+        _setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
 
         vm.startPrank(users.operator);
-        staking.provisionLocked(
+        _provisionLocked(
             users.indexer,
             subgraphDataServiceAddress,
             amount,
@@ -39,11 +39,11 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
         assertEq(provisionTokens, 0);
 
         // Set operator
-        staking.setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
+        _setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
 
         // Disable locked verifier
         vm.startPrank(users.governor);
-        staking.setAllowedLockedVerifier(subgraphDataServiceAddress, false);
+        _setAllowedLockedVerifier(subgraphDataServiceAddress, false);
 
         vm.startPrank(users.operator);
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingVerifierNotAllowed(address)", subgraphDataServiceAddress);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -30,7 +30,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         vm.startPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
 
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         undelegateAmount = bound(undelegateAmount, 1 wei, delegation.shares - 1 ether);
         _undelegate(users.indexer, subgraphDataServiceAddress, undelegateAmount);
 
@@ -46,7 +46,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         vm.startPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
 
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
 
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0); 
@@ -78,10 +78,10 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
     function testDelegate_LegacySubgraphService(uint256 amount, uint256 delegationAmount) public useIndexer {
         amount = bound(amount, 1 ether, MAX_STAKING_TOKENS);
         delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
-        _createProvision(subgraphDataServiceLegacyAddress, amount, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, amount, 0, 0);
 
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, delegationAmount);
+        _delegate(users.indexer, delegationAmount);
     }
 
     function testDelegate_RevertWhen_InvalidPool(
@@ -112,7 +112,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
 
         resetPrank(subgraphDataServiceAddress);

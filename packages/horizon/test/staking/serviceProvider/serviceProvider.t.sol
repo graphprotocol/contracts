@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -25,7 +25,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         assertEq(sp.tokensStaked, amount);
         assertEq(sp.tokensProvisioned, amount);
 
-        staking.setOperator(users.operator, subgraphDataServiceAddress, true);
+        _setOperator(users.operator, subgraphDataServiceAddress, true);
         resetPrank(users.operator);
         _stakeTo(users.indexer, operatorAmount);
         sp = staking.getServiceProvider(users.indexer);
@@ -40,7 +40,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         vm.assume(paymentTypeInput < 3);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes(paymentTypeInput);
         feeCut = bound(feeCut, 0, MAX_PPM);
-        _setDelegationFeeCut(paymentType, feeCut);
+        _setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, feeCut);
     }
 
     function testServiceProvider_GetProvision(
@@ -60,7 +60,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         assertEq(p.maxVerifierCutPending, maxVerifierCut);
         assertEq(p.thawingPeriodPending, thawingPeriod);
 
-        staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
         p = staking.getProvision(users.indexer, subgraphDataServiceAddress);
         assertEq(p.tokensThawing, thawAmount);
     }
@@ -75,7 +75,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         uint256 tokensAvailable = staking.getTokensAvailable(users.indexer, subgraphDataServiceAddress, 0);
         assertEq(tokensAvailable, amount);
 
-        staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
         tokensAvailable = staking.getTokensAvailable(users.indexer, subgraphDataServiceAddress, 0);
         assertEq(tokensAvailable, amount - thawAmount);
     }
@@ -106,9 +106,9 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) {
         assertTrue(staking.hasStake(users.indexer));
 
-        _createThawRequest(amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, amount);
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
         staking.unstake(amount);
 
         assertFalse(staking.hasStake(users.indexer));
@@ -119,12 +119,12 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
     ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) {
         assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
 
-        _createThawRequest(amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, amount);
         // Does not discount thawing tokens
         assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
 
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(0);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
         // Does not discount thawing tokens
         assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
 

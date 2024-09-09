@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
@@ -105,7 +105,7 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Operator allow list (legacy)
     /// Only used when the verifier is the subgraph data service.
-    mapping(address legacyOperator => mapping(address serviceProvider => bool authorized)) internal _legacyOperatorAuth;
+    mapping(address serviceProvider => mapping(address legacyOperator => bool authorized)) internal _legacyOperatorAuth;
 
     // -- Asset Holders --
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -166,54 +166,67 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         return _disputeID;
     }
 
+    struct BeforeValues_CreateQueryDisputeConflict {
+        Attestation.State attestation1;
+        Attestation.State attestation2;
+        address indexer1;
+        address indexer2;
+        uint256 stakeSnapshot1;
+        uint256 stakeSnapshot2;
+    }
     function _createQueryDisputeConflict(
         bytes memory attestationData1,
         bytes memory attestationData2
     ) internal returns (bytes32, bytes32) {
         (, address fisherman,) = vm.readCallers();
-        Attestation.State memory attestation1 = Attestation.parse(attestationData1);
-        Attestation.State memory attestation2 = Attestation.parse(attestationData2);
-        address indexer1 = disputeManager.getAttestationIndexer(attestation1);
-        address indexer2 = disputeManager.getAttestationIndexer(attestation2);
+
+        BeforeValues_CreateQueryDisputeConflict memory beforeValues;
+        beforeValues.attestation1 = Attestation.parse(attestationData1);
+        beforeValues.attestation2 = Attestation.parse(attestationData2);
+        beforeValues.indexer1 = disputeManager.getAttestationIndexer(beforeValues.attestation1);
+        beforeValues.indexer2 = disputeManager.getAttestationIndexer(beforeValues.attestation2);
+        beforeValues.stakeSnapshot1 = disputeManager.getStakeSnapshot(beforeValues.indexer1);
+        beforeValues.stakeSnapshot2 = disputeManager.getStakeSnapshot(beforeValues.indexer2);
+
         bytes32 expectedDisputeId1 = keccak256(
             abi.encodePacked(
-                attestation1.requestCID,
-                attestation1.responseCID,
-                attestation1.subgraphDeploymentId,
-                indexer1,
+                beforeValues.attestation1.requestCID,
+                beforeValues.attestation1.responseCID,
+                beforeValues.attestation1.subgraphDeploymentId,
+                beforeValues.indexer1,
                 fisherman
             )
         );
         bytes32 expectedDisputeId2 = keccak256(
             abi.encodePacked(
-                attestation2.requestCID,
-                attestation2.responseCID,
-                attestation2.subgraphDeploymentId,
-                indexer2,
+                beforeValues.attestation2.requestCID,
+                beforeValues.attestation2.responseCID,
+                beforeValues.attestation2.subgraphDeploymentId,
+                beforeValues.indexer2,
                 fisherman
             )
         );
-        uint256 stakeSnapshot1 = disputeManager.getStakeSnapshot(indexer1);
-        uint256 stakeSnapshot2 = disputeManager.getStakeSnapshot(indexer2);
 
+        // createQueryDisputeConflict
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.QueryDisputeCreated(
             expectedDisputeId1,
-            indexer1,
+            beforeValues.indexer1,
             fisherman,
             0,
-            attestation1.subgraphDeploymentId,
+            beforeValues.attestation1.subgraphDeploymentId,
             attestationData1,
-            stakeSnapshot1
+            beforeValues.stakeSnapshot1
         );
+        vm.expectEmit(address(disputeManager));
         emit IDisputeManager.QueryDisputeCreated(
             expectedDisputeId2,
-            indexer2,
+            beforeValues.indexer2,
             fisherman,
             0,
-            attestation2.subgraphDeploymentId,
+            beforeValues.attestation2.subgraphDeploymentId,
             attestationData2,
-            stakeSnapshot2
+            beforeValues.stakeSnapshot2
         );
 
         (bytes32 _disputeId1, bytes32 _disputeId2) = disputeManager.createQueryDisputeConflict(attestationData1, attestationData2);
@@ -226,24 +239,24 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
 
         // Check dispute values
         IDisputeManager.Dispute memory dispute1 = _getDispute(_disputeId1);
-        assertEq(dispute1.indexer, indexer1, "Indexer 1 should match");
+        assertEq(dispute1.indexer, beforeValues.indexer1, "Indexer 1 should match");
         assertEq(dispute1.fisherman, fisherman, "Fisherman 1 should match");
         assertEq(dispute1.deposit, 0, "Deposit 1 should match");
         assertEq(dispute1.relatedDisputeId, _disputeId2, "Related dispute ID 1 should be the id of the other dispute");
         assertEq(uint8(dispute1.disputeType), uint8(IDisputeManager.DisputeType.QueryDispute), "Dispute type 1 should be query");
         assertEq(uint8(dispute1.status), uint8(IDisputeManager.DisputeStatus.Pending), "Dispute status 1 should be pending");
         assertEq(dispute1.createdAt, block.timestamp, "Created at 1 should match");
-        assertEq(dispute1.stakeSnapshot, stakeSnapshot1, "Stake snapshot 1 should match");
+        assertEq(dispute1.stakeSnapshot, beforeValues.stakeSnapshot1, "Stake snapshot 1 should match");
 
         IDisputeManager.Dispute memory dispute2 = _getDispute(_disputeId2);
-        assertEq(dispute2.indexer, indexer2, "Indexer 2 should match");
+        assertEq(dispute2.indexer, beforeValues.indexer2, "Indexer 2 should match");
         assertEq(dispute2.fisherman, fisherman, "Fisherman 2 should match");
         assertEq(dispute2.deposit, 0, "Deposit 2 should match");
         assertEq(dispute2.relatedDisputeId, _disputeId1, "Related dispute ID 2 should be the id of the other dispute");
         assertEq(uint8(dispute2.disputeType), uint8(IDisputeManager.DisputeType.QueryDispute), "Dispute type 2 should be query");
         assertEq(uint8(dispute2.status), uint8(IDisputeManager.DisputeStatus.Pending), "Dispute status 2 should be pending");
         assertEq(dispute2.createdAt, block.timestamp, "Created at 2 should match");
-        assertEq(dispute2.stakeSnapshot, stakeSnapshot2, "Stake snapshot 2 should match");
+        assertEq(dispute2.stakeSnapshot, beforeValues.stakeSnapshot2, "Stake snapshot 2 should match");
 
         return (_disputeId1, _disputeId2);
     }

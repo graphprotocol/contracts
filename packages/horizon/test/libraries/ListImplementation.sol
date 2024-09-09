@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import { LinkedList } from "../../contracts/libraries/LinkedList.sol";
 
@@ -34,7 +34,7 @@ contract ListImplementation {
         return items[_id].next;
     }
 
-    function _processItemAddition(bytes32 _id, bytes memory _acc) internal returns (bool, bytes memory) {
+    function _processItemAddition(bytes32 _id, bytes memory _acc) internal view returns (bool, bytes memory) {
         uint256 sum = abi.decode(_acc, (uint256));
         sum += items[_id].data;
         return (false, abi.encode(sum)); // dont break, do delete

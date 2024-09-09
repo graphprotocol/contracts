@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -16,20 +16,7 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) public useIndexer useProvision(amount, 0, 0) {
-        vm.assume(maxVerifierCut != 0);
-        vm.assume(thawingPeriod != 0);
-        vm.expectEmit();
-        emit IHorizonStakingMain.ProvisionParametersStaged(
-            users.indexer,
-            subgraphDataServiceAddress,
-            maxVerifierCut,
-            thawingPeriod
-        );
-        staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
-
-        Provision memory prov = staking.getProvision(users.indexer, subgraphDataServiceAddress);
-        assertEq(prov.maxVerifierCutPending, maxVerifierCut);
-        assertEq(prov.thawingPeriodPending, thawingPeriod);
+        _setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
     }
 
     function test_ProvisionParametersSet_RevertWhen_ProvisionNotExists(
@@ -78,27 +65,10 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         uint32 maxVerifierCut,
         uint64 thawingPeriod
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        Provision memory prov = staking.getProvision(users.indexer, subgraphDataServiceAddress);
-
-        staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
+        _setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
 
         vm.startPrank(subgraphDataServiceAddress);
-
-        if (maxVerifierCut != prov.maxVerifierCut || thawingPeriod != prov.thawingPeriod) {
-            vm.expectEmit();
-            emit IHorizonStakingMain.ProvisionParametersSet(
-                users.indexer,
-                subgraphDataServiceAddress,
-                maxVerifierCut,
-                thawingPeriod
-            );
-        }
-        staking.acceptProvisionParameters(users.indexer);
+        _acceptProvisionParameters(users.indexer);
         vm.stopPrank();
-
-        assertEq(prov.maxVerifierCut, maxVerifierCut);
-        assertEq(prov.maxVerifierCutPending, maxVerifierCut);
-        assertEq(prov.thawingPeriod, thawingPeriod);
-        assertEq(prov.thawingPeriodPending, thawingPeriod);
     }
 }

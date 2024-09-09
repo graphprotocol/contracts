@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -21,8 +21,7 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
      */
 
     function testGovernance_SetAllowedLockedVerifier() public useGovernor {
-        staking.setAllowedLockedVerifier(subgraphDataServiceAddress, true);
-        assertTrue(staking.isAllowedLockedVerifier(subgraphDataServiceAddress));
+        _setAllowedLockedVerifier(subgraphDataServiceAddress, true);
     }
 
     function testGovernance_RevertWhen_SetAllowedLockedVerifier_NotGovernor() public useIndexer {
@@ -32,8 +31,7 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
     }
 
     function testGovernance_SetDelgationSlashingEnabled() public useGovernor {
-        staking.setDelegationSlashingEnabled();
-        assertTrue(staking.isDelegationSlashingEnabled());
+        _setDelegationSlashingEnabled();
     }
 
     function testGovernance_SetDelgationSlashing_NotGovernor() public useIndexer {
@@ -43,11 +41,10 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
     }
 
     function testGovernance_ClearThawingPeriod(uint32 thawingPeriod) public useGovernor {
-        vm.store(address(staking), bytes32(uint256(13)), bytes32(uint256(thawingPeriod)));
-        assertEq(staking.__DEPRECATED_getThawingPeriod(), thawingPeriod);
+        // simulate previous thawing period
+        _setStorage_DeprecatedThawingPeriod(thawingPeriod);
         
-        staking.clearThawingPeriod();
-        assertEq(staking.__DEPRECATED_getThawingPeriod(), 0);
+        _clearThawingPeriod();
     }
 
     function testGovernance_ClearThawingPeriod_NotGovernor() public useIndexer {
@@ -57,8 +54,7 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
     }
 
     function testGovernance__SetMaxThawingPeriod(uint64 maxThawingPeriod) public useGovernor {
-        staking.setMaxThawingPeriod(maxThawingPeriod);
-        assertEq(staking.getMaxThawingPeriod(), maxThawingPeriod);
+        _setMaxThawingPeriod(maxThawingPeriod);
     }
 
     function testGovernance__SetMaxThawingPeriod_NotGovernor() public useIndexer {
@@ -68,10 +64,7 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
     }
 
     function testGovernance_SetCounterpartStakingAddress(address counterpartStakingAddress) public useGovernor {
-        staking.setCounterpartStakingAddress(counterpartStakingAddress);
-        bytes32 storedValue = vm.load(address(staking), bytes32(uint256(24)));
-        address storedCounterpartStakingAddress = address(uint160(uint256(storedValue)));
-        assertEq(storedCounterpartStakingAddress, counterpartStakingAddress);
+        _setCounterpartStakingAddress(counterpartStakingAddress);
     }
 
     function testGovernance_RevertWhen_SetCounterpartStakingAddress_NotGovernor(

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -60,7 +60,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         uint256 amount,
         uint256 tokensDataService
     ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
-        tokensDataService = bound(tokensDataService, amount + 1, MAX_STAKING_TOKENS);
+        tokensDataService = bound(tokensDataService, amount + 1, MAX_STAKING_TOKENS + 1);
 
         address escrowAddress = address(escrow);
         mint(escrowAddress, amount);

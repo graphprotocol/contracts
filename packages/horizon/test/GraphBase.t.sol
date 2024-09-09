@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -14,6 +14,7 @@ import { GraphPayments } from "contracts/payments/GraphPayments.sol";
 import { IHorizonStaking } from "contracts/interfaces/IHorizonStaking.sol";
 import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
 import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtension.sol";
+import { IHorizonStakingTypes } from "contracts/interfaces/internal/IHorizonStakingTypes.sol";
 import { MockGRTToken } from "../contracts/mocks/MockGRTToken.sol";
 import { EpochManagerMock } from "../contracts/mocks/EpochManagerMock.sol";
 import { RewardsManagerMock } from "../contracts/mocks/RewardsManagerMock.sol";
@@ -22,8 +23,7 @@ import { Constants } from "./utils/Constants.sol";
 import { Users } from "./utils/Users.sol";
 import { Utils } from "./utils/Utils.sol";
 
-abstract contract GraphBaseTest is Utils, Constants {
-
+abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
     /*
      * VARIABLES
      */
@@ -53,10 +53,6 @@ abstract contract GraphBaseTest is Utils, Constants {
     /* Users */
 
     Users internal users;
-
-    /* Constants */
-
-    Constants public constants;
 
     /*
      * SET UP

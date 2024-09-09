@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -27,9 +27,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         resetPrank(subgraphDataServiceAddress);
         mint(subgraphDataServiceAddress, delegationAmount);
         token.approve(address(staking), delegationAmount);
-        vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.TokensToDelegationPoolAdded(users.indexer, subgraphDataServiceAddress, delegationAmount);
-        staking.addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationAmount);
+        _addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationAmount);
         
         uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(delegatedTokens, delegationAmount);
@@ -46,7 +44,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         resetPrank(address(payments));
         mint(address(payments), delegationAmount);
         token.approve(address(staking), delegationAmount);
-        staking.addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationAmount);
+        _addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationAmount);
         
         uint256 delegatedTokens = staking.getDelegatedTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(delegatedTokens, delegationAmount);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { DataServiceImpFees } from "../implementations/DataServiceImpFees.sol";
@@ -126,20 +126,27 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
     }
 
     // -- Assertion functions --
-
+    // use struct to avoid 'stack too deep' error
+    struct CalcValues_LockStake {
+        uint256 unlockTimestamp;
+        uint256 stakeToLock;
+        bytes32 predictedClaimId;
+    }
     function _assert_lockStake(address serviceProvider, uint256 tokens) private {
         // before state
         (bytes32 beforeHead, , uint256 beforeNonce, uint256 beforeCount) = dataService.claimsLists(serviceProvider);
         uint256 beforeLockedStake = dataService.feesProvisionTracker(serviceProvider);
 
         // calc
-        uint256 unlockTimestamp = block.timestamp + dataService.LOCK_DURATION();
-        uint256 stakeToLock = tokens * dataService.STAKE_TO_FEES_RATIO();
-        bytes32 predictedClaimId = keccak256(abi.encodePacked(address(dataService), serviceProvider, beforeNonce));
+        CalcValues_LockStake memory calcValues = CalcValues_LockStake({
+            unlockTimestamp: block.timestamp + dataService.LOCK_DURATION(),
+            stakeToLock: tokens * dataService.STAKE_TO_FEES_RATIO(),
+            predictedClaimId: keccak256(abi.encodePacked(address(dataService), serviceProvider, beforeNonce))
+        });
 
         // it should emit a an event
         vm.expectEmit();
-        emit IDataServiceFees.StakeClaimLocked(serviceProvider, predictedClaimId, stakeToLock, unlockTimestamp);
+        emit IDataServiceFees.StakeClaimLocked(serviceProvider, calcValues.predictedClaimId, calcValues.stakeToLock, calcValues.unlockTimestamp);
         dataService.lockStake(serviceProvider, tokens);
 
         // after state
@@ -149,24 +156,30 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         );
 
         // it should lock the tokens
-        assertEq(beforeLockedStake + stakeToLock, afterLockedStake);
+        assertEq(beforeLockedStake + calcValues.stakeToLock, afterLockedStake);
 
         // it should create a stake claim
         (uint256 claimTokens, uint256 createdAt, uint256 releaseAt, bytes32 nextClaim) = dataService.claims(
-            predictedClaimId
+            calcValues.predictedClaimId
         );
-        assertEq(claimTokens, stakeToLock);
+        assertEq(claimTokens, calcValues.stakeToLock);
         assertEq(createdAt, block.timestamp);
-        assertEq(releaseAt, unlockTimestamp);
+        assertEq(releaseAt, calcValues.unlockTimestamp);
         assertEq(nextClaim, bytes32(0));
 
         // it should update the list
         assertEq(afterCount, beforeCount + 1);
         assertEq(afterNonce, beforeNonce + 1);
-        assertEq(afterHead, beforeCount == 0 ? predictedClaimId : beforeHead);
-        assertEq(afterTail, predictedClaimId);
+        assertEq(afterHead, beforeCount == 0 ? calcValues.predictedClaimId : beforeHead);
+        assertEq(afterTail, calcValues.predictedClaimId);
     }
 
+    // use struct to avoid 'stack too deep' error
+    struct CalcValues_ReleaseStake {
+        uint256 claimsCount;
+        uint256 tokensReleased;
+        bytes32 head;
+    }
     function _assert_releaseStake(address serviceProvider, uint256 n) private {
         // before state
         (bytes32 beforeHead, bytes32 beforeTail, uint256 beforeNonce, uint256 beforeCount) = dataService.claimsLists(
@@ -177,23 +190,25 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         // calc and set events
         vm.expectEmit();
 
-        uint256 claimsCount = 0;
-        uint256 tokensReleased = 0;
-        bytes32 head = beforeHead;
-        while (head != bytes32(0) && (claimsCount < n || n == 0)) {
-            (uint256 claimTokens, , uint256 releaseAt, bytes32 nextClaim) = dataService.claims(head);
+        CalcValues_ReleaseStake memory calcValues = CalcValues_ReleaseStake({
+            claimsCount: 0,
+            tokensReleased: 0,
+            head: beforeHead
+        });
+        while (calcValues.head != bytes32(0) && (calcValues.claimsCount < n || n == 0)) {
+            (uint256 claimTokens, , uint256 releaseAt, bytes32 nextClaim) = dataService.claims(calcValues.head);
             if (releaseAt > block.timestamp) {
                 break;
             }
 
-            emit IDataServiceFees.StakeClaimReleased(serviceProvider, head, claimTokens, releaseAt);
-            head = nextClaim;
-            tokensReleased += claimTokens;
-            claimsCount++;
+            emit IDataServiceFees.StakeClaimReleased(serviceProvider, calcValues.head, claimTokens, releaseAt);
+            calcValues.head = nextClaim;
+            calcValues.tokensReleased += claimTokens;
+            calcValues.claimsCount++;
         }
 
         // it should emit a an event
-        emit IDataServiceFees.StakeClaimsReleased(serviceProvider, claimsCount, tokensReleased);
+        emit IDataServiceFees.StakeClaimsReleased(serviceProvider, calcValues.claimsCount, calcValues.tokensReleased);
         dataService.releaseStake(n);
 
         // after state
@@ -203,17 +218,17 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         uint256 afterLockedStake = dataService.feesProvisionTracker(serviceProvider);
 
         // it should release the tokens
-        assertEq(beforeLockedStake - tokensReleased, afterLockedStake);
+        assertEq(beforeLockedStake - calcValues.tokensReleased, afterLockedStake);
 
         // it should remove the processed claims from the list
-        assertEq(afterCount, beforeCount - claimsCount);
+        assertEq(afterCount, beforeCount - calcValues.claimsCount);
         assertEq(afterNonce, beforeNonce);
-        if (claimsCount != 0) {
+        if (calcValues.claimsCount != 0) {
             assertNotEq(afterHead, beforeHead);
         } else {
             assertEq(afterHead, beforeHead);
         }
-        assertEq(afterHead, head);
-        assertEq(afterTail, claimsCount == beforeCount ? bytes32(0) : beforeTail);
+        assertEq(afterHead, calcValues.head);
+        assertEq(afterTail, calcValues.claimsCount == beforeCount ? bytes32(0) : beforeTail);
     }
 }

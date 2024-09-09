@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import { IHorizonStakingMain } from "../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
@@ -69,7 +69,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         dataService.setProvisionTokensRange(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
         tokens = bound(tokens, dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
 
-        _createProvision(address(dataService), tokens, 0, 0);
+        _createProvision(users.indexer, address(dataService), tokens, 0, 0);
         dataService.checkProvisionTokens(users.indexer);
     }
 
@@ -81,7 +81,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         );
 
         // this checker accepts provisions with any amount of tokens
-        _createProvision(address(dataServiceOverride), tokens, 0, 0);
+        _createProvision(users.indexer, address(dataServiceOverride), tokens, 0, 0);
         dataServiceOverride.checkProvisionTokens(users.indexer);
     }
 
@@ -89,7 +89,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         dataService.setProvisionTokensRange(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
         tokens = bound(tokens, 1, dataService.PROVISION_TOKENS_MIN() - 1);
 
-        _createProvision(address(dataService), tokens, 0, 0);
+        _createProvision(users.indexer, address(dataService), tokens, 0, 0);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ProvisionManager.ProvisionManagerInvalidValue.selector,
@@ -142,7 +142,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         dataService.setVerifierCutRange(dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX());
         verifierCut = uint32(bound(verifierCut, dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX()));
 
-        _createProvision(address(dataService), dataService.PROVISION_TOKENS_MIN(), verifierCut, 0);
+        _createProvision(users.indexer, address(dataService), dataService.PROVISION_TOKENS_MIN(), verifierCut, 0);
         dataService.checkProvisionParameters(users.indexer, false);
     }
 
@@ -151,7 +151,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         dataServiceOverride.setVerifierCutRange(dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX());
 
         // this checker accepts provisions with any verifier cut range
-        _createProvision(address(dataService), dataService.PROVISION_TOKENS_MIN(), verifierCut, 0);
+        _createProvision(users.indexer, address(dataService), dataService.PROVISION_TOKENS_MIN(), verifierCut, 0);
         dataServiceOverride.checkProvisionParameters(users.indexer, false);
     }
 
@@ -159,7 +159,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         dataService.setVerifierCutRange(dataService.VERIFIER_CUT_MIN(), dataService.VERIFIER_CUT_MAX());
         verifierCut = uint32(bound(verifierCut, 0, dataService.VERIFIER_CUT_MIN() - 1));
 
-        _createProvision(address(dataService), dataService.PROVISION_TOKENS_MIN(), verifierCut, 0);
+        _createProvision(users.indexer, address(dataService), dataService.PROVISION_TOKENS_MIN(), verifierCut, 0);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ProvisionManager.ProvisionManagerInvalidValue.selector,
@@ -205,7 +205,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
             bound(thawingPeriod, dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX())
         );
 
-        _createProvision(address(dataService), dataService.PROVISION_TOKENS_MIN(), 0, thawingPeriod);
+        _createProvision(users.indexer, address(dataService), dataService.PROVISION_TOKENS_MIN(), 0, thawingPeriod);
         dataService.checkProvisionParameters(users.indexer, false);
     }
 
@@ -214,7 +214,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         dataServiceOverride.setThawingPeriodRange(dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX());
 
         // this checker accepts provisions with any verifier cut range
-        _createProvision(address(dataService), dataService.PROVISION_TOKENS_MIN(), 0, thawingPeriod);
+        _createProvision(users.indexer, address(dataService), dataService.PROVISION_TOKENS_MIN(), 0, thawingPeriod);
         dataServiceOverride.checkProvisionParameters(users.indexer, false);
     }
 
@@ -222,7 +222,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
         dataService.setThawingPeriodRange(dataService.THAWING_PERIOD_MIN(), dataService.THAWING_PERIOD_MAX());
         thawingPeriod = uint32(bound(thawingPeriod, 0, dataService.THAWING_PERIOD_MIN() - 1));
 
-        _createProvision(address(dataService), dataService.PROVISION_TOKENS_MIN(), 0, thawingPeriod);
+        _createProvision(users.indexer, address(dataService), dataService.PROVISION_TOKENS_MIN(), 0, thawingPeriod);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ProvisionManager.ProvisionManagerInvalidValue.selector,
@@ -255,12 +255,13 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
         // stage provision parameter changes
         _createProvision(
+            users.indexer,
             address(dataService),
             dataService.PROVISION_TOKENS_MIN(),
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        staking.setProvisionParameters(users.indexer, address(dataService), maxVerifierCut, thawingPeriod);
+        _setProvisionParameters(users.indexer, address(dataService), maxVerifierCut, thawingPeriod);
 
         // accept provision parameters
         if (maxVerifierCut != dataService.VERIFIER_CUT_MIN() || thawingPeriod != dataService.THAWING_PERIOD_MIN()) {
@@ -287,12 +288,13 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
         // stage provision parameter changes
         _createProvision(
+            users.indexer,
             address(dataService),
             dataService.PROVISION_TOKENS_MIN(),
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        staking.setProvisionParameters(
+        _setProvisionParameters(
             users.indexer,
             address(dataService),
             dataService.VERIFIER_CUT_MIN(),
@@ -324,12 +326,13 @@ contract DataServiceTest is HorizonStakingSharedTest {
 
         // stage provision parameter changes
         _createProvision(
+            users.indexer,
             address(dataService),
             dataService.PROVISION_TOKENS_MIN(),
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        staking.setProvisionParameters(
+        _setProvisionParameters(
             users.indexer,
             address(dataService),
             maxVerifierCut,

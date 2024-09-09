@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -17,7 +17,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 
@@ -31,7 +31,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
 
         // there is a min delegation amount of 1 ether after undelegating
         uint256 undelegateAmount = (delegation.shares - 1 ether) / undelegateSteps;
@@ -73,7 +73,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 overDelegationShares
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         overDelegationShares = bound(overDelegationShares, delegation.shares + 1, MAX_STAKING_TOKENS + 1);
 
         bytes memory expectedError = abi.encodeWithSignature(
@@ -104,13 +104,13 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
     function testUndelegate_LegacySubgraphService(uint256 amount, uint256 delegationAmount) public useIndexer {
         amount = bound(amount, 1, MAX_STAKING_TOKENS);
         delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
-        _createProvision(subgraphDataServiceLegacyAddress, amount, 0, 0);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, amount, 0, 0);
 
         resetPrank(users.delegator);
-        _delegateLegacy(users.indexer, delegationAmount);
+        _delegate(users.indexer, delegationAmount);
 
-        Delegation memory delegation = _getDelegation(subgraphDataServiceLegacyAddress);
-        _undelegateLegacy(users.indexer, delegation.shares);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, true);
+        _undelegate(users.indexer, delegation.shares);
     }
 
     function testUndelegate_RevertWhen_InvalidPool(
@@ -125,7 +125,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
         
         resetPrank(users.delegator);
-        Delegation memory delegation = _getDelegation(subgraphDataServiceAddress);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         vm.expectRevert(abi.encodeWithSelector(
             IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
             users.indexer,

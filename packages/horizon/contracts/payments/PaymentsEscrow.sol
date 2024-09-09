@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
@@ -18,12 +18,7 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
  * for payments made through the payments protocol for services provided
  * via a Graph Horizon data service.
  */
-contract PaymentsEscrow is
-    Initializable,
-    MulticallUpgradeable,
-    GraphDirectory,
-    IPaymentsEscrow
-{
+contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
 
     /// @notice Authorization details for payer-collector pairs
@@ -72,7 +67,6 @@ contract PaymentsEscrow is
         REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
         WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
     }
-
 
     /**
      * @notice Initialize the contract

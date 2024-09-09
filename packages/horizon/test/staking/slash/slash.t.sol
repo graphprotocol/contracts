@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -8,15 +8,6 @@ import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHor
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingSlashTest is HorizonStakingTest {
-
-    /*
-     * MODIFIERS
-     */
-
-    /*
-     * HELPERS
-     */
-
     /*
      * TESTS
      */
