@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
@@ -24,7 +24,6 @@ import { Users } from "./utils/Users.sol";
 import { Utils } from "./utils/Utils.sol";
 
 abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
-
     /*
      * VARIABLES
      */

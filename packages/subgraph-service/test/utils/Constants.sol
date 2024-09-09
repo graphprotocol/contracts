@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 abstract contract Constants {
     uint256 internal constant MAX_TOKENS = 10_000_000_000 ether;

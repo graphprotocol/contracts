@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import { DataService } from "../../../contracts/data-service/DataService.sol";
 import { DataServiceFees } from "../../../contracts/data-service/extensions/DataServiceFees.sol";
@@ -25,6 +25,7 @@ contract DataServiceImpFees is DataServiceFees {
         uint256 amount = abi.decode(data, (uint256));
         _releaseStake(serviceProvider, 0);
         _lockStake(serviceProvider, amount * STAKE_TO_FEES_RATIO, block.timestamp + LOCK_DURATION);
+        return amount;
     }
 
     function lockStake(address serviceProvider, uint256 amount) external {

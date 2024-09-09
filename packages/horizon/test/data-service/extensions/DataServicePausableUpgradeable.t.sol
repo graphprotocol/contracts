@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.26;
+pragma solidity 0.8.27;
 
 import { GraphBaseTest } from "../../GraphBase.t.sol";
 import { DataServiceImpPausableUpgradeable } from "../implementations/DataServiceImpPausableUpgradeable.sol";
