@@ -30,7 +30,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
      * MODIFIERS
      */
 
-    modifier useOperator {
+    modifier useOperator() {
         resetPrank(users.indexer);
         staking.setOperator(users.operator, address(subgraphService), true);
         resetPrank(users.operator);
@@ -38,7 +38,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         vm.stopPrank();
     }
 
-    modifier useRewardsDestination {
+    modifier useRewardsDestination() {
         _setRewardsDestination(users.rewardsDestination);
         _;
     }
@@ -74,10 +74,10 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint64 thawingPeriod = provision.thawingPeriod;
         uint32 maxVerifierCutPending = provision.maxVerifierCutPending;
         uint64 thawingPeriodPending = provision.thawingPeriodPending;
-        
+
         vm.expectEmit(address(subgraphService));
         emit IDataService.ProvisionAccepted(_indexer);
-        
+
         // Accept provision
         subgraphService.acceptProvision(_indexer, _data);
 
@@ -110,7 +110,13 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         }
 
         vm.expectEmit(address(subgraphService));
-        emit AllocationManager.AllocationResized(_indexer, _allocationId, subgraphDeploymentId, _tokens, beforeSubgraphAllocatedTokens);
+        emit AllocationManager.AllocationResized(
+            _indexer,
+            _allocationId,
+            subgraphDeploymentId,
+            _tokens,
+            beforeSubgraphAllocatedTokens
+        );
 
         // resize allocation
         subgraphService.resizeAllocation(_indexer, _allocationId, _tokens);
@@ -119,8 +125,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 afterSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeploymentId);
         uint256 afterAllocatedTokens = subgraphService.allocationProvisionTracker(_indexer);
         Allocation.State memory afterAllocation = subgraphService.getAllocation(_allocationId);
-        uint256 accRewardsPerAllocatedTokenDelta = afterAllocation.accRewardsPerAllocatedToken - beforeAllocation.accRewardsPerAllocatedToken;
-        uint256 afterAccRewardsPending = rewardsManager.calcRewards(beforeAllocation.tokens, accRewardsPerAllocatedTokenDelta);
+        uint256 accRewardsPerAllocatedTokenDelta = afterAllocation.accRewardsPerAllocatedToken -
+            beforeAllocation.accRewardsPerAllocatedToken;
+        uint256 afterAccRewardsPending = rewardsManager.calcRewards(
+            beforeAllocation.tokens,
+            accRewardsPerAllocatedTokenDelta
+        );
 
         // check state
         if (_tokens > beforeAllocation.tokens) {
@@ -138,10 +148,17 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertTrue(subgraphService.isActiveAllocation(_allocationId));
 
         Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
-        uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(allocation.subgraphDeploymentId);
-        
+        uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
+            allocation.subgraphDeploymentId
+        );
+
         vm.expectEmit(address(subgraphService));
-        emit AllocationManager.AllocationClosed(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, allocation.tokens);
+        emit AllocationManager.AllocationClosed(
+            allocation.indexer,
+            _allocationId,
+            allocation.subgraphDeploymentId,
+            allocation.tokens
+        );
 
         // close stale allocation
         subgraphService.closeStaleAllocation(_allocationId);
@@ -182,15 +199,20 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 paymentCollected = 0;
         Allocation.State memory allocation;
         CollectPaymentData memory collectPaymentDataBefore;
-        
+
         // PaymentType.IndexingRewards variables
         IndexingRewardsData memory indexingRewardsData;
-        uint32 delegationRatio = subgraphService.delegationRatio();
         address rewardsDestination = subgraphService.rewardsDestination(_indexer);
         collectPaymentDataBefore.rewardsDestinationBalance = token.balanceOf(rewardsDestination);
-        collectPaymentDataBefore.indexerProvisionBalance = staking.getProviderTokensAvailable(_indexer, address(subgraphService));
-        collectPaymentDataBefore.delegationPoolBalance = staking.getDelegatedTokensAvailable(_indexer, address(subgraphService));
-        
+        collectPaymentDataBefore.indexerProvisionBalance = staking.getProviderTokensAvailable(
+            _indexer,
+            address(subgraphService)
+        );
+        collectPaymentDataBefore.delegationPoolBalance = staking.getDelegatedTokensAvailable(
+            _indexer,
+            address(subgraphService)
+        );
+
         // PaymentType.QueryFee variables
         QueryFeeData memory queryFeeData;
         queryFeeData.protocolPaymentCut = graphPayments.PROTOCOL_PAYMENT_CUT();
@@ -257,25 +279,38 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // Collect payment data after
         CollectPaymentData memory collectPaymentDataAfter;
         collectPaymentDataAfter.rewardsDestinationBalance = token.balanceOf(rewardsDestination);
-        collectPaymentDataAfter.indexerProvisionBalance = staking.getProviderTokensAvailable(_indexer, address(subgraphService));
-        collectPaymentDataAfter.delegationPoolBalance = staking.getDelegatedTokensAvailable(_indexer, address(subgraphService));
+        collectPaymentDataAfter.indexerProvisionBalance = staking.getProviderTokensAvailable(
+            _indexer,
+            address(subgraphService)
+        );
+        collectPaymentDataAfter.delegationPoolBalance = staking.getDelegatedTokensAvailable(
+            _indexer,
+            address(subgraphService)
+        );
         collectPaymentDataAfter.indexerBalance = token.balanceOf(_indexer);
         collectPaymentDataAfter.curationBalance = token.balanceOf(address(curation));
         collectPaymentDataAfter.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
 
         if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
             // Check indexer got paid the correct amount
-            uint256 tokensProtocol = paymentCollected.mulPPM(protocolPaymentCut);
-            uint256 curationTokens = paymentCollected.mulPPM(queryFeeData.curationCut);
-            uint256 expectedIndexerTokensPayment = paymentCollected - tokensProtocol - curationTokens;
-            assertEq(collectPaymentDataAfter.indexerBalance, collectPaymentDataBefore.indexerBalance + expectedIndexerTokensPayment);
+            {
+                uint256 tokensProtocol = paymentCollected.mulPPM(protocolPaymentCut);
+                uint256 curationTokens = paymentCollected.mulPPM(queryFeeData.curationCut);
+                uint256 expectedIndexerTokensPayment = paymentCollected - tokensProtocol - curationTokens;
+                assertEq(
+                    collectPaymentDataAfter.indexerBalance,
+                    collectPaymentDataBefore.indexerBalance + expectedIndexerTokensPayment
+                );
 
-            // Check curation got paid the correct amount
-            assertEq(collectPaymentDataAfter.curationBalance, collectPaymentDataBefore.curationBalance + curationTokens);
+                // Check curation got paid the correct amount
+                assertEq(
+                    collectPaymentDataAfter.curationBalance,
+                    collectPaymentDataBefore.curationBalance + curationTokens
+                );
+            }
 
             // Check locked tokens
-            uint256 stakeToFeesRatio = subgraphService.stakeToFeesRatio();
-            uint256 tokensToLock = paymentCollected * stakeToFeesRatio;
+            uint256 tokensToLock = paymentCollected * subgraphService.stakeToFeesRatio();
             assertEq(collectPaymentDataAfter.lockedTokens, collectPaymentDataBefore.lockedTokens + tokensToLock);
 
             // Check the stake claim
@@ -290,10 +325,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         } else {
             // Update allocation after collecting rewards
             allocation = subgraphService.getAllocation(allocationId);
-            
+
             // Check allocation state
             assertEq(allocation.accRewardsPending, 0);
-            uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(allocation.subgraphDeploymentId);
+            uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(
+                allocation.subgraphDeploymentId
+            );
             assertEq(allocation.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
             assertEq(allocation.lastPOIPresentedAt, block.timestamp);
 
@@ -301,7 +338,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             if (rewardsDestination == address(0)) {
                 // If rewards destination is address zero indexer should get paid to their provision balance
                 assertEq(
-                    collectPaymentDataAfter.indexerProvisionBalance, 
+                    collectPaymentDataAfter.indexerProvisionBalance,
                     collectPaymentDataBefore.indexerProvisionBalance + indexingRewardsData.tokensIndexerRewards
                 );
             } else {
@@ -314,12 +351,16 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
 
             // Check delegation pool got paid the correct amount
             assertEq(
-                collectPaymentDataAfter.delegationPoolBalance, 
+                collectPaymentDataAfter.delegationPoolBalance,
                 collectPaymentDataBefore.delegationPoolBalance + indexingRewardsData.tokensDelegationRewards
             );
 
             // If after collecting indexing rewards the indexer is over allocated the allcation should close
-            uint256 tokensAvailable = staking.getTokensAvailable(_indexer, address(subgraphService), delegationRatio);
+            uint256 tokensAvailable = staking.getTokensAvailable(
+                _indexer,
+                address(subgraphService),
+                subgraphService.delegationRatio()
+            );
             if (allocation.tokens <= tokensAvailable) {
                 // Indexer isn't over allocated so allocation should still be open
                 assertTrue(allocation.isOpen());
