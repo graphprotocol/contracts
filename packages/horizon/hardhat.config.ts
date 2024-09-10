@@ -1,5 +1,6 @@
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
+import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 
@@ -18,6 +19,13 @@ const config: HardhatUserConfig = {
   paths: {
     artifacts: './build/contracts',
     sources: './contracts',
+  },
+  networks: {
+    hardhat: {
+      accounts: {
+        mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
+      },
+    },
   },
 }
 

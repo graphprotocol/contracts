@@ -12,6 +12,7 @@
     "hardhat.config.ts",
     "scripts/**/*.ts",
     "test/**/*.ts",
+    "ignition/**/*.ts",
     "eslint.config.js",
     "prettier.config.js"
   ]

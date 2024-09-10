@@ -1,0 +1,10 @@
+{
+  "GraphHorizon_Periphery": {
+    "Accounts_governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
+    "Accounts_subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117",
+    "RewardsManager_issuancePerBlock": "114155251141552511415n"
+  },
+  "GraphHorizon_Core": {
+    "GraphToken_initialSupply": "10000000000000000000000000000n"
+  }
+}
