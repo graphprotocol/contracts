@@ -1,0 +1,23 @@
+{
+  "GraphProxyAdmin": {
+    "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
+  },
+  "Controller": {
+    "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
+    "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC"
+  },
+  "RewardsManager": {
+    "subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117",
+    "issuancePerBlock": "114155251141552511415n"
+  },
+  "EpochManager": {
+    "epochLength": 60
+  },
+  "GraphTokenGateway": {
+    "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC"
+  },
+  "GraphToken": {
+    "initialSupply": "10000000000000000000000000000n",
+    "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
+  }
+}
