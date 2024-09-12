@@ -11,15 +11,16 @@ export default buildModule('GraphHorizon', (m) => {
     GraphProxyAdmin,
     GraphTokenGateway,
     RewardsManager,
+    Curation,
   } = m.useModule(GraphPeripheryModule)
-  const { GraphToken } = m.useModule(GraphStakingModule)
+  m.useModule(GraphStakingModule)
 
   return {
     BridgeEscrow,
     Controller,
+    Curation,
     EpochManager,
     GraphProxyAdmin,
-    GraphToken,
     GraphTokenGateway,
     RewardsManager,
   }

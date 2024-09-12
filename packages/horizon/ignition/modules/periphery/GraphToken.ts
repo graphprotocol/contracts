@@ -21,6 +21,7 @@ export default buildModule('GraphToken', (m) => {
     args: [deployer],
   })
 
+  // Note that this next mint would only be done in L1
   m.call(GraphToken, 'mint', [deployer, initialSupply])
   m.call(GraphToken, 'renounceMinter', [])
   m.call(GraphToken, 'addMinter', [RewardsManager], { id: 'addMinterRewardsManager' })

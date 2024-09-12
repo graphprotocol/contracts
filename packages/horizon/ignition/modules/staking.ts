@@ -1,9 +1,9 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import GraphTokenModule from './staking/GraphToken'
+import HorizonStakingModule from './horizon/HorizonStaking'
 
 export default buildModule('GraphHorizon_Staking', (m) => {
-  const { GraphToken } = m.useModule(GraphTokenModule)
+  const { instance } = m.useModule(HorizonStakingModule)
 
-  return { GraphToken }
+  return { HorizonStaking: instance }
 })

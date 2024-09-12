@@ -3,7 +3,6 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 
 // TODO: Ownership transfer is a two step process, the new owner needs to accept it by calling acceptOwnership
-// TODO: call setContractProxy for all contracts after they are deployed
 export default buildModule('Controller', (m) => {
   const governor = m.getParameter('governor')
   const pauseGuardian = m.getParameter('pauseGuardian')
