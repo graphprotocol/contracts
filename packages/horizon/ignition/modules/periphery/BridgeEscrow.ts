@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/ignition-core'
 
-import { deployWithGraphProxy } from '../lib/proxy'
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
 import BridgeEscrowArtifact from '@graphprotocol/contracts/build/contracts/contracts/gateway/BridgeEscrow.sol/BridgeEscrow.json'
 import ControllerModule from '../periphery/Controller'

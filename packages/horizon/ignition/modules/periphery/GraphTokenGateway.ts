@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/ignition-core'
 
-import { deployWithGraphProxy } from '../lib/proxy'
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
 import ControllerModule from '../periphery/Controller'
 import GraphTokenGatewayArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'

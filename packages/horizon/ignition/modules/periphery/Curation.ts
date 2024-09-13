@@ -1,5 +1,5 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployWithGraphProxy } from '../lib/proxy'
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
 import ControllerModule from './Controller'
 import CurationArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/curation/L2Curation.sol/L2Curation.json'

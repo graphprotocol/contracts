@@ -1,9 +1,9 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+import { deployWithOZProxy } from '../proxy/TransparentUpgradeableProxy'
 import { ethers } from 'ethers'
 
 import GraphPeripheryModule from '../periphery'
 import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
-
 import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -15,10 +15,11 @@ export default buildModule('HorizonProxies', (m) => {
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
 
   // Deploy HorizonStaking proxy without an implementation
-  // TODO: GraphPayments and PaymentsEscrow dont use GraphProxy but use OZ
   const HorizonStakingProxy = m.contract('GraphProxy', GraphProxyArtifact, [ZERO_ADDRESS, GraphProxyAdmin], { after: [PeripheryRegistered], id: 'GraphProxy_HorizonStaking' })
-  const GraphPaymentsProxy = m.contract('GraphProxy', GraphProxyArtifact, [ZERO_ADDRESS, GraphProxyAdmin], { after: [PeripheryRegistered], id: 'GraphProxy_GraphPayments' })
-  const PaymentsEscrowProxy = m.contract('GraphProxy', GraphProxyArtifact, [ZERO_ADDRESS, GraphProxyAdmin], { after: [PeripheryRegistered], id: 'GraphProxy_PaymentsEscrow' })
+
+  // Deploy proxies for payments contracts using OZ TransparentUpgradeableProxy
+  const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployWithOZProxy(m, 'GraphPayments')
+  const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployWithOZProxy(m, 'PaymentsEscrow')
 
   // Register the proxies in the controller
   const setProxyHorizonStaking = m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Staking')), HorizonStakingProxy], { id: 'setContractProxy_HorizonStaking' })
@@ -27,6 +28,7 @@ export default buildModule('HorizonProxies', (m) => {
 
   // Deploy dummy contract to signal that all periphery contracts are registered
   const HorizonRegistered = m.contract('Dummy', [], {
+    id: 'RegisteredDummy',
     after: [
       setProxyHorizonStaking,
       setProxyGraphPayments,
@@ -34,5 +36,5 @@ export default buildModule('HorizonProxies', (m) => {
     ],
   })
 
-  return { HorizonStakingProxy, GraphPaymentsProxy, PaymentsEscrowProxy, HorizonRegistered }
+  return { HorizonStakingProxy, GraphPaymentsProxy, PaymentsEscrowProxy, HorizonRegistered, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
 })

@@ -30,5 +30,16 @@
   },
   "HorizonStakingExtension": {
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "GraphPayments": {
+    "protocolPaymentCut": 10000
+  },
+  "PaymentsEscrow": {
+    "revokeCollectorThawingPeriod": 10000,
+    "withdrawEscrowThawingPeriod": 10000
+  },
+  "TAPCollector": {
+    "eip712Name": "TAPCollector",
+    "eip712Version": "1"
   }
 }

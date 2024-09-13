@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/ignition-core'
 
-import { deployWithGraphProxy } from '../lib/proxy'
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
 import ControllerModule from '../periphery/Controller'
 import RewardsManagerArtifact from '@graphprotocol/contracts/build/contracts/contracts/rewards/RewardsManager.sol/RewardsManager.json'

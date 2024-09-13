@@ -1,5 +1,5 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployWithGraphProxy } from '../lib/proxy'
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
 import ControllerModule from './Controller'
 import EpochManagerArtifact from '@graphprotocol/contracts/build/contracts/contracts/epochs/EpochManager.sol/EpochManager.json'

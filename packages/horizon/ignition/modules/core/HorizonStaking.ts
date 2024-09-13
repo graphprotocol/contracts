@@ -28,7 +28,7 @@ export default buildModule('HorizonStaking', (m) => {
   const acceptCall = m.call(GraphProxyAdmin, 'acceptProxy', [HorizonStakingImplementation, HorizonStakingProxy], { after: [upgradeCall] })
 
   // Load contract with implementation ABI
-  const HorizonStakingInstance = m.contractAt('HorizonStaking', HorizonStakingProxy, { after: [acceptCall], id: 'HorizonStaking_Instance' })
+  const HorizonStaking = m.contractAt('HorizonStaking', HorizonStakingProxy, { after: [acceptCall], id: 'HorizonStaking_Instance' })
 
-  return { proxy: HorizonStakingProxy, implementation: HorizonStakingImplementation, instance: HorizonStakingInstance }
+  return { HorizonStakingProxy, HorizonStakingImplementation, HorizonStaking }
 })

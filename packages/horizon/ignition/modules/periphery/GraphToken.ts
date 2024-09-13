@@ -1,5 +1,5 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployWithGraphProxy } from '../lib/proxy'
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
 import GraphTokenGatewayModule from '../periphery/GraphTokenGateway'
 import RewardsManagerModule from '../periphery/RewardsManager'
@@ -21,6 +21,7 @@ export default buildModule('GraphToken', (m) => {
     args: [deployer],
   })
 
+  // TODO: move this mint to a testnet only module
   // Note that this next mint would only be done in L1
   m.call(GraphToken, 'mint', [deployer, initialSupply])
   m.call(GraphToken, 'renounceMinter', [])

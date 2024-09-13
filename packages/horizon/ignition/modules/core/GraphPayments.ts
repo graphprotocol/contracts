@@ -1,0 +1,28 @@
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+
+import GraphPeripheryModule from '../periphery'
+import HorizonProxiesModule from './HorizonProxies'
+
+// TODO: transfer ownership of ProxyAdmin???
+export default buildModule('GraphPayments', (m) => {
+  const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
+  const { GraphPaymentsProxyAdmin, GraphPaymentsProxy, HorizonRegistered } = m.useModule(HorizonProxiesModule)
+
+  const protocolPaymentCut = m.getParameter('protocolPaymentCut')
+
+  // Deploy GraphPayments implementation
+  const GraphPaymentsImplementation = m.contract('GraphPayments',
+    [Controller, protocolPaymentCut],
+    {
+      after: [PeripheryRegistered, HorizonRegistered],
+    },
+  )
+
+  // Upgrade proxy to implementation contract
+  m.call(GraphPaymentsProxyAdmin, 'upgradeAndCall', [GraphPaymentsProxy, GraphPaymentsImplementation, m.encodeFunctionCall(GraphPaymentsImplementation, 'initialize', [])])
+
+  // Load contract with implementation ABI
+  const GraphPayments = m.contractAt('GraphPayments', GraphPaymentsProxy, { id: 'GraphPayments_Instance' })
+
+  return { GraphPayments }
+})
