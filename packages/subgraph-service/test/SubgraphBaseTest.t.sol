@@ -151,7 +151,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
             subgraphServiceImplementation,
             users.governor,
-            abi.encodeCall(SubgraphService.initialize, (minimumProvisionTokens, delegationRatio))
+            abi.encodeCall(SubgraphService.initialize, (minimumProvisionTokens, delegationRatio, stakeToFeesRatio))
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
 
@@ -183,10 +183,10 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     }
 
     function setupProtocol() private {
+        resetPrank(users.deployer);
+        subgraphService.transferOwnership(users.governor);
         resetPrank(users.governor);
         staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
-        resetPrank(users.deployer);
-        subgraphService.setStakeToFeesRatio(stakeToFeesRatio);
         subgraphService.setMaxPOIStaleness(maxPOIStaleness);
         subgraphService.setCurationCut(curationCut);
     }
