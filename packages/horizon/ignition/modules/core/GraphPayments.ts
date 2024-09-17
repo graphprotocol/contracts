@@ -3,6 +3,8 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import GraphPeripheryModule from '../periphery'
 import HorizonProxiesModule from './HorizonProxies'
 
+import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
+
 // TODO: transfer ownership of ProxyAdmin???
 export default buildModule('GraphPayments', (m) => {
   const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
@@ -12,6 +14,7 @@ export default buildModule('GraphPayments', (m) => {
 
   // Deploy GraphPayments implementation
   const GraphPaymentsImplementation = m.contract('GraphPayments',
+    GraphPaymentsArtifact,
     [Controller, protocolPaymentCut],
     {
       after: [PeripheryRegistered, HorizonRegistered],
@@ -22,7 +25,7 @@ export default buildModule('GraphPayments', (m) => {
   m.call(GraphPaymentsProxyAdmin, 'upgradeAndCall', [GraphPaymentsProxy, GraphPaymentsImplementation, m.encodeFunctionCall(GraphPaymentsImplementation, 'initialize', [])])
 
   // Load contract with implementation ABI
-  const GraphPayments = m.contractAt('GraphPayments', GraphPaymentsProxy, { id: 'GraphPayments_Instance' })
+  const GraphPayments = m.contractAt('GraphPayments', GraphPaymentsArtifact, GraphPaymentsProxy, { id: 'GraphPayments_Instance' })
 
   return { GraphPayments }
 })

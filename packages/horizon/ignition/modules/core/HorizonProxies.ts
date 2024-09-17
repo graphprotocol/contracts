@@ -4,6 +4,8 @@ import { ethers } from 'ethers'
 
 import GraphPeripheryModule from '../periphery'
 import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
+
+import DummyArtifact from '../../../build/contracts/contracts/mocks/Dummy.sol/Dummy.json'
 import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -27,7 +29,7 @@ export default buildModule('HorizonProxies', (m) => {
   const setProxyPaymentsEscrow = m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy], { id: 'setContractProxy_PaymentsEscrow' })
 
   // Deploy dummy contract to signal that all periphery contracts are registered
-  const HorizonRegistered = m.contract('Dummy', [], {
+  const HorizonRegistered = m.contract('Dummy', DummyArtifact, [], {
     id: 'RegisteredDummy',
     after: [
       setProxyHorizonStaking,

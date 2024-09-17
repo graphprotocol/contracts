@@ -4,6 +4,8 @@ import GraphPeripheryModule from '../periphery'
 import HorizonProxiesModule from './HorizonProxies'
 import HorizonStakingExtensionModule from './HorizonStakingExtension'
 
+import HorizonStakingArtifact from '../../../build/contracts/contracts/staking/HorizonStaking.sol/HorizonStaking.json'
+
 export default buildModule('HorizonStaking', (m) => {
   const { Controller, GraphProxyAdmin, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
   const { HorizonStakingProxy, HorizonRegistered } = m.useModule(HorizonProxiesModule)
@@ -13,6 +15,7 @@ export default buildModule('HorizonStaking', (m) => {
 
   // Deploy HorizonStaking implementation
   const HorizonStakingImplementation = m.contract('HorizonStaking',
+    HorizonStakingArtifact,
     [
       Controller,
       HorizonStakingExtension,
@@ -28,7 +31,7 @@ export default buildModule('HorizonStaking', (m) => {
   const acceptCall = m.call(GraphProxyAdmin, 'acceptProxy', [HorizonStakingImplementation, HorizonStakingProxy], { after: [upgradeCall] })
 
   // Load contract with implementation ABI
-  const HorizonStaking = m.contractAt('HorizonStaking', HorizonStakingProxy, { after: [acceptCall], id: 'HorizonStaking_Instance' })
+  const HorizonStaking = m.contractAt('HorizonStaking', HorizonStakingArtifact, HorizonStakingProxy, { after: [acceptCall], id: 'HorizonStaking_Instance' })
 
   return { HorizonStakingProxy, HorizonStakingImplementation, HorizonStaking }
 })

@@ -3,6 +3,8 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import GraphPeripheryModule from '../periphery'
 import HorizonProxiesModule from './HorizonProxies'
 
+import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
+
 // TODO: transfer ownership of ProxyAdmin???
 export default buildModule('PaymentsEscrow', (m) => {
   const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
@@ -13,6 +15,7 @@ export default buildModule('PaymentsEscrow', (m) => {
 
   // Deploy PaymentsEscrow implementation
   const PaymentsEscrowImplementation = m.contract('PaymentsEscrow',
+    PaymentsEscrowArtifact,
     [Controller, revokeCollectorThawingPeriod, withdrawEscrowThawingPeriod],
     {
       after: [PeripheryRegistered, HorizonRegistered],
@@ -23,7 +26,7 @@ export default buildModule('PaymentsEscrow', (m) => {
   m.call(PaymentsEscrowProxyAdmin, 'upgradeAndCall', [PaymentsEscrowProxy, PaymentsEscrowImplementation, m.encodeFunctionCall(PaymentsEscrowImplementation, 'initialize', [])])
 
   // Load contract with implementation ABI
-  const PaymentsEscrow = m.contractAt('PaymentsEscrow', PaymentsEscrowProxy, { id: 'PaymentsEscrow_Instance' })
+  const PaymentsEscrow = m.contractAt('PaymentsEscrow', PaymentsEscrowArtifact, PaymentsEscrowProxy, { id: 'PaymentsEscrow_Instance' })
 
   return { PaymentsEscrow }
 })

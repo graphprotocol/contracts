@@ -1,5 +1,6 @@
 import { IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
 
+import DummyArtifact from '../../../build/contracts/contracts/mocks/Dummy.sol/Dummy.json'
 import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdmin.json'
 import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
 
@@ -9,7 +10,7 @@ import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/c
 export function deployWithOZProxy(m: IgnitionModuleBuilder, contractName: string) {
   const deployer = m.getAccount(0)
 
-  const dummy = m.contract('Dummy', [], { id: `OZProxyDummy_${contractName}` })
+  const dummy = m.contract('Dummy', DummyArtifact, [], { id: `OZProxyDummy_${contractName}` })
   const Proxy = m.contract('TransparentUpgradeableProxy', TransparentUpgradeableProxyArtifact, [
     dummy,
     deployer,

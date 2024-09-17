@@ -10,6 +10,8 @@ import GraphTokenGatewayModule from './periphery/GraphTokenGateway'
 import GraphTokenModule from './periphery/GraphToken'
 import RewardsManagerModule from './periphery/RewardsManager'
 
+import DummyArtifact from '../../build/contracts/contracts/mocks/Dummy.sol/Dummy.json'
+
 export default buildModule('GraphHorizon_Periphery', (m) => {
   const { BridgeEscrow } = m.useModule(BridgeEscrowModule)
   const { Controller } = m.useModule(ControllerModule)
@@ -30,7 +32,7 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   const setProxyCuration = m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Curation')), Curation], { id: 'setContractProxy_Curation' })
 
   // Deploy dummy contract to signal that all periphery contracts are registered
-  const PeripheryRegistered = m.contract('Dummy', [], {
+  const PeripheryRegistered = m.contract('Dummy', DummyArtifact, [], {
     after: [
       setProxyEpochManager,
       setProxyRewardsManager,
