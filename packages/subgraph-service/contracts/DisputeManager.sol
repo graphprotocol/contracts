@@ -19,7 +19,7 @@ import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/Graph
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
 import { AttestationManager } from "./utilities/AttestationManager.sol";
 
-/*
+/**
  * @title DisputeManager
  * @notice Provides a way to permissionlessly create disputes for incorrect behavior in the Subgraph Service.
  *
@@ -40,6 +40,7 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * Arbitration:
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
+ * @custom:security-contact Bug bounty program: https://immunefi.com/bug-bounty/thegraph/information/
  */
 contract DisputeManager is
     Initializable,
