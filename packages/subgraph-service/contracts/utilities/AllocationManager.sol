@@ -288,7 +288,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
                 allocation.indexer,
                 address(this),
-                IGraphPayments.PaymentTypes.IndexingFee
+                IGraphPayments.PaymentTypes.IndexingRewards
             );
             IHorizonStakingTypes.DelegationPool memory delegationPool = _graphStaking().getDelegationPool(
                 allocation.indexer,
