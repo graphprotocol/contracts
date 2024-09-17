@@ -21,6 +21,10 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
+/**
+ * @title SubgraphService contract
+ * @custom:security-contact Bug bounty program: https://immunefi.com/bug-bounty/thegraph/information/
+ */
 contract SubgraphService is
     Initializable,
     OwnableUpgradeable,
