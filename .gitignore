@@ -54,3 +54,6 @@ cache_forge
 
 tx-builder-*.json
 !tx-builder-template.json
+
+# Hardhat Ignition
+**/chain-31337/
