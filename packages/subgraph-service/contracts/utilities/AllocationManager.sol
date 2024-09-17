@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
@@ -289,7 +290,12 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
                 address(this),
                 IGraphPayments.PaymentTypes.IndexingFee
             );
-            tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
+            IHorizonStakingTypes.DelegationPool memory delegationPool = _graphStaking().getDelegationPool(
+                allocation.indexer,
+                address(this)
+            );
+            // If delegation pool has no shares then we don't need to distribute rewards to delegators
+            tokensDelegationRewards = delegationPool.shares > 0 ? tokensRewards.mulPPM(delegatorCut) : 0;
             if (tokensDelegationRewards > 0) {
                 _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
                 _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
