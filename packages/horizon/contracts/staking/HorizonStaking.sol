@@ -24,6 +24,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * This is due to the contract size limit on Arbitrum (24kB). The extension contract implements functionality to support
  * the legacy staking functions and the transfer tools. Both can be eventually removed without affecting the main
  * staking contract.
+ * @custom:security-contact Bug bounty program: https://immunefi.com/bug-bounty/thegraph/information/
  */
 contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using TokenUtils for IGraphToken;
