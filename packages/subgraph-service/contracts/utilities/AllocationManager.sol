@@ -169,7 +169,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Imports a legacy allocation id into the subgraph service
      * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract.
+     * legacy staking contract. It will revert with LegacyAllocationAlreadyMigrated if the allocation has already been migrated.
      * @param _indexer The address of the indexer
      * @param _allocationId The id of the allocation
      * @param _subgraphDeploymentId The id of the subgraph deployment

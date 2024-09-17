@@ -39,11 +39,12 @@ library LegacyAllocation {
     /**
      * @notice Migrate a legacy allocation
      * @dev Requirements:
-     * - The allocation must not exist
+     * - The allocation must not have been previously migrated
      * @param self The legacy allocation list mapping
      * @param indexer The indexer that owns the allocation
      * @param allocationId The allocation id
      * @param subgraphDeploymentId The subgraph deployment id the allocation is for
+     * @custom:error LegacyAllocationAlreadyMigrated if the allocation has already been migrated
      */
     function migrate(
         mapping(address => State) storage self,
@@ -51,7 +52,9 @@ library LegacyAllocation {
         address allocationId,
         bytes32 subgraphDeploymentId
     ) internal {
-        require(!self[allocationId].exists(), LegacyAllocationExists(allocationId));
+        if (self[allocationId].exists()) {
+            revert LegacyAllocationAlreadyMigrated(allocationId);
+        }
 
         State memory allocation = State({ indexer: indexer, subgraphDeploymentId: subgraphDeploymentId });
         self[allocationId] = allocation;
