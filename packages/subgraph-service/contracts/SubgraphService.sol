@@ -351,7 +351,7 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.setRewardsDestination}
      */
-    function setRewardsDestination(address rewardsDestination) external {
+    function setRewardsDestination(address rewardsDestination) external override {
         _setRewardsDestination(msg.sender, rewardsDestination);
     }
 
