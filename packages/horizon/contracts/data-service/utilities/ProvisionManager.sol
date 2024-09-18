@@ -23,6 +23,14 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionManagerV1Storage {
     using UintRange for uint256;
 
+    // Constants
+    uint32 private constant DEFAULT_MIN_UINT32 = 0;
+    uint64 private constant DEFAULT_MIN_UINT64 = 0;
+    uint256 private constant DEFAULT_MIN_UINT256 = 0;
+    uint64 private constant DEFAULT_MAX_UINT64 = type(uint64).max;
+    uint256 private constant DEFAULT_MAX_UINT256 = type(uint256).max;
+    uint32 private constant MAX_PPM = uint32(PPMMath.MAX_PPM);
+
     /**
      * @notice Emitted when the provision tokens range is set.
      * @param min The minimum allowed value for the provision tokens.
@@ -115,9 +123,9 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init_unchained() internal onlyInitializing {
-        _setProvisionTokensRange(type(uint256).min, type(uint256).max);
-        _setVerifierCutRange(type(uint32).min, uint32(PPMMath.MAX_PPM));
-        _setThawingPeriodRange(type(uint64).min, type(uint64).max);
+        _setProvisionTokensRange(DEFAULT_MIN_UINT256, DEFAULT_MAX_UINT256);
+        _setVerifierCutRange(DEFAULT_MIN_UINT32, MAX_PPM);
+        _setThawingPeriodRange(DEFAULT_MIN_UINT64, DEFAULT_MAX_UINT64);
     }
 
     /**
