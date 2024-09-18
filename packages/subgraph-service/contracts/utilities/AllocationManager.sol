@@ -396,7 +396,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      *
      * @param _allocationId The id of the allocation to be closed
      */
-    function _closeAllocation(address _allocationId) internal returns (Allocation.State memory) {
+    function _closeAllocation(address _allocationId) internal {
         Allocation.State memory allocation = allocations.get(_allocationId);
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
@@ -414,7 +414,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             allocation.tokens;
 
         emit AllocationClosed(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, allocation.tokens);
-        return allocations[_allocationId];
     }
 
     /**
