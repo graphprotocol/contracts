@@ -65,7 +65,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 tokensRewards,
         uint256 tokensIndexerRewards,
         uint256 tokensDelegationRewards,
-        bytes32 poi
+        bytes32 poi,
+        uint256 currentEpoch
     );
 
     /**
@@ -321,7 +322,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             tokensRewards,
             tokensIndexerRewards,
             tokensDelegationRewards,
-            _poi
+            _poi,
+            _graphEpochManager().currentEpoch()
         );
 
         // Check if the indexer is over-allocated and close the allocation if necessary

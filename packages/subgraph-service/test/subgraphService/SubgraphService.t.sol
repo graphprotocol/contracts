@@ -273,7 +273,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
                 paymentCollected,
                 indexingRewardsData.tokensIndexerRewards,
                 indexingRewardsData.tokensDelegationRewards,
-                indexingRewardsData.poi
+                indexingRewardsData.poi,
+                epochManager.currentEpoch()
             );
         }
 
