@@ -402,6 +402,13 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingInvalidDelegationPoolState(address serviceProvider, address verifier);
 
+    /**
+     * @notice Thrown when attempting to operate with a delegation pool that does not exist.
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address
+     */
+    error HorizonStakingInvalidDelegationPool(address serviceProvider, address verifier);
+
     // -- Errors: thaw requests --
 
     error HorizonStakingNothingThawing();

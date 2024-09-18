@@ -279,7 +279,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokens
     ) external override notPaused {
         require(tokens != 0, HorizonStakingInvalidZeroTokens());
+
+        // Provision must exist before adding to delegation pool
+        Provision memory prov = _provisions[serviceProvider][verifier];
+        require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
+
+        // Delegation pool must exist before adding tokens
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+        require(pool.shares > 0, HorizonStakingInvalidDelegationPool(serviceProvider, verifier));
+
         pool.tokens = pool.tokens + tokens;
         _graphToken().pullTokens(msg.sender, tokens);
         emit TokensToDelegationPoolAdded(serviceProvider, verifier, tokens);
