@@ -272,7 +272,7 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Once the dispute period ends, if the disput status remains Pending,
+     * @notice Once the dispute period ends, if the dispute status remains Pending,
      * the fisherman can cancel the dispute and get back their initial deposit.
      * @dev Cancel a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be cancelled

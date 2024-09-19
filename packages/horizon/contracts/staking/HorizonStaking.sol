@@ -62,7 +62,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @dev The staking contract is upgradeable however we stil use the constructor to set
+     * @dev The staking contract is upgradeable however we still use the constructor to set
      * a few immutable variables.
      * @param controller The address of the Graph controller contract.
      * @param stakingExtensionAddress The address of the staking extension contract.
@@ -903,7 +903,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      *
      * @param _thawRequestId The ID of the current thaw request
      * @param _acc The accumulator data for the thaw requests being fulfilled
-     * @return Wether the thaw request is still thawing, indicating that the traversal should continue or stop.
+     * @return Whether the thaw request is still thawing, indicating that the traversal should continue or stop.
      * @return The updated accumulator data
      */
     function _fulfillThawRequest(bytes32 _thawRequestId, bytes memory _acc) private returns (bool, bytes memory) {
