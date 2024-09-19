@@ -96,12 +96,10 @@ library Allocation {
      * @param self The allocation list mapping
      * @param allocationId The allocation id
      */
-    function presentPOI(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
+    function presentPOI(mapping(address => State) storage self, address allocationId) internal {
         State storage allocation = _get(self, allocationId);
         require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.lastPOIPresentedAt = block.timestamp;
-
-        return allocation;
     }
 
     /**
@@ -116,12 +114,10 @@ library Allocation {
         mapping(address => State) storage self,
         address allocationId,
         uint256 accRewardsPerAllocatedToken
-    ) internal returns (State memory) {
+    ) internal {
         State storage allocation = _get(self, allocationId);
         require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-
-        return allocation;
     }
 
     /**
@@ -131,15 +127,10 @@ library Allocation {
      * @param self The allocation list mapping
      * @param allocationId The allocation id
      */
-    function clearPendingRewards(
-        mapping(address => State) storage self,
-        address allocationId
-    ) internal returns (State memory) {
+    function clearPendingRewards(mapping(address => State) storage self, address allocationId) internal {
         State storage allocation = _get(self, allocationId);
         require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.accRewardsPending = 0;
-
-        return allocation;
     }
 
     /**
@@ -149,12 +140,10 @@ library Allocation {
      * @param self The allocation list mapping
      * @param allocationId The allocation id
      */
-    function close(mapping(address => State) storage self, address allocationId) internal returns (State memory) {
+    function close(mapping(address => State) storage self, address allocationId) internal {
         State storage allocation = _get(self, allocationId);
         require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.closedAt = block.timestamp;
-
-        return allocation;
     }
 
     /**
