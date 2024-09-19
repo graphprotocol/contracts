@@ -377,8 +377,8 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.setStakeToFeesRatio}
      */
-    function setStakeToFeesRatio(uint256 stakeToFeesRatio) external override onlyOwner {
-        _setStakeToFeesRatio(stakeToFeesRatio);
+    function setStakeToFeesRatio(uint256 stakeToFeesRatio_) external override onlyOwner {
+        _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
     /**
