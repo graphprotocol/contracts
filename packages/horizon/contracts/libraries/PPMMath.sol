@@ -42,7 +42,7 @@ library PPMMath {
      */
     function mulPPMRoundUp(uint256 a, uint256 b) internal pure returns (uint256) {
         require(isValidPPM(b), PPMMathInvalidPPM(b));
-        return a - mulPPM(MAX_PPM - b, a);
+        return a - mulPPM(a, MAX_PPM - b);
     }
 
     /**
