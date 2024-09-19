@@ -32,8 +32,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         _setDelegationFeeCut(
             users.indexer,
             address(subgraphService),
-            // TODO: this should be fixed in AllocationManager, it should be IndexingRewards instead
-            IGraphPayments.PaymentTypes.IndexingFee,
+            IGraphPayments.PaymentTypes.IndexingRewards,
             delegationFeeCut
         );
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
@@ -51,8 +50,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         _setDelegationFeeCut(
             users.indexer,
             address(subgraphService),
-            // TODO: this should be fixed in AllocationManager, it should be IndexingRewards instead
-            IGraphPayments.PaymentTypes.IndexingFee,
+            IGraphPayments.PaymentTypes.IndexingRewards,
             delegationFeeCut
         );
         // Undelegate
@@ -97,8 +95,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         _setDelegationFeeCut(
             users.indexer,
             address(subgraphService),
-            // TODO: this should be fixed in AllocationManager, it should be IndexingRewards instead
-            IGraphPayments.PaymentTypes.IndexingFee,
+            IGraphPayments.PaymentTypes.IndexingRewards,
             delegationFeeCut
         );
         

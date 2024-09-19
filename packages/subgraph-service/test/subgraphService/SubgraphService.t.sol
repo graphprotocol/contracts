@@ -253,8 +253,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             uint256 delegatorCut = staking.getDelegationFeeCut(
                 allocation.indexer,
                 address(subgraphService),
-                // TODO: this should be fixed in AllocationManager, it should be IndexingRewards instead
-                IGraphPayments.PaymentTypes.IndexingFee
+                IGraphPayments.PaymentTypes.IndexingRewards
             );
             IHorizonStakingTypes.DelegationPool memory delegationPool = staking.getDelegationPool(allocation.indexer, address(subgraphService));
             indexingRewardsData.tokensDelegationRewards = delegationPool.shares > 0 ? paymentCollected.mulPPM(delegatorCut) : 0;
