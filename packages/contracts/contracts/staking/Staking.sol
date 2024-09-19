@@ -912,7 +912,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
-                // Then we call collect() to do the transfer bookeeping
+                // Then we call collect() to do the transfer Bookkeeping
                 rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
                 TokenUtils.pushTokens(_graphToken, address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);

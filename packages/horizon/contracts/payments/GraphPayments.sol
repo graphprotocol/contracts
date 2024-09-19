@@ -24,7 +24,7 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
 
     /**
      * @notice Constructor for the {GraphPayments} contract
-     * @dev This contract is upgradeable however we stil use the constructor to set
+     * @dev This contract is upgradeable however we still use the constructor to set
      * a few immutable variables.
      * @param controller The address of the Graph controller
      * @param protocolPaymentCut The protocol tax in PPM

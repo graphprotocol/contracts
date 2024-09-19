@@ -142,7 +142,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     error AllocationManagerZeroTokensAllocation(address allocationId);
 
     /**
-     * @notice Thrown when attempting to collect indexing rewards on a closed allocationl
+     * @notice Thrown when attempting to collect indexing rewards on a closed allocation
      * @param allocationId The id of the allocation
      */
     error AllocationManagerAllocationClosed(address allocationId);
@@ -453,7 +453,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     }
 
     /**
-     * @notice Verifies ownsership of an allocation id by verifying an EIP712 allocation proof
+     * @notice Verifies ownership of an allocation id by verifying an EIP712 allocation proof
      * @dev Requirements:
      * - Signer must be the allocation id address
      * @param _indexer The address of the indexer

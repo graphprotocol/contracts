@@ -253,7 +253,7 @@ interface IHorizonStakingMain {
      * @param thawRequestId The ID of the thaw request
      * @param tokens The amount of tokens being released
      * @param shares The amount of shares being released
-     * @param thawingUntil The timestamp until the stake has thawn
+     * @param thawingUntil The timestamp until the stake has thawed
      */
     event ThawRequestFulfilled(bytes32 indexed thawRequestId, uint256 tokens, uint256 shares, uint64 thawingUntil);
 
@@ -417,7 +417,7 @@ interface IHorizonStakingMain {
     error HorizonStakingStillThawing(uint256 until);
 
     /**
-     * @notice Thrown when a service provider attempts to operate on verifieres that are not allowed.
+     * @notice Thrown when a service provider attempts to operate on verifiers that are not allowed.
      * @dev Only applies to stake from locked wallets.
      */
     error HorizonStakingVerifierNotAllowed(address verifier);
@@ -578,7 +578,7 @@ interface IHorizonStakingMain {
     /**
      * @notice Remove tokens from a provision and move them back to the service provider's idle stake.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfulling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error.
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {thaw}.
@@ -704,7 +704,7 @@ interface IHorizonStakingMain {
      * @notice Withdraw undelegated tokens from a provision after thawing.
      * Tokens can be automatically re-delegated to another provision by setting `newServiceProvider`.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfulling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error.
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {undelegate}.
@@ -744,7 +744,7 @@ interface IHorizonStakingMain {
     /**
      * @notice Delegate tokens to the subgraph data service provision.
      * This function is for backwards compatibility with the legacy staking contract.
-     * It only allows delegting to the subgraph data service and DOES NOT have slippage protection.
+     * It only allows delegating to the subgraph data service and DOES NOT have slippage protection.
      * @dev See {delegate}.
      * @param serviceProvider The service provider address
      * @param tokens The amount of tokens to delegate
@@ -754,7 +754,7 @@ interface IHorizonStakingMain {
     /**
      * @notice Undelegate tokens from the subgraph data service provision and start thawing them.
      * This function is for backwards compatibility with the legacy staking contract.
-     * It only allows undelegting from the subgraph data service.
+     * It only allows undelegating from the subgraph data service.
      * @dev See {undelegate}.
      * @param serviceProvider The service provider address
      * @param shares The amount of shares to undelegate
