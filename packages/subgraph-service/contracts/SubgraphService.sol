@@ -318,6 +318,18 @@ contract SubgraphService is
     }
 
     /**
+     * @notice See {ISubgraphService.closeOverAllocatedAllocation}
+     */
+    function closeOverAllocatedAllocation(address allocationId) external override {
+        Allocation.State memory allocation = allocations.get(allocationId);
+        require(
+            _isAllocationOverAllocated(allocation.indexer, delegationRatio),
+            SubgraphServiceAllocationNotOverAllocated(allocationId)
+        );
+        _closeAllocation(allocationId);
+    }
+
+    /**
      * @notice See {ISubgraphService.resizeAllocation}
      */
     function resizeAllocation(

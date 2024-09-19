@@ -123,6 +123,12 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceAllocationIsAltruistic(address allocationId);
 
     /**
+     * @notice Thrown when trying to force close an allocation that is not over-allocated
+     * @param allocationId The id of the allocation
+     */
+    error SubgraphServiceAllocationNotOverAllocated(address allocationId);
+
+    /**
      * @notice Thrown when trying to set stake to fees ratio to zero
      */
     error SubgraphServiceInvalidZeroStakeToFeesRatio();
@@ -142,6 +148,20 @@ interface ISubgraphService is IDataServiceFees {
      * @param allocationId The id of the allocation
      */
     function closeStaleAllocation(address allocationId) external;
+
+    /**
+     * @notice Close an over-allocated allocation
+     * @dev This function can be permissionlessly called when the allocation is over-allocated.
+     * This ensures rewards for other allocations are not diluted by an over-allocated allocation
+     *
+     * Requirements:
+     * - Allocation must exist and be open
+     * - Allocation must be over-allocated
+     *
+     * Emits a {AllocationClosed} event.
+     * @param allocationId The id of the allocation
+     */
+    function closeOverAllocatedAllocation(address allocationId) external;
 
     /**
      * @notice Change the amount of tokens in an allocation

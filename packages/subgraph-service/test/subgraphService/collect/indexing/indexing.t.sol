@@ -109,7 +109,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         }
     }
 
-    function test_SubgraphService_Collect_Indexing_RevertWhen_OverAllocated(uint256 tokens) public useIndexer {
+    function test_SubgraphService_Collect_Indexing_OverAllocated(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens * 2, 10_000_000_000 ether);
         
         // setup allocation
