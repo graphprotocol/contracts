@@ -226,16 +226,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function setProvisionParameters(
         address serviceProvider,
         address verifier,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
+        uint32 newMaxVerifierCut,
+        uint64 newThawingPeriod
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
-        if ((prov.maxVerifierCutPending != maxVerifierCut) || (prov.thawingPeriodPending != thawingPeriod)) {
-            prov.maxVerifierCutPending = maxVerifierCut;
-            prov.thawingPeriodPending = thawingPeriod;
-            emit ProvisionParametersStaged(serviceProvider, verifier, maxVerifierCut, thawingPeriod);
+        if ((prov.maxVerifierCutPending != newMaxVerifierCut) || (prov.thawingPeriodPending != newThawingPeriod)) {
+            prov.maxVerifierCutPending = newMaxVerifierCut;
+            prov.thawingPeriodPending = newThawingPeriod;
+            emit ProvisionParametersStaged(serviceProvider, verifier, newMaxVerifierCut, newThawingPeriod);
         }
     }
 
