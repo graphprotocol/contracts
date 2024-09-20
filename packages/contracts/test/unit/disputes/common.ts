@@ -16,7 +16,7 @@ export interface Dispute {
 export function createQueryDisputeID(
   attestation: Attestation,
   indexerAddress: string,
-  submitterAddress: string,
+  fishermanAddress: string,
 ): string {
   return solidityKeccak256(
     ['bytes32', 'bytes32', 'bytes32', 'address', 'address'],
@@ -25,7 +25,7 @@ export function createQueryDisputeID(
       attestation.responseCID,
       attestation.subgraphDeploymentID,
       indexerAddress,
-      submitterAddress,
+      fishermanAddress,
     ],
   )
 }
