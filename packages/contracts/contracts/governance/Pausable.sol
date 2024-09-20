@@ -31,13 +31,13 @@ abstract contract Pausable {
 
     /**
      * @dev Change the partial paused state of the contract
-     * @param _toPause New value for the partial pause state (true means the contracts will be partially paused)
+     * @param _toPartialPause New value for the partial pause state (true means the contracts will be partially paused)
      */
-    function _setPartialPaused(bool _toPause) internal {
-        if (_toPause == _partialPaused) {
+    function _setPartialPaused(bool _toPartialPause) internal {
+        if (_toPartialPause == _partialPaused) {
             return;
         }
-        _partialPaused = _toPause;
+        _partialPaused = _toPartialPause;
         if (_partialPaused) {
             lastPausePartialTime = block.timestamp;
         }
