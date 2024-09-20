@@ -303,12 +303,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
             // Distribute rewards to indexer
             tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
-            address rewardsDestination = rewardsDestination[allocation.indexer];
-            if (rewardsDestination == address(0)) {
-                _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
-                _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
-            } else {
-                _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
+            if (tokensIndexerRewards > 0) {
+                address rewardsDestination = rewardsDestination[allocation.indexer];
+                if (rewardsDestination == address(0)) {
+                    _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
+                    _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
+                } else {
+                    _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
+                }
             }
         }
 

@@ -27,8 +27,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         uint256 delegationTokens,
         uint256 delegationFeeCut
     ) public useIndexer useAllocation(tokens) useDelegation(delegationTokens) {
-        // Collect reverts if delegationFeeCut is 100%
-        delegationFeeCut = bound(delegationFeeCut, 0, MAX_PPM - 1);
+        delegationFeeCut = bound(delegationFeeCut, 0, MAX_PPM);
         _setDelegationFeeCut(
             users.indexer,
             address(subgraphService),
@@ -45,7 +44,6 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         uint256 delegationTokens,
         uint256 delegationFeeCut
     ) public useIndexer useAllocation(tokens) useDelegation(delegationTokens) {
-        // Collect reverts if delegationFeeCut is 100%
         delegationFeeCut = bound(delegationFeeCut, 0, MAX_PPM);
         _setDelegationFeeCut(
             users.indexer,
@@ -90,8 +88,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         uint256 delegationTokens,
         uint256 delegationFeeCut
     ) public useIndexer useAllocation(tokens) useDelegation(delegationTokens) {
-        // Collect reverts if delegationFeeCut is 100%
-        delegationFeeCut = bound(delegationFeeCut, 0, MAX_PPM - 1);
+        delegationFeeCut = bound(delegationFeeCut, 0, MAX_PPM);
         _setDelegationFeeCut(
             users.indexer,
             address(subgraphService),
