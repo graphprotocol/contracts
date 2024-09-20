@@ -88,7 +88,7 @@ interface IDataService {
      * @param serviceProvider The address of the service provider.
      * @param data Custom data, usage defined by the data service.
      */
-    function acceptProvision(address serviceProvider, bytes calldata data) external;
+    function acceptProvisionPendingParameters(address serviceProvider, bytes calldata data) external;
 
     /**
      * @notice Service provider starts providing the service.

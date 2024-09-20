@@ -131,7 +131,7 @@ contract SubgraphService is
 
     /**
      * @notice Accept staged parameters in the provision of a service provider
-     * @dev Implements {IDataService-acceptProvision}
+     * @dev Implements {IDataService-acceptProvisionPendingParameters}
      *
      * Requirements:
      * - The indexer must be registered
@@ -142,7 +142,7 @@ contract SubgraphService is
      *
      * @param indexer The address of the indexer to accept the provision for
      */
-    function acceptProvision(
+    function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
     ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {

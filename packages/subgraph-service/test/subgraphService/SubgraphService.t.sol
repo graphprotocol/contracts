@@ -86,7 +86,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         emit IDataService.ProvisionAccepted(_indexer);
 
         // Accept provision
-        subgraphService.acceptProvision(_indexer, _data);
+        subgraphService.acceptProvisionPendingParameters(_indexer, _data);
 
         // Update provision after acceptance
         provision = staking.getProvision(_indexer, address(subgraphService));
