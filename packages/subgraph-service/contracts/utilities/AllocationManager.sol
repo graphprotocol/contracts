@@ -57,6 +57,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param tokensIndexerRewards The amount of tokens collected for the indexer
      * @param tokensDelegationRewards The amount of tokens collected for delegators
      * @param poi The POI presented
+     * @param currentEpoch The current epoch
      */
     event IndexingRewardsCollected(
         address indexed indexer,
