@@ -151,7 +151,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertEq(afterSubgraphAllocatedTokens, _tokens);
     }
 
-    function _closeStaleAllocation(address _allocationId) internal {
+    function _forceCloseAllocation(address _allocationId) internal {
         assertTrue(subgraphService.isActiveAllocation(_allocationId));
 
         Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
@@ -168,37 +168,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         );
 
         // close stale allocation
-        subgraphService.closeStaleAllocation(_allocationId);
-
-        // update allocation
-        allocation = subgraphService.getAllocation(_allocationId);
-
-        // check allocation
-        assertEq(allocation.closedAt, block.timestamp);
-
-        // check subgraph deployment allocated tokens
-        uint256 subgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(subgraphDeployment);
-        assertEq(subgraphAllocatedTokens, previousSubgraphAllocatedTokens - allocation.tokens);
-    }
-
-    function _closeOverAllocatedAllocation(address _allocationId) internal {
-        assertTrue(subgraphService.isActiveAllocation(_allocationId));
-
-        Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
-        uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
-            allocation.subgraphDeploymentId
-        );
-
-        vm.expectEmit(address(subgraphService));
-        emit AllocationManager.AllocationClosed(
-            allocation.indexer,
-            _allocationId,
-            allocation.subgraphDeploymentId,
-            allocation.tokens
-        );
-
-        // close over allocated allocation
-        subgraphService.closeOverAllocatedAllocation(_allocationId);
+        subgraphService.forceCloseAllocation(_allocationId);
 
         // update allocation
         allocation = subgraphService.getAllocation(_allocationId);

@@ -328,7 +328,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         );
 
         // Check if the indexer is over-allocated and close the allocation if necessary
-        if (_isAllocationOverAllocated(allocation.indexer, _delegationRatio)) {
+        if (_isOverAllocated(allocation.indexer, _delegationRatio)) {
             _closeAllocation(_allocationId);
         }
 
@@ -492,7 +492,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @return True if the allocation is over-allocated, false otherwise
      */
-    function _isAllocationOverAllocated(address _indexer, uint32 _delegationRatio) internal view returns (bool) {
+    function _isOverAllocated(address _indexer, uint32 _delegationRatio) internal view returns (bool) {
         return !allocationProvisionTracker.check(_graphStaking(), _indexer, _delegationRatio);
     }
 }
