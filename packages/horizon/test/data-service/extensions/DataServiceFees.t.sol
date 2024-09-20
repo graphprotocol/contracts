@@ -159,12 +159,12 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         assertEq(beforeLockedStake + calcValues.stakeToLock, afterLockedStake);
 
         // it should create a stake claim
-        (uint256 claimTokens, uint256 createdAt, uint256 releaseAt, bytes32 nextClaim) = dataService.claims(
+        (uint256 claimTokens, uint256 createdAt, uint256 releasableAt, bytes32 nextClaim) = dataService.claims(
             calcValues.predictedClaimId
         );
         assertEq(claimTokens, calcValues.stakeToLock);
         assertEq(createdAt, block.timestamp);
-        assertEq(releaseAt, calcValues.unlockTimestamp);
+        assertEq(releasableAt, calcValues.unlockTimestamp);
         assertEq(nextClaim, bytes32(0));
 
         // it should update the list
@@ -196,12 +196,12 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
             head: beforeHead
         });
         while (calcValues.head != bytes32(0) && (calcValues.claimsCount < numClaimsToRelease || numClaimsToRelease == 0)) {
-            (uint256 claimTokens, , uint256 releaseAt, bytes32 nextClaim) = dataService.claims(calcValues.head);
-            if (releaseAt > block.timestamp) {
+            (uint256 claimTokens, , uint256 releasableAt, bytes32 nextClaim) = dataService.claims(calcValues.head);
+            if (releasableAt > block.timestamp) {
                 break;
             }
 
-            emit IDataServiceFees.StakeClaimReleased(serviceProvider, calcValues.head, claimTokens, releaseAt);
+            emit IDataServiceFees.StakeClaimReleased(serviceProvider, calcValues.head, claimTokens, releasableAt);
             calcValues.head = nextClaim;
             calcValues.tokensReleased += claimTokens;
             calcValues.claimsCount++;

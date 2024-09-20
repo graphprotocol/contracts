@@ -49,7 +49,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         claims[claimId] = StakeClaim({
             tokens: _tokens,
             createdAt: block.timestamp,
-            releaseAt: _unlockTimestamp,
+            releasableAt: _unlockTimestamp,
             nextClaim: bytes32(0)
         });
         if (claimsList.count != 0) claims[claimsList.tail].nextClaim = claimId;
@@ -86,7 +86,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         StakeClaim memory claim = _getStakeClaim(_claimId);
 
         // early exit
-        if (claim.releaseAt > block.timestamp) {
+        if (claim.releasableAt > block.timestamp) {
             return (true, LinkedList.NULL_BYTES);
         }
 
@@ -95,7 +95,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
 
         // process
         feesProvisionTracker.release(serviceProvider, claim.tokens);
-        emit StakeClaimReleased(serviceProvider, _claimId, claim.tokens, claim.releaseAt);
+        emit StakeClaimReleased(serviceProvider, _claimId, claim.tokens, claim.releasableAt);
 
         // encode
         _acc = abi.encode(tokensClaimed + claim.tokens, serviceProvider);

@@ -32,7 +32,7 @@ interface IDataServiceFees is IDataService {
         // Timestamp when the claim was created
         uint256 createdAt;
         // Timestamp when the claim will expire and tokens can be released
-        uint256 releaseAt;
+        uint256 releasableAt;
         // Next claim in the linked list
         bytes32 nextClaim;
     }
@@ -56,13 +56,13 @@ interface IDataServiceFees is IDataService {
      * @param serviceProvider The address of the service provider
      * @param claimId The id of the stake claim
      * @param tokens The amount of tokens released
-     * @param releaseAt The timestamp when the tokens were released
+     * @param releasableAt The timestamp when the tokens were released
      */
     event StakeClaimReleased(
         address indexed serviceProvider,
         bytes32 indexed claimId,
         uint256 tokens,
-        uint256 releaseAt
+        uint256 releasableAt
     );
 
     /**

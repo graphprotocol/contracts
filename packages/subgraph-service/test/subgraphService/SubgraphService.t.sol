@@ -328,7 +328,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             uint64 disputePeriod = disputeManager.getDisputePeriod();
             assertEq(stakeClaim.tokens, tokensToLock);
             assertEq(stakeClaim.createdAt, block.timestamp);
-            assertEq(stakeClaim.releaseAt, block.timestamp + disputePeriod);
+            assertEq(stakeClaim.releasableAt, block.timestamp + disputePeriod);
             assertEq(stakeClaim.nextClaim, bytes32(0));
         } else if (_paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             // Update allocation after collecting rewards
@@ -419,7 +419,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _getStakeClaim(bytes32 _claimId) private view returns (IDataServiceFees.StakeClaim memory) {
-        (uint256 tokens, uint256 createdAt, uint256 releaseAt, bytes32 nextClaim) = subgraphService.claims(_claimId);
-        return IDataServiceFees.StakeClaim(tokens, createdAt, releaseAt, nextClaim);
+        (uint256 tokens, uint256 createdAt, uint256 releasableAt, bytes32 nextClaim) = subgraphService.claims(_claimId);
+        return IDataServiceFees.StakeClaim(tokens, createdAt, releasableAt, nextClaim);
     }
 }
