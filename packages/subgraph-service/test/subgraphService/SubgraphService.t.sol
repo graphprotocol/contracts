@@ -83,7 +83,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint64 thawingPeriodPending = provision.thawingPeriodPending;
 
         vm.expectEmit(address(subgraphService));
-        emit IDataService.ProvisionAccepted(_indexer);
+        emit IDataService.ProvisionPendingParametersAccepted(_indexer);
 
         // Accept provision
         subgraphService.acceptProvisionPendingParameters(_indexer, _data);

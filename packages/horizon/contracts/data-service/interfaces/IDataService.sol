@@ -25,7 +25,7 @@ interface IDataService {
      * @notice Emitted when a service provider accepts a provision in {Graph Horizon staking contract}.
      * @param serviceProvider The address of the service provider.
      */
-    event ProvisionAccepted(address indexed serviceProvider);
+    event ProvisionPendingParametersAccepted(address indexed serviceProvider);
 
     /**
      * @notice Emitted when a service provider starts providing the service.
@@ -83,7 +83,7 @@ interface IDataService {
      * contract}.
      * @dev Provides a way for the data service to validate and accept provision parameter changes. Call {_acceptProvision}.
      *
-     * Emits a {ProvisionAccepted} event.
+     * Emits a {ProvisionPendingParametersAccepted} event.
      *
      * @param serviceProvider The address of the service provider.
      * @param data Custom data, usage defined by the data service.

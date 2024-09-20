@@ -138,7 +138,7 @@ contract SubgraphService is
      * - Must have previously staged provision parameters, using {IHorizonStaking-setProvisionParameters}
      * - The new provision parameters must be valid according to the subgraph service rules
      *
-     * Emits a {ProvisionAccepted} event
+     * Emits a {ProvisionPendingParametersAccepted} event
      *
      * @param indexer The address of the indexer to accept the provision for
      */
@@ -148,7 +148,7 @@ contract SubgraphService is
     ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         _checkProvisionTokens(indexer);
         _acceptProvisionParameters(indexer);
-        emit ProvisionAccepted(indexer);
+        emit ProvisionPendingParametersAccepted(indexer);
     }
 
     /**
