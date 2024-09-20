@@ -79,7 +79,7 @@ interface IDataService {
     function register(address serviceProvider, bytes calldata data) external;
 
     /**
-     * @notice Accepts staged parameters in the provision of a service provider in the {Graph Horizon staking
+     * @notice Accepts pending parameters in the provision of a service provider in the {Graph Horizon staking
      * contract}.
      * @dev Provides a way for the data service to validate and accept provision parameter changes. Call {_acceptProvision}.
      *
