@@ -31,6 +31,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
      * MODIFIERS
      */
 
+    modifier useGovernor() {
+        vm.startPrank(users.governor);
+        _;
+        vm.stopPrank();
+    }
+
     modifier useOperator() {
         resetPrank(users.indexer);
         staking.setOperator(users.operator, address(subgraphService), true);

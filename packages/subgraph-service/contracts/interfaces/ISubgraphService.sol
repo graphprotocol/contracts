@@ -123,6 +123,11 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceAllocationIsAltruistic(address allocationId);
 
     /**
+     * @notice Thrown when trying to set stake to fees ratio to zero
+     */
+    error SubgraphServiceInvalidZeroStakeToFeesRatio();
+
+    /**
      * @notice Close a stale allocation
      * @dev This function can be permissionlessly called when the allocation is stale.
      * This ensures rewards for other allocations are not diluted by an inactive allocation
