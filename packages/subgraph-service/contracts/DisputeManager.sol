@@ -560,7 +560,7 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Resolve the conflicting dispute if there is any for the one passed to this function.
+     * @notice Draw the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if resolved
      */

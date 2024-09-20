@@ -606,7 +606,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Resolve the conflicting dispute if there is any for the one passed to this function.
+     * @dev Draw the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if resolved
      */
