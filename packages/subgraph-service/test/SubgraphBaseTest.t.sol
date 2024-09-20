@@ -189,7 +189,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         resetPrank(users.deployer);
         subgraphService.transferOwnership(users.governor);
         resetPrank(users.governor);
-        staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
+        staking.setMaxThawingPeriod(MAX_WAIT_PERIOD);
         epochManager.setEpochLength(EPOCH_LENGTH);
         subgraphService.setMaxPOIStaleness(maxPOIStaleness);
         subgraphService.setCurationCut(curationCut);
