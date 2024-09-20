@@ -31,7 +31,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     using TokenUtils for IGraphToken;
 
     ///@dev EIP712 typehash for allocation proof
-    bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
+    bytes32 private constant EIP712_ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
 
     /**
