@@ -21,7 +21,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         slashTokens = bound(slashTokens, 1, tokens);
         uint256 maxVerifierTokens = (slashTokens * maxVerifierCut) / MAX_PPM;
         vm.assume(verifierCutAmount <= maxVerifierTokens);
-        
+
         vm.startPrank(subgraphDataServiceAddress);
         _slash(users.indexer, subgraphDataServiceAddress, slashTokens, verifierCutAmount);
     }
@@ -35,7 +35,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         slashTokens = bound(slashTokens, 1, tokens);
         uint256 maxVerifierTokens = (slashTokens * maxVerifierCut) / MAX_PPM;
         vm.assume(verifierCutAmount > maxVerifierTokens);
-        
+
         vm.startPrank(subgraphDataServiceAddress);
         vm.assume(slashTokens > 0);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -71,7 +71,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 slashTokens,
         uint256 verifierCutAmount,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing() {
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         slashTokens = bound(slashTokens, tokens + 1, tokens + delegationTokens);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_MAX_VERIFIER_CUT);
@@ -92,15 +92,12 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
     ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         vm.assume(slashTokens > tokens + delegationTokens);
-        
+
         vm.startPrank(subgraphDataServiceAddress);
         _slash(users.indexer, subgraphDataServiceAddress, slashTokens, 0);
     }
 
-    function testSlash_RevertWhen_NoProvision(
-        uint256 tokens,
-        uint256 slashTokens
-    ) public useIndexer useStake(tokens) {
+    function testSlash_RevertWhen_NoProvision(uint256 tokens, uint256 slashTokens) public useIndexer useStake(tokens) {
         vm.assume(slashTokens > 0);
         bytes memory expectedError = abi.encodeWithSelector(
             IHorizonStakingMain.HorizonStakingInsufficientTokens.selector,
@@ -110,5 +107,40 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         vm.expectRevert(expectedError);
         vm.startPrank(subgraphDataServiceAddress);
         staking.slash(users.indexer, slashTokens, 0, subgraphDataServiceAddress);
+    }
+
+    function testSlash_Everything(
+        uint256 tokens,
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing {
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+
+        resetPrank(users.delegator);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
+
+        vm.startPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
+    }
+
+    function testSlash_Everything_WithUndelegation(
+        uint256 tokens
+    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing {
+        uint256 delegationTokens = MAX_STAKING_TOKENS / 10;
+
+        resetPrank(users.delegator);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
+
+        // undelegate half shares so we have some thawing shares/tokens
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
+        resetPrank(users.delegator);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares / 2);
+
+        vm.startPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
     }
 }

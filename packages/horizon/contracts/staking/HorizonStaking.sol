@@ -402,6 +402,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 (FIXED_POINT_PRECISION);
             prov.tokens = prov.tokens - providerTokensSlashed;
 
+            // Reset provision's thawing pool if all thawing tokens were slashed
+            if (prov.tokensThawing == 0) {
+                prov.sharesThawing = 0;
+                prov.thawingNonce++;
+            }
+
             // Service provider accounting
             _serviceProviders[serviceProvider].tokensProvisioned =
                 _serviceProviders[serviceProvider].tokensProvisioned -
@@ -428,6 +434,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 pool.tokensThawing =
                     (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
                     FIXED_POINT_PRECISION;
+
+                // Reset delegation pool's thawing pool if all thawing tokens were slashed
+                if (pool.tokensThawing == 0) {
+                    pool.sharesThawing = 0;
+                    pool.thawingNonce++;
+                }
 
                 emit DelegationSlashed(serviceProvider, verifier, tokensToSlash);
             } else {
@@ -638,7 +650,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             thawingPeriod: _thawingPeriod,
             createdAt: uint64(block.timestamp),
             maxVerifierCutPending: _maxVerifierCut,
-            thawingPeriodPending: _thawingPeriod
+            thawingPeriodPending: _thawingPeriod,
+            thawingNonce: 0
         });
 
         ServiceProviderInternal storage sp = _serviceProviders[_serviceProvider];
@@ -666,6 +679,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /**
      * @notice See {IHorizonStakingMain-thaw}.
+     * @dev We use a thawing pool to keep track of tokens thawing for multiple thaw requests.
+     * If due to slashing the thawing pool looses all of it's tokens, the pool is reset and all pending thaw
+     * requests are invalidated.
      */
     function _thaw(address _serviceProvider, address _verifier, uint256 _tokens) private returns (bytes32) {
         require(_tokens != 0, HorizonStakingInvalidZeroTokens());
@@ -673,18 +689,27 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(tokensAvailable >= _tokens, HorizonStakingInsufficientTokens(tokensAvailable, _tokens));
 
         Provision storage prov = _provisions[_serviceProvider][_verifier];
-        uint256 thawingShares = prov.sharesThawing == 0 ? _tokens : (prov.sharesThawing * _tokens) / prov.tokensThawing;
+
+        bool initializeThawingPool = prov.tokensThawing == 0;
+        uint256 thawingShares = initializeThawingPool ? _tokens : ((prov.sharesThawing * _tokens) / prov.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(prov.thawingPeriod));
 
-        prov.tokensThawing = prov.tokensThawing + _tokens;
+        // Safety check to ensure pool has no shares when being initialized
+        // This should never happen if the pool is correctly reset or it's the first initialization
+        if (initializeThawingPool) {
+            prov.sharesThawing = 0;
+        }
+
         prov.sharesThawing = prov.sharesThawing + thawingShares;
+        prov.tokensThawing = prov.tokensThawing + _tokens;
 
         bytes32 thawRequestId = _createThawRequest(
             _serviceProvider,
             _verifier,
             _serviceProvider,
             thawingShares,
-            thawingUntil
+            thawingUntil,
+            prov.thawingNonce
         );
         emit ProvisionThawed(_serviceProvider, _verifier, _tokens);
         return thawRequestId;
@@ -705,7 +730,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _serviceProvider,
             tokensThawing,
             sharesThawing,
-            _nThawRequests
+            _nThawRequests,
+            prov.thawingNonce
         );
 
         prov.tokens = prov.tokens - tokensThawed;
@@ -755,22 +781,39 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-undelegate}.
      * @dev To allow delegation to be slashable even while thawing without breaking accounting
      * the delegation pool shares are burned and replaced with thawing pool shares.
+     * @dev Note that due to slashing the delegation pool can enter an invalid state if all it's tokens are slashed.
+     * An invalid pool can only be recovered by adding back tokens into the pool with {IHorizonStakingMain-addToDelegationPool}.
+     * Any time the delegation pool is invalidated, the thawing pool is also reset and any pending undelegate requests get
+     * invalidated.
      */
     function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         DelegationInternal storage delegation = pool.delegators[msg.sender];
         require(delegation.shares >= _shares, HorizonStakingInsufficientShares(delegation.shares, _shares));
+
+        // An invalid delegation pool has shares but no tokens
         require(pool.tokens != 0, HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier));
 
+        // Convert delegation pool shares to thawing pool shares
+        // delegation pool shares -> delegation pool tokens -> thawing pool shares
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-        uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
+        bool initializeThawingPool = pool.tokensThawing == 0;
+        uint256 thawingShares = initializeThawingPool ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(_provisions[_serviceProvider][_verifier].thawingPeriod));
-        pool.shares = pool.shares - _shares;
+
+        // Safety check to ensure thawing pool has no shares when being initialized
+        // This should never happen if the pool is correctly reset or it's the first initialization
+        if (initializeThawingPool) {
+            pool.sharesThawing = 0;
+        }
+
         pool.tokensThawing = pool.tokensThawing + tokens;
         pool.sharesThawing = pool.sharesThawing + thawingShares;
 
+        pool.shares = pool.shares - _shares;
         delegation.shares = delegation.shares - _shares;
+
         // TODO: remove this when L2 transfer tools are removed
         if (delegation.shares != 0) {
             uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
@@ -785,7 +828,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _verifier,
             msg.sender,
             thawingShares,
-            thawingUntil
+            thawingUntil,
+            pool.thawingNonce
         );
 
         emit TokensUndelegated(_serviceProvider, _verifier, msg.sender, tokens);
@@ -814,7 +858,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             msg.sender,
             tokensThawing,
             sharesThawing,
-            _nThawRequests
+            _nThawRequests,
+            pool.thawingNonce
         );
 
         pool.tokens = pool.tokens - tokensThawed;
@@ -843,6 +888,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _owner The address of the owner of the thaw request
      * @param _shares The number of shares to thaw
      * @param _thawingUntil The timestamp until which the shares are thawing
+     * @param _thawingNonce Owner's validity nonce for the thaw request
      * @return The ID of the thaw request
      */
     function _createThawRequest(
@@ -850,13 +896,19 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address _verifier,
         address _owner,
         uint256 _shares,
-        uint64 _thawingUntil
+        uint64 _thawingUntil,
+        uint256 _thawingNonce
     ) private returns (bytes32) {
         LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
         require(thawRequestList.count < MAX_THAW_REQUESTS, HorizonStakingTooManyThawRequests());
 
         bytes32 thawRequestId = keccak256(abi.encodePacked(_serviceProvider, _verifier, _owner, thawRequestList.nonce));
-        _thawRequests[thawRequestId] = ThawRequest({ shares: _shares, thawingUntil: _thawingUntil, next: bytes32(0) });
+        _thawRequests[thawRequestId] = ThawRequest({
+            shares: _shares,
+            thawingUntil: _thawingUntil,
+            next: bytes32(0),
+            thawingNonce: _thawingNonce
+        });
 
         if (thawRequestList.count != 0) _thawRequests[thawRequestList.tail].next = thawRequestId;
         thawRequestList.addTail(thawRequestId);
@@ -874,6 +926,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _tokensThawing The current amount of tokens already thawing
      * @param _sharesThawing The current amount of shares already thawing
      * @param _nThawRequests The number of thaw requests to fulfill. If set to 0, all thaw requests are fulfilled.
+     * @param _thawingNonce The current valid thawing nonce. Any thaw request with a different nonce is invalid and should be ignored.
      * @return The amount of thawed tokens
      * @return The amount of tokens still thawing
      * @return The amount of shares still thawing
@@ -884,7 +937,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address _owner,
         uint256 _tokensThawing,
         uint256 _sharesThawing,
-        uint256 _nThawRequests
+        uint256 _nThawRequests,
+        uint256 _thawingNonce
     ) private returns (uint256, uint256, uint256) {
         LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
         require(thawRequestList.count > 0, HorizonStakingNothingThawing());
@@ -894,7 +948,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _getNextThawRequest,
             _fulfillThawRequest,
             _deleteThawRequest,
-            abi.encode(tokensThawed, _tokensThawing, _sharesThawing),
+            abi.encode(tokensThawed, _tokensThawing, _sharesThawing, _thawingNonce),
             _nThawRequests
         );
 
@@ -923,20 +977,30 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
 
         // decode
-        (uint256 tokensThawed, uint256 tokensThawing, uint256 sharesThawing) = abi.decode(
+        (uint256 tokensThawed, uint256 tokensThawing, uint256 sharesThawing, uint256 thawingNonce) = abi.decode(
             _acc,
-            (uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256)
         );
 
-        // process
-        uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-        tokensThawing = tokensThawing - tokens;
-        sharesThawing = sharesThawing - thawRequest.shares;
-        tokensThawed = tokensThawed + tokens;
-        emit ThawRequestFulfilled(_thawRequestId, tokens, thawRequest.shares, thawRequest.thawingUntil);
+        // process - only fulfill thaw requests for the current valid nonce
+        uint256 tokens = 0;
+        bool invalidThawRequest = thawRequest.thawingNonce != thawingNonce;
+        if (!invalidThawRequest) {
+            tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+            tokensThawing = tokensThawing - tokens;
+            sharesThawing = sharesThawing - thawRequest.shares;
+            tokensThawed = tokensThawed + tokens;
+        }
+        emit ThawRequestFulfilled(
+            _thawRequestId,
+            tokens,
+            thawRequest.shares,
+            thawRequest.thawingUntil,
+            !invalidThawRequest
+        );
 
         // encode
-        _acc = abi.encode(tokensThawed, tokensThawing, sharesThawing);
+        _acc = abi.encode(tokensThawed, tokensThawing, sharesThawing, thawingNonce);
         return (false, _acc);
     }
 

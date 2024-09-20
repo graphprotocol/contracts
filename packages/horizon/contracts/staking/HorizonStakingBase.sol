@@ -96,6 +96,7 @@ abstract contract HorizonStakingBase is
         pool.shares = poolInternal.shares;
         pool.tokensThawing = poolInternal.tokensThawing;
         pool.sharesThawing = poolInternal.sharesThawing;
+        pool.thawingNonce = poolInternal.thawingNonce;
         return pool;
     }
 

@@ -17,7 +17,12 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 delegationAmount
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 
@@ -31,7 +36,12 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
 
         // there is a min delegation amount of 1 ether after undelegating
         uint256 undelegateAmount = (delegation.shares - 1 ether) / undelegateSteps;
@@ -73,7 +83,12 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 overDelegationShares
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
         overDelegationShares = bound(overDelegationShares, delegation.shares + 1, MAX_STAKING_TOKENS + 1);
 
         bytes memory expectedError = abi.encodeWithSignature(
@@ -109,28 +124,105 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         resetPrank(users.delegator);
         _delegate(users.indexer, delegationAmount);
 
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, true);
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            true
+        );
         _undelegate(users.indexer, delegation.shares);
     }
 
     function testUndelegate_RevertWhen_InvalidPool(
         uint256 tokens,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         resetPrank(subgraphDataServiceAddress);
         _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
-        
+
         resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
-        vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
+        DelegationInternal memory delegation = _getStorage_Delegation(
             users.indexer,
-            subgraphDataServiceAddress
-        ));
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
+                users.indexer,
+                subgraphDataServiceAddress
+            )
+        );
         staking.undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
+    }
+
+    function testUndelegate_RecoverInvalidPool(
+        uint256 tokens,
+        uint256 delegationTokens
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing {
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        // delegate
+        resetPrank(users.delegator);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
+
+        // slash all of the provision + delegation
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
+
+        // recover the delegation pool
+        resetPrank(users.indexer);
+        token.approve(address(staking), delegationTokens);
+        _addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationTokens);
+
+        // undelegate -- should now work
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
+        resetPrank(users.delegator);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
+    }
+
+    function testUndelegate_InvalidateThawRequest_AfterRecoveringInvalidPool()
+        public
+        useIndexer
+        useProvision(MAX_STAKING_TOKENS, 0, 0)
+        useDelegationSlashing
+    {
+        uint256 delegationTokens = MAX_STAKING_TOKENS / 10;
+
+        // delegate
+        resetPrank(users.delegator);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
+
+        // undelegate half shares so we have some thawing shares/tokens
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
+        resetPrank(users.delegator);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares / 2);
+
+        // slash all of the provision + delegation
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, MAX_STAKING_TOKENS + delegationTokens, 0);
+
+        // recover the delegation pool
+        resetPrank(users.indexer);
+        token.approve(address(staking), delegationTokens);
+        _addToDelegationPool(users.indexer, subgraphDataServiceAddress, delegationTokens);
+
+        // undelegate the rest
+        resetPrank(users.delegator);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares - delegation.shares / 2);
     }
 }

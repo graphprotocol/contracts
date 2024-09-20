@@ -254,8 +254,15 @@ interface IHorizonStakingMain {
      * @param tokens The amount of tokens being released
      * @param shares The amount of shares being released
      * @param thawingUntil The timestamp until the stake has thawed
+     * @param valid Whether the thaw request was valid at the time of fulfillment
      */
-    event ThawRequestFulfilled(bytes32 indexed thawRequestId, uint256 tokens, uint256 shares, uint64 thawingUntil);
+    event ThawRequestFulfilled(
+        bytes32 indexed thawRequestId,
+        uint256 tokens,
+        uint256 shares,
+        uint64 thawingUntil,
+        bool valid
+    );
 
     /**
      * @notice Emitted when a series of thaw requests are fulfilled.
