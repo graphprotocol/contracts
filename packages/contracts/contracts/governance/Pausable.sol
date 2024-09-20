@@ -14,7 +14,7 @@ abstract contract Pausable {
     bool internal _paused;
 
     /// Timestamp for the last time the partial pause was set
-    uint256 public lastPausePartialTime;
+    uint256 public lastPartialPauseTime;
     /// Timestamp for the last time the full pause was set
     uint256 public lastPauseTime;
 
@@ -39,7 +39,7 @@ abstract contract Pausable {
         }
         _partialPaused = _toPartialPause;
         if (_partialPaused) {
-            lastPausePartialTime = block.timestamp;
+            lastPartialPauseTime = block.timestamp;
         }
         emit PartialPauseChanged(_partialPaused);
     }
