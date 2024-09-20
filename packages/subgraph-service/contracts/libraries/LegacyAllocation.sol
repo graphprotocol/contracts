@@ -52,9 +52,7 @@ library LegacyAllocation {
         address allocationId,
         bytes32 subgraphDeploymentId
     ) internal {
-        if (self[allocationId].exists()) {
-            revert LegacyAllocationAlreadyMigrated(allocationId);
-        }
+        require(!self[allocationId].exists(), LegacyAllocationAlreadyMigrated(allocationId);
 
         State memory allocation = State({ indexer: indexer, subgraphDeploymentId: subgraphDeploymentId });
         self[allocationId] = allocation;
