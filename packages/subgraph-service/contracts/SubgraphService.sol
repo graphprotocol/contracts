@@ -8,6 +8,7 @@ import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewa
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { DataServicePausableUpgradeable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
 import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataService.sol";
@@ -24,6 +25,7 @@ import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 contract SubgraphService is
     Initializable,
     OwnableUpgradeable,
+    MulticallUpgradeable,
     DataService,
     DataServicePausableUpgradeable,
     DataServiceFees,
@@ -77,6 +79,7 @@ contract SubgraphService is
         uint256 stakeToFeesRatio
     ) external initializer {
         __Ownable_init(msg.sender);
+        __Multicall_init();
         __DataService_init();
         __DataServicePausable_init();
         __AllocationManager_init("SubgraphService", "1.0");
