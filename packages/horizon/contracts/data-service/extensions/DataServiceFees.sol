@@ -22,8 +22,8 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     /**
      * @notice See {IDataServiceFees-releaseStake}
      */
-    function releaseStake(uint256 n) external virtual override {
-        _releaseStake(msg.sender, n);
+    function releaseStake(uint256 numClaimsToRelease) external virtual override {
+        _releaseStake(msg.sender, numClaimsToRelease);
     }
 
     /**
@@ -61,14 +61,14 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     /**
      * @notice See {IDataServiceFees-releaseStake}
      */
-    function _releaseStake(address _serviceProvider, uint256 _n) internal {
+    function _releaseStake(address _serviceProvider, uint256 _numClaimsToRelease) internal {
         LinkedList.List storage claimsList = claimsLists[_serviceProvider];
         (uint256 claimsReleased, bytes memory data) = claimsList.traverse(
             _getNextStakeClaim,
             _processStakeClaim,
             _deleteStakeClaim,
             abi.encode(0, _serviceProvider),
-            _n
+            _numClaimsToRelease
         );
 
         emit StakeClaimsReleased(_serviceProvider, claimsReleased, abi.decode(data, (uint256)));

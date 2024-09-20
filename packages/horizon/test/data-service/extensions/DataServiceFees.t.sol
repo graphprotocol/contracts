@@ -81,14 +81,14 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
     function test_Release_WhenNIsValid(
         uint256 tokens,
         uint256 steps,
-        uint256 n
+        uint256 numClaimsToRelease
     ) external useIndexer useProvisionDataService(address(dataService), PROVISION_TOKENS, 0, 0) {
         // lock all provisioned stake in steps
         // limit tokens to at least 1 per step
         // limit steps to at least 15 so we stagger locks every 5 seconds to have some expired
         tokens = bound(tokens, 50, PROVISION_TOKENS / dataService.STAKE_TO_FEES_RATIO());
         steps = bound(steps, 15, 50);
-        n = bound(n, 0, steps);
+        numClaimsToRelease = bound(numClaimsToRelease, 0, steps);
 
         uint256 stepAmount = tokens / steps;
 
@@ -99,7 +99,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         }
 
         // it should release all expired claims
-        _assert_releaseStake(users.indexer, n);
+        _assert_releaseStake(users.indexer, numClaimsToRelease);
     }
 
     function test_Release_WhenNIsNotValid(
@@ -180,7 +180,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         uint256 tokensReleased;
         bytes32 head;
     }
-    function _assert_releaseStake(address serviceProvider, uint256 n) private {
+    function _assert_releaseStake(address serviceProvider, uint256 numClaimsToRelease) private {
         // before state
         (bytes32 beforeHead, bytes32 beforeTail, uint256 beforeNonce, uint256 beforeCount) = dataService.claimsLists(
             serviceProvider
@@ -195,7 +195,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
             tokensReleased: 0,
             head: beforeHead
         });
-        while (calcValues.head != bytes32(0) && (calcValues.claimsCount < n || n == 0)) {
+        while (calcValues.head != bytes32(0) && (calcValues.claimsCount < numClaimsToRelease || numClaimsToRelease == 0)) {
             (uint256 claimTokens, , uint256 releaseAt, bytes32 nextClaim) = dataService.claims(calcValues.head);
             if (releaseAt > block.timestamp) {
                 break;
@@ -209,7 +209,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
 
         // it should emit a an event
         emit IDataServiceFees.StakeClaimsReleased(serviceProvider, calcValues.claimsCount, calcValues.tokensReleased);
-        dataService.releaseStake(n);
+        dataService.releaseStake(numClaimsToRelease);
 
         // after state
         (bytes32 afterHead, bytes32 afterTail, uint256 afterNonce, uint256 afterCount) = dataService.claimsLists(

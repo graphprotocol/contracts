@@ -89,7 +89,7 @@ interface IDataServiceFees is IDataService {
      * stake claims that releasing them all at once would exceed the block gas limit.
      * @dev This function can be overriden and/or disabled.
      * @dev Emits a {StakeClaimsReleased} event, and a {StakeClaimReleased} event for each claim released.
-     * @param n Amount of stake claims to process. If 0, all stake claims are processed.
+     * @param numClaimsToRelease Amount of stake claims to process. If 0, all stake claims are processed.
      */
-    function releaseStake(uint256 n) external;
+    function releaseStake(uint256 numClaimsToRelease) external;
 }
