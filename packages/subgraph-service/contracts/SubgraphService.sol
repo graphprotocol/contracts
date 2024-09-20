@@ -110,7 +110,7 @@ contract SubgraphService is
     function register(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyValidProvision(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyValidProvision(indexer) whenNotPaused {
         (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
             data,
             (string, string, address)
@@ -145,7 +145,7 @@ contract SubgraphService is
     function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         _checkProvisionTokens(indexer);
         _acceptProvisionParameters(indexer);
         emit ProvisionAccepted(indexer);
@@ -181,7 +181,7 @@ contract SubgraphService is
     )
         external
         override
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -216,7 +216,7 @@ contract SubgraphService is
     function stopService(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         require(
             allocations.get(allocationId).indexer == indexer,
@@ -254,7 +254,7 @@ contract SubgraphService is
     )
         external
         override
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -326,7 +326,7 @@ contract SubgraphService is
         uint256 tokens
     )
         external
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused

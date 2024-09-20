@@ -82,7 +82,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     /**
      * @notice Checks if the caller is authorized to manage the provision of a service provider.
      */
-    modifier onlyProvisionAuthorized(address serviceProvider) {
+    modifier onlyAuthorizedForProvision(address serviceProvider) {
         require(
             _graphStaking().isAuthorized(msg.sender, serviceProvider, address(this)),
             ProvisionManagerNotAuthorized(msg.sender, serviceProvider)
