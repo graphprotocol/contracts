@@ -138,12 +138,16 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+
+        // delegate
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
+        // slash all of the provision + delegation
         resetPrank(subgraphDataServiceAddress);
         _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
 
+        // attempt to undelegate - should revert
         resetPrank(users.delegator);
         DelegationInternal memory delegation = _getStorage_Delegation(
             users.indexer,
@@ -161,11 +165,12 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         staking.undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 
-    function testUndelegate_RecoverInvalidPool(
+    function testUndelegate_AfterRecoveringPool(
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+
         // delegate
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
@@ -190,7 +195,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 
-    function testUndelegate_InvalidateThawRequest_AfterRecoveringInvalidPool()
+    function testUndelegate_ThawingShares_AfterRecoveringPool()
         public
         useIndexer
         useProvision(MAX_STAKING_TOKENS, 0, 0)

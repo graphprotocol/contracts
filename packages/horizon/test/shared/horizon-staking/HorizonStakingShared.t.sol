@@ -352,6 +352,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, uint64(block.timestamp));
         assertEq(afterProvision.maxVerifierCutPending, maxVerifierCut);
         assertEq(afterProvision.thawingPeriodPending, thawingPeriod);
+        assertEq(afterProvision.thawingNonce, 0);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
         assertEq(afterServiceProvider.tokensProvisioned, tokens + beforeServiceProvider.tokensProvisioned);
         assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
@@ -385,6 +386,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
         assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned + tokens);
         assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
@@ -447,6 +449,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
         assertEq(thawRequestId, expectedThawRequestId);
         assertEq(afterThawRequest.shares, thawingShares);
         assertEq(afterThawRequest.thawingUntil, block.timestamp + beforeProvision.thawingPeriod);
@@ -525,6 +528,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
         assertEq(
             afterServiceProvider.tokensProvisioned,
@@ -638,6 +642,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeValues.provision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeValues.provision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeValues.provision.thawingPeriodPending);
+        assertEq(afterProvision.thawingNonce, beforeValues.provision.thawingNonce);
 
         // assert: provision new verifier
         assertEq(afterProvisionNewVerifier.tokens, beforeValues.provisionNewVerifier.tokens + tokens);
@@ -654,6 +659,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             afterProvisionNewVerifier.thawingPeriodPending,
             beforeValues.provisionNewVerifier.thawingPeriodPending
         );
+        assertEq(afterProvisionNewVerifier.thawingNonce, beforeValues.provisionNewVerifier.thawingNonce);
 
         // assert: service provider
         assertEq(afterServiceProvider.tokensStaked, beforeValues.serviceProvider.tokensStaked);
@@ -737,6 +743,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, maxVerifierCut);
         assertEq(afterProvision.thawingPeriodPending, thawingPeriod);
+        assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
     }
 
     function _acceptProvisionParameters(address serviceProvider) internal {
@@ -772,6 +779,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriodPending);
         assertEq(afterProvision.thawingPeriod, afterProvision.thawingPeriodPending);
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
     }
 
     function _setOperator(address operator, address verifier, bool allow) internal {
@@ -880,6 +888,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(beforePool.shares + calcShares, afterPool.shares);
         assertEq(beforePool.tokensThawing, afterPool.tokensThawing);
         assertEq(beforePool.sharesThawing, afterPool.sharesThawing);
+        assertEq(beforePool.thawingNonce, afterPool.thawingNonce);
         assertEq(beforeDelegation.shares + calcShares, afterDelegation.shares);
         assertEq(beforeDelegation.__DEPRECATED_tokensLocked, afterDelegation.__DEPRECATED_tokensLocked);
         assertEq(beforeDelegation.__DEPRECATED_tokensLockedUntil, afterDelegation.__DEPRECATED_tokensLockedUntil);
@@ -979,6 +988,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 : beforeValues.pool.sharesThawing + calcValues.thawingShares,
             afterPool.sharesThawing
         );
+        assertEq(beforeValues.pool.thawingNonce, afterPool.thawingNonce);
         assertEq(beforeValues.delegation.shares - shares, afterDelegation.shares);
         assertEq(afterThawRequest.shares, calcValues.thawingShares);
         assertEq(afterThawRequest.thawingUntil, calcValues.thawingUntil);
@@ -1118,6 +1128,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterValues.pool.shares, beforeValues.pool.shares);
         assertEq(afterValues.pool.tokensThawing, calcValues.tokensThawing);
         assertEq(afterValues.pool.sharesThawing, calcValues.sharesThawing);
+        assertEq(afterValues.pool.thawingNonce, beforeValues.pool.thawingNonce);
 
         for (uint i = 0; i < calcValues.thawRequestsFulfilledListIds.length; i++) {
             ThawRequest memory thawRequest = staking.getThawRequest(calcValues.thawRequestsFulfilledListIds[i]);
@@ -1217,6 +1228,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(beforePool.shares, afterPool.shares);
         assertEq(beforePool.tokensThawing, afterPool.tokensThawing);
         assertEq(beforePool.sharesThawing, afterPool.sharesThawing);
+        assertEq(beforePool.thawingNonce, afterPool.thawingNonce);
     }
 
     function _setDelegationFeeCut(
@@ -1380,6 +1392,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             assertEq(beforeValues.pool.shares, afterPool.shares);
             assertEq(beforeValues.pool.tokensThawing, afterPool.tokensThawing);
             assertEq(beforeValues.pool.sharesThawing, afterPool.sharesThawing);
+            assertEq(beforeValues.pool.thawingNonce, afterPool.thawingNonce);
             assertEq(0, afterDelegation.shares - beforeValues.delegation.shares);
             assertEq(beforeValues.delegatedTokens, afterDelegatedTokens);
             assertEq(beforeValues.delegatorBalance + tokens, afterDelegatorBalance);
@@ -1389,6 +1402,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             assertEq(beforeValues.pool.shares + calcShares, afterPool.shares);
             assertEq(beforeValues.pool.tokensThawing, afterPool.tokensThawing);
             assertEq(beforeValues.pool.sharesThawing, afterPool.sharesThawing);
+            assertEq(beforeValues.pool.thawingNonce, afterPool.thawingNonce);
             assertEq(calcShares, afterDelegation.shares - beforeValues.delegation.shares);
             assertEq(beforeValues.delegatedTokens + tokens, afterDelegatedTokens);
             assertEq(beforeValues.delegatorBalance, afterDelegatorBalance);
@@ -1494,7 +1508,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             assertEq(afterProvision.maxVerifierCutPending, before.provision.maxVerifierCutPending);
             assertEq(afterProvision.thawingPeriod, before.provision.thawingPeriod);
             assertEq(afterProvision.thawingPeriodPending, before.provision.thawingPeriodPending);
-
+            assertEq(
+                afterProvision.thawingNonce, 
+                afterProvision.tokens == 0 ? before.provision.thawingNonce + 1 : before.provision.thawingNonce);
             if (isDelegationSlashingEnabled) {
                 uint256 poolThawingTokens = (before.pool.tokensThawing *
                     (1e18 - ((calcValues.delegationTokensSlashed * 1e18) / before.pool.tokens))) / (1e18);
@@ -1502,6 +1518,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 assertEq(afterPool.shares, before.pool.shares);
                 assertEq(afterPool.tokensThawing, poolThawingTokens);
                 assertEq(afterPool.sharesThawing, afterPool.tokensThawing == 0 ? 0 : before.pool.sharesThawing);
+                assertEq(afterPool.thawingNonce, afterPool.tokens == 0 ? before.pool.thawingNonce + 1 : before.pool.thawingNonce);
             }
 
             assertEq(before.stakingBalance - tokensSlashed, afterStakingBalance);
@@ -1819,6 +1836,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterValues.pool.shares, beforeValues.pool.shares);
         assertEq(afterValues.pool.tokensThawing, beforeValues.pool.tokensThawing);
         assertEq(afterValues.pool.sharesThawing, beforeValues.pool.sharesThawing);
+        assertEq(afterValues.pool.thawingNonce, beforeValues.pool.thawingNonce);
 
         assertEq(afterValues.serviceProvider.tokensProvisioned, beforeValues.serviceProvider.tokensProvisioned);
         if (rewardsDestination != address(0)) {
@@ -2295,14 +2313,17 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bytes32 thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0) && (iterations == 0 || thawRequestsFulfilled < iterations)) {
             ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
+            bool isThawRequestValid = thawRequest.thawingNonce == (delegation ? pool.thawingNonce : prov.thawingNonce);
             if (thawRequest.thawingUntil <= block.timestamp) {
                 thawRequestsFulfilled++;
-                uint256 tokens = delegation
-                    ? (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing
-                    : (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
-                tokensThawed += tokens;
-                tokensThawing -= tokens;
-                sharesThawing -= thawRequest.shares;
+                if (isThawRequestValid) {
+                    uint256 tokens = delegation
+                        ? (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing
+                        : (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
+                    tokensThawed += tokens;
+                    tokensThawing -= tokens;
+                    sharesThawing -= thawRequest.shares;
+                }
             } else {
                 break;
             }
@@ -2317,11 +2338,14 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0) && (iterations == 0 || i < iterations)) {
             ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
+            bool isThawRequestValid = thawRequest.thawingNonce == (delegation ? pool.thawingNonce : prov.thawingNonce);
+
             if (thawRequest.thawingUntil <= block.timestamp) {
-                uint256 tokens = delegation
-                    ? (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing
-                    : (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
-                thawRequestsFulfilledListTokens[i] = tokens;
+                if (isThawRequestValid) {
+                    thawRequestsFulfilledListTokens[i] = delegation
+                        ? (thawRequest.shares * pool.tokensThawing) / pool.sharesThawing
+                        : (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
+                }
                 thawRequestsFulfilledListIds[i] = thawRequestId;
                 thawRequestsFulfilledList[i] = staking.getThawRequest(thawRequestId);
                 thawRequestId = thawRequestsFulfilledList[i].next;

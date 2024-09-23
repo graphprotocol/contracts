@@ -75,7 +75,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         staking.addToDelegationPool(users.indexer, subgraphDataServiceAddress, 1);
     }
 
-    function test_Deletaion_AddToPool_RevertWhen_NoProvision() public {
+    function test_Delegation_AddToPool_RevertWhen_NoProvision() public {
         vm.startPrank(subgraphDataServiceAddress);
         bytes memory expectedError = abi.encodeWithSelector(
             IHorizonStakingMain.HorizonStakingInvalidProvision.selector,
@@ -86,5 +86,26 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         staking.addToDelegationPool(users.indexer, subgraphDataServiceAddress, 1);
     }
 
-    // TODO: test recovering an invalid delegation pool
+
+    function test_Delegation_AddToPool_WhenInvalidPool(
+        uint256 tokens,
+        uint256 delegationTokens,
+        uint256 recoverAmount
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
+        recoverAmount = bound(recoverAmount, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+
+        // create delegation pool
+        resetPrank(users.delegator);
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
+
+        // slash entire provision + pool
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
+
+        // recover pool by adding tokens
+        resetPrank(users.indexer);
+        token.approve(address(staking), recoverAmount);
+        _addToDelegationPool(users.indexer, subgraphDataServiceAddress, recoverAmount);
+    }
 }

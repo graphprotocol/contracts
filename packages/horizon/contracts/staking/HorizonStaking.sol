@@ -286,7 +286,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // Delegation pool must exist before adding tokens
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
-        require(pool.shares > 0, HorizonStakingInvalidDelegationPool(serviceProvider, verifier));
+        require(
+            pool.shares > 0 || pool.sharesThawing > 0,
+            HorizonStakingInvalidDelegationPool(serviceProvider, verifier)
+        );
 
         pool.tokens = pool.tokens + tokens;
         _graphToken().pullTokens(msg.sender, tokens);
@@ -402,8 +405,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 (FIXED_POINT_PRECISION);
             prov.tokens = prov.tokens - providerTokensSlashed;
 
-            // Reset provision's thawing pool if all thawing tokens were slashed
-            if (prov.tokensThawing == 0) {
+            // Reset provision's thawing pool if provision was fully slashed
+            if (prov.tokens == 0 && prov.tokensThawing == 0) {
                 prov.sharesThawing = 0;
                 prov.thawingNonce++;
             }
@@ -435,8 +438,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                     (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
                     FIXED_POINT_PRECISION;
 
-                // Reset delegation pool's thawing pool if all thawing tokens were slashed
-                if (pool.tokensThawing == 0) {
+                // Reset delegation pool's thawing pool if pool was fully slashed
+                if (pool.tokens == 0 && pool.tokensThawing == 0) {
                     pool.sharesThawing = 0;
                     pool.thawingNonce++;
                 }
@@ -690,12 +693,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         Provision storage prov = _provisions[_serviceProvider][_verifier];
 
+        // Calculate shares to issue
+        // Thawing pool is reset/initialized in any of the following cases:
+        // - prov.tokensThawing == 0, pool is empty
         bool initializeThawingPool = prov.tokensThawing == 0;
         uint256 thawingShares = initializeThawingPool ? _tokens : ((prov.sharesThawing * _tokens) / prov.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(prov.thawingPeriod));
 
         // Safety check to ensure pool has no shares when being initialized
-        // This should never happen if the pool is correctly reset or it's the first initialization
+        // This should never happen if the pool was reset due to slashing or it's the first initialization
         if (initializeThawingPool) {
             prov.sharesThawing = 0;
         }
@@ -758,15 +764,19 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         DelegationInternal storage delegation = pool.delegators[msg.sender];
 
+        // An invalid delegation pool has shares or thawing shares but no tokens
         require(
             pool.tokens != 0 || (pool.shares == 0 && pool.sharesThawing == 0),
             HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier)
         );
 
         // Calculate shares to issue
-        uint256 shares = (pool.tokens == 0 || pool.tokens == pool.tokensThawing)
-            ? _tokens
-            : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
+        // Delegation pool is reset/initialized in any of the following cases:
+        // - pool.tokens == 0 and pool.shares == 0, pool is completely empty. Note that we don't test shares == 0 because
+        //   the invalid delegation pool check already ensures shares are 0 if tokens are 0
+        // - pool.tokens == pool.tokensThawing, the entire pool is thawing
+        bool initializePool = pool.tokens == 0 || pool.tokens == pool.tokensThawing;
+        uint256 shares = initializePool ? _tokens : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
         require(shares != 0 && shares >= _minSharesOut, HorizonStakingSlippageProtection(shares, _minSharesOut));
 
         pool.tokens = pool.tokens + _tokens;
@@ -784,7 +794,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev Note that due to slashing the delegation pool can enter an invalid state if all it's tokens are slashed.
      * An invalid pool can only be recovered by adding back tokens into the pool with {IHorizonStakingMain-addToDelegationPool}.
      * Any time the delegation pool is invalidated, the thawing pool is also reset and any pending undelegate requests get
-     * invalidated.
+     * invalidated. Delegation that is caught thawing when the pool is invalidated will be completely lost.
      */
     function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
@@ -792,18 +802,20 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         DelegationInternal storage delegation = pool.delegators[msg.sender];
         require(delegation.shares >= _shares, HorizonStakingInsufficientShares(delegation.shares, _shares));
 
-        // An invalid delegation pool has shares but no tokens
+        // An invalid delegation pool has shares or thawing shares but no tokens
         require(pool.tokens != 0, HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier));
 
-        // Convert delegation pool shares to thawing pool shares
+        // Calculate thawing shares to issue - convert delegation pool shares to thawing pool shares
         // delegation pool shares -> delegation pool tokens -> thawing pool shares
+        // Thawing pool is reset/initialized in any of the following cases:
+        // - prov.tokensThawing == 0, pool is empty
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
         bool initializeThawingPool = pool.tokensThawing == 0;
         uint256 thawingShares = initializeThawingPool ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(_provisions[_serviceProvider][_verifier].thawingPeriod));
 
         // Safety check to ensure thawing pool has no shares when being initialized
-        // This should never happen if the pool is correctly reset or it's the first initialization
+        // This should never happen if the pool was reset due to slashing or it's the first initialization
         if (initializeThawingPool) {
             pool.sharesThawing = 0;
         }
@@ -847,6 +859,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 _nThawRequests
     ) private {
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
+
+        // An invalid delegation pool has shares or thawing shares but no tokens
+        // Note we don't test for shares, the existence of thaw requests means thawing shares also exist
+        // even if they are fulfilled to 0 tokens
         require(pool.tokens != 0, HorizonStakingInvalidDelegationPoolState(_serviceProvider, _verifier));
 
         uint256 tokensThawed = 0;
