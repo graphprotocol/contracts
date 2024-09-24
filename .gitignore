@@ -57,3 +57,4 @@ tx-builder-*.json
 
 # Hardhat Ignition
 **/chain-31337/
+!**/ignition/**/artifacts/

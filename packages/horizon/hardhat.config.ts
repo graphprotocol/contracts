@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
     arbitrumSepolia: {
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
       accounts: {
-        mnemonic: process.env.MNEMONIC,
+        mnemonic: process.env.MNEMONIC ?? '',
       },
     },
   },
