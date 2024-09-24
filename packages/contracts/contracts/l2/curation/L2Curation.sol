@@ -147,7 +147,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
 
     /**
      * @notice Assign Graph Tokens collected as curation fees to the curation pool reserve.
-     * @dev This function can only be called by the Staking contract and will do the bookeeping of
+     * @dev This function can only be called by the Staking contract and will do the Bookkeeping of
      * transferred tokens into this contract.
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
@@ -326,7 +326,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
 
     /**
      * @notice Get the amount of token reserves in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of token reserves in the curation pool
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view override returns (uint256) {
@@ -355,7 +355,7 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
 
     /**
      * @notice Get the amount of signal in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal minted for the subgraph deployment
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID) public view override returns (uint256) {

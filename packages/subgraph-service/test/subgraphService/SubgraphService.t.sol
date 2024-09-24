@@ -11,6 +11,7 @@ import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPC
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { LinkedList } from "@graphprotocol/horizon/contracts/libraries/LinkedList.sol";
 import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { Allocation } from "../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../contracts/utilities/AllocationManager.sol";
@@ -29,6 +30,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     /*
      * MODIFIERS
      */
+
+    modifier useGovernor() {
+        vm.startPrank(users.governor);
+        _;
+        vm.stopPrank();
+    }
 
     modifier useOperator() {
         resetPrank(users.indexer);
@@ -252,10 +259,10 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             uint256 delegatorCut = staking.getDelegationFeeCut(
                 allocation.indexer,
                 address(subgraphService),
-                // TODO: this should be fixed in AllocationManager, it should be IndexingRewards instead
-                IGraphPayments.PaymentTypes.IndexingFee
+                IGraphPayments.PaymentTypes.IndexingRewards
             );
-            indexingRewardsData.tokensDelegationRewards = paymentCollected.mulPPM(delegatorCut);
+            IHorizonStakingTypes.DelegationPool memory delegationPool = staking.getDelegationPool(allocation.indexer, address(subgraphService));
+            indexingRewardsData.tokensDelegationRewards = delegationPool.shares > 0 ? paymentCollected.mulPPM(delegatorCut) : 0;
             indexingRewardsData.tokensIndexerRewards = paymentCollected - indexingRewardsData.tokensDelegationRewards;
 
             vm.expectEmit(address(subgraphService));
@@ -266,7 +273,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
                 paymentCollected,
                 indexingRewardsData.tokensIndexerRewards,
                 indexingRewardsData.tokensDelegationRewards,
-                indexingRewardsData.poi
+                indexingRewardsData.poi,
+                epochManager.currentEpoch()
             );
         }
 
@@ -322,7 +330,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             assertEq(stakeClaim.createdAt, block.timestamp);
             assertEq(stakeClaim.releaseAt, block.timestamp + disputePeriod);
             assertEq(stakeClaim.nextClaim, bytes32(0));
-        } else {
+        } else if (_paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             // Update allocation after collecting rewards
             allocation = subgraphService.getAllocation(allocationId);
 

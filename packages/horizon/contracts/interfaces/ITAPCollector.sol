@@ -35,7 +35,7 @@ interface ITAPCollector is IPaymentsCollector {
     }
 
     /**
-     * Trown when the caller is not the data service the RAV was issued to
+     * Thrown when the caller is not the data service the RAV was issued to
      * @param caller The address of the caller
      * @param dataService The address of the data service
      */

@@ -33,9 +33,9 @@ interface IRewardsIssuer {
     function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentId) external view returns (uint256);
 
     /**
-     * @notice Wether or not an allocation is active (i.e open)
+     * @notice Whether or not an allocation is active (i.e open)
      * @param _allocationId Allocation Id
-     * @return Wether or not the allocation is active
+     * @return Whether or not the allocation is active
      */
     function isActiveAllocation(address _allocationId) external view returns (bool);
 }

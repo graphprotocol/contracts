@@ -41,7 +41,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
     }
 
     /**
-     * @dev The staking contract is upgradeable however we stil use the constructor to set
+     * @dev The staking contract is upgradeable however we still use the constructor to set
      * a few immutable variables.
      * @param controller The address of the Graph controller contract.
      * @param subgraphDataServiceAddress The address of the subgraph data service.
@@ -296,7 +296,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
     }
 
     /**
-     * @notice Retrun the time in blocks to unstake
+     * @notice Return the time in blocks to unstake
      * Deprecated, now enforced by each data service (verifier)
      * @return Thawing period in blocks
      */
@@ -569,7 +569,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
-                // Then we call collect() to do the transfer bookeeping
+                // Then we call collect() to do the transfer Bookkeeping
                 _graphRewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
                 _graphToken().pushTokens(address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);

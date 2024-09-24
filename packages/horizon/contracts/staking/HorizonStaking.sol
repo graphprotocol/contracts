@@ -62,7 +62,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @dev The staking contract is upgradeable however we stil use the constructor to set
+     * @dev The staking contract is upgradeable however we still use the constructor to set
      * a few immutable variables.
      * @param controller The address of the Graph controller contract.
      * @param stakingExtensionAddress The address of the staking extension contract.
@@ -279,7 +279,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokens
     ) external override notPaused {
         require(tokens != 0, HorizonStakingInvalidZeroTokens());
+
+        // Provision must exist before adding to delegation pool
+        Provision memory prov = _provisions[serviceProvider][verifier];
+        require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
+
+        // Delegation pool must exist before adding tokens
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
+        require(pool.shares > 0, HorizonStakingInvalidDelegationPool(serviceProvider, verifier));
+
         pool.tokens = pool.tokens + tokens;
         _graphToken().pullTokens(msg.sender, tokens);
         emit TokensToDelegationPoolAdded(serviceProvider, verifier, tokens);
@@ -903,7 +911,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      *
      * @param _thawRequestId The ID of the current thaw request
      * @param _acc The accumulator data for the thaw requests being fulfilled
-     * @return Wether the thaw request is still thawing, indicating that the traversal should continue or stop.
+     * @return Whether the thaw request is still thawing, indicating that the traversal should continue or stop.
      * @return The updated accumulator data
      */
     function _fulfillThawRequest(bytes32 _thawRequestId, bytes memory _acc) private returns (bool, bytes memory) {

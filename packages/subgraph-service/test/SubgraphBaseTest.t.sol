@@ -26,6 +26,7 @@ import { Utils } from "./utils/Utils.sol";
 import { MockCuration } from "./mocks/MockCuration.sol";
 import { MockGRTToken } from "./mocks/MockGRTToken.sol";
 import { MockRewardsManager } from "./mocks/MockRewardsManager.sol";
+import { MockEpochManager } from "./mocks/MockEpochManager.sol";
 
 abstract contract SubgraphBaseTest is Utils, Constants {
 
@@ -50,6 +51,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     MockCuration curation;
     MockGRTToken token;
     MockRewardsManager rewardsManager;
+    MockEpochManager epochManager;
 
     /* Users */
 
@@ -91,6 +93,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
         rewardsManager = new MockRewardsManager(token, rewardsPerSignal, rewardsPerSubgraphAllocationUpdate);
         curation = new MockCuration();
+        epochManager = new MockEpochManager();
 
         // GraphPayments predict address
         bytes32 saltGraphPayments = keccak256("GraphPaymentsSalt");
@@ -126,7 +129,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
         controller.setContractProxy(keccak256("GraphPayments"), predictedGraphPaymentsAddress);
         controller.setContractProxy(keccak256("PaymentsEscrow"), predictedEscrowAddress);
-        controller.setContractProxy(keccak256("EpochManager"), makeAddr("EpochManager"));
+        controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
         controller.setContractProxy(keccak256("GraphTokenGateway"), makeAddr("GraphTokenGateway"));
         controller.setContractProxy(keccak256("GraphProxyAdmin"), makeAddr("GraphProxyAdmin"));
         controller.setContractProxy(keccak256("Curation"), address(curation));
@@ -151,7 +154,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
             subgraphServiceImplementation,
             users.governor,
-            abi.encodeCall(SubgraphService.initialize, (minimumProvisionTokens, delegationRatio))
+            abi.encodeCall(SubgraphService.initialize, (minimumProvisionTokens, delegationRatio, stakeToFeesRatio))
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
 
@@ -183,10 +186,11 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     }
 
     function setupProtocol() private {
+        resetPrank(users.deployer);
+        subgraphService.transferOwnership(users.governor);
         resetPrank(users.governor);
         staking.setMaxThawingPeriod(MAX_THAWING_PERIOD);
-        resetPrank(users.deployer);
-        subgraphService.setStakeToFeesRatio(stakeToFeesRatio);
+        epochManager.setEpochLength(EPOCH_LENGTH);
         subgraphService.setMaxPOIStaleness(maxPOIStaleness);
         subgraphService.setCurationCut(curationCut);
     }

@@ -8,6 +8,7 @@ import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewa
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { DataServicePausableUpgradeable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
 import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataService.sol";
@@ -24,6 +25,7 @@ import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 contract SubgraphService is
     Initializable,
     OwnableUpgradeable,
+    MulticallUpgradeable,
     DataService,
     DataServicePausableUpgradeable,
     DataServiceFees,
@@ -71,14 +73,20 @@ contract SubgraphService is
      * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
      * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
      */
-    function initialize(uint256 minimumProvisionTokens, uint32 maximumDelegationRatio) external initializer {
+    function initialize(
+        uint256 minimumProvisionTokens,
+        uint32 maximumDelegationRatio,
+        uint256 stakeToFeesRatio
+    ) external initializer {
         __Ownable_init(msg.sender);
+        __Multicall_init();
         __DataService_init();
         __DataServicePausable_init();
         __AllocationManager_init("SubgraphService", "1.0");
 
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
         _setDelegationRatio(maximumDelegationRatio);
+        _setStakeToFeesRatio(stakeToFeesRatio);
     }
 
     /**
@@ -351,7 +359,7 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.setRewardsDestination}
      */
-    function setRewardsDestination(address rewardsDestination) external {
+    function setRewardsDestination(address rewardsDestination) external override {
         _setRewardsDestination(msg.sender, rewardsDestination);
     }
 
@@ -373,8 +381,7 @@ contract SubgraphService is
      * @notice See {ISubgraphService.setStakeToFeesRatio}
      */
     function setStakeToFeesRatio(uint256 stakeToFeesRatio_) external override onlyOwner {
-        stakeToFeesRatio = stakeToFeesRatio_;
-        emit StakeToFeesRatioSet(stakeToFeesRatio_);
+        _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
     /**
@@ -557,5 +564,11 @@ contract SubgraphService is
 
         emit QueryFeesCollected(indexer, tokensCollected, tokensCurators);
         return tokensCollected;
+    }
+
+    function _setStakeToFeesRatio(uint256 _stakeToFeesRatio) private {
+        require(_stakeToFeesRatio != 0, SubgraphServiceInvalidZeroStakeToFeesRatio());
+        stakeToFeesRatio = _stakeToFeesRatio;
+        emit StakeToFeesRatioSet(_stakeToFeesRatio);
     }
 }
