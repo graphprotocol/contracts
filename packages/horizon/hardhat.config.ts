@@ -21,12 +21,12 @@ const config: HardhatUserConfig = {
     sources: './contracts',
   },
   networks: {
-    'hardhat': {
+    hardhat: {
       accounts: {
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },
     },
-    'arbitrum-sepolia': {
+    arbitrumSepolia: {
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
       accounts: {
         mnemonic: process.env.MNEMONIC,
@@ -35,11 +35,11 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      'arbitrum-sepolia': process.env.ETHERSCAN_API_KEY ?? '',
+      arbitrumSepolia: process.env.ETHERSCAN_API_KEY ?? '',
     },
     customChains: [
       {
-        network: 'arbitrum-sepolia',
+        network: 'arbitrumSepolia',
         chainId: 421614,
         urls: {
           apiURL: 'https://api-sepolia.arbiscan.io/api',
