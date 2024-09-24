@@ -11,6 +11,7 @@ export default buildModule('Controller', (m) => {
 
   m.call(Controller, 'setPauseGuardian', [pauseGuardian])
   m.call(Controller, 'transferOwnership', [governor])
+  m.call(Controller, 'setPaused', [false])
 
   return { Controller }
 })

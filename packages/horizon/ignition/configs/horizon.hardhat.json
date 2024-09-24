@@ -26,7 +26,8 @@
     "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
   },
   "HorizonStaking": {
-    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
+    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",
+    "maxThawingPeriod": 2419200
   },
   "HorizonStakingExtension": {
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"

@@ -32,6 +32,7 @@ export default buildModule('HorizonStaking', (m) => {
 
   // Load contract with implementation ABI
   const HorizonStaking = m.contractAt('HorizonStaking', HorizonStakingArtifact, HorizonStakingProxy, { after: [acceptCall], id: 'HorizonStaking_Instance' })
+  m.call(HorizonStaking, 'setMaxThawingPeriod', [m.getParameter('maxThawingPeriod')])
 
   return { HorizonStakingProxy, HorizonStakingImplementation, HorizonStaking }
 })
