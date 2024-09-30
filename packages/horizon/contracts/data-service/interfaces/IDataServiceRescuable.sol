@@ -11,6 +11,10 @@ import { IDataService } from "./IDataService.sol";
 interface IDataServiceRescuable is IDataService {
     /**
      * @notice Emitted when tokens are rescued from the contract.
+     * @param from The address initiating the rescue
+     * @param to The address receiving the rescued tokens
+     * @param token The address of the token being rescued
+     * @param tokens The amount of tokens rescued
      */
     event TokensRescued(address indexed from, address indexed to, address token, uint256 tokens);
 

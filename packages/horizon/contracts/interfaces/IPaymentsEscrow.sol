@@ -38,9 +38,15 @@ interface IPaymentsEscrow {
      * @notice Emitted when a payer authorizes a collector to collect funds
      * @param payer The address of the payer
      * @param collector The address of the collector
-     * @param allowance The number of tokens the collector is allowed to collect
+     * @param addedAllowance The amount of tokens added to the collector's allowance
+     * @param newTotalAllowance The new total allowance after addition
      */
-    event AuthorizedCollector(address indexed payer, address indexed collector, uint256 allowance);
+    event AuthorizedCollector(
+        address indexed payer,
+        address indexed collector,
+        uint256 addedAllowance,
+        uint256 newTotalAllowance
+    );
 
     /**
      * @notice Emitted when a payer thaws a collector

@@ -82,7 +82,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         require(allowance != 0, PaymentsEscrowInvalidZeroTokens());
         Collector storage collector = authorizedCollectors[msg.sender][collector_];
         collector.allowance += allowance;
-        emit AuthorizedCollector(msg.sender, collector_, collector.allowance);
+        emit AuthorizedCollector(msg.sender, collector_, allowance, collector.allowance);
     }
 
     /**
