@@ -39,7 +39,7 @@ abstract contract HorizonStakingBase is
     address internal immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
     /**
-     * @dev The staking contract is upgradeable however we stil use the constructor to set
+     * @dev The staking contract is upgradeable however we still use the constructor to set
      * a few immutable variables.
      * @param controller The address of the Graph controller contract.
      * @param subgraphDataServiceAddress The address of the subgraph data service.

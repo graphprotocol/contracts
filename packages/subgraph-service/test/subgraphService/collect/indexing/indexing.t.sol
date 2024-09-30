@@ -31,10 +31,30 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         _setDelegationFeeCut(
             users.indexer,
             address(subgraphService),
-            // TODO: this should be fixed in AllocationManager, it should be IndexingRewards instead
-            IGraphPayments.PaymentTypes.IndexingFee,
-            100_000
+            IGraphPayments.PaymentTypes.IndexingRewards,
+            delegationFeeCut
         );
+        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
+        bytes memory data = abi.encode(allocationID, bytes32("POI"));
+        _collect(users.indexer, paymentType, data);
+    }
+
+    function test_SubgraphService_Collect_Indexing_AfterUndelegate(
+        uint256 tokens,
+        uint256 delegationTokens,
+        uint256 delegationFeeCut
+    ) public useIndexer useAllocation(tokens) useDelegation(delegationTokens) {
+        delegationFeeCut = bound(delegationFeeCut, 0, MAX_PPM);
+        _setDelegationFeeCut(
+            users.indexer,
+            address(subgraphService),
+            IGraphPayments.PaymentTypes.IndexingRewards,
+            delegationFeeCut
+        );
+        // Undelegate
+        resetPrank(users.delegator);
+        staking.undelegate(users.indexer, address(subgraphService), delegationTokens);
+        resetPrank(users.indexer);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
         bytes memory data = abi.encode(allocationID, bytes32("POI"));
         _collect(users.indexer, paymentType, data);
@@ -72,9 +92,8 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         _setDelegationFeeCut(
             users.indexer,
             address(subgraphService),
-            // TODO: this should be fixed in AllocationManager, it should be IndexingRewards instead
-            IGraphPayments.PaymentTypes.IndexingFee,
-            100_000
+            IGraphPayments.PaymentTypes.IndexingRewards,
+            delegationFeeCut
         );
         
         uint8 numberOfPOIs = 20;

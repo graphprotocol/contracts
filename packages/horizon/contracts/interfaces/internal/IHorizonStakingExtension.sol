@@ -162,7 +162,7 @@ interface IHorizonStakingExtension is IRewardsIssuer, IL2StakingBase {
     function isAllocation(address allocationID) external view returns (bool);
 
     /**
-     * @notice Retrun the time in blocks to unstake
+     * @notice Return the time in blocks to unstake
      * @return Thawing period in blocks
      */
     // solhint-disable-next-line func-name-mixedcase

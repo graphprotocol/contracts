@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
@@ -30,7 +31,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     using TokenUtils for IGraphToken;
 
     ///@dev EIP712 typehash for allocation proof
-    bytes32 private immutable EIP712_ALLOCATION_PROOF_TYPEHASH =
+    bytes32 private constant EIP712_ALLOCATION_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
 
     /**
@@ -56,6 +57,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param tokensIndexerRewards The amount of tokens collected for the indexer
      * @param tokensDelegationRewards The amount of tokens collected for delegators
      * @param poi The POI presented
+     * @param currentEpoch The current epoch
      */
     event IndexingRewardsCollected(
         address indexed indexer,
@@ -64,7 +66,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 tokensRewards,
         uint256 tokensIndexerRewards,
         uint256 tokensDelegationRewards,
-        bytes32 poi
+        bytes32 poi,
+        uint256 currentEpoch
     );
 
     /**
@@ -136,12 +139,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     error AllocationManagerInvalidZeroAllocationId();
 
     /**
-     * @notice Thrown when attempting to create an allocation with zero tokens
-     * @param allocationId The id of the allocation
-     */
-    error AllocationManagerZeroTokensAllocation(address allocationId);
-
-    /**
      * @notice Thrown when attempting to collect indexing rewards on a closed allocationl
      * @param allocationId The id of the allocation
      */
@@ -175,7 +172,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Imports a legacy allocation id into the subgraph service
      * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract.
+     * legacy staking contract. It will revert with LegacyAllocationAlreadyMigrated if the allocation has already been migrated.
      * @param _indexer The address of the indexer
      * @param _allocationId The id of the allocation
      * @param _subgraphDeploymentId The id of the subgraph deployment
@@ -287,9 +284,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
                 allocation.indexer,
                 address(this),
-                IGraphPayments.PaymentTypes.IndexingFee
+                IGraphPayments.PaymentTypes.IndexingRewards
             );
-            tokensDelegationRewards = tokensRewards.mulPPM(delegatorCut);
+            IHorizonStakingTypes.DelegationPool memory delegationPool = _graphStaking().getDelegationPool(
+                allocation.indexer,
+                address(this)
+            );
+            // If delegation pool has no shares then we don't need to distribute rewards to delegators
+            tokensDelegationRewards = delegationPool.shares > 0 ? tokensRewards.mulPPM(delegatorCut) : 0;
             if (tokensDelegationRewards > 0) {
                 _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
                 _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
@@ -297,12 +299,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
             // Distribute rewards to indexer
             tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
-            address rewardsDestination = rewardsDestination[allocation.indexer];
-            if (rewardsDestination == address(0)) {
-                _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
-                _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
-            } else {
-                _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
+            if (tokensIndexerRewards > 0) {
+                address rewardsDestination = rewardsDestination[allocation.indexer];
+                if (rewardsDestination == address(0)) {
+                    _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
+                    _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
+                } else {
+                    _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
+                }
             }
         }
 
@@ -313,7 +317,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             tokensRewards,
             tokensIndexerRewards,
             tokensDelegationRewards,
-            _poi
+            _poi,
+            _graphEpochManager().currentEpoch()
         );
 
         // Check if the indexer is over-allocated and close the allocation if necessary
@@ -396,7 +401,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      *
      * @param _allocationId The id of the allocation to be closed
      */
-    function _closeAllocation(address _allocationId) internal returns (Allocation.State memory) {
+    function _closeAllocation(address _allocationId) internal {
         Allocation.State memory allocation = allocations.get(_allocationId);
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
@@ -414,7 +419,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             allocation.tokens;
 
         emit AllocationClosed(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, allocation.tokens);
-        return allocations[_allocationId];
     }
 
     /**
@@ -454,7 +458,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     }
 
     /**
-     * @notice Verifies ownsership of an allocation id by verifying an EIP712 allocation proof
+     * @notice Verifies ownership of an allocation id by verifying an EIP712 allocation proof
      * @dev Requirements:
      * - Signer must be the allocation id address
      * @param _indexer The address of the indexer

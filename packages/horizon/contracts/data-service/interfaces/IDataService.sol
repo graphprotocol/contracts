@@ -61,11 +61,6 @@ interface IDataService {
     event ServiceProviderSlashed(address indexed serviceProvider, uint256 tokens);
 
     /**
-     * @notice Thrown to signal that a feature is not implemented by a data service.
-     */
-    error DataServiceFeatureNotImplemented();
-
-    /**
      * @notice Registers a service provider with the data service. The service provider can now
      * start providing the service.
      * @dev Before registering, the service provider must have created a provision in the

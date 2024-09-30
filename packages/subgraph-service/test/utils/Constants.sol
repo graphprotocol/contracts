@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 abstract contract Constants {
     uint256 internal constant MAX_TOKENS = 10_000_000_000 ether;
     uint256 internal constant MAX_PPM = 1_000_000;
+    uint256 internal constant EPOCH_LENGTH = 1;
     // Dispute Manager
     uint64 internal constant disputePeriod = 300; // 5 minutes
     uint256 internal constant disputeDeposit = 100 ether; // 100 GRT

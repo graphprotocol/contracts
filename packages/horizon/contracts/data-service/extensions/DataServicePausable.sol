@@ -30,14 +30,14 @@ abstract contract DataServicePausable is Pausable, DataService, IDataServicePaus
     /**
      * @notice See {IDataServicePausable-pause}
      */
-    function pause() external onlyPauseGuardian whenNotPaused {
+    function pause() external override onlyPauseGuardian whenNotPaused {
         _pause();
     }
 
     /**
      * @notice See {IDataServicePausable-pause}
      */
-    function unpause() external onlyPauseGuardian whenPaused {
+    function unpause() external override onlyPauseGuardian whenPaused {
         _unpause();
     }
 

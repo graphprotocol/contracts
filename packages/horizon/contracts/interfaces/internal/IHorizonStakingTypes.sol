@@ -39,7 +39,7 @@ interface IHorizonStakingTypes {
      * @dev See {ServiceProviderInternal} for the actual storage representation
      */
     struct ServiceProvider {
-        // Total amount of tokens on the provider stake (only staked by the provider, inludes all provisions)
+        // Total amount of tokens on the provider stake (only staked by the provider, includes all provisions)
         uint256 tokensStaked;
         // Total amount of tokens locked in provisions (only staked by the provider)
         uint256 tokensProvisioned;
@@ -50,7 +50,7 @@ interface IHorizonStakingTypes {
      * @dev It contains deprecated fields from the `Indexer` struct to maintain storage compatibility.
      */
     struct ServiceProviderInternal {
-        // Total amount of tokens on the provider stake (only staked by the provider, inludes all provisions)
+        // Total amount of tokens on the provider stake (only staked by the provider, includes all provisions)
         uint256 tokensStaked;
         // (Deprecated) Tokens used in allocations
         uint256 __DEPRECATED_tokensAllocated; // solhint-disable-line graph/leading-underscore
