@@ -70,6 +70,6 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
         if (Denominations.isNativeToken(_token)) Address.sendValue(payable(_to), _tokens);
         else SafeERC20.safeTransfer(IERC20(_token), _to, _tokens);
 
-        emit TokensRescued(msg.sender, _to, _tokens);
+        emit TokensRescued(msg.sender, _to, _token, _tokens);
     }
 }

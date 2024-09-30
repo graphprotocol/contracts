@@ -12,7 +12,7 @@ interface IDataServiceRescuable is IDataService {
     /**
      * @notice Emitted when tokens are rescued from the contract.
      */
-    event TokensRescued(address indexed from, address indexed to, uint256 tokens);
+    event TokensRescued(address indexed from, address indexed to, address token, uint256 tokens);
 
     /**
      * @notice Emitted when a rescuer is set.
