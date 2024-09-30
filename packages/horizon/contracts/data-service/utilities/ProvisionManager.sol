@@ -25,11 +25,11 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
 
     // Constants
     uint32 private constant DEFAULT_MIN_VERIFIER_CUT = type(uint32).min;
-    uint32 private constant DEFAULT_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
+    uint32 internal constant DEFAULT_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
     uint64 private constant DEFAULT_MIN_THAWING_PERIOD = type(uint64).min;
-    uint64 private constant DEFAULT_MAX_THAWING_PERIOD = type(uint64).max;
+    uint64 internal constant DEFAULT_MAX_THAWING_PERIOD = type(uint64).max;
     uint256 private constant DEFAULT_MIN_PROVISION_TOKENS = type(uint256).min;
-    uint256 private constant DEFAULT_MAX_PROVISION_TOKENS = type(uint256).max;
+    uint256 internal constant DEFAULT_MAX_PROVISION_TOKENS = type(uint256).max;
 
     /**
      * @notice Emitted when the provision tokens range is set.
