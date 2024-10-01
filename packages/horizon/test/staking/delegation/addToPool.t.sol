@@ -121,7 +121,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
-        // undelegate half shares so we have some thawing shares/tokens
+        // undelegate shares so we have thawing shares/tokens
         DelegationInternal memory delegation = _getStorage_Delegation(
             users.indexer,
             subgraphDataServiceAddress,
