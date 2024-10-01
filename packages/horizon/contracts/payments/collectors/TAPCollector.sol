@@ -17,6 +17,8 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  * @dev Note that the contract expects the RAV aggregate value to be monotonically increasing, each successive RAV for the same
  * (data service-payer-receiver) tuple should have a value greater than the previous one. The contract will keep track of the tokens
  * already collected and calculate the difference to collect.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     using PPMMath for uint256;

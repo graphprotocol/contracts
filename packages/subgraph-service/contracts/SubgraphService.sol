@@ -22,6 +22,11 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
+/**
+ * @title SubgraphService contract
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
+ */
 contract SubgraphService is
     Initializable,
     OwnableUpgradeable,

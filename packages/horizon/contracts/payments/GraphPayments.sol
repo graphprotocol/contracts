@@ -16,6 +16,8 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
  * @notice This contract is part of the Graph Horizon payments protocol. It's designed
  * to pull funds (GRT) from the {PaymentsEscrow} and distribute them according to a
  * set of pre established rules.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, IGraphPayments {
     using TokenUtils for IGraphToken;
