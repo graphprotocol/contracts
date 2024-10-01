@@ -17,7 +17,8 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
  * @notice This contract is part of the Graph Horizon payments protocol. It holds the funds (GRT)
  * for payments made through the payments protocol for services provided
  * via a Graph Horizon data service.
- * @custom:security-contact Bug bounty program: https://immunefi.com/bug-bounty/thegraph/information/
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;

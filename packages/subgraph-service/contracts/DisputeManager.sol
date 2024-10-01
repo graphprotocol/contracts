@@ -40,7 +40,8 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * Arbitration:
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
  * to a EOA or DAO.
- * @custom:security-contact Bug bounty program: https://immunefi.com/bug-bounty/thegraph/information/
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 contract DisputeManager is
     Initializable,

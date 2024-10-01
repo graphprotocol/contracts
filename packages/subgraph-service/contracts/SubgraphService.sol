@@ -23,7 +23,8 @@ import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
 /**
  * @title SubgraphService contract
- * @custom:security-contact Bug bounty program: https://immunefi.com/bug-bounty/thegraph/information/
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 contract SubgraphService is
     Initializable,

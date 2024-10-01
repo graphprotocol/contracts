@@ -24,7 +24,8 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * without losing rewards or having service interruptions.
  * @dev TODO: Once the transition period and the transfer tools are deemed not necessary this contract
  * can be removed. It's expected the transition period to last for a full allocation cycle (28 epochs).
- * @custom:security-contact Bug bounty program: https://immunefi.com/bug-bounty/thegraph/information/
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizonStakingExtension {
     using TokenUtils for IGraphToken;
