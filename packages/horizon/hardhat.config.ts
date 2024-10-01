@@ -1,5 +1,6 @@
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
+import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 
@@ -18,6 +19,34 @@ const config: HardhatUserConfig = {
   paths: {
     artifacts: './build/contracts',
     sources: './contracts',
+  },
+  networks: {
+    hardhat: {
+      accounts: {
+        mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
+      },
+    },
+    arbitrumSepolia: {
+      url: 'https://sepolia-rollup.arbitrum.io/rpc',
+      accounts: {
+        mnemonic: process.env.MNEMONIC ?? '',
+      },
+    },
+  },
+  etherscan: {
+    apiKey: {
+      arbitrumSepolia: process.env.ETHERSCAN_API_KEY ?? '',
+    },
+    customChains: [
+      {
+        network: 'arbitrumSepolia',
+        chainId: 421614,
+        urls: {
+          apiURL: 'https://api-sepolia.arbiscan.io/api',
+          browserURL: 'https://sepolia.arbiscan.io/',
+        },
+      },
+    ],
   },
 }
 
