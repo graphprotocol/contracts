@@ -209,7 +209,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 tokens,
         uint256 nThawRequests
     )
         external
@@ -218,8 +217,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         onlyAuthorized(serviceProvider, oldVerifier)
         onlyAuthorized(serviceProvider, newVerifier)
     {
-        _deprovision(serviceProvider, oldVerifier, nThawRequests);
-        _addToProvision(serviceProvider, newVerifier, tokens);
+        uint256 tokensThawed = _deprovision(serviceProvider, oldVerifier, nThawRequests);
+        _addToProvision(serviceProvider, newVerifier, tokensThawed);
     }
 
     /**
@@ -695,13 +694,17 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-deprovision}.
      */
-    function _deprovision(address _serviceProvider, address _verifier, uint256 _nThawRequests) private {
+    function _deprovision(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _nThawRequests
+    ) private returns (uint256 tokensThawed) {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
 
-        uint256 tokensThawed = 0;
+        uint256 tokensThawed_ = 0;
         uint256 sharesThawing = prov.sharesThawing;
         uint256 tokensThawing = prov.tokensThawing;
-        (tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(
+        (tokensThawed_, tokensThawing, sharesThawing) = _fulfillThawRequests(
             _serviceProvider,
             _verifier,
             _serviceProvider,
@@ -710,12 +713,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _nThawRequests
         );
 
-        prov.tokens = prov.tokens - tokensThawed;
+        prov.tokens = prov.tokens - tokensThawed_;
         prov.sharesThawing = sharesThawing;
         prov.tokensThawing = tokensThawing;
-        _serviceProviders[_serviceProvider].tokensProvisioned -= tokensThawed;
+        _serviceProviders[_serviceProvider].tokensProvisioned -= tokensThawed_;
 
-        emit TokensDeprovisioned(_serviceProvider, _verifier, tokensThawed);
+        emit TokensDeprovisioned(_serviceProvider, _verifier, tokensThawed_);
+        return tokensThawed_;
     }
 
     /**

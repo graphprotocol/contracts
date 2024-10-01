@@ -559,7 +559,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address serviceProvider,
         address verifier,
         address newVerifier,
-        uint256 tokens,
         uint256 nThawRequests
     ) internal {
         // before
@@ -595,8 +594,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.TokensDeprovisioned(serviceProvider, verifier, calcValues.tokensThawed);
         vm.expectEmit();
-        emit IHorizonStakingMain.ProvisionIncreased(serviceProvider, newVerifier, tokens);
-        staking.reprovision(serviceProvider, verifier, newVerifier, tokens, nThawRequests);
+        emit IHorizonStakingMain.ProvisionIncreased(serviceProvider, newVerifier, calcValues.tokensThawed);
+        staking.reprovision(serviceProvider, verifier, newVerifier, nThawRequests);
 
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
@@ -619,7 +618,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.thawingPeriodPending, beforeValues.provision.thawingPeriodPending);
 
         // assert: provision new verifier
-        assertEq(afterProvisionNewVerifier.tokens, beforeValues.provisionNewVerifier.tokens + tokens);
+        assertEq(afterProvisionNewVerifier.tokens, beforeValues.provisionNewVerifier.tokens + calcValues.tokensThawed);
         assertEq(afterProvisionNewVerifier.tokensThawing, beforeValues.provisionNewVerifier.tokensThawing);
         assertEq(afterProvisionNewVerifier.sharesThawing, beforeValues.provisionNewVerifier.sharesThawing);
         assertEq(afterProvisionNewVerifier.maxVerifierCut, beforeValues.provisionNewVerifier.maxVerifierCut);
@@ -632,7 +631,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterServiceProvider.tokensStaked, beforeValues.serviceProvider.tokensStaked);
         assertEq(
             afterServiceProvider.tokensProvisioned,
-            beforeValues.serviceProvider.tokensProvisioned + tokens - calcValues.tokensThawed
+            beforeValues.serviceProvider.tokensProvisioned + calcValues.tokensThawed - calcValues.tokensThawed
         );
         assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeValues.serviceProvider.__DEPRECATED_tokensAllocated);
         assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeValues.serviceProvider.__DEPRECATED_tokensLocked);

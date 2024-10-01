@@ -614,13 +614,12 @@ interface IHorizonStakingMain {
      * @param serviceProvider The service provider address
      * @param oldVerifier The verifier address for which the tokens are currently provisioned
      * @param newVerifier The verifier address for which the tokens will be provisioned
-     * @param tokens The amount of tokens to move
+     * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
     function reprovision(
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 tokens,
         uint256 nThawRequests
     ) external;
 
