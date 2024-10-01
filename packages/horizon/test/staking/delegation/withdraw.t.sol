@@ -173,20 +173,20 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing {
-        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MAX_STAKING_TOKENS / 10, MAX_STAKING_TOKENS);
 
         // delegate
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
-        // undelegate all shares
+        // undelegate some shares
         DelegationInternal memory delegation = _getStorage_Delegation(
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator,
             false
         );
-        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares / 2);
 
         // slash all of the provision + delegation
         resetPrank(subgraphDataServiceAddress);
@@ -214,7 +214,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
-        // undelegate all shares
+        // undelegate some shares
         DelegationInternal memory delegation = _getStorage_Delegation(
             users.indexer,
             subgraphDataServiceAddress,
