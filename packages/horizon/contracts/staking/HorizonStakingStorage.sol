@@ -118,7 +118,6 @@ abstract contract HorizonStakingV1Storage {
     mapping(address serviceProvider => address rewardsDestination) internal __DEPRECATED_rewardsDestination;
 
     /// @dev Address of the counterpart Staking contract on L1/L2
-    /// Used for the transfer tools.
     /// Deprecated, transfer tools no longer enabled.
     address internal __DEPRECATED_counterpartStakingAddress;
 
