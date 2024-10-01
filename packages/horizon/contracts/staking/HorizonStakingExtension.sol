@@ -28,9 +28,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
 
-    /// @dev Minimum amount of tokens that can be delegated
-    uint256 private constant MINIMUM_DELEGATION = 1e18;
-
     /**
      * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
      */

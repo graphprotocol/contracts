@@ -119,8 +119,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         address escrowAddress = address(escrow);
 
         // Delegate tokens
-        vm.assume(tokensDelegate > MIN_DELEGATION);
-        vm.assume(tokensDelegate <= MAX_STAKING_TOKENS);
+        tokensDelegate = bound(tokensDelegate, 1, MAX_STAKING_TOKENS);
         vm.startPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, tokensDelegate, 0);
 

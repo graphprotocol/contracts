@@ -19,15 +19,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         vm.startPrank(users.delegator);
         DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         shares = bound(shares, 1, delegation.shares);
-        
-        if (shares != delegation.shares) {
-            DelegationPoolInternalTest memory pool = _getStorage_DelegationPoolInternal(users.indexer, subgraphDataServiceAddress, false);
-            uint256 tokens = (shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-            uint256 newTokensThawing = pool.tokensThawing + tokens;
-            uint256 remainingTokens = (delegation.shares * (pool.tokens - newTokensThawing)) / pool.shares;
-            vm.assume(remainingTokens >= MIN_DELEGATION);
-        }
-        
+
         _undelegate(users.indexer, subgraphDataServiceAddress, shares);
         _;
     }
@@ -137,7 +129,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     }
 
     function testWithdrawDelegation_LegacySubgraphService(uint256 delegationAmount) public useIndexer {
-        delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationAmount = bound(delegationAmount, 1, MAX_STAKING_TOKENS);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 10_000_000 ether, 0, MAX_THAWING_PERIOD);
 
         resetPrank(users.delegator);
@@ -157,7 +149,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing() {
-        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
         DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);

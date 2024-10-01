@@ -22,8 +22,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * It is designed to be deployed as an upgrade to the L2Staking contract from the legacy contracts package.
  * @dev It uses a {HorizonStakingExtension} contract to implement the full {IHorizonStaking} interface through delegatecalls.
  * This is due to the contract size limit on Arbitrum (24kB). The extension contract implements functionality to support
- * the legacy staking functions and the transfer tools. Both can be eventually removed without affecting the main
- * staking contract.
+ * the legacy staking functions. It can be eventually removed without affecting the main staking contract.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -41,11 +40,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
     uint256 private constant MAX_THAW_REQUESTS = 100;
-
-    /// @dev Minimum amount of delegation to prevent rounding attacks.
-    /// TODO: remove this after L2 transfer tool for delegation is removed
-    /// (delegation on L2 has its own slippage protection)
-    uint256 private constant MIN_DELEGATION = 1e18;
 
     /// @dev Address of the staking extension contract
     address private immutable STAKING_EXTENSION_ADDRESS;
@@ -724,8 +718,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * have been done before calling this function.
      */
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
-        // TODO: remove this after L2 transfer tool for delegation is removed
-        require(_tokens >= MIN_DELEGATION, HorizonStakingInsufficientTokens(_tokens, MIN_DELEGATION));
         require(
             _provisions[_serviceProvider][_verifier].createdAt != 0,
             HorizonStakingInvalidProvision(_serviceProvider, _verifier)
@@ -773,14 +765,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         pool.sharesThawing = pool.sharesThawing + thawingShares;
 
         delegation.shares = delegation.shares - _shares;
-        // TODO: remove this when L2 transfer tools are removed
-        if (delegation.shares != 0) {
-            uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-            require(
-                remainingTokens >= MIN_DELEGATION,
-                HorizonStakingInsufficientTokens(remainingTokens, MIN_DELEGATION)
-            );
-        }
 
         bytes32 thawRequestId = _createThawRequest(
             _serviceProvider,
