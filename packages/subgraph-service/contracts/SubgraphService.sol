@@ -312,12 +312,11 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.closeStaleAllocation}
      */
-    function closeStaleAllocation(address allocationId) external override {
+    function forceCloseAllocation(address allocationId) external override {
         Allocation.State memory allocation = allocations.get(allocationId);
-        require(
-            allocation.isStale(maxPOIStaleness),
-            SubgraphServiceAllocationNotStale(allocationId, allocation.lastPOIPresentedAt)
-        );
+        bool isStale = allocation.isStale(maxPOIStaleness);
+        bool isOverAllocated_ = _isOverAllocated(allocation.indexer, delegationRatio);
+        require(isStale || isOverAllocated_, SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _closeAllocation(allocationId);
     }
@@ -474,6 +473,20 @@ contract SubgraphService is
      */
     function encodeAllocationProof(address indexer, address allocationId) external view override returns (bytes32) {
         return _encodeAllocationProof(indexer, allocationId);
+    }
+
+    /**
+     * @notice See {ISubgraphService.isStaleAllocation}
+     */
+    function isStaleAllocation(address allocationId) external view override returns (bool) {
+        return allocations.get(allocationId).isStale(maxPOIStaleness);
+    }
+
+    /**
+     * @notice See {ISubgraphService.isOverAllocated}
+     */
+    function isOverAllocated(address indexer) external view override returns (bool) {
+        return _isOverAllocated(indexer, delegationRatio);
     }
 
     // -- Data service parameter getters --
