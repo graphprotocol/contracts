@@ -372,7 +372,7 @@ contract SubgraphService is
      * @notice See {ISubgraphService.setMinimumProvisionTokens}
      */
     function setMinimumProvisionTokens(uint256 minimumProvisionTokens) external override onlyOwner {
-        _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
+        _setProvisionTokensRange(minimumProvisionTokens, DEFAULT_MAX_PROVISION_TOKENS);
     }
 
     /**
@@ -485,7 +485,7 @@ contract SubgraphService is
      */
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
         uint64 disputePeriod = _disputeManager().getDisputePeriod();
-        return (disputePeriod, type(uint64).max);
+        return (disputePeriod, DEFAULT_MAX_THAWING_PERIOD);
     }
 
     /**
@@ -495,7 +495,7 @@ contract SubgraphService is
      */
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
         uint32 verifierCut = _disputeManager().getVerifierCut();
-        return (verifierCut, uint32(PPMMath.MAX_PPM));
+        return (verifierCut, DEFAULT_MAX_VERIFIER_CUT);
     }
 
     /**
