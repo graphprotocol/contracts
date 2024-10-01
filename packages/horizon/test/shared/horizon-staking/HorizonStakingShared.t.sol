@@ -1822,11 +1822,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         return delegation;
     }
 
-    function _getStorage_CounterpartStakingAddress() internal view returns (address) {
-        uint256 slot = 24;
-        return address(uint160(uint256(vm.load(address(staking), bytes32(slot)))));
-    }
-
     function _setStorage_allocation(
         IHorizonStakingExtension.Allocation memory allocation,
         address allocationId,

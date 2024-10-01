@@ -119,7 +119,8 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Address of the counterpart Staking contract on L1/L2
     /// Used for the transfer tools.
-    address internal _counterpartStakingAddress;
+    /// Deprecated, transfer tools no longer enabled.
+    address internal __DEPRECATED_counterpartStakingAddress;
 
     /// @dev Address of the StakingExtension implementation
     /// This is now an immutable variable to save some gas.
