@@ -22,14 +22,12 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
-import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
 
 
 contract SubgraphService is
     Initializable,
     OwnableUpgradeable,
-    ProvisionManager,
     MulticallUpgradeable,
     DataService,
     DataServicePausableUpgradeable,
