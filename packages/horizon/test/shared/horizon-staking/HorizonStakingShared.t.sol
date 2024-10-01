@@ -854,11 +854,17 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _undelegate(address serviceProvider, address verifier, uint256 shares) internal {
-        __undelegate(serviceProvider, verifier, shares, false);
+        (, address caller, ) = vm.readCallers();
+        __undelegate(serviceProvider, verifier, shares, false, caller);
+    }
+
+    function _undelegate(address serviceProvider, address verifier, uint256 shares, address beneficiary) internal {
+        __undelegate(serviceProvider, verifier, shares, false, beneficiary);
     }
 
     function _undelegate(address serviceProvider, uint256 shares) internal {
-        __undelegate(serviceProvider, subgraphDataServiceLegacyAddress, shares, true);
+        (, address caller, ) = vm.readCallers();
+        __undelegate(serviceProvider, subgraphDataServiceLegacyAddress, shares, true, caller);
     }
 
     struct BeforeValues_Undelegate {
@@ -874,7 +880,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bytes32 thawRequestId;
     }
 
-    function __undelegate(address serviceProvider, address verifier, uint256 shares, bool legacy) private {
+    function __undelegate(address serviceProvider, address verifier, uint256 shares, bool legacy, address beneficiary) private {
         (, address delegator, ) = vm.readCallers();
 
         // before
@@ -894,7 +900,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             staking.getProvision(serviceProvider, verifier).thawingPeriod +
             uint64(block.timestamp);
         calcValues.thawRequestId = keccak256(
-            abi.encodePacked(serviceProvider, verifier, delegator, beforeValues.thawRequestList.nonce)
+            abi.encodePacked(serviceProvider, verifier, beneficiary, beforeValues.thawRequestList.nonce)
         );
 
         // undelegate
@@ -902,7 +908,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         emit IHorizonStakingMain.ThawRequestCreated(
             serviceProvider,
             verifier,
-            delegator,
+            beneficiary,
             calcValues.thawingShares,
             calcValues.thawingUntil,
             calcValues.thawRequestId
@@ -912,7 +918,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         if (legacy) {
             staking.undelegate(serviceProvider, shares);
         } else {
-            staking.undelegate(serviceProvider, verifier, shares);
+            staking.undelegate(serviceProvider, verifier, shares, beneficiary);
         }
 
         // after
@@ -924,10 +930,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         DelegationInternal memory afterDelegation = _getStorage_Delegation(
             serviceProvider,
             verifier,
-            delegator,
+            beneficiary,
             legacy
         );
-        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
+        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(serviceProvider, verifier, beneficiary);
         ThawRequest memory afterThawRequest = staking.getThawRequest(calcValues.thawRequestId);
         uint256 afterDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
 
