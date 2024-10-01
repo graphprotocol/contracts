@@ -699,10 +699,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     ) private returns (uint256 tokensThawed) {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
 
-        uint256 _tokensThawed = 0;
+        uint256 tokensThawed_ = 0;
         uint256 sharesThawing = prov.sharesThawing;
         uint256 tokensThawing = prov.tokensThawing;
-        (_tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(
+        (tokensThawed_, tokensThawing, sharesThawing) = _fulfillThawRequests(
             _serviceProvider,
             _verifier,
             _serviceProvider,
@@ -711,13 +711,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _nThawRequests
         );
 
-        prov.tokens = prov.tokens - _tokensThawed;
+        prov.tokens = prov.tokens - tokensThawed_;
         prov.sharesThawing = sharesThawing;
         prov.tokensThawing = tokensThawing;
-        _serviceProviders[_serviceProvider].tokensProvisioned -= _tokensThawed;
+        _serviceProviders[_serviceProvider].tokensProvisioned -= tokensThawed_;
 
-        emit TokensDeprovisioned(_serviceProvider, _verifier, _tokensThawed);
-        return _tokensThawed;
+        emit TokensDeprovisioned(_serviceProvider, _verifier, tokensThawed_);
+        return tokensThawed_;
     }
 
     /**
