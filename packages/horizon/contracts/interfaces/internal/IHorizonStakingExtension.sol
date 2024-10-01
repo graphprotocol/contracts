@@ -3,13 +3,12 @@
 pragma solidity 0.8.27;
 
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
-import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 
 /**
  * @title Interface for {HorizonStakingExtension} contract.
- * @notice Provides functions for managing legacy allocations and transfer tools.
+ * @notice Provides functions for managing legacy allocations.
  */
-interface IHorizonStakingExtension is IRewardsIssuer, IL2StakingBase {
+interface IHorizonStakingExtension is IRewardsIssuer {
     /**
      * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
      * An allocation is created in the allocate() function and closed in closeAllocation()
@@ -38,15 +37,6 @@ interface IHorizonStakingExtension is IRewardsIssuer, IL2StakingBase {
         Active,
         Closed
     }
-
-    /**
-     * @notice Emitted when a delegator delegates through the Graph Token Gateway using the transfer tools.
-     * @dev TODO(after transfer tools): delete
-     * @param serviceProvider The address of the service provider.
-     * @param delegator The address of the delegator.
-     * @param tokens The amount of tokens delegated.
-     */
-    event StakeDelegated(address indexed serviceProvider, address indexed delegator, uint256 tokens, uint256 shares);
 
     /**
      * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
@@ -86,15 +76,6 @@ interface IHorizonStakingExtension is IRewardsIssuer, IL2StakingBase {
         uint256 queryRebates,
         uint256 delegationRewards
     );
-
-    event CounterpartStakingAddressSet(address indexed counterpart);
-
-    /**
-     * @notice Set the address of the counterpart (L1 or L2) staking contract.
-     * @dev This function can only be called by the governor.
-     * @param counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
-     */
-    function setCounterpartStakingAddress(address counterpart) external;
 
     /**
      * @notice Close an allocation and free the staked tokens.

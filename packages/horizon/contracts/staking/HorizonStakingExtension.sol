@@ -5,9 +5,6 @@ pragma solidity 0.8.27;
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
-import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
-import { IL2StakingTypes } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingTypes.sol";
-import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
@@ -22,12 +19,12 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * to the Horizon Staking contract. It allows indexers to close allocations and collect pending query fees, but it
  * does not allow for the creation of new allocations. This should allow indexers to migrate to a subgraph data service
  * without losing rewards or having service interruptions.
- * @dev TODO: Once the transition period and the transfer tools are deemed not necessary this contract
- * can be removed. It's expected the transition period to last for a full allocation cycle (28 epochs).
+ * @dev TODO: Once the transition period passes this contract can be removed. It's expected the transition period to
+ * last for a full allocation cycle (28 epochs).
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizonStakingExtension {
+contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
 
@@ -52,52 +49,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
         address controller,
         address subgraphDataServiceAddress
     ) HorizonStakingBase(controller, subgraphDataServiceAddress) {}
-
-    /**
-     * @notice Receive tokens with a callhook from the bridge.
-     * @dev The encoded _data can contain information about an service provider's stake
-     * or a delegator's delegation.
-     * See L1MessageCodes in IL2Staking for the supported messages.
-     * @dev "indexer" in this context refers to a service provider (legacy terminology for the bridge)
-     * @param from Token sender in L1
-     * @param tokens Amount of tokens that were transferred
-     * @param data ABI-encoded callhook data which must include a uint8 code and either a ReceiveIndexerStakeData or ReceiveDelegationData struct.
-     */
-    function onTokenTransfer(
-        address from,
-        uint256 tokens,
-        bytes calldata data
-    ) external override notPaused onlyL2Gateway {
-        require(from == _counterpartStakingAddress, "ONLY_L1_STAKING_THROUGH_BRIDGE");
-        (uint8 code, bytes memory functionData) = abi.decode(data, (uint8, bytes));
-
-        if (code == uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE)) {
-            IL2StakingTypes.ReceiveIndexerStakeData memory indexerData = abi.decode(
-                functionData,
-                (IL2StakingTypes.ReceiveIndexerStakeData)
-            );
-            _receiveIndexerStake(tokens, indexerData);
-        } else if (code == uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE)) {
-            IL2StakingTypes.ReceiveDelegationData memory delegationData = abi.decode(
-                functionData,
-                (IL2StakingTypes.ReceiveDelegationData)
-            );
-            _receiveDelegation(tokens, delegationData);
-        } else {
-            revert("INVALID_CODE");
-        }
-    }
-
-    /**
-     * @notice Set the address of the counterpart (L1 or L2) staking contract.
-     * @dev This function can only be called by the governor.
-     * TODO: Remove after L2 transition period
-     * @param counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
-     */
-    function setCounterpartStakingAddress(address counterpart) external override onlyGovernor {
-        _counterpartStakingAddress = counterpart;
-        emit CounterpartStakingAddressSet(counterpart);
-    }
 
     /**
      * @notice Close an allocation and free the staked tokens.
@@ -316,71 +267,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
      */
     function isOperator(address operator, address serviceProvider) public view override returns (bool) {
         return _legacyOperatorAuth[serviceProvider][operator];
-    }
-
-    /**
-     * @dev Receive an Indexer's stake from L1.
-     * The specified amount is added to the indexer's stake; the indexer's
-     * address is specified in the _indexerData struct.
-     * @param _tokens Amount of tokens that were transferred
-     * @param _indexerData struct containing the indexer's address
-     */
-    function _receiveIndexerStake(
-        uint256 _tokens,
-        IL2StakingTypes.ReceiveIndexerStakeData memory _indexerData
-    ) internal {
-        address indexer = _indexerData.indexer;
-        // Deposit tokens into the indexer stake
-        _stake(indexer, _tokens);
-    }
-
-    /**
-     * @dev Receive a Delegator's delegation from L1.
-     * The specified amount is added to the delegator's delegation; the delegator's
-     * address and the indexer's address are specified in the _delegationData struct.
-     * Note that no delegation tax is applied here.
-     * @dev Note that L1 staking contract only allows delegation transfer if the indexer has already transferred,
-     * this means the corresponding delegation pool exists.
-     * @param _tokens Amount of tokens that were transferred
-     * @param _delegationData struct containing the delegator's address and the indexer's address
-     */
-    function _receiveDelegation(
-        uint256 _tokens,
-        IL2StakingTypes.ReceiveDelegationData memory _delegationData
-    ) internal {
-        require(_provisions[_delegationData.indexer][SUBGRAPH_DATA_SERVICE_ADDRESS].createdAt != 0, "!provision");
-        // Get the delegation pool of the indexer
-        DelegationPoolInternal storage pool = _legacyDelegationPools[_delegationData.indexer];
-        IHorizonStakingTypes.DelegationInternal storage delegation = pool.delegators[_delegationData.delegator];
-
-        // If pool is in an invalid state, return the tokens to the delegator
-        if (pool.tokens == 0 && (pool.shares != 0 || pool.sharesThawing != 0)) {
-            _graphToken().transfer(_delegationData.delegator, _tokens);
-            emit TransferredDelegationReturnedToDelegator(_delegationData.indexer, _delegationData.delegator, _tokens);
-            return;
-        }
-
-        // Calculate shares to issue (without applying any delegation tax)
-        uint256 shares = (pool.tokens == 0 || pool.tokens == pool.tokensThawing)
-            ? _tokens
-            : ((_tokens * pool.shares) / (pool.tokens - pool.tokensThawing));
-
-        if (shares == 0 || _tokens < MINIMUM_DELEGATION) {
-            // If no shares would be issued (probably a rounding issue or attack),
-            // or if the amount is under the minimum delegation (which could be part of a rounding attack),
-            // return the tokens to the delegator
-            _graphToken().pushTokens(_delegationData.delegator, _tokens);
-            emit TransferredDelegationReturnedToDelegator(_delegationData.indexer, _delegationData.delegator, _tokens);
-        } else {
-            // Update the delegation pool
-            pool.tokens = pool.tokens + _tokens;
-            pool.shares = pool.shares + shares;
-
-            // Update the individual delegation
-            delegation.shares = delegation.shares + shares;
-
-            emit StakeDelegated(_delegationData.indexer, _delegationData.delegator, _tokens, shares);
-        }
     }
 
     /**
