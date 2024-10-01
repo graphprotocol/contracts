@@ -110,7 +110,7 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidRAV(address ravIndexer, address allocationIndexer);
 
     /**
-     * @notice Thrown when trying to force close an allocation that is not stale
+     * @notice Thrown when trying to force close an allocation that is not stale and the indexer is not over-allocated
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceCannotForceCloseAllocation(address allocationId);
@@ -120,12 +120,6 @@ interface ISubgraphService is IDataServiceFees {
      * @param allocationId The id of the allocation
      */
     error SubgraphServiceAllocationIsAltruistic(address allocationId);
-
-    /**
-     * @notice Thrown when trying to force close an allocation that is not over-allocated
-     * @param allocationId The id of the allocation
-     */
-    error SubgraphServiceAllocationNotOverAllocated(address allocationId);
 
     /**
      * @notice Thrown when trying to set stake to fees ratio to zero
