@@ -232,7 +232,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      * @param _receiver The address of the receiver
      * @param _tokens The amount of tokens to deposit
      */
-    function _deposit(address _payer, address _receiver, uint256 _tokens) internal {
+    function _deposit(address _payer, address _receiver, uint256 _tokens) private {
         escrowAccounts[_payer][_receiver].balance += _tokens;
         _graphToken().pullTokens(msg.sender, _tokens);
         emit Deposit(_payer, _receiver, _tokens);
