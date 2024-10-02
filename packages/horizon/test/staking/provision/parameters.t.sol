@@ -83,7 +83,7 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         vm.stopPrank();
     }
 
-    function test_ProvisionParameters_RevertWhen_InvalidMaxVerifierCut(
+    function test_ProvisionParameters_RevertIf_InvalidMaxVerifierCut(
         uint256 amount,
         uint32 maxVerifierCut,
         uint64 thawingPeriod
