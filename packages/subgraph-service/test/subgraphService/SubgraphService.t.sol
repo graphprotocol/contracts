@@ -325,7 +325,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             LinkedList.List memory claimsList = _getClaimList(_indexer);
             bytes32 claimId = _buildStakeClaimId(_indexer, claimsList.nonce - 1);
             IDataServiceFees.StakeClaim memory stakeClaim = _getStakeClaim(claimId);
-            uint64 disputePeriod = disputeManager.getDisputePeriod();
+            uint64 disputePeriod = disputeManager.disputePeriod();
             assertEq(stakeClaim.tokens, tokensToLock);
             assertEq(stakeClaim.createdAt, block.timestamp);
             assertEq(stakeClaim.releaseAt, block.timestamp + disputePeriod);

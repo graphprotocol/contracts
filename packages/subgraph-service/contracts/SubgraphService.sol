@@ -475,11 +475,11 @@ contract SubgraphService is
     /**
      * @notice Getter for the accepted thawing period range for provisions
      * @dev This override ensures {ProvisionManager} uses the thawing period from the {DisputeManager}
-     * @return min The minimum thawing period which is defined by {DisputeManager-getDisputePeriod}
+     * @return min The minimum thawing period which is defined by {DisputeManager-disputePeriod}
      * @return max The maximum is unbounded
      */
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
-        uint64 disputePeriod = _disputeManager().getDisputePeriod();
+        uint64 disputePeriod = _disputeManager().disputePeriod();
         return (disputePeriod, type(uint64).max);
     }
 
@@ -549,7 +549,7 @@ contract SubgraphService is
         if (tokensCollected > 0) {
             // lock stake as economic security for fees
             uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
-            uint256 unlockTimestamp = block.timestamp + _disputeManager().getDisputePeriod();
+            uint256 unlockTimestamp = block.timestamp + _disputeManager().disputePeriod();
             _lockStake(indexer, tokensToLock, unlockTimestamp);
 
             if (tokensCurators > 0) {

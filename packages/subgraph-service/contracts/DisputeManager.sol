@@ -371,14 +371,6 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Get the dispute period.
-     * @return Dispute period in seconds
-     */
-    function getDisputePeriod() external view override returns (uint64) {
-        return disputePeriod;
-    }
-
-    /**
      * @notice Get the stake snapshot for an indexer.
      * @param indexer The indexer address
      */
