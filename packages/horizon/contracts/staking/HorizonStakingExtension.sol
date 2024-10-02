@@ -328,7 +328,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
     function _receiveIndexerStake(
         uint256 _tokens,
         IL2StakingTypes.ReceiveIndexerStakeData memory _indexerData
-    ) internal {
+    ) private {
         address indexer = _indexerData.indexer;
         // Deposit tokens into the indexer stake
         _stake(indexer, _tokens);
@@ -347,7 +347,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IL2StakingBase, IHorizon
     function _receiveDelegation(
         uint256 _tokens,
         IL2StakingTypes.ReceiveDelegationData memory _delegationData
-    ) internal {
+    ) private {
         require(_provisions[_delegationData.indexer][SUBGRAPH_DATA_SERVICE_ADDRESS].createdAt != 0, "!provision");
         // Get the delegation pool of the indexer
         DelegationPoolInternal storage pool = _legacyDelegationPools[_delegationData.indexer];
