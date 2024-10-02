@@ -23,7 +23,7 @@ contract DataServiceImpPausable is DataServicePausable {
 
     function register(address serviceProvider, bytes calldata data) external {}
 
-    function acceptProvision(address serviceProvider, bytes calldata data) external {}
+    function acceptProvisionPendingParameters(address serviceProvider, bytes calldata data) external {}
 
     function startService(address serviceProvider, bytes calldata data) external {}
 

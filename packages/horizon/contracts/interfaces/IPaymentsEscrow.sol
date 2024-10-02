@@ -131,9 +131,9 @@ interface IPaymentsEscrow {
     /**
      * @notice Thrown when setting the thawing period to a value greater than the maximum
      * @param thawingPeriod The thawing period
-     * @param maxThawingPeriod The maximum thawing period
+     * @param maxWaitPeriod The maximum wait period
      */
-    error PaymentsEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
+    error PaymentsEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxWaitPeriod);
 
     /**
      * @notice Thrown when a collector has insufficient allowance to collect funds
