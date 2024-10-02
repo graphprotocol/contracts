@@ -24,7 +24,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
             users.indexer,
             subgraphDataServiceAddress,
             amount,
-            MAX_MAX_VERIFIER_CUT,
+            MAX_PPM,
             MAX_THAWING_PERIOD
         );
 
@@ -52,7 +52,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
             users.indexer,
             subgraphDataServiceAddress,
             amount,
-            MAX_MAX_VERIFIER_CUT,
+            MAX_PPM,
             MAX_THAWING_PERIOD
         );
     }
@@ -75,7 +75,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
             users.indexer,
             subgraphDataServiceAddress,
             amount,
-            MAX_MAX_VERIFIER_CUT,
+            MAX_PPM,
             MAX_THAWING_PERIOD
         );
     }

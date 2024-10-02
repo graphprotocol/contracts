@@ -81,7 +81,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // use assume instead of bound to avoid the bounding falling out of scope
         vm.assume(tokens > 0);
         vm.assume(tokens <= MAX_STAKING_TOKENS);
-        vm.assume(maxVerifierCut <= MAX_MAX_VERIFIER_CUT);
+        vm.assume(maxVerifierCut <= MAX_PPM);
         vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
 
         _createProvision(users.indexer, dataService, tokens, maxVerifierCut, thawingPeriod);

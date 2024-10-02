@@ -84,7 +84,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         uint256 amount,
         uint256 delegationAmount,
         uint32 delegationRatio
-    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) useDelegation(delegationAmount) {
+    ) public useIndexer useProvision(amount, MAX_PPM, MAX_THAWING_PERIOD) useDelegation(delegationAmount) {
         uint256 tokensAvailable = staking.getTokensAvailable(users.indexer, subgraphDataServiceAddress, delegationRatio);
 
         uint256 tokensDelegatedMax = amount * (uint256(delegationRatio));
@@ -95,7 +95,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
     function testServiceProvider_GetProviderTokensAvailable(
         uint256 amount,
         uint256 delegationAmount
-    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) useDelegation(delegationAmount) {
+    ) public useIndexer useProvision(amount, MAX_PPM, MAX_THAWING_PERIOD) useDelegation(delegationAmount) {
         uint256 providerTokensAvailable = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         // Should not include delegated tokens
         assertEq(providerTokensAvailable, amount);
@@ -103,7 +103,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
 
     function testServiceProvider_HasStake(
         uint256 amount
-    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) {
+    ) public useIndexer useProvision(amount, MAX_PPM, MAX_THAWING_PERIOD) {
         assertTrue(staking.hasStake(users.indexer));
 
         _thaw(users.indexer, subgraphDataServiceAddress, amount);
@@ -116,7 +116,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
 
     function testServiceProvider_GetIndexerStakedTokens(
         uint256 amount
-    ) public useIndexer useProvision(amount, MAX_MAX_VERIFIER_CUT, MAX_THAWING_PERIOD) {
+    ) public useIndexer useProvision(amount, MAX_PPM, MAX_THAWING_PERIOD) {
         assertEq(staking.getIndexerStakedTokens(users.indexer), amount);
 
         _thaw(users.indexer, subgraphDataServiceAddress, amount);

@@ -31,10 +31,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using PPMMath for uint256;
     using LinkedList for LinkedList.List;
 
-    /// @dev Maximum value that can be set as the maxVerifierCut in a provision.
-    /// It is equivalent to 100% in parts-per-million
-    uint32 private constant MAX_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
-
     /// @dev Fixed point precision
     uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
@@ -224,6 +220,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint32 newMaxVerifierCut,
         uint64 newThawingPeriod
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
+        require(PPMMath.isValidPPM(maxVerifierCut), HorizonStakingInvalidMaxVerifierCut(maxVerifierCut));
+        require(
+            thawingPeriod <= _maxThawingPeriod,
+            HorizonStakingInvalidThawingPeriod(thawingPeriod, _maxThawingPeriod)
+        );
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
@@ -626,10 +627,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint64 _thawingPeriod
     ) private {
         require(_tokens > 0, HorizonStakingInvalidZeroTokens());
-        require(
-            _maxVerifierCut <= MAX_MAX_VERIFIER_CUT,
-            HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut, MAX_MAX_VERIFIER_CUT)
-        );
+        require(PPMMath.isValidPPM(_maxVerifierCut), HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut));
         require(
             _thawingPeriod <= _maxThawingPeriod,
             HorizonStakingInvalidThawingPeriod(_thawingPeriod, _maxThawingPeriod)
