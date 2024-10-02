@@ -29,7 +29,7 @@ import "./IDisputeManager.sol";
  * Indexers present a Proof of Indexing (POI) when they close allocations to prove
  * they were indexing a subgraph. The Staking contract emits that proof with the format
  * keccak256(indexer.address, POI).
- * Any fisherman can dispute the validity of a POI by submitting a dispute to this contract
+ * Any challenger can dispute the validity of a POI by submitting a dispute to this contract
  * along with a deposit.
  *
  * Arbitration:
@@ -355,8 +355,8 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @param _deposit Amount of tokens staked as deposit
      */
     function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external override returns (bytes32) {
-        // Get funds from fisherman
-        _pullFishermanDeposit(_deposit);
+        // Get funds from submitter
+        _pullSubmitterDeposit(_deposit);
 
         // Create a dispute
         return
@@ -372,7 +372,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @dev Create query disputes for two conflicting attestations.
      * A conflicting attestation is a proof presented by two different indexers
      * where for the same request on a subgraph the response is different.
-     * For this type of dispute the fisherman is not required to present a deposit
+     * For this type of dispute the submitter is not required to present a deposit
      * as one of the attestation is considered to be right.
      * Two linked disputes will be created and if the arbitrator resolve one, the other
      * one will be automatically resolved.
@@ -470,14 +470,14 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     /**
      * @dev Create an indexing dispute for the arbitrator to resolve.
      * The disputes are created in reference to an allocationID
-     * This function is called by a fisherman that will need to `_deposit` at
+     * This function is called by a challenger that will need to `_deposit` at
      * least `minimumDeposit` GRT tokens.
      * @param _allocationID The allocation to dispute
      * @param _deposit Amount of tokens staked as deposit
      */
     function createIndexingDispute(address _allocationID, uint256 _deposit) external override returns (bytes32) {
-        // Get funds from fisherman
-        _pullFishermanDeposit(_deposit);
+        // Get funds from submitter
+        _pullSubmitterDeposit(_deposit);
 
         // Create a dispute
         return _createIndexingDisputeWithAllocation(msg.sender, _deposit, _allocationID);
@@ -485,7 +485,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
     /**
      * @dev Create indexing dispute internal function.
-     * @param _fisherman The fisherman creating the dispute
+     * @param _fisherman The challenger creating the dispute
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationID Allocation disputed
      */
@@ -606,7 +606,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Draw the conflicting dispute if there is any for the one passed to this function.
+     * @dev Resolve the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if resolved
      */
@@ -621,10 +621,10 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Pull deposit from fisherman account.
+     * @dev Pull deposit from submitter account.
      * @param _deposit Amount of tokens to deposit
      */
-    function _pullFishermanDeposit(uint256 _deposit) private {
+    function _pullSubmitterDeposit(uint256 _deposit) private {
         // Ensure that fisherman has staked at least the minimum amount
         require(_deposit >= minimumDeposit, "Dispute deposit is under minimum required");
 
@@ -633,17 +633,17 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
     }
 
     /**
-     * @dev Make the staking contract slash the indexer and reward the fisherman.
-     * Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
+     * @dev Make the staking contract slash the indexer and reward the challenger.
+     * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
      * @param _indexer Address of the indexer
-     * @param _fisherman Address of the fisherman
+     * @param _challenger Address of the challenger
      * @param _disputeType Type of dispute
      * @return slashAmount Dispute slash amount
      * @return rewardsAmount Dispute rewards amount
      */
     function _slashIndexer(
         address _indexer,
-        address _fisherman,
+        address _challenger,
         DisputeType _disputeType
     ) private returns (uint256 slashAmount, uint256 rewardsAmount) {
         IStaking staking = staking();
@@ -660,7 +660,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
 
         // Have staking contract slash the indexer and reward the fisherman
         // Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
-        staking.slash(_indexer, slashAmount, rewardsAmount, _fisherman);
+        staking.slash(_indexer, slashAmount, rewardsAmount, _challenger);
     }
 
     /**
