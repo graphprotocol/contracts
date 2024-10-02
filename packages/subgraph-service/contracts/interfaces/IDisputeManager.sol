@@ -216,8 +216,6 @@ interface IDisputeManager {
 
     function getVerifierCut() external view returns (uint32);
 
-    function disputePeriod() external view returns (uint64);
-
     function isDisputeCreated(bytes32 disputeId) external view returns (bool);
 
     function encodeReceipt(Attestation.Receipt memory receipt) external view returns (bytes32);

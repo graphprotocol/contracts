@@ -46,8 +46,9 @@ contract DisputeManager is
     OwnableUpgradeable,
     GraphDirectory,
     AttestationManager,
-    DisputeManagerV1Storage,
-    IDisputeManager
+    IDisputeManager,
+    DisputeManagerV1Storage
+    
 {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
