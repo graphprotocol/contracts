@@ -16,7 +16,7 @@ interface IDataServiceRescuable is IDataService {
      * @param token The address of the token being rescued
      * @param tokens The amount of tokens rescued
      */
-    event TokensRescued(address indexed from, address indexed to, address token, uint256 tokens);
+    event TokensRescued(address indexed from, address indexed to, address indexed token, uint256 tokens);
 
     /**
      * @notice Emitted when a rescuer is set.
