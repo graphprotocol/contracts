@@ -302,7 +302,20 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 shares
     ) external override notPaused returns (bytes32) {
-        return _undelegate(serviceProvider, verifier, shares);
+        return _undelegate(serviceProvider, verifier, shares, msg.sender);
+    }
+
+    /**
+     * @notice See {IHorizonStakingMain-undelegate}.
+     */
+    function undelegate(
+        address serviceProvider,
+        address verifier,
+        uint256 shares,
+        address beneficiary
+    ) external override notPaused returns (bytes32) {
+        require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
+        return _undelegate(serviceProvider, verifier, shares, beneficiary);
     }
 
     /**
@@ -345,7 +358,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-undelegate}.
      */
     function undelegate(address serviceProvider, uint256 shares) external override notPaused {
-        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
+        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
     }
 
     /**
@@ -762,7 +775,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev To allow delegation to be slashable even while thawing without breaking accounting
      * the delegation pool shares are burned and replaced with thawing pool shares.
      */
-    function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
+    function _undelegate(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _shares,
+        address beneficiary
+    ) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         DelegationInternal storage delegation = pool.delegators[msg.sender];
@@ -789,7 +807,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         bytes32 thawRequestId = _createThawRequest(
             _serviceProvider,
             _verifier,
-            msg.sender,
+            beneficiary,
             thawingShares,
             thawingUntil
         );
