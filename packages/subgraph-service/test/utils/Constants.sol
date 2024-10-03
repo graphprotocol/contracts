@@ -18,7 +18,7 @@ abstract contract Constants {
     uint256 public constant maxPOIStaleness = 28 days;
     uint256 public constant curationCut = 10000;
     // Staking
-    uint64 internal constant MAX_THAWING_PERIOD = 28 days;
+    uint64 internal constant MAX_WAIT_PERIOD = 28 days;
     // GraphEscrow parameters
     uint256 internal constant withdrawEscrowThawingPeriod = 60;
     uint256 internal constant revokeCollectorThawingPeriod = 60;

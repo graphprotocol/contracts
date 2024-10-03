@@ -33,7 +33,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
 
     /// @notice The maximum thawing period (in seconds) for both escrow withdrawal and signer revocation
     /// @dev This is a precautionary measure to avoid inadvertedly locking funds for too long
-    uint256 public constant MAX_THAWING_PERIOD = 90 days;
+    uint256 public constant MAX_WAIT_PERIOD = 90 days;
 
     /// @notice Thawing period in seconds for authorized collectors
     uint256 public immutable REVOKE_COLLECTOR_THAWING_PERIOD;
@@ -58,12 +58,12 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         uint256 withdrawEscrowThawingPeriod
     ) GraphDirectory(controller) {
         require(
-            revokeCollectorThawingPeriod <= MAX_THAWING_PERIOD,
-            PaymentsEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_THAWING_PERIOD)
+            revokeCollectorThawingPeriod <= MAX_WAIT_PERIOD,
+            PaymentsEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_WAIT_PERIOD)
         );
         require(
-            withdrawEscrowThawingPeriod <= MAX_THAWING_PERIOD,
-            PaymentsEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_THAWING_PERIOD)
+            withdrawEscrowThawingPeriod <= MAX_WAIT_PERIOD,
+            PaymentsEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_WAIT_PERIOD)
         );
 
         REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
@@ -84,7 +84,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         require(allowance != 0, PaymentsEscrowInvalidZeroTokens());
         Collector storage collector = authorizedCollectors[msg.sender][collector_];
         collector.allowance += allowance;
-        emit AuthorizedCollector(msg.sender, collector_);
+        emit AuthorizedCollector(msg.sender, collector_, allowance, collector.allowance);
     }
 
     /**
@@ -234,7 +234,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      * @param _receiver The address of the receiver
      * @param _tokens The amount of tokens to deposit
      */
-    function _deposit(address _payer, address _receiver, uint256 _tokens) internal {
+    function _deposit(address _payer, address _receiver, uint256 _tokens) private {
         escrowAccounts[_payer][_receiver].balance += _tokens;
         _graphToken().pullTokens(msg.sender, _tokens);
         emit Deposit(_payer, _receiver, _tokens);

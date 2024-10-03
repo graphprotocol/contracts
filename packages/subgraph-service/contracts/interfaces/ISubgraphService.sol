@@ -110,11 +110,10 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidRAV(address ravIndexer, address allocationIndexer);
 
     /**
-     * @notice Thrown when trying to force close an allocation that is not stale
+     * @notice Thrown when trying to force close an allocation that is not stale and the indexer is not over-allocated
      * @param allocationId The id of the allocation
-     * @param lastPOIPresentedAt The timestamp when the last POI was presented
      */
-    error SubgraphServiceAllocationNotStale(address allocationId, uint256 lastPOIPresentedAt);
+    error SubgraphServiceCannotForceCloseAllocation(address allocationId);
 
     /**
      * @notice Thrown when trying to force close an altruistic allocation
@@ -128,20 +127,22 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidZeroStakeToFeesRatio();
 
     /**
-     * @notice Close a stale allocation
-     * @dev This function can be permissionlessly called when the allocation is stale.
-     * This ensures rewards for other allocations are not diluted by an inactive allocation
+     * @notice Force close an allocation
+     * @dev This function can be permissionlessly called when the allocation is stale or
+     * if the indexer is over-allocated. This ensures that rewards for other allocations are
+     * not diluted by an inactive allocation, and that over-allocated indexers stop accumulating
+     * rewards with tokens they no longer have allocated.
      *
      * Requirements:
      * - Allocation must exist and be open
-     * - Allocation must be stale
+     * - Allocation must be stale or indexer must be over-allocated
      * - Allocation cannot be altruistic
      *
      * Emits a {AllocationClosed} event.
      *
      * @param allocationId The id of the allocation
      */
-    function closeStaleAllocation(address allocationId) external;
+    function forceCloseAllocation(address allocationId) external;
 
     /**
      * @notice Change the amount of tokens in an allocation
@@ -237,4 +238,18 @@ interface ISubgraphService is IDataServiceFees {
      * @param allocationId The id of the allocation
      */
     function encodeAllocationProof(address indexer, address allocationId) external view returns (bytes32);
+
+    /**
+     * @notice Checks if an allocation is stale
+     * @param allocationId The id of the allocation
+     * @return True if the allocation is stale, false otherwise
+     */
+    function isStaleAllocation(address allocationId) external view returns (bool);
+
+    /**
+     * @notice Checks if an indexer is over-allocated
+     * @param allocationId The id of the allocation
+     * @return True if the indexer is over-allocated, false otherwise
+     */
+    function isOverAllocated(address allocationId) external view returns (bool);
 }

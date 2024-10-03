@@ -203,7 +203,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 tokens,
         uint256 nThawRequests
     )
         external
@@ -212,8 +211,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         onlyAuthorized(serviceProvider, oldVerifier)
         onlyAuthorized(serviceProvider, newVerifier)
     {
-        _deprovision(serviceProvider, oldVerifier, nThawRequests);
-        _addToProvision(serviceProvider, newVerifier, tokens);
+        uint256 tokensThawed = _deprovision(serviceProvider, oldVerifier, nThawRequests);
+        _addToProvision(serviceProvider, newVerifier, tokensThawed);
     }
 
     /**
@@ -222,16 +221,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function setProvisionParameters(
         address serviceProvider,
         address verifier,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
+        uint32 newMaxVerifierCut,
+        uint64 newThawingPeriod
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
-        if ((prov.maxVerifierCutPending != maxVerifierCut) || (prov.thawingPeriodPending != thawingPeriod)) {
-            prov.maxVerifierCutPending = maxVerifierCut;
-            prov.thawingPeriodPending = thawingPeriod;
-            emit ProvisionParametersStaged(serviceProvider, verifier, maxVerifierCut, thawingPeriod);
+        if ((prov.maxVerifierCutPending != newMaxVerifierCut) || (prov.thawingPeriodPending != newThawingPeriod)) {
+            prov.maxVerifierCutPending = newMaxVerifierCut;
+            prov.thawingPeriodPending = newThawingPeriod;
+            emit ProvisionParametersStaged(serviceProvider, verifier, newMaxVerifierCut, newThawingPeriod);
         }
     }
 
@@ -297,7 +296,20 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 shares
     ) external override notPaused returns (bytes32) {
-        return _undelegate(serviceProvider, verifier, shares);
+        return _undelegate(serviceProvider, verifier, shares, msg.sender);
+    }
+
+    /**
+     * @notice See {IHorizonStakingMain-undelegate}.
+     */
+    function undelegate(
+        address serviceProvider,
+        address verifier,
+        uint256 shares,
+        address beneficiary
+    ) external override notPaused returns (bytes32) {
+        require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
+        return _undelegate(serviceProvider, verifier, shares, beneficiary);
     }
 
     /**
@@ -340,7 +352,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-undelegate}.
      */
     function undelegate(address serviceProvider, uint256 shares) external override notPaused {
-        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
+        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
     }
 
     /**
@@ -689,13 +701,17 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-deprovision}.
      */
-    function _deprovision(address _serviceProvider, address _verifier, uint256 _nThawRequests) private {
+    function _deprovision(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _nThawRequests
+    ) private returns (uint256 tokensThawed) {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
 
-        uint256 tokensThawed = 0;
+        uint256 tokensThawed_ = 0;
         uint256 sharesThawing = prov.sharesThawing;
         uint256 tokensThawing = prov.tokensThawing;
-        (tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(
+        (tokensThawed_, tokensThawing, sharesThawing) = _fulfillThawRequests(
             _serviceProvider,
             _verifier,
             _serviceProvider,
@@ -704,12 +720,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _nThawRequests
         );
 
-        prov.tokens = prov.tokens - tokensThawed;
+        prov.tokens = prov.tokens - tokensThawed_;
         prov.sharesThawing = sharesThawing;
         prov.tokensThawing = tokensThawing;
-        _serviceProviders[_serviceProvider].tokensProvisioned -= tokensThawed;
+        _serviceProviders[_serviceProvider].tokensProvisioned -= tokensThawed_;
 
-        emit TokensDeprovisioned(_serviceProvider, _verifier, tokensThawed);
+        emit TokensDeprovisioned(_serviceProvider, _verifier, tokensThawed_);
+        return tokensThawed_;
     }
 
     /**
@@ -750,7 +767,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev To allow delegation to be slashable even while thawing without breaking accounting
      * the delegation pool shares are burned and replaced with thawing pool shares.
      */
-    function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
+    function _undelegate(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _shares,
+        address beneficiary
+    ) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         DelegationInternal storage delegation = pool.delegators[msg.sender];
@@ -769,7 +791,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         bytes32 thawRequestId = _createThawRequest(
             _serviceProvider,
             _verifier,
-            msg.sender,
+            beneficiary,
             thawingShares,
             thawingUntil
         );

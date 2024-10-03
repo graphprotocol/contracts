@@ -34,7 +34,7 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * Indexers present a Proof of Indexing (POI) when they close allocations to prove
  * they were indexing a subgraph. The Staking contract emits that proof with the format
  * keccak256(indexer.address, POI).
- * Any challenger can dispute the validity of a POI by submitting a dispute to this contract
+ * Any fisherman can dispute the validity of a POI by submitting a dispute to this contract
  * along with a deposit.
  *
  * Arbitration:
@@ -129,18 +129,18 @@ contract DisputeManager is
      * @notice Create an indexing dispute for the arbitrator to resolve.
      * The disputes are created in reference to an allocationId and specifically
      * a POI for that allocation.
-     * This function is called by a challenger and it will pull `disputeDeposit` GRT tokens.
+     * This function is called by a fisherman and it will pull `disputeDeposit` GRT tokens.
      *
      * Requirements:
-     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount
+     * - fisherman must have previously approved this contract to pull `disputeDeposit` amount
      *   of tokens from their balance.
      *
      * @param allocationId The allocation to dispute
      * @param poi The Proof of Indexing (POI) being disputed
      */
     function createIndexingDispute(address allocationId, bytes32 poi) external override returns (bytes32) {
-        // Get funds from submitter
-        _pullSubmitterDeposit();
+        // Get funds from fisherman
+        _pullFishermanDeposit();
 
         // Create a dispute
         return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi);
@@ -148,17 +148,17 @@ contract DisputeManager is
 
     /**
      * @notice Create a query dispute for the arbitrator to resolve.
-     * This function is called by a challenger and it will pull `disputeDeposit` GRT tokens.
+     * This function is called by a fisherman and it will pull `disputeDeposit` GRT tokens.
      *
      * * Requirements:
-     * - Challenger must have previously approved this contract to pull `disputeDeposit` amount
+     * - fisherman must have previously approved this contract to pull `disputeDeposit` amount
      *   of tokens from their balance.
      *
-     * @param attestationData Attestation bytes submitted by the challenger
+     * @param attestationData Attestation bytes submitted by the fisherman
      */
     function createQueryDispute(bytes calldata attestationData) external override returns (bytes32) {
-        // Get funds from submitter
-        _pullSubmitterDeposit();
+        // Get funds from fisherman
+        _pullFishermanDeposit();
 
         // Create a dispute
         return
@@ -174,7 +174,7 @@ contract DisputeManager is
      * @notice Create query disputes for two conflicting attestations.
      * A conflicting attestation is a proof presented by two different indexers
      * where for the same request on a subgraph the response is different.
-     * For this type of dispute the submitter is not required to present a deposit
+     * For this type of dispute the fisherman is not required to present a deposit
      * as one of the attestation is considered to be right.
      * Two linked disputes will be created and if the arbitrator resolve one, the other
      * one will be automatically resolved.
@@ -517,7 +517,7 @@ contract DisputeManager is
 
     /**
      * @notice Create indexing dispute internal function.
-     * @param _fisherman The challenger creating the dispute
+     * @param _fisherman The fisherman creating the dispute
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationId Allocation disputed
      * @param _poi The POI being disputed
@@ -562,7 +562,7 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Resolve the conflicting dispute if there is any for the one passed to this function.
+     * @notice Draw the conflicting dispute if there is any for the one passed to this function.
      * @param _dispute Dispute
      * @return True if resolved
      */
@@ -592,16 +592,16 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Pull `disputeDeposit` from submitter account.
+     * @notice Pull `disputeDeposit` from fisherman account.
      */
-    function _pullSubmitterDeposit() private {
+    function _pullFishermanDeposit() private {
         // Transfer tokens to deposit from fisherman to this contract
         _graphToken().pullTokens(msg.sender, disputeDeposit);
     }
 
     /**
-     * @notice Make the subgraph service contract slash the indexer and reward the challenger.
-     * Give the challenger a reward equal to the fishermanRewardPercentage of slashed amount
+     * @notice Make the subgraph service contract slash the indexer and reward the fisherman.
+     * Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
      * @param _indexer Address of the indexer
      * @param _tokensSlash Amount of tokens to slash from the indexer
      * @param _tokensStakeSnapshot Snapshot of the indexer's stake at the time of the dispute creation

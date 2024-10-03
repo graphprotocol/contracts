@@ -27,7 +27,7 @@ contract GraphDirectoryTest is GraphBaseTest {
 
     function test_RevertWhen_TheContractIsDeployedWithAnInvalidController(address controller_) external {
         vm.assume(controller_ != address(controller));
-        vm.assume(controller_ != address(0));
+        vm.assume(uint160(controller_) > 9); // Skip precompiled contracts
 
         vm.expectRevert(); // call to getContractProxy on a random address reverts
         _deployImplementation(controller_);

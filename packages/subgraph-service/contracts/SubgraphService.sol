@@ -115,7 +115,7 @@ contract SubgraphService is
     function register(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyValidProvision(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyValidProvision(indexer) whenNotPaused {
         (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
             data,
             (string, string, address)
@@ -136,24 +136,24 @@ contract SubgraphService is
 
     /**
      * @notice Accept staged parameters in the provision of a service provider
-     * @dev Implements {IDataService-acceptProvision}
+     * @dev Implements {IDataService-acceptProvisionPendingParameters}
      *
      * Requirements:
      * - The indexer must be registered
      * - Must have previously staged provision parameters, using {IHorizonStaking-setProvisionParameters}
      * - The new provision parameters must be valid according to the subgraph service rules
      *
-     * Emits a {ProvisionAccepted} event
+     * Emits a {ProvisionPendingParametersAccepted} event
      *
      * @param indexer The address of the indexer to accept the provision for
      */
-    function acceptProvision(
+    function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         _checkProvisionTokens(indexer);
         _acceptProvisionParameters(indexer);
-        emit ProvisionAccepted(indexer);
+        emit ProvisionPendingParametersAccepted(indexer);
     }
 
     /**
@@ -186,7 +186,7 @@ contract SubgraphService is
     )
         external
         override
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -221,7 +221,7 @@ contract SubgraphService is
     function stopService(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         require(
             allocations.get(allocationId).indexer == indexer,
@@ -259,7 +259,7 @@ contract SubgraphService is
     )
         external
         override
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -312,12 +312,11 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.closeStaleAllocation}
      */
-    function closeStaleAllocation(address allocationId) external override {
+    function forceCloseAllocation(address allocationId) external override {
         Allocation.State memory allocation = allocations.get(allocationId);
-        require(
-            allocation.isStale(maxPOIStaleness),
-            SubgraphServiceAllocationNotStale(allocationId, allocation.lastPOIPresentedAt)
-        );
+        bool isStale = allocation.isStale(maxPOIStaleness);
+        bool isOverAllocated_ = _isOverAllocated(allocation.indexer, delegationRatio);
+        require(isStale || isOverAllocated_, SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _closeAllocation(allocationId);
     }
@@ -331,7 +330,7 @@ contract SubgraphService is
         uint256 tokens
     )
         external
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -474,6 +473,20 @@ contract SubgraphService is
      */
     function encodeAllocationProof(address indexer, address allocationId) external view override returns (bytes32) {
         return _encodeAllocationProof(indexer, allocationId);
+    }
+
+    /**
+     * @notice See {ISubgraphService.isStaleAllocation}
+     */
+    function isStaleAllocation(address allocationId) external view override returns (bool) {
+        return allocations.get(allocationId).isStale(maxPOIStaleness);
+    }
+
+    /**
+     * @notice See {ISubgraphService.isOverAllocated}
+     */
+    function isOverAllocated(address indexer) external view override returns (bool) {
+        return _isOverAllocated(indexer, delegationRatio);
     }
 
     // -- Data service parameter getters --

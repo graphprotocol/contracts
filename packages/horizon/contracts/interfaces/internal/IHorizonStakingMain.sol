@@ -409,6 +409,11 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingInvalidDelegationPool(address serviceProvider, address verifier);
 
+    /**
+     * @notice Thrown when attempting to undelegate with a beneficiary that is the zero address.
+     */
+    error HorizonStakingInvalidBeneficiaryZeroAddress();
+
     // -- Errors: thaw requests --
 
     error HorizonStakingNothingThawing();
@@ -614,13 +619,12 @@ interface IHorizonStakingMain {
      * @param serviceProvider The service provider address
      * @param oldVerifier The verifier address for which the tokens are currently provisioned
      * @param newVerifier The verifier address for which the tokens will be provisioned
-     * @param tokens The amount of tokens to move
+     * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
     function reprovision(
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 tokens,
         uint256 nThawRequests
     ) external;
 
@@ -706,6 +710,33 @@ interface IHorizonStakingMain {
      * @return The ID of the thaw request
      */
     function undelegate(address serviceProvider, address verifier, uint256 shares) external returns (bytes32);
+
+    /**
+     * @notice Undelegate tokens from a provision and start thawing them.
+     * The tokens will be withdrawable by the `beneficiary` after the thawing period.
+     *
+     * Note that undelegating tokens from a provision is a two step process:
+     * - First the tokens are thawed using this function.
+     * - Then after the thawing period, the tokens are removed from the provision using {withdrawDelegated}.
+     *
+     * Requirements:
+     * - `shares` cannot be zero.
+     * - `beneficiary` cannot be the zero address.
+     *
+     * Emits a {TokensUndelegated} and {ThawRequestCreated} event.
+     *
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address
+     * @param shares The amount of shares to undelegate
+     * @param beneficiary The address where the tokens will be withdrawn after thawing
+     * @return The ID of the thaw request
+     */
+    function undelegate(
+        address serviceProvider,
+        address verifier,
+        uint256 shares,
+        address beneficiary
+    ) external returns (bytes32);
 
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.

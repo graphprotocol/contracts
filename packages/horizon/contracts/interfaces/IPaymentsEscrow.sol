@@ -38,8 +38,15 @@ interface IPaymentsEscrow {
      * @notice Emitted when a payer authorizes a collector to collect funds
      * @param payer The address of the payer
      * @param collector The address of the collector
+     * @param addedAllowance The amount of tokens added to the collector's allowance
+     * @param newTotalAllowance The new total allowance after addition
      */
-    event AuthorizedCollector(address indexed payer, address indexed collector);
+    event AuthorizedCollector(
+        address indexed payer,
+        address indexed collector,
+        uint256 addedAllowance,
+        uint256 newTotalAllowance
+    );
 
     /**
      * @notice Emitted when a payer thaws a collector
@@ -131,9 +138,9 @@ interface IPaymentsEscrow {
     /**
      * @notice Thrown when setting the thawing period to a value greater than the maximum
      * @param thawingPeriod The thawing period
-     * @param maxThawingPeriod The maximum thawing period
+     * @param maxWaitPeriod The maximum wait period
      */
-    error PaymentsEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxThawingPeriod);
+    error PaymentsEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxWaitPeriod);
 
     /**
      * @notice Thrown when a collector has insufficient allowance to collect funds

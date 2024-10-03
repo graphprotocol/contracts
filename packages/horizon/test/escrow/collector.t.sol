@@ -16,7 +16,12 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
     function _approveCollector(uint256 tokens) internal {
         (uint256 beforeAllowance,) = escrow.authorizedCollectors(users.gateway, users.verifier);
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.AuthorizedCollector(users.gateway, users.verifier);
+        emit IPaymentsEscrow.AuthorizedCollector(
+            users.gateway, // payer
+            users.verifier, // collector
+            tokens, // addedAllowance
+            beforeAllowance + tokens // newTotalAllowance after the added allowance
+        );
         escrow.approveCollector(users.verifier, tokens);
         (uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
         assertEq(allowance - beforeAllowance, tokens);
