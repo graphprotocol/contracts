@@ -220,10 +220,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint32 newMaxVerifierCut,
         uint64 newThawingPeriod
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
-        require(PPMMath.isValidPPM(maxVerifierCut), HorizonStakingInvalidMaxVerifierCut(maxVerifierCut));
+        require(PPMMath.isValidPPM(newMaxVerifierCut), HorizonStakingInvalidMaxVerifierCut(newMaxVerifierCut));
         require(
-            thawingPeriod <= _maxThawingPeriod,
-            HorizonStakingInvalidThawingPeriod(thawingPeriod, _maxThawingPeriod)
+            newThawingPeriod <= _maxThawingPeriod,
+            HorizonStakingInvalidThawingPeriod(newThawingPeriod, _maxThawingPeriod)
         );
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
