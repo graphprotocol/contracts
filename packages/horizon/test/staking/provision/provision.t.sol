@@ -12,7 +12,7 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
 
     function testProvision_Create(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) public useIndexer {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
-        maxVerifierCut = uint32(bound(maxVerifierCut, 0, MAX_MAX_VERIFIER_CUT));
+        maxVerifierCut = uint32(bound(maxVerifierCut, 0, MAX_PPM));
         thawingPeriod = uint32(bound(thawingPeriod, 0, MAX_THAWING_PERIOD));
 
         _createProvision(users.indexer, subgraphDataServiceAddress, tokens, maxVerifierCut, thawingPeriod);
@@ -28,11 +28,10 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         uint256 amount,
         uint32 maxVerifierCut
     ) public useIndexer useStake(amount) {
-        vm.assume(maxVerifierCut > MAX_MAX_VERIFIER_CUT);
+        vm.assume(maxVerifierCut > MAX_PPM);
         bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInvalidMaxVerifierCut(uint32,uint32)",
-            maxVerifierCut,
-            MAX_MAX_VERIFIER_CUT
+            "HorizonStakingInvalidMaxVerifierCut(uint32)",
+            maxVerifierCut
         );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, maxVerifierCut, 0);

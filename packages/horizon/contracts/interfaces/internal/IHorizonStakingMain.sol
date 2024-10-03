@@ -341,9 +341,8 @@ interface IHorizonStakingMain {
     /**
      * @notice Thrown when attempting to create a provision with an invalid maximum verifier cut.
      * @param maxVerifierCut The maximum verifier cut
-     * @param maxMaxVerifierCut The maximum `maxVerifierCut` allowed
      */
-    error HorizonStakingInvalidMaxVerifierCut(uint32 maxVerifierCut, uint32 maxMaxVerifierCut);
+    error HorizonStakingInvalidMaxVerifierCut(uint32 maxVerifierCut);
 
     /**
      * @notice Thrown when attempting to create a provision with an invalid thawing period.
@@ -528,7 +527,7 @@ interface IHorizonStakingMain {
      * @dev Requirements:
      * - `tokens` cannot be zero.
      * - The `serviceProvider` must have enough idle stake to cover the tokens to provision.
-     * - `maxVerifierCut` must be less than or equal to `MAX_MAX_VERIFIER_CUT`.
+     * - `maxVerifierCut` must be a valid PPM.
      * - `thawingPeriod` must be less than or equal to `_maxThawingPeriod`.
      *
      * Emits a {ProvisionCreated} event.
