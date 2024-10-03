@@ -41,9 +41,10 @@ contract SubgraphServiceProviderRegisterTest is SubgraphServiceTest {
         resetPrank(users.operator);
         vm.expectRevert(abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerNotAuthorized.selector,
-            users.operator,
-            users.indexer
-        ));
+            users.indexer,
+            users.operator
+            )
+        );
         bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
         subgraphService.register(users.indexer, data);
     }

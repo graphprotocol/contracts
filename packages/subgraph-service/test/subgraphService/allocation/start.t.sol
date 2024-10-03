@@ -60,9 +60,10 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes memory data = _generateData(tokens);
         vm.expectRevert(abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerNotAuthorized.selector,
-            users.operator,
-            users.indexer
-        ));
+            users.indexer,
+            users.operator
+            )
+        );
         subgraphService.startService(users.indexer, data);
     }
 

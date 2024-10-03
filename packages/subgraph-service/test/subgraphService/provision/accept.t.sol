@@ -47,9 +47,10 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         resetPrank(users.operator);
         vm.expectRevert(abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerNotAuthorized.selector,
-            users.operator,
-            users.indexer
-        ));
+            users.indexer,
+            users.operator
+            )
+        );
         subgraphService.acceptProvision(users.indexer, "");
     }
 

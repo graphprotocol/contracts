@@ -111,9 +111,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         resetPrank(users.operator);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ProvisionManager.ProvisionManagerNotAuthorized.selector,
-                users.operator,
-                users.indexer
+            ProvisionManager.ProvisionManagerNotAuthorized.selector,
+            users.indexer,
+            users.operator
             )
         );
         subgraphService.collect(users.indexer, paymentType, data);
