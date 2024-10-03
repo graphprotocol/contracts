@@ -336,7 +336,7 @@ interface IHorizonStakingMain {
      * @param serviceProvider The service provider address
      * @param verifier The verifier address
      */
-    error HorizonStakingNotAuthorized(address caller, address serviceProvider, address verifier);
+    error HorizonStakingNotAuthorized(address serviceProvider, address verifier, address caller);
 
     /**
      * @notice Thrown when attempting to create a provision with an invalid maximum verifier cut.

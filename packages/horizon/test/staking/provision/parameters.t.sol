@@ -53,9 +53,9 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "HorizonStakingNotAuthorized(address,address,address)",
-                msg.sender,
                 users.indexer,
-                subgraphDataServiceAddress
+                subgraphDataServiceAddress,
+                msg.sender
             )
         );
         staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);

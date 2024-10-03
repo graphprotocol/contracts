@@ -48,7 +48,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     modifier onlyAuthorized(address serviceProvider, address verifier) {
         require(
             _isAuthorized(msg.sender, serviceProvider, verifier),
-            HorizonStakingNotAuthorized(msg.sender, serviceProvider, verifier)
+            HorizonStakingNotAuthorized(serviceProvider, verifier, msg.sender)
         );
         _;
     }

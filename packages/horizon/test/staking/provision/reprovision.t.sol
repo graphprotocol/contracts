@@ -58,9 +58,9 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         vm.startPrank(users.operator);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingNotAuthorized(address,address,address)",
-            users.operator,
             users.indexer,
-            newDataService
+            newDataService,
+            users.operator
         );
         vm.expectRevert(expectedError);
         staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, 0);
