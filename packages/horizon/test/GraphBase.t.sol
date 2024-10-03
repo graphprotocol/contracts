@@ -45,10 +45,8 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
 
     address subgraphDataServiceLegacyAddress = makeAddr("subgraphDataServiceLegacyAddress");
     address subgraphDataServiceAddress = makeAddr("subgraphDataServiceAddress");
-    
-    // We use these addresses to mock calls from the counterpart staking contract
+
     address graphTokenGatewayAddress = makeAddr("GraphTokenGateway");
-    address counterpartStaking = makeAddr("counterpartStaking");
 
     /* Users */
 
@@ -188,8 +186,6 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));
         proxyAdmin.acceptProxy(stakingBase, stakingProxy);
         staking = IHorizonStaking(address(stakingProxy));
-
-        staking.setCounterpartStakingAddress(address(counterpartStaking));
     }
 
     function setupProtocol() private {

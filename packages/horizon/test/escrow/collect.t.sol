@@ -101,8 +101,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         uint256 tokensDelegatoion = tokens * delegationFeeCut / MAX_PPM;
         vm.assume(tokensDataService < tokens - tokensProtocol - tokensDelegatoion);
 
-        vm.assume(delegationTokens > MIN_DELEGATION);
-        vm.assume(delegationTokens <= MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 

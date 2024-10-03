@@ -8,7 +8,6 @@ import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol
 import { IHorizonStakingBase } from "../../../contracts/interfaces/internal/IHorizonStakingBase.sol";
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingExtension } from "../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
-import { IL2StakingBase } from "@graphprotocol/contracts/contracts/l2/staking/IL2StakingBase.sol";
 
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
@@ -1233,107 +1232,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterMaxThawingPeriod, maxThawingPeriod);
     }
 
-    function _setCounterpartStakingAddress(address counterpartStakingAddress) internal {
-        // setCounterpartStakingAddress
-        vm.expectEmit(address(staking));
-        emit IHorizonStakingExtension.CounterpartStakingAddressSet(counterpartStakingAddress);
-        staking.setCounterpartStakingAddress(counterpartStakingAddress);
-
-        // after
-        address afterCounterpartStakingAddress = _getStorage_CounterpartStakingAddress();
-
-        // assert
-        assertEq(afterCounterpartStakingAddress, counterpartStakingAddress);
-    }
-
-    struct BeforeValues_ReceiveDelegation {
-        DelegationPoolInternalTest pool;
-        DelegationInternal delegation;
-        uint256 delegatedTokens;
-        uint256 stakingBalance;
-        uint256 delegatorBalance;
-    }
-    function _onTokenTransfer_ReceiveDelegation(address from, uint256 tokens, bytes memory data) internal {
-        address serviceProvider;
-        address delegator;
-        {
-            (, bytes memory fnData) = abi.decode(data, (uint8, bytes));
-            (serviceProvider, delegator) = abi.decode(fnData, (address, address));
-        }
-
-        // before
-        BeforeValues_ReceiveDelegation memory beforeValues;
-        beforeValues.pool = _getStorage_DelegationPoolInternal(serviceProvider, subgraphDataServiceLegacyAddress, true);
-        beforeValues.delegation = _getStorage_Delegation(
-            serviceProvider,
-            subgraphDataServiceLegacyAddress,
-            delegator,
-            true
-        );
-        beforeValues.stakingBalance = token.balanceOf(address(staking));
-        beforeValues.delegatorBalance = token.balanceOf(delegator);
-        beforeValues.delegatedTokens = staking.getDelegatedTokensAvailable(
-            serviceProvider,
-            subgraphDataServiceLegacyAddress
-        );
-
-        // calc
-        uint256 calcShares = (beforeValues.pool.tokens == 0 || beforeValues.pool.tokens == beforeValues.pool.tokensThawing)
-            ? tokens
-            : ((tokens * beforeValues.pool.shares) / (beforeValues.pool.tokens - beforeValues.pool.tokensThawing));
-
-        bool earlyExit = (calcShares == 0 || tokens < 1 ether) ||
-            (beforeValues.pool.tokens == 0 && (beforeValues.pool.shares != 0 || beforeValues.pool.sharesThawing != 0));
-
-        // onTokenTransfer
-        if (earlyExit) {
-            vm.expectEmit();
-            emit Transfer(address(staking), delegator, tokens);
-            vm.expectEmit();
-            emit IL2StakingBase.TransferredDelegationReturnedToDelegator(serviceProvider, delegator, tokens);
-        } else {
-            vm.expectEmit();
-            emit IHorizonStakingExtension.StakeDelegated(serviceProvider, delegator, tokens, calcShares);
-        }
-        staking.onTokenTransfer(from, tokens, data);
-
-        // after
-        DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(serviceProvider, subgraphDataServiceLegacyAddress, true);
-        DelegationInternal memory afterDelegation = _getStorage_Delegation(
-            serviceProvider,
-            subgraphDataServiceLegacyAddress,
-            delegator,
-            true
-        );
-        uint256 afterDelegatedTokens = staking.getDelegatedTokensAvailable(
-            serviceProvider,
-            subgraphDataServiceLegacyAddress
-        );
-        uint256 afterDelegatorBalance = token.balanceOf(delegator);
-        uint256 afterStakingBalance = token.balanceOf(address(staking));
-
-        // assertions
-        if (earlyExit) {
-            assertEq(beforeValues.pool.tokens, afterPool.tokens);
-            assertEq(beforeValues.pool.shares, afterPool.shares);
-            assertEq(beforeValues.pool.tokensThawing, afterPool.tokensThawing);
-            assertEq(beforeValues.pool.sharesThawing, afterPool.sharesThawing);
-            assertEq(0, afterDelegation.shares - beforeValues.delegation.shares);
-            assertEq(beforeValues.delegatedTokens, afterDelegatedTokens);
-            assertEq(beforeValues.delegatorBalance + tokens, afterDelegatorBalance);
-            assertEq(beforeValues.stakingBalance - tokens, afterStakingBalance);
-        } else {
-            assertEq(beforeValues.pool.tokens + tokens, afterPool.tokens);
-            assertEq(beforeValues.pool.shares + calcShares, afterPool.shares);
-            assertEq(beforeValues.pool.tokensThawing, afterPool.tokensThawing);
-            assertEq(beforeValues.pool.sharesThawing, afterPool.sharesThawing);
-            assertEq(calcShares, afterDelegation.shares - beforeValues.delegation.shares);
-            assertEq(beforeValues.delegatedTokens + tokens, afterDelegatedTokens);
-            assertEq(beforeValues.delegatorBalance, afterDelegatorBalance);
-            assertEq(beforeValues.stakingBalance, afterStakingBalance);
-        }
-    }
-
     struct BeforeValues_Slash {
         Provision provision;
         DelegationPoolInternalTest pool;
@@ -1926,11 +1824,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         });
 
         return delegation;
-    }
-
-    function _getStorage_CounterpartStakingAddress() internal view returns (address) {
-        uint256 slot = 24;
-        return address(uint160(uint256(vm.load(address(staking), bytes32(slot)))));
     }
 
     function _setStorage_allocation(
