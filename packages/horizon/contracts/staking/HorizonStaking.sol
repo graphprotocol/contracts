@@ -967,7 +967,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         } else {
             _operatorAuth[msg.sender][_verifier][_operator] = _allowed;
         }
-        emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
+        emit OperatorSet(msg.sender, _verifier, _operator, _allowed);
     }
 
     /**
