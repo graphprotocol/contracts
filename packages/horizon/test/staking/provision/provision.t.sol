@@ -102,8 +102,8 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         vm.startPrank(users.operator);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingNotAuthorized(address,address,address)",
-            users.operator,
             users.indexer,
+            users.operator,
             subgraphDataServiceAddress
         );
         vm.expectRevert(expectedError);
