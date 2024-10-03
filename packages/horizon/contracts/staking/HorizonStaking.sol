@@ -959,7 +959,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             _legacyOperatorAuth[msg.sender][_operator] = _allowed;
         } else {
-            _operatorAuth[msg.sender][_verifier][_operator] = _allowed;
+            _operatorAuth[msg.sender][_operator][_verifier] = _allowed;
         }
         emit OperatorSet(msg.sender, _operator, _verifier, _allowed);
     }
@@ -976,7 +976,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             return _legacyOperatorAuth[_serviceProvider][_operator];
         } else {
-            return _operatorAuth[_serviceProvider][_verifier][_operator];
+            return _operatorAuth[_serviceProvider][_operator][_verifier];
         }
     }
 }

@@ -158,7 +158,7 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Operator allow list
     /// Used for all verifiers except the subgraph data service.
-    mapping(address serviceProvider => mapping(address verifier => mapping(address operator => bool authorized)))
+    mapping(address serviceProvider => mapping(address operator => mapping(address verifier => bool authorized)))
         internal _operatorAuth;
 
     /// @dev Flag to enable or disable delegation slashing
