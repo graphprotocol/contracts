@@ -22,7 +22,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
         vm.assume(newVerifierCut >= fishermanRewardPercentage);
         vm.assume(newVerifierCut <= MAX_PPM);
-        newDisputePeriod = uint64(bound(newDisputePeriod, disputePeriod, MAX_THAWING_PERIOD));
+        newDisputePeriod = uint64(bound(newDisputePeriod, disputePeriod, MAX_WAIT_PERIOD));
 
         // Setup indexer
         _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
