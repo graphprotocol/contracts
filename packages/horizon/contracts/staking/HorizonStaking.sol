@@ -47,7 +47,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     modifier onlyAuthorized(address serviceProvider, address verifier) {
         require(
-            _isAuthorized(msg.sender, serviceProvider, verifier),
+            _isAuthorized(serviceProvider, verifier, msg.sender),
             HorizonStakingNotAuthorized(serviceProvider, verifier, msg.sender)
         );
         _;
@@ -526,7 +526,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         address operator
     ) external view override returns (bool) {
-        return _isAuthorized(operator, serviceProvider, verifier);
+        return _isAuthorized(serviceProvider, verifier, operator);
     }
 
     /*
@@ -975,7 +975,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev Note that this function handles the special case where the verifier is the subgraph data service,
      * where the operator settings are stored in the legacy mapping.
      */
-    function _isAuthorized(address _operator, address _serviceProvider, address _verifier) private view returns (bool) {
+    function _isAuthorized(address _serviceProvider, address _verifier, address _operator) private view returns (bool) {
         if (_operator == _serviceProvider) {
             return true;
         }
