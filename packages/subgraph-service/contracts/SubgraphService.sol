@@ -22,6 +22,11 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
+/**
+ * @title SubgraphService contract
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
+ */
 contract SubgraphService is
     Initializable,
     OwnableUpgradeable,
@@ -110,7 +115,7 @@ contract SubgraphService is
     function register(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyValidProvision(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyValidProvision(indexer) whenNotPaused {
         (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
             data,
             (string, string, address)
@@ -131,24 +136,24 @@ contract SubgraphService is
 
     /**
      * @notice Accept staged parameters in the provision of a service provider
-     * @dev Implements {IDataService-acceptProvision}
+     * @dev Implements {IDataService-acceptProvisionPendingParameters}
      *
      * Requirements:
      * - The indexer must be registered
      * - Must have previously staged provision parameters, using {IHorizonStaking-setProvisionParameters}
      * - The new provision parameters must be valid according to the subgraph service rules
      *
-     * Emits a {ProvisionAccepted} event
+     * Emits a {ProvisionPendingParametersAccepted} event
      *
      * @param indexer The address of the indexer to accept the provision for
      */
-    function acceptProvision(
+    function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         _checkProvisionTokens(indexer);
         _acceptProvisionParameters(indexer);
-        emit ProvisionAccepted(indexer);
+        emit ProvisionPendingParametersAccepted(indexer);
     }
 
     /**
@@ -181,7 +186,7 @@ contract SubgraphService is
     )
         external
         override
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -216,7 +221,7 @@ contract SubgraphService is
     function stopService(
         address indexer,
         bytes calldata data
-    ) external override onlyProvisionAuthorized(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         require(
             allocations.get(allocationId).indexer == indexer,
@@ -254,7 +259,7 @@ contract SubgraphService is
     )
         external
         override
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -307,12 +312,11 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.closeStaleAllocation}
      */
-    function closeStaleAllocation(address allocationId) external override {
+    function forceCloseAllocation(address allocationId) external override {
         Allocation.State memory allocation = allocations.get(allocationId);
-        require(
-            allocation.isStale(maxPOIStaleness),
-            SubgraphServiceAllocationNotStale(allocationId, allocation.lastPOIPresentedAt)
-        );
+        bool isStale = allocation.isStale(maxPOIStaleness);
+        bool isOverAllocated_ = _isOverAllocated(allocation.indexer, delegationRatio);
+        require(isStale || isOverAllocated_, SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _closeAllocation(allocationId);
     }
@@ -326,7 +330,7 @@ contract SubgraphService is
         uint256 tokens
     )
         external
-        onlyProvisionAuthorized(indexer)
+        onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
         whenNotPaused
@@ -367,7 +371,7 @@ contract SubgraphService is
      * @notice See {ISubgraphService.setMinimumProvisionTokens}
      */
     function setMinimumProvisionTokens(uint256 minimumProvisionTokens) external override onlyOwner {
-        _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
+        _setProvisionTokensRange(minimumProvisionTokens, DEFAULT_MAX_PROVISION_TOKENS);
     }
 
     /**
@@ -471,6 +475,20 @@ contract SubgraphService is
         return _encodeAllocationProof(indexer, allocationId);
     }
 
+    /**
+     * @notice See {ISubgraphService.isStaleAllocation}
+     */
+    function isStaleAllocation(address allocationId) external view override returns (bool) {
+        return allocations.get(allocationId).isStale(maxPOIStaleness);
+    }
+
+    /**
+     * @notice See {ISubgraphService.isOverAllocated}
+     */
+    function isOverAllocated(address indexer) external view override returns (bool) {
+        return _isOverAllocated(indexer, delegationRatio);
+    }
+
     // -- Data service parameter getters --
     /**
      * @notice Getter for the accepted thawing period range for provisions
@@ -480,7 +498,7 @@ contract SubgraphService is
      */
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
         uint64 disputePeriod = _disputeManager().getDisputePeriod();
-        return (disputePeriod, type(uint64).max);
+        return (disputePeriod, DEFAULT_MAX_THAWING_PERIOD);
     }
 
     /**
@@ -490,7 +508,7 @@ contract SubgraphService is
      */
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
         uint32 verifierCut = _disputeManager().getVerifierCut();
-        return (verifierCut, uint32(PPMMath.MAX_PPM));
+        return (verifierCut, DEFAULT_MAX_VERIFIER_CUT);
     }
 
     /**

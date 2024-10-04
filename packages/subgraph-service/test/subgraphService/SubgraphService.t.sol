@@ -83,10 +83,10 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint64 thawingPeriodPending = provision.thawingPeriodPending;
 
         vm.expectEmit(address(subgraphService));
-        emit IDataService.ProvisionAccepted(_indexer);
+        emit IDataService.ProvisionPendingParametersAccepted(_indexer);
 
         // Accept provision
-        subgraphService.acceptProvision(_indexer, _data);
+        subgraphService.acceptProvisionPendingParameters(_indexer, _data);
 
         // Update provision after acceptance
         provision = staking.getProvision(_indexer, address(subgraphService));
@@ -151,7 +151,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertEq(afterSubgraphAllocatedTokens, _tokens);
     }
 
-    function _closeStaleAllocation(address _allocationId) internal {
+    function _forceCloseAllocation(address _allocationId) internal {
         assertTrue(subgraphService.isActiveAllocation(_allocationId));
 
         Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
@@ -168,7 +168,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         );
 
         // close stale allocation
-        subgraphService.closeStaleAllocation(_allocationId);
+        subgraphService.forceCloseAllocation(_allocationId);
 
         // update allocation
         allocation = subgraphService.getAllocation(_allocationId);
@@ -273,7 +273,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
                 paymentCollected,
                 indexingRewardsData.tokensIndexerRewards,
                 indexingRewardsData.tokensDelegationRewards,
-                indexingRewardsData.poi
+                indexingRewardsData.poi,
+                epochManager.currentEpoch()
             );
         }
 
@@ -327,7 +328,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             uint64 disputePeriod = disputeManager.getDisputePeriod();
             assertEq(stakeClaim.tokens, tokensToLock);
             assertEq(stakeClaim.createdAt, block.timestamp);
-            assertEq(stakeClaim.releaseAt, block.timestamp + disputePeriod);
+            assertEq(stakeClaim.releasableAt, block.timestamp + disputePeriod);
             assertEq(stakeClaim.nextClaim, bytes32(0));
         } else if (_paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             // Update allocation after collecting rewards
@@ -418,7 +419,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _getStakeClaim(bytes32 _claimId) private view returns (IDataServiceFees.StakeClaim memory) {
-        (uint256 tokens, uint256 createdAt, uint256 releaseAt, bytes32 nextClaim) = subgraphService.claims(_claimId);
-        return IDataServiceFees.StakeClaim(tokens, createdAt, releaseAt, nextClaim);
+        (uint256 tokens, uint256 createdAt, uint256 releasableAt, bytes32 nextClaim) = subgraphService.claims(_claimId);
+        return IDataServiceFees.StakeClaim(tokens, createdAt, releasableAt, nextClaim);
     }
 }

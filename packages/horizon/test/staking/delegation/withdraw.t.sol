@@ -24,18 +24,6 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         );
         shares = bound(shares, 1, delegation.shares);
 
-        if (shares != delegation.shares) {
-            DelegationPoolInternalTest memory pool = _getStorage_DelegationPoolInternal(
-                users.indexer,
-                subgraphDataServiceAddress,
-                false
-            );
-            uint256 tokens = (shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-            uint256 newTokensThawing = pool.tokensThawing + tokens;
-            uint256 remainingTokens = (delegation.shares * (pool.tokens - newTokensThawing)) / pool.shares;
-            vm.assume(remainingTokens >= MIN_DELEGATION);
-        }
-
         _undelegate(users.indexer, subgraphDataServiceAddress, shares);
         _;
     }
@@ -144,7 +132,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     }
 
     function testWithdrawDelegation_LegacySubgraphService(uint256 delegationAmount) public useIndexer {
-        delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationAmount = bound(delegationAmount, 1, MAX_STAKING_TOKENS);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 10_000_000 ether, 0, MAX_THAWING_PERIOD);
 
         resetPrank(users.delegator);
@@ -172,10 +160,9 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     function testWithdrawDelegation_RevertWhen_InvalidPool(
         uint256 tokens,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing {
-        delegationTokens = bound(delegationTokens, MAX_STAKING_TOKENS / 10, MAX_STAKING_TOKENS);
+    ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing() {
+        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
 
-        // delegate
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
@@ -236,5 +223,58 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         skip(MAX_THAWING_PERIOD + 1);
         resetPrank(users.delegator);
         _withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 0);
+    }
+
+    function testWithdrawDelegation_WithBeneficiary(
+        uint256 delegationAmount,
+        address beneficiary
+    )
+        public
+        useIndexer
+        useProvision(10_000_000 ether, 0, MAX_THAWING_PERIOD)
+        useDelegation(delegationAmount)
+     {
+        vm.assume(beneficiary != address(0));
+
+        // Delegator undelegates to beneficiary
+        resetPrank(users.delegator);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares, beneficiary);
+        
+        // Thawing period ends
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, beneficiary);
+        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+        skip(thawRequest.thawingUntil + 1);
+
+        // Beneficiary withdraws delegated tokens
+        resetPrank(beneficiary);
+        _withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 1);
+    }
+
+    function testWithdrawDelegation_RevertWhen_PreviousOwnerAttemptsToWithdraw(
+        uint256 delegationAmount,
+        address beneficiary
+    )
+        public
+        useIndexer
+        useProvision(10_000_000 ether, 0, MAX_THAWING_PERIOD)
+        useDelegation(delegationAmount)
+    {
+        vm.assume(beneficiary != address(0));
+
+        // Delegator undelegates to beneficiary
+        resetPrank(users.delegator);
+        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares, beneficiary);
+
+        // Thawing period ends
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, users.delegator);
+        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+        skip(thawRequest.thawingUntil + 1);
+
+        // Delegator attempts to withdraw delegated tokens, should revert since beneficiary is the thaw request owner
+        bytes memory expectedError = abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingNothingThawing.selector);
+        vm.expectRevert(expectedError);
+        staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 1);
     }
 }

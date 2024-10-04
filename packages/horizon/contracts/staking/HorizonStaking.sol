@@ -22,28 +22,20 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * It is designed to be deployed as an upgrade to the L2Staking contract from the legacy contracts package.
  * @dev It uses a {HorizonStakingExtension} contract to implement the full {IHorizonStaking} interface through delegatecalls.
  * This is due to the contract size limit on Arbitrum (24kB). The extension contract implements functionality to support
- * the legacy staking functions and the transfer tools. Both can be eventually removed without affecting the main
- * staking contract.
+ * the legacy staking functions. It can be eventually removed without affecting the main staking contract.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
     using LinkedList for LinkedList.List;
 
-    /// @dev Maximum value that can be set as the maxVerifierCut in a provision.
-    /// It is equivalent to 100% in parts-per-million
-    uint32 private constant MAX_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
-
     /// @dev Fixed point precision
     uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
     uint256 private constant MAX_THAW_REQUESTS = 100;
-
-    /// @dev Minimum amount of delegation to prevent rounding attacks.
-    /// TODO: remove this after L2 transfer tool for delegation is removed
-    /// (delegation on L2 has its own slippage protection)
-    uint256 private constant MIN_DELEGATION = 1e18;
 
     /// @dev Address of the staking extension contract
     address private immutable STAKING_EXTENSION_ADDRESS;
@@ -207,7 +199,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 tokens,
         uint256 nThawRequests
     )
         external
@@ -216,8 +207,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         onlyAuthorized(serviceProvider, oldVerifier)
         onlyAuthorized(serviceProvider, newVerifier)
     {
-        _deprovision(serviceProvider, oldVerifier, nThawRequests);
-        _addToProvision(serviceProvider, newVerifier, tokens);
+        uint256 tokensThawed = _deprovision(serviceProvider, oldVerifier, nThawRequests);
+        _addToProvision(serviceProvider, newVerifier, tokensThawed);
     }
 
     /**
@@ -226,16 +217,21 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function setProvisionParameters(
         address serviceProvider,
         address verifier,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
+        uint32 newMaxVerifierCut,
+        uint64 newThawingPeriod
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
+        require(PPMMath.isValidPPM(newMaxVerifierCut), HorizonStakingInvalidMaxVerifierCut(newMaxVerifierCut));
+        require(
+            newThawingPeriod <= _maxThawingPeriod,
+            HorizonStakingInvalidThawingPeriod(newThawingPeriod, _maxThawingPeriod)
+        );
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
-        if ((prov.maxVerifierCutPending != maxVerifierCut) || (prov.thawingPeriodPending != thawingPeriod)) {
-            prov.maxVerifierCutPending = maxVerifierCut;
-            prov.thawingPeriodPending = thawingPeriod;
-            emit ProvisionParametersStaged(serviceProvider, verifier, maxVerifierCut, thawingPeriod);
+        if ((prov.maxVerifierCutPending != newMaxVerifierCut) || (prov.thawingPeriodPending != newThawingPeriod)) {
+            prov.maxVerifierCutPending = newMaxVerifierCut;
+            prov.thawingPeriodPending = newThawingPeriod;
+            emit ProvisionParametersStaged(serviceProvider, verifier, newMaxVerifierCut, newThawingPeriod);
         }
     }
 
@@ -301,7 +297,20 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 shares
     ) external override notPaused returns (bytes32) {
-        return _undelegate(serviceProvider, verifier, shares);
+        return _undelegate(serviceProvider, verifier, shares, msg.sender);
+    }
+
+    /**
+     * @notice See {IHorizonStakingMain-undelegate}.
+     */
+    function undelegate(
+        address serviceProvider,
+        address verifier,
+        uint256 shares,
+        address beneficiary
+    ) external override notPaused returns (bytes32) {
+        require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
+        return _undelegate(serviceProvider, verifier, shares, beneficiary);
     }
 
     /**
@@ -344,7 +353,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-undelegate}.
      */
     function undelegate(address serviceProvider, uint256 shares) external override notPaused {
-        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
+        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
     }
 
     /**
@@ -636,10 +645,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint64 _thawingPeriod
     ) private {
         require(_tokens > 0, HorizonStakingInvalidZeroTokens());
-        require(
-            _maxVerifierCut <= MAX_MAX_VERIFIER_CUT,
-            HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut, MAX_MAX_VERIFIER_CUT)
-        );
+        require(PPMMath.isValidPPM(_maxVerifierCut), HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut));
         require(
             _thawingPeriod <= _maxThawingPeriod,
             HorizonStakingInvalidThawingPeriod(_thawingPeriod, _maxThawingPeriod)
@@ -721,13 +727,17 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-deprovision}.
      */
-    function _deprovision(address _serviceProvider, address _verifier, uint256 _nThawRequests) private {
+    function _deprovision(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _nThawRequests
+    ) private returns (uint256 tokensThawed) {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
 
-        uint256 tokensThawed = 0;
+        uint256 tokensThawed_ = 0;
         uint256 sharesThawing = prov.sharesThawing;
         uint256 tokensThawing = prov.tokensThawing;
-        (tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(
+        (tokensThawed_, tokensThawing, sharesThawing) = _fulfillThawRequests(
             _serviceProvider,
             _verifier,
             _serviceProvider,
@@ -737,12 +747,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             prov.thawingNonce
         );
 
-        prov.tokens = prov.tokens - tokensThawed;
+        prov.tokens = prov.tokens - tokensThawed_;
         prov.sharesThawing = sharesThawing;
         prov.tokensThawing = tokensThawing;
-        _serviceProviders[_serviceProvider].tokensProvisioned -= tokensThawed;
+        _serviceProviders[_serviceProvider].tokensProvisioned -= tokensThawed_;
 
-        emit TokensDeprovisioned(_serviceProvider, _verifier, tokensThawed);
+        emit TokensDeprovisioned(_serviceProvider, _verifier, tokensThawed_);
+        return tokensThawed_;
     }
 
     /**
@@ -751,8 +762,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * have been done before calling this function.
      */
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
-        // TODO: remove this after L2 transfer tool for delegation is removed
-        require(_tokens >= MIN_DELEGATION, HorizonStakingInsufficientTokens(_tokens, MIN_DELEGATION));
         require(
             _provisions[_serviceProvider][_verifier].createdAt != 0,
             HorizonStakingInvalidProvision(_serviceProvider, _verifier)
@@ -795,7 +804,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * Note that delegation that is caught thawing when the pool is invalidated will be completely lost! However delegation shares
      * that were not thawing will be preserved.
      */
-    function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
+    function _undelegate(
+        address _serviceProvider,
+        address _verifier,
+        uint256 _shares,
+        address beneficiary
+    ) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         DelegationInternal storage delegation = pool.delegators[msg.sender];
@@ -817,19 +831,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         pool.shares = pool.shares - _shares;
         delegation.shares = delegation.shares - _shares;
 
-        // TODO: remove this when L2 transfer tools are removed
-        if (delegation.shares != 0) {
-            uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
-            require(
-                remainingTokens >= MIN_DELEGATION,
-                HorizonStakingInsufficientTokens(remainingTokens, MIN_DELEGATION)
-            );
-        }
-
         bytes32 thawRequestId = _createThawRequest(
             _serviceProvider,
             _verifier,
-            msg.sender,
+            beneficiary,
             thawingShares,
             thawingUntil,
             pool.thawingNonce

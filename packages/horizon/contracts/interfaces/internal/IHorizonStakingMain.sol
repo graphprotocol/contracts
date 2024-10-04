@@ -348,9 +348,8 @@ interface IHorizonStakingMain {
     /**
      * @notice Thrown when attempting to create a provision with an invalid maximum verifier cut.
      * @param maxVerifierCut The maximum verifier cut
-     * @param maxMaxVerifierCut The maximum `maxVerifierCut` allowed
      */
-    error HorizonStakingInvalidMaxVerifierCut(uint32 maxVerifierCut, uint32 maxMaxVerifierCut);
+    error HorizonStakingInvalidMaxVerifierCut(uint32 maxVerifierCut);
 
     /**
      * @notice Thrown when attempting to create a provision with an invalid thawing period.
@@ -415,6 +414,11 @@ interface IHorizonStakingMain {
      * @param verifier The verifier address
      */
     error HorizonStakingInvalidDelegationPool(address serviceProvider, address verifier);
+
+    /**
+     * @notice Thrown when attempting to undelegate with a beneficiary that is the zero address.
+     */
+    error HorizonStakingInvalidBeneficiaryZeroAddress();
 
     // -- Errors: thaw requests --
 
@@ -530,7 +534,7 @@ interface IHorizonStakingMain {
      * @dev Requirements:
      * - `tokens` cannot be zero.
      * - The `serviceProvider` must have enough idle stake to cover the tokens to provision.
-     * - `maxVerifierCut` must be less than or equal to `MAX_MAX_VERIFIER_CUT`.
+     * - `maxVerifierCut` must be a valid PPM.
      * - `thawingPeriod` must be less than or equal to `_maxThawingPeriod`.
      *
      * Emits a {ProvisionCreated} event.
@@ -621,13 +625,12 @@ interface IHorizonStakingMain {
      * @param serviceProvider The service provider address
      * @param oldVerifier The verifier address for which the tokens are currently provisioned
      * @param newVerifier The verifier address for which the tokens will be provisioned
-     * @param tokens The amount of tokens to move
+     * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
     function reprovision(
         address serviceProvider,
         address oldVerifier,
         address newVerifier,
-        uint256 tokens,
         uint256 nThawRequests
     ) external;
 
@@ -713,6 +716,33 @@ interface IHorizonStakingMain {
      * @return The ID of the thaw request
      */
     function undelegate(address serviceProvider, address verifier, uint256 shares) external returns (bytes32);
+
+    /**
+     * @notice Undelegate tokens from a provision and start thawing them.
+     * The tokens will be withdrawable by the `beneficiary` after the thawing period.
+     *
+     * Note that undelegating tokens from a provision is a two step process:
+     * - First the tokens are thawed using this function.
+     * - Then after the thawing period, the tokens are removed from the provision using {withdrawDelegated}.
+     *
+     * Requirements:
+     * - `shares` cannot be zero.
+     * - `beneficiary` cannot be the zero address.
+     *
+     * Emits a {TokensUndelegated} and {ThawRequestCreated} event.
+     *
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address
+     * @param shares The amount of shares to undelegate
+     * @param beneficiary The address where the tokens will be withdrawn after thawing
+     * @return The ID of the thaw request
+     */
+    function undelegate(
+        address serviceProvider,
+        address verifier,
+        uint256 shares,
+        address beneficiary
+    ) external returns (bytes32);
 
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.

@@ -31,7 +31,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
     modifier useDelegation(uint256 delegationAmount) {
         address msgSender;
         (, msgSender, ) = vm.readCallers();
-        vm.assume(delegationAmount > MIN_DELEGATION);
+        vm.assume(delegationAmount > 1);
         vm.assume(delegationAmount <= MAX_STAKING_TOKENS);
         vm.startPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);

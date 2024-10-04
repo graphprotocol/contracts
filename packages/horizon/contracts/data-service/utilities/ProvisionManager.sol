@@ -23,6 +23,14 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionManagerV1Storage {
     using UintRange for uint256;
 
+    // Constants
+    uint32 internal constant DEFAULT_MIN_VERIFIER_CUT = type(uint32).min;
+    uint32 internal constant DEFAULT_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
+    uint64 internal constant DEFAULT_MIN_THAWING_PERIOD = type(uint64).min;
+    uint64 internal constant DEFAULT_MAX_THAWING_PERIOD = type(uint64).max;
+    uint256 internal constant DEFAULT_MIN_PROVISION_TOKENS = type(uint256).min;
+    uint256 internal constant DEFAULT_MAX_PROVISION_TOKENS = type(uint256).max;
+
     /**
      * @notice Emitted when the provision tokens range is set.
      * @param min The minimum allowed value for the provision tokens.
@@ -82,7 +90,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     /**
      * @notice Checks if the caller is authorized to manage the provision of a service provider.
      */
-    modifier onlyProvisionAuthorized(address serviceProvider) {
+    modifier onlyAuthorizedForProvision(address serviceProvider) {
         require(
             _graphStaking().isAuthorized(msg.sender, serviceProvider, address(this)),
             ProvisionManagerNotAuthorized(msg.sender, serviceProvider)
@@ -115,9 +123,9 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init_unchained() internal onlyInitializing {
-        _setProvisionTokensRange(type(uint256).min, type(uint256).max);
-        _setVerifierCutRange(type(uint32).min, uint32(PPMMath.MAX_PPM));
-        _setThawingPeriodRange(type(uint64).min, type(uint64).max);
+        _setProvisionTokensRange(DEFAULT_MIN_PROVISION_TOKENS, DEFAULT_MAX_PROVISION_TOKENS);
+        _setVerifierCutRange(DEFAULT_MIN_VERIFIER_CUT, DEFAULT_MAX_VERIFIER_CUT);
+        _setThawingPeriodRange(DEFAULT_MIN_THAWING_PERIOD, DEFAULT_MAX_THAWING_PERIOD);
     }
 
     /**
@@ -125,7 +133,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * the {HorizonStaking} contract.
      * @dev Checks the pending provision parameters, not the current ones.
      *
-     * Emits a {ProvisionAccepted} event.
+     * Emits a {ProvisionPendingParametersAccepted} event.
      *
      * @param _serviceProvider The address of the service provider.
      */

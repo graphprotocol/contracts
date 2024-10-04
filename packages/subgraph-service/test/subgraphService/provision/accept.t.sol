@@ -22,7 +22,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
         vm.assume(newVerifierCut >= fishermanRewardPercentage);
         vm.assume(newVerifierCut <= MAX_PPM);
-        vm.assume(newDisputePeriod >= disputePeriod);
+        newDisputePeriod = uint64(bound(newDisputePeriod, disputePeriod, MAX_WAIT_PERIOD));
 
         // Setup indexer
         _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
@@ -40,7 +40,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
             ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
             users.indexer
         ));
-        subgraphService.acceptProvision(users.indexer, "");
+        subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 
     function test_SubgraphService_Provision_Accept_RevertWhen_NotAuthorized() public {
@@ -50,7 +50,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
             users.operator,
             users.indexer
         ));
-        subgraphService.acceptProvision(users.indexer, "");
+        subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 
     function test_SubgraphService_Provision_Accept_RevertIf_InvalidVerifierCut(
@@ -58,7 +58,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         uint32 newVerifierCut
     ) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        vm.assume(newVerifierCut > MAX_PPM);
+        vm.assume(newVerifierCut < maxSlashingPercentage);
 
         // Setup indexer
         _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
@@ -75,7 +75,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
             fishermanRewardPercentage,
             MAX_PPM
         ));
-        subgraphService.acceptProvision(users.indexer, "");
+        subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 
     function test_SubgraphService_Provision_Accept_RevertIf_InvalidDisputePeriod(
@@ -100,6 +100,6 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
             disputePeriod,
             type(uint64).max
         ));
-        subgraphService.acceptProvision(users.indexer, "");
+        subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 }

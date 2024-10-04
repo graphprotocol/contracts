@@ -291,7 +291,7 @@ abstract contract HorizonStakingBase is
     /**
      * @notice See {IHorizonStakingBase-getDelegatedTokensAvailable}.
      */
-    function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) internal view returns (uint256) {
+    function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) private view returns (uint256) {
         DelegationPoolInternal storage poolInternal = _getDelegationPool(_serviceProvider, _verifier);
         return poolInternal.tokens - poolInternal.tokensThawing;
     }

@@ -59,25 +59,9 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         staking.delegate(users.indexer, subgraphDataServiceAddress, 0, 0);
     }
 
-    function testDelegate_RevertWhen_BelowMinimum(
-        uint256 amount,
-        uint256 delegationAmount
-    ) public useIndexer useProvision(amount, 0, 0) {
-        vm.startPrank(users.delegator);
-        delegationAmount = bound(delegationAmount, 1, MIN_DELEGATION - 1);
-        token.approve(address(staking), delegationAmount);
-        bytes memory expectedError = abi.encodeWithSignature(
-            "HorizonStakingInsufficientTokens(uint256,uint256)",
-            delegationAmount,
-            MIN_DELEGATION
-        );
-        vm.expectRevert(expectedError);
-        staking.delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
-    }
-
     function testDelegate_LegacySubgraphService(uint256 amount, uint256 delegationAmount) public useIndexer {
         amount = bound(amount, 1 ether, MAX_STAKING_TOKENS);
-        delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationAmount = bound(delegationAmount, 1, MAX_STAKING_TOKENS);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, amount, 0, 0);
 
         resetPrank(users.delegator);
@@ -88,9 +72,8 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
-        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
 
-        // create delegation pool
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
@@ -113,9 +96,8 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
-        delegationTokens = bound(delegationTokens, MIN_DELEGATION * 2, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
 
-        // create delegation pool
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 

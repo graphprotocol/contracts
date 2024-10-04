@@ -9,7 +9,6 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
 
     modifier useValidDelegationAmount(uint256 tokens) {
-        vm.assume(tokens > MIN_DELEGATION);
         vm.assume(tokens <= MAX_STAKING_TOKENS);
         _;
     }
@@ -29,6 +28,8 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         uint256 delegationAmount,
         uint256 addToPoolAmount
     ) public useIndexer useProvision(amount, 0, 0) useValidDelegationAmount(delegationAmount) useValidAddToPoolAmount(addToPoolAmount) {
+        delegationAmount = bound(delegationAmount, 1, MAX_STAKING_TOKENS);
+
         // Initialize delegation pool
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);

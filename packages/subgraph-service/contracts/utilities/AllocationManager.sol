@@ -57,6 +57,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param tokensIndexerRewards The amount of tokens collected for the indexer
      * @param tokensDelegationRewards The amount of tokens collected for delegators
      * @param poi The POI presented
+     * @param currentEpoch The current epoch
      */
     event IndexingRewardsCollected(
         address indexed indexer,
@@ -65,7 +66,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 tokensRewards,
         uint256 tokensIndexerRewards,
         uint256 tokensDelegationRewards,
-        bytes32 poi
+        bytes32 poi,
+        uint256 currentEpoch
     );
 
     /**
@@ -137,13 +139,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     error AllocationManagerInvalidZeroAllocationId();
 
     /**
-     * @notice Thrown when attempting to create an allocation with zero tokens
-     * @param allocationId The id of the allocation
-     */
-    error AllocationManagerZeroTokensAllocation(address allocationId);
-
-    /**
-     * @notice Thrown when attempting to collect indexing rewards on a closed allocation
+     * @notice Thrown when attempting to collect indexing rewards on a closed allocationl
      * @param allocationId The id of the allocation
      */
     error AllocationManagerAllocationClosed(address allocationId);
@@ -176,7 +172,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Imports a legacy allocation id into the subgraph service
      * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract.
+     * legacy staking contract. It will revert with LegacyAllocationAlreadyMigrated if the allocation has already been migrated.
      * @param _indexer The address of the indexer
      * @param _allocationId The id of the allocation
      * @param _subgraphDeploymentId The id of the subgraph deployment
@@ -321,11 +317,12 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             tokensRewards,
             tokensIndexerRewards,
             tokensDelegationRewards,
-            _poi
+            _poi,
+            _graphEpochManager().currentEpoch()
         );
 
         // Check if the indexer is over-allocated and close the allocation if necessary
-        if (!allocationProvisionTracker.check(_graphStaking(), allocation.indexer, _delegationRatio)) {
+        if (_isOverAllocated(allocation.indexer, _delegationRatio)) {
             _closeAllocation(_allocationId);
         }
 
@@ -468,7 +465,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation
      * @param _proof The EIP712 proof, an EIP712 signed message of (indexer,allocationId)
      */
-    function _verifyAllocationProof(address _indexer, address _allocationId, bytes memory _proof) internal view {
+    function _verifyAllocationProof(address _indexer, address _allocationId, bytes memory _proof) private view {
         bytes32 digest = _encodeAllocationProof(_indexer, _allocationId);
         address signer = ECDSA.recover(digest, _proof);
         require(signer == _allocationId, AllocationManagerInvalidAllocationProof(signer, _allocationId));
@@ -481,5 +478,15 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      */
     function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {
         return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));
+    }
+
+    /**
+     * @notice Checks if an allocation is over-allocated
+     * @param _indexer The address of the indexer
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @return True if the allocation is over-allocated, false otherwise
+     */
+    function _isOverAllocated(address _indexer, uint32 _delegationRatio) internal view returns (bool) {
+        return !allocationProvisionTracker.check(_graphStaking(), _indexer, _delegationRatio);
     }
 }

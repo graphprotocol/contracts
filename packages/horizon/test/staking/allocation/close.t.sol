@@ -71,7 +71,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
 
     function testCloseAllocation_WithDelegation(uint256 tokens, uint256 delegationTokens, uint32 indexingRewardCut) public useIndexer useAllocation(1 ether) {
         tokens = bound(tokens, 2, MAX_STAKING_TOKENS);
-        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, 0, MAX_STAKING_TOKENS);
         vm.assume(indexingRewardCut <= MAX_PPM);
 
         uint256 legacyAllocationTokens = tokens / 2;

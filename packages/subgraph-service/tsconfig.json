@@ -10,9 +10,10 @@
   },
   "include": [
     "hardhat.config.ts",
-    "prettier.config.js",
     "scripts/**/*.ts",
     "test/**/*.ts",
-    "eslint.config.js"
+    "ignition/**/*.ts",
+    "eslint.config.js",
+    "prettier.config.js"
   ]
 }

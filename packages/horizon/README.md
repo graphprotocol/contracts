@@ -1,13 +1,17 @@
-# Sample Hardhat Project
+# 🌅 Graph Horizon 🌅
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+Graph Horizon is the next evolution of the Graph Protocol.
 
-Try running some of the following tasks:
+## Deployment 
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
+We use Hardhat Ignition to deploy the contracts. To build and deploy the contracts run the following commands:
+
+```bash
+yarn install
+yarn build
+npx hardhat ignition deploy ./ignition/modules/horizon.ts \
+  --parameters ./ignition/configs/graph.hardhat.json \
+  --network hardhat
 ```
+
+You can use any network defined in `hardhat.config.ts` by replacing `hardhat` with the network name.
