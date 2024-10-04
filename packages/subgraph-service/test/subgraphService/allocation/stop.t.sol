@@ -49,8 +49,8 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ProvisionManager.ProvisionManagerNotAuthorized.selector,
-                users.operator,
-                users.indexer
+                users.indexer,
+                users.operator
             )
         );
         subgraphService.stopService(users.indexer, data);
