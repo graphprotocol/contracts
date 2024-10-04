@@ -1405,7 +1405,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             assertEq(afterProvision.thawingPeriodPending, before.provision.thawingPeriodPending);
             assertEq(
                 afterProvision.thawingNonce, 
-                afterProvision.tokens == 0 ? before.provision.thawingNonce + 1 : before.provision.thawingNonce);
+                (before.provision.sharesThawing != 0 && afterProvision.sharesThawing == 0) ? before.provision.thawingNonce + 1 : before.provision.thawingNonce);
             if (isDelegationSlashingEnabled) {
                 uint256 poolThawingTokens = (before.pool.tokensThawing *
                     (1e18 - ((calcValues.delegationTokensSlashed * 1e18) / before.pool.tokens))) / (1e18);
@@ -1413,7 +1413,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 assertEq(afterPool.shares, before.pool.shares);
                 assertEq(afterPool.tokensThawing, poolThawingTokens);
                 assertEq(afterPool.sharesThawing, afterPool.tokensThawing == 0 ? 0 : before.pool.sharesThawing);
-                assertEq(afterPool.thawingNonce, afterPool.tokens == 0 ? before.pool.thawingNonce + 1 : before.pool.thawingNonce);
+                assertEq(afterPool.thawingNonce, (before.pool.sharesThawing != 0 && afterPool.sharesThawing == 0) ? before.pool.thawingNonce + 1 : before.pool.thawingNonce);
             }
 
             assertEq(before.stakingBalance - tokensSlashed, afterStakingBalance);

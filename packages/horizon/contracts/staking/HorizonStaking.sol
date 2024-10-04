@@ -411,10 +411,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 (FIXED_POINT_PRECISION);
             prov.tokens = prov.tokens - providerTokensSlashed;
 
-            // If the provision was fully slashed pending thawings are cancelled by:
+            // If the slashing leaves the thawing shares with no thawing tokens, cancel pending thawings by:
             // - deleting all thawing shares
             // - incrementing the nonce to invalidate pending thaw requests
-            if (prov.tokens == 0 && prov.tokensThawing == 0) {
+            if (prov.sharesThawing != 0 && prov.tokensThawing == 0) {
                 prov.sharesThawing = 0;
                 prov.thawingNonce++;
             }
@@ -446,12 +446,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                     (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
                     FIXED_POINT_PRECISION;
 
-                // If the delegation pool was fully slashed pending thawings are cancelled by:
+                // If the slashing leaves the thawing shares with no thawing tokens, cancel pending thawings by:
                 // - deleting all thawing shares
                 // - incrementing the nonce to invalidate pending thaw requests
                 // Note that thawing shares are completely lost, delegators won't get back the corresponding
                 // delegation pool shares.
-                if (pool.tokens == 0 && pool.tokensThawing == 0) {
+                if (pool.sharesThawing != 0 && pool.tokensThawing == 0) {
                     pool.sharesThawing = 0;
                     pool.thawingNonce++;
                 }
@@ -875,6 +875,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             pool.thawingNonce
         );
 
+        // The next subtraction should never revert becase: pool.tokens >= pool.tokensThawing and pool.tokensThawing >= tokensThawed
+        // In the event the pool gets completely slashed tokensThawed will fulfil to 0.
         pool.tokens = pool.tokens - tokensThawed;
         pool.sharesThawing = sharesThawing;
         pool.tokensThawing = tokensThawing;

@@ -749,6 +749,8 @@ interface IHorizonStakingMain {
      * Tokens can be automatically re-delegated to another provision by setting `newServiceProvider`.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
      * requests in the event that fulfilling all of them results in a gas limit error.
+     * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
+     * the thaw requests with an amount equal to zero.
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {undelegate}.
