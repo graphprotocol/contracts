@@ -192,6 +192,10 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         // Beneficiary withdraws delegated tokens
         resetPrank(beneficiary);
+        // Burn the tokens if the beneficiary has more than the delegation amount so we don't overflow the balance
+        if (token.balanceOf(beneficiary) > delegationAmount) {
+            token.burn(delegationAmount);
+        }
         _withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 1);
     }
 
