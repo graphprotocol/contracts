@@ -686,7 +686,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-thaw}.
      * @dev We use a thawing pool to keep track of tokens thawing for multiple thaw requests.
-     * If due to slashing the thawing pool looses all of it's tokens, the pool is reset and all pending thaw
+     * If due to slashing the thawing pool loses all of its tokens, the pool is reset and all pending thaw
      * requests are invalidated.
      */
     function _thaw(address _serviceProvider, address _verifier, uint256 _tokens) private returns (bytes32) {
@@ -992,8 +992,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // process - only fulfill thaw requests for the current valid nonce
         uint256 tokens = 0;
-        bool invalidThawRequest = thawRequest.thawingNonce != thawingNonce;
-        if (!invalidThawRequest) {
+        bool validThawRequest = thawRequest.thawingNonce == thawingNonce;
+        if (validThawRequest) {
             tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
             tokensThawing = tokensThawing - tokens;
             sharesThawing = sharesThawing - thawRequest.shares;
@@ -1004,7 +1004,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             tokens,
             thawRequest.shares,
             thawRequest.thawingUntil,
-            !invalidThawRequest
+            validThawRequest
         );
 
         // encode
