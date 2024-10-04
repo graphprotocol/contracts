@@ -753,7 +753,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // before
         bool beforeOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
-        bool beforeOperatorAllowedGetter = staking.isAuthorized(operator, msgSender, verifier);
+        bool beforeOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
         assertEq(beforeOperatorAllowed, beforeOperatorAllowedGetter);
 
         // setOperator
@@ -767,7 +767,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         bool afterOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
-        bool afterOperatorAllowedGetter = staking.isAuthorized(operator, msgSender, verifier);
+        bool afterOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
         assertEq(afterOperatorAllowed, afterOperatorAllowedGetter);
 
         // assert
@@ -1390,9 +1390,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
 
         bool isAuth = staking.isAuthorized(
-            msgSender,
             beforeValues.allocation.indexer,
-            subgraphDataServiceLegacyAddress
+            subgraphDataServiceLegacyAddress,
+            msgSender
         );
         address rewardsDestination = _getStorage_RewardsDestination(beforeValues.allocation.indexer);
 
