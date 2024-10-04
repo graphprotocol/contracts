@@ -179,6 +179,8 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useDelegation(delegationAmount)
      {
         vm.assume(beneficiary != address(0));
+        // Skip beneficiary if balance will overflow
+        vm.assume(token.balanceOf(beneficiary) < type(uint256).max - delegationAmount);
 
         // Delegator undelegates to beneficiary
         resetPrank(users.delegator);
@@ -192,10 +194,6 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         // Beneficiary withdraws delegated tokens
         resetPrank(beneficiary);
-        // Burn the tokens if the beneficiary has more than the delegation amount so we don't overflow the balance
-        if (token.balanceOf(beneficiary) > delegationAmount) {
-            token.burn(delegationAmount);
-        }
         _withdrawDelegated(users.indexer, subgraphDataServiceAddress, address(0), 0, 1);
     }
 
