@@ -109,8 +109,8 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
     function testSlash_Everything(
         uint256 tokens,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing {
-        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+    ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing {
+        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
@@ -121,7 +121,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
 
     function testSlash_Everything_WithUndelegation(
         uint256 tokens
-    ) public useIndexer useProvision(tokens, MAX_MAX_VERIFIER_CUT, 0) useDelegationSlashing {
+    ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing {
         uint256 delegationTokens = MAX_STAKING_TOKENS / 10;
 
         resetPrank(users.delegator);

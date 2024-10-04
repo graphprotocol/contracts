@@ -96,7 +96,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, 2, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
@@ -126,7 +126,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         uint256 recoverAmount
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
         recoverAmount = bound(recoverAmount, 1, MAX_STAKING_TOKENS);
-        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
 
         // create delegation pool
         resetPrank(users.delegator);
@@ -142,6 +142,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         _addToDelegationPool(users.indexer, subgraphDataServiceAddress, recoverAmount);
 
         // delegate to pool - should be allowed now
+        vm.assume(delegationTokens >= recoverAmount); // to avoid getting issued 0 shares
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
     }
