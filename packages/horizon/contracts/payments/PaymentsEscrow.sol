@@ -196,7 +196,10 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     ) external override notPaused {
         // Check if collector is authorized and has enough funds
         Collector storage collectorDetails = authorizedCollectors[payer][msg.sender];
-        require(collectorDetails.allowance >= tokens, PaymentsEscrowInsufficientAllowance(collectorDetails.allowance, tokens));
+        require(
+            collectorDetails.allowance >= tokens,
+            PaymentsEscrowInsufficientAllowance(collectorDetails.allowance, tokens)
+        );
 
         // Check if there are enough funds in the escrow account
         EscrowAccount storage account = escrowAccounts[payer][msg.sender][receiver];

@@ -53,7 +53,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         mint(signer, tokens);
         escrow.approveCollector(address(tapCollector), tokens);
         token.approve(address(escrow), tokens);
-        escrow.deposit(users.indexer, tokens);
+        escrow.deposit(address(tapCollector), users.indexer, tokens);
         resetPrank(msgSender);
     }
 
