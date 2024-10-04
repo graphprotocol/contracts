@@ -420,6 +420,16 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingInvalidBeneficiaryZeroAddress();
 
+    /**
+     * @notice Thrown when attempting to redelegate with a serivce provider that is the zero address.
+     */
+    error HorizonStakingInvalidServiceProviderZeroAddress();
+
+    /**
+     * @notice Thrown when attempting to redelegate with a verifier that is the zero address.
+     */
+    error HorizonStakingInvalidVerifierZeroAddress();
+
     // -- Errors: thaw requests --
 
     error HorizonStakingNothingThawing();
@@ -746,7 +756,6 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.
-     * Tokens can be automatically re-delegated to another provision by setting `newServiceProvider`.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
      * requests in the event that fulfilling all of them results in a gas limit error.
      * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
@@ -754,20 +763,39 @@ interface IHorizonStakingMain {
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {undelegate}.
-     * - `newServiceProvider` must either be zero address or have previously provisioned stake to `verifier`.
      *
      * Emits {ThawRequestFulfilled}, {ThawRequestsFulfilled} and {DelegatedTokensWithdrawn} events.
      *
      * @param serviceProvider The service provider address
      * @param verifier The verifier address
-     * @param newServiceProvider The address of a new service provider, if the delegator wants to re-delegate
+     * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
+     */
+    function withdrawDelegated(address serviceProvider, address verifier, uint256 nThawRequests) external;
+
+    /**
+     * @notice Re-delegate undelegated tokens from a provision after thawing to a `newServiceProvider` and `newVerifier`.
+     * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
+     * requests in the event that fulfilling all of them results in a gas limit error.
+     *
+     * Requirements:
+     * - Must have previously initiated a thaw request using {undelegate}.
+     * - `newServiceProvider` and `newVerifier` must not be the zero address.
+     * - `newServiceProvider` must have previously provisioned stake to `newVerifier`.
+     *
+     * Emits {ThawRequestFulfilled}, {ThawRequestsFulfilled} and {DelegatedTokensWithdrawn} events.
+     *
+     * @param oldServiceProvider The old service provider address
+     * @param oldVerifier The old verifier address
+     * @param newServiceProvider The address of a new service provider
+     * @param newVerifier The address of a new verifier
      * @param minSharesForNewProvider The minimum amount of shares to accept for the new service provider
      * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
-    function withdrawDelegated(
-        address serviceProvider,
-        address verifier,
+    function redelegate(
+        address oldServiceProvider,
+        address oldVerifier,
         address newServiceProvider,
+        address newVerifier,
         uint256 minSharesForNewProvider,
         uint256 nThawRequests
     ) external;
