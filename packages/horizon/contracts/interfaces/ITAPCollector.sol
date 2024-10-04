@@ -35,6 +35,26 @@ interface ITAPCollector is IPaymentsCollector {
     }
 
     /**
+     * @notice Emitted when a RAV is collected
+     * @param payer The address of the payer
+     * @param dataService The address of the data service
+     * @param serviceProvider The address of the service provider
+     * @param timestampNs The timestamp of the RAV
+     * @param valueAggregate The total amount owed to the service provider
+     * @param metadata Arbitrary metadata
+     * @param signature The signature of the RAV
+     */
+    event RAVCollected(
+        address indexed payer,
+        address indexed dataService,
+        address indexed serviceProvider,
+        uint64 timestampNs,
+        uint128 valueAggregate,
+        bytes metadata,
+        bytes signature
+    );
+
+    /**
      * Thrown when the caller is not the data service the RAV was issued to
      * @param caller The address of the caller
      * @param dataService The address of the data service

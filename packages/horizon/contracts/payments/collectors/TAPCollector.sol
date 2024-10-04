@@ -85,6 +85,15 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         }
 
         emit PaymentCollected(paymentType, payer, receiver, tokensToCollect, dataService, tokensDataService);
+        emit RAVCollected(
+            payer,
+            dataService,
+            receiver,
+            signedRAV.rav.timestampNs,
+            signedRAV.rav.valueAggregate,
+            signedRAV.rav.metadata,
+            signedRAV.signature
+        );
         return tokensToCollect;
     }
 
