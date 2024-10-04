@@ -31,18 +31,18 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
 
     function testPaused_RevertWhen_Deposit(uint256 tokens) public useGateway usePaused(true) {
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.deposit(users.indexer, tokens);
+        escrow.deposit(users.verifier, users.indexer, tokens);
     }
 
     function testPaused_RevertWhen_DepositTo(uint256 tokens) public usePaused(true) {
         resetPrank(users.operator);
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.depositTo(users.gateway, users.indexer, tokens);
+        escrow.depositTo(users.gateway, users.verifier, users.indexer, tokens);
     }
 
     function testPaused_RevertWhen_ThawTokens(uint256 tokens) public useGateway useDeposit(tokens) usePaused(true) {
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.thaw(users.indexer, tokens);
+        escrow.thaw(users.verifier, users.indexer, tokens);
     }
 
     function testPaused_RevertWhen_WithdrawTokens(
@@ -53,7 +53,7 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
         skip(withdrawEscrowThawingPeriod + 1);
 
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.withdraw(users.indexer);
+        escrow.withdraw(users.verifier, users.indexer);
     }
 
     // Collect

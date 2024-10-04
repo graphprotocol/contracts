@@ -27,11 +27,11 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     mapping(address payer => mapping(address collector => IPaymentsEscrow.Collector collectorDetails))
         public authorizedCollectors;
 
-    /// @notice Escrow account details for payer-receiver pairs
-    mapping(address payer => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount))
+    /// @notice Escrow account details for payer-collector-receiver tuples
+    mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
         public escrowAccounts;
 
-    /// @notice The maximum thawing period (in seconds) for both escrow withdrawal and signer revocation
+    /// @notice The maximum thawing period (in seconds) for both escrow withdrawal and collector revocation
     /// @dev This is a precautionary measure to avoid inadvertedly locking funds for too long
     uint256 public constant MAX_WAIT_PERIOD = 90 days;
 
@@ -126,22 +126,22 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     /**
      * @notice See {IPaymentsEscrow-deposit}
      */
-    function deposit(address receiver, uint256 tokens) external override notPaused {
-        _deposit(msg.sender, receiver, tokens);
+    function deposit(address collector, address receiver, uint256 tokens) external override notPaused {
+        _deposit(msg.sender, collector, receiver, tokens);
     }
 
     /**
      * @notice See {IPaymentsEscrow-depositTo}
      */
-    function depositTo(address payer, address receiver, uint256 tokens) external override notPaused {
-        _deposit(payer, receiver, tokens);
+    function depositTo(address payer, address collector, address receiver, uint256 tokens) external override notPaused {
+        _deposit(payer, collector, receiver, tokens);
     }
 
     /**
      * @notice See {IPaymentsEscrow-thaw}
      */
-    function thaw(address receiver, uint256 tokens) external override notPaused {
-        EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
+    function thaw(address collector, address receiver, uint256 tokens) external override notPaused {
+        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
 
         // if amount thawing is zero and requested amount is zero this is an invalid request.
         // otherwise if amount thawing is greater than zero and requested amount is zero this
@@ -159,14 +159,14 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         account.tokensThawing = tokens;
         account.thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
 
-        emit Thaw(msg.sender, receiver, tokens, account.thawEndTimestamp);
+        emit Thaw(msg.sender, collector, receiver, tokens, account.thawEndTimestamp);
     }
 
     /**
      * @notice See {IPaymentsEscrow-withdraw}
      */
-    function withdraw(address receiver) external override notPaused {
-        EscrowAccount storage account = escrowAccounts[msg.sender][receiver];
+    function withdraw(address collector, address receiver) external override notPaused {
+        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
         require(account.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
         require(
             account.thawEndTimestamp < block.timestamp,
@@ -180,7 +180,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         account.tokensThawing = 0;
         account.thawEndTimestamp = 0;
         _graphToken().pushTokens(msg.sender, tokens);
-        emit Withdraw(msg.sender, receiver, tokens);
+        emit Withdraw(msg.sender, collector, receiver, tokens);
     }
 
     /**
@@ -195,15 +195,15 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         uint256 tokensDataService
     ) external override notPaused {
         // Check if collector is authorized and has enough funds
-        Collector storage collector = authorizedCollectors[payer][msg.sender];
-        require(collector.allowance >= tokens, PaymentsEscrowInsufficientAllowance(collector.allowance, tokens));
+        Collector storage collectorDetails = authorizedCollectors[payer][msg.sender];
+        require(collectorDetails.allowance >= tokens, PaymentsEscrowInsufficientAllowance(collectorDetails.allowance, tokens));
 
         // Check if there are enough funds in the escrow account
-        EscrowAccount storage account = escrowAccounts[payer][receiver];
+        EscrowAccount storage account = escrowAccounts[payer][msg.sender][receiver];
         require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
         // Reduce amount from approved collector and account balance
-        collector.allowance -= tokens;
+        collectorDetails.allowance -= tokens;
         account.balance -= tokens;
 
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
@@ -217,14 +217,14 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
             PaymentsEscrowInconsistentCollection(balanceBefore, balanceAfter, tokens)
         );
 
-        emit EscrowCollected(payer, receiver, tokens);
+        emit EscrowCollected(payer, msg.sender, receiver, tokens);
     }
 
     /**
      * @notice See {IPaymentsEscrow-getBalance}
      */
-    function getBalance(address payer, address receiver) external view override returns (uint256) {
-        EscrowAccount storage account = escrowAccounts[payer][receiver];
+    function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
+        EscrowAccount storage account = escrowAccounts[payer][collector][receiver];
         return account.balance - account.tokensThawing;
     }
 
@@ -234,9 +234,9 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      * @param _receiver The address of the receiver
      * @param _tokens The amount of tokens to deposit
      */
-    function _deposit(address _payer, address _receiver, uint256 _tokens) private {
-        escrowAccounts[_payer][_receiver].balance += _tokens;
+    function _deposit(address _payer, address _collector, address _receiver, uint256 _tokens) private {
+        escrowAccounts[_payer][_collector][_receiver].balance += _tokens;
         _graphToken().pullTokens(msg.sender, _tokens);
-        emit Deposit(_payer, _receiver, _tokens);
+        emit Deposit(_payer, _collector, _receiver, _tokens);
     }
 }
