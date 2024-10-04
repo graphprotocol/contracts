@@ -522,9 +522,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-isAuthorized}.
      */
     function isAuthorized(
-        address operator,
         address serviceProvider,
-        address verifier
+        address verifier,
+        address operator
     ) external view override returns (bool) {
         return _isAuthorized(operator, serviceProvider, verifier);
     }

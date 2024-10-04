@@ -912,10 +912,10 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
-     * @param operator The address to check for auth
      * @param serviceProvider The service provider on behalf of whom they're claiming to act
      * @param verifier The verifier / data service on which they're claiming to act
+     * @param operator The address to check for auth
      * @return Whether the operator is authorized or not
      */
-    function isAuthorized(address operator, address serviceProvider, address verifier) external view returns (bool);
+    function isAuthorized(address serviceProvider, address verifier, address operator) external view returns (bool);
 }
