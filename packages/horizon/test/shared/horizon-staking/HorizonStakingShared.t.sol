@@ -752,7 +752,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool legacy = verifier == subgraphDataServiceLegacyAddress;
 
         // before
-        bool beforeOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
+        bool beforeOperatorAllowed = _getStorage_OperatorAuth(msgSender, verifier, operator, legacy);
         bool beforeOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
         assertEq(beforeOperatorAllowed, beforeOperatorAllowedGetter);
 
@@ -766,9 +766,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
 
         // after
-        bool afterOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
+        bool afterOperatorAllowed = _getStorage_OperatorAuth(msgSender, verifier, operator, legacy);
         bool afterOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
-        assertEq(afterOperatorAllowed, afterOperatorAllowedGetter);
+        assertEq(afterOperatorAllowed, afterOperatorAllowedGetter, "afterOperatorAllowedGetter FAIL");
 
         // assert
         assertEq(afterOperatorAllowed, allow);
@@ -1686,8 +1686,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     function _getStorage_OperatorAuth(
         address serviceProvider,
-        address operator,
         address verifier,
+        address operator,
         bool legacy
     ) internal view returns (bool) {
         uint256 slotNumber = legacy ? 21 : 31;
@@ -1699,8 +1699,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             slot = uint256(
                 keccak256(
                     abi.encode(
-                        operator,
-                        keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, slotNumber))))
+                        verifier,
+                        keccak256(abi.encode(operator, keccak256(abi.encode(serviceProvider, slotNumber))))
                     )
                 )
             );
