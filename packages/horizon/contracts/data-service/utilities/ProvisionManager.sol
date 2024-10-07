@@ -76,8 +76,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
 
     /**
      * @notice Thrown when the caller is not authorized to manage the provision of a service provider.
+     * @param serviceProvider The address of the serviceProvider.
      * @param caller The address of the caller.
-     * @param serviceProvider The address of the service provider.
      */
     error ProvisionManagerNotAuthorized(address serviceProvider, address caller);
 
