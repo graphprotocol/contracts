@@ -1,0 +1,104 @@
+{
+    "allocations": [
+        {
+            "allocation_id": "0xd9921ad20d45e5bb025ccc48d0b907fcdd4f62bf",
+            "amount": "156403020933216411612"
+        },
+        {
+            "allocation_id": "0xc02b93f9c0b3ea8aa59ed87c0760a0ad6fc6df04",
+            "amount": "104489169491863897684"
+        },
+        {
+            "allocation_id": "0xbcd9d1ffce471ec17fe789f2dffa5e8db86878e1",
+            "amount": "76039366343489880109"
+        },
+        {
+            "allocation_id": "0xcff4f3025a608488319b2bff4562ad460aa48a1f",
+            "amount": "151203646385782769599"
+        },
+        {
+            "allocation_id": "0x46e6b2ae748ba5ed83f6af5512ef4f8f1896e5b8",
+            "amount": "2125298171107330393257"
+        },
+        {
+            "allocation_id": "0xd096aecefc3f97743a1987a45fca117a2a6a0135",
+            "amount": "79947683669578052591"
+        },
+        {
+            "allocation_id": "0xdc600d39378454d75f7c40b8c86fcb6dbe3a78f6",
+            "amount": "81402163686558193886"
+        },
+        {
+            "allocation_id": "0xcbf9f9ad59bf46e76538e41e37c520ab9e03c722",
+            "amount": "190550244048904850874"
+        },
+        {
+            "allocation_id": "0xb110024e4e7ff43d36e3a621d354bc9a7417b3fb",
+            "amount": "88697791868797294127"
+        },
+        {
+            "allocation_id": "0xe31f5d004af0695781e8bbe3ac524c2fc5003431",
+            "amount": "70938536142358954620"
+        },
+        {
+            "allocation_id": "0xd7b77669823564ca995fbe4763e0621abd55519c",
+            "amount": "80394976205497401273"
+        },
+        {
+            "allocation_id": "0xd062c85328d2ba05a0ad2bcf1af4ecbd20227a68",
+            "amount": "1799257320945238425795"
+        },
+        {
+            "allocation_id": "0xcefb9ee4f3a8ef630c8d692f5d1067f3dcf9f846",
+            "amount": "85399016491645655550"
+        },
+        {
+            "allocation_id": "0xd23641d8b5a2b7ae433f59446055182114970520",
+            "amount": "125378177885410235992"
+        },
+        {
+            "allocation_id": "0xdffc8c8e7514d85a1bdf9546b251bdf9124c6b23",
+            "amount": "95583565387064507372"
+        },
+        {
+            "allocation_id": "0x393f4970ff43682c96ed138e2eded7e0593250c4",
+            "amount": "97981215553541565106"
+        },
+        {
+            "allocation_id": "0xa442d0eff1cd3abf50a99ee56b638626ca432e75",
+            "amount": "852464798050608454324"
+        },
+        {
+            "allocation_id": "0xd7506cb05eec08387f58e98eeb77d5e851e549f3",
+            "amount": "3016364531072605517111"
+        },
+        {
+            "allocation_id": "0x2485a731cb6e0ab1229c822c7643a2663e6d4839",
+            "amount": "212366287384168753229"
+        },
+        {
+            "allocation_id": "0xe24a26ac9379ab5329b45643b79cb9c881d27e16",
+            "amount": "207181834187168230831"
+        },
+        {
+            "allocation_id": "0xcd68c58a44461c5a07183286c6232c65a0e2f12d",
+            "amount": "112950112604540870554"
+        },
+        {
+            "allocation_id": "0xd99f2b1fe4dcf2ae1d358eeb7d8d117ed3a1f506",
+            "amount": "194060304750790586838"
+        },
+        {
+            "allocation_id": "0xc200b18313521a25b6f5f26913ac93ad362ba0ba",
+            "amount": "156792474792574408600"
+        },
+        {
+            "allocation_id": "0xd2cfd10e2dfc057ca788665f2e6d77892603363a",
+            "amount": "192904271485670690584"
+        },
+        {
+            "allocation_id": "0x384201ee9d36474a2afc36169503e17af0dcc004",
+            "amount": "713504559733716230113"
+        }
+    ]
+}
