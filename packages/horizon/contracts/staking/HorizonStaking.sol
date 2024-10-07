@@ -466,9 +466,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-setOperatorLocked}.
      */
-    function setOperatorLocked(address operator, address verifier, bool allowed) external override notPaused {
+    function setOperatorLocked(address verifier, address operator, bool allowed) external override notPaused {
         require(_allowedLockedVerifiers[verifier], HorizonStakingVerifierNotAllowed(verifier));
-        _setOperator(operator, verifier, allowed);
+        _setOperator(verifier, operator, allowed);
     }
 
     /*
@@ -514,8 +514,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-setOperator}.
      */
-    function setOperator(address operator, address verifier, bool allowed) external override notPaused {
-        _setOperator(operator, verifier, allowed);
+    function setOperator(address verifier, address operator, bool allowed) external override notPaused {
+        _setOperator(verifier, operator, allowed);
     }
 
     /**
@@ -960,7 +960,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev Note that this function handles the special case where the verifier is the subgraph data service,
      * where the operator settings are stored in the legacy mapping.
      */
-    function _setOperator(address _operator, address _verifier, bool _allowed) private {
+    function _setOperator(address _verifier, address _operator, bool _allowed) private {
         require(_operator != msg.sender, HorizonStakingCallerIsServiceProvider());
         if (_verifier == SUBGRAPH_DATA_SERVICE_ADDRESS) {
             _legacyOperatorAuth[msg.sender][_operator] = _allowed;

@@ -108,14 +108,14 @@ interface IHorizonStakingMain {
     /**
      * @dev Emitted when an operator is allowed or denied by a service provider for a particular verifier
      * @param serviceProvider The address of the service provider
-     * @param operator The address of the operator
      * @param verifier The address of the verifier
+     * @param operator The address of the operator
      * @param allowed Whether the operator is allowed or denied
      */
     event OperatorSet(
         address indexed serviceProvider,
-        address indexed operator,
         address indexed verifier,
+        address indexed operator,
         bool allowed
     );
 
@@ -865,11 +865,11 @@ interface IHorizonStakingMain {
      * Additional requirements:
      * - The `verifier` must be allowed to be used for locked provisions.
      *
-     * @param operator Address to authorize or unauthorize
      * @param verifier The verifier / data service on which they'll be allowed to operate
+     * @param operator Address to authorize or unauthorize
      * @param allowed Whether the operator is authorized or not
      */
-    function setOperatorLocked(address operator, address verifier, bool allowed) external;
+    function setOperatorLocked(address verifier, address operator, bool allowed) external;
 
     /**
      * @notice Sets a verifier as a globally allowed verifier for locked provisions.
@@ -904,11 +904,11 @@ interface IHorizonStakingMain {
     /**
      * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
      * @dev Emits a {OperatorSet} event.
-     * @param operator Address to authorize or unauthorize
      * @param verifier The verifier / data service on which they'll be allowed to operate
+     * @param operator Address to authorize or unauthorize
      * @param allowed Whether the operator is authorized or not
      */
-    function setOperator(address operator, address verifier, bool allowed) external;
+    function setOperator(address verifier, address operator, bool allowed) external;
 
     /**
      * @notice Check if an operator is authorized for the caller on a specific verifier / data service.

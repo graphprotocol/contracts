@@ -41,7 +41,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     modifier useOperator() {
         vm.startPrank(users.indexer);
-        _setOperator(users.operator, subgraphDataServiceAddress, true);
+        _setOperator(subgraphDataServiceAddress, users.operator, true);
         vm.startPrank(users.operator);
         _;
         vm.stopPrank();
@@ -736,15 +736,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
     }
 
-    function _setOperator(address operator, address verifier, bool allow) internal {
-        __setOperator(operator, verifier, allow, false);
+    function _setOperator(address verifier, address operator, bool allow) internal {
+        __setOperator(verifier, operator, allow, false);
     }
 
-    function _setOperatorLocked(address operator, address verifier, bool allow) internal {
-        __setOperator(operator, verifier, allow, true);
+    function _setOperatorLocked(address verifier, address operator, bool allow) internal {
+        __setOperator(verifier, operator, allow, true);
     }
 
-    function __setOperator(address operator, address verifier, bool allow, bool locked) private {
+    function __setOperator(address verifier, address operator, bool allow, bool locked) private {
         (, address msgSender, ) = vm.readCallers();
 
         // staking contract knows the address of the legacy subgraph service
@@ -758,11 +758,11 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // setOperator
         vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.OperatorSet(msgSender, operator, verifier, allow);
+        emit IHorizonStakingMain.OperatorSet(msgSender, verifier, operator, allow);
         if (locked) {
-            staking.setOperatorLocked(operator, verifier, allow);
+            staking.setOperatorLocked(verifier, operator, allow);
         } else {
-            staking.setOperator(operator, verifier, allow);
+            staking.setOperator(verifier, operator, allow);
         }
 
         // after
@@ -1699,8 +1699,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             slot = uint256(
                 keccak256(
                     abi.encode(
-                        verifier,
-                        keccak256(abi.encode(operator, keccak256(abi.encode(serviceProvider, slotNumber))))
+                        operator,
+                        keccak256(abi.encode(verifier, keccak256(abi.encode(serviceProvider, slotNumber))))
                     )
                 )
             );
