@@ -39,7 +39,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
         vm.assume(thawAmount > 0);
         vm.assume(amount > thawAmount);
         _depositTokens(amount);
-        escrow.thaw(users.indexer, thawAmount);
+        escrow.thaw(users.verifier, users.indexer, thawAmount);
         _;
     }
 
@@ -49,7 +49,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest {
 
     function _depositTokens(uint256 tokens) internal {
         token.approve(address(escrow), tokens);
-        escrow.deposit(users.indexer, tokens);
+        escrow.deposit(users.verifier, users.indexer, tokens);
     }
 
     function _approveEscrow(uint256 tokens) internal {

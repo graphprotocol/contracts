@@ -27,8 +27,10 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         address _dataService,
         uint256 _tokensDataService
     ) private {
+        (, address _collector, ) = vm.readCallers();
+
         // Previous balances
-        (uint256 previousPayerEscrowBalance,,) = escrow.escrowAccounts(_payer, _receiver);
+        (uint256 previousPayerEscrowBalance,,) = escrow.escrowAccounts(_payer, _collector, _receiver);
         CollectPaymentData memory previousBalances = CollectPaymentData({
             escrowBalance: token.balanceOf(address(escrow)),
             paymentsBalance: token.balanceOf(address(payments)),
@@ -41,7 +43,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         });
 
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.EscrowCollected(_payer, _receiver, _tokens);
+        emit IPaymentsEscrow.EscrowCollected(_payer, _collector, _receiver, _tokens);
         escrow.collect(_paymentType, _payer, _receiver, _tokens, _dataService, _tokensDataService);
 
         // Calculate cuts
@@ -51,11 +53,9 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             _dataService,
             _paymentType
         );
-        uint256 tokensProtocol = _tokens * protocolPaymentCut / MAX_PPM;
-        uint256 tokensDelegation = _tokens * delegatorCut / MAX_PPM;
 
         // After balances
-        (uint256 afterPayerEscrowBalance,,) = escrow.escrowAccounts(_payer, _receiver);
+        (uint256 afterPayerEscrowBalance,,) = escrow.escrowAccounts(_payer, _collector, _receiver);
         CollectPaymentData memory afterBalances = CollectPaymentData({
             escrowBalance: token.balanceOf(address(escrow)),
             paymentsBalance: token.balanceOf(address(payments)),
@@ -68,12 +68,12 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         });
 
         // Check receiver balance after payment
-        uint256 receiverExpectedPayment = _tokens - _tokensDataService - tokensProtocol - tokensDelegation;
+        uint256 receiverExpectedPayment = _tokens - _tokensDataService - _tokens * protocolPaymentCut / MAX_PPM - _tokens * delegatorCut / MAX_PPM;
         assertEq(afterBalances.receiverBalance - previousBalances.receiverBalance, receiverExpectedPayment);
         assertEq(token.balanceOf(address(payments)), 0);
 
         // Check delegation pool balance after payment
-        assertEq(afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance, tokensDelegation);
+        assertEq(afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance, _tokens * delegatorCut / MAX_PPM);
 
         // Check that the escrow account has been updated
         assertEq(previousBalances.escrowBalance, afterBalances.escrowBalance + _tokens);

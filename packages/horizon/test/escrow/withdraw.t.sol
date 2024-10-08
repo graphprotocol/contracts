@@ -18,17 +18,17 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         // advance time
         skip(withdrawEscrowThawingPeriod + 1);
 
-        escrow.withdraw(users.indexer);
+        escrow.withdraw(users.verifier, users.indexer);
         vm.stopPrank();
 
-        (uint256 indexerEscrowBalance,,) = escrow.escrowAccounts(users.gateway, users.indexer);
+        (uint256 indexerEscrowBalance,,) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
         assertEq(indexerEscrowBalance, amount - thawAmount);
     }
 
     function testWithdraw_RevertWhen_NotThawing(uint256 amount) public useGateway useDeposit(amount) {
         bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowNotThawing()");
         vm.expectRevert(expectedError);
-        escrow.withdraw(users.indexer);
+        escrow.withdraw(users.verifier, users.indexer);
     }
 
     function testWithdraw_RevertWhen_StillThawing(
@@ -37,6 +37,6 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
     ) public useGateway depositAndThawTokens(amount, thawAmount) {
         bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowStillThawing(uint256,uint256)", block.timestamp, block.timestamp + withdrawEscrowThawingPeriod);
         vm.expectRevert(expectedError);
-        escrow.withdraw(users.indexer);
+        escrow.withdraw(users.verifier, users.indexer);
     }
 }
