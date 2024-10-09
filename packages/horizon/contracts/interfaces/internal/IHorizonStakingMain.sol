@@ -254,8 +254,15 @@ interface IHorizonStakingMain {
      * @param tokens The amount of tokens being released
      * @param shares The amount of shares being released
      * @param thawingUntil The timestamp until the stake has thawed
+     * @param valid Whether the thaw request was valid at the time of fulfillment
      */
-    event ThawRequestFulfilled(bytes32 indexed thawRequestId, uint256 tokens, uint256 shares, uint64 thawingUntil);
+    event ThawRequestFulfilled(
+        bytes32 indexed thawRequestId,
+        uint256 tokens,
+        uint256 shares,
+        uint64 thawingUntil,
+        bool valid
+    );
 
     /**
      * @notice Emitted when a series of thaw requests are fulfilled.
@@ -742,6 +749,8 @@ interface IHorizonStakingMain {
      * Tokens can be automatically re-delegated to another provision by setting `newServiceProvider`.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
      * requests in the event that fulfilling all of them results in a gas limit error.
+     * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
+     * the thaw requests with an amount equal to zero.
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {undelegate}.

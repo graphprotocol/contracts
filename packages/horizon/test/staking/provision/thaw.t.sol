@@ -98,4 +98,45 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         vm.expectRevert(expectedError);
         staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
+
+    function testThaw_RevertWhen_ProvisionFullySlashed (
+        uint256 amount,
+        uint64 thawingPeriod,
+        uint256 thawAmount
+    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        thawAmount = bound(thawAmount, 1, amount);
+
+        // slash all of it
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, amount, 0);
+
+        // Attempt to thaw on a provision that has been fully slashed
+        resetPrank(users.indexer);
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientTokens(uint256,uint256)", 0, thawAmount);
+        vm.expectRevert(expectedError);
+        staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+    }
+
+    function testThaw_AfterResetingThawingPool(
+        uint256 amount,
+        uint64 thawingPeriod,
+        uint256 thawAmount
+    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        // thaw some funds so there are some shares thawing and tokens thawing
+        thawAmount = bound(thawAmount, 1, amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+
+        // slash all of it
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, amount, 0);
+
+        // put some funds back in
+        resetPrank(users.indexer);
+        _stake(amount);
+        _addToProvision(users.indexer, subgraphDataServiceAddress, amount);
+
+        // we should be able to thaw again
+        resetPrank(users.indexer);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+    }
 }

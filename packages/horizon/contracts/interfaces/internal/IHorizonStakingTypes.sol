@@ -32,6 +32,8 @@ interface IHorizonStakingTypes {
         uint32 maxVerifierCutPending;
         // Pending value for `thawingPeriod`. Verifier needs to accept it before it becomes active.
         uint64 thawingPeriodPending;
+        // Value of the current thawing nonce. Thaw requests with older nonces are invalid.
+        uint256 thawingNonce;
     }
 
     /**
@@ -75,6 +77,8 @@ interface IHorizonStakingTypes {
         uint256 tokensThawing;
         // Shares representing the thawing tokens
         uint256 sharesThawing;
+        // Value of the current thawing nonce. Thaw requests with older nonces are invalid.
+        uint256 thawingNonce;
     }
 
     /**
@@ -101,6 +105,8 @@ interface IHorizonStakingTypes {
         uint256 tokensThawing;
         // Shares representing the thawing tokens
         uint256 sharesThawing;
+        // Value of the current thawing nonce. Thaw requests with older nonces are invalid.
+        uint256 thawingNonce;
     }
 
     /**
@@ -137,5 +143,7 @@ interface IHorizonStakingTypes {
         uint64 thawingUntil;
         // Id of the next thaw request in the linked list
         bytes32 next;
+        // Used to invalidate unfulfilled thaw requests
+        uint256 thawingNonce;
     }
 }

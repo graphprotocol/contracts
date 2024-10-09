@@ -104,4 +104,49 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
 
         _deprovision(users.indexer, subgraphDataServiceAddress, 0);
     }
+
+    function testDeprovision_AfterProvisionFullySlashed(
+        uint256 amount,
+        uint64 thawingPeriod,
+        uint256 thawAmount
+    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        // thaw some funds so there are some shares and tokens thawing
+        thawAmount = bound(thawAmount, 1, amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+
+        // slash all of it
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, amount, 0);
+
+        // now deprovision
+        resetPrank(users.indexer);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
+    }
+
+    function testDeprovision_AfterResetingThawingPool(
+        uint256 amount,
+        uint64 thawingPeriod,
+        uint256 thawAmount
+    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        // thaw some funds so there are some shares and tokens thawing
+        thawAmount = bound(thawAmount, 1, amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+
+        // slash all of it
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, amount, 0);
+
+        // put some funds back in
+        resetPrank(users.indexer);
+        _stake(amount);
+        _addToProvision(users.indexer, subgraphDataServiceAddress, amount);
+
+        // thaw some funds again
+        resetPrank(users.indexer);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+
+        // now deprovision
+        resetPrank(users.indexer);
+        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
+    }
 }
