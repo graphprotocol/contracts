@@ -17,7 +17,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
         uint256 provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(provisionTokens, 0);
 
-        _setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
+        _setOperatorLocked(subgraphDataServiceAddress, users.operator, true);
 
         vm.startPrank(users.operator);
         _provisionLocked(
@@ -39,7 +39,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
         assertEq(provisionTokens, 0);
 
         // Set operator
-        _setOperatorLocked(users.operator, subgraphDataServiceAddress, true);
+        _setOperatorLocked(subgraphDataServiceAddress, users.operator, true);
 
         // Disable locked verifier
         vm.startPrank(users.governor);
@@ -66,9 +66,9 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
         vm.startPrank(users.operator);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingNotAuthorized(address,address,address)",
-            users.operator,
             users.indexer,
-            subgraphDataServiceAddress
+            subgraphDataServiceAddress,
+            users.operator
         );
         vm.expectRevert(expectedError);
         staking.provisionLocked(

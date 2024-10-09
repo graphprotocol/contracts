@@ -41,7 +41,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     modifier useOperator() {
         vm.startPrank(users.indexer);
-        _setOperator(users.operator, subgraphDataServiceAddress, true);
+        _setOperator(subgraphDataServiceAddress, users.operator, true);
         vm.startPrank(users.operator);
         _;
         vm.stopPrank();
@@ -736,15 +736,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
     }
 
-    function _setOperator(address operator, address verifier, bool allow) internal {
-        __setOperator(operator, verifier, allow, false);
+    function _setOperator(address verifier, address operator, bool allow) internal {
+        __setOperator(verifier, operator, allow, false);
     }
 
-    function _setOperatorLocked(address operator, address verifier, bool allow) internal {
-        __setOperator(operator, verifier, allow, true);
+    function _setOperatorLocked(address verifier, address operator, bool allow) internal {
+        __setOperator(verifier, operator, allow, true);
     }
 
-    function __setOperator(address operator, address verifier, bool allow, bool locked) private {
+    function __setOperator(address verifier, address operator, bool allow, bool locked) private {
         (, address msgSender, ) = vm.readCallers();
 
         // staking contract knows the address of the legacy subgraph service
@@ -752,23 +752,23 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         bool legacy = verifier == subgraphDataServiceLegacyAddress;
 
         // before
-        bool beforeOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
-        bool beforeOperatorAllowedGetter = staking.isAuthorized(operator, msgSender, verifier);
+        bool beforeOperatorAllowed = _getStorage_OperatorAuth(msgSender, verifier, operator, legacy);
+        bool beforeOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
         assertEq(beforeOperatorAllowed, beforeOperatorAllowedGetter);
 
         // setOperator
         vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.OperatorSet(msgSender, operator, verifier, allow);
+        emit IHorizonStakingMain.OperatorSet(msgSender, verifier, operator, allow);
         if (locked) {
-            staking.setOperatorLocked(operator, verifier, allow);
+            staking.setOperatorLocked(verifier, operator, allow);
         } else {
-            staking.setOperator(operator, verifier, allow);
+            staking.setOperator(verifier, operator, allow);
         }
 
         // after
-        bool afterOperatorAllowed = _getStorage_OperatorAuth(msgSender, operator, verifier, legacy);
-        bool afterOperatorAllowedGetter = staking.isAuthorized(operator, msgSender, verifier);
-        assertEq(afterOperatorAllowed, afterOperatorAllowedGetter);
+        bool afterOperatorAllowed = _getStorage_OperatorAuth(msgSender, verifier, operator, legacy);
+        bool afterOperatorAllowedGetter = staking.isAuthorized(msgSender, verifier, operator);
+        assertEq(afterOperatorAllowed, afterOperatorAllowedGetter, "afterOperatorAllowedGetter FAIL");
 
         // assert
         assertEq(afterOperatorAllowed, allow);
@@ -1390,9 +1390,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
 
         bool isAuth = staking.isAuthorized(
-            msgSender,
             beforeValues.allocation.indexer,
-            subgraphDataServiceLegacyAddress
+            subgraphDataServiceLegacyAddress,
+            msgSender
         );
         address rewardsDestination = _getStorage_RewardsDestination(beforeValues.allocation.indexer);
 
@@ -1686,8 +1686,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     function _getStorage_OperatorAuth(
         address serviceProvider,
-        address operator,
         address verifier,
+        address operator,
         bool legacy
     ) internal view returns (bool) {
         uint256 slotNumber = legacy ? 21 : 31;

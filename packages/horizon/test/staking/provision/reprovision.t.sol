@@ -37,7 +37,7 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
 
         // Switch to indexer to set operator for new data service
         vm.startPrank(users.indexer);
-        _setOperator(users.operator, newDataService, true);
+        _setOperator(newDataService, users.operator, true);
 
         // Switch back to operator
         vm.startPrank(users.operator);
@@ -58,9 +58,9 @@ contract HorizonStakingReprovisionTest is HorizonStakingTest {
         vm.startPrank(users.operator);
         bytes memory expectedError = abi.encodeWithSignature(
             "HorizonStakingNotAuthorized(address,address,address)",
-            users.operator,
             users.indexer,
-            newDataService
+            newDataService,
+            users.operator
         );
         vm.expectRevert(expectedError);
         staking.reprovision(users.indexer, subgraphDataServiceAddress, newDataService, 0);

@@ -76,10 +76,10 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
 
     /**
      * @notice Thrown when the caller is not authorized to manage the provision of a service provider.
+     * @param serviceProvider The address of the serviceProvider.
      * @param caller The address of the caller.
-     * @param serviceProvider The address of the service provider.
      */
-    error ProvisionManagerNotAuthorized(address caller, address serviceProvider);
+    error ProvisionManagerNotAuthorized(address serviceProvider, address caller);
 
     /**
      * @notice Thrown when a provision is not found.
@@ -92,8 +92,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     modifier onlyAuthorizedForProvision(address serviceProvider) {
         require(
-            _graphStaking().isAuthorized(msg.sender, serviceProvider, address(this)),
-            ProvisionManagerNotAuthorized(msg.sender, serviceProvider)
+            _graphStaking().isAuthorized(serviceProvider, address(this), msg.sender),
+            ProvisionManagerNotAuthorized(serviceProvider, msg.sender)
         );
         _;
     }
