@@ -319,11 +319,32 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function withdrawDelegated(
         address serviceProvider,
         address verifier,
+        uint256 nThawRequests
+    ) external override notPaused {
+        _withdrawDelegated(serviceProvider, verifier, address(0), address(0), 0, nThawRequests);
+    }
+
+    /**
+     * @notice See {IHorizonStakingMain-redelegate}.
+     */
+    function redelegate(
+        address oldServiceProvider,
+        address oldVerifier,
         address newServiceProvider,
+        address newVerifier,
         uint256 minSharesForNewProvider,
         uint256 nThawRequests
     ) external override notPaused {
-        _withdrawDelegated(serviceProvider, verifier, newServiceProvider, minSharesForNewProvider, nThawRequests);
+        require(newServiceProvider != address(0), HorizonStakingInvalidServiceProviderZeroAddress());
+        require(newVerifier != address(0), HorizonStakingInvalidVerifierZeroAddress());
+        _withdrawDelegated(
+            oldServiceProvider,
+            oldVerifier,
+            newServiceProvider,
+            newVerifier,
+            minSharesForNewProvider,
+            nThawRequests
+        );
     }
 
     /**
@@ -360,7 +381,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-withdrawDelegated}.
      */
     function withdrawDelegated(address serviceProvider, address newServiceProvider) external override notPaused {
-        _withdrawDelegated(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, newServiceProvider, 0, 0);
+        _withdrawDelegated(
+            serviceProvider,
+            SUBGRAPH_DATA_SERVICE_ADDRESS,
+            newServiceProvider,
+            SUBGRAPH_DATA_SERVICE_ADDRESS,
+            0,
+            0
+        );
     }
 
     /*
@@ -851,6 +879,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address _serviceProvider,
         address _verifier,
         address _newServiceProvider,
+        address _newVerifier,
         uint256 _minSharesForNewProvider,
         uint256 _nThawRequests
     ) private {
@@ -882,8 +911,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         pool.tokensThawing = tokensThawing;
 
         if (tokensThawed != 0) {
-            if (_newServiceProvider != address(0)) {
-                _delegate(_newServiceProvider, _verifier, tokensThawed, _minSharesForNewProvider);
+            if (_newServiceProvider != address(0) && _newVerifier != address(0)) {
+                _delegate(_newServiceProvider, _newVerifier, tokensThawed, _minSharesForNewProvider);
             } else {
                 _graphToken().pushTokens(msg.sender, tokensThawed);
             }

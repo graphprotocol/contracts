@@ -1006,7 +1006,24 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _withdrawDelegated(
         address serviceProvider,
         address verifier,
+        uint256 nThawRequests
+    ) internal {
+        __withdrawDelegated(
+            serviceProvider, 
+            verifier, 
+            address(0), 
+            address(0), 
+            0, 
+            nThawRequests, 
+            false
+        );
+    }
+
+    function _redelegate(
+        address serviceProvider,
+        address verifier,
         address newServiceProvider,
+        address newVerifier,
         uint256 minSharesForNewProvider,
         uint256 nThawRequests
     ) internal {
@@ -1014,6 +1031,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             serviceProvider,
             verifier,
             newServiceProvider,
+            newVerifier,
             minSharesForNewProvider,
             nThawRequests,
             false
@@ -1021,7 +1039,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _withdrawDelegated(address serviceProvider, address newServiceProvider) internal {
-        __withdrawDelegated(serviceProvider, subgraphDataServiceLegacyAddress, newServiceProvider, 0, 0, true);
+        __withdrawDelegated(serviceProvider, subgraphDataServiceLegacyAddress, newServiceProvider, subgraphDataServiceLegacyAddress, 0, 0, true);
     }
 
     struct BeforeValues_WithdrawDelegated {
@@ -1045,19 +1063,20 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address _serviceProvider,
         address _verifier,
         address _newServiceProvider,
+        address _newVerifier,
         uint256 _minSharesForNewProvider,
         uint256 _nThawRequests,
         bool legacy
     ) private {
         (, address msgSender, ) = vm.readCallers();
 
-        bool reDelegate = _newServiceProvider != address(0);
+        bool reDelegate = _newServiceProvider != address(0) && _newVerifier != address(0);
 
         // before
         BeforeValues_WithdrawDelegated memory beforeValues;
         beforeValues.pool = _getStorage_DelegationPoolInternal(_serviceProvider, _verifier, legacy);
-        beforeValues.newPool = _getStorage_DelegationPoolInternal(_newServiceProvider, _verifier, legacy);
-        beforeValues.newDelegation = _getStorage_Delegation(_serviceProvider, _verifier, msgSender, legacy);
+        beforeValues.newPool = _getStorage_DelegationPoolInternal(_newServiceProvider, _newVerifier, legacy);
+        beforeValues.newDelegation = _getStorage_Delegation(_newServiceProvider, _newVerifier, msgSender, legacy);
         beforeValues.thawRequestList = staking.getThawRequestList(_serviceProvider, _verifier, msgSender);
         beforeValues.senderBalance = token.balanceOf(msgSender);
         beforeValues.stakingBalance = token.balanceOf(address(staking));
@@ -1095,7 +1114,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             if (reDelegate) {
                 emit IHorizonStakingMain.TokensDelegated(
                     _newServiceProvider,
-                    _verifier,
+                    _newVerifier,
                     msgSender,
                     calcValues.tokensThawed
                 );
@@ -1104,25 +1123,33 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             }
         }
         vm.expectEmit();
+
         emit IHorizonStakingMain.DelegatedTokensWithdrawn(
             _serviceProvider,
             _verifier,
             msgSender,
             calcValues.tokensThawed
         );
-        staking.withdrawDelegated(
-            _serviceProvider,
-            _verifier,
-            _newServiceProvider,
-            _minSharesForNewProvider,
-            _nThawRequests
-        );
+        if (legacy) {
+            staking.withdrawDelegated(_serviceProvider, _newServiceProvider);
+        } else if (reDelegate) {
+            staking.redelegate(
+                _serviceProvider,
+                _verifier,
+                _newServiceProvider,
+                _newVerifier,
+                _minSharesForNewProvider,
+                _nThawRequests
+            );
+        } else {
+            staking.withdrawDelegated(_serviceProvider, _verifier, _nThawRequests);
+        }
 
         // after
         AfterValues_WithdrawDelegated memory afterValues;
         afterValues.pool = _getStorage_DelegationPoolInternal(_serviceProvider, _verifier, legacy);
-        afterValues.newPool = _getStorage_DelegationPoolInternal(_newServiceProvider, _verifier, legacy);
-        afterValues.newDelegation = _getStorage_Delegation(_newServiceProvider, _verifier, msgSender, legacy);
+        afterValues.newPool = _getStorage_DelegationPoolInternal(_newServiceProvider, _newVerifier, legacy);
+        afterValues.newDelegation = _getStorage_Delegation(_newServiceProvider, _newVerifier, msgSender, legacy);
         afterValues.thawRequestList = staking.getThawRequestList(_serviceProvider, _verifier, msgSender);
         afterValues.senderBalance = token.balanceOf(msgSender);
         afterValues.stakingBalance = token.balanceOf(address(staking));
