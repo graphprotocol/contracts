@@ -101,10 +101,10 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testCollect_MultipleQueryFees(
         uint256 tokensAllocated,
-        uint256 numPayments
+        uint8 numPayments
     ) public useIndexer useAllocation(tokensAllocated) {
         vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        numPayments = bound(numPayments, 1, 10);
+        numPayments = uint8(bound(numPayments, 2, 10));
         uint256 tokensPayment = tokensAllocated / stakeToFeesRatio / numPayments;
 
         resetPrank(users.gateway);
