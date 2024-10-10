@@ -71,7 +71,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
      * TESTS
      */
 
-    function testCollect_QueryFees_ONLY_THIS(
+    function testCollect_QueryFees(
         uint256 tokensAllocated,
         uint256 tokensPayment
     ) public useIndexer useAllocation(tokensAllocated) {

@@ -208,6 +208,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useDelegation(delegationAmount)
     {
         vm.assume(beneficiary != address(0));
+        vm.assume(beneficiary != users.delegator);
 
         // Delegator undelegates to beneficiary
         resetPrank(users.delegator);
