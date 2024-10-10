@@ -12,12 +12,6 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
      * MODIFIERS
      */
 
-    modifier useGateway() {
-        vm.startPrank(users.gateway);
-        _;
-        vm.stopPrank();
-    }
-
     modifier approveEscrow(uint256 tokens) {
         _approveEscrow(tokens);
         _;

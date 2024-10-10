@@ -9,6 +9,16 @@ import { GraphBaseTest } from "../../GraphBase.t.sol";
 abstract contract PaymentsEscrowSharedTest is GraphBaseTest {
 
     /*
+     * MODIFIERS
+     */
+
+    modifier useGateway() {
+        vm.startPrank(users.gateway);
+        _;
+        vm.stopPrank();
+    }
+
+    /*
      * HELPERS
      */
     

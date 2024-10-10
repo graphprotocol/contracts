@@ -27,4 +27,6 @@ abstract contract Constants {
     // RewardsMananger parameters
     uint256 public constant rewardsPerSignal = 10000;
     uint256 public constant rewardsPerSubgraphAllocationUpdate = 1000;
+    // TAPCollector parameters
+    uint256 public constant revokeSignerThawingPeriod = 7 days;
 }
