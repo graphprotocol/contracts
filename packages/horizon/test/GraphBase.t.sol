@@ -185,7 +185,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             subgraphDataServiceLegacyAddress
         );
 
-        tapCollector = new TAPCollector("TAPCollector", "1", address(controller));
+        tapCollector = new TAPCollector("TAPCollector", "1", address(controller), revokeSignerThawingPeriod);
 
         resetPrank(users.governor);
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));

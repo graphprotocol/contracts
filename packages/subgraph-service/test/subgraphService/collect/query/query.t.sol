@@ -3,11 +3,11 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-// import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../../SubgraphService.t.sol";
@@ -22,6 +22,14 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     /*
      * HELPERS
      */
+
+    function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private returns (bytes memory) {
+        (, address msgSender, ) = vm.readCallers();
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, _proofDeadline, msgSender));
+        bytes32 proofToDigest = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signer, proofToDigest);
+        return abi.encodePacked(r, s, v);
+    }
 
     function _getQueryFeeEncodedData(address indexer, uint128 tokens) private view returns (bytes memory) {
         ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(indexer, tokens);
@@ -47,14 +55,15 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     }
 
     function _approveCollector(uint256 tokens) private {
-        address msgSender;
-        (, msgSender, ) = vm.readCallers();
-        resetPrank(signer);
-        mint(signer, tokens);
         escrow.approveCollector(address(tapCollector), tokens);
         token.approve(address(escrow), tokens);
         escrow.deposit(address(tapCollector), users.indexer, tokens);
-        resetPrank(msgSender);
+    }
+
+    function _authorizeSigner() private {
+        uint256 proofDeadline = block.timestamp + 1;
+        bytes memory proof = _getSignerProof(proofDeadline, signerPrivateKey);
+        tapCollector.authorizeSigner(signer, proofDeadline, proof);
     }
 
     /*
@@ -81,8 +90,11 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
             : tokensAllocated / stakeToFeesRatio;
         tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
 
+        resetPrank(users.gateway);
         _approveCollector(tokensPayment);
+        _authorizeSigner();
 
+        resetPrank(users.indexer);
         bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment));
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
     }
@@ -95,8 +107,11 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         numPayments = bound(numPayments, 1, 10);
         uint256 tokensPayment = tokensAllocated / stakeToFeesRatio / numPayments;
 
+        resetPrank(users.gateway);
         _approveCollector(tokensAllocated);
+        _authorizeSigner();
 
+        resetPrank(users.indexer);
         uint256 accTokensPayment = 0;
         for (uint i = 0; i < numPayments; i++) {
             accTokensPayment = accTokensPayment + tokensPayment;

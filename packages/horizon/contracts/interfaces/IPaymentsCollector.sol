@@ -36,6 +36,9 @@ interface IPaymentsCollector {
      * @notice Initiate a payment collection through the payments protocol
      * @dev This function should require the caller to present some form of evidence of the payer's debt to
      * the receiver. The collector should validate this evidence and, if valid, collect the payment.
+     * Requirements:
+     * - The caller must be the data service the RAV was issued to
+     * - The signer of the RAV must be authorized to sign for the payer
      *
      * Emits a {PaymentCollected} event
      *

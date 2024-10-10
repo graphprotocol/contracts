@@ -18,4 +18,6 @@ abstract contract Constants {
     uint256 internal constant EPOCH_LENGTH = 1;
     // Rewards manager
     uint256 internal constant ALLOCATIONS_REWARD_CUT = 100 ether;
+    // TAPCollector
+    uint256 internal constant revokeSignerThawingPeriod = 7 days;
 }
