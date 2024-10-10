@@ -107,7 +107,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
 
         resetPrank(users.gateway);
         escrow.approveCollector(users.verifier, tokens);
-        _depositTokens(tokens);
+        _depositTokens(users.verifier, users.indexer, tokens);
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, tokens, subgraphDataServiceAddress, tokensDataService);
@@ -163,7 +163,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
 
         resetPrank(users.gateway);
         escrow.approveCollector(users.verifier, amount);
-        _depositTokens(amount);
+        _depositTokens(users.verifier, users.indexer, amount);
 
         resetPrank(users.verifier);
         vm.expectRevert(abi.encodeWithSelector(
@@ -182,7 +182,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         
         resetPrank(users.gateway);
         escrow.approveCollector(users.verifier, amount);
-        _depositTokens(amount);
+        _depositTokens(users.verifier, users.indexer, amount);
 
         resetPrank(users.verifier);
         vm.expectRevert(abi.encodeWithSelector(

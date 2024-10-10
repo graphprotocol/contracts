@@ -13,21 +13,6 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
      * HELPERS
      */
 
-    function _approveCollector(uint256 tokens) internal {
-        (uint256 beforeAllowance,) = escrow.authorizedCollectors(users.gateway, users.verifier);
-        vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.AuthorizedCollector(
-            users.gateway, // payer
-            users.verifier, // collector
-            tokens, // addedAllowance
-            beforeAllowance + tokens // newTotalAllowance after the added allowance
-        );
-        escrow.approveCollector(users.verifier, tokens);
-        (uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(users.gateway, users.verifier);
-        assertEq(allowance - beforeAllowance, tokens);
-        assertEq(thawEndTimestamp, 0);
-    }
-
     function _thawCollector() internal {
         (uint256 beforeAllowance,) = escrow.authorizedCollectors(users.gateway, users.verifier);
         vm.expectEmit(address(escrow));
@@ -74,7 +59,7 @@ contract GraphEscrowCollectorTest is GraphEscrowTest {
 
         uint256 approveTokens = tokens / approveSteps;
         for (uint i = 0; i < approveSteps; i++) {
-            _approveCollector(approveTokens);
+            _approveCollector(users.verifier, approveTokens);
         }
     }
 
