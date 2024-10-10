@@ -45,10 +45,10 @@ interface ITAPCollector is IPaymentsCollector {
 
     /**
      * @notice Emitted when a signer is authorized to sign RAVs for a payer
-     * @param authorizedSigner The address of the authorized signer
      * @param payer The address of the payer authorizing the signer
+     * @param authorizedSigner The address of the authorized signer
      */
-    event AuthorizeSigner(address indexed authorizedSigner, address indexed payer);
+    event SignerAuthorized(address indexed payer, address indexed authorizedSigner);
 
     /**
      * @notice Emitted when a signer is thawed to be removed from the authorized signers list
@@ -56,7 +56,7 @@ interface ITAPCollector is IPaymentsCollector {
      * @param authorizedSigner The address of the signer to thaw
      * @param thawEndTimestamp The timestamp at which the thawing period ends
      */
-    event ThawSigner(address indexed payer, address indexed authorizedSigner, uint256 thawEndTimestamp);
+    event SignerThawing(address indexed payer, address indexed authorizedSigner, uint256 thawEndTimestamp);
 
     /**
      * @dev Emitted when the thawing of a signer is cancelled
@@ -64,14 +64,14 @@ interface ITAPCollector is IPaymentsCollector {
      * @param authorizedSigner The address of the authorized signer
      * @param thawEndTimestamp The timestamp at which the thawing period ends
      */
-    event CancelThawSigner(address indexed payer, address indexed authorizedSigner, uint256 thawEndTimestamp);
+    event SignerThawCanceled(address indexed payer, address indexed authorizedSigner, uint256 thawEndTimestamp);
 
     /**
      * @dev Emitted when a authorized signer has been revoked
      * @param payer The address of the payer revoking the signer
      * @param authorizedSigner The address of the authorized signer
      */
-    event RevokeAuthorizedSigner(address indexed payer, address indexed authorizedSigner);
+    event SignerRevoked(address indexed payer, address indexed authorizedSigner);
 
     /**
      * @notice Emitted when a RAV is collected
@@ -95,10 +95,10 @@ interface ITAPCollector is IPaymentsCollector {
 
     /**
      * Thrown when the signer is already authorized
-     * @param signer The address of the signer
      * @param authorizingPayer The address of the payer authorizing the signer
+     * @param signer The address of the signer
      */
-    error TAPCollectorSignerAlreadyAuthorized(address signer, address authorizingPayer);
+    error TAPCollectorSignerAlreadyAuthorized(address authorizingPayer, address signer);
 
     /**
      * Thrown when the signer proof deadline is invalid
@@ -114,10 +114,10 @@ interface ITAPCollector is IPaymentsCollector {
 
     /**
      * Thrown when the signer is not authorized by the payer
-     * @param signer The address of the signer
      * @param payer The address of the payer
+     * @param signer The address of the signer
      */
-    error TAPCollectorSignerNotAuthorizedByPayer(address signer, address payer);
+    error TAPCollectorSignerNotAuthorizedByPayer(address payer, address signer);
 
     /**
      * Thrown when the signer is not thawing
@@ -159,7 +159,7 @@ interface ITAPCollector is IPaymentsCollector {
      * - `proofDeadline` must be greater than the current timestamp
      * - `proof` must be a valid signature from the signer being authorized
      *
-     * Emits an {AuthorizedSigner} event
+     * Emits an {SignerAuthorized} event
      * @param signer The addres of the authorized signer
      * @param proofDeadline The deadline for the proof provided by the signer
      * @param proof The proof provided by the signer to be authorized by the payer, consists of (chainID, proof deadline, sender address)
@@ -175,7 +175,7 @@ interface ITAPCollector is IPaymentsCollector {
      * Requirements:
      * - `signer` must be authorized by the payer calling this function
      *
-     * Emits a {ThawSigner} event
+     * Emits a {SignerThawing} event
      * @param signer The address of the signer to thaw
      */
     function thawSigner(address signer) external;
@@ -185,7 +185,7 @@ interface ITAPCollector is IPaymentsCollector {
      * @dev Requirements:
      * - `signer` must be thawing and authorized by the payer calling this function
      *
-     * Emits a {CancelThawSigner} event
+     * Emits a {SignerThawCanceled} event
      * @param signer The address of the signer to cancel thawing
      */
     function cancelThawSigner(address signer) external;
@@ -195,7 +195,7 @@ interface ITAPCollector is IPaymentsCollector {
      * @dev Requirements:
      * - `signer` must be thawed and authorized by the payer calling this function
      *
-     * Emits a {RevokeAuthorizedSigner} event
+     * Emits a {SignerRevoked} event
      * @param signer The address of the signer
      */
     function revokeAuthorizedSigner(address signer) external;

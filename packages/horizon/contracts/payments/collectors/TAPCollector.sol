@@ -45,15 +45,15 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
      * @param eip712Name The name of the EIP712 domain.
      * @param eip712Version The version of the EIP712 domain.
      * @param controller The address of the Graph controller.
-     * @param _revokeSignerThawingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
+     * @param signerRevokeWaitingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
      */
     constructor(
         string memory eip712Name,
         string memory eip712Version,
         address controller,
-        uint256 _revokeSignerThawingPeriod
+        uint256 signerRevokeWaitingPeriod
     ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) {
-        revokeSignerThawingPeriod = _revokeSignerThawingPeriod;
+        revokeSignerThawingPeriod = signerRevokeWaitingPeriod;
     }
 
     /**
@@ -62,14 +62,14 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     function authorizeSigner(address signer, uint256 proofDeadline, bytes calldata proof) external override {
         require(
             authorizedSigners[signer].payer == address(0),
-            TAPCollectorSignerAlreadyAuthorized(signer, authorizedSigners[signer].payer)
+            TAPCollectorSignerAlreadyAuthorized(authorizedSigners[signer].payer, signer)
         );
 
-        verifyAuthorizedSignerProof(proof, proofDeadline, signer);
+        _verifyAuthorizedSignerProof(proof, proofDeadline, signer);
 
         authorizedSigners[signer].payer = msg.sender;
         authorizedSigners[signer].thawEndTimestamp = 0;
-        emit AuthorizeSigner(signer, msg.sender);
+        emit SignerAuthorized(msg.sender, signer);
     }
 
     /**
@@ -78,10 +78,10 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     function thawSigner(address signer) external override {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
-        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(signer, msg.sender));
+        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
 
         authorization.thawEndTimestamp = block.timestamp + revokeSignerThawingPeriod;
-        emit ThawSigner(msg.sender, signer, authorization.thawEndTimestamp);
+        emit SignerThawing(msg.sender, signer, authorization.thawEndTimestamp);
     }
 
     /**
@@ -90,11 +90,11 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     function cancelThawSigner(address signer) external override {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
-        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(signer, msg.sender));
+        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
         require(authorization.thawEndTimestamp > 0, TAPCollectorSignerNotThawing(signer));
 
         authorization.thawEndTimestamp = 0;
-        emit CancelThawSigner(msg.sender, signer, 0);
+        emit SignerThawCanceled(msg.sender, signer, 0);
     }
 
     /**
@@ -103,7 +103,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     function revokeAuthorizedSigner(address signer) external override {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
-        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(signer, msg.sender));
+        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
         require(authorization.thawEndTimestamp > 0, TAPCollectorSignerNotThawing(signer));
         require(
             authorization.thawEndTimestamp <= block.timestamp,
@@ -111,7 +111,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         );
 
         delete authorizedSigners[signer];
-        emit RevokeAuthorizedSigner(msg.sender, signer);
+        emit SignerRevoked(msg.sender, signer);
     }
 
     /**
@@ -180,7 +180,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
      * @param proofDeadline The deadline by which the proof must be verified
      * @param signer The signer to be authorized
      */
-    function verifyAuthorizedSignerProof(bytes calldata proof, uint256 proofDeadline, address signer) private view {
+    function _verifyAuthorizedSignerProof(bytes calldata proof, uint256 proofDeadline, address signer) private view {
         // Verify that the proofDeadline has not passed
         require(
             proofDeadline > block.timestamp,
@@ -220,6 +220,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);
 
         if (tokensToCollect > 0) {
+            tokensCollected[dataService][receiver][payer] = tokensRAV;
             _graphPaymentsEscrow().collect(
                 paymentType,
                 payer,
@@ -228,7 +229,6 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
                 dataService,
                 tokensDataService
             );
-            tokensCollected[dataService][receiver][payer] = tokensRAV;
         }
 
         emit PaymentCollected(paymentType, payer, receiver, tokensToCollect, dataService, tokensDataService);
