@@ -18,18 +18,28 @@ import { PaymentsEscrowSharedTest } from "../../shared/payments-escrow/PaymentsE
 contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
     using PPMMath for uint256;
 
-    address payer;
-    uint256 payerPrivateKey;
+    address signer;
+    uint256 signerPrivateKey;
 
     /*
      * MODIFIERS
      */
 
-    modifier usePayerSigner() {
+    modifier useSigner() {
         uint256 proofDeadline = block.timestamp + 1;
-        bytes memory signerProof = _getSignerProof(proofDeadline, payerPrivateKey);
-        _authorizeSigner(payer, proofDeadline, signerProof);
+        bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
+        _authorizeSigner(signer, proofDeadline, signerProof);
         _;
+    }
+
+    /*
+     * SET UP
+     */
+
+    function setUp() public virtual override {
+        super.setUp();
+        (signer, signerPrivateKey) = makeAddrAndKey("signer");
+        vm.label({ account: signer, newLabel: "signer" });
     }
 
     /*
@@ -44,44 +54,60 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         return abi.encodePacked(r, s, v);
     }
 
-    function _getQueryFeeEncodedData(address indexer, address collector, uint128 tokens) internal view returns (bytes memory) {
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(indexer, collector, tokens);
-        bytes32 messageHash = tapCollector.encodeRAV(rav);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(payerPrivateKey, messageHash);
-        bytes memory signature = abi.encodePacked(r, s, v);
-        ITAPCollector.SignedRAV memory signedRAV = ITAPCollector.SignedRAV(rav, signature);
-        return abi.encode(signedRAV);
-    }
-
-    function _getRAV(
-        address indexer,
-        address collector,
-        uint128 tokens
-    ) internal pure returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
-        return
-            ITAPCollector.ReceiptAggregateVoucher({
-                dataService: collector,
-                serviceProvider: indexer,
-                timestampNs: 0,
-                valueAggregate: tokens,
-                metadata: abi.encode("")
-            });
-    }
-
     /*
      * ACTIONS
      */
 
-    function _authorizeSigner(address signer, uint256 proofDeadline, bytes memory proof) internal {
+    function _authorizeSigner(address _signer, uint256 _proofDeadline, bytes memory _proof) internal {
         (, address msgSender, ) = vm.readCallers();
         
         vm.expectEmit(address(tapCollector));
-        emit ITAPCollector.SignerAuthorized(msgSender, signer);
+        emit ITAPCollector.SignerAuthorized(msgSender, _signer);
         
-        tapCollector.authorizeSigner(signer, proofDeadline, proof);
+        tapCollector.authorizeSigner(_signer, _proofDeadline, _proof);
         
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(signer);
+        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
+        assertEq(thawEndTimestamp, 0);
+    }
+
+    function _thawSigner(address _signer) internal {
+        (, address msgSender, ) = vm.readCallers();
+        uint256 expectedThawEndTimestamp = block.timestamp + revokeSignerThawingPeriod;
+
+        vm.expectEmit(address(tapCollector));
+        emit ITAPCollector.SignerThawing(msgSender, _signer, expectedThawEndTimestamp);
+
+        tapCollector.thawSigner(_signer);
+
+        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        assertEq(_payer, msgSender);
+        assertEq(thawEndTimestamp, expectedThawEndTimestamp);
+    }
+
+    function _cancelThawSigner(address _signer) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        vm.expectEmit(address(tapCollector));
+        emit ITAPCollector.SignerThawCanceled(msgSender, _signer, 0);
+
+        tapCollector.cancelThawSigner(_signer);
+
+        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        assertEq(_payer, msgSender);
+        assertEq(thawEndTimestamp, 0);
+    }
+
+    function _revokeAuthorizedSigner(address _signer) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        vm.expectEmit(address(tapCollector));
+        emit ITAPCollector.SignerRevoked(msgSender, _signer);
+
+        tapCollector.revokeAuthorizedSigner(_signer);
+
+        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        assertEq(_payer, address(0));
         assertEq(thawEndTimestamp, 0);
     }
 
@@ -118,15 +144,5 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
         uint256 tokensCollectedAfter = tapCollector.tokensCollected(signedRAV.rav.dataService, signedRAV.rav.serviceProvider, _payer);
         assertEq(tokensCollectedAfter, signedRAV.rav.valueAggregate);
-    }
-
-    /*
-     * SET UP
-     */
-
-    function setUp() public virtual override {
-        super.setUp();
-        (payer, payerPrivateKey) = makeAddrAndKey("payer");
-        vm.label({ account: payer, newLabel: "payer" });
     }
 }
