@@ -836,7 +836,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address _serviceProvider,
         address _verifier,
         uint256 _shares,
-        address beneficiary
+        address _beneficiary
     ) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
@@ -862,7 +862,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         bytes32 thawRequestId = _createThawRequest(
             _serviceProvider,
             _verifier,
-            beneficiary,
+            _beneficiary,
             thawingShares,
             thawingUntil,
             pool.thawingNonce

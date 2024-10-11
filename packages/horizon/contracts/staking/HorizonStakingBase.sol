@@ -289,18 +289,18 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice See {IHorizonStakingBase-getDelegatedTokensAvailable}.
-     */
-    function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) private view returns (uint256) {
-        DelegationPoolInternal storage poolInternal = _getDelegationPool(_serviceProvider, _verifier);
-        return poolInternal.tokens - poolInternal.tokensThawing;
-    }
-
-    /**
      * @notice Gets the next thaw request after `_thawRequestId`.
      * @dev This function is used as a callback in the thaw requests linked list traversal.
      */
     function _getNextThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
         return _thawRequests[_thawRequestId].next;
+    }
+
+    /**
+     * @notice See {IHorizonStakingBase-getDelegatedTokensAvailable}.
+     */
+    function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) private view returns (uint256) {
+        DelegationPoolInternal storage poolInternal = _getDelegationPool(_serviceProvider, _verifier);
+        return poolInternal.tokens - poolInternal.tokensThawing;
     }
 }

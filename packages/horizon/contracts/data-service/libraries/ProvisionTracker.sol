@@ -43,6 +43,20 @@ library ProvisionTracker {
     }
 
     /**
+     * @notice Releases tokens for a service provider
+     * @dev Requirements:
+     * - `tokens` must be less than or equal to the amount of tokens locked for the service provider
+     * @param self The provision tracker mapping
+     * @param serviceProvider The service provider address
+     * @param tokens The amount of tokens to release
+     */
+    function release(mapping(address => uint256) storage self, address serviceProvider, uint256 tokens) internal {
+        if (tokens == 0) return;
+        require(self[serviceProvider] >= tokens, ProvisionTrackerInsufficientTokens(self[serviceProvider], tokens));
+        self[serviceProvider] -= tokens;
+    }
+
+    /**
      * @notice Checks if a service provider has enough tokens available to lock
      * @param self The provision tracker mapping
      * @param graphStaking The HorizonStaking contract
@@ -57,19 +71,5 @@ library ProvisionTracker {
     ) internal view returns (bool) {
         uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
         return self[serviceProvider] <= tokensAvailable;
-    }
-
-    /**
-     * @notice Releases tokens for a service provider
-     * @dev Requirements:
-     * - `tokens` must be less than or equal to the amount of tokens locked for the service provider
-     * @param self The provision tracker mapping
-     * @param serviceProvider The service provider address
-     * @param tokens The amount of tokens to release
-     */
-    function release(mapping(address => uint256) storage self, address serviceProvider, uint256 tokens) internal {
-        if (tokens == 0) return;
-        require(self[serviceProvider] >= tokens, ProvisionTrackerInsufficientTokens(self[serviceProvider], tokens));
-        self[serviceProvider] -= tokens;
     }
 }
