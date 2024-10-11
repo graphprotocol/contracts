@@ -38,22 +38,22 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         public tokensCollected;
 
     /// @notice The duration (in seconds) in which a signer is thawing before they can be revoked
-    uint256 public immutable revokeSignerThawingPeriod;
+    uint256 public immutable REVOKE_SIGNER_THAWING_PERIOD;
 
     /**
      * @notice Constructs a new instance of the TAPVerifier contract.
      * @param eip712Name The name of the EIP712 domain.
      * @param eip712Version The version of the EIP712 domain.
      * @param controller The address of the Graph controller.
-     * @param signerRevokeWaitingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
+     * @param revokeSignerThawingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
      */
     constructor(
         string memory eip712Name,
         string memory eip712Version,
         address controller,
-        uint256 signerRevokeWaitingPeriod
+        uint256 revokeSignerThawingPeriod
     ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) {
-        revokeSignerThawingPeriod = signerRevokeWaitingPeriod;
+        REVOKE_SIGNER_THAWING_PERIOD = revokeSignerThawingPeriod;
     }
 
     /**
@@ -80,7 +80,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
 
         require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
 
-        authorization.thawEndTimestamp = block.timestamp + revokeSignerThawingPeriod;
+        authorization.thawEndTimestamp = block.timestamp + REVOKE_SIGNER_THAWING_PERIOD;
         emit SignerThawing(msg.sender, signer, authorization.thawEndTimestamp);
     }
 
@@ -148,6 +148,53 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     }
 
     /**
+     * @notice See {ITAPCollector.collect}
+     */
+    function _collect(
+        IGraphPayments.PaymentTypes _paymentType,
+        address _payer,
+        SignedRAV memory _signedRAV,
+        uint256 _dataServiceCut
+    ) private returns (uint256) {
+        address dataService = _signedRAV.rav.dataService;
+        address receiver = _signedRAV.rav.serviceProvider;
+
+        uint256 tokensRAV = _signedRAV.rav.valueAggregate;
+        uint256 tokensAlreadyCollected = tokensCollected[dataService][receiver][_payer];
+        require(
+            tokensRAV > tokensAlreadyCollected,
+            TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
+        );
+
+        uint256 tokensToCollect = tokensRAV - tokensAlreadyCollected;
+        uint256 tokensDataService = tokensToCollect.mulPPM(_dataServiceCut);
+
+        if (tokensToCollect > 0) {
+            tokensCollected[dataService][receiver][_payer] = tokensRAV;
+            _graphPaymentsEscrow().collect(
+                _paymentType,
+                _payer,
+                receiver,
+                tokensToCollect,
+                dataService,
+                tokensDataService
+            );
+        }
+
+        emit PaymentCollected(_paymentType, _payer, receiver, tokensToCollect, dataService, tokensDataService);
+        emit RAVCollected(
+            _payer,
+            dataService,
+            receiver,
+            _signedRAV.rav.timestampNs,
+            _signedRAV.rav.valueAggregate,
+            _signedRAV.rav.metadata,
+            _signedRAV.signature
+        );
+        return tokensToCollect;
+    }
+
+    /**
      * @notice See {ITAPCollector.recoverRAVSigner}
      */
     function _recoverRAVSigner(SignedRAV memory _signedRAV) private view returns (address) {
@@ -176,71 +223,24 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
 
     /**
      * @notice Verify the proof provided by the payer authorizing the signer
-     * @param proof The proof provided by the payer authorizing the signer
-     * @param proofDeadline The deadline by which the proof must be verified
-     * @param signer The signer to be authorized
+     * @param _proof The proof provided by the payer authorizing the signer
+     * @param _proofDeadline The deadline by which the proof must be verified
+     * @param _signer The signer to be authorized
      */
-    function _verifyAuthorizedSignerProof(bytes calldata proof, uint256 proofDeadline, address signer) private view {
+    function _verifyAuthorizedSignerProof(bytes calldata _proof, uint256 _proofDeadline, address _signer) private view {
         // Verify that the proofDeadline has not passed
         require(
-            proofDeadline > block.timestamp,
-            TAPCollectorInvalidSignerProofDeadline(proofDeadline, block.timestamp)
+            _proofDeadline > block.timestamp,
+            TAPCollectorInvalidSignerProofDeadline(_proofDeadline, block.timestamp)
         );
 
         // Generate the hash of the payer's address
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, proofDeadline, msg.sender));
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, _proofDeadline, msg.sender));
 
         // Generate the digest to be signed by the signer
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
 
         // Verify that the recovered signer matches the expected signer
-        require(ECDSA.recover(digest, proof) == signer, TAPCollectorInvalidSignerProof());
-    }
-
-    /**
-     * @notice See {ITAPCollector.collect}
-     */
-    function _collect(
-        IGraphPayments.PaymentTypes paymentType,
-        address payer,
-        SignedRAV memory signedRAV,
-        uint256 dataServiceCut
-    ) private returns (uint256) {
-        address dataService = signedRAV.rav.dataService;
-        address receiver = signedRAV.rav.serviceProvider;
-
-        uint256 tokensRAV = signedRAV.rav.valueAggregate;
-        uint256 tokensAlreadyCollected = tokensCollected[dataService][receiver][payer];
-        require(
-            tokensRAV > tokensAlreadyCollected,
-            TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
-        );
-
-        uint256 tokensToCollect = tokensRAV - tokensAlreadyCollected;
-        uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);
-
-        if (tokensToCollect > 0) {
-            tokensCollected[dataService][receiver][payer] = tokensRAV;
-            _graphPaymentsEscrow().collect(
-                paymentType,
-                payer,
-                receiver,
-                tokensToCollect,
-                dataService,
-                tokensDataService
-            );
-        }
-
-        emit PaymentCollected(paymentType, payer, receiver, tokensToCollect, dataService, tokensDataService);
-        emit RAVCollected(
-            payer,
-            dataService,
-            receiver,
-            signedRAV.rav.timestampNs,
-            signedRAV.rav.valueAggregate,
-            signedRAV.rav.metadata,
-            signedRAV.signature
-        );
-        return tokensToCollect;
+        require(ECDSA.recover(digest, _proof) == _signer, TAPCollectorInvalidSignerProof());
     }
 }
