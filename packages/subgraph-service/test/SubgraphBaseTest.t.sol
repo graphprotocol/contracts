@@ -147,7 +147,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         disputeManager = DisputeManager(disputeManagerProxy);
         disputeManager.transferOwnership(users.governor);
 
-        tapCollector = new TAPCollector("TAPCollector", "1", address(controller));
+        tapCollector = new TAPCollector("TAPCollector", "1", address(controller), revokeSignerThawingPeriod);
         address subgraphServiceImplementation = address(
             new SubgraphService(address(controller), address(disputeManager), address(tapCollector), address(curation))
         );
