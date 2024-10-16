@@ -77,6 +77,7 @@ contract SubgraphService is
      * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.
      * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
      * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
+     * @param stakeToFeesRatio The ratio of stake to fees to lock when collecting query fees
      */
     function initialize(
         uint256 minimumProvisionTokens,

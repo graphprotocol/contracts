@@ -16,6 +16,7 @@ export default buildModule('SubgraphService', (m) => {
   // Parameters - config file
   const minimumProvisionTokens = m.getParameter('minimumProvisionTokens')
   const maximumDelegationRatio = m.getParameter('maximumDelegationRatio')
+  const stakeToFeesRatio = m.getParameter('stakeToFeesRatio', 2)
 
   // Deploy implementation
   const SubgraphServiceImplementation = m.contract('SubgraphService', [controllerAddress, disputeManagerAddress, tapCollectorAddress, curationAddress])
@@ -25,6 +26,7 @@ export default buildModule('SubgraphService', (m) => {
   const encodedCall = m.encodeFunctionCall(SubgraphServiceImplementation, 'initialize', [
     minimumProvisionTokens,
     maximumDelegationRatio,
+    stakeToFeesRatio,
   ])
   m.call(SubgraphServiceProxyAdmin, 'upgradeAndCall', [subgraphServiceProxyAddress, SubgraphServiceImplementation, encodedCall])
 
