@@ -8,6 +8,7 @@
   },
   "SubgraphService": {
     "minimumProvisionTokens": "100000000000000000000000n",
-    "maximumDelegationRatio": 16
+    "maximumDelegationRatio": 16,
+    "stakeToFeesRatio": 2
   }
 }
