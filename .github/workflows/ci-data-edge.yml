@@ -22,5 +22,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Build
+        run: |
+          pushd packages/data-edge
+          yarn build
       - name: Run tests
         run: yarn test
