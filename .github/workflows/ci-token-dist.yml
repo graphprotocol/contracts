@@ -2,6 +2,7 @@ name: CI - packages/token-distribution
 
 env:
   CI: true
+  STUDIO_API_KEY: ${{ secrets.STUDIO_API_KEY }}
 
 on:
   push:
@@ -22,5 +23,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Build
+        run: |
+          pushd packages/token-distribution
+          yarn build
       - name: Run tests
         run: yarn test
