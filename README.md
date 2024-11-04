@@ -9,11 +9,11 @@
   <a href="https://github.com/graphprotocol/contracts/actions/workflows/build.yml">
     <img src="https://github.com/graphprotocol/contracts/actions/workflows/build.yml/badge.svg" alt="Build">
   </a>
-  <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci.yml">
-    <img src="https://github.com/graphprotocol/contracts/actions/workflows/ci.yml/badge.svg" alt="CI">
+  <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml">
+    <img src="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml/badge.svg" alt="CI-Contracts">
   </a>
-  <a href="https://github.com/graphprotocol/contracts/actions/workflows/e2e.yml">
-    <img src="https://github.com/graphprotocol/contracts/actions/workflows/e2e.yml/badge.svg" alt="E2E">
+  <a href="https://github.com/graphprotocol/contracts/actions/workflows/e2e-contracts.yml">
+    <img src="https://github.com/graphprotocol/contracts/actions/workflows/e2e-contracts.yml/badge.svg" alt="E2E-Contracts">
   </a>
 </p>
 
@@ -37,10 +37,10 @@ This repository is a Yarn workspaces monorepo containing the following packages:
 | Package | Latest version | Description |
 | --- | --- | --- |
 | [contracts](./packages/contracts) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts) | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
-| [eslint-graph-config](./packages/eslint-graph-config) | [![npm version]()]() | Shared linting and formatting rules for TypeScript projects. |
-| [token-distribution](./packages/token-distribution) | - | Contracts managing token locks for network participants |
+| [eslint-graph-config](./packages/eslint-graph-config) | - | Shared linting and formatting rules for TypeScript projects. |
+| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants |
 | [sdk](./packages/sdk) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk) | TypeScript based SDK to interact with the protocol contracts |
-| [solhint-graph-config](./packages/eslint-graph-config) | [![npm version]()]() | Shared linting and formatting rules for Solidity projects. |
+| [solhint-graph-config](./packages/eslint-graph-config) | - | Shared linting and formatting rules for Solidity projects. |
 
 
 ## Development
