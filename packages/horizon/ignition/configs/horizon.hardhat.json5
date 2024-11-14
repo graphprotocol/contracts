@@ -1,36 +1,26 @@
 {
-  "GraphProxyAdmin": {
-    "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
-  },
-  "Controller": {
+  "$global": {
     "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-    "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC"
+    "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
+    "subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117",
+    // Placeholder address for a standalone Horizon deployment, see README.md for more detals
+    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
   },
   "RewardsManager": {
-    "subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-    "issuancePerBlock": "114155251141552511415n",
-    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
+    "issuancePerBlock": "114155251141552511415n"
   },
   "EpochManager": {
     "epochLength": 60
-  },
-  "GraphTokenGateway": {
-    "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC"
   },
   "Curation": {
     "curationTaxPercentage": 10000,
     "minimumCurationDeposit": 1
   },
   "GraphToken": {
-    "initialSupply": "10000000000000000000000000000n",
-    "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0"
+    "initialSupply": "10000000000000000000000000000n"
   },
   "HorizonStaking": {
-    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",
     "maxThawingPeriod": 2419200
-  },
-  "HorizonStakingExtension": {
-    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
   },
   "GraphPayments": {
     "protocolPaymentCut": 10000
