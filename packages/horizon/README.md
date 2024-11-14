@@ -10,7 +10,7 @@ We use Hardhat Ignition to deploy the contracts. To build and deploy the contrac
 yarn install
 yarn build
 npx hardhat ignition deploy ./ignition/modules/horizon.ts \
-  --parameters ./ignition/configs/graph.hardhat.json \
+  --parameters ./ignition/configs/horizon.hardhat.json \
   --network hardhat
 ```
 

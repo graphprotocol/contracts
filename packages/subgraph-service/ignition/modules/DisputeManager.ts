@@ -20,7 +20,7 @@ export default buildModule('DisputeManager', (m) => {
   const DisputeManagerImplementation = m.contract('DisputeManager', [controllerAddress])
 
   // Upgrade implementation
-  const DisputeManagerProxyAdmin = m.contractAt('TransparentUpgradeableProxy', ProxyAdminArtifact, disputeManagerProxyAdminAddress)
+  const DisputeManagerProxyAdmin = m.contractAt('ProxyAdmin', ProxyAdminArtifact, disputeManagerProxyAdminAddress)
   const encodedCall = m.encodeFunctionCall(DisputeManagerImplementation, 'initialize', [
     arbitrator,
     disputePeriod,
