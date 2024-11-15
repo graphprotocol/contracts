@@ -3,6 +3,7 @@ import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
+import 'hardhat-secure-accounts'
 
 import { HardhatUserConfig } from 'hardhat/config'
 
@@ -20,17 +21,20 @@ const config: HardhatUserConfig = {
     artifacts: './build/contracts',
     sources: './contracts',
   },
+  secureAccounts: {
+    enabled: true,
+  },
   networks: {
     hardhat: {
+      secureAccounts: {
+        enabled: false,
+      },
       accounts: {
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },
     },
     arbitrumSepolia: {
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
-      accounts: {
-        mnemonic: process.env.MNEMONIC ?? '',
-      },
     },
   },
   etherscan: {
