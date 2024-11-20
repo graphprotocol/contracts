@@ -4,8 +4,9 @@ import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
+import 'hardhat-graph-protocol'
 
-import { HardhatUserConfig } from 'hardhat/config'
+import type { HardhatUserConfig } from 'hardhat/config'
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -34,7 +35,13 @@ const config: HardhatUserConfig = {
       },
     },
     arbitrumSepolia: {
+      chainId: 421614,
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
+    },
+  },
+  graph: {
+    addressBooks: {
+      horizon: 'addresses.json',
     },
   },
   etherscan: {

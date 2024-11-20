@@ -5,13 +5,13 @@ This repository contains shared linting and formatting rules for TypeScript proj
 ## Installation
 
 ```bash
-yarn add --dev eslint eslint-graph-config
+yarn add --dev eslint@^8.56.0 eslint-graph-config
 ```
 
 For projects on this monorepo, you can use the following command to install the package:
 
 ```bash
-yarn add --dev eslint eslint-graph-config@workspace:^x.y.z
+yarn add --dev eslint@^8.56.0 eslint-graph-config@workspace:^x.y.z
 ```
 
 To enable the rules, you need to create an `eslint.config.js` file in the root of your project with the following content:
