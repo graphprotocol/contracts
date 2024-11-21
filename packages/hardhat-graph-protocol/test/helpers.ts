@@ -1,6 +1,6 @@
 import path from 'path'
-import { resetHardhatContext } from 'hardhat/plugins-testing'
 
+import { resetHardhatContext as _resetHardhatContext } from 'hardhat/plugins-testing'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 declare module 'mocha' {
@@ -9,18 +9,30 @@ declare module 'mocha' {
   }
 }
 
-export function useEnvironment(fixtureProjectName: string, network?: string): void {
+export function useHardhatProject(fixtureProjectName: string, network?: string): void {
   beforeEach('Loading hardhat environment', function () {
-    process.chdir(path.join(__dirname, 'fixtures', fixtureProjectName))
-
-    if (network !== undefined) {
-      process.env.HARDHAT_NETWORK = network
-    }
-    this.hre = require('hardhat')
+    this.hre = loadHardhatContext(fixtureProjectName, network)
   })
 
   afterEach('Resetting hardhat', function () {
     resetHardhatContext()
-    delete process.env.HARDHAT_NETWORK
   })
+}
+
+export function loadHardhatContext(fixtureProjectName: string, network?: string): HardhatRuntimeEnvironment {
+  resetHardhatContext()
+  delete process.env.HARDHAT_NETWORK
+
+  process.chdir(path.join(__dirname, 'fixtures', fixtureProjectName))
+
+  if (network !== undefined) {
+    process.env.HARDHAT_NETWORK = network
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return require('hardhat')
+}
+
+export function resetHardhatContext(): void {
+  _resetHardhatContext()
+  delete process.env.HARDHAT_NETWORK
 }

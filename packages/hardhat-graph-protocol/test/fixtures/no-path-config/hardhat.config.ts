@@ -38,7 +38,11 @@ const config: HardhatUserConfig = {
     },
   },
   graph: {
-    addressBook: 'addresses.json',
+    deployments: {
+      horizon: {
+        addressBook: 'addresses-hre.json',
+      },
+    },
   },
 }
 

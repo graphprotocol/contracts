@@ -8,7 +8,6 @@ import type {
 } from '@graphprotocol/contracts'
 import type { Contract } from 'ethers'
 import type { ContractList } from '../lib/contract'
-import type { GraphHorizonAddressBook } from './address-book'
 
 export const GraphHorizonContractNameList = [
   'GraphProxyAdmin',
@@ -28,8 +27,8 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   RewardsManager: RewardsManager & Contract
   GraphProxyAdmin: GraphProxyAdmin & Contract
   Controller: Controller & Contract
-  L2GraphToken?: L2GraphToken & Contract
-  L2GraphTokenGateway?: L2GraphTokenGateway & Contract
+  L2GraphToken: L2GraphToken & Contract
+  L2GraphTokenGateway: L2GraphTokenGateway & Contract
 
   // Aliases
   GraphToken: L2GraphToken
@@ -37,9 +36,4 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
 
   // Iterator
   [Symbol.iterator]: () => Generator<Contract, void, void>
-}
-
-export interface GraphHorizonRuntimeEnvironment {
-  contracts: GraphHorizonContracts
-  addressBook: GraphHorizonAddressBook
 }

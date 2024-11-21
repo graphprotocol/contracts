@@ -40,8 +40,10 @@ const config: HardhatUserConfig = {
     },
   },
   graph: {
-    addressBooks: {
-      horizon: 'addresses.json',
+    deployments: {
+      horizon: {
+        addressBook: 'addresses.json',
+      },
     },
   },
   etherscan: {

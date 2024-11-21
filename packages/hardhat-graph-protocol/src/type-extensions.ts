@@ -2,7 +2,48 @@
 import 'hardhat/types/config'
 import 'hardhat/types/runtime'
 
-import type { GraphRuntimeEnvironment, GraphRuntimeEnvironmentOptions } from './types'
+import type { GraphDeployment, GraphDeploymentRuntimeEnvironmentMap } from './deployments'
+import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+
+export type GraphRuntimeEnvironmentOptions = {
+  deployments?: {
+    [deployment in GraphDeployment]?: string | {
+      addressBook: string
+    }
+  }
+}
+
+export type GraphRuntimeEnvironment = {
+  [deployment in keyof GraphDeploymentRuntimeEnvironmentMap]?: GraphDeploymentRuntimeEnvironmentMap[deployment]
+} & {
+  provider: HardhatEthersProvider
+  chainId: () => Promise<bigint>
+}
+
+export function assertGraphRuntimeEnvironment(
+  obj: unknown,
+): obj is GraphRuntimeEnvironment {
+  if (typeof obj !== 'object' || obj === null) return false
+
+  const deployments = obj as Partial<GraphDeploymentRuntimeEnvironmentMap>
+
+  for (const deployment in deployments) {
+    const environment = deployments[deployment as keyof GraphDeploymentRuntimeEnvironmentMap]
+    if (!environment || typeof environment !== 'object') {
+      return false
+    }
+  }
+
+  if (typeof (obj as GraphRuntimeEnvironment).provider !== 'object') {
+    return false
+  }
+
+  if (typeof (obj as GraphRuntimeEnvironment).chainId !== 'function') {
+    return false
+  }
+
+  return true
+}
 
 declare module 'hardhat/types/runtime' {
   export interface HardhatRuntimeEnvironment {
@@ -20,26 +61,34 @@ declare module 'hardhat/types/config' {
   }
 
   export interface HardhatNetworkConfig {
-    addressBooks?: {
-      [deployment: string]: string
+    deployments?: {
+      [deployment in GraphDeployment]?: string | {
+        addressBook: string
+      }
     }
   }
 
   export interface HardhatNetworkUserConfig {
-    addressBooks?: {
-      [deployment: string]: string
+    deployments?: {
+      [deployment in GraphDeployment]?: string | {
+        addressBook: string
+      }
     }
   }
 
   export interface HttpNetworkConfig {
-    addressBooks?: {
-      [deployment: string]: string
+    deployments?: {
+      [deployment in GraphDeployment]?: string | {
+        addressBook: string
+      }
     }
   }
 
   export interface HttpNetworkUserConfig {
-    addressBooks?: {
-      [deployment: string]: string
+    deployments?: {
+      [deployment in GraphDeployment]?: string | {
+        addressBook: string
+      }
     }
   }
 

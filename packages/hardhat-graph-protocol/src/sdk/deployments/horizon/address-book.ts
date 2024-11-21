@@ -17,7 +17,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     chainId: number,
     signerOrProvider?: Signer | Provider,
   ): GraphHorizonContracts {
-    logDebug('Loading Graph Network contracts...')
+    logDebug('Loading Graph Horizon contracts...')
     const artifactsPath = path.resolve('node_modules', '@graphprotocol/contracts/build/contracts')
 
     const contracts = this._loadContracts(
@@ -25,6 +25,10 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
       signerOrProvider,
     )
     assertGraphHorizonContracts(contracts, chainId)
+
+    // Aliases
+    contracts.GraphToken = contracts.L2GraphToken
+    contracts.GraphTokenGateway = contracts.L2GraphTokenGateway
 
     // Iterator
     contracts[Symbol.iterator] = function* () {
@@ -61,7 +65,7 @@ function assertGraphHorizonContracts(
     )
   }
 
-  // Assert that all GraphNetworkContracts were loaded
+  // Assert that all GraphHorizonContracts were loaded
   for (const contractName of GraphHorizonContractNameList) {
     if (!contracts[contractName]) {
       const errMessage = `Missing GraphHorizon contract: ${contractName} for chainId ${chainId}`

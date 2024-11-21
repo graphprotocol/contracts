@@ -1,35 +1,49 @@
 import fs from 'fs'
+
 import { GraphPluginError } from './sdk/utils/error'
 import { logDebug } from './logger'
-
-import type { GraphDeployment, GraphRuntimeEnvironmentOptions } from './types'
-import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { normalizePath } from './sdk/utils/path'
+
+import type { GraphDeployment } from './deployments'
+import type { GraphRuntimeEnvironmentOptions } from './type-extensions'
+import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 export function getAddressBookPath(
   deployment: GraphDeployment,
   hre: HardhatRuntimeEnvironment,
   opts: GraphRuntimeEnvironmentOptions,
 ): string {
+  const optsPath = getPath(opts.deployments?.[deployment])
+  const networkPath = getPath(hre.network.config.deployments?.[deployment])
+  const globalPath = getPath(hre.config.graph?.deployments?.[deployment])
+
   logDebug(`== ${deployment} - Getting address book path`)
   logDebug(`Graph base dir: ${hre.config.paths.graph}`)
-  logDebug(`1) opts.addressBooks.[deployment]: ${opts.addressBooks?.[deployment]}`)
-  logDebug(`2) hre.network.config.addressBooks.[deployment]: ${hre.network.config?.addressBooks?.[deployment]}`)
-  logDebug(`3) hre.config.graph.addressBooks.[deployment]: ${hre.config.graph?.addressBooks?.[deployment]}`)
+  logDebug(`1) opts: ${optsPath}`)
+  logDebug(`2) network: ${networkPath}`)
+  logDebug(`3) global: ${globalPath}`)
 
-  let addressBookPath
-    = opts.addressBooks?.[deployment] ?? hre.network.config?.addressBooks?.[deployment] ?? hre.config.graph?.addressBooks?.[deployment]
-
+  const addressBookPath = optsPath ?? networkPath ?? globalPath
   if (addressBookPath === undefined) {
     throw new GraphPluginError('Must set a an addressBook path!')
   }
 
-  addressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
-
-  if (!fs.existsSync(addressBookPath)) {
-    throw new GraphPluginError(`Address book not found: ${addressBookPath}`)
+  const normalizedAddressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
+  if (!fs.existsSync(normalizedAddressBookPath)) {
+    throw new GraphPluginError(`Address book not found: ${normalizedAddressBookPath}`)
   }
 
-  logDebug(`Address book path found: ${addressBookPath}`)
-  return addressBookPath
+  logDebug(`Address book path found: ${normalizedAddressBookPath}`)
+  return normalizedAddressBookPath
+}
+
+function getPath(value: string | {
+  addressBook: string
+} | undefined): string | undefined {
+  if (typeof value === 'string') {
+    return value
+  } else if (value && typeof value == 'object') {
+    return value.addressBook
+  }
+  return
 }

@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "outDir": "dist",
   },
-  "include": ["eslint.config.js", "src/**/*.ts"]
+  "include": ["eslint.config.js", "src/**/*.ts", "test/**/*.ts"],
 }
