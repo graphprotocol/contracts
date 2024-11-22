@@ -3,7 +3,7 @@ import fs from 'fs'
 import { AssertionError } from 'assert'
 import { assertObject } from './utils/assertion'
 
-import { ContractList, loadContract } from './deployments/lib/contract'
+import { ContractList, loadContract } from './lib/contract'
 import { logDebug, logError, logWarn } from '../logger'
 import { Provider, Signer } from 'ethers'
 

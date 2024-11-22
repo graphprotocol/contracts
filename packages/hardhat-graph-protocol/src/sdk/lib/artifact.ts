@@ -1,5 +1,5 @@
 import { Artifacts } from 'hardhat/internal/artifacts'
-import { logError } from '../../../logger'
+import { logError } from '../../logger'
 
 import type { Artifact } from 'hardhat/types'
 

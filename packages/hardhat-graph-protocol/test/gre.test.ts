@@ -32,7 +32,7 @@ describe('GRE usage', function () {
   })
 
   describe(`Project using GRE - deployments`, function () {
-    useHardhatProject('path-config', 'mainnet')
+    useHardhatProject('path-config', 'arbitrumSepolia')
 
     it('should load Horizon deployment', function () {
       const graph = this.hre.graph()

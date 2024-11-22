@@ -31,6 +31,13 @@ const config: HardhatUserConfig = {
       chainId: 421613,
       url: 'https://goerli-rollup.arbitrum.io/rpc',
     },
+    'arbitrumSepolia': {
+      chainId: 421614,
+      url: 'https://goerli-rollup.arbitrum.io/rpc',
+      deployments: {
+        horizon: 'addresses-arbsep.json',
+      },
+    },
     'localhost': {
       chainId: 1337,
       url: 'http://127.0.0.1:8545',

@@ -14,7 +14,7 @@ import type {
   PaymentsEscrow,
   TAPCollector,
 } from '@graphprotocol/horizon'
-import type { ContractList } from '../lib/contract'
+import type { ContractList } from '../../lib/contract'
 
 export const GraphHorizonContractNameList = [
   // @graphprotocol/contracts
