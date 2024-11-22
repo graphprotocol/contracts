@@ -5,6 +5,7 @@ import 'hardhat-contract-sizer'
 import 'hardhat-storage-layout'
 import 'hardhat-secure-accounts'
 import 'solidity-docgen'
+import 'hardhat-graph-protocol'
 
 import { HardhatUserConfig } from 'hardhat/config'
 
@@ -35,7 +36,14 @@ const config: HardhatUserConfig = {
       },
     },
     arbitrumSepolia: {
+      chainId: 421614,
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
+    },
+  },
+  graph: {
+    deployments: {
+      horizon: require.resolve('@graphprotocol/horizon/addresses.json'),
+      subgraphService: 'addresses.json',
     },
   },
 }

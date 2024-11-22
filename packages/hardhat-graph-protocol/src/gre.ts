@@ -1,9 +1,11 @@
 import path from 'path'
 
 import { getAddressBookPath } from './config'
-import { GraphHorizonAddressBook } from './sdk/deployments/horizon'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import { logDebug } from './logger'
+
+import { GraphHorizonAddressBook } from './sdk/deployments/horizon'
+import { SubgraphServiceAddressBook } from './sdk/deployments/subgraph-service'
 
 import { assertGraphRuntimeEnvironment, type GraphRuntimeEnvironmentOptions, isGraphDeployment } from './types'
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
@@ -54,6 +56,13 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
         case 'horizon':
           addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)
           greDeployments.horizon = {
+            addressBook: addressBook,
+            contracts: addressBook.loadContracts(provider),
+          }
+          break
+        case 'subgraphService':
+          addressBook = new SubgraphServiceAddressBook(addressBookPath, chainId)
+          greDeployments.subgraphService = {
             addressBook: addressBook,
             contracts: addressBook.loadContracts(provider),
           }

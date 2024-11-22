@@ -3019,7 +3019,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@graphprotocol/subgraph-service@workspace:packages/subgraph-service":
+"@graphprotocol/subgraph-service@workspace:^0.0.1, @graphprotocol/subgraph-service@workspace:packages/subgraph-service":
   version: 0.0.0-use.local
   resolution: "@graphprotocol/subgraph-service@workspace:packages/subgraph-service"
   dependencies:
@@ -3048,6 +3048,7 @@ __metadata:
     hardhat: "npm:^2.20.1"
     hardhat-contract-sizer: "npm:^2.10.0"
     hardhat-gas-reporter: "npm:^1.0.8"
+    hardhat-graph-protocol: "workspace:^0.0.1"
     hardhat-secure-accounts: "npm:^1.0.4"
     hardhat-storage-layout: "npm:^0.1.7"
     lint-staged: "npm:^15.2.2"
@@ -14380,6 +14381,7 @@ __metadata:
   dependencies:
     "@graphprotocol/contracts": "workspace:^7.0.0"
     "@graphprotocol/horizon": "workspace:^0.0.1"
+    "@graphprotocol/subgraph-service": "workspace:^0.0.1"
     "@nomicfoundation/hardhat-ethers": "npm:^3.0.8"
     "@types/chai": "npm:^4.0.0"
     "@types/debug": "npm:^4.1.12"
