@@ -16,4 +16,4 @@ npx hardhat ignition deploy ./ignition/modules/horizon.ts \
 
 You can use any network defined in `hardhat.config.ts` by replacing `hardhat` with the network name.
 
-Note that this will deploy a standalone version of Graph Horizon contracts, meaning the Subgraph Service will not be deployed. If you want to deploy both please refer to the [Subgraph Service README](../subgraph-service/README.md) for deploy instructions.
+Note that this will deploy a standalone version of Graph Horizon contracts, meaning the Subgraph Service or any other data service will not be deployed. If you want to deploy the Subgraph Service please refer to the [Subgraph Service README](../subgraph-service/README.md) for deploy instructions.

@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+require('json5/lib/register')
+
 import { ignition } from 'hardhat'
 
 import DisputeManagerModule from '../ignition/modules/DisputeManager'

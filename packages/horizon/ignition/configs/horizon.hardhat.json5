@@ -3,7 +3,7 @@
     "governor": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
     "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
     "subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-    // Placeholder address for a standalone Horizon deployment, see README.md for more detals
+    // Placeholder address for a standalone Horizon deployment, see README.md for more details
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
   },
   "RewardsManager": {
