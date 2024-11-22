@@ -2949,7 +2949,7 @@ __metadata:
     chai: "npm:^4.2.0"
     eslint: "npm:^8.56.0"
     eslint-graph-config: "workspace:^0.0.1"
-    ethers: "npm:^6.13.2"
+    ethers: "npm:^6.13.4"
     hardhat: "npm:^2.22.0"
     hardhat-contract-sizer: "npm:^2.10.0"
     hardhat-gas-reporter: "npm:^1.0.8"

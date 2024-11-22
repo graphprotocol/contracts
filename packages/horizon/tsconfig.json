@@ -11,6 +11,7 @@
   "include": [
     "hardhat.config.ts",
     "scripts/**/*.ts",
+    "tasks/**/*.ts",
     "test/**/*.ts",
     "ignition/**/*.ts",
     "eslint.config.js",

@@ -1,6 +1,6 @@
 import { GraphHorizonAddressBook } from './address-book'
 
-import type { GraphHorizonContractName, GraphHorizonContracts } from './types'
+import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 
 export {
   GraphHorizonAddressBook,

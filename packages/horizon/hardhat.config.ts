@@ -8,6 +8,8 @@ import 'hardhat-graph-protocol'
 
 import type { HardhatUserConfig } from 'hardhat/config'
 
+import 'tasks/test'
+
 const config: HardhatUserConfig = {
   solidity: {
     version: '0.8.27',

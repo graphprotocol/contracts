@@ -31,6 +31,11 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
   hre.graph = (opts: GraphRuntimeEnvironmentOptions = { deployments: {} }) => {
     logDebug('*** Initializing Graph Runtime Environment (GRE) ***')
     logDebug(`Main network: ${hre.network.name}`)
+    const chainId = hre.network.config.chainId
+    if (chainId === undefined) {
+      throw new Error('Please define chainId in your Hardhat network configuration')
+    }
+    logDebug(`Chain Id: ${chainId}`)
 
     const deployments = [
       ...Object.keys(opts.deployments ?? {}),
@@ -43,16 +48,16 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     const provider = new HardhatEthersProvider(hre.network.provider, hre.network.name)
     const greDeployments: Record<string, unknown> = {}
     for (const deployment of deployments) {
-      logDebug(`Initializing ${deployment} deployment...`)
+      logDebug(`== Initializing deployment: ${deployment} ==`)
       const addressBookPath = getAddressBookPath(deployment, hre, opts)
       let addressBook
 
       switch (deployment) {
         case 'horizon':
-          addressBook = new GraphHorizonAddressBook(addressBookPath, hre.network.config.chainId!)
+          addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)
           greDeployments.horizon = {
             addressBook: addressBook,
-            contracts: addressBook.loadContracts(hre.network.config.chainId!, provider),
+            contracts: addressBook.loadContracts(provider),
           }
           break
         default:
@@ -63,7 +68,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     const gre = {
       ...greDeployments,
       provider,
-      chainId: async () => (await provider.getNetwork()).chainId,
+      chainId,
     }
     assertGraphRuntimeEnvironment(gre)
     logDebug('GRE initialized successfully!')

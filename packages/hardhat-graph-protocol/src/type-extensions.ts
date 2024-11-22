@@ -17,7 +17,7 @@ export type GraphRuntimeEnvironment = {
   [deployment in keyof GraphDeploymentRuntimeEnvironmentMap]?: GraphDeploymentRuntimeEnvironmentMap[deployment]
 } & {
   provider: HardhatEthersProvider
-  chainId: () => Promise<bigint>
+  chainId: number
 }
 
 export function assertGraphRuntimeEnvironment(

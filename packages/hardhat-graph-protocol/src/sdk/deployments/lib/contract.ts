@@ -1,7 +1,7 @@
 import { Contract, Provider, Signer } from 'ethers'
 import { loadArtifact } from './artifact'
 
-export type ContractList<T extends string = string> = Partial<Record<T, Contract>>
+export type ContractList<T extends string = string> = Partial<Record<T, unknown>>
 
 /**
  * Loads a contract from an address book

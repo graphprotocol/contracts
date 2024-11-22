@@ -4,6 +4,12 @@
   "description": "",
   "author": "The Graph core devs",
   "license": "GPL-2.0-or-later",
+  "types": "typechain-types/index.ts",
+  "files": [
+    "build/contracts/**/*",
+    "README.md",
+    "addresses.json"
+  ],
   "scripts": {
     "lint:ts": "eslint '**/*.{js,ts}' --fix",
     "lint:sol": "prettier --write contracts/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
@@ -33,7 +39,7 @@
     "chai": "^4.2.0",
     "eslint": "^8.56.0",
     "eslint-graph-config": "workspace:^0.0.1",
-    "ethers": "^6.13.2",
+    "ethers": "^6.13.4",
     "hardhat": "^2.22.0",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",

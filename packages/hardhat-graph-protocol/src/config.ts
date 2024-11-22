@@ -17,7 +17,7 @@ export function getAddressBookPath(
   const networkPath = getPath(hre.network.config.deployments?.[deployment])
   const globalPath = getPath(hre.config.graph?.deployments?.[deployment])
 
-  logDebug(`== ${deployment} - Getting address book path`)
+  logDebug(`Getting address book path...`)
   logDebug(`Graph base dir: ${hre.config.paths.graph}`)
   logDebug(`1) opts: ${optsPath}`)
   logDebug(`2) network: ${networkPath}`)

@@ -4,19 +4,9 @@ import { AssertionError } from 'assert'
 import { assertObject } from './utils/assertion'
 
 import { ContractList, loadContract } from './deployments/lib/contract'
-import { logDebug, logError } from '../logger'
+import { logDebug, logError, logWarn } from '../logger'
 import { Provider, Signer } from 'ethers'
 
-// JSON format:
-// {
-//   "<CHAIN_ID>": {
-//     "<CONTRACT_NAME>": {
-//       "address": "<ADDRESS>",
-//       "proxy": true,
-//       "implementation": { ... }
-//     ...
-//    }
-// }
 export type AddressBookJson<
   ChainId extends number = number,
   ContractName extends string = string,
@@ -29,7 +19,21 @@ export type AddressBookEntry = {
 }
 
 /**
- * An abstract class to manage the address book
+ * An abstract class to manage an address book
+ * The address book must be a JSON file with the following structure:
+ * {
+ *   "<CHAIN_ID>": {
+ *     "<CONTRACT_NAME>": {
+ *       "address": "<ADDRESS>",
+ *       "proxy": true, // optional
+ *       "implementation": { ... } // optional, nested contract structure
+ *     ...
+ *    }
+ * }
+ * Uses generics to allow specifying a ContractName type to indicate which contracts should be loaded from the address book
+ * Implementation should provide:
+ * - `isContractName(name: string): name is ContractName`, a type predicate to check if a given string is a ContractName
+ * - `loadContracts(signerOrProvider?: Signer | Provider): ContractList<ContractName>` to load contracts from the address book
  */
 export abstract class AddressBook<
   ChainId extends number = number,
@@ -44,95 +48,44 @@ export abstract class AddressBook<
   // The raw contents of the address book file
   public addressBook: AddressBookJson<ChainId, ContractName>
 
-  public strictAssert: boolean
+  // Contracts in the address book of type ContractName
+  private validContracts: ContractName[] = []
+
+  // Contracts in the address book that are not of type ContractName, these are ignored
+  private invalidContracts: string[] = []
+
+  // Type predicate to check if a given string is a ContractName
+  abstract isContractName(name: string): name is ContractName
+
+  // Method to load valid contracts from the address book
+  abstract loadContracts(signerOrProvider?: Signer | Provider): ContractList<ContractName>
 
   /**
    * Constructor for the `AddressBook` class
    *
    * @param _file the path to the address book file
    * @param _chainId the chain id of the network the address book should be loaded for
+   * @param _strictAssert
    *
    * @throws AssertionError if the target file is not a valid address book
    * @throws Error if the target file does not exist
    */
-  constructor(_file: string, _chainId: number, _strictAssert = false) {
-    this.strictAssert = _strictAssert
+  constructor(_file: string, _chainId: ChainId, _strictAssert = false) {
     this.file = _file
-    if (!fs.existsSync(this.file)) throw new Error(`Address book path provided does not exist!`)
-
-    logDebug(`Loading address book for chainId ${_chainId} from ${this.file}`)
-    this.assertChainId(_chainId)
     this.chainId = _chainId
 
-    // Ensure file is a valid address book
-    this.addressBook = JSON.parse(fs.readFileSync(this.file, 'utf8') || '{}') as AddressBookJson<ChainId, ContractName>
-    this.assertAddressBookJson(this.addressBook)
+    logDebug(`Loading address book from ${this.file}.`)
+    if (!fs.existsSync(this.file)) throw new Error(`Address book path provided does not exist!`)
+
+    // Load address book and validate its shape
+    const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8') || '{}')
+    this.assertAddressBookJson(fileContents)
+    this.addressBook = fileContents
+    this._parseAddressBook()
 
     // If the address book is empty for this chain id, initialize it with an empty object
     if (!this.addressBook[this.chainId]) {
       this.addressBook[this.chainId] = {} as Record<ContractName, AddressBookEntry>
-    }
-  }
-
-  abstract isValidContractName(name: string): boolean
-
-  abstract loadContracts(chainId: number, signerOrProvider?: Signer | Provider): ContractList<ContractName>
-
-  // TODO: implement chain id validation?
-  assertChainId(chainId: string | number): asserts chainId is ChainId {}
-
-  // Asserts the provided object is a valid address book
-  // Logs warnings for unsupported chain ids or invalid contract names
-  assertAddressBookJson(
-    json: unknown,
-  ): asserts json is AddressBookJson<ChainId, ContractName> {
-    this._assertAddressBookJson(json)
-
-    // // Validate contract names
-    const contractList = json[this.chainId]
-
-    const contractNames = contractList ? Object.keys(contractList) : []
-    for (const contract of contractNames) {
-      if (!this.isValidContractName(contract)) {
-        const message = `Detected invalid contract in address book: ${contract}, for chainId ${this.chainId}`
-        if (this.strictAssert) {
-          throw new Error(message)
-        } else {
-          logError(message)
-        }
-      }
-    }
-  }
-
-  _assertAddressBookJson(json: unknown): asserts json is AddressBookJson {
-    assertObject(json, 'Assertion failed: address book is not an object')
-
-    const contractList = json[this.chainId]
-    try {
-      assertObject(contractList, 'Assertion failed: chain contract list is not an object')
-    } catch (error) {
-      if (this.strictAssert) throw error
-      else return
-    }
-
-    const contractNames = Object.keys(contractList)
-    for (const contractName of contractNames) {
-      this._assertAddressBookEntry(contractList[contractName])
-    }
-  }
-
-  _assertAddressBookEntry(json: unknown): asserts json is AddressBookEntry {
-    assertObject(json)
-
-    try {
-      if (typeof json.address !== 'string') throw new AssertionError({ message: 'Invalid address' })
-      if (json.proxy && typeof json.proxy !== 'boolean')
-        throw new AssertionError({ message: 'Invalid proxy' })
-      if (json.implementation && typeof json.implementation !== 'object')
-        throw new AssertionError({ message: 'Invalid implementation' })
-    } catch (error) {
-      if (this.strictAssert) throw error
-      else return
     }
   }
 
@@ -142,7 +95,7 @@ export abstract class AddressBook<
    * @returns a list with all the names of the entries in the address book
    */
   listEntries(): ContractName[] {
-    return Object.keys(this.addressBook[this.chainId]) as ContractName[]
+    return this.validContracts
   }
 
   /**
@@ -154,7 +107,9 @@ export abstract class AddressBook<
    */
   getEntry(name: ContractName): AddressBookEntry {
     try {
-      return this.addressBook[this.chainId][name]
+      const entry = this.addressBook[this.chainId][name]
+      this._assertAddressBookEntry(entry)
+      return entry
     } catch (_) {
       // TODO: should we throw instead?
       return { address: '0x0000000000000000000000000000000000000000' }
@@ -179,36 +134,92 @@ export abstract class AddressBook<
   }
 
   /**
- * Loads all contracts from an address book
- *
- * @param addressBook Address book to use
- * @param signerOrProvider Signer or provider to use
- * @param enableTxLogging Enable transaction logging to console and output file. Defaults to `true`
- * @returns the loaded contracts
- */
+   * Parse address book and separate valid and invalid contracts
+   */
+  _parseAddressBook() {
+    const contractList = this.addressBook[this.chainId]
+
+    const contractNames = contractList ? Object.keys(contractList) : []
+    for (const contract of contractNames) {
+      if (!this.isContractName(contract)) {
+        this.invalidContracts.push(contract)
+      } else {
+        this.validContracts.push(contract)
+      }
+    }
+
+    if (this.invalidContracts.length > 0) {
+      logWarn(`Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`)
+    }
+  }
+
+  /**
+   * Loads all valid contracts from an address book
+   *
+   * @param addressBook Address book to use
+   * @param signerOrProvider Signer or provider to use
+   * @returns the loaded contracts
+   */
   _loadContracts(
-    artifactsPath: string | string[],
+    artifactsPath: string | string[] | Record<ContractName, string>,
     signerOrProvider?: Signer | Provider,
   ): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     for (const contractName of this.listEntries()) {
-      try {
-        const contract = loadContract(
-          contractName,
-          this.getEntry(contractName).address,
-          artifactsPath,
-          signerOrProvider,
-        )
-        contracts[contractName] = contract
-      } catch (error) {
-        if (error instanceof Error) {
-          throw new Error(`Could not load contracts - ${error.message}`)
-        } else {
-          throw new Error(`Could not load contracts`)
-        }
+      const artifactPath = typeof artifactsPath === 'object' && !Array.isArray(artifactsPath)
+        ? artifactsPath[contractName]
+        : artifactsPath
+
+      if (Array.isArray(artifactPath)
+        ? !artifactPath.some(fs.existsSync)
+        : !fs.existsSync(artifactPath)) {
+        logWarn(`Could not load contract ${contractName} - artifact not found`)
+        logWarn(artifactPath)
+        continue
       }
+      logDebug(`Loading contract ${contractName}`)
+
+      const contract = loadContract(
+        contractName,
+        this.getEntry(contractName).address,
+        artifactPath,
+        signerOrProvider,
+      )
+      contracts[contractName] = contract
     }
 
     return contracts
+  }
+
+  // Asserts the provided object has the correct JSON format shape for an address book
+  // This method can be overridden by subclasses to provide custom validation
+  assertAddressBookJson(
+    json: unknown,
+  ): asserts json is AddressBookJson<ChainId, ContractName> {
+    this._assertAddressBookJson(json)
+  }
+
+  // Asserts the provided object is a valid address book
+  _assertAddressBookJson(json: unknown): asserts json is AddressBookJson {
+    assertObject(json, 'Assertion failed: address book is not an object')
+
+    const contractList = json[this.chainId]
+    assertObject(contractList, 'Assertion failed: chain contract list is not an object')
+
+    const contractNames = Object.keys(contractList)
+    for (const contractName of contractNames) {
+      this._assertAddressBookEntry(contractList[contractName])
+    }
+  }
+
+  // Asserts the provided object is a valid address book entry
+  _assertAddressBookEntry(json: unknown): asserts json is AddressBookEntry {
+    assertObject(json)
+
+    if (typeof json.address !== 'string') throw new AssertionError({ message: 'Invalid address' })
+    if (json.proxy && typeof json.proxy !== 'boolean')
+      throw new AssertionError({ message: 'Invalid proxy' })
+    if (json.implementation && typeof json.implementation !== 'object')
+      throw new AssertionError({ message: 'Invalid implementation' })
   }
 }
