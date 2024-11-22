@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint '**/*.{js,ts}' --fix",
-    "test": "mocha --exit --recursive 'test/**/*.test.ts'"
+    "test": "mocha --exit --recursive 'test/**/*.test.ts'",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "dist/",

@@ -1,14 +1,12 @@
 import path from 'path'
 
-import { assertGraphRuntimeEnvironment } from './type-extensions'
 import { getAddressBookPath } from './config'
 import { GraphHorizonAddressBook } from './sdk/deployments/horizon'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
-import { isGraphDeployment } from './deployments'
 import { logDebug } from './logger'
 
+import { assertGraphRuntimeEnvironment, type GraphRuntimeEnvironmentOptions, isGraphDeployment } from './types'
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
-import type { GraphRuntimeEnvironmentOptions } from './type-extensions'
 
 export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
   const userPath = userConfig.paths?.graph

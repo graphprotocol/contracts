@@ -1,7 +1,8 @@
-// To extend one of Hardhat's types, you need to import the module where it has been defined, and redeclare it.
+// TypeScript does not resolve correctly the type extensions when they are symlinked from the same monorepo.
+// So we need to re-type it... this file should be a copy of hardhat-graph-protocol/src/type-extensions.ts
 import 'hardhat/types/config'
 import 'hardhat/types/runtime'
-import type { GraphDeployments, GraphRuntimeEnvironment, GraphRuntimeEnvironmentOptions } from './types'
+import type { GraphDeployments, GraphRuntimeEnvironment, GraphRuntimeEnvironmentOptions } from 'hardhat-graph-protocol/src/types'
 
 declare module 'hardhat/types/runtime' {
   interface HardhatRuntimeEnvironment {

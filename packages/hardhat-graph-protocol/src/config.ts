@@ -4,8 +4,7 @@ import { GraphPluginError } from './sdk/utils/error'
 import { logDebug } from './logger'
 import { normalizePath } from './sdk/utils/path'
 
-import type { GraphDeployment } from './deployments'
-import type { GraphRuntimeEnvironmentOptions } from './type-extensions'
+import type { GraphDeployment, GraphRuntimeEnvironmentOptions } from './types'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 export function getAddressBookPath(

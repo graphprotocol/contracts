@@ -2965,7 +2965,7 @@ __metadata:
     solidity-coverage: "npm:^0.8.0"
     ts-node: "npm:>=8.0.0"
     typechain: "npm:^8.3.0"
-    typescript: "npm:^5.3.3"
+    typescript: "npm:^5.6.3"
   languageName: unknown
   linkType: soft
 
@@ -6153,9 +6153,9 @@ __metadata:
   linkType: hard
 
 "@types/mocha@npm:^10.0.9":
-  version: 10.0.9
-  resolution: "@types/mocha@npm:10.0.9"
-  checksum: 76dd782ac7e971ea159d4a7fd40c929afa051e040be3f41187ff03a2d7b3279e19828ddaa498ba1757b3e6b91316263bb7640db0e906938275b97a06e087b989
+  version: 10.0.10
+  resolution: "@types/mocha@npm:10.0.10"
+  checksum: d2b8c48138cde6923493e42b38e839695eb42edd04629abe480a8f34c0e3f50dd82a55832c2e8d2b6e6f9e4deb492d7d733e600fbbdd5a0ceccbcfc6844ff9d5
   languageName: node
   linkType: hard
 

@@ -78,15 +78,14 @@ export abstract class AddressBook<
     if (!fs.existsSync(this.file)) throw new Error(`Address book path provided does not exist!`)
 
     // Load address book and validate its shape
+    // If it's empty, initialize it with an empty object
     const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8') || '{}')
+    if (!fileContents[this.chainId]) {
+      fileContents[this.chainId] = {} as Record<ContractName, AddressBookEntry>
+    }
     this.assertAddressBookJson(fileContents)
     this.addressBook = fileContents
     this._parseAddressBook()
-
-    // If the address book is empty for this chain id, initialize it with an empty object
-    if (!this.addressBook[this.chainId]) {
-      this.addressBook[this.chainId] = {} as Record<ContractName, AddressBookEntry>
-    }
   }
 
   /**
@@ -165,6 +164,9 @@ export abstract class AddressBook<
     signerOrProvider?: Signer | Provider,
   ): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
+    if (this.listEntries().length == 0) {
+      throw Error('No valid contracts found in address book')
+    }
     for (const contractName of this.listEntries()) {
       const artifactPath = typeof artifactsPath === 'object' && !Array.isArray(artifactsPath)
         ? artifactsPath[contractName]
