@@ -17,6 +17,7 @@
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "clean": "rm -rf dist",
     "lint": "eslint '**/*.{js,ts}' --fix",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "prepublishOnly": "npm run build"

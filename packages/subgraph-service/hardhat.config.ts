@@ -5,9 +5,12 @@ import 'hardhat-contract-sizer'
 import 'hardhat-storage-layout'
 import 'hardhat-secure-accounts'
 import 'solidity-docgen'
-import 'hardhat-graph-protocol'
 
 import { HardhatUserConfig } from 'hardhat/config'
+
+if (process.env.BUILD_RUN !== 'true') {
+  require('hardhat-graph-protocol')
+}
 
 const config: HardhatUserConfig = {
   solidity: {
