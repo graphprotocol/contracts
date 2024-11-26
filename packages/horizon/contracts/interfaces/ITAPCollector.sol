@@ -138,6 +138,12 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorInvalidRAVSigner();
 
     /**
+     * Thrown when the RAV is for a data service the service provider has no provision for
+     * @param dataService The address of the data service
+     */
+    error TAPCollectorUnauthorizedDataService(address dataService);
+
+    /**
      * Thrown when the caller is not the data service the RAV was issued to
      * @param caller The address of the caller
      * @param dataService The address of the data service

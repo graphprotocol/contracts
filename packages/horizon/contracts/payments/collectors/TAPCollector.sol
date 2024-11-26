@@ -118,6 +118,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
      * @notice Initiate a payment collection through the payments protocol
      * See {IGraphPayments.collect}.
      * @dev Caller must be the data service the RAV was issued to.
+     * @dev Service provider must have an active provision with the data service to collect payments
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external override returns (uint256) {
@@ -129,6 +130,15 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
 
         address signer = _recoverRAVSigner(signedRAV);
         require(authorizedSigners[signer].payer != address(0), TAPCollectorInvalidRAVSigner());
+
+        // Check the service provider has an active provision with the data service
+        // This prevents an attack where the payer can deny the service provider from collecting payments
+        // by using a signer as data service to syphon off the tokens in the escrow to an account they control
+        uint256 tokensAvailable = _graphStaking().getProviderTokensAvailable(
+            signedRAV.rav.serviceProvider,
+            signedRAV.rav.dataService
+        );
+        require(tokensAvailable > 0, TAPCollectorUnauthorizedDataService(signedRAV.rav.dataService));
 
         return _collect(paymentType, authorizedSigners[signer].payer, signedRAV, dataServiceCut);
     }
