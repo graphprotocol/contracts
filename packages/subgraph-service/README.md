@@ -1,13 +1,17 @@
-# Sample Hardhat Project
+# 🌅 Subgraph Service 🌅
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+The Subgraph Service is a data service designed to work with Graph Horizon that supports indexing subgraphs and serving queries to consumers.
 
-Try running some of the following tasks:
+## Deployment 
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
+We use Hardhat Ignition to deploy the contracts. To build and deploy the Subgraph Service run the following commands:
+
+```bash
+yarn install
+yarn build
+npx hardhat run scripts/deploy.ts --network hardhat
 ```
+
+You can use any network defined in `hardhat.config.ts` by replacing `hardhat` with the network name.
+
+Note that this will deploy and configure Graph Horizon contracts as well as the Subgraph Service.
