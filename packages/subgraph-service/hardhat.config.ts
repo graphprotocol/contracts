@@ -8,6 +8,10 @@ import 'solidity-docgen'
 
 import { HardhatUserConfig } from 'hardhat/config'
 
+if (process.env.BUILD_RUN !== 'true') {
+  require('hardhat-graph-protocol')
+}
+
 const config: HardhatUserConfig = {
   solidity: {
     version: '0.8.27',
@@ -35,7 +39,14 @@ const config: HardhatUserConfig = {
       },
     },
     arbitrumSepolia: {
+      chainId: 421614,
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
+    },
+  },
+  graph: {
+    deployments: {
+      horizon: require.resolve('@graphprotocol/horizon/addresses.json'),
+      subgraphService: 'addresses.json',
     },
   },
 }
