@@ -157,6 +157,9 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      */
     function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
         EscrowAccount storage account = escrowAccounts[payer][collector][receiver];
+        if (account.balance <= account.tokensThawing) {
+            return 0;
+        }
         return account.balance - account.tokensThawing;
     }
 

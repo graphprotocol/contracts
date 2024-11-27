@@ -199,6 +199,7 @@ interface IPaymentsEscrow {
 
     /**
      * @notice Get the balance of a payer-collector-receiver tuple
+     * This function will return 0 if the current balance is less than the amount of funds being thawed.
      * @param payer The address of the payer
      * @param collector The address of the collector
      * @param receiver The address of the receiver
