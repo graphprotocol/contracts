@@ -2,6 +2,7 @@
 pragma solidity 0.8.27;
 
 import { IPaymentsCollector } from "./IPaymentsCollector.sol";
+import { IGraphPayments } from "./IGraphPayments.sol";
 
 /**
  * @title Interface for the {TAPCollector} contract
@@ -176,6 +177,13 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
 
     /**
+     * Thrown when the attempting to collect more tokens than what it's owed
+     * @param tokensToCollect The amount of tokens to collect
+     * @param maxTokensToCollect The maximum amount of tokens to collect
+     */
+    error TAPCollectorInvalidTokensToCollectAmount(uint256 tokensToCollect, uint256 maxTokensToCollect);
+
+    /**
      * @notice Authorize a signer to sign on behalf of the payer.
      * A signer can not be authorized for multiple payers even after revoking previous authorizations.
      * @dev Requirements:
@@ -237,4 +245,21 @@ interface ITAPCollector is IPaymentsCollector {
      * @return The hash of the RAV.
      */
     function encodeRAV(ReceiptAggregateVoucher calldata rav) external view returns (bytes32);
+
+    /**
+     * @notice See {IPaymentsCollector.collect}
+     * This variant adds the ability to partially collect a RAV by specifying the amount of tokens to collect.
+     *
+     * Requirements:
+     * - The amount of tokens to collect must be less than or equal to the total amount of tokens in the RAV minus
+     *   the tokens already collected.
+     * @param paymentType The payment type to collect
+     * @param data Additional data required for the payment collection
+     * @param tokensToCollect The amount of tokens to collect
+     */
+    function collect(
+        IGraphPayments.PaymentTypes paymentType,
+        bytes calldata data,
+        uint256 tokensToCollect
+    ) external returns (uint256);
 }

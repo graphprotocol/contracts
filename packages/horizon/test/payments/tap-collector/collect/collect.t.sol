@@ -203,11 +203,12 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_RevertWhen_PayerMismatch(uint256 tokens) public useGateway useSigner {
+    function testTAPCollector_Collect_RevertWhen_PayerMismatch(
+        uint256 tokens
+    ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         (address anotherPayer, ) = makeAddrAndKey("anotherPayer");
@@ -339,5 +340,56 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
+    }
+
+    function testTAPCollector_CollectPartial(
+        uint256 tokens,
+        uint256 tokensToCollect
+    ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
+        tokens = bound(tokens, 1, type(uint128).max);
+        tokensToCollect = bound(tokensToCollect, 1, tokens);
+
+        _depositTokens(address(tapCollector), users.indexer, tokens);
+
+        bytes memory data = _getQueryFeeEncodedData(
+            signerPrivateKey,
+            users.gateway,
+            users.indexer,
+            users.verifier,
+            uint128(tokens)
+        );
+
+        resetPrank(users.verifier);
+        _collect(IGraphPayments.PaymentTypes.QueryFee, data, tokensToCollect);
+    }
+
+    function testTAPCollector_CollectPartial_RevertWhen_AmountTooHigh(
+        uint256 tokens,
+        uint256 tokensToCollect
+    ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
+        tokens = bound(tokens, 1, type(uint128).max - 1);
+
+        _depositTokens(address(tapCollector), users.indexer, tokens);
+
+        bytes memory data = _getQueryFeeEncodedData(
+            signerPrivateKey,
+            users.gateway,
+            users.indexer,
+            users.verifier,
+            uint128(tokens)
+        );
+
+        resetPrank(users.verifier);
+        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(users.verifier, users.indexer, users.gateway);
+        tokensToCollect = bound(tokensToCollect, tokens - tokensAlreadyCollected + 1, type(uint128).max);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ITAPCollector.TAPCollectorInvalidTokensToCollectAmount.selector,
+                tokensToCollect,
+                tokens - tokensAlreadyCollected
+            )
+        );
+        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data, tokensToCollect);
     }
 }
