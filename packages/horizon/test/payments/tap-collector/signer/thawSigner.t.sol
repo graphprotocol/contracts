@@ -26,4 +26,18 @@ contract TAPCollectorThawSignerTest is TAPCollectorTest {
         vm.expectRevert(expectedError);
         tapCollector.thawSigner(signer);
     }
+
+    function testTAPCollector_ThawSigner_RevertWhen_AlreadyRevoked() public useGateway useSigner {
+        _thawSigner(signer);
+        skip(revokeSignerThawingPeriod + 1);
+        _revokeAuthorizedSigner(signer);
+
+        bytes memory expectedError = abi.encodeWithSelector(
+            ITAPCollector.TAPCollectorAuthorizationAlreadyRevoked.selector,
+            users.gateway,
+            signer
+        );
+        vm.expectRevert(expectedError);
+        tapCollector.thawSigner(signer);
+    }
 }

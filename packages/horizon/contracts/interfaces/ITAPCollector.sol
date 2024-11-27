@@ -18,10 +18,14 @@ interface ITAPCollector is IPaymentsCollector {
         address payer;
         // Timestamp at which thawing period ends (zero if not thawing)
         uint256 thawEndTimestamp;
+        // Whether the signer authorization was revoked
+        bool revoked;
     }
 
     /// @notice The Receipt Aggregate Voucher (RAV) struct
     struct ReceiptAggregateVoucher {
+        // The address of the payer the RAV was issued by
+        address payer;
         // The address of the data service the RAV was issued to
         address dataService;
         // The address of the service provider the RAV was issued to
@@ -120,6 +124,12 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorSignerNotAuthorizedByPayer(address payer, address signer);
 
     /**
+     * Thrown when the attempting to revoke a signer that was already revoked
+     * @param signer The address of the signer
+     */
+    error TAPCollectorAuthorizationAlreadyRevoked(address payer, address signer);
+
+    /**
      * Thrown when the signer is not thawing
      * @param signer The address of the signer
      */
@@ -136,6 +146,13 @@ interface ITAPCollector is IPaymentsCollector {
      * Thrown when the RAV signer is invalid
      */
     error TAPCollectorInvalidRAVSigner();
+
+    /**
+     * Thrown when the RAV payer does not match the signers authorized payer
+     * @param authorizedPayer The address of the authorized payer
+     * @param ravPayer The address of the RAV payer
+     */
+    error TAPCollectorInvalidRAVPayer(address authorizedPayer, address ravPayer);
 
     /**
      * Thrown when the RAV is for a data service the service provider has no provision for
@@ -159,7 +176,8 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
 
     /**
-     * @notice Authorize a signer to sign on behalf of the payer
+     * @notice Authorize a signer to sign on behalf of the payer.
+     * A signer can not be authorized for multiple payers even after revoking previous authorizations.
      * @dev Requirements:
      * - `signer` must not be already authorized
      * - `proofDeadline` must be greater than the current timestamp

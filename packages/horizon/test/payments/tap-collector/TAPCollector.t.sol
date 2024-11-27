@@ -66,9 +66,10 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         
         tapCollector.authorizeSigner(_signer, _proofDeadline, _proof);
         
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, 0);
+        assertEq(revoked, false);
     }
 
     function _thawSigner(address _signer) internal {
@@ -80,9 +81,10 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
         tapCollector.thawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, expectedThawEndTimestamp);
+        assertEq(revoked, false);
     }
 
     function _cancelThawSigner(address _signer) internal {
@@ -93,29 +95,34 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
         tapCollector.cancelThawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, 0);
+        assertEq(revoked, false);
     }
 
     function _revokeAuthorizedSigner(address _signer) internal {
         (, address msgSender, ) = vm.readCallers();
+
+        (address beforePayer, uint256 beforeThawEndTimestamp, ) = tapCollector.authorizedSigners(_signer);
 
         vm.expectEmit(address(tapCollector));
         emit ITAPCollector.SignerRevoked(msgSender, _signer);
 
         tapCollector.revokeAuthorizedSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
-        assertEq(_payer, address(0));
-        assertEq(thawEndTimestamp, 0);
+        (address afterPayer, uint256 afterThawEndTimestamp, bool afterRevoked) = tapCollector.authorizedSigners(_signer);
+
+        assertEq(beforePayer, afterPayer);
+        assertEq(beforeThawEndTimestamp, afterThawEndTimestamp);
+        assertEq(afterRevoked, true);
     }
 
     function _collect(IGraphPayments.PaymentTypes _paymentType, bytes memory _data) internal {
         (ITAPCollector.SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (ITAPCollector.SignedRAV, uint256));
         bytes32 messageHash = tapCollector.encodeRAV(signedRAV.rav);
         address _signer = ECDSA.recover(messageHash, signedRAV.signature);
-        (address _payer, ) = tapCollector.authorizedSigners(_signer);
+        (address _payer, , ) = tapCollector.authorizedSigners(_signer);
         uint256 tokensAlreadyCollected = tapCollector.tokensCollected(signedRAV.rav.dataService, signedRAV.rav.serviceProvider, _payer);
         uint256 tokensToCollect = signedRAV.rav.valueAggregate - tokensAlreadyCollected;
         uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);
