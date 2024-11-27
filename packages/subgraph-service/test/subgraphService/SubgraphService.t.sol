@@ -232,7 +232,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
             allocationId = abi.decode(signedRav.rav.metadata, (address));
             allocation = subgraphService.getAllocation(allocationId);
-            (address payer, ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
+            (address payer, , ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
 
             // Total amount of tokens collected for indexer
             uint256 tokensCollected = tapCollector.tokensCollected(address(subgraphService), _indexer, payer);

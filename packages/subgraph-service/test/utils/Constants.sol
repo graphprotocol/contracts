@@ -21,7 +21,6 @@ abstract contract Constants {
     uint64 internal constant MAX_WAIT_PERIOD = 28 days;
     // GraphEscrow parameters
     uint256 internal constant withdrawEscrowThawingPeriod = 60;
-    uint256 internal constant revokeCollectorThawingPeriod = 60;
     // GraphPayments parameters
     uint256 internal constant protocolPaymentCut = 10000;
     // RewardsMananger parameters

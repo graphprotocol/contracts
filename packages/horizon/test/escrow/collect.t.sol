@@ -106,47 +106,17 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         resetPrank(users.gateway);
-        escrow.approveCollector(users.verifier, tokens);
         _depositTokens(users.verifier, users.indexer, tokens);
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, tokens, subgraphDataServiceAddress, tokensDataService);
     }
 
-    function testCollect_RevertWhen_CollectorNotAuthorized(uint256 amount) public {
-        vm.assume(amount > 0);
-        vm.startPrank(users.verifier);
-        uint256 dataServiceCut = 30000; // 3%
-        bytes memory expectedError = abi.encodeWithSelector(
-            IPaymentsEscrow.PaymentsEscrowInsufficientAllowance.selector,
-            0,
-            amount
-        );
-        vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, dataServiceCut);
-        vm.stopPrank();
-    }
-
-    function testCollect_RevertWhen_CollectorHasInsufficientAmount(
-        uint256 amount,
-        uint256 insufficientAmount
-    ) public useGateway useCollector(insufficientAmount) useDeposit(amount) {
-        vm.assume(insufficientAmount < amount);
-
-        vm.startPrank(users.verifier);
-        bytes memory expectedError = abi.encodeWithSignature(
-            "PaymentsEscrowInsufficientAllowance(uint256,uint256)", 
-            insufficientAmount, 
-            amount
-        );
-        vm.expectRevert(expectedError);
-        escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, amount, subgraphDataServiceAddress, 0);
-    }
-
     function testCollect_RevertWhen_SenderHasInsufficientAmountInEscrow(
         uint256 amount, 
         uint256 insufficientAmount
-    ) public useGateway useCollector(amount) useDeposit(insufficientAmount)  {
+    ) public useGateway useDeposit(insufficientAmount)  {
+        vm.assume(amount > 0);
         vm.assume(insufficientAmount < amount);
 
         vm.startPrank(users.verifier);
@@ -162,7 +132,6 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         vm.assume(amount > 1 ether);
 
         resetPrank(users.gateway);
-        escrow.approveCollector(users.verifier, amount);
         _depositTokens(users.verifier, users.indexer, amount);
 
         resetPrank(users.verifier);
@@ -181,7 +150,6 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         vm.assume(amount <= MAX_STAKING_TOKENS);
         
         resetPrank(users.gateway);
-        escrow.approveCollector(users.verifier, amount);
         _depositTokens(users.verifier, users.indexer, amount);
 
         resetPrank(users.verifier);

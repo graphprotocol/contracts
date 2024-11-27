@@ -54,7 +54,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         bytes memory data = _getQueryFeeEncodedData(
@@ -76,7 +75,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         steps = uint8(bound(steps, 1, 100));
         tokens = bound(tokens, steps, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         resetPrank(users.verifier);
@@ -98,7 +96,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     function testTAPCollector_Collect_RevertWhen_NoProvision(uint256 tokens) public useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         bytes memory data = _getQueryFeeEncodedData(
@@ -128,7 +125,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         bytes memory data = _getQueryFeeEncodedData(
@@ -154,7 +150,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         // The sender authorizes another signer
@@ -188,7 +183,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         bytes memory data = _getQueryFeeEncodedData(
@@ -240,7 +234,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
@@ -263,7 +256,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     function testTAPCollector_Collect_RevertWhen_SignerNotAuthorized(uint256 tokens) public useGateway {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         bytes memory data = _getQueryFeeEncodedData(
@@ -284,7 +276,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         // Start thawing signer
@@ -306,7 +297,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     function testTAPCollector_Collect_RevertIf_SignerWasRevoked(uint256 tokens) public useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         // Start thawing signer
@@ -332,7 +322,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _approveCollector(address(tapCollector), tokens);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         // Start thawing signer

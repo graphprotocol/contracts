@@ -116,7 +116,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         // PaymentsEscrow
         bytes memory escrowImplementationParameters = abi.encode(
             address(controller),
-            revokeCollectorThawingPeriod,withdrawEscrowThawingPeriod
+            withdrawEscrowThawingPeriod
         );
         bytes memory escrowImplementationBytecode = abi.encodePacked(
             type(PaymentsEscrow).creationCode,

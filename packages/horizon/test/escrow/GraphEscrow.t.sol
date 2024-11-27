@@ -24,12 +24,6 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         _;
     }
 
-    modifier useCollector(uint256 tokens) {
-        vm.assume(tokens > 0);
-        escrow.approveCollector(users.verifier, tokens);
-        _;
-    }
-
     modifier depositAndThawTokens(uint256 amount, uint256 thawAmount) {
         vm.assume(thawAmount > 0);
         vm.assume(amount > thawAmount);
