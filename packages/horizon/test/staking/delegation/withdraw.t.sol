@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
@@ -42,11 +43,12 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useUndelegate(withdrawShares)
     {
         LinkedList.List memory thawingRequests = staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
             users.indexer,
             subgraphDataServiceAddress,
             users.delegator
         );
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+        ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, thawingRequests.tail);
 
         skip(thawRequest.thawingUntil + 1);
 
@@ -93,11 +95,12 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _undelegate(users.indexer, delegation.shares);
 
         LinkedList.List memory thawingRequests = staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
             users.indexer,
             subgraphDataServiceLegacyAddress,
             users.delegator
         );
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+        ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, thawingRequests.tail);
 
         skip(thawRequest.thawingUntil + 1);
 
@@ -180,6 +183,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useDelegation(delegationAmount)
      {
         vm.assume(beneficiary != address(0));
+        vm.assume(beneficiary != address(staking));
         // Skip beneficiary if balance will overflow
         vm.assume(token.balanceOf(beneficiary) < type(uint256).max - delegationAmount);
 
@@ -189,8 +193,8 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares, beneficiary);
         
         // Thawing period ends
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, beneficiary);
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(IHorizonStakingTypes.ThawRequestType.Delegation, users.indexer, subgraphDataServiceAddress, beneficiary);
+        ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, thawingRequests.tail);
         skip(thawRequest.thawingUntil + 1);
 
         // Beneficiary withdraws delegated tokens
@@ -216,8 +220,8 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares, beneficiary);
 
         // Thawing period ends
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(users.indexer, subgraphDataServiceAddress, users.delegator);
-        ThawRequest memory thawRequest = staking.getThawRequest(thawingRequests.tail);
+        LinkedList.List memory thawingRequests = staking.getThawRequestList(IHorizonStakingTypes.ThawRequestType.Delegation, users.indexer, subgraphDataServiceAddress, users.delegator);
+        ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, thawingRequests.tail);
         skip(thawRequest.thawingUntil + 1);
 
         // Delegator attempts to withdraw delegated tokens, should revert since beneficiary is the thaw request owner

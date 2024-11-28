@@ -173,30 +173,35 @@ abstract contract HorizonStakingBase is
     /**
      * @notice See {IHorizonStakingBase-getThawRequest}.
      */
-    function getThawRequest(bytes32 thawRequestId) external view override returns (ThawRequest memory) {
-        return _thawRequests[thawRequestId];
+    function getThawRequest(
+        ThawRequestType requestType,
+        bytes32 thawRequestId
+    ) external view override returns (ThawRequest memory) {
+        return _getThawRequest(requestType, thawRequestId);
     }
 
     /**
      * @notice See {IHorizonStakingBase-getThawRequestList}.
      */
     function getThawRequestList(
+        ThawRequestType requestType,
         address serviceProvider,
         address verifier,
         address owner
     ) external view override returns (LinkedList.List memory) {
-        return _thawRequestLists[serviceProvider][verifier][owner];
+        return _getThawRequestList(requestType, serviceProvider, verifier, owner);
     }
 
     /**
      * @notice See {IHorizonStakingBase-getThawedTokens}.
      */
     function getThawedTokens(
+        ThawRequestType requestType,
         address serviceProvider,
         address verifier,
         address owner
     ) external view override returns (uint256) {
-        LinkedList.List storage thawRequestList = _thawRequestLists[serviceProvider][verifier][owner];
+        LinkedList.List storage thawRequestList = _getThawRequestList(requestType, serviceProvider, verifier, owner);
         if (thawRequestList.count == 0) {
             return 0;
         }
@@ -206,7 +211,7 @@ abstract contract HorizonStakingBase is
 
         bytes32 thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0)) {
-            ThawRequest storage thawRequest = _thawRequests[thawRequestId];
+            ThawRequest storage thawRequest = _getThawRequest(requestType, thawRequestId);
             if (thawRequest.thawingUntil <= block.timestamp) {
                 tokens += (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
             } else {
@@ -289,11 +294,84 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice Gets the next thaw request after `_thawRequestId`.
-     * @dev This function is used as a callback in the thaw requests linked list traversal.
+     * @notice Determines the correct callback function for `getNextItem` based on the request type.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @return A function pointer to the appropriate `getNextItem` callback.
      */
-    function _getNextThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _thawRequests[_thawRequestId].next;
+    function _getNextThawRequest(
+        ThawRequestType _requestType
+    ) internal pure returns (function(bytes32) view returns (bytes32)) {
+        if (_requestType == ThawRequestType.Provision) {
+            return _getNextProvisionThawRequest;
+        } else if (_requestType == ThawRequestType.Delegation) {
+            return _getNextDelegationThawRequest;
+        } else {
+            revert("Unknown ThawRequestType");
+        }
+    }
+
+    /**
+     * @notice Retrieves the next thaw request for a provision.
+     * @param _thawRequestId The ID of the current thaw request.
+     * @return The ID of the next thaw request in the list.
+     */
+    function _getNextProvisionThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
+        return _provisionThawRequests[_thawRequestId].next;
+    }
+
+    /**
+     * @notice Retrieves the next thaw request for a delegation.
+     * @param _thawRequestId The ID of the current thaw request.
+     * @return The ID of the next thaw request in the list.
+     */
+    function _getNextDelegationThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
+        return _delegationThawRequests[_thawRequestId].next;
+    }
+
+    /**
+     * @notice Retrieves the thaw request list for the given request type.
+     * @dev Uses the `ThawRequestType` to determine which mapping to access.
+     * Reverts if the request type is unknown.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @param _serviceProvider The address of the service provider.
+     * @param _verifier The address of the verifier.
+     * @param _owner The address of the owner of the thaw request.
+     * @return The linked list of thaw requests for the specified request type.
+     */
+    function _getThawRequestList(
+        ThawRequestType _requestType,
+        address _serviceProvider,
+        address _verifier,
+        address _owner
+    ) internal view returns (LinkedList.List storage) {
+        if (_requestType == ThawRequestType.Provision) {
+            return _provisionThawRequestLists[_serviceProvider][_verifier][_owner];
+        } else if (_requestType == ThawRequestType.Delegation) {
+            return _delegationThawRequestLists[_serviceProvider][_verifier][_owner];
+        } else {
+            revert("Unknown ThawRequestType");
+        }
+    }
+
+    /**
+     * @notice Retrieves a specific thaw request for the given request type.
+     * @dev Uses the `ThawRequestType` to determine which mapping to access.
+     * Reverts if the request type is unknown.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @param _thawRequestId The unique ID of the thaw request.
+     * @return The thaw request data for the specified request type and ID.
+     */
+    function _getThawRequest(
+        ThawRequestType _requestType,
+        bytes32 _thawRequestId
+    ) internal view returns (IHorizonStakingTypes.ThawRequest storage) {
+        if (_requestType == ThawRequestType.Provision) {
+            return _provisionThawRequests[_thawRequestId];
+        } else if (_requestType == ThawRequestType.Delegation) {
+            return _delegationThawRequests[_thawRequestId];
+        } else {
+            revert("Unknown ThawRequestType");
+        }
     }
 
     /**

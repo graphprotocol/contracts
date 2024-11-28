@@ -8,6 +8,7 @@ import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol
 import { IHorizonStakingBase } from "../../../contracts/interfaces/internal/IHorizonStakingBase.sol";
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingExtension } from "../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { MathUtils } from "../../../contracts/libraries/MathUtils.sol";
@@ -400,6 +401,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // before
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
         LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
             serviceProvider
@@ -428,13 +430,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
-        ThawRequest memory afterThawRequest = staking.getThawRequest(thawRequestId);
-        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
-            serviceProvider,
-            verifier,
-            serviceProvider
-        );
-        ThawRequest memory afterPreviousTailThawRequest = staking.getThawRequest(beforeThawRequestList.tail);
+        ThawRequest memory afterThawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Provision, thawRequestId);
+        LinkedList.List memory afterThawRequestList = _getProvisionThawRequestList(serviceProvider, verifier, serviceProvider);
+        ThawRequest memory afterPreviousTailThawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Provision, beforeThawRequestList.tail);
 
         // assert
         assertEq(afterProvision.tokens, beforeProvision.tokens);
@@ -472,6 +470,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
         ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
         LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
             serviceProvider
@@ -513,6 +512,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
         ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
         LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
             serviceProvider
@@ -540,7 +540,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             beforeServiceProvider.__DEPRECATED_tokensLockedUntil
         );
         for (uint i = 0; i < calcValues.thawRequestsFulfilledListIds.length; i++) {
-            ThawRequest memory thawRequest = staking.getThawRequest(calcValues.thawRequestsFulfilledListIds[i]);
+            ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Provision, calcValues.thawRequestsFulfilledListIds[i]);
             assertEq(thawRequest.shares, 0);
             assertEq(thawRequest.thawingUntil, 0);
             assertEq(thawRequest.next, bytes32(0));
@@ -583,7 +583,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             provision: staking.getProvision(serviceProvider, verifier),
             provisionNewVerifier: staking.getProvision(serviceProvider, newVerifier),
             serviceProvider: _getStorage_ServiceProviderInternal(serviceProvider),
-            thawRequestList: staking.getThawRequestList(serviceProvider, verifier, serviceProvider)
+            thawRequestList: staking.getThawRequestList(IHorizonStakingTypes.ThawRequestType.Provision, serviceProvider, verifier, serviceProvider)
         });
 
         // calc
@@ -626,6 +626,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         Provision memory afterProvisionNewVerifier = staking.getProvision(serviceProvider, newVerifier);
         ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
         LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
             serviceProvider
@@ -680,7 +681,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // assert: thaw request list old verifier
         for (uint i = 0; i < calcValues.thawRequestsFulfilledListIds.length; i++) {
-            ThawRequest memory thawRequest = staking.getThawRequest(calcValues.thawRequestsFulfilledListIds[i]);
+            ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Provision, calcValues.thawRequestsFulfilledListIds[i]);
             assertEq(thawRequest.shares, 0);
             assertEq(thawRequest.thawingUntil, 0);
             assertEq(thawRequest.next, bytes32(0));
@@ -882,8 +883,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 deltaShares = afterDelegation.shares - beforeDelegation.shares;
 
         // assertions
-        assertEq(beforePool.tokens + tokens, afterPool.tokens);
-        assertEq(beforePool.shares + calcShares, afterPool.shares);
+        assertEq(beforePool.tokens + tokens, afterPool.tokens, "afterPool.tokens FAIL");
+        assertEq(beforePool.shares + calcShares, afterPool.shares, "afterPool.shares FAIL");
         assertEq(beforePool.tokensThawing, afterPool.tokensThawing);
         assertEq(beforePool.sharesThawing, afterPool.sharesThawing);
         assertEq(beforePool.thawingNonce, afterPool.thawingNonce);
@@ -930,7 +931,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         BeforeValues_Undelegate memory beforeValues;
         beforeValues.pool = _getStorage_DelegationPoolInternal(serviceProvider, verifier, legacy);
         beforeValues.delegation = _getStorage_Delegation(serviceProvider, verifier, delegator, legacy);
-        beforeValues.thawRequestList = staking.getThawRequestList(serviceProvider, verifier, delegator);
+        beforeValues.thawRequestList = staking.getThawRequestList(IHorizonStakingTypes.ThawRequestType.Delegation, serviceProvider, verifier, delegator);
         beforeValues.delegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
 
         // calc
@@ -978,8 +979,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             beneficiary,
             legacy
         );
-        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(serviceProvider, verifier, beneficiary);
-        ThawRequest memory afterThawRequest = staking.getThawRequest(calcValues.thawRequestId);
+        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(IHorizonStakingTypes.ThawRequestType.Delegation, serviceProvider, verifier, beneficiary);
+        ThawRequest memory afterThawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, calcValues.thawRequestId);
         uint256 afterDelegatedTokens = staking.getDelegatedTokensAvailable(serviceProvider, verifier);
 
         // assertions
@@ -1077,7 +1078,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         beforeValues.pool = _getStorage_DelegationPoolInternal(_serviceProvider, _verifier, legacy);
         beforeValues.newPool = _getStorage_DelegationPoolInternal(_newServiceProvider, _newVerifier, legacy);
         beforeValues.newDelegation = _getStorage_Delegation(_newServiceProvider, _newVerifier, msgSender, legacy);
-        beforeValues.thawRequestList = staking.getThawRequestList(_serviceProvider, _verifier, msgSender);
+        beforeValues.thawRequestList = staking.getThawRequestList(IHorizonStakingTypes.ThawRequestType.Delegation, _serviceProvider, _verifier, msgSender);
         beforeValues.senderBalance = token.balanceOf(msgSender);
         beforeValues.stakingBalance = token.balanceOf(address(staking));
 
@@ -1150,7 +1151,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         afterValues.pool = _getStorage_DelegationPoolInternal(_serviceProvider, _verifier, legacy);
         afterValues.newPool = _getStorage_DelegationPoolInternal(_newServiceProvider, _newVerifier, legacy);
         afterValues.newDelegation = _getStorage_Delegation(_newServiceProvider, _newVerifier, msgSender, legacy);
-        afterValues.thawRequestList = staking.getThawRequestList(_serviceProvider, _verifier, msgSender);
+        afterValues.thawRequestList = staking.getThawRequestList(IHorizonStakingTypes.ThawRequestType.Delegation, _serviceProvider, _verifier, msgSender);
         afterValues.senderBalance = token.balanceOf(msgSender);
         afterValues.stakingBalance = token.balanceOf(address(staking));
 
@@ -1162,7 +1163,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterValues.pool.thawingNonce, beforeValues.pool.thawingNonce);
 
         for (uint i = 0; i < calcValues.thawRequestsFulfilledListIds.length; i++) {
-            ThawRequest memory thawRequest = staking.getThawRequest(calcValues.thawRequestsFulfilledListIds[i]);
+            ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, calcValues.thawRequestsFulfilledListIds[i]);
             assertEq(thawRequest.shares, 0);
             assertEq(thawRequest.thawingUntil, 0);
             assertEq(thawRequest.next, bytes32(0));
@@ -1797,7 +1798,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address operator,
         bool legacy
     ) internal view returns (bool) {
-        uint256 slotNumber = legacy ? 21 : 31;
+        uint256 slotNumber = legacy ? 21 : 33;
         uint256 slot;
 
         if (legacy) {
@@ -1879,7 +1880,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address verifier,
         bool legacy
     ) internal view returns (DelegationPoolInternalTest memory) {
-        uint256 slotNumber = legacy ? 20 : 33;
+        uint256 slotNumber = legacy ? 20 : 35;
         uint256 baseSlot;
         if (legacy) {
             baseSlot = uint256(keccak256(abi.encode(serviceProvider, slotNumber)));
@@ -1911,7 +1912,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address delegator,
         bool legacy
     ) internal view returns (DelegationInternal memory) {
-        uint256 slotNumber = legacy ? 20 : 33;
+        uint256 slotNumber = legacy ? 20 : 35;
         uint256 baseSlot;
 
         // DelegationPool
@@ -2207,6 +2208,13 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256[] thawRequestsFulfilledListTokens;
     }
 
+    struct ThawingData {
+        uint256 tokensThawed;
+        uint256 tokensThawing;
+        uint256 sharesThawing;
+        uint256 thawRequestsFulfilled;
+    }
+
     function calcThawRequestData(
         address serviceProvider,
         address verifier,
@@ -2214,7 +2222,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 iterations,
         bool delegation
     ) private view returns (CalcValues_ThawRequestData memory) {
-        LinkedList.List memory thawRequestList = staking.getThawRequestList(serviceProvider, verifier, owner);
+        LinkedList.List memory thawRequestList = delegation
+            ? _getDelegationThawRequestList(serviceProvider, verifier, owner)
+            : _getProvisionThawRequestList(serviceProvider, verifier, owner);
         if (thawRequestList.count == 0) {
             return CalcValues_ThawRequestData(0, 0, 0, new ThawRequest[](0), new bytes32[](0), new uint256[](0));
         }
@@ -2229,7 +2239,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         bytes32 thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0) && (iterations == 0 || thawRequestsFulfilled < iterations)) {
-            ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
+            ThawRequest memory thawRequest = delegation
+                ? _getDelegationThawRequest(thawRequestId)
+                : _getProvisionThawRequest(thawRequestId);
             bool isThawRequestValid = thawRequest.thawingNonce == (delegation ? pool.thawingNonce : prov.thawingNonce);
             if (thawRequest.thawingUntil <= block.timestamp) {
                 thawRequestsFulfilled++;
@@ -2254,7 +2266,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         uint256 i = 0;
         thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0) && (iterations == 0 || i < iterations)) {
-            ThawRequest memory thawRequest = staking.getThawRequest(thawRequestId);
+            ThawRequest memory thawRequest = delegation
+                ? _getDelegationThawRequest(thawRequestId)
+                : _getProvisionThawRequest(thawRequestId);
             bool isThawRequestValid = thawRequest.thawingNonce == (delegation ? pool.thawingNonce : prov.thawingNonce);
 
             if (thawRequest.thawingUntil <= block.timestamp) {
@@ -2264,7 +2278,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                         : (thawRequest.shares * prov.tokensThawing) / prov.sharesThawing;
                 }
                 thawRequestsFulfilledListIds[i] = thawRequestId;
-                thawRequestsFulfilledList[i] = staking.getThawRequest(thawRequestId);
+                thawRequestsFulfilledList[i] = delegation
+                    ? _getDelegationThawRequest(thawRequestId)
+                    : _getProvisionThawRequest(thawRequestId);
                 thawRequestId = thawRequestsFulfilledList[i].next;
                 i++;
             } else {
@@ -2286,5 +2302,53 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 thawRequestsFulfilledListIds,
                 thawRequestsFulfilledListTokens
             );
+    }
+
+    function _getProvisionThawRequestList(address serviceProvider, address verifier, address owner)
+        private
+        view
+        returns (LinkedList.List memory)
+    {
+        return staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Provision,
+            serviceProvider,
+            verifier,
+            owner
+        );
+    }
+
+    function _getDelegationThawRequestList(address serviceProvider, address verifier, address owner)
+        private
+        view
+        returns (LinkedList.List memory)
+    {
+        return staking.getThawRequestList(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            serviceProvider,
+            verifier,
+            owner
+        );
+    }
+
+    function _getProvisionThawRequest(bytes32 thawRequestId)
+        private
+        view
+        returns (ThawRequest memory)
+    {
+        return staking.getThawRequest(
+            IHorizonStakingTypes.ThawRequestType.Provision,
+            thawRequestId
+        );
+    }
+
+    function _getDelegationThawRequest(bytes32 thawRequestId)
+        private
+        view
+        returns (ThawRequest memory)
+    {
+        return staking.getThawRequest(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            thawRequestId
+        );
     }
 }
