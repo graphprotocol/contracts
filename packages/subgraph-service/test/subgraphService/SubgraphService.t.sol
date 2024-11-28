@@ -151,7 +151,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertEq(afterSubgraphAllocatedTokens, _tokens);
     }
 
-    function _forceCloseAllocation(address _allocationId) internal {
+    function _closeStaleAllocation(address _allocationId) internal {
         assertTrue(subgraphService.isActiveAllocation(_allocationId));
 
         Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
@@ -168,7 +168,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         );
 
         // close stale allocation
-        subgraphService.forceCloseAllocation(_allocationId);
+        subgraphService.closeStaleAllocation(_allocationId);
 
         // update allocation
         allocation = subgraphService.getAllocation(_allocationId);
