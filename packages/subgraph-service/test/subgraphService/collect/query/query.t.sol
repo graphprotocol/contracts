@@ -46,6 +46,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     ) private view returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
+                payer: users.gateway,
                 dataService: address(subgraphService),
                 serviceProvider: indexer,
                 timestampNs: 0,
