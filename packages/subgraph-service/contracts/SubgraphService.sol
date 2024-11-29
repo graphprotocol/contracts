@@ -312,11 +312,9 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.closeStaleAllocation}
      */
-    function forceCloseAllocation(address allocationId) external override {
+    function closeStaleAllocation(address allocationId) external override {
         Allocation.State memory allocation = allocations.get(allocationId);
-        bool isStale = allocation.isStale(maxPOIStaleness);
-        bool isOverAllocated_ = _isOverAllocated(allocation.indexer, delegationRatio);
-        require(isStale || isOverAllocated_, SubgraphServiceCannotForceCloseAllocation(allocationId));
+        require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _closeAllocation(allocationId);
     }
