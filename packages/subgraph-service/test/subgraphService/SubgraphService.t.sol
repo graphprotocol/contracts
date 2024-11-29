@@ -379,6 +379,17 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         }
     }
 
+    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentID) internal {
+        vm.expectEmit(address(subgraphService));
+        emit AllocationManager.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentID);
+
+        subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentID);
+
+        (address afterIndexer, bytes32 afterSubgraphDeploymentId) = subgraphService.legacyAllocations(_allocationId);
+        assertEq(afterIndexer, _indexer);
+        assertEq(afterSubgraphDeploymentId, _subgraphDeploymentID);
+    }
+
     /*
      * HELPERS
      */
