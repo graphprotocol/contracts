@@ -7,7 +7,9 @@ import "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 contract MockGRTToken is ERC20, IGraphToken {
     constructor() ERC20("Graph Token", "GRT") {}
 
-    function burn(uint256 amount) external {}
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+    }
 
     function burnFrom(address _from, uint256 amount) external {
         _burn(_from, amount);

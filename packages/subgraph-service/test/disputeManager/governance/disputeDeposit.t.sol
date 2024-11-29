@@ -14,12 +14,12 @@ contract DisputeManagerGovernanceDisputeDepositTest is DisputeManagerTest {
      */
 
     function test_Governance_SetDisputeDeposit(uint256 disputeDeposit) public useGovernor {
-        vm.assume(disputeDeposit > 0);
+        vm.assume(disputeDeposit >= MIN_DISPUTE_DEPOSIT);
         _setDisputeDeposit(disputeDeposit);
     }
 
-    function test_Governance_RevertWhen_ZeroValue() public useGovernor {
-        uint256 disputeDeposit = 0;
+    function test_Governance_RevertWhen_DepositTooLow(uint256 disputeDeposit) public useGovernor {
+        vm.assume(disputeDeposit < MIN_DISPUTE_DEPOSIT);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidDisputeDeposit.selector, disputeDeposit));
         disputeManager.setDisputeDeposit(disputeDeposit);
     }

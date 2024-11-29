@@ -31,7 +31,22 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createQueryDispute(attestationData);
 
         resetPrank(users.arbitrator);
-        _acceptDispute(disputeID, tokensSlash);
+        _acceptDispute(disputeID, tokensSlash, false);
+    }
+
+    function test_Query_Accept_Dispute_OptParam(
+        uint256 tokens,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) {
+        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+
+        resetPrank(users.fisherman);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
+        bytes32 disputeID = _createQueryDispute(attestationData);
+
+        resetPrank(users.arbitrator);
+        _acceptDispute(disputeID, tokensSlash, true);
     }
 
     function test_Query_Accept_RevertIf_CallerIsNotArbitrator(
@@ -47,7 +62,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
 
         // attempt to accept dispute as fisherman
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
-        disputeManager.acceptDispute(disputeID, tokensSlash);
+        disputeManager.acceptDispute(disputeID, tokensSlash, false);
     }
 
     function test_Query_Accept_RevertWhen_SlashingOverMaxSlashPercentage(
@@ -70,6 +85,6 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
             maxTokensToSlash
         );
         vm.expectRevert(expectedError);
-        disputeManager.acceptDispute(disputeID, tokensSlash);
+        disputeManager.acceptDispute(disputeID, tokensSlash, false);
     }
 }
