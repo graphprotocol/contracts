@@ -297,20 +297,20 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 shares
     ) external override notPaused returns (bytes32) {
-        return _undelegate(serviceProvider, verifier, shares, msg.sender);
+        return _undelegate(ThawRequestType.Delegation, serviceProvider, verifier, shares, msg.sender);
     }
 
     /**
      * @notice See {IHorizonStakingMain-undelegate}.
      */
-    function undelegate(
+    function undelegateWithBeneficiary(
         address serviceProvider,
         address verifier,
         uint256 shares,
         address beneficiary
     ) external override notPaused returns (bytes32) {
         require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
-        return _undelegate(serviceProvider, verifier, shares, beneficiary);
+        return _undelegate(ThawRequestType.DelegationWithBeneficiary, serviceProvider, verifier, shares, beneficiary);
     }
 
     /**
@@ -321,7 +321,34 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 nThawRequests
     ) external override notPaused {
-        _withdrawDelegated(serviceProvider, verifier, address(0), address(0), 0, nThawRequests);
+        _withdrawDelegated(
+            ThawRequestType.Delegation,
+            serviceProvider,
+            verifier,
+            address(0),
+            address(0),
+            0,
+            nThawRequests
+        );
+    }
+
+    /**
+     * @notice See {IHorizonStakingMain-withdrawDelegatedWithBeneficiary}.
+     */
+    function withdrawDelegatedWithBeneficiary(
+        address serviceProvider,
+        address verifier,
+        uint256 nThawRequests
+    ) external override notPaused {
+        _withdrawDelegated(
+            ThawRequestType.DelegationWithBeneficiary,
+            serviceProvider,
+            verifier,
+            address(0),
+            address(0),
+            0,
+            nThawRequests
+        );
     }
 
     /**
@@ -338,6 +365,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(newServiceProvider != address(0), HorizonStakingInvalidServiceProviderZeroAddress());
         require(newVerifier != address(0), HorizonStakingInvalidVerifierZeroAddress());
         _withdrawDelegated(
+            ThawRequestType.Delegation,
             oldServiceProvider,
             oldVerifier,
             newServiceProvider,
@@ -374,7 +402,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-undelegate}.
      */
     function undelegate(address serviceProvider, uint256 shares) external override notPaused {
-        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
+        _undelegate(ThawRequestType.Delegation, serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
     }
 
     /**
@@ -382,6 +410,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function withdrawDelegated(address serviceProvider, address newServiceProvider) external override notPaused {
         _withdrawDelegated(
+            ThawRequestType.Delegation,
             serviceProvider,
             SUBGRAPH_DATA_SERVICE_ADDRESS,
             newServiceProvider,
@@ -837,6 +866,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * that were not thawing will be preserved.
      */
     function _undelegate(
+        ThawRequestType _requestType,
         address _serviceProvider,
         address _verifier,
         uint256 _shares,
@@ -864,7 +894,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         delegation.shares = delegation.shares - _shares;
 
         bytes32 thawRequestId = _createThawRequest(
-            ThawRequestType.Delegation,
+            _requestType,
             _serviceProvider,
             _verifier,
             _beneficiary,
@@ -881,6 +911,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-withdrawDelegated}.
      */
     function _withdrawDelegated(
+        ThawRequestType _requestType,
         address _serviceProvider,
         address _verifier,
         address _newServiceProvider,
@@ -901,7 +932,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensThawing = pool.tokensThawing;
 
         FulfillThawRequestsParams memory params = FulfillThawRequestsParams({
-            requestType: ThawRequestType.Delegation,
+            requestType: _requestType,
             serviceProvider: _serviceProvider,
             verifier: _verifier,
             owner: msg.sender,
@@ -1082,8 +1113,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             return _deleteProvisionThawRequest;
         } else if (_requestType == ThawRequestType.Delegation) {
             return _deleteDelegationThawRequest;
+        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
+            return _deleteDelegationWithBeneficiaryThawRequest;
         } else {
-            revert("Unknown ThawRequestType");
+            revert HorizonStakingInvalidThawRequestType();
         }
     }
 
@@ -1101,6 +1134,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function _deleteDelegationThawRequest(bytes32 _thawRequestId) private {
         delete _delegationThawRequests[_thawRequestId];
+    }
+
+    /**
+     * @notice Deletes a thaw request for a delegation with a beneficiary.
+     * @param _thawRequestId The ID of the thaw request to delete.
+     */
+    function _deleteDelegationWithBeneficiaryThawRequest(bytes32 _thawRequestId) private {
+        delete _delegationWithBeneficiaryThawRequests[_thawRequestId];
     }
 
     /**

@@ -138,7 +138,8 @@ interface IHorizonStakingTypes {
      */
     enum ThawRequestType {
         Provision,
-        Delegation
+        Delegation,
+        DelegationWithBeneficiary
     }
 
     /**

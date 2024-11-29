@@ -305,8 +305,10 @@ abstract contract HorizonStakingBase is
             return _getNextProvisionThawRequest;
         } else if (_requestType == ThawRequestType.Delegation) {
             return _getNextDelegationThawRequest;
+        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
+            return _getNextDelegationWithBeneficiaryThawRequest;
         } else {
-            revert("Unknown ThawRequestType");
+            revert HorizonStakingInvalidThawRequestType();
         }
     }
 
@@ -329,6 +331,15 @@ abstract contract HorizonStakingBase is
     }
 
     /**
+     * @notice Retrieves the next thaw request for a delegation with a beneficiary.
+     * @param _thawRequestId The ID of the current thaw request.
+     * @return The ID of the next thaw request in the list.
+     */
+    function _getNextDelegationWithBeneficiaryThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
+        return _delegationWithBeneficiaryThawRequests[_thawRequestId].next;
+    }
+
+    /**
      * @notice Retrieves the thaw request list for the given request type.
      * @dev Uses the `ThawRequestType` to determine which mapping to access.
      * Reverts if the request type is unknown.
@@ -348,8 +359,10 @@ abstract contract HorizonStakingBase is
             return _provisionThawRequestLists[_serviceProvider][_verifier][_owner];
         } else if (_requestType == ThawRequestType.Delegation) {
             return _delegationThawRequestLists[_serviceProvider][_verifier][_owner];
+        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
+            return _delegationWithBeneficiaryThawRequestLists[_serviceProvider][_verifier][_owner];
         } else {
-            revert("Unknown ThawRequestType");
+            revert HorizonStakingInvalidThawRequestType();
         }
     }
 
@@ -369,6 +382,8 @@ abstract contract HorizonStakingBase is
             return _provisionThawRequests[_thawRequestId];
         } else if (_requestType == ThawRequestType.Delegation) {
             return _delegationThawRequests[_thawRequestId];
+        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
+            return _delegationWithBeneficiaryThawRequests[_thawRequestId];
         } else {
             revert("Unknown ThawRequestType");
         }

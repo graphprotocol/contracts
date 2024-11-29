@@ -25,6 +25,11 @@ interface IHorizonStakingBase {
     event StakeDeposited(address indexed serviceProvider, uint256 tokens);
 
     /**
+     * @notice Thrown when using an invalid thaw request type.
+     */
+    error HorizonStakingInvalidThawRequestType();
+
+    /**
      * @notice Gets the details of a service provider.
      * @param serviceProvider The address of the service provider.
      */
