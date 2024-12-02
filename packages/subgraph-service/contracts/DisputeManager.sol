@@ -59,6 +59,9 @@ contract DisputeManager is
     // Maximum value for fisherman reward cut in PPM
     uint32 public constant MAX_FISHERMAN_REWARD_CUT = 500000;
 
+    // Minimum value for dispute deposit
+    uint256 public constant MIN_DISPUTE_DEPOSIT = 1e18; // 1 GRT
+
     // -- Modifiers --
 
     /**
@@ -140,7 +143,7 @@ contract DisputeManager is
      */
     function createIndexingDispute(address allocationId, bytes32 poi) external override returns (bytes32) {
         // Get funds from fisherman
-        _pullFishermanDeposit();
+        _graphToken().pullTokens(msg.sender, disputeDeposit);
 
         // Create a dispute
         return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi);
@@ -158,7 +161,7 @@ contract DisputeManager is
      */
     function createQueryDispute(bytes calldata attestationData) external override returns (bytes32) {
         // Get funds from fisherman
-        _pullFishermanDeposit();
+        _graphToken().pullTokens(msg.sender, disputeDeposit);
 
         // Create a dispute
         return
@@ -174,10 +177,14 @@ contract DisputeManager is
      * @notice Create query disputes for two conflicting attestations.
      * A conflicting attestation is a proof presented by two different indexers
      * where for the same request on a subgraph the response is different.
-     * For this type of dispute the fisherman is not required to present a deposit
-     * as one of the attestation is considered to be right.
      * Two linked disputes will be created and if the arbitrator resolve one, the other
-     * one will be automatically resolved.
+     * one will be automatically resolved. Note that:
+     * - it's not possible to reject a conflicting query dispute as by definition at least one
+     * of the attestations is incorrect.
+     * - if both attestations are proven to be incorrect, the arbitrator can slash the indexer twice.
+     * Requirements:
+     * - fisherman must have previously approved this contract to pull `disputeDeposit` amount
+     *   of tokens from their balance.
      * @param attestationData1 First attestation data submitted
      * @param attestationData2 Second attestation data submitted
      * @return DisputeId1, DisputeId2
@@ -205,10 +212,23 @@ contract DisputeManager is
             )
         );
 
+        // Get funds from fisherman
+        _graphToken().pullTokens(msg.sender, disputeDeposit);
+
         // Create the disputes
         // The deposit is zero for conflicting attestations
-        bytes32 dId1 = _createQueryDisputeWithAttestation(fisherman, 0, attestation1, attestationData1);
-        bytes32 dId2 = _createQueryDisputeWithAttestation(fisherman, 0, attestation2, attestationData2);
+        bytes32 dId1 = _createQueryDisputeWithAttestation(
+            fisherman,
+            disputeDeposit / 2,
+            attestation1,
+            attestationData1
+        );
+        bytes32 dId2 = _createQueryDisputeWithAttestation(
+            fisherman,
+            disputeDeposit / 2,
+            attestation2,
+            attestationData2
+        );
 
         // Store the linked disputes to be resolved
         disputes[dId1].relatedDisputeId = dId2;
@@ -228,54 +248,59 @@ contract DisputeManager is
      * @dev Accept a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be accepted
      * @param tokensSlash Amount of tokens to slash from the indexer
+     * @param acceptDisputeInConflict If the dispute is in conflict, accept the conflicting dispute. Otherwise
+     * it will be drawn automatically. Ignored if the dispute is not in conflict.
      */
     function acceptDispute(
         bytes32 disputeId,
-        uint256 tokensSlash
+        uint256 tokensSlash,
+        bool acceptDisputeInConflict
     ) external override onlyArbitrator onlyPendingDispute(disputeId) {
         Dispute storage dispute = disputes[disputeId];
-
-        // store the dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Accepted;
-
-        // Slash
-        uint256 tokensToReward = _slashIndexer(dispute.indexer, tokensSlash, dispute.stakeSnapshot);
-
-        // Give the fisherman their reward and their deposit back
-        _graphToken().pushTokens(dispute.fisherman, tokensToReward + dispute.deposit);
+        _acceptDispute(disputeId, dispute, tokensSlash);
 
         if (_isDisputeInConflict(dispute)) {
-            rejectDispute(dispute.relatedDisputeId);
+            Dispute storage relatedDispute = disputes[dispute.relatedDisputeId];
+            if (acceptDisputeInConflict) {
+                _acceptDispute(dispute.relatedDisputeId, relatedDispute, tokensSlash);
+            } else {
+                _drawDispute(dispute.relatedDisputeId, relatedDispute);
+            }
         }
+    }
 
-        emit DisputeAccepted(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit + tokensToReward);
+    /**
+     * @notice The arbitrator rejects a dispute as being invalid.
+     * Note that conflicting query disputes cannot be rejected.
+     * @dev Reject a dispute with Id `disputeId`
+     * @param disputeId Id of the dispute to be rejected
+     */
+    function rejectDispute(bytes32 disputeId) external override onlyArbitrator onlyPendingDispute(disputeId) {
+        Dispute storage dispute = disputes[disputeId];
+        require(!_isDisputeInConflict(dispute), DisputeManagerDisputeInConflict(disputeId));
+        _rejectDispute(disputeId, dispute);
     }
 
     /**
      * @notice The arbitrator draws dispute.
+     * Note that drawing a conflicting query dispute should not be possible however it is allowed
+     * to give arbitrators greater flexibility when resolving disputes.
      * @dev Ignore a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be disregarded
      */
     function drawDispute(bytes32 disputeId) external override onlyArbitrator onlyPendingDispute(disputeId) {
         Dispute storage dispute = disputes[disputeId];
+        _drawDispute(disputeId, dispute);
 
-        // Return deposit to the fisherman if any
-        if (dispute.deposit > 0) {
-            _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
+        if (_isDisputeInConflict(dispute)) {
+            _drawDispute(dispute.relatedDisputeId, disputes[dispute.relatedDisputeId]);
         }
-
-        // resolve related dispute if any
-        _drawDisputeInConflict(dispute);
-
-        // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Drawn;
-
-        emit DisputeDrawn(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
      * @notice Once the dispute period ends, if the dispute status remains Pending,
      * the fisherman can cancel the dispute and get back their initial deposit.
+     * Note that cancelling a conflicting query dispute will also cancel the related dispute.
      * @dev Cancel a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be cancelled
      */
@@ -284,19 +309,11 @@ contract DisputeManager is
 
         // Check if dispute period has finished
         require(dispute.createdAt + disputePeriod < block.timestamp, DisputeManagerDisputePeriodNotFinished());
+        _cancelDispute(disputeId, dispute);
 
-        // Return deposit to the fisherman if any
-        if (dispute.deposit > 0) {
-            _graphToken().pushTokens(dispute.fisherman, dispute.deposit);
+        if (_isDisputeInConflict(dispute)) {
+            _cancelDispute(dispute.relatedDisputeId, disputes[dispute.relatedDisputeId]);
         }
-
-        // resolve related dispute if any
-        _cancelDisputeInConflict(dispute);
-
-        // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Cancelled;
-
-        emit DisputeCancelled(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
@@ -399,29 +416,6 @@ contract DisputeManager is
         Attestation.State memory attestation2
     ) external pure override returns (bool) {
         return Attestation.areConflicting(attestation1, attestation2);
-    }
-
-    /**
-     * @notice The arbitrator rejects a dispute as being invalid.
-     * @dev Reject a dispute with Id `disputeId`
-     * @param disputeId Id of the dispute to be rejected
-     */
-    function rejectDispute(bytes32 disputeId) public override onlyArbitrator onlyPendingDispute(disputeId) {
-        Dispute storage dispute = disputes[disputeId];
-
-        // store dispute status
-        dispute.status = IDisputeManager.DisputeStatus.Rejected;
-
-        // For conflicting disputes, the related dispute must be accepted
-        require(
-            !_isDisputeInConflict(dispute),
-            DisputeManagerMustAcceptRelatedDispute(disputeId, dispute.relatedDisputeId)
-        );
-
-        // Burn the fisherman's deposit
-        _graphToken().burnTokens(dispute.deposit);
-
-        emit DisputeRejected(disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
     }
 
     /**
@@ -561,42 +555,33 @@ contract DisputeManager is
         return disputeId;
     }
 
-    /**
-     * @notice Draw the conflicting dispute if there is any for the one passed to this function.
-     * @param _dispute Dispute
-     * @return True if resolved
-     */
-    function _drawDisputeInConflict(Dispute memory _dispute) private returns (bool) {
-        if (_isDisputeInConflict(_dispute)) {
-            bytes32 relatedDisputeId = _dispute.relatedDisputeId;
-            Dispute storage relatedDispute = disputes[relatedDisputeId];
-            relatedDispute.status = IDisputeManager.DisputeStatus.Drawn;
-            return true;
-        }
-        return false;
+    function _acceptDispute(bytes32 _disputeId, Dispute storage _dispute, uint256 _tokensSlashed) private {
+        uint256 tokensToReward = _slashIndexer(_dispute.indexer, _tokensSlashed, _dispute.stakeSnapshot);
+        _dispute.status = IDisputeManager.DisputeStatus.Accepted;
+        _graphToken().pushTokens(_dispute.fisherman, tokensToReward + _dispute.deposit);
+
+        emit DisputeAccepted(_disputeId, _dispute.indexer, _dispute.fisherman, _dispute.deposit + tokensToReward);
     }
 
-    /**
-     * @notice Cancel the conflicting dispute if there is any for the one passed to this function.
-     * @param _dispute Dispute
-     * @return True if cancelled
-     */
-    function _cancelDisputeInConflict(Dispute memory _dispute) private returns (bool) {
-        if (_isDisputeInConflict(_dispute)) {
-            bytes32 relatedDisputeId = _dispute.relatedDisputeId;
-            Dispute storage relatedDispute = disputes[relatedDisputeId];
-            relatedDispute.status = IDisputeManager.DisputeStatus.Cancelled;
-            return true;
-        }
-        return false;
+    function _rejectDispute(bytes32 _disputeId, Dispute storage _dispute) private {
+        _dispute.status = IDisputeManager.DisputeStatus.Rejected;
+        _graphToken().burnTokens(_dispute.deposit);
+
+        emit DisputeRejected(_disputeId, _dispute.indexer, _dispute.fisherman, _dispute.deposit);
     }
 
-    /**
-     * @notice Pull `disputeDeposit` from fisherman account.
-     */
-    function _pullFishermanDeposit() private {
-        // Transfer tokens to deposit from fisherman to this contract
-        _graphToken().pullTokens(msg.sender, disputeDeposit);
+    function _drawDispute(bytes32 _disputeId, Dispute storage _dispute) private {
+        _dispute.status = IDisputeManager.DisputeStatus.Drawn;
+        _graphToken().pushTokens(_dispute.fisherman, _dispute.deposit);
+
+        emit DisputeDrawn(_disputeId, _dispute.indexer, _dispute.fisherman, _dispute.deposit);
+    }
+
+    function _cancelDispute(bytes32 _disputeId, Dispute storage _dispute) private {
+        _dispute.status = IDisputeManager.DisputeStatus.Cancelled;
+        _graphToken().pushTokens(_dispute.fisherman, _dispute.deposit);
+
+        emit DisputeCancelled(_disputeId, _dispute.indexer, _dispute.fisherman, _dispute.deposit);
     }
 
     /**
@@ -658,7 +643,7 @@ contract DisputeManager is
      * @param _disputeDeposit The dispute deposit in Graph Tokens
      */
     function _setDisputeDeposit(uint256 _disputeDeposit) private {
-        require(_disputeDeposit != 0, DisputeManagerInvalidDisputeDeposit(_disputeDeposit));
+        require(_disputeDeposit >= MIN_DISPUTE_DEPOSIT, DisputeManagerInvalidDisputeDeposit(_disputeDeposit));
         disputeDeposit = _disputeDeposit;
         emit DisputeDepositSet(_disputeDeposit);
     }
@@ -704,10 +689,8 @@ contract DisputeManager is
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
      */
-    function _isDisputeInConflict(Dispute memory _dispute) private view returns (bool) {
-        bytes32 relatedId = _dispute.relatedDisputeId;
-        // this is so the check returns false when rejecting the related dispute.
-        return relatedId != 0 && disputes[relatedId].status == IDisputeManager.DisputeStatus.Pending;
+    function _isDisputeInConflict(Dispute storage _dispute) private view returns (bool) {
+        return _dispute.relatedDisputeId != bytes32(0);
     }
 
     /**
