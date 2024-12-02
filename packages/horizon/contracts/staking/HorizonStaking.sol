@@ -461,8 +461,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _graphToken().burnTokens(providerTokensSlashed - tokensVerifier);
 
             // Provision accounting
-            // TODO check for rounding issues
-            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
+            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION + prov.tokens - 1) /
+                prov.tokens;
             prov.tokensThawing =
                 (prov.tokensThawing * (FIXED_POINT_PRECISION - provisionFractionSlashed)) /
                 (FIXED_POINT_PRECISION);
@@ -497,7 +497,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 _graphToken().burnTokens(tokensToSlash);
 
                 // Delegation pool accounting
-                uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION) / pool.tokens;
+                uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION + pool.tokens - 1) /
+                    pool.tokens;
                 pool.tokens = pool.tokens - tokensToSlash;
                 pool.tokensThawing =
                     (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
