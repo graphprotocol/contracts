@@ -63,26 +63,4 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
         escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, tokens, subgraphDataServiceAddress, tokensDataService);
     }
-
-    // Collectors
-
-    function testPaused_RevertWhen_ApproveCollector(uint256 tokens) public useGateway usePaused(true) {
-        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.approveCollector(users.verifier, tokens);
-    }
-
-    function testPaused_RevertWhen_ThawCollector(uint256 tokens) public useGateway useCollector(tokens) usePaused(true) {
-        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.thawCollector(users.verifier);
-    }
-
-    function testPaused_RevertWhen_CancelThawCollector(uint256 tokens) public useGateway useCollector(tokens) usePaused(true) {
-        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.cancelThawCollector(users.verifier);
-    }
-
-    function testPaused_RevertWhen_RevokeCollector(uint256 tokens) public useGateway useCollector(tokens) usePaused(true) {
-        vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.revokeCollector(users.verifier);
-    }
 }

@@ -22,22 +22,6 @@ abstract contract PaymentsEscrowSharedTest is GraphBaseTest {
      * HELPERS
      */
     
-    function _approveCollector(address _verifier, uint256 _tokens) internal {
-        (, address msgSender, ) = vm.readCallers();
-        (uint256 beforeAllowance,) = escrow.authorizedCollectors(msgSender, _verifier);
-        vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.AuthorizedCollector(
-            msgSender, // payer
-            _verifier, // collector
-            _tokens, // addedAllowance
-            beforeAllowance + _tokens // newTotalAllowance after the added allowance
-        );
-        escrow.approveCollector(_verifier, _tokens);
-        (uint256 allowance, uint256 thawEndTimestamp) = escrow.authorizedCollectors(msgSender, _verifier);
-        assertEq(allowance - beforeAllowance, _tokens);
-        assertEq(thawEndTimestamp, 0);
-    }
-
     function _depositTokens(address _collector, address _receiver, uint256 _tokens) internal {
         (, address msgSender, ) = vm.readCallers();
         (uint256 escrowBalanceBefore,,) = escrow.escrowAccounts(msgSender, _collector, _receiver);
