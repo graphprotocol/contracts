@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingMain } from "../interfaces/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
@@ -433,6 +434,23 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensVerifier,
         address verifierDestination
     ) external override notPaused {
+        // TODO remove after the transition period
+        // Check if sender is authorized to slash on the deprecated list
+        if (__DEPRECATED_slashers[msg.sender]) {
+            // Forward call to staking extension
+            (bool success, ) = STAKING_EXTENSION_ADDRESS.delegatecall(
+                abi.encodeWithSelector(
+                    IHorizonStakingExtension.legacySlash.selector,
+                    serviceProvider,
+                    tokens,
+                    tokensVerifier,
+                    verifierDestination
+                )
+            );
+            require(success, "Delegatecall to legacySlash failed");
+            return;
+        }
+
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
