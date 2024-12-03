@@ -51,6 +51,10 @@ abstract contract DataServicePausable is Pausable, DataService, IDataServicePaus
      * @param _allowed The allowed status of the pause guardian
      */
     function _setPauseGuardian(address _pauseGuardian, bool _allowed) internal {
+        require(
+            pauseGuardians[_pauseGuardian] == !_allowed,
+            DataServicePausablePauseGuardianNoChange(_pauseGuardian, _allowed)
+        );
         pauseGuardians[_pauseGuardian] = _allowed;
         emit PauseGuardianSet(_pauseGuardian, _allowed);
     }

@@ -62,6 +62,10 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
      * @param _allowed The allowed status of the pause guardian
      */
     function _setPauseGuardian(address _pauseGuardian, bool _allowed) internal whenNotPaused {
+        require(
+            pauseGuardians[_pauseGuardian] == !_allowed,
+            DataServicePausablePauseGuardianNoChange(_pauseGuardian, _allowed)
+        );
         pauseGuardians[_pauseGuardian] = _allowed;
         emit PauseGuardianSet(_pauseGuardian, _allowed);
     }

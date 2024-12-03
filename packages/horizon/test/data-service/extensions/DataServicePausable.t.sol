@@ -70,6 +70,23 @@ contract DataServicePausableTest is HorizonStakingSharedTest {
         _assert_setPauseGuardian(address(this), false);
     }
 
+    function test_SetPauseGuardian_RevertWhen_AlreadyPauseGuardian() external {
+        _assert_setPauseGuardian(address(this), true);
+        vm.expectRevert(
+            abi.encodeWithSignature("DataServicePausablePauseGuardianNoChange(address,bool)", address(this), true)
+        );
+        dataService.setPauseGuardian(address(this), true);
+    }
+
+    function test_SetPauseGuardian_RevertWhen_AlreadyNotPauseGuardian() external {
+        _assert_setPauseGuardian(address(this), true);
+        _assert_setPauseGuardian(address(this), false);
+        vm.expectRevert(
+            abi.encodeWithSignature("DataServicePausablePauseGuardianNoChange(address,bool)", address(this), false)
+        );
+        dataService.setPauseGuardian(address(this), false);
+    }
+
     function test_PausedProtectedFn_RevertWhen_TheProtocolIsPaused() external {
         _assert_setPauseGuardian(address(this), true);
         _assert_pause();
