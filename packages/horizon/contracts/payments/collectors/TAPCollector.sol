@@ -82,6 +82,10 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
 
         require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
         require(!authorization.revoked, TAPCollectorAuthorizationAlreadyRevoked(msg.sender, signer));
+        require(
+            authorization.thawEndTimestamp == 0,
+            TAPCollectorSignerAlreadyThawing(signer, authorization.thawEndTimestamp)
+        );
 
         authorization.thawEndTimestamp = block.timestamp + REVOKE_SIGNER_THAWING_PERIOD;
         emit SignerThawing(msg.sender, signer, authorization.thawEndTimestamp);
@@ -174,10 +178,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
 
         // Ensure RAV payer matches the authorized payer
         address payer = authorizedSigners[signer].payer;
-        require(
-            signedRAV.rav.payer == payer,
-            TAPCollectorInvalidRAVPayer(payer, signedRAV.rav.payer)
-        );
+        require(signedRAV.rav.payer == payer, TAPCollectorInvalidRAVPayer(payer, signedRAV.rav.payer));
 
         address dataService = signedRAV.rav.dataService;
         address receiver = signedRAV.rav.serviceProvider;

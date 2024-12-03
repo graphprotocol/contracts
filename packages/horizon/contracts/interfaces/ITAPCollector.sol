@@ -131,6 +131,13 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorAuthorizationAlreadyRevoked(address payer, address signer);
 
     /**
+     * Thrown when attempting to thaw a signer that is already thawing
+     * @param signer The address of the signer
+     * @param thawEndTimestamp The timestamp at which the thawing period ends
+     */
+    error TAPCollectorSignerAlreadyThawing(address signer, uint256 thawEndTimestamp);
+
+    /**
      * Thrown when the signer is not thawing
      * @param signer The address of the signer
      */
