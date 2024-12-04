@@ -10,6 +10,8 @@ import { DataService } from "../DataService.sol";
  * @title DataServicePausableUpgradeable contract
  * @dev Implementation of the {IDataServicePausable} interface.
  * @dev Upgradeable version of the {DataServicePausable} contract.
+ * @dev This contract inherits from {DataService} which needs to be initialized, please see
+ * {DataService} for detailed instructions.
  */
 abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status

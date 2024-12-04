@@ -14,6 +14,8 @@ import { DataService } from "../DataService.sol";
  * pause guardians.
  * @dev Note that this extension does not provide an external function to set pause
  * guardians. This should be implemented in the derived contract.
+ * @dev This contract inherits from {DataService} which needs to be initialized, please see
+ * {DataService} for detailed instructions.
  */
 abstract contract DataServicePausable is Pausable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status
