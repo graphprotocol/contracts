@@ -443,8 +443,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         // Anyone is allowed to close ONLY under two concurrent conditions
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
-        bool isIndexerOrOperator = msg.sender == alloc.indexer ||
-            isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
+        bool isIndexerOrOperator = msg.sender == alloc.indexer || isOperator(msg.sender, alloc.indexer);
         if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
             require(isIndexerOrOperator, "!auth");
         }
