@@ -9,7 +9,7 @@ An important premise is that participants with locked tokens can perform a numbe
 
 The contract lock manages a number of tokens deposited into the contract to ensure that they can only be released under certain time conditions.
 
-This contract implements a release scheduled based on periods where tokens are released in steps after each period ends. It can be configured with one period in which case it works like a plain TimeLock.
+This contract implements a release schedule based on periods where tokens are released in steps after each period ends. It can be configured with one period in which case it works like a plain TimeLock.
 It also supports revocation by the contract owner to be used for vesting schedules.
 
 The contract supports receiving extra funds over the managed tokens that can be withdrawn by the beneficiary at any time.
@@ -54,7 +54,7 @@ The following functions signatures will be authorized for use:
 
 Contract that works as a factory of **GraphTokenLockWallet** contracts. It manages the function calls authorized to be called on any GraphTokenWallet and also holds addresses of our protocol contracts configured as targets.
 
-The Manager supports creating TokenLock contracts based on a mastercopy bytecode using a Minimal Proxy to save gas. It also do so with CREATE2 to have reproducible addresses, this way any future to be deployed contract address can be passed to beneficiaries before actual deployment.
+The Manager supports creating TokenLock contracts based on a mastercopy bytecode using a Minimal Proxy to save gas. It also does so with CREATE2 to have reproducible addresses, this way any future to be deployed contract address can be passed to beneficiaries before actual deployment.
 
 For convenience, the Manager will also fund the created contract with the amount of each contract's managed tokens.
 
