@@ -313,6 +313,43 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
+     * @notice Withdraw undelegated tokens once the unbonding period has passed.
+     * @param indexer Withdraw available tokens delegated to indexer
+     */
+    function legacyWithdrawDelegated(
+        address indexer,
+        address // newIndexer, deprecated
+    ) external override notPaused returns (uint256) {
+        // Get the delegation pool of the indexer
+        address delegator = msg.sender;
+        DelegationPoolInternal storage pool = _legacyDelegationPools[indexer];
+        DelegationInternal storage delegation = pool.delegators[delegator];
+
+        // Validation
+        uint256 tokensToWithdraw = 0;
+        uint256 currentEpoch = _graphEpochManager().currentEpoch();
+        if (
+            delegation.__DEPRECATED_tokensLockedUntil > 0 && currentEpoch >= delegation.__DEPRECATED_tokensLockedUntil
+        ) {
+            tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
+        }
+        require(tokensToWithdraw > 0, "!tokens");
+
+        // Reset lock
+        delegation.__DEPRECATED_tokensLocked = 0;
+        delegation.__DEPRECATED_tokensLockedUntil = 0;
+
+        emit StakeDelegatedWithdrawn(indexer, delegator, tokensToWithdraw);
+
+        // -- Interactions --
+
+        // Return tokens to the delegator
+        _graphToken().pushTokens(delegator, tokensToWithdraw);
+
+        return tokensToWithdraw;
+    }
+
+    /**
      * @notice (Legacy) Return true if operator is allowed for the service provider on the subgraph data service.
      * @dev TODO: Delete after the transition period
      * @param operator Address of the operator
