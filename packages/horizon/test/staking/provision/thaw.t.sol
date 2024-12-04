@@ -139,4 +139,28 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         resetPrank(users.indexer);
         _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
+
+    function testThaw_GetThawedTokens(
+        uint256 amount,
+        uint64 thawingPeriod,
+        uint256 thawSteps
+    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        thawSteps = bound(thawSteps, 1, 10);
+
+        uint256 thawAmount = amount / thawSteps;
+        vm.assume(thawAmount > 0);
+        for (uint256 i = 0; i < thawSteps; i++) {
+            _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+        }
+
+        skip(thawingPeriod + 1);
+
+        uint256 thawedTokens = staking.getThawedTokens(
+            ThawRequestType.Provision,
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.indexer
+        );
+        vm.assertEq(thawedTokens, thawAmount * thawSteps);
+    }
 }
