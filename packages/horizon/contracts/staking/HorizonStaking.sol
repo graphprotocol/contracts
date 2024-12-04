@@ -585,7 +585,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function setDelegationSlashingEnabled() external override onlyGovernor {
         _delegationSlashingEnabled = true;
-        emit DelegationSlashingEnabled(_delegationSlashingEnabled);
+        emit DelegationSlashingEnabled();
     }
 
     /**

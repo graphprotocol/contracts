@@ -1367,7 +1367,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _setDelegationSlashingEnabled() internal {
         // setDelegationSlashingEnabled
         vm.expectEmit();
-        emit IHorizonStakingMain.DelegationSlashingEnabled(true);
+        emit IHorizonStakingMain.DelegationSlashingEnabled();
         staking.setDelegationSlashingEnabled();
 
         // after

@@ -303,9 +303,8 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Emitted when the delegation slashing global flag is set.
-     * @param enabled Whether delegation slashing is enabled or disabled.
      */
-    event DelegationSlashingEnabled(bool enabled);
+    event DelegationSlashingEnabled();
 
     // -- Errors: tokens
 
