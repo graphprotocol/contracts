@@ -41,6 +41,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /// @dev Address of the staking extension contract
     address private immutable STAKING_EXTENSION_ADDRESS;
 
+    /// @dev Minimum amount of delegation.
+    uint256 private constant MIN_DELEGATION = 1e18;
+
     /**
      * @notice Checks that the caller is authorized to operate over a provision.
      * @param serviceProvider The address of the service provider.
@@ -842,6 +845,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * have been done before calling this function.
      */
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
+        require(_tokens >= MIN_DELEGATION, HorizonStakingInsufficientTokens(_tokens, MIN_DELEGATION));
         require(
             _provisions[_serviceProvider][_verifier].createdAt != 0,
             HorizonStakingInvalidProvision(_serviceProvider, _verifier)
@@ -911,6 +915,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         pool.shares = pool.shares - _shares;
         delegation.shares = delegation.shares - _shares;
+        if (delegation.shares != 0) {
+            uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+            require(
+                remainingTokens >= MIN_DELEGATION,
+                HorizonStakingInsufficientTokens(remainingTokens, MIN_DELEGATION)
+            );
+        }
 
         bytes32 thawRequestId = _createThawRequest(
             _requestType,

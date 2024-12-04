@@ -10,23 +10,6 @@ import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
-    /*
-     * MODIFIERS
-     */
-
-    modifier useUndelegate(uint256 shares) {
-        resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(
-            users.indexer,
-            subgraphDataServiceAddress,
-            users.delegator,
-            false
-        );
-        shares = bound(shares, 1, delegation.shares);
-
-        _undelegate(users.indexer, subgraphDataServiceAddress, shares);
-        _;
-    }
 
     /*
      * TESTS
@@ -81,7 +64,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     }
 
     function testWithdrawDelegation_LegacySubgraphService(uint256 delegationAmount) public useIndexer {
-        delegationAmount = bound(delegationAmount, 1, MAX_STAKING_TOKENS);
+        delegationAmount = bound(delegationAmount, MIN_DELEGATION, MAX_STAKING_TOKENS);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 10_000_000 ether, 0, MAX_THAWING_PERIOD);
 
         resetPrank(users.delegator);
@@ -111,7 +94,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing() {
-        delegationTokens = bound(delegationTokens, 2, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION * 2, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);

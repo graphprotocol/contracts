@@ -54,7 +54,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, MAX_PPM, 0) {
         vm.assume(slashTokens > tokens);
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_PPM);
         vm.assume(verifierCutAmount <= tokens);
 
@@ -71,7 +71,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 verifierCutAmount,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing() {
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         slashTokens = bound(slashTokens, tokens + 1, tokens + 1 + delegationTokens);
         verifierCutAmount = bound(verifierCutAmount, 0, tokens);
 
@@ -110,7 +110,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing {
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
