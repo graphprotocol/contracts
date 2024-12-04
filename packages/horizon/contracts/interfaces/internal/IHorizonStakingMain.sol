@@ -515,6 +515,8 @@ interface IHorizonStakingMain {
      * - During the transition period it's locked for a period of time before it can be withdrawn
      *   by calling {withdraw}.
      * - After the transition period it's immediately withdrawn.
+     * Note that after the transition period if there are tokens still locked they will have to be
+     * withdrawn by calling {withdraw}.
      * @dev Requirements:
      * - `_tokens` cannot be zero.
      * - `_serviceProvider` must have enough idle stake to cover the staking amount and any
