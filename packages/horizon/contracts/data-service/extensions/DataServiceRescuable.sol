@@ -22,6 +22,10 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     /// @notice List of rescuers and their allowed status
     mapping(address rescuer => bool allowed) public rescuers;
 
+    /// @dev Gap to allow adding variables in future upgrades
+    /// Note that this contract is not upgradeable but might be inherited by an upgradeable contract
+    uint256[50] private __gap;
+
     /**
      * @notice Checks if the caller is a rescuer.
      */

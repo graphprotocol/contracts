@@ -15,6 +15,9 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
     /// @notice List of pause guardians and their allowed status
     mapping(address pauseGuardian => bool allowed) public pauseGuardians;
 
+    /// @dev Gap to allow adding variables in future upgrades
+    uint256[50] private __gap;
+
     /**
      * @notice Checks if the caller is a pause guardian.
      */
