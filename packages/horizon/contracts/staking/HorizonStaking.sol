@@ -1015,6 +1015,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint64 _thawingUntil,
         uint256 _thawingNonce
     ) private returns (bytes32) {
+        require(_shares != 0, HorizonStakingInvalidZeroShares());
         LinkedList.List storage thawRequestList = _getThawRequestList(
             _requestType,
             _serviceProvider,
