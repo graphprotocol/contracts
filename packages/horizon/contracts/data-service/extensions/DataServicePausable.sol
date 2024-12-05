@@ -14,6 +14,8 @@ import { DataService } from "../DataService.sol";
  * pause guardians.
  * @dev Note that this extension does not provide an external function to set pause
  * guardians. This should be implemented in the derived contract.
+ * @dev This contract inherits from {DataService} which needs to be initialized, please see
+ * {DataService} for detailed instructions.
  */
 abstract contract DataServicePausable is Pausable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status
@@ -51,6 +53,10 @@ abstract contract DataServicePausable is Pausable, DataService, IDataServicePaus
      * @param _allowed The allowed status of the pause guardian
      */
     function _setPauseGuardian(address _pauseGuardian, bool _allowed) internal {
+        require(
+            pauseGuardians[_pauseGuardian] == !_allowed,
+            DataServicePausablePauseGuardianNoChange(_pauseGuardian, _allowed)
+        );
         pauseGuardians[_pauseGuardian] = _allowed;
         emit PauseGuardianSet(_pauseGuardian, _allowed);
     }

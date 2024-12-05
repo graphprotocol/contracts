@@ -24,6 +24,13 @@ interface IDataServicePausable is IDataService {
     error DataServicePausableNotPauseGuardian(address account);
 
     /**
+     * @notice Emitted when a pause guardian is set to the same allowed status
+     * @param account The address of the pause guardian
+     * @param allowed The allowed status of the pause guardian
+     */
+    error DataServicePausablePauseGuardianNoChange(address account, bool allowed);
+
+    /**
      * @notice Pauses the data service.
      * @dev Note that only functions using the modifiers `whenNotPaused`
      * and `whenPaused` will be affected by the pause.

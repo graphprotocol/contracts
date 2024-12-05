@@ -17,10 +17,16 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
  * that calls this contract's _rescueTokens.
  * @dev Note that this extension does not provide an external function to set
  * rescuers. This should be implemented in the derived contract.
+ * @dev This contract inherits from {DataService} which needs to be initialized, please see
+ * {DataService} for detailed instructions.
  */
 abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     /// @notice List of rescuers and their allowed status
     mapping(address rescuer => bool allowed) public rescuers;
+
+    /// @dev Gap to allow adding variables in future upgrades
+    /// Note that this contract is not upgradeable but might be inherited by an upgradeable contract
+    uint256[50] private __gap;
 
     /**
      * @notice Checks if the caller is a rescuer.

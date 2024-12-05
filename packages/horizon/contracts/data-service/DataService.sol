@@ -25,6 +25,8 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
  * - If the data service implementation is NOT upgradeable, it must initialize the contract by calling
  * {__DataService_init} or {__DataService_init_unchained} in the constructor. Note that the `initializer`
  * will be required in the constructor.
+ * - Note that in both cases if using {__DataService_init_unchained} variant the corresponding parent
+ * initializers must be called in the implementation.
  */
 abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1Storage, IDataService {
     /**
