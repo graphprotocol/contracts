@@ -783,9 +783,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // Calculate shares to issue
         // Thawing pool is reset/initialized when the pool is empty: prov.tokensThawing == 0
+        // Round thawing shares up to ensure fairness and avoid undervaluing the shares due to rounding down.
         uint256 thawingShares = prov.tokensThawing == 0
             ? _tokens
-            : ((prov.sharesThawing * _tokens) / prov.tokensThawing);
+            : ((prov.sharesThawing * _tokens + prov.tokensThawing - 1) / prov.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(prov.thawingPeriod));
 
         prov.sharesThawing = prov.sharesThawing + thawingShares;
@@ -907,6 +908,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         // delegation pool shares -> delegation pool tokens -> thawing pool shares
         // Thawing pool is reset/initialized when the pool is empty: prov.tokensThawing == 0
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+        // Thawing shares are rounded down to protect the pool and avoid taking extra tokens from other participants.
         uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(_provisions[_serviceProvider][_verifier].thawingPeriod));
 
