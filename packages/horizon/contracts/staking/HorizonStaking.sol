@@ -1181,7 +1181,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _thawRequestId The ID of the thaw request to delete.
      */
     function _deleteProvisionThawRequest(bytes32 _thawRequestId) private {
-        delete _provisionThawRequests[_thawRequestId];
+        delete _thawRequests[ThawRequestType.Provision][_thawRequestId];
     }
 
     /**
@@ -1189,7 +1189,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _thawRequestId The ID of the thaw request to delete.
      */
     function _deleteDelegationThawRequest(bytes32 _thawRequestId) private {
-        delete _delegationThawRequests[_thawRequestId];
+        delete _thawRequests[ThawRequestType.Delegation][_thawRequestId];
     }
 
     /**
@@ -1197,7 +1197,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _thawRequestId The ID of the thaw request to delete.
      */
     function _deleteDelegationWithBeneficiaryThawRequest(bytes32 _thawRequestId) private {
-        delete _delegationWithBeneficiaryThawRequests[_thawRequestId];
+        delete _thawRequests[ThawRequestType.DelegationWithBeneficiary][_thawRequestId];
     }
 
     /**

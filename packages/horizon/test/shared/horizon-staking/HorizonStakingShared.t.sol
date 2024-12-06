@@ -1852,7 +1852,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address operator,
         bool legacy
     ) internal view returns (bool) {
-        uint256 slotNumber = legacy ? 21 : 35;
+        uint256 slotNumber = legacy ? 21 : 31;
         uint256 slot;
 
         if (legacy) {
@@ -1934,7 +1934,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address verifier,
         bool legacy
     ) internal view returns (DelegationPoolInternalTest memory) {
-        uint256 slotNumber = legacy ? 20 : 37;
+        uint256 slotNumber = legacy ? 20 : 33;
         uint256 baseSlot;
         if (legacy) {
             baseSlot = uint256(keccak256(abi.encode(serviceProvider, slotNumber)));
@@ -1966,7 +1966,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address delegator,
         bool legacy
     ) internal view returns (DelegationInternal memory) {
-        uint256 slotNumber = legacy ? 20 : 37;
+        uint256 slotNumber = legacy ? 20 : 33;
         uint256 baseSlot;
 
         // DelegationPool

@@ -323,7 +323,7 @@ abstract contract HorizonStakingBase is
      * @return The ID of the next thaw request in the list.
      */
     function _getNextProvisionThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _provisionThawRequests[_thawRequestId].next;
+        return _thawRequests[ThawRequestType.Provision][_thawRequestId].next;
     }
 
     /**
@@ -332,7 +332,7 @@ abstract contract HorizonStakingBase is
      * @return The ID of the next thaw request in the list.
      */
     function _getNextDelegationThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _delegationThawRequests[_thawRequestId].next;
+        return _thawRequests[ThawRequestType.Delegation][_thawRequestId].next;
     }
 
     /**
@@ -341,7 +341,7 @@ abstract contract HorizonStakingBase is
      * @return The ID of the next thaw request in the list.
      */
     function _getNextDelegationWithBeneficiaryThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _delegationWithBeneficiaryThawRequests[_thawRequestId].next;
+        return _thawRequests[ThawRequestType.DelegationWithBeneficiary][_thawRequestId].next;
     }
 
     /**
@@ -360,15 +360,7 @@ abstract contract HorizonStakingBase is
         address _verifier,
         address _owner
     ) internal view returns (LinkedList.List storage) {
-        if (_requestType == ThawRequestType.Provision) {
-            return _provisionThawRequestLists[_serviceProvider][_verifier][_owner];
-        } else if (_requestType == ThawRequestType.Delegation) {
-            return _delegationThawRequestLists[_serviceProvider][_verifier][_owner];
-        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
-            return _delegationWithBeneficiaryThawRequestLists[_serviceProvider][_verifier][_owner];
-        } else {
-            revert HorizonStakingInvalidThawRequestType();
-        }
+        return _thawRequestLists[_requestType][_serviceProvider][_verifier][_owner];
     }
 
     /**
@@ -383,15 +375,7 @@ abstract contract HorizonStakingBase is
         ThawRequestType _requestType,
         bytes32 _thawRequestId
     ) internal view returns (IHorizonStakingTypes.ThawRequest storage) {
-        if (_requestType == ThawRequestType.Provision) {
-            return _provisionThawRequests[_thawRequestId];
-        } else if (_requestType == ThawRequestType.Delegation) {
-            return _delegationThawRequests[_thawRequestId];
-        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
-            return _delegationWithBeneficiaryThawRequests[_thawRequestId];
-        } else {
-            revert("Unknown ThawRequestType");
-        }
+        return _thawRequests[_requestType][_thawRequestId];
     }
 
     /**

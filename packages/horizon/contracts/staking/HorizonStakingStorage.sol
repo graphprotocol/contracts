@@ -148,32 +148,14 @@ abstract contract HorizonStakingV1Storage {
         internal _delegationFeeCut;
 
     /// @dev Thaw requests
-    /// Details for each thawing operation in the staking contract for both service providers.
-    mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _provisionThawRequests;
+    /// Details for each thawing operation in the staking contract (for both service providers and delegators).
+    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest))
+        internal _thawRequests;
 
     /// @dev Thaw request lists
-    /// Metadata defining linked lists of thaw requests for each service provider (owner).
-    mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list)))
-        internal _provisionThawRequestLists;
-
-    /// @dev Thaw requests
-    /// Details for each thawing operation in the staking contract for delegators.
-    mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _delegationThawRequests;
-
-    /// @dev Thaw request lists
-    /// Metadata defining linked lists of thaw requests for each delegator (owner).
-    mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list)))
-        internal _delegationThawRequestLists;
-
-    /// @dev Thaw requests
-    /// Details for each thawing operation in the staking contract for both delegators undelegating to a beneficiary.
-    mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest)
-        internal _delegationWithBeneficiaryThawRequests;
-
-    /// @dev Thaw request lists
-    /// Metadata defining linked lists of thaw requests for each delegator (owner) undelegating to a beneficiary.
-    mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list)))
-        internal _delegationWithBeneficiaryThawRequestLists;
+    /// Metadata defining linked lists of thaw requests for each service provider or delegator (owner)
+    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list))))
+        internal _thawRequestLists;
 
     /// @dev Operator allow list
     /// Used for all verifiers except the subgraph data service.
