@@ -13,10 +13,32 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
     bytes32 internal constant _poi = keccak256("poi");
 
     /*
+     * MODIFIERS
+     */
+
+    modifier useLegacyOperator() {
+        resetPrank(users.indexer);
+        _setOperator(subgraphDataServiceLegacyAddress, users.operator, true);
+        vm.startPrank(users.operator);
+        _;
+        vm.stopPrank();
+    }
+
+    /*
      * TESTS
      */
 
     function testCloseAllocation(uint256 tokens) public useIndexer useAllocation(1 ether) {
+        tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
+
+        // Skip 15 epochs
+        vm.roll(15);
+
+        _closeAllocation(_allocationId, _poi);
+    }
+
+    function testCloseAllocation_Operator(uint256 tokens) public useLegacyOperator() useAllocation(1 ether) {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 

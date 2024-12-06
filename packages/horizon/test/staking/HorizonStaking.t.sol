@@ -31,7 +31,7 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
     modifier useDelegation(uint256 delegationAmount) {
         address msgSender;
         (, msgSender, ) = vm.readCallers();
-        vm.assume(delegationAmount > 1);
+        vm.assume(delegationAmount >= MIN_DELEGATION);
         vm.assume(delegationAmount <= MAX_STAKING_TOKENS);
         vm.startPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
@@ -54,6 +54,32 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
         resetPrank(users.governor);
         staking.setDelegationSlashingEnabled();
         resetPrank(msgSender);
+        _;
+    }
+
+    modifier useUndelegate(uint256 shares) {
+        resetPrank(users.delegator);
+        
+        DelegationPoolInternalTest memory pool = _getStorage_DelegationPoolInternal(
+            users.indexer,
+            subgraphDataServiceAddress,
+            false
+        );
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer, 
+            subgraphDataServiceAddress, 
+            users.delegator, 
+            false
+        );
+        
+        shares = bound(shares, 1, delegation.shares);
+        uint256 tokens = (shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+        if (shares < delegation.shares) {
+            uint256 remainingTokens = (shares * (pool.tokens - pool.tokensThawing - tokens)) / pool.shares;
+            vm.assume(remainingTokens >= MIN_DELEGATION);
+        }
+
+        _undelegate(users.indexer, subgraphDataServiceAddress, shares);
         _;
     }
 }

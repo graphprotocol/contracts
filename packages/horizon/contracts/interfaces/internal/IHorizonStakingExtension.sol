@@ -78,6 +78,12 @@ interface IHorizonStakingExtension is IRewardsIssuer {
     );
 
     /**
+     * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
+     * Tracks `reward` amount of tokens given to `beneficiary`.
+     */
+    event StakeSlashed(address indexed indexer, uint256 tokens, uint256 reward, address beneficiary);
+
+    /**
      * @notice Close an allocation and free the staked tokens.
      * To be eligible for rewards a proof of indexing must be presented.
      * Presenting a bad proof is subject to slashable condition.
@@ -148,4 +154,14 @@ interface IHorizonStakingExtension is IRewardsIssuer {
      */
     // solhint-disable-next-line func-name-mixedcase
     function __DEPRECATED_getThawingPeriod() external view returns (uint64);
+
+    /**
+     * @notice Slash the indexer stake. Delegated tokens are not subject to slashing.
+     * @dev Can only be called by the slasher role.
+     * @param indexer Address of indexer to slash
+     * @param tokens Amount of tokens to slash from the indexer stake
+     * @param reward Amount of reward tokens to send to a beneficiary
+     * @param beneficiary Address of a beneficiary to receive a reward for the slashing
+     */
+    function legacySlash(address indexer, uint256 tokens, uint256 reward, address beneficiary) external;
 }

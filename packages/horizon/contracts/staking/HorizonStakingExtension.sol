@@ -37,6 +37,14 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
+     * @dev Check if the caller is the slasher.
+     */
+    modifier onlySlasher() {
+        require(__DEPRECATED_slashers[msg.sender] == true, "!slasher");
+        _;
+    }
+
+    /**
      * @dev The staking contract is upgradeable however we still use the constructor to set
      * a few immutable variables.
      * @param controller The address of the Graph controller contract.
@@ -255,6 +263,55 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         return __DEPRECATED_thawingPeriod;
     }
 
+    function legacySlash(
+        address indexer,
+        uint256 tokens,
+        uint256 reward,
+        address beneficiary
+    ) external override onlySlasher notPaused {
+        ServiceProviderInternal storage indexerStake = _serviceProviders[indexer];
+
+        // Only able to slash a non-zero number of tokens
+        require(tokens > 0, "!tokens");
+
+        // Rewards comes from tokens slashed balance
+        require(tokens >= reward, "rewards>slash");
+
+        // Cannot slash stake of an indexer without any or enough stake
+        require(indexerStake.tokensStaked > 0, "!stake");
+        require(tokens <= indexerStake.tokensStaked, "slash>stake");
+
+        // Validate beneficiary of slashed tokens
+        require(beneficiary != address(0), "!beneficiary");
+
+        // Slashing more tokens than freely available (over allocation condition)
+        // Unlock locked tokens to avoid the indexer to withdraw them
+        uint256 tokensAvailable = indexerStake.tokensStaked -
+            indexerStake.__DEPRECATED_tokensAllocated -
+            indexerStake.__DEPRECATED_tokensLocked;
+        if (tokens > tokensAvailable && indexerStake.__DEPRECATED_tokensLocked > 0) {
+            uint256 tokensOverAllocated = tokens - tokensAvailable;
+            uint256 tokensToUnlock = MathUtils.min(tokensOverAllocated, indexerStake.__DEPRECATED_tokensLocked);
+            indexerStake.__DEPRECATED_tokensLocked = indexerStake.__DEPRECATED_tokensLocked - tokensToUnlock;
+            if (indexerStake.__DEPRECATED_tokensLocked == 0) {
+                indexerStake.__DEPRECATED_tokensLockedUntil = 0;
+            }
+        }
+
+        // Remove tokens to slash from the stake
+        indexerStake.tokensStaked = indexerStake.tokensStaked - tokens;
+
+        // -- Interactions --
+
+        // Set apart the reward for the beneficiary and burn remaining slashed stake
+        _graphToken().burnTokens(tokens - reward);
+
+        // Give the beneficiary a reward for slashing
+        _graphToken().pushTokens(beneficiary, reward);
+
+        emit StakeSlashed(indexer, tokens, reward, beneficiary);
+    }
+
     /**
      * @notice (Legacy) Return true if operator is allowed for the service provider on the subgraph data service.
      * @dev TODO: Delete after the transition period
@@ -349,8 +406,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         // Anyone is allowed to close ONLY under two concurrent conditions
         // - After maxAllocationEpochs passed
         // - When the allocation is for non-zero amount of tokens
-        bool isIndexerOrOperator = msg.sender == alloc.indexer ||
-            isOperator(alloc.indexer, SUBGRAPH_DATA_SERVICE_ADDRESS);
+        bool isIndexerOrOperator = msg.sender == alloc.indexer || isOperator(msg.sender, alloc.indexer);
         if (epochs <= __DEPRECATED_maxAllocationEpochs || alloc.tokens == 0) {
             require(isIndexerOrOperator, "!auth");
         }
