@@ -67,7 +67,7 @@ contract HorizonStakingDelegateTest is HorizonStakingTest {
         vm.startPrank(users.delegator);
         token.approve(address(staking), delegationAmount);
         bytes memory expectedError = abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInsufficientTokens.selector,
+            IHorizonStakingMain.HorizonStakingInsufficientDelegationTokens.selector,
             delegationAmount,
             MIN_DELEGATION
         );
