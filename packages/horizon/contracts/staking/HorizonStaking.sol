@@ -867,6 +867,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * have been done before calling this function.
      */
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
+        // Enforces a minimum delegation amount to prevent share manipulation attacks.
+        // This stops attackers from inflating share value and blocking other delegators.
         require(_tokens >= MIN_DELEGATION, HorizonStakingInsufficientTokens(_tokens, MIN_DELEGATION));
         require(
             _provisions[_serviceProvider][_verifier].createdAt != 0,
