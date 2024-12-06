@@ -160,6 +160,7 @@ interface IHorizonStakingTypes {
 
     /**
      * @notice Parameters to fulfill thaw requests.
+     * @dev This struct is used to avoid stack too deep error in the `fulfillThawRequests` function.
      * @param requestType The type of thaw request (Provision or Delegation)
      * @param serviceProvider The address of the service provider
      * @param verifier The address of the verifier
