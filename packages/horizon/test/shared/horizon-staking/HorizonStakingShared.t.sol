@@ -1046,7 +1046,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             newVerifier: address(0),
             minSharesForNewProvider: 0,
             nThawRequests: nThawRequests,
-            legacy: false
+            legacy: verifier == subgraphDataServiceLegacyAddress
         });
         __withdrawDelegated(params);
     }
@@ -1086,20 +1086,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             minSharesForNewProvider: minSharesForNewProvider,
             nThawRequests: nThawRequests,
             legacy: false
-        });
-        __withdrawDelegated(params);
-    }
-
-    function _withdrawDelegated(address serviceProvider, address newServiceProvider) internal {
-        Params_WithdrawDelegated memory params = Params_WithdrawDelegated({
-            thawRequestType: IHorizonStakingTypes.ThawRequestType.Delegation,
-            serviceProvider: serviceProvider,
-            verifier: subgraphDataServiceLegacyAddress,
-            newServiceProvider: newServiceProvider,
-            newVerifier: subgraphDataServiceLegacyAddress,
-            minSharesForNewProvider: 0,
-            nThawRequests: 0,
-            legacy: true
         });
         __withdrawDelegated(params);
     }
@@ -1197,9 +1183,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             msgSender,
             calcValues.tokensThawed
         );
-        if (params.legacy) {
-            staking.withdrawDelegated(params.serviceProvider, params.newServiceProvider);
-        } else if (reDelegate) {
+        if (reDelegate) {
             staking.redelegate(
                 params.serviceProvider,
                 params.verifier,

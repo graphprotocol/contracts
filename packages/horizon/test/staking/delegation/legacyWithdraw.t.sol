@@ -54,8 +54,8 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
         uint256 beforeDelegatorBalance = token.balanceOf(users.delegator);
 
         vm.expectEmit(address(staking));
-        emit IHorizonStakingExtension.StakeDelegatedWithdrawn(_indexer, delegator, pool.tokens);
-        staking.legacyWithdrawDelegated(users.indexer, address(0));
+        emit IHorizonStakingMain.StakeDelegatedWithdrawn(_indexer, delegator, pool.tokens);
+        staking.withdrawDelegated(users.indexer, address(0));
 
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterDelegatorBalance = token.balanceOf(users.delegator);
@@ -93,6 +93,6 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
         _setLegacyDelegation(users.indexer, users.delegator, 0, 0, 0);
 
         vm.expectRevert("!tokens");
-        staking.legacyWithdrawDelegated(users.indexer, address(0));
+        staking.withdrawDelegated(users.indexer, address(0));
     }
 }

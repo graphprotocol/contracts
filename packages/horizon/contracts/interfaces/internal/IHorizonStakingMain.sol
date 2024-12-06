@@ -206,6 +206,15 @@ interface IHorizonStakingMain {
     );
 
     /**
+     * @notice Emitted when `delegator` withdrew delegated `tokens` from `indexer` using `withdrawDelegated`.
+     * @dev This event is for the legacy `withdrawDelegated` function.
+     * @param indexer The address of the indexer
+     * @param delegator The address of the delegator
+     * @param tokens The amount of tokens withdrawn
+     */
+    event StakeDelegatedWithdrawn(address indexed indexer, address indexed delegator, uint256 tokens);
+
+    /**
      * @notice Emitted when tokens are added to a delegation pool's reserve.
      * @param serviceProvider The address of the service provider
      * @param verifier The address of the verifier
@@ -861,13 +870,14 @@ interface IHorizonStakingMain {
     /**
      * @notice Withdraw undelegated tokens from the subgraph data service provision after thawing.
      * This function is for backwards compatibility with the legacy staking contract.
-     * It only allows withdrawing from the subgraph data service and DOES NOT have slippage protection in
-     * case the caller opts for re-delegating.
+     * It only allows withdrawing tokens undelegated before horizon upgrade.
      * @dev See {delegate}.
      * @param serviceProvider The service provider address
-     * @param newServiceProvider The address of a new service provider, if the delegator wants to re-delegate
      */
-    function withdrawDelegated(address serviceProvider, address newServiceProvider) external;
+    function withdrawDelegated(
+        address serviceProvider,
+        address // newServiceProvider, deprecated
+    ) external returns (uint256);
 
     /**
      * @notice Slash a service provider. This can only be called by a verifier to which

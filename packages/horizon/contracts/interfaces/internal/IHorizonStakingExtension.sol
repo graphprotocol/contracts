@@ -84,11 +84,6 @@ interface IHorizonStakingExtension is IRewardsIssuer {
     event StakeSlashed(address indexed indexer, uint256 tokens, uint256 reward, address beneficiary);
 
     /**
-     * @dev Emitted when `delegator` withdrew delegated `tokens` from `indexer` using `legacyWithdrawDelegated`.
-     */
-    event StakeDelegatedWithdrawn(address indexed indexer, address indexed delegator, uint256 tokens);
-
-    /**
      * @notice Close an allocation and free the staked tokens.
      * To be eligible for rewards a proof of indexing must be presented.
      * Presenting a bad proof is subject to slashable condition.
@@ -169,13 +164,4 @@ interface IHorizonStakingExtension is IRewardsIssuer {
      * @param beneficiary Address of a beneficiary to receive a reward for the slashing
      */
     function legacySlash(address indexer, uint256 tokens, uint256 reward, address beneficiary) external;
-
-    /**
-     * @notice Withdraw undelegated tokens once the unbonding period has passed.
-     * @param _indexer Withdraw available tokens delegated to indexer
-     */
-    function legacyWithdrawDelegated(
-        address _indexer,
-        address /* _newIndexer, deprecated */
-    ) external returns (uint256);
 }

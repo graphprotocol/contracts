@@ -87,7 +87,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         skip(thawRequest.thawingUntil + 1);
 
-        _withdrawDelegated(users.indexer, address(0));
+        _withdrawDelegated(users.indexer, subgraphDataServiceLegacyAddress, 0);
     }
 
     function testWithdrawDelegation_RevertWhen_InvalidPool(
