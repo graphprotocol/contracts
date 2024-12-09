@@ -62,6 +62,13 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         assertEq(disputeManager.disputeDeposit(), _disputeDeposit, "Dispute deposit should be set.");
     }
 
+    function _setSubgraphService(address _subgraphService) internal {
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.SubgraphServiceSet(_subgraphService);
+        disputeManager.setSubgraphService(_subgraphService);
+        assertEq(address(disputeManager.subgraphService()), _subgraphService, "Subgraph service should be set.");
+    }
+
     function _createIndexingDispute(address _allocationId, bytes32 _poi) internal returns (bytes32) {
         (, address fisherman, ) = vm.readCallers();
         bytes32 expectedDisputeId = keccak256(abi.encodePacked(_allocationId, _poi));
@@ -620,5 +627,9 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
                 createdAt: createdAt,
                 stakeSnapshot: stakeSnapshot
             });
+    }
+
+    function _setStorage_SubgraphService(address _subgraphService) internal {
+        vm.store(address(disputeManager), bytes32(uint256(51)), bytes32(uint256(uint160(_subgraphService))));
     }
 }

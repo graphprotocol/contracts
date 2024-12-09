@@ -402,7 +402,10 @@ contract DisputeManager is
      * @param indexer The indexer address
      */
     function getStakeSnapshot(address indexer) external view override returns (uint256) {
-        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(
+            indexer,
+            address(_getSubgraphService())
+        );
         return _getStakeSnapshot(indexer, provision.tokens);
     }
 
@@ -427,7 +430,7 @@ contract DisputeManager is
         // Get attestation signer. Indexers signs with the allocationId
         address allocationId = _recoverSigner(attestation);
 
-        Allocation.State memory alloc = subgraphService.getAllocation(allocationId);
+        Allocation.State memory alloc = _getSubgraphService().getAllocation(allocationId);
         require(alloc.indexer != address(0), DisputeManagerIndexerNotFound(allocationId));
         require(
             alloc.subgraphDeploymentId == attestation.subgraphDeploymentId,
@@ -466,7 +469,10 @@ contract DisputeManager is
         address indexer = getAttestationIndexer(_attestation);
 
         // The indexer is disputable
-        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(
+            indexer,
+            address(_getSubgraphService())
+        );
         require(provision.tokens != 0, DisputeManagerZeroTokens());
 
         // Create a disputeId
@@ -529,12 +535,13 @@ contract DisputeManager is
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
 
         // Allocation must exist
-        Allocation.State memory alloc = subgraphService.getAllocation(_allocationId);
+        ISubgraphService subgraphService_ = _getSubgraphService();
+        Allocation.State memory alloc = subgraphService_.getAllocation(_allocationId);
         address indexer = alloc.indexer;
         require(indexer != address(0), DisputeManagerIndexerNotFound(_allocationId));
 
         // The indexer must be disputable
-        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService_));
         require(provision.tokens != 0, DisputeManagerZeroTokens());
 
         // Store dispute
@@ -596,8 +603,10 @@ contract DisputeManager is
         uint256 _tokensSlash,
         uint256 _tokensStakeSnapshot
     ) private returns (uint256) {
+        ISubgraphService subgraphService_ = _getSubgraphService();
+
         // Get slashable amount for indexer
-        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_indexer, address(subgraphService));
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_indexer, address(subgraphService_));
 
         // Ensure slash amount is within the cap
         uint256 maxTokensSlash = _tokensStakeSnapshot.mulPPM(maxSlashingCut);
@@ -611,7 +620,7 @@ contract DisputeManager is
         uint256 maxRewardableTokens = Math.min(_tokensSlash, provision.tokens);
         uint256 tokensRewards = uint256(fishermanRewardCut).mulPPM(maxRewardableTokens);
 
-        subgraphService.slash(_indexer, abi.encode(_tokensSlash, tokensRewards));
+        subgraphService_.slash(_indexer, abi.encode(_tokensSlash, tokensRewards));
         return tokensRewards;
     }
 
@@ -685,6 +694,16 @@ contract DisputeManager is
     }
 
     /**
+     * @notice Get the address of the subgraph service
+     * @dev Will revert if the subgraph service is not set
+     * @return The subgraph service address
+     */
+    function _getSubgraphService() private view returns (ISubgraphService) {
+        require(address(subgraphService) != address(0), DisputeManagerSubgraphServiceNotSet());
+        return subgraphService;
+    }
+
+    /**
      * @notice Returns whether the dispute is for a conflicting attestation or not.
      * @param _dispute Dispute
      * @return True conflicting attestation dispute
@@ -705,8 +724,9 @@ contract DisputeManager is
      * @return Total stake snapshot
      */
     function _getStakeSnapshot(address _indexer, uint256 _indexerStake) private view returns (uint256) {
-        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(subgraphService)).tokens;
-        uint256 delegatorsStakeMax = _indexerStake * uint256(subgraphService.getDelegationRatio());
+        ISubgraphService subgraphService_ = _getSubgraphService();
+        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(subgraphService_)).tokens;
+        uint256 delegatorsStakeMax = _indexerStake * uint256(subgraphService_.getDelegationRatio());
         uint256 stakeSnapshot = _indexerStake + MathUtils.min(delegatorsStake, delegatorsStakeMax);
         return stakeSnapshot;
     }

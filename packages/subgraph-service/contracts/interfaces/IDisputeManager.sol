@@ -181,6 +181,7 @@ interface IDisputeManager {
         bytes32 responseCID2,
         bytes32 subgraphDeploymentId2
     );
+    error DisputeManagerSubgraphServiceNotSet();
 
     function setDisputePeriod(uint64 disputePeriod) external;
 

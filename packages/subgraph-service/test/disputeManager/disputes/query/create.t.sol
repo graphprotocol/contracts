@@ -17,11 +17,26 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Query_Create_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_Query_Create_Dispute_Only(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         _createQueryDispute(attestationData);
+    }
+
+    function test_Query_Create_Dispute_RevertWhen_SubgraphServiceNotSet(uint256 tokens) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
+
+        // clear subgraph service address from storage
+        _setStorage_SubgraphService(address(0));
+
+        // // Approve the dispute deposit
+        token.approve(address(disputeManager), disputeDeposit);
+
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerSubgraphServiceNotSet.selector));
+        disputeManager.createQueryDispute(attestationData);
     }
 
     function test_Query_Create_MultipleDisputes_DifferentFisherman(
