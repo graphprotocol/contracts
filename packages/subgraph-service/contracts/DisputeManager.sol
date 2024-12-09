@@ -31,11 +31,9 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
  * Indexers use the derived private key for an allocation to sign attestations.
  *
  * Indexing Disputes:
- * Indexers present a Proof of Indexing (POI) when they close allocations to prove
- * they were indexing a subgraph. The Staking contract emits that proof with the format
- * keccak256(indexer.address, POI).
- * Any fisherman can dispute the validity of a POI by submitting a dispute to this contract
- * along with a deposit.
+ * Indexers periodically present a Proof of Indexing (POI) to prove they are indexing a subgraph.
+ * The Subgraph Service contract emits that proof which includes the POI. Any fisherman can dispute the
+ * validity of a POI by submitting a dispute to this contract along with a deposit.
  *
  * Arbitration:
  * Disputes can only be accepted, rejected or drawn by the arbitrator role that can be delegated
