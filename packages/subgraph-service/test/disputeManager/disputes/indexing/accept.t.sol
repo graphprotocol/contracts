@@ -24,7 +24,37 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
         
         resetPrank(users.arbitrator);
-        _acceptDispute(disputeID, tokensSlash);
+        _acceptDispute(disputeID, tokensSlash, false);
+    }
+
+    function test_Indexing_Accept_Dispute_RevertWhen_SubgraphServiceNotSet(
+        uint256 tokens,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) {
+        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        
+        resetPrank(users.arbitrator);
+        // clear subgraph service address from storage
+        _setStorage_SubgraphService(address(0));
+
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerSubgraphServiceNotSet.selector));
+        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+    }
+
+    function test_Indexing_Accept_Dispute_OptParam(
+        uint256 tokens,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) {
+        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        
+        resetPrank(users.arbitrator);
+        _acceptDispute(disputeID, tokensSlash, true);
     }
 
     function test_Indexing_Accept_RevertIf_CallerIsNotArbitrator(
@@ -39,7 +69,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         // attempt to accept dispute as fisherman
         resetPrank(users.fisherman);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
-        disputeManager.acceptDispute(disputeID, tokensSlash);
+        disputeManager.acceptDispute(disputeID, tokensSlash, false);
     }
 
     function test_Indexing_Accept_RevertWhen_SlashingOverMaxSlashPercentage(
@@ -59,6 +89,6 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
             maxTokensToSlash
         );
         vm.expectRevert(expectedError);
-        disputeManager.acceptDispute(disputeID, tokensSlash);
+        disputeManager.acceptDispute(disputeID, tokensSlash, false);
     }
 }

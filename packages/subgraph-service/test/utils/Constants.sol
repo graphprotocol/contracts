@@ -7,6 +7,7 @@ abstract contract Constants {
     uint256 internal constant EPOCH_LENGTH = 1;
     // Dispute Manager
     uint64 internal constant disputePeriod = 7 days;
+    uint256 internal constant MIN_DISPUTE_DEPOSIT = 1 ether; // 1 GRT
     uint256 internal constant disputeDeposit = 100 ether; // 100 GRT
     uint32 internal constant fishermanRewardPercentage = 500000; // 50%
     uint32 internal constant maxSlashingPercentage = 500000; // 50%

@@ -7,16 +7,28 @@ import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManage
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
-
     /*
      * TESTS
      */
 
-    function test_Indexing_Create_Dispute(
+    function test_Indexing_Create_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
+        _createIndexingDispute(allocationID, bytes32("POI1"));
+    }
+
+    function test_Indexing_Create_Dispute_RevertWhen_SubgraphServiceNotSet(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        _createIndexingDispute(allocationID, bytes32("POI1"));
+
+        // clear subgraph service address from storage
+        _setStorage_SubgraphService(address(0));
+
+        // // Approve the dispute deposit
+        token.approve(address(disputeManager), disputeDeposit);
+
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerSubgraphServiceNotSet.selector));
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI2"));
     }
 
     function test_Indexing_Create_MultipleDisputes() public {
@@ -33,7 +45,12 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
             _createProvision(indexer, tokens, maxSlashingPercentage, disputePeriod);
             _register(indexer, abi.encode("url", "geoHash", address(0)));
             uint256 allocationIDPrivateKey = uint256(keccak256(abi.encodePacked(i)));
-            bytes memory data = _createSubgraphAllocationData(indexer, subgraphDeployment, allocationIDPrivateKey, tokens);
+            bytes memory data = _createSubgraphAllocationData(
+                indexer,
+                subgraphDeployment,
+                allocationIDPrivateKey,
+                tokens
+            );
             _startService(indexer, data);
             allocationIDPrivateKeys[i] = allocationIDPrivateKey;
         }
@@ -48,7 +65,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         // Create another dispute with different fisherman
         address otherFisherman = makeAddr("otherFisherman");
@@ -78,9 +95,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         vm.stopPrank();
     }
 
-    function test_Indexing_Create_RevertIf_AllocationDoesNotExist(
-        uint256 tokens
-    ) public useFisherman {
+    function test_Indexing_Create_RevertIf_AllocationDoesNotExist(uint256 tokens) public useFisherman {
         tokens = bound(tokens, disputeDeposit, 10_000_000_000 ether);
         token.approve(address(disputeManager), tokens);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -92,9 +107,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         vm.stopPrank();
     }
 
-    function test_Indexing_Create_RevertIf_IndexerIsBelowStake(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Indexing_Create_RevertIf_IndexerIsBelowStake(uint256 tokens) public useIndexer useAllocation(tokens) {
         // Close allocation
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);
