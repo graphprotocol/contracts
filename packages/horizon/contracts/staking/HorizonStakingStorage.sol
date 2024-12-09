@@ -149,11 +149,12 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Thaw requests
     /// Details for each thawing operation in the staking contract (for both service providers and delegators).
-    mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest) internal _thawRequests;
+    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(bytes32 thawRequestId => IHorizonStakingTypes.ThawRequest thawRequest))
+        internal _thawRequests;
 
     /// @dev Thaw request lists
     /// Metadata defining linked lists of thaw requests for each service provider or delegator (owner)
-    mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list)))
+    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list))))
         internal _thawRequestLists;
 
     /// @dev Operator allow list

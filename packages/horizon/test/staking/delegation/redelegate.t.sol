@@ -10,19 +10,6 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
     /*
-     * MODIFIERS
-     */
-
-    modifier useUndelegate(uint256 shares) {
-        resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
-        shares = bound(shares, 1, delegation.shares);
-
-        _undelegate(users.indexer, subgraphDataServiceAddress, shares);
-        _;
-    }
-
-    /*
      * HELPERS
      */
 

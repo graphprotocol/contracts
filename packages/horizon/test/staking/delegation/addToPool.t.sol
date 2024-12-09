@@ -10,6 +10,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
 
     modifier useValidDelegationAmount(uint256 tokens) {
         vm.assume(tokens <= MAX_STAKING_TOKENS);
+        vm.assume(tokens >= MIN_DELEGATION);
         _;
     }
 
@@ -93,7 +94,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         uint256 recoverAmount
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
         recoverAmount = bound(recoverAmount, 1, MAX_STAKING_TOKENS);
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 
         // create delegation pool
         resetPrank(users.delegator);
@@ -116,7 +117,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         uint256 recoverAmount
     ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
         recoverAmount = bound(recoverAmount, 1, MAX_STAKING_TOKENS);
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 
         // create delegation pool
         resetPrank(users.delegator);
