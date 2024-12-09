@@ -212,7 +212,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
         // Ensure allocation id is not reused
         // need to check both subgraph service (on allocations.create()) and legacy allocations
-        legacyAllocations.revertIfExists(_allocationId);
+        legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
         Allocation.State memory allocation = allocations.create(
             _indexer,
             _allocationId,
