@@ -19,8 +19,8 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * to the Horizon Staking contract. It allows indexers to close allocations and collect pending query fees, but it
  * does not allow for the creation of new allocations. This should allow indexers to migrate to a subgraph data service
  * without losing rewards or having service interruptions.
- * @dev TODO: Once the transition period passes this contract can be removed. It's expected the transition period to
- * last for a full allocation cycle (28 epochs).
+ * @dev TODO: Once the transition period passes this contract can be removed (note that an upgrade to the RewardsManager
+ * will also be required). It's expected the transition period to last for a full allocation cycle (28 epochs).
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */

@@ -735,7 +735,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-createProvision}.
+     * @notice See {IHorizonStakingMain-provision}.
      */
     function _createProvision(
         address _serviceProvider,
