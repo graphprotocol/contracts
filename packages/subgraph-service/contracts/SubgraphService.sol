@@ -422,6 +422,7 @@ contract SubgraphService is
      * @return subgraphDeploymentId Subgraph deployment id for the allocation
      * @return tokens Amount of allocated tokens
      * @return accRewardsPerAllocatedToken Rewards snapshot
+     * @return accRewardsPending Rewards pending to be minted due to allocation resize
      */
     function getAllocationData(
         address allocationId
