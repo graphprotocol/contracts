@@ -129,7 +129,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 tokensDataService
+        uint256 dataServiceCut
     ) external override notPaused {
         // Check if there are enough funds in the escrow account
         EscrowAccount storage account = escrowAccounts[payer][msg.sender][receiver];
@@ -141,7 +141,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
 
         _graphToken().approve(address(_graphPayments()), tokens);
-        _graphPayments().collect(paymentType, receiver, tokens, dataService, tokensDataService);
+        _graphPayments().collect(paymentType, receiver, tokens, dataService, dataServiceCut);
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
         require(

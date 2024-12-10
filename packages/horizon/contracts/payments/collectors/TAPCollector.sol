@@ -214,21 +214,12 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
             }
         }
 
-        uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);
-
         if (tokensToCollect > 0) {
             tokensCollected[dataService][receiver][payer] += tokensToCollect;
-            _graphPaymentsEscrow().collect(
-                _paymentType,
-                payer,
-                receiver,
-                tokensToCollect,
-                dataService,
-                tokensDataService
-            );
+            _graphPaymentsEscrow().collect(_paymentType, payer, receiver, tokensToCollect, dataService, dataServiceCut);
         }
 
-        emit PaymentCollected(_paymentType, payer, receiver, tokensToCollect, dataService, tokensDataService);
+        emit PaymentCollected(_paymentType, payer, receiver, dataService, tokensToCollect);
         emit RAVCollected(
             payer,
             dataService,

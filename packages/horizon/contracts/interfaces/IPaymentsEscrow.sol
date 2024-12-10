@@ -186,7 +186,7 @@ interface IPaymentsEscrow {
      * @param receiver The address of the receiver
      * @param tokens The amount of tokens to collect
      * @param dataService The address of the data service
-     * @param tokensDataService The amount of tokens that {GraphPayments} should send to the data service
+     * @param dataServiceCut The data service cut in PPM that {GraphPayments} should send
      */
     function collect(
         IGraphPayments.PaymentTypes paymentType,
@@ -194,7 +194,7 @@ interface IPaymentsEscrow {
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 tokensDataService
+        uint256 dataServiceCut
     ) external;
 
     /**

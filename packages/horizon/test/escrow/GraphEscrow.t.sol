@@ -7,8 +7,11 @@ import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { PaymentsEscrowSharedTest } from "../shared/payments-escrow/PaymentsEscrowShared.t.sol";
+import { PPMMath } from "../../contracts/libraries/PPMMath.sol";
 
 contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
+    using PPMMath for uint256;
+
     /*
      * MODIFIERS
      */
@@ -59,6 +62,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         uint256 receiverBalance;
         uint256 delegationPoolBalance;
         uint256 dataServiceBalance;
+        uint256 payerEscrowBalance;
     }
 
     function _collectEscrow(
@@ -67,53 +71,62 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         address _receiver,
         uint256 _tokens,
         address _dataService,
-        uint256 _tokensDataService
+        uint256 _dataServiceCut
     ) internal {
         (, address _collector, ) = vm.readCallers();
 
         // Previous balances
-        (uint256 previousPayerEscrowBalance, , ) = escrow.escrowAccounts(_payer, _collector, _receiver);
         CollectPaymentData memory previousBalances = CollectPaymentData({
             escrowBalance: token.balanceOf(address(escrow)),
             paymentsBalance: token.balanceOf(address(payments)),
             receiverBalance: token.balanceOf(_receiver),
             delegationPoolBalance: staking.getDelegatedTokensAvailable(_receiver, _dataService),
-            dataServiceBalance: token.balanceOf(_dataService)
+            dataServiceBalance: token.balanceOf(_dataService),
+            payerEscrowBalance: 0
         });
+
+        {
+            (uint256 payerEscrowBalance, , ) = escrow.escrowAccounts(_payer, _collector, _receiver);
+            previousBalances.payerEscrowBalance = payerEscrowBalance;
+        }
 
         vm.expectEmit(address(escrow));
         emit IPaymentsEscrow.EscrowCollected(_payer, _collector, _receiver, _tokens);
-        escrow.collect(_paymentType, _payer, _receiver, _tokens, _dataService, _tokensDataService);
+        escrow.collect(_paymentType, _payer, _receiver, _tokens, _dataService, _dataServiceCut);
 
         // Calculate cuts
-        uint256 protocolPaymentCut = payments.PROTOCOL_PAYMENT_CUT();
-        uint256 delegatorCut = staking.getDelegationFeeCut(_receiver, _dataService, _paymentType);
+        // this is nasty but stack is indeed too deep
+        uint256 tokensDataService = (_tokens - _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT())).mulPPMRoundUp(
+            _dataServiceCut
+        );
+        uint256 tokensDelegation = (_tokens -
+            _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) -
+            tokensDataService).mulPPMRoundUp(staking.getDelegationFeeCut(_receiver, _dataService, _paymentType));
+        uint256 receiverExpectedPayment = _tokens -
+            _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) -
+            tokensDataService -
+            tokensDelegation;
 
         // After balances
-        (uint256 afterPayerEscrowBalance, , ) = escrow.escrowAccounts(_payer, _collector, _receiver);
         CollectPaymentData memory afterBalances = CollectPaymentData({
             escrowBalance: token.balanceOf(address(escrow)),
             paymentsBalance: token.balanceOf(address(payments)),
             receiverBalance: token.balanceOf(_receiver),
             delegationPoolBalance: staking.getDelegatedTokensAvailable(_receiver, _dataService),
-            dataServiceBalance: token.balanceOf(_dataService)
+            dataServiceBalance: token.balanceOf(_dataService),
+            payerEscrowBalance: 0
         });
+        {
+            (uint256 afterPayerEscrowBalance, , ) = escrow.escrowAccounts(_payer, _collector, _receiver);
+            afterBalances.payerEscrowBalance = afterPayerEscrowBalance;
+        }
 
         // Check receiver balance after payment
-        uint256 receiverExpectedPayment = _tokens -
-            _tokensDataService -
-            (_tokens * protocolPaymentCut) /
-            MAX_PPM -
-            (_tokens * delegatorCut) /
-            MAX_PPM;
         assertEq(afterBalances.receiverBalance - previousBalances.receiverBalance, receiverExpectedPayment);
         assertEq(token.balanceOf(address(payments)), 0);
 
         // Check delegation pool balance after payment
-        assertEq(
-            afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance,
-            (_tokens * delegatorCut) / MAX_PPM
-        );
+        assertEq(afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance, tokensDelegation);
 
         // Check that the escrow account has been updated
         assertEq(previousBalances.escrowBalance, afterBalances.escrowBalance + _tokens);
@@ -122,9 +135,9 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         assertEq(previousBalances.paymentsBalance, afterBalances.paymentsBalance);
 
         // Check data service balance after payment
-        assertEq(afterBalances.dataServiceBalance - previousBalances.dataServiceBalance, _tokensDataService);
+        assertEq(afterBalances.dataServiceBalance - previousBalances.dataServiceBalance, tokensDataService);
 
         // Check payers escrow balance after payment
-        assertEq(previousPayerEscrowBalance - _tokens, afterPayerEscrowBalance);
+        assertEq(previousBalances.payerEscrowBalance - _tokens, afterBalances.payerEscrowBalance);
     }
 }

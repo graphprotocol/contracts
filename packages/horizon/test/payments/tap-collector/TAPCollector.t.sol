@@ -60,12 +60,12 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
     function _authorizeSigner(address _signer, uint256 _proofDeadline, bytes memory _proof) internal {
         (, address msgSender, ) = vm.readCallers();
-        
+
         vm.expectEmit(address(tapCollector));
         emit ITAPCollector.SignerAuthorized(msgSender, _signer);
-        
+
         tapCollector.authorizeSigner(_signer, _proofDeadline, _proof);
-        
+
         (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, 0);
@@ -111,7 +111,9 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
         tapCollector.revokeAuthorizedSigner(_signer);
 
-        (address afterPayer, uint256 afterThawEndTimestamp, bool afterRevoked) = tapCollector.authorizedSigners(_signer);
+        (address afterPayer, uint256 afterThawEndTimestamp, bool afterRevoked) = tapCollector.authorizedSigners(
+            _signer
+        );
 
         assertEq(beforePayer, afterPayer);
         assertEq(beforeThawEndTimestamp, afterThawEndTimestamp);
@@ -126,23 +128,34 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         __collect(_paymentType, _data, _tokensToCollect);
     }
 
-    function __collect(IGraphPayments.PaymentTypes _paymentType, bytes memory _data, uint256 _tokensToCollect) internal {
-        (ITAPCollector.SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (ITAPCollector.SignedRAV, uint256));
+    function __collect(
+        IGraphPayments.PaymentTypes _paymentType,
+        bytes memory _data,
+        uint256 _tokensToCollect
+    ) internal {
+        (ITAPCollector.SignedRAV memory signedRAV, ) = abi.decode(
+            _data,
+            (ITAPCollector.SignedRAV, uint256)
+        );
         bytes32 messageHash = tapCollector.encodeRAV(signedRAV.rav);
         address _signer = ECDSA.recover(messageHash, signedRAV.signature);
         (address _payer, , ) = tapCollector.authorizedSigners(_signer);
-        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(signedRAV.rav.dataService, signedRAV.rav.serviceProvider, _payer);
-        uint256 tokensToCollect = _tokensToCollect == 0 ? signedRAV.rav.valueAggregate - tokensAlreadyCollected : _tokensToCollect;
-        uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);
-        
+        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(
+            signedRAV.rav.dataService,
+            signedRAV.rav.serviceProvider,
+            _payer
+        );
+        uint256 tokensToCollect = _tokensToCollect == 0
+            ? signedRAV.rav.valueAggregate - tokensAlreadyCollected
+            : _tokensToCollect;
+
         vm.expectEmit(address(tapCollector));
         emit IPaymentsCollector.PaymentCollected(
-            _paymentType, 
+            _paymentType,
             _payer,
             signedRAV.rav.serviceProvider,
-            tokensToCollect,
             signedRAV.rav.dataService,
-            tokensDataService
+            tokensToCollect
         );
         vm.expectEmit(address(tapCollector));
         emit ITAPCollector.RAVCollected(
@@ -154,10 +167,19 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
             signedRAV.rav.metadata,
             signedRAV.signature
         );
-        uint256 tokensCollected = _tokensToCollect == 0 ? tapCollector.collect(_paymentType, _data) : tapCollector.collect(_paymentType, _data, _tokensToCollect);
+        uint256 tokensCollected = _tokensToCollect == 0
+            ? tapCollector.collect(_paymentType, _data)
+            : tapCollector.collect(_paymentType, _data, _tokensToCollect);
 
-        uint256 tokensCollectedAfter = tapCollector.tokensCollected(signedRAV.rav.dataService, signedRAV.rav.serviceProvider, _payer);
+        uint256 tokensCollectedAfter = tapCollector.tokensCollected(
+            signedRAV.rav.dataService,
+            signedRAV.rav.serviceProvider,
+            _payer
+        );
         assertEq(tokensCollected, tokensToCollect);
-        assertEq(tokensCollectedAfter, _tokensToCollect == 0 ? signedRAV.rav.valueAggregate : tokensAlreadyCollected + _tokensToCollect);
+        assertEq(
+            tokensCollectedAfter,
+            _tokensToCollect == 0 ? signedRAV.rav.valueAggregate : tokensAlreadyCollected + _tokensToCollect
+        );
     }
 }

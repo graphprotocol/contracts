@@ -16,18 +16,16 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
     function testCollect_Tokens(
         uint256 tokens,
         uint256 delegationTokens,
-        uint256 tokensDataService
+        uint256 dataServiceCut
     )
         public
         useIndexer
         useProvision(tokens, 0, 0)
         useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
     {
-        uint256 tokensProtocol = (tokens * protocolPaymentCut) / MAX_PPM;
-        uint256 tokensDelegatoion = (tokens * delegationFeeCut) / MAX_PPM;
-        vm.assume(tokensDataService < tokens - tokensProtocol - tokensDelegatoion);
-
+        dataServiceCut = bound(dataServiceCut, 0, MAX_PPM);
         delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
@@ -41,7 +39,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             users.indexer,
             tokens,
             subgraphDataServiceAddress,
-            tokensDataService
+            dataServiceCut
         );
     }
 
