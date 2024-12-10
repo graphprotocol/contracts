@@ -46,6 +46,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     ) private view returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
+                payer: users.gateway,
                 dataService: address(subgraphService),
                 serviceProvider: indexer,
                 timestampNs: 0,
@@ -54,8 +55,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
             });
     }
 
-    function _approveCollector(uint256 tokens) private {
-        escrow.approveCollector(address(tapCollector), tokens);
+    function _deposit(uint256 tokens) private {
         token.approve(address(escrow), tokens);
         escrow.deposit(address(tapCollector), users.indexer, tokens);
     }
@@ -91,7 +91,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
 
         resetPrank(users.gateway);
-        _approveCollector(tokensPayment);
+        _deposit(tokensPayment);
         _authorizeSigner();
 
         resetPrank(users.indexer);
@@ -108,7 +108,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 tokensPayment = tokensAllocated / stakeToFeesRatio / numPayments;
 
         resetPrank(users.gateway);
-        _approveCollector(tokensAllocated);
+        _deposit(tokensAllocated);
         _authorizeSigner();
 
         resetPrank(users.indexer);

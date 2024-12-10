@@ -7,7 +7,6 @@ abstract contract Constants {
     uint256 internal constant MAX_STAKING_TOKENS = 10_000_000_000 ether;
     // GraphEscrow parameters
     uint256 internal constant withdrawEscrowThawingPeriod = 60;
-    uint256 internal constant revokeCollectorThawingPeriod = 60;
     // GraphPayments parameters
     uint256 internal constant protocolPaymentCut = 10000;
     // Staking constants

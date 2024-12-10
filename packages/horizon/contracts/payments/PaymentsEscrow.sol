@@ -23,10 +23,6 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
 
-    /// @notice Authorization details for payer-collector pairs
-    mapping(address payer => mapping(address collector => IPaymentsEscrow.Collector collectorDetails))
-        public authorizedCollectors;
-
     /// @notice Escrow account details for payer-collector-receiver tuples
     mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
         public escrowAccounts;
@@ -34,9 +30,6 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     /// @notice The maximum thawing period (in seconds) for both escrow withdrawal and collector revocation
     /// @dev This is a precautionary measure to avoid inadvertedly locking funds for too long
     uint256 public constant MAX_WAIT_PERIOD = 90 days;
-
-    /// @notice Thawing period in seconds for authorized collectors
-    uint256 public immutable REVOKE_COLLECTOR_THAWING_PERIOD;
 
     /// @notice Thawing period in seconds for escrow funds withdrawal
     uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
@@ -49,24 +42,14 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     /**
      * @notice Construct the PaymentsEscrow contract
      * @param controller The address of the controller
-     * @param revokeCollectorThawingPeriod Thawing period in seconds for authorized collectors
      * @param withdrawEscrowThawingPeriod Thawing period in seconds for escrow funds withdrawal
      */
-    constructor(
-        address controller,
-        uint256 revokeCollectorThawingPeriod,
-        uint256 withdrawEscrowThawingPeriod
-    ) GraphDirectory(controller) {
-        require(
-            revokeCollectorThawingPeriod <= MAX_WAIT_PERIOD,
-            PaymentsEscrowThawingPeriodTooLong(revokeCollectorThawingPeriod, MAX_WAIT_PERIOD)
-        );
+    constructor(address controller, uint256 withdrawEscrowThawingPeriod) GraphDirectory(controller) {
         require(
             withdrawEscrowThawingPeriod <= MAX_WAIT_PERIOD,
             PaymentsEscrowThawingPeriodTooLong(withdrawEscrowThawingPeriod, MAX_WAIT_PERIOD)
         );
 
-        REVOKE_COLLECTOR_THAWING_PERIOD = revokeCollectorThawingPeriod;
         WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
     }
 
@@ -75,52 +58,6 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      */
     function initialize() external initializer {
         __Multicall_init();
-    }
-
-    /**
-     * @notice See {IPaymentsEscrow-approveCollector}
-     */
-    function approveCollector(address collector_, uint256 allowance) external override notPaused {
-        require(allowance != 0, PaymentsEscrowInvalidZeroTokens());
-        Collector storage collector = authorizedCollectors[msg.sender][collector_];
-        collector.allowance += allowance;
-        emit AuthorizedCollector(msg.sender, collector_, allowance, collector.allowance);
-    }
-
-    /**
-     * @notice See {IPaymentsEscrow-thawCollector}
-     */
-    function thawCollector(address collector) external override notPaused {
-        authorizedCollectors[msg.sender][collector].thawEndTimestamp =
-            block.timestamp +
-            REVOKE_COLLECTOR_THAWING_PERIOD;
-        emit ThawCollector(msg.sender, collector);
-    }
-
-    /**
-     * @notice See {IPaymentsEscrow-cancelThawCollector}
-     */
-    function cancelThawCollector(address collector) external override notPaused {
-        require(authorizedCollectors[msg.sender][collector].thawEndTimestamp != 0, PaymentsEscrowNotThawing());
-
-        authorizedCollectors[msg.sender][collector].thawEndTimestamp = 0;
-        emit CancelThawCollector(msg.sender, collector);
-    }
-
-    /**
-     * @notice See {IPaymentsEscrow-revokeCollector}
-     */
-    function revokeCollector(address collector_) external override notPaused {
-        Collector storage collector = authorizedCollectors[msg.sender][collector_];
-
-        require(collector.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
-        require(
-            collector.thawEndTimestamp < block.timestamp,
-            PaymentsEscrowStillThawing(block.timestamp, collector.thawEndTimestamp)
-        );
-
-        delete authorizedCollectors[msg.sender][collector_];
-        emit RevokeCollector(msg.sender, collector_);
     }
 
     /**
@@ -192,27 +129,19 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 tokensDataService
+        uint256 dataServiceCut
     ) external override notPaused {
-        // Check if collector is authorized and has enough funds
-        Collector storage collectorDetails = authorizedCollectors[payer][msg.sender];
-        require(
-            collectorDetails.allowance >= tokens,
-            PaymentsEscrowInsufficientAllowance(collectorDetails.allowance, tokens)
-        );
-
         // Check if there are enough funds in the escrow account
         EscrowAccount storage account = escrowAccounts[payer][msg.sender][receiver];
         require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
-        // Reduce amount from approved collector and account balance
-        collectorDetails.allowance -= tokens;
+        // Reduce amount from account balance
         account.balance -= tokens;
 
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
 
         _graphToken().approve(address(_graphPayments()), tokens);
-        _graphPayments().collect(paymentType, receiver, tokens, dataService, tokensDataService);
+        _graphPayments().collect(paymentType, receiver, tokens, dataService, dataServiceCut);
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
         require(
@@ -228,6 +157,9 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      */
     function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
         EscrowAccount storage account = escrowAccounts[payer][collector][receiver];
+        if (account.balance <= account.tokensThawing) {
+            return 0;
+        }
         return account.balance - account.tokensThawing;
     }
 

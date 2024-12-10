@@ -80,13 +80,11 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes paymentType);
 
     /**
-     * @notice Thrown when the contract GRT balance is inconsistent with the payment amount collected
-     * from Graph Payments
+     * @notice Thrown when the contract GRT balance is inconsistent after collecting from Graph Payments
      * @param balanceBefore The contract GRT balance before the collection
      * @param balanceAfter The contract GRT balance after the collection
-     * @param tokensDataService The amount of tokens sent to the subgraph service
      */
-    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensDataService);
+    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter);
 
     /**
      * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.

@@ -113,7 +113,6 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             vm.getCode("PaymentsEscrow.sol:PaymentsEscrow"),
             abi.encode(
                 address(controller),
-                revokeCollectorThawingPeriod,
                 withdrawEscrowThawingPeriod
             )
         ));
@@ -174,7 +173,6 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         );
         escrow = new PaymentsEscrow{salt: saltEscrow}(
             address(controller),
-            revokeCollectorThawingPeriod,
             withdrawEscrowThawingPeriod
         );
 
