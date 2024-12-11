@@ -92,9 +92,9 @@ interface ITAPCollector is IPaymentsCollector {
      */
     event RAVCollected(
         address indexed payer,
-        address indexed collector,
+        address collector,
         address indexed serviceProvider,
-        address dataService,
+        address indexed dataService,
         uint64 timestampNs,
         uint128 valueAggregate,
         bytes metadata,
