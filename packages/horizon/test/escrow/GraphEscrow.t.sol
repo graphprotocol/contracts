@@ -56,6 +56,19 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         assertEq(thawEndTimestamp, expectedThawEndTimestamp);
     }
 
+    function _cancelThawEscrow(address collector, address receiver) internal {
+        (, address msgSender, ) = vm.readCallers();
+        (, uint256 amountThawingBefore, uint256 thawEndTimestampBefore) = escrow.escrowAccounts(msgSender, collector, receiver);
+
+        vm.expectEmit(address(escrow));
+        emit IPaymentsEscrow.CancelThaw(msgSender, receiver, amountThawingBefore, thawEndTimestampBefore);
+        escrow.cancelThaw(collector, receiver);
+
+        (, uint256 amountThawing, uint256 thawEndTimestamp) = escrow.escrowAccounts(msgSender, collector, receiver);
+        assertEq(amountThawing, 0);
+        assertEq(thawEndTimestamp, 0);
+    }
+
     struct CollectPaymentData {
         uint256 escrowBalance;
         uint256 paymentsBalance;
