@@ -78,25 +78,30 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      * @notice See {IPaymentsEscrow-thaw}
      */
     function thaw(address collector, address receiver, uint256 tokens) external override notPaused {
+        require(tokens > 0, PaymentsEscrowInvalidZeroTokens());
+
         EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
-
-        // if amount thawing is zero and requested amount is zero this is an invalid request.
-        // otherwise if amount thawing is greater than zero and requested amount is zero this
-        // is a cancel thaw request.
-        if (tokens == 0) {
-            require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
-            account.tokensThawing = 0;
-            account.thawEndTimestamp = 0;
-            emit CancelThaw(msg.sender, receiver);
-            return;
-        }
-
         require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
         account.tokensThawing = tokens;
         account.thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
 
         emit Thaw(msg.sender, collector, receiver, tokens, account.thawEndTimestamp);
+    }
+
+    /**
+     * @notice See {IPaymentsEscrow-cancelThaw}
+     */
+    function cancelThaw(address collector, address receiver) external override notPaused {
+        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
+        require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
+
+        uint256 tokensThawing = account.tokensThawing;
+        uint256 thawEndTimestamp = account.thawEndTimestamp;
+        account.tokensThawing = 0;
+        account.thawEndTimestamp = 0;
+
+        emit CancelThaw(msg.sender, receiver, tokensThawing, thawEndTimestamp);
     }
 
     /**
