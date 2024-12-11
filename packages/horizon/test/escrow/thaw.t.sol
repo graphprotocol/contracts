@@ -6,19 +6,32 @@ import "forge-std/Test.sol";
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowThawTest is GraphEscrowTest {
-
     /*
      * TESTS
      */
 
     function testThaw_Tokens(uint256 amount) public useGateway useDeposit(amount) {
+        amount = bound(amount, 1, type(uint256).max);
         _thawEscrow(users.verifier, users.indexer, amount);
     }
 
-    function testThaw_RevertWhen_InsufficientThawAmount(
-        uint256 amount
-    ) public useGateway useDeposit(amount) {
-        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowNotThawing()");
+    function testThaw_Tokens_SuccesiveCalls(uint256 amount) public useGateway {
+        amount = bound(amount, 2, type(uint256).max - 10);
+        _depositTokens(users.verifier, users.indexer, amount);
+
+        uint256 firstAmountToThaw = (amount + 2 - 1) / 2;
+        uint256 secondAmountToThaw = (amount + 10 - 1) / 10;
+        _thawEscrow(users.verifier, users.indexer, firstAmountToThaw);
+        _thawEscrow(users.verifier, users.indexer, secondAmountToThaw);
+
+        (, address msgSender, ) = vm.readCallers();
+        (, uint256 amountThawing, uint256 thawEndTimestamp) = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
+        assertEq(amountThawing, secondAmountToThaw);
+        assertEq(thawEndTimestamp, block.timestamp + withdrawEscrowThawingPeriod);
+    }
+
+    function testThaw_Tokens_RevertWhen_AmountIsZero() public useGateway {
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowInvalidZeroTokens()");
         vm.expectRevert(expectedError);
         escrow.thaw(users.verifier, users.indexer, 0);
     }
@@ -28,17 +41,23 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         uint256 overAmount
     ) public useGateway useDeposit(amount) {
         overAmount = bound(overAmount, amount + 1, type(uint256).max);
-        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowInsufficientBalance(uint256,uint256)", amount, overAmount);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "PaymentsEscrowInsufficientBalance(uint256,uint256)",
+            amount,
+            overAmount
+        );
         vm.expectRevert(expectedError);
         escrow.thaw(users.verifier, users.indexer, overAmount);
     }
 
     function testThaw_CancelRequest(uint256 amount) public useGateway useDeposit(amount) {
-        escrow.thaw(users.verifier, users.indexer, amount);
-        escrow.thaw(users.verifier, users.indexer, 0);
+        _thawEscrow(users.verifier, users.indexer, amount);
+        _cancelThawEscrow(users.verifier, users.indexer);
+    }
 
-        (, uint256 amountThawing,uint256 thawEndTimestamp) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
-        assertEq(amountThawing, 0);
-        assertEq(thawEndTimestamp, 0);
+    function testThaw_CancelRequest_RevertWhen_NoThawing(uint256 amount) public useGateway useDeposit(amount) {
+        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowNotThawing()");
+        vm.expectRevert(expectedError);
+        escrow.cancelThaw(users.verifier, users.indexer);
     }
 }
