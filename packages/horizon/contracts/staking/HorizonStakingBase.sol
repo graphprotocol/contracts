@@ -268,11 +268,11 @@ abstract contract HorizonStakingBase is
      * TODO: update the calculation after the transition period.
      */
     function _getIdleStake(address _serviceProvider) internal view returns (uint256) {
-        return
-            _serviceProviders[_serviceProvider].tokensStaked -
-            _serviceProviders[_serviceProvider].tokensProvisioned -
-            _serviceProviders[_serviceProvider].__DEPRECATED_tokensAllocated -
+        uint256 tokensUsed = _serviceProviders[_serviceProvider].tokensProvisioned +
+            _serviceProviders[_serviceProvider].__DEPRECATED_tokensAllocated +
             _serviceProviders[_serviceProvider].__DEPRECATED_tokensLocked;
+        uint256 tokensStaked = _serviceProviders[_serviceProvider].tokensStaked;
+        return tokensStaked > tokensUsed ? tokensStaked - tokensUsed : 0;
     }
 
     /**
