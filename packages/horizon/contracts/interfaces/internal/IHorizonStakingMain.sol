@@ -3,6 +3,7 @@
 pragma solidity 0.8.27;
 
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 
 /**
  * @title Inferface for the {HorizonStaking} contract.
@@ -280,13 +281,15 @@ interface IHorizonStakingMain {
      * @param owner The address of the owner of the thaw requests
      * @param thawRequestsFulfilled The number of thaw requests fulfilled
      * @param tokens The total amount of tokens being released
+     * @param requestType The type of thaw request
      */
     event ThawRequestsFulfilled(
         address indexed serviceProvider,
         address indexed verifier,
         address indexed owner,
         uint256 thawRequestsFulfilled,
-        uint256 tokens
+        uint256 tokens,
+        IHorizonStakingTypes.ThawRequestType requestType
     );
 
     // -- Events: governance --

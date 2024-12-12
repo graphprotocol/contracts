@@ -1078,8 +1078,33 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
         require(thawRequestList.count > 0, HorizonStakingNothingThawing());
 
+        TraverseThawRequestsResults memory results = _traverseThawRequests(params, thawRequestList);
+
+        emit ThawRequestsFulfilled(
+            params.serviceProvider,
+            params.verifier,
+            params.owner,
+            results.requestsFulfilled,
+            results.tokensThawed,
+            params.requestType
+        );
+
+        return (results.tokensThawed, results.tokensThawing, results.sharesThawing);
+    }
+
+    /**
+     * @notice Traverses a thaw request list and fulfills expired thaw requests.
+     * @param params The parameters for fulfilling thaw requests
+     * @param thawRequestList The list of thaw requests to traverse
+     * @return The results of the traversal
+     */
+    function _traverseThawRequests(
+        FulfillThawRequestsParams memory params,
+        LinkedList.List storage thawRequestList
+    ) private returns (TraverseThawRequestsResults memory) {
         function(bytes32) view returns (bytes32) getNextItem = _getNextThawRequest(params.requestType);
         function(bytes32) deleteItem = _getDeleteThawRequest(params.requestType);
+
         bytes memory acc = abi.encode(
             params.requestType,
             uint256(0),
@@ -1099,14 +1124,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             data,
             (ThawRequestType, uint256, uint256, uint256)
         );
-        emit ThawRequestsFulfilled(
-            params.serviceProvider,
-            params.verifier,
-            params.owner,
-            thawRequestsFulfilled,
-            tokensThawed
-        );
-        return (tokensThawed, tokensThawing, sharesThawing);
+
+        return
+            TraverseThawRequestsResults({
+                requestsFulfilled: thawRequestsFulfilled,
+                tokensThawed: tokensThawed,
+                tokensThawing: tokensThawing,
+                sharesThawing: sharesThawing
+            });
     }
 
     /**

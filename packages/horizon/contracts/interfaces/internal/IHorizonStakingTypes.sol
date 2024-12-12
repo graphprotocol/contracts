@@ -180,4 +180,19 @@ interface IHorizonStakingTypes {
         uint256 nThawRequests;
         uint256 thawingNonce;
     }
+
+    /**
+     * @notice Results of the traversal of thaw requests.
+     * @dev This struct is used to avoid stack too deep error in the `fulfillThawRequests` function.
+     * @param requestsFulfilled The number of thaw requests fulfilled
+     * @param tokensThawed The total amount of tokens thawed
+     * @param tokensThawing The total amount of tokens thawing
+     * @param sharesThawing The total amount of shares thawing
+     */
+    struct TraverseThawRequestsResults {
+        uint256 requestsFulfilled;
+        uint256 tokensThawed;
+        uint256 tokensThawing;
+        uint256 sharesThawing;
+    }
 }

@@ -504,7 +504,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             verifier,
             serviceProvider,
             calcValues.thawRequestsFulfilledList.length,
-            calcValues.tokensThawed
+            calcValues.tokensThawed,
+            IHorizonStakingTypes.ThawRequestType.Provision
         );
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.TokensDeprovisioned(serviceProvider, verifier, calcValues.tokensThawed);
@@ -617,7 +618,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             verifier,
             serviceProvider,
             calcValues.thawRequestsFulfilledList.length,
-            calcValues.tokensThawed
+            calcValues.tokensThawed,
+            IHorizonStakingTypes.ThawRequestType.Provision
         );
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.TokensDeprovisioned(serviceProvider, verifier, calcValues.tokensThawed);
@@ -1160,7 +1162,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             params.verifier,
             msgSender,
             calcValues.thawRequestsFulfilledList.length,
-            calcValues.tokensThawed
+            calcValues.tokensThawed,
+            params.thawRequestType
         );
         if (calcValues.tokensThawed != 0) {
             vm.expectEmit();
