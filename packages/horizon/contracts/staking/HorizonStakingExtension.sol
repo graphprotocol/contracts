@@ -286,9 +286,8 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
 
         // Slashing more tokens than freely available (over allocation condition)
         // Unlock locked tokens to avoid the indexer to withdraw them
-        uint256 tokensAvailable = indexerStake.tokensStaked -
-            indexerStake.__DEPRECATED_tokensAllocated -
-            indexerStake.__DEPRECATED_tokensLocked;
+        uint256 tokensUsed = indexerStake.__DEPRECATED_tokensAllocated + indexerStake.__DEPRECATED_tokensLocked;
+        uint256 tokensAvailable = tokensUsed > indexerStake.tokensStaked ? 0 : indexerStake.tokensStaked - tokensUsed;
         if (tokens > tokensAvailable && indexerStake.__DEPRECATED_tokensLocked > 0) {
             uint256 tokensOverAllocated = tokens - tokensAvailable;
             uint256 tokensToUnlock = MathUtils.min(tokensOverAllocated, indexerStake.__DEPRECATED_tokensLocked);

@@ -180,4 +180,29 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         vm.expectRevert("!beneficiary");
         staking.legacySlash(users.indexer, slashTokens, reward, address(0));
     }
+
+    function test_LegacySlash_WhenTokensAllocatedGreaterThanStake()
+        public
+        useIndexer
+        useLegacySlasher(users.legacySlasher)
+    {
+        // Setup indexer with:
+        // - tokensStaked = 1000 GRT
+        // - tokensAllocated = 800 GRT
+        // - tokensLocked = 300 GRT
+        // This means tokensUsed (1100 GRT) > tokensStaked (1000 GRT)
+        _setIndexer(
+            users.indexer,
+            1000 ether,    // tokensStaked
+            800 ether,     // tokensAllocated
+            300 ether,     // tokensLocked
+            0              // tokensLockedUntil
+        );
+
+        // Send tokens manually to staking
+        token.transfer(address(staking), 1100 ether);
+
+        resetPrank(users.legacySlasher);
+        _legacySlash(users.indexer, 1000 ether, 500 ether, makeAddr("fisherman"));
+    }
 }
