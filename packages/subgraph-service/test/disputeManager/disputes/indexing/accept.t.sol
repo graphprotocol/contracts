@@ -24,7 +24,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
         
         resetPrank(users.arbitrator);
-        _acceptDispute(disputeID, tokensSlash, false);
+        _acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Indexing_Accept_Dispute_RevertWhen_SubgraphServiceNotSet(
@@ -41,7 +41,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         _setStorage_SubgraphService(address(0));
 
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerSubgraphServiceNotSet.selector));
-        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Indexing_Accept_Dispute_OptParam(
@@ -54,7 +54,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
         
         resetPrank(users.arbitrator);
-        _acceptDispute(disputeID, tokensSlash, true);
+        _acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Indexing_Accept_RevertIf_CallerIsNotArbitrator(
@@ -69,7 +69,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         // attempt to accept dispute as fisherman
         resetPrank(users.fisherman);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
-        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Indexing_Accept_RevertWhen_SlashingOverMaxSlashPercentage(
@@ -89,6 +89,6 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
             maxTokensToSlash
         );
         vm.expectRevert(expectedError);
-        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 }

@@ -27,7 +27,7 @@ contract DisputeManagerDisputeTest is DisputeManagerTest {
             IDisputeManager.DisputeManagerInvalidDispute.selector,
             disputeID
         ));
-        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Dispute_Accept_RevertIf_SlashZeroTokens(
@@ -40,7 +40,7 @@ contract DisputeManagerDisputeTest is DisputeManagerTest {
         resetPrank(users.arbitrator);
         uint256 maxTokensToSlash = uint256(maxSlashingPercentage).mulPPM(tokens);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidTokensSlash.selector, 0, maxTokensToSlash));
-        disputeManager.acceptDispute(disputeID, 0, false);
+        disputeManager.acceptDispute(disputeID, 0);
     }
 
     function test_Dispute_Reject_RevertIf_DisputeDoesNotExist(

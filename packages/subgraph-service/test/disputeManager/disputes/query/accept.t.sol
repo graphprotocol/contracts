@@ -31,7 +31,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createQueryDispute(attestationData);
 
         resetPrank(users.arbitrator);
-        _acceptDispute(disputeID, tokensSlash, false);
+        _acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Query_Accept_Dispute_RevertWhen_SubgraphServiceNotSet(
@@ -49,7 +49,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         // clear subgraph service address from storage
         _setStorage_SubgraphService(address(0));
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerSubgraphServiceNotSet.selector));
-        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Query_Accept_Dispute_OptParam(
@@ -64,7 +64,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createQueryDispute(attestationData);
 
         resetPrank(users.arbitrator);
-        _acceptDispute(disputeID, tokensSlash, true);
+        _acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Query_Accept_RevertIf_CallerIsNotArbitrator(
@@ -80,7 +80,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
 
         // attempt to accept dispute as fisherman
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
-        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
     function test_Query_Accept_RevertWhen_SlashingOverMaxSlashPercentage(
@@ -103,6 +103,25 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
             maxTokensToSlash
         );
         vm.expectRevert(expectedError);
-        disputeManager.acceptDispute(disputeID, tokensSlash, false);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
+    }
+
+    function test_Query_Accept_RevertWhen_UsingConflictAccept(
+        uint256 tokens,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) {
+        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+
+        resetPrank(users.fisherman);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
+        bytes32 disputeID = _createQueryDispute(attestationData);
+
+        resetPrank(users.arbitrator);
+        vm.expectRevert(abi.encodeWithSelector(
+            IDisputeManager.DisputeManagerDisputeNotInConflict.selector,
+            disputeID
+        ));
+        disputeManager.acceptDisputeConflict(disputeID, tokensSlash, true, 0);
     }
 }

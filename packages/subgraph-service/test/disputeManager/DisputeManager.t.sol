@@ -323,11 +323,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         return (_disputeId1, _disputeId2);
     }
 
-    function _acceptDispute(bytes32 _disputeId, uint256 _tokensSlash, bool _acceptRelatedDispute) internal {
+    function _acceptDispute(bytes32 _disputeId, uint256 _tokensSlash) internal {
         IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
-        bool isDisputeInConflict = dispute.relatedDisputeId != bytes32(0);
-        IDisputeManager.Dispute memory relatedDispute;
-        if (isDisputeInConflict) relatedDispute = _getDispute(dispute.relatedDisputeId);
         address fisherman = dispute.fisherman;
         uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
@@ -343,33 +340,13 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             dispute.deposit + fishermanReward
         );
 
-        if (isDisputeInConflict) {
-            if (_acceptRelatedDispute) {
-                emit IDisputeManager.DisputeAccepted(
-                    dispute.relatedDisputeId,
-                    relatedDispute.indexer,
-                    relatedDispute.fisherman,
-                    relatedDispute.deposit
-                );
-            } else {
-                emit IDisputeManager.DisputeRejected(
-                    dispute.relatedDisputeId,
-                    relatedDispute.indexer,
-                    relatedDispute.fisherman,
-                    relatedDispute.deposit
-                );
-            }
-        }
-
         // Accept the dispute
-        disputeManager.acceptDispute(_disputeId, _tokensSlash, _acceptRelatedDispute);
+        disputeManager.acceptDispute(_disputeId, _tokensSlash);
 
         // Check fisherman's got their reward and their deposit (if any) back
         uint256 fishermanExpectedBalance = fishermanPreviousBalance +
             fishermanReward +
-            disputeDeposit +
-            (isDisputeInConflict ? relatedDispute.deposit : 0) +
-            ((isDisputeInConflict && _acceptRelatedDispute) ? fishermanReward : 0);
+            disputeDeposit;
         assertEq(
             token.balanceOf(fisherman),
             fishermanExpectedBalance,
@@ -378,11 +355,10 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
 
         // Check indexer was slashed by the correct amount
         uint256 expectedIndexerTokensAvailable;
-        uint256 tokensToSlash = (isDisputeInConflict && _acceptRelatedDispute) ? _tokensSlash * 2 : _tokensSlash;
-        if (tokensToSlash > indexerTokensAvailable) {
+        if (_tokensSlash > indexerTokensAvailable) {
             expectedIndexerTokensAvailable = 0;
         } else {
-            expectedIndexerTokensAvailable = indexerTokensAvailable - tokensToSlash;
+            expectedIndexerTokensAvailable = indexerTokensAvailable - _tokensSlash;
         }
         assertEq(
             staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService)),
@@ -397,18 +373,137 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             uint8(IDisputeManager.DisputeStatus.Accepted),
             "Dispute status should be accepted"
         );
+    }
 
-        // If there's a related dispute, check it
-        if (isDisputeInConflict) {
-            relatedDispute = _getDispute(dispute.relatedDisputeId);
-            assertEq(
-                uint8(relatedDispute.status),
-                _acceptRelatedDispute
-                    ? uint8(IDisputeManager.DisputeStatus.Accepted)
-                    : uint8(IDisputeManager.DisputeStatus.Drawn),
-                "Related dispute status should be drawn"
+    struct FishermanParams {
+        address fisherman;
+        uint256 previousBalance;
+        uint256 disputeDeposit;
+        uint256 relatedDisputeDeposit;
+        uint256 rewardPercentage;
+        uint256 rewardFirstDispute;
+        uint256 rewardRelatedDispute;
+        uint256 totalReward;
+        uint256 expectedBalance;
+    }
+
+    function _acceptDisputeConflict(bytes32 _disputeId, uint256 _tokensSlash, bool _acceptRelatedDispute, uint256 _tokensRelatedSlash) internal {
+        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
+        IDisputeManager.Dispute memory relatedDispute = _getDispute(dispute.relatedDisputeId);
+        uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
+        uint256 relatedIndexerTokensAvailable = staking.getProviderTokensAvailable(relatedDispute.indexer, address(subgraphService));
+
+        FishermanParams memory params;
+        params.fisherman = dispute.fisherman;
+        params.previousBalance = token.balanceOf(params.fisherman);
+        params.disputeDeposit = dispute.deposit;
+        params.relatedDisputeDeposit = relatedDispute.deposit;
+        params.rewardPercentage = disputeManager.fishermanRewardCut();
+        params.rewardFirstDispute = _tokensSlash.mulPPM(params.rewardPercentage);
+        params.rewardRelatedDispute = (_acceptRelatedDispute) ? _tokensRelatedSlash.mulPPM(params.rewardPercentage) : 0;
+        params.totalReward = params.rewardFirstDispute + params.rewardRelatedDispute;
+
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.DisputeAccepted(
+            _disputeId,
+            dispute.indexer,
+            params.fisherman,
+            params.disputeDeposit + params.rewardFirstDispute
+        );
+
+        if (_acceptRelatedDispute) {
+            emit IDisputeManager.DisputeAccepted(
+                dispute.relatedDisputeId,
+                relatedDispute.indexer,
+                relatedDispute.fisherman,
+                relatedDispute.deposit + params.rewardRelatedDispute
+            );
+        } else {
+            emit IDisputeManager.DisputeDrawn(
+                dispute.relatedDisputeId,
+                relatedDispute.indexer,
+                relatedDispute.fisherman,
+                relatedDispute.deposit
             );
         }
+
+        // Accept the dispute
+        disputeManager.acceptDisputeConflict(_disputeId, _tokensSlash, _acceptRelatedDispute, _tokensRelatedSlash);
+
+        // Check fisherman's got their reward and their deposit back
+        params.expectedBalance = params.previousBalance +
+            params.totalReward +
+            params.disputeDeposit +
+            params.relatedDisputeDeposit;
+        assertEq(
+            token.balanceOf(params.fisherman),
+            params.expectedBalance,
+            "Fisherman should get their reward and deposit back"
+        );
+
+        // If both disputes are for the same indexer, check that the indexer was slashed by the correct amount
+        if (dispute.indexer == relatedDispute.indexer) {
+            uint256 tokensToSlash = (_acceptRelatedDispute) ? _tokensSlash + _tokensRelatedSlash : _tokensSlash;
+            uint256 expectedIndexerTokensAvailable;
+            if (tokensToSlash > indexerTokensAvailable) {
+                expectedIndexerTokensAvailable = 0;
+            } else {
+                expectedIndexerTokensAvailable = indexerTokensAvailable - tokensToSlash;
+            }
+            assertEq(
+                staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService)),
+                expectedIndexerTokensAvailable,
+                "Indexer should be slashed by the correct amount"
+            );
+        } else {
+            // Check indexer for first dispute was slashed by the correct amount
+            uint256 expectedIndexerTokensAvailable;
+            uint256 tokensToSlash = (_acceptRelatedDispute) ? _tokensSlash : _tokensSlash;
+            if (tokensToSlash > indexerTokensAvailable) {
+                expectedIndexerTokensAvailable = 0;
+            } else {
+                expectedIndexerTokensAvailable = indexerTokensAvailable - tokensToSlash;
+            }
+            assertEq(
+                staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService)),
+                expectedIndexerTokensAvailable,
+                "Indexer should be slashed by the correct amount"
+            );
+
+            // Check indexer for related dispute was slashed by the correct amount if it was accepted
+            if (_acceptRelatedDispute) {
+                uint256 expectedRelatedIndexerTokensAvailable;
+                if (_tokensRelatedSlash > relatedIndexerTokensAvailable) {
+                    expectedRelatedIndexerTokensAvailable = 0;
+                } else {
+                    expectedRelatedIndexerTokensAvailable = relatedIndexerTokensAvailable - _tokensRelatedSlash;
+                }
+                assertEq(
+                    staking.getProviderTokensAvailable(relatedDispute.indexer, address(subgraphService)),
+                    expectedRelatedIndexerTokensAvailable,
+                    "Indexer should be slashed by the correct amount"
+                );
+            }
+        }
+
+
+        // Check dispute status
+        dispute = _getDispute(_disputeId);
+        assertEq(
+            uint8(dispute.status),
+            uint8(IDisputeManager.DisputeStatus.Accepted),
+            "Dispute status should be accepted"
+        );
+
+        // If there's a related dispute, check it
+        relatedDispute = _getDispute(dispute.relatedDisputeId);
+        assertEq(
+            uint8(relatedDispute.status),
+            _acceptRelatedDispute
+                    ? uint8(IDisputeManager.DisputeStatus.Accepted)
+                    : uint8(IDisputeManager.DisputeStatus.Drawn),
+            "Related dispute status should be drawn"
+        );
     }
 
     function _drawDispute(bytes32 _disputeId) internal {

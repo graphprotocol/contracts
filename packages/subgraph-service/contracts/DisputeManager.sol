@@ -243,27 +243,46 @@ contract DisputeManager is
      * This function will revert if the indexer is not slashable, whether because it does not have
      * any stake available or the slashing percentage is configured to be zero. In those cases
      * a dispute must be resolved using drawDispute or rejectDispute.
+     * This function will also revert if the dispute is in conflict, to accept a conflicting dispute
+     * use acceptDisputeConflict.
      * @dev Accept a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be accepted
-     * @param tokensSlash Amount of tokens to slash from the indexer
-     * @param acceptDisputeInConflict If the dispute is in conflict, accept the conflicting dispute. Otherwise
-     * it will be drawn automatically. Ignored if the dispute is not in conflict.
+     * @param tokensSlash Amount of tokens to slash from the indexer for the first dispute
      */
     function acceptDispute(
         bytes32 disputeId,
-        uint256 tokensSlash,
-        bool acceptDisputeInConflict
+        uint256 tokensSlash
     ) external override onlyArbitrator onlyPendingDispute(disputeId) {
+        require(!_isDisputeInConflict(disputes[disputeId]), DisputeManagerDisputeInConflict(disputeId));
+        Dispute storage dispute = disputes[disputeId];
+        _acceptDispute(disputeId, dispute, tokensSlash);
+    }
+
+    /**
+     * @notice The arbitrator accepts a conflicting dispute as being valid.
+     * This function will revert if the indexer is not slashable, whether because it does not have
+     * any stake available or the slashing percentage is configured to be zero. In those cases
+     * a dispute must be resolved using drawDispute.
+     * @param disputeId Id of the dispute to be accepted
+     * @param tokensSlash Amount of tokens to slash from the indexer for the first dispute
+     * @param acceptDisputeInConflict Accept the conflicting dispute. Otherwise it will be drawn automatically
+     * @param tokensSlashRelated Amount of tokens to slash from the indexer for the related dispute in case
+     * acceptDisputeInConflict is true, otherwise it will be ignored
+     */
+    function acceptDisputeConflict(
+        bytes32 disputeId,
+        uint256 tokensSlash,
+        bool acceptDisputeInConflict,
+        uint256 tokensSlashRelated
+    ) external override onlyArbitrator onlyPendingDispute(disputeId) {
+        require(_isDisputeInConflict(disputes[disputeId]), DisputeManagerDisputeNotInConflict(disputeId));
         Dispute storage dispute = disputes[disputeId];
         _acceptDispute(disputeId, dispute, tokensSlash);
 
-        if (_isDisputeInConflict(dispute)) {
-            Dispute storage relatedDispute = disputes[dispute.relatedDisputeId];
-            if (acceptDisputeInConflict) {
-                _acceptDispute(dispute.relatedDisputeId, relatedDispute, tokensSlash);
-            } else {
-                _drawDispute(dispute.relatedDisputeId, relatedDispute);
-            }
+        if (acceptDisputeInConflict) {
+            _acceptDispute(dispute.relatedDisputeId, disputes[dispute.relatedDisputeId], tokensSlashRelated);
+        } else {
+            _drawDispute(dispute.relatedDisputeId, disputes[dispute.relatedDisputeId]);
         }
     }
 
