@@ -291,4 +291,33 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         );
         vm.stopPrank();
     }
+
+    function testCollect_ViaMulticall(uint256 amount) public useIndexer {
+        amount = bound(amount, 1, MAX_STAKING_TOKENS / 2); // Divide by 2 as we'll make two calls
+
+        address escrowAddress = address(escrow);
+        mint(escrowAddress, amount * 2);
+        vm.startPrank(escrowAddress);
+        approve(address(payments), amount * 2);
+
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(
+            payments.collect.selector,
+            IGraphPayments.PaymentTypes.QueryFee,
+            users.indexer,
+            amount,
+            subgraphDataServiceAddress,
+            100_000 // 10%
+        );
+        data[1] = abi.encodeWithSelector(
+            payments.collect.selector,
+            IGraphPayments.PaymentTypes.IndexingFee,
+            users.indexer,
+            amount,
+            subgraphDataServiceAddress,
+            200_000 // 20%
+        );
+
+        payments.multicall(data);
+    }
 }
