@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 import { IPaymentsEscrow } from "../../contracts/interfaces/IPaymentsEscrow.sol";
 import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { PaymentsEscrowSharedTest } from "../shared/payments-escrow/PaymentsEscrowShared.t.sol";
@@ -112,9 +113,12 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         uint256 tokensDataService = (_tokens - _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT())).mulPPMRoundUp(
             _dataServiceCut
         );
-        uint256 tokensDelegation = (_tokens -
-            _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) -
-            tokensDataService).mulPPMRoundUp(staking.getDelegationFeeCut(_receiver, _dataService, _paymentType));
+        uint256 tokensDelegation = 0;
+        IHorizonStakingTypes.DelegationPool memory pool = staking.getDelegationPool(_receiver, _dataService);
+        if (pool.shares > 0) {
+            tokensDelegation = (_tokens - _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) - tokensDataService)
+                .mulPPMRoundUp(staking.getDelegationFeeCut(_receiver, _dataService, _paymentType));
+        }
         uint256 receiverExpectedPayment = _tokens -
             _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) -
             tokensDataService -
