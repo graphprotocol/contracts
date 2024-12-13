@@ -31,9 +31,9 @@ interface IGraphPayments {
      * @param tokensReceiver Amount of tokens for the receiver
      */
     event GraphPaymentCollected(
-        PaymentTypes paymentType,
+        PaymentTypes indexed paymentType,
         address indexed payer,
-        address indexed receiver,
+        address receiver,
         address indexed dataService,
         uint256 tokens,
         uint256 tokensProtocol,
