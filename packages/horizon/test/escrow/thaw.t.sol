@@ -10,9 +10,21 @@ contract GraphEscrowThawTest is GraphEscrowTest {
      * TESTS
      */
 
-    function testThaw_Tokens(uint256 amount) public useGateway useDeposit(amount) {
-        amount = bound(amount, 1, type(uint256).max);
+    function testThaw_PartialBalanceThaw(
+        uint256 amountDeposited,
+        uint256 amountThawed
+    ) public useGateway useDeposit(amountDeposited) {
+        vm.assume(amountThawed > 0);
+        vm.assume(amountThawed <= amountDeposited);
+        _thawEscrow(users.verifier, users.indexer, amountThawed);
+    }
+
+    function testThaw_FullBalanceThaw(uint256 amount) public useGateway useDeposit(amount) {
+        vm.assume(amount > 0);
         _thawEscrow(users.verifier, users.indexer, amount);
+
+        uint256 availableBalance = escrow.getBalance(users.gateway, users.verifier, users.indexer);
+        assertEq(availableBalance, 0);
     }
 
     function testThaw_Tokens_SuccesiveCalls(uint256 amount) public useGateway {
@@ -25,7 +37,11 @@ contract GraphEscrowThawTest is GraphEscrowTest {
         _thawEscrow(users.verifier, users.indexer, secondAmountToThaw);
 
         (, address msgSender, ) = vm.readCallers();
-        (, uint256 amountThawing, uint256 thawEndTimestamp) = escrow.escrowAccounts(msgSender, users.verifier, users.indexer);
+        (, uint256 amountThawing, uint256 thawEndTimestamp) = escrow.escrowAccounts(
+            msgSender,
+            users.verifier,
+            users.indexer
+        );
         assertEq(amountThawing, secondAmountToThaw);
         assertEq(thawEndTimestamp, block.timestamp + withdrawEscrowThawingPeriod);
     }

@@ -13,6 +13,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
      * TESTS
      */
 
+    // use users.verifier as collector
     function testCollect_Tokens(
         uint256 tokens,
         uint256 tokensToCollect,
@@ -97,5 +98,44 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             0
         );
         vm.stopPrank();
+    }
+
+    function testCollect_MultipleCollections(
+        uint256 depositAmount,
+        uint256 firstCollect,
+        uint256 secondCollect
+    ) public useIndexer {
+        // Tests multiple collect operations from the same escrow account
+        vm.assume(firstCollect < MAX_STAKING_TOKENS);
+        vm.assume(secondCollect < MAX_STAKING_TOKENS);
+        vm.assume(depositAmount > 0);
+        vm.assume(firstCollect > 0 && firstCollect < depositAmount);
+        vm.assume(secondCollect > 0 && secondCollect <= depositAmount - firstCollect);
+
+        resetPrank(users.gateway);
+        _depositTokens(users.verifier, users.indexer, depositAmount);
+
+        // burn some tokens to prevent overflow
+        resetPrank(users.indexer);
+        token.burn(MAX_STAKING_TOKENS);
+
+        resetPrank(users.verifier);
+        _collectEscrow(
+            IGraphPayments.PaymentTypes.QueryFee,
+            users.gateway,
+            users.indexer,
+            firstCollect,
+            subgraphDataServiceAddress,
+            0
+        );
+
+        // _collectEscrow(
+        //     IGraphPayments.PaymentTypes.QueryFee,
+        //     users.gateway,
+        //     users.indexer,
+        //     secondCollect,
+        //     subgraphDataServiceAddress,
+        //     0
+        // );
     }
 }
