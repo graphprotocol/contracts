@@ -23,6 +23,8 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, IGraphPayments {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
+
+    /// @notice Protocol payment cut in PPM
     uint256 public immutable PROTOCOL_PAYMENT_CUT;
 
     /**

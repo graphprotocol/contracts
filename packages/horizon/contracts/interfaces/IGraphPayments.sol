@@ -57,9 +57,10 @@ interface IGraphPayments {
     /**
      * @notice Collects funds from a payer.
      * It will pay cuts to all relevant parties and forward the rest to the receiver.
+     * Note that the collected amount can be zero.
      * @param paymentType The type of payment as defined in {IGraphPayments}
      * @param receiver The address of the receiver
-     * @param tokens The amount of tokens being collected
+     * @param tokens The amount of tokens being collected.
      * @param dataService The address of the data service
      * @param dataServiceCut The data service cut in PPM
      */
