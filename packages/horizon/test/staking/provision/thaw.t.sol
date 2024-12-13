@@ -26,7 +26,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         uint64 thawingPeriod,
         uint256 thawCount
     ) public useIndexer useProvision(amount, 0, thawingPeriod) {
-        thawCount = bound(thawCount, 1, MAX_THAW_REQUESTS);
+        thawCount = bound(thawCount, 1, 100);
         vm.assume(amount >= thawCount); // ensure the provision has at least 1 token for each thaw step
         uint256 individualThawAmount = amount / thawCount;
 
@@ -72,13 +72,8 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
 
-    function testThaw_RevertWhen_OverMaxThawRequests(
-        uint256 amount,
-        uint64 thawingPeriod,
-        uint256 thawAmount
-    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
-        vm.assume(amount >= MAX_THAW_REQUESTS + 1);
-        thawAmount = bound(thawAmount, 1, amount / (MAX_THAW_REQUESTS + 1));
+    function testThaw_RevertWhen_OverMaxThawRequests() public useIndexer useProvision(10000 ether, 0, 0) {
+        uint256 thawAmount = 1 ether;
 
         for (uint256 i = 0; i < MAX_THAW_REQUESTS; i++) {
             _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);

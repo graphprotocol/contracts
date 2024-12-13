@@ -63,6 +63,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         address beneficiary
     ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
         vm.assume(beneficiary != address(0));
+        vm.assume(delegationAmount >= MIN_UNDELEGATION_WITH_BENEFICIARY);
         resetPrank(users.delegator);
         DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         _undelegateWithBeneficiary(users.indexer, subgraphDataServiceAddress, delegation.shares, beneficiary);
@@ -95,7 +96,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         public
         useIndexer
         useProvision(1000 ether, 0, 0)
-        useDelegation(1000 ether)
+        useDelegation(10000 ether)
     {
         resetPrank(users.delegator);
 

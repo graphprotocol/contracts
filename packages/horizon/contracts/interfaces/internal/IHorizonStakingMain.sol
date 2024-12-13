@@ -434,6 +434,13 @@ interface IHorizonStakingMain {
     error HorizonStakingInsufficientDelegationTokens(uint256 tokens, uint256 minTokens);
 
     /**
+     * @notice Thrown when the minimum token amount required for delegation with beneficiary is not met.
+     * @param tokens The actual token amount
+     * @param minTokens The minimum required token amount
+     */
+    error HorizonStakingInsufficientUndelegationTokens(uint256 tokens, uint256 minTokens);
+
+    /**
      * @notice Thrown when attempting to undelegate with a beneficiary that is the zero address.
      */
     error HorizonStakingInvalidBeneficiaryZeroAddress();

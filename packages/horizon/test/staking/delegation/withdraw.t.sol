@@ -167,6 +167,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
      {
         vm.assume(beneficiary != address(0));
         vm.assume(beneficiary != address(staking));
+        vm.assume(delegationAmount >= MIN_UNDELEGATION_WITH_BENEFICIARY);
         // Skip beneficiary if balance will overflow
         vm.assume(token.balanceOf(beneficiary) < type(uint256).max - delegationAmount);
 
@@ -196,6 +197,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     {
         vm.assume(beneficiary != address(0));
         vm.assume(beneficiary != users.delegator);
+        vm.assume(delegationAmount >= MIN_UNDELEGATION_WITH_BENEFICIARY);
 
         // Delegator undelegates to beneficiary
         resetPrank(users.delegator);

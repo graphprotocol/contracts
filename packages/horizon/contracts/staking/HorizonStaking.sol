@@ -36,13 +36,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
-    uint256 private constant MAX_THAW_REQUESTS = 100;
+    uint256 private constant MAX_THAW_REQUESTS = 1_000;
 
     /// @dev Address of the staking extension contract
     address private immutable STAKING_EXTENSION_ADDRESS;
 
     /// @dev Minimum amount of delegation.
     uint256 private constant MIN_DELEGATION = 1e18;
+
+    /// @dev Minimum amount of undelegation with beneficiary.
+    uint256 private constant MIN_UNDELEGATION_WITH_BENEFICIARY = 10e18;
 
     /**
      * @notice Checks that the caller is authorized to operate over a provision.
@@ -931,6 +934,17 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         // delegation pool shares -> delegation pool tokens -> thawing pool shares
         // Thawing pool is reset/initialized when the pool is empty: prov.tokensThawing == 0
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+
+        // Since anyone can undelegate for any beneficiary, we require a minimum amount to prevent
+        // malicious actors from flooding the thaw request list with tiny amounts and causing a
+        // denial of service attack by hitting the MAX_THAW_REQUESTS limit
+        if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
+            require(
+                tokens >= MIN_UNDELEGATION_WITH_BENEFICIARY,
+                HorizonStakingInsufficientUndelegationTokens(tokens, MIN_UNDELEGATION_WITH_BENEFICIARY)
+            );
+        }
+
         // Thawing shares are rounded down to protect the pool and avoid taking extra tokens from other participants.
         uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(_provisions[_serviceProvider][_verifier].thawingPeriod));
