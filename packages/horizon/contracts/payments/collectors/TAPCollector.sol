@@ -249,6 +249,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
                 keccak256(
                     abi.encode(
                         EIP712_RAV_TYPEHASH,
+                        _rav.payer,
                         _rav.dataService,
                         _rav.serviceProvider,
                         _rav.timestampNs,
