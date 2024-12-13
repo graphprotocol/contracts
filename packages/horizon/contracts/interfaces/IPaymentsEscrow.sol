@@ -37,11 +37,18 @@ interface IPaymentsEscrow {
     /**
      * @notice Emitted when a payer cancels an escrow thawing
      * @param payer The address of the payer
+     * @param collector The address of the collector
      * @param receiver The address of the receiver
      * @param tokensThawing The amount of tokens that were being thawed
      * @param thawEndTimestamp The timestamp at which the thawing period was ending
      */
-    event CancelThaw(address indexed payer, address indexed receiver, uint256 tokensThawing, uint256 thawEndTimestamp);
+    event CancelThaw(
+        address indexed payer,
+        address indexed collector,
+        address indexed receiver,
+        uint256 tokensThawing,
+        uint256 thawEndTimestamp
+    );
 
     /**
      * @notice Emitted when a payer thaws funds from the escrow for a payer-collector-receiver tuple
@@ -70,12 +77,19 @@ interface IPaymentsEscrow {
 
     /**
      * @notice Emitted when a collector collects funds from the escrow for a payer-collector-receiver tuple
+     * @param paymentType The type of payment being collected as defined in the {IGraphPayments} interface
      * @param payer The address of the payer
      * @param collector The address of the collector
      * @param receiver The address of the receiver
      * @param tokens The amount of tokens collected
      */
-    event EscrowCollected(address indexed payer, address indexed collector, address indexed receiver, uint256 tokens);
+    event EscrowCollected(
+        IGraphPayments.PaymentTypes indexed paymentType,
+        address indexed payer,
+        address indexed collector,
+        address receiver,
+        uint256 tokens
+    );
 
     // -- Errors --
 
