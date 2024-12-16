@@ -247,7 +247,7 @@ contract DisputeManager is
      * use acceptDisputeConflict.
      * @dev Accept a dispute with Id `disputeId`
      * @param disputeId Id of the dispute to be accepted
-     * @param tokensSlash Amount of tokens to slash from the indexer for the first dispute
+     * @param tokensSlash Amount of tokens to slash from the indexer
      */
     function acceptDispute(
         bytes32 disputeId,
