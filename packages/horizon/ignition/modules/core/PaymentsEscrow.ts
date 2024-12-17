@@ -10,13 +10,12 @@ export default buildModule('PaymentsEscrow', (m) => {
   const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
   const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy, HorizonRegistered } = m.useModule(HorizonProxiesModule)
 
-  const revokeCollectorThawingPeriod = m.getParameter('revokeCollectorThawingPeriod')
   const withdrawEscrowThawingPeriod = m.getParameter('withdrawEscrowThawingPeriod')
 
   // Deploy PaymentsEscrow implementation
   const PaymentsEscrowImplementation = m.contract('PaymentsEscrow',
     PaymentsEscrowArtifact,
-    [Controller, revokeCollectorThawingPeriod, withdrawEscrowThawingPeriod],
+    [Controller, withdrawEscrowThawingPeriod],
     {
       after: [PeripheryRegistered, HorizonRegistered],
     },

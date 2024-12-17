@@ -54,7 +54,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, MAX_PPM, 0) {
         vm.assume(slashTokens > tokens);
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         verifierCutAmount = bound(verifierCutAmount, 0, MAX_PPM);
         vm.assume(verifierCutAmount <= tokens);
 
@@ -71,7 +71,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 verifierCutAmount,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing() {
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
         slashTokens = bound(slashTokens, tokens + 1, tokens + 1 + delegationTokens);
         verifierCutAmount = bound(verifierCutAmount, 0, tokens);
 
@@ -110,7 +110,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens
     ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing {
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
@@ -139,5 +139,47 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
 
         vm.startPrank(subgraphDataServiceAddress);
         _slash(users.indexer, subgraphDataServiceAddress, tokens + delegationTokens, 0);
+    }
+
+    function testSlash_RoundDown_TokensThawing_Provision() public useIndexer {
+        uint256 tokens = 1 ether + 1;
+        _useProvision(subgraphDataServiceAddress, tokens, MAX_PPM, MAX_THAWING_PERIOD);
+
+        _thaw(users.indexer, subgraphDataServiceAddress, tokens);
+
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, 1, 0);
+
+        resetPrank(users.indexer);
+        Provision memory provision = staking.getProvision(users.indexer, subgraphDataServiceAddress);
+        assertEq(provision.tokens, tokens - 1);
+        // Tokens thawing should be rounded down
+        assertEq(provision.tokensThawing, tokens - 2);
+    }
+
+    function testSlash_RoundDown_TokensThawing_Delegation(
+        uint256 tokens
+    ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing {
+        resetPrank(users.delegator);
+        uint256 delegationTokens = 1 ether + 1;
+        _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
+
+        DelegationInternal memory delegation = _getStorage_Delegation(
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
+            false
+        );
+        _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
+
+        resetPrank(subgraphDataServiceAddress);
+        // Slash 1 token from delegation
+        _slash(users.indexer, subgraphDataServiceAddress, tokens + 1, 0);
+
+        resetPrank(users.delegator);
+        DelegationPool memory pool = staking.getDelegationPool(users.indexer, subgraphDataServiceAddress);
+        assertEq(pool.tokens, delegationTokens - 1);
+        // Tokens thawing should be rounded down
+        assertEq(pool.tokensThawing, delegationTokens - 2);
     }
 }

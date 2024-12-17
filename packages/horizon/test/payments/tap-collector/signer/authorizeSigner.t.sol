@@ -49,6 +49,27 @@ contract TAPCollectorAuthorizeSignerTest is TAPCollectorTest {
         tapCollector.authorizeSigner(signer, proofDeadline, signerProof);
     }
 
+    function testTAPCollector_AuthorizeSigner_RevertWhen_AlreadyAuthroizedAfterRevoking() public useGateway {
+        // Authorize signer
+        uint256 proofDeadline = block.timestamp + 1;
+        bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
+        _authorizeSigner(signer, proofDeadline, signerProof);
+
+        // Revoke signer
+        _thawSigner(signer);
+        skip(revokeSignerThawingPeriod + 1);
+        _revokeAuthorizedSigner(signer);
+
+        // Attempt to authorize signer again
+        bytes memory expectedError = abi.encodeWithSelector(
+            ITAPCollector.TAPCollectorSignerAlreadyAuthorized.selector,
+            users.gateway,
+            signer
+        );
+        vm.expectRevert(expectedError);
+        tapCollector.authorizeSigner(signer, proofDeadline, signerProof);
+    }
+
     function testTAPCollector_AuthorizeSigner_RevertWhen_ProofExpired() public useGateway {
         // Sign proof with payer
         uint256 proofDeadline = block.timestamp - 1;

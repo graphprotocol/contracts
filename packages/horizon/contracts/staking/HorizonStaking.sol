@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingMain } from "../interfaces/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
@@ -35,10 +36,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     uint256 private constant FIXED_POINT_PRECISION = 1e18;
 
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
-    uint256 private constant MAX_THAW_REQUESTS = 100;
+    uint256 private constant MAX_THAW_REQUESTS = 1_000;
 
     /// @dev Address of the staking extension contract
     address private immutable STAKING_EXTENSION_ADDRESS;
+
+    /// @dev Minimum amount of delegation.
+    uint256 private constant MIN_DELEGATION = 1e18;
+
+    /// @dev Minimum amount of undelegation with beneficiary.
+    uint256 private constant MIN_UNDELEGATION_WITH_BENEFICIARY = 10e18;
 
     /**
      * @notice Checks that the caller is authorized to operate over a provision.
@@ -297,20 +304,20 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 shares
     ) external override notPaused returns (bytes32) {
-        return _undelegate(serviceProvider, verifier, shares, msg.sender);
+        return _undelegate(ThawRequestType.Delegation, serviceProvider, verifier, shares, msg.sender);
     }
 
     /**
      * @notice See {IHorizonStakingMain-undelegate}.
      */
-    function undelegate(
+    function undelegateWithBeneficiary(
         address serviceProvider,
         address verifier,
         uint256 shares,
         address beneficiary
     ) external override notPaused returns (bytes32) {
         require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
-        return _undelegate(serviceProvider, verifier, shares, beneficiary);
+        return _undelegate(ThawRequestType.DelegationWithBeneficiary, serviceProvider, verifier, shares, beneficiary);
     }
 
     /**
@@ -321,7 +328,34 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 nThawRequests
     ) external override notPaused {
-        _withdrawDelegated(serviceProvider, verifier, address(0), address(0), 0, nThawRequests);
+        _withdrawDelegated(
+            ThawRequestType.Delegation,
+            serviceProvider,
+            verifier,
+            address(0),
+            address(0),
+            0,
+            nThawRequests
+        );
+    }
+
+    /**
+     * @notice See {IHorizonStakingMain-withdrawDelegatedWithBeneficiary}.
+     */
+    function withdrawDelegatedWithBeneficiary(
+        address serviceProvider,
+        address verifier,
+        uint256 nThawRequests
+    ) external override notPaused {
+        _withdrawDelegated(
+            ThawRequestType.DelegationWithBeneficiary,
+            serviceProvider,
+            verifier,
+            address(0),
+            address(0),
+            0,
+            nThawRequests
+        );
     }
 
     /**
@@ -338,6 +372,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(newServiceProvider != address(0), HorizonStakingInvalidServiceProviderZeroAddress());
         require(newVerifier != address(0), HorizonStakingInvalidVerifierZeroAddress());
         _withdrawDelegated(
+            ThawRequestType.Delegation,
             oldServiceProvider,
             oldVerifier,
             newServiceProvider,
@@ -374,21 +409,43 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-undelegate}.
      */
     function undelegate(address serviceProvider, uint256 shares) external override notPaused {
-        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
+        _undelegate(ThawRequestType.Delegation, serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
     }
 
     /**
      * @notice See {IHorizonStakingMain-withdrawDelegated}.
      */
-    function withdrawDelegated(address serviceProvider, address newServiceProvider) external override notPaused {
-        _withdrawDelegated(
-            serviceProvider,
-            SUBGRAPH_DATA_SERVICE_ADDRESS,
-            newServiceProvider,
-            SUBGRAPH_DATA_SERVICE_ADDRESS,
-            0,
-            0
-        );
+    function withdrawDelegated(
+        address serviceProvider,
+        address // newServiceProvider, deprecated
+    ) external override notPaused returns (uint256) {
+        // Get the delegation pool of the indexer
+        address delegator = msg.sender;
+        DelegationPoolInternal storage pool = _legacyDelegationPools[serviceProvider];
+        DelegationInternal storage delegation = pool.delegators[delegator];
+
+        // Validation
+        uint256 tokensToWithdraw = 0;
+        uint256 currentEpoch = _graphEpochManager().currentEpoch();
+        if (
+            delegation.__DEPRECATED_tokensLockedUntil > 0 && currentEpoch >= delegation.__DEPRECATED_tokensLockedUntil
+        ) {
+            tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
+        }
+        require(tokensToWithdraw > 0, "!tokens");
+
+        // Reset lock
+        delegation.__DEPRECATED_tokensLocked = 0;
+        delegation.__DEPRECATED_tokensLockedUntil = 0;
+
+        emit StakeDelegatedWithdrawn(serviceProvider, delegator, tokensToWithdraw);
+
+        // -- Interactions --
+
+        // Return tokens to the delegator
+        _graphToken().pushTokens(delegator, tokensToWithdraw);
+
+        return tokensToWithdraw;
     }
 
     /*
@@ -404,6 +461,23 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensVerifier,
         address verifierDestination
     ) external override notPaused {
+        // TODO remove after the transition period
+        // Check if sender is authorized to slash on the deprecated list
+        if (__DEPRECATED_slashers[msg.sender]) {
+            // Forward call to staking extension
+            (bool success, ) = STAKING_EXTENSION_ADDRESS.delegatecall(
+                abi.encodeWithSelector(
+                    IHorizonStakingExtension.legacySlash.selector,
+                    serviceProvider,
+                    tokens,
+                    tokensVerifier,
+                    verifierDestination
+                )
+            );
+            require(success, "Delegatecall to legacySlash failed");
+            return;
+        }
+
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
@@ -432,8 +506,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _graphToken().burnTokens(providerTokensSlashed - tokensVerifier);
 
             // Provision accounting
-            // TODO check for rounding issues
-            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION) / prov.tokens;
+            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION + prov.tokens - 1) /
+                prov.tokens;
             prov.tokensThawing =
                 (prov.tokensThawing * (FIXED_POINT_PRECISION - provisionFractionSlashed)) /
                 (FIXED_POINT_PRECISION);
@@ -468,7 +542,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 _graphToken().burnTokens(tokensToSlash);
 
                 // Delegation pool accounting
-                uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION) / pool.tokens;
+                uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION + pool.tokens - 1) /
+                    pool.tokens;
                 pool.tokens = pool.tokens - tokensToSlash;
                 pool.tokensThawing =
                     (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
@@ -534,7 +609,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function setDelegationSlashingEnabled() external override onlyGovernor {
         _delegationSlashingEnabled = true;
-        emit DelegationSlashingEnabled(_delegationSlashingEnabled);
+        emit DelegationSlashingEnabled();
     }
 
     /**
@@ -663,7 +738,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-createProvision}.
+     * @notice See {IHorizonStakingMain-provision}.
      */
     function _createProvision(
         address _serviceProvider,
@@ -732,15 +807,17 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         // Calculate shares to issue
         // Thawing pool is reset/initialized when the pool is empty: prov.tokensThawing == 0
+        // Round thawing shares up to ensure fairness and avoid undervaluing the shares due to rounding down.
         uint256 thawingShares = prov.tokensThawing == 0
             ? _tokens
-            : ((prov.sharesThawing * _tokens) / prov.tokensThawing);
+            : ((prov.sharesThawing * _tokens + prov.tokensThawing - 1) / prov.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(prov.thawingPeriod));
 
         prov.sharesThawing = prov.sharesThawing + thawingShares;
         prov.tokensThawing = prov.tokensThawing + _tokens;
 
         bytes32 thawRequestId = _createThawRequest(
+            ThawRequestType.Provision,
             _serviceProvider,
             _verifier,
             _serviceProvider,
@@ -765,15 +842,18 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensThawed_ = 0;
         uint256 sharesThawing = prov.sharesThawing;
         uint256 tokensThawing = prov.tokensThawing;
-        (tokensThawed_, tokensThawing, sharesThawing) = _fulfillThawRequests(
-            _serviceProvider,
-            _verifier,
-            _serviceProvider,
-            tokensThawing,
-            sharesThawing,
-            _nThawRequests,
-            prov.thawingNonce
-        );
+
+        FulfillThawRequestsParams memory params = FulfillThawRequestsParams({
+            requestType: ThawRequestType.Provision,
+            serviceProvider: _serviceProvider,
+            verifier: _verifier,
+            owner: _serviceProvider,
+            tokensThawing: tokensThawing,
+            sharesThawing: sharesThawing,
+            nThawRequests: _nThawRequests,
+            thawingNonce: prov.thawingNonce
+        });
+        (tokensThawed_, tokensThawing, sharesThawing) = _fulfillThawRequests(params);
 
         prov.tokens = prov.tokens - tokensThawed_;
         prov.sharesThawing = sharesThawing;
@@ -790,6 +870,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * have been done before calling this function.
      */
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
+        // Enforces a minimum delegation amount to prevent share manipulation attacks.
+        // This stops attackers from inflating share value and blocking other delegators.
+        require(_tokens >= MIN_DELEGATION, HorizonStakingInsufficientDelegationTokens(_tokens, MIN_DELEGATION));
         require(
             _provisions[_serviceProvider][_verifier].createdAt != 0,
             HorizonStakingInvalidProvision(_serviceProvider, _verifier)
@@ -833,6 +916,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * that were not thawing will be preserved.
      */
     function _undelegate(
+        ThawRequestType _requestType,
         address _serviceProvider,
         address _verifier,
         uint256 _shares,
@@ -850,6 +934,18 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         // delegation pool shares -> delegation pool tokens -> thawing pool shares
         // Thawing pool is reset/initialized when the pool is empty: prov.tokensThawing == 0
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+
+        // Since anyone can undelegate for any beneficiary, we require a minimum amount to prevent
+        // malicious actors from flooding the thaw request list with tiny amounts and causing a
+        // denial of service attack by hitting the MAX_THAW_REQUESTS limit
+        if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
+            require(
+                tokens >= MIN_UNDELEGATION_WITH_BENEFICIARY,
+                HorizonStakingInsufficientUndelegationTokens(tokens, MIN_UNDELEGATION_WITH_BENEFICIARY)
+            );
+        }
+
+        // Thawing shares are rounded down to protect the pool and avoid taking extra tokens from other participants.
         uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(_provisions[_serviceProvider][_verifier].thawingPeriod));
 
@@ -858,8 +954,16 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         pool.shares = pool.shares - _shares;
         delegation.shares = delegation.shares - _shares;
+        if (delegation.shares != 0) {
+            uint256 remainingTokens = (delegation.shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
+            require(
+                remainingTokens >= MIN_DELEGATION,
+                HorizonStakingInsufficientTokens(remainingTokens, MIN_DELEGATION)
+            );
+        }
 
         bytes32 thawRequestId = _createThawRequest(
+            _requestType,
             _serviceProvider,
             _verifier,
             _beneficiary,
@@ -876,6 +980,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @notice See {IHorizonStakingMain-withdrawDelegated}.
      */
     function _withdrawDelegated(
+        ThawRequestType _requestType,
         address _serviceProvider,
         address _verifier,
         address _newServiceProvider,
@@ -894,15 +999,18 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensThawed = 0;
         uint256 sharesThawing = pool.sharesThawing;
         uint256 tokensThawing = pool.tokensThawing;
-        (tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(
-            _serviceProvider,
-            _verifier,
-            msg.sender,
-            tokensThawing,
-            sharesThawing,
-            _nThawRequests,
-            pool.thawingNonce
-        );
+
+        FulfillThawRequestsParams memory params = FulfillThawRequestsParams({
+            requestType: _requestType,
+            serviceProvider: _serviceProvider,
+            verifier: _verifier,
+            owner: msg.sender,
+            tokensThawing: tokensThawing,
+            sharesThawing: sharesThawing,
+            nThawRequests: _nThawRequests,
+            thawingNonce: pool.thawingNonce
+        });
+        (tokensThawed, tokensThawing, sharesThawing) = _fulfillThawRequests(params);
 
         // The next subtraction should never revert becase: pool.tokens >= pool.tokensThawing and pool.tokensThawing >= tokensThawed
         // In the event the pool gets completely slashed tokensThawed will fulfil to 0.
@@ -936,6 +1044,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @return The ID of the thaw request
      */
     function _createThawRequest(
+        ThawRequestType _requestType,
         address _serviceProvider,
         address _verifier,
         address _owner,
@@ -943,18 +1052,23 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint64 _thawingUntil,
         uint256 _thawingNonce
     ) private returns (bytes32) {
-        LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
+        require(_shares != 0, HorizonStakingInvalidZeroShares());
+        LinkedList.List storage thawRequestList = _getThawRequestList(
+            _requestType,
+            _serviceProvider,
+            _verifier,
+            _owner
+        );
         require(thawRequestList.count < MAX_THAW_REQUESTS, HorizonStakingTooManyThawRequests());
 
         bytes32 thawRequestId = keccak256(abi.encodePacked(_serviceProvider, _verifier, _owner, thawRequestList.nonce));
-        _thawRequests[thawRequestId] = ThawRequest({
-            shares: _shares,
-            thawingUntil: _thawingUntil,
-            next: bytes32(0),
-            thawingNonce: _thawingNonce
-        });
+        ThawRequest storage thawRequest = _getThawRequest(_requestType, thawRequestId);
+        thawRequest.shares = _shares;
+        thawRequest.thawingUntil = _thawingUntil;
+        thawRequest.next = bytes32(0);
+        thawRequest.thawingNonce = _thawingNonce;
 
-        if (thawRequestList.count != 0) _thawRequests[thawRequestList.tail].next = thawRequestId;
+        if (thawRequestList.count != 0) _getThawRequest(_requestType, thawRequestList.tail).next = thawRequestId;
         thawRequestList.addTail(thawRequestId);
 
         emit ThawRequestCreated(_serviceProvider, _verifier, _owner, _shares, _thawingUntil, thawRequestId);
@@ -964,41 +1078,74 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice Traverses a thaw request list and fulfills expired thaw requests.
      * @dev Emits a {ThawRequestsFulfilled} event and a {ThawRequestFulfilled} event for each thaw request fulfilled.
-     * @param _serviceProvider The address of the service provider
-     * @param _verifier The address of the verifier
-     * @param _owner The address of the owner of the thaw request
-     * @param _tokensThawing The current amount of tokens already thawing
-     * @param _sharesThawing The current amount of shares already thawing
-     * @param _nThawRequests The number of thaw requests to fulfill. If set to 0, all thaw requests are fulfilled.
-     * @param _thawingNonce The current valid thawing nonce. Any thaw request with a different nonce is invalid and should be ignored.
+     * @param params The parameters for fulfilling thaw requests
      * @return The amount of thawed tokens
      * @return The amount of tokens still thawing
      * @return The amount of shares still thawing
      */
-    function _fulfillThawRequests(
-        address _serviceProvider,
-        address _verifier,
-        address _owner,
-        uint256 _tokensThawing,
-        uint256 _sharesThawing,
-        uint256 _nThawRequests,
-        uint256 _thawingNonce
-    ) private returns (uint256, uint256, uint256) {
-        LinkedList.List storage thawRequestList = _thawRequestLists[_serviceProvider][_verifier][_owner];
+    function _fulfillThawRequests(FulfillThawRequestsParams memory params) private returns (uint256, uint256, uint256) {
+        LinkedList.List storage thawRequestList = _getThawRequestList(
+            params.requestType,
+            params.serviceProvider,
+            params.verifier,
+            params.owner
+        );
         require(thawRequestList.count > 0, HorizonStakingNothingThawing());
 
-        uint256 tokensThawed = 0;
-        (uint256 thawRequestsFulfilled, bytes memory data) = thawRequestList.traverse(
-            _getNextThawRequest,
-            _fulfillThawRequest,
-            _deleteThawRequest,
-            abi.encode(tokensThawed, _tokensThawing, _sharesThawing, _thawingNonce),
-            _nThawRequests
+        TraverseThawRequestsResults memory results = _traverseThawRequests(params, thawRequestList);
+
+        emit ThawRequestsFulfilled(
+            params.serviceProvider,
+            params.verifier,
+            params.owner,
+            results.requestsFulfilled,
+            results.tokensThawed,
+            params.requestType
         );
 
-        (tokensThawed, _tokensThawing, _sharesThawing) = abi.decode(data, (uint256, uint256, uint256));
-        emit ThawRequestsFulfilled(_serviceProvider, _verifier, _owner, thawRequestsFulfilled, tokensThawed);
-        return (tokensThawed, _tokensThawing, _sharesThawing);
+        return (results.tokensThawed, results.tokensThawing, results.sharesThawing);
+    }
+
+    /**
+     * @notice Traverses a thaw request list and fulfills expired thaw requests.
+     * @param params The parameters for fulfilling thaw requests
+     * @param thawRequestList The list of thaw requests to traverse
+     * @return The results of the traversal
+     */
+    function _traverseThawRequests(
+        FulfillThawRequestsParams memory params,
+        LinkedList.List storage thawRequestList
+    ) private returns (TraverseThawRequestsResults memory) {
+        function(bytes32) view returns (bytes32) getNextItem = _getNextThawRequest(params.requestType);
+        function(bytes32) deleteItem = _getDeleteThawRequest(params.requestType);
+
+        bytes memory acc = abi.encode(
+            params.requestType,
+            uint256(0),
+            params.tokensThawing,
+            params.sharesThawing,
+            params.thawingNonce
+        );
+        (uint256 thawRequestsFulfilled, bytes memory data) = thawRequestList.traverse(
+            getNextItem,
+            _fulfillThawRequest,
+            deleteItem,
+            acc,
+            params.nThawRequests
+        );
+
+        (, uint256 tokensThawed, uint256 tokensThawing, uint256 sharesThawing) = abi.decode(
+            data,
+            (ThawRequestType, uint256, uint256, uint256)
+        );
+
+        return
+            TraverseThawRequestsResults({
+                requestsFulfilled: thawRequestsFulfilled,
+                tokensThawed: tokensThawed,
+                tokensThawing: tokensThawing,
+                sharesThawing: sharesThawing
+            });
     }
 
     /**
@@ -1013,18 +1160,21 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @return The updated accumulator data
      */
     function _fulfillThawRequest(bytes32 _thawRequestId, bytes memory _acc) private returns (bool, bytes memory) {
-        ThawRequest storage thawRequest = _thawRequests[_thawRequestId];
+        // decode
+        (
+            ThawRequestType requestType,
+            uint256 tokensThawed,
+            uint256 tokensThawing,
+            uint256 sharesThawing,
+            uint256 thawingNonce
+        ) = abi.decode(_acc, (ThawRequestType, uint256, uint256, uint256, uint256));
+
+        ThawRequest storage thawRequest = _getThawRequest(requestType, _thawRequestId);
 
         // early exit
         if (thawRequest.thawingUntil > block.timestamp) {
             return (true, LinkedList.NULL_BYTES);
         }
-
-        // decode
-        (uint256 tokensThawed, uint256 tokensThawing, uint256 sharesThawing, uint256 thawingNonce) = abi.decode(
-            _acc,
-            (uint256, uint256, uint256, uint256)
-        );
 
         // process - only fulfill thaw requests for the current valid nonce
         uint256 tokens = 0;
@@ -1044,17 +1194,49 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
 
         // encode
-        _acc = abi.encode(tokensThawed, tokensThawing, sharesThawing, thawingNonce);
+        _acc = abi.encode(requestType, tokensThawed, tokensThawing, sharesThawing, thawingNonce);
         return (false, _acc);
     }
 
     /**
-     * @notice Deletes a ThawRequest.
-     * @dev This function is used as a callback in the thaw requests linked list traversal.
-     * @param _thawRequestId The ID of the thaw request to delete
+     * @notice Determines the correct callback function for `deleteItem` based on the request type.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @return A function pointer to the appropriate `deleteItem` callback.
      */
-    function _deleteThawRequest(bytes32 _thawRequestId) private {
-        delete _thawRequests[_thawRequestId];
+    function _getDeleteThawRequest(ThawRequestType _requestType) private pure returns (function(bytes32)) {
+        if (_requestType == ThawRequestType.Provision) {
+            return _deleteProvisionThawRequest;
+        } else if (_requestType == ThawRequestType.Delegation) {
+            return _deleteDelegationThawRequest;
+        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
+            return _deleteDelegationWithBeneficiaryThawRequest;
+        } else {
+            revert HorizonStakingInvalidThawRequestType();
+        }
+    }
+
+    /**
+     * @notice Deletes a thaw request for a provision.
+     * @param _thawRequestId The ID of the thaw request to delete.
+     */
+    function _deleteProvisionThawRequest(bytes32 _thawRequestId) private {
+        delete _thawRequests[ThawRequestType.Provision][_thawRequestId];
+    }
+
+    /**
+     * @notice Deletes a thaw request for a delegation.
+     * @param _thawRequestId The ID of the thaw request to delete.
+     */
+    function _deleteDelegationThawRequest(bytes32 _thawRequestId) private {
+        delete _thawRequests[ThawRequestType.Delegation][_thawRequestId];
+    }
+
+    /**
+     * @notice Deletes a thaw request for a delegation with a beneficiary.
+     * @param _thawRequestId The ID of the thaw request to delete.
+     */
+    function _deleteDelegationWithBeneficiaryThawRequest(bytes32 _thawRequestId) private {
+        delete _thawRequests[ThawRequestType.DelegationWithBeneficiary][_thawRequestId];
     }
 
     /**
