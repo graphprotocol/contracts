@@ -312,11 +312,9 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.closeStaleAllocation}
      */
-    function forceCloseAllocation(address allocationId) external override {
+    function closeStaleAllocation(address allocationId) external override {
         Allocation.State memory allocation = allocations.get(allocationId);
-        bool isStale = allocation.isStale(maxPOIStaleness);
-        bool isOverAllocated_ = _isOverAllocated(allocation.indexer, delegationRatio);
-        require(isStale || isOverAllocated_, SubgraphServiceCannotForceCloseAllocation(allocationId));
+        require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _closeAllocation(allocationId);
     }
@@ -424,6 +422,7 @@ contract SubgraphService is
      * @return subgraphDeploymentId Subgraph deployment id for the allocation
      * @return tokens Amount of allocated tokens
      * @return accRewardsPerAllocatedToken Rewards snapshot
+     * @return accRewardsPending Rewards pending to be minted due to allocation resize
      */
     function getAllocationData(
         address allocationId
@@ -556,13 +555,10 @@ contract SubgraphService is
             IGraphPayments.PaymentTypes.QueryFee,
             abi.encode(_signedRav, curationCut)
         );
-        uint256 tokensCurators = tokensCollected.mulPPM(curationCut);
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
-        require(
-            balanceBefore + tokensCurators == balanceAfter,
-            SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensCurators)
-        );
+        require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
+        uint256 tokensCurators = balanceAfter - balanceBefore;
 
         if (tokensCollected > 0) {
             // lock stake as economic security for fees

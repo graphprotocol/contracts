@@ -18,6 +18,8 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
  * @dev Note that the contract expects the RAV aggregate value to be monotonically increasing, each successive RAV for the same
  * (data service-payer-receiver) tuple should have a value greater than the previous one. The contract will keep track of the tokens
  * already collected and calculate the difference to collect.
+ * @dev The contract also implements a mechanism to authorize signers to sign RAVs on behalf of a payer. Signers cannot be reused
+ * for different payers.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -27,7 +29,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     /// @notice The EIP712 typehash for the ReceiptAggregateVoucher struct
     bytes32 private constant EIP712_RAV_TYPEHASH =
         keccak256(
-            "ReceiptAggregateVoucher(address dataService,address serviceProvider,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
+            "ReceiptAggregateVoucher(address payer,address dataService,address serviceProvider,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
         );
 
     /// @notice Authorization details for payer-signer pairs
@@ -79,6 +81,11 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
         require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
+        require(!authorization.revoked, TAPCollectorAuthorizationAlreadyRevoked(msg.sender, signer));
+        require(
+            authorization.thawEndTimestamp == 0,
+            TAPCollectorSignerAlreadyThawing(signer, authorization.thawEndTimestamp)
+        );
 
         authorization.thawEndTimestamp = block.timestamp + REVOKE_SIGNER_THAWING_PERIOD;
         emit SignerThawing(msg.sender, signer, authorization.thawEndTimestamp);
@@ -110,7 +117,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
             TAPCollectorSignerStillThawing(block.timestamp, authorization.thawEndTimestamp)
         );
 
-        delete authorizedSigners[signer];
+        authorization.revoked = true;
         emit SignerRevoked(msg.sender, signer);
     }
 
@@ -118,19 +125,19 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
      * @notice Initiate a payment collection through the payments protocol
      * See {IGraphPayments.collect}.
      * @dev Caller must be the data service the RAV was issued to.
+     * @dev Service provider must have an active provision with the data service to collect payments
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external override returns (uint256) {
-        (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(data, (SignedRAV, uint256));
-        require(
-            signedRAV.rav.dataService == msg.sender,
-            TAPCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService)
-        );
+        return _collect(paymentType, data, 0);
+    }
 
-        address signer = _recoverRAVSigner(signedRAV);
-        require(authorizedSigners[signer].payer != address(0), TAPCollectorInvalidRAVSigner());
-
-        return _collect(paymentType, authorizedSigners[signer].payer, signedRAV, dataServiceCut);
+    function collect(
+        IGraphPayments.PaymentTypes paymentType,
+        bytes memory data,
+        uint256 tokensToCollect
+    ) external override returns (uint256) {
+        return _collect(paymentType, data, tokensToCollect);
     }
 
     /**
@@ -152,44 +159,75 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
      */
     function _collect(
         IGraphPayments.PaymentTypes _paymentType,
-        address _payer,
-        SignedRAV memory _signedRAV,
-        uint256 _dataServiceCut
+        bytes memory _data,
+        uint256 _tokensToCollect
     ) private returns (uint256) {
-        address dataService = _signedRAV.rav.dataService;
-        address receiver = _signedRAV.rav.serviceProvider;
-
-        uint256 tokensRAV = _signedRAV.rav.valueAggregate;
-        uint256 tokensAlreadyCollected = tokensCollected[dataService][receiver][_payer];
+        // Ensure caller is the RAV data service
+        (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (SignedRAV, uint256));
         require(
-            tokensRAV > tokensAlreadyCollected,
-            TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
+            signedRAV.rav.dataService == msg.sender,
+            TAPCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService)
         );
 
-        uint256 tokensToCollect = tokensRAV - tokensAlreadyCollected;
-        uint256 tokensDataService = tokensToCollect.mulPPM(_dataServiceCut);
+        // Ensure RAV signer is authorized for a payer
+        address signer = _recoverRAVSigner(signedRAV);
+        require(
+            authorizedSigners[signer].payer != address(0) && !authorizedSigners[signer].revoked,
+            TAPCollectorInvalidRAVSigner()
+        );
 
-        if (tokensToCollect > 0) {
-            tokensCollected[dataService][receiver][_payer] = tokensRAV;
-            _graphPaymentsEscrow().collect(
-                _paymentType,
-                _payer,
-                receiver,
-                tokensToCollect,
-                dataService,
-                tokensDataService
+        // Ensure RAV payer matches the authorized payer
+        address payer = authorizedSigners[signer].payer;
+        require(signedRAV.rav.payer == payer, TAPCollectorInvalidRAVPayer(payer, signedRAV.rav.payer));
+
+        address dataService = signedRAV.rav.dataService;
+        address receiver = signedRAV.rav.serviceProvider;
+
+        // Check the service provider has an active provision with the data service
+        // This prevents an attack where the payer can deny the service provider from collecting payments
+        // by using a signer as data service to syphon off the tokens in the escrow to an account they control
+        {
+            uint256 tokensAvailable = _graphStaking().getProviderTokensAvailable(
+                signedRAV.rav.serviceProvider,
+                signedRAV.rav.dataService
             );
+            require(tokensAvailable > 0, TAPCollectorUnauthorizedDataService(signedRAV.rav.dataService));
         }
 
-        emit PaymentCollected(_paymentType, _payer, receiver, tokensToCollect, dataService, tokensDataService);
+        uint256 tokensToCollect = 0;
+        {
+            uint256 tokensRAV = signedRAV.rav.valueAggregate;
+            uint256 tokensAlreadyCollected = tokensCollected[dataService][receiver][payer];
+            require(
+                tokensRAV > tokensAlreadyCollected,
+                TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
+            );
+
+            if (_tokensToCollect == 0) {
+                tokensToCollect = tokensRAV - tokensAlreadyCollected;
+            } else {
+                require(
+                    _tokensToCollect <= tokensRAV - tokensAlreadyCollected,
+                    TAPCollectorInvalidTokensToCollectAmount(_tokensToCollect, tokensRAV - tokensAlreadyCollected)
+                );
+                tokensToCollect = _tokensToCollect;
+            }
+        }
+
+        if (tokensToCollect > 0) {
+            tokensCollected[dataService][receiver][payer] += tokensToCollect;
+            _graphPaymentsEscrow().collect(_paymentType, payer, receiver, tokensToCollect, dataService, dataServiceCut);
+        }
+
+        emit PaymentCollected(_paymentType, payer, receiver, dataService, tokensToCollect);
         emit RAVCollected(
-            _payer,
+            payer,
             dataService,
             receiver,
-            _signedRAV.rav.timestampNs,
-            _signedRAV.rav.valueAggregate,
-            _signedRAV.rav.metadata,
-            _signedRAV.signature
+            signedRAV.rav.timestampNs,
+            signedRAV.rav.valueAggregate,
+            signedRAV.rav.metadata,
+            signedRAV.signature
         );
         return tokensToCollect;
     }
@@ -211,6 +249,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
                 keccak256(
                     abi.encode(
                         EIP712_RAV_TYPEHASH,
+                        _rav.payer,
                         _rav.dataService,
                         _rav.serviceProvider,
                         _rav.timestampNs,

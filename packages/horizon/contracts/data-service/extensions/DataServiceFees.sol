@@ -14,6 +14,8 @@ import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
  * @dev Implementation of the {IDataServiceFees} interface.
  * @notice Extension for the {IDataService} contract to handle payment collateralization
  * using a Horizon provision. See {IDataServiceFees} for more details.
+ * @dev This contract inherits from {DataService} which needs to be initialized, please see
+ * {DataService} for detailed instructions.
  */
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);
@@ -127,9 +129,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _claimId The ID of the stake claim
      */
     function _getNextStakeClaim(bytes32 _claimId) private view returns (bytes32) {
-        StakeClaim memory claim = claims[_claimId];
-        require(claim.createdAt != 0, DataServiceFeesClaimNotFound(_claimId));
-        return claim.nextClaim;
+        return claims[_claimId].nextClaim;
     }
 
     /**
