@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+require('json5/lib/register')
+
 import { ignition } from 'hardhat'
 
 import DisputeManagerModule from '../ignition/modules/DisputeManager'
@@ -17,8 +19,8 @@ import SubgraphServiceProxiesModule from '../ignition/modules/Proxies'
 // - Deploy SubgraphService and DisputeManager implementations
 async function main() {
   // TODO: Dynamically load config file based on the hardhat --network value
-  const HorizonConfig = removeNFromBigInts(require('@graphprotocol/horizon/ignition/configs/horizon.hardhat.json'))
-  const SubgraphServiceConfig = removeNFromBigInts(require('../ignition/configs/subgraph-service.hardhat.json'))
+  const HorizonConfig = removeNFromBigInts(require('@graphprotocol/horizon/ignition/configs/horizon.hardhat.json5'))
+  const SubgraphServiceConfig = removeNFromBigInts(require('../ignition/configs/subgraph-service.hardhat.json5'))
 
   // Deploy proxies
   const { DisputeManagerProxy, DisputeManagerProxyAdmin, SubgraphServiceProxy, SubgraphServiceProxyAdmin } = await ignition.deploy(SubgraphServiceProxiesModule)
