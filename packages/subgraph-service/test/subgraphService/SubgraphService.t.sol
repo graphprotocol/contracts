@@ -151,7 +151,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertEq(afterSubgraphAllocatedTokens, _tokens);
     }
 
-    function _forceCloseAllocation(address _allocationId) internal {
+    function _closeStaleAllocation(address _allocationId) internal {
         assertTrue(subgraphService.isActiveAllocation(_allocationId));
 
         Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
@@ -168,7 +168,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         );
 
         // close stale allocation
-        subgraphService.forceCloseAllocation(_allocationId);
+        subgraphService.closeStaleAllocation(_allocationId);
 
         // update allocation
         allocation = subgraphService.getAllocation(_allocationId);
@@ -232,7 +232,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
             allocationId = abi.decode(signedRav.rav.metadata, (address));
             allocation = subgraphService.getAllocation(allocationId);
-            (address payer, ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
+            (address payer, , ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
 
             // Total amount of tokens collected for indexer
             uint256 tokensCollected = tapCollector.tokensCollected(address(subgraphService), _indexer, payer);
@@ -242,7 +242,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             // Calculate curation cut
             uint256 curationFeesCut = subgraphService.curationFeesCut();
             queryFeeData.curationCut = curation.isCurated(allocation.subgraphDeploymentId) ? curationFeesCut : 0;
-            uint256 tokensCurators = paymentCollected.mulPPM(queryFeeData.curationCut);
+            uint256 tokensProtocol = paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
+            uint256 tokensCurators = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
 
             vm.expectEmit(address(subgraphService));
             emit ISubgraphService.QueryFeesCollected(_indexer, paymentCollected, tokensCurators);
@@ -302,8 +303,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
             // Check indexer got paid the correct amount
             {
-                uint256 tokensProtocol = paymentCollected.mulPPM(protocolPaymentCut);
-                uint256 curationTokens = paymentCollected.mulPPM(queryFeeData.curationCut);
+                uint256 tokensProtocol = paymentCollected.mulPPMRoundUp(protocolPaymentCut);
+                uint256 curationTokens = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
                 uint256 expectedIndexerTokensPayment = paymentCollected - tokensProtocol - curationTokens;
                 assertEq(
                     collectPaymentDataAfter.indexerBalance,
@@ -377,6 +378,17 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
                 assertFalse(allocation.isOpen());
             }
         }
+    }
+
+    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentID) internal {
+        vm.expectEmit(address(subgraphService));
+        emit AllocationManager.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentID);
+
+        subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentID);
+
+        (address afterIndexer, bytes32 afterSubgraphDeploymentId) = subgraphService.legacyAllocations(_allocationId);
+        assertEq(afterIndexer, _indexer);
+        assertEq(afterSubgraphDeploymentId, _subgraphDeploymentID);
     }
 
     /*
