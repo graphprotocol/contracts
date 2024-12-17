@@ -24,7 +24,7 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
     {
         dataServiceCut = bound(dataServiceCut, 0, MAX_PPM);
-        delegationTokens = bound(delegationTokens, 1, MAX_STAKING_TOKENS);
+        delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);

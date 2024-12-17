@@ -10,9 +10,11 @@ abstract contract Constants {
     // GraphPayments parameters
     uint256 internal constant protocolPaymentCut = 10000;
     // Staking constants
-    uint256 internal constant MAX_THAW_REQUESTS = 100;
+    uint256 internal constant MAX_THAW_REQUESTS = 1_000;
     uint64 internal constant MAX_THAWING_PERIOD = 28 days;
     uint32 internal constant THAWING_PERIOD_IN_BLOCKS = 300;
+    uint256 internal constant MIN_DELEGATION = 1e18;
+    uint256 internal constant MIN_UNDELEGATION_WITH_BENEFICIARY = 10e18;
     // Epoch manager
     uint256 internal constant EPOCH_LENGTH = 1;
     // Rewards manager
