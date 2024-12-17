@@ -1,0 +1,55 @@
+{
+  "name": "hardhat-graph-protocol",
+  "version": "0.0.1",
+  "description": "A hardhat plugin that extends the runtime environment to inject additional functionality related to the usage of the Graph Protocol.",
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "hardhat-plugin",
+    "graph",
+    "graph-protocol",
+    "horizon"
+  ],
+  "author": "Tomás Migone <tomas@edgeandnode.com>",
+  "license": "MIT",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "lint": "eslint '**/*.{js,ts}' --fix",
+    "test": "mocha --exit --recursive 'test/**/*.test.ts'",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "dependencies": {
+    "@graphprotocol/contracts": "workspace:^7.0.0",
+    "@graphprotocol/horizon": "workspace:^0.0.1",
+    "@graphprotocol/subgraph-service": "workspace:^0.0.1",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "debug": "^4.3.7"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.0.0",
+    "@types/debug": "^4.1.12",
+    "@types/mocha": "^10.0.9",
+    "chai": "^4.0.0",
+    "eslint": "^8.56.0",
+    "eslint-graph-config": "workspace:^0.0.1",
+    "ethers": "^6.13.4",
+    "hardhat": "^2.22.16",
+    "mocha": "^10.8.2",
+    "ts-node": "^8.0.0",
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "ethers": "^6.13.4",
+    "hardhat": "^2.22.16"
+  }
+}

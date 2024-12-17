@@ -4,12 +4,18 @@
   "description": "",
   "author": "The Graph core devs",
   "license": "GPL-2.0-or-later",
+  "types": "typechain-types/index.ts",
+  "files": [
+    "build/contracts/**/*",
+    "README.md",
+    "addresses.json"
+  ],
   "scripts": {
     "lint:ts": "eslint '**/*.{js,ts}' --fix",
     "lint:sol": "prettier --write contracts/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint": "yarn lint:ts && yarn lint:sol",
-    "clean": "rm -rf build cache typechain-types",
-    "build": "forge build && hardhat compile",
+    "clean": "rm -rf build dist cache cache_forge typechain-types",
+    "build": "forge build --skip test && BUILD_RUN=true hardhat compile",
     "test": "forge test && hardhat test"
   },
   "devDependencies": {
@@ -33,10 +39,11 @@
     "chai": "^4.2.0",
     "eslint": "^8.56.0",
     "eslint-graph-config": "workspace:^0.0.1",
-    "ethers": "^6.13.2",
-    "hardhat": "^2.20.1",
+    "ethers": "^6.13.4",
+    "hardhat": "^2.22.0",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-graph-protocol": "workspace:^0.0.1",
     "hardhat-secure-accounts": "^1.0.4",
     "hardhat-storage-layout": "^0.1.7",
     "lint-staged": "^15.2.2",
@@ -48,7 +55,7 @@
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
     "typechain": "^8.3.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.6.3"
   },
   "lint-staged": {
     "contracts/**/*.sol": [
