@@ -555,13 +555,10 @@ contract SubgraphService is
             IGraphPayments.PaymentTypes.QueryFee,
             abi.encode(_signedRav, curationCut)
         );
-        uint256 tokensCurators = tokensCollected.mulPPM(curationCut);
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
-        require(
-            balanceBefore + tokensCurators == balanceAfter,
-            SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter, tokensCurators)
-        );
+        require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
+        uint256 tokensCurators = balanceAfter - balanceBefore;
 
         if (tokensCollected > 0) {
             // lock stake as economic security for fees

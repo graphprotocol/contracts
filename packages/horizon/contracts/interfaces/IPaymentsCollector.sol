@@ -19,17 +19,15 @@ interface IPaymentsCollector {
      * @param paymentType The payment type collected as defined by {IGraphPayments}
      * @param payer The address of the payer
      * @param receiver The address of the receiver
-     * @param tokensReceiver The amount of tokens received by the receiver
      * @param dataService The address of the data service
-     * @param tokensDataService The amount of tokens received by the data service
+     * @param tokens The amount of tokens being collected
      */
     event PaymentCollected(
         IGraphPayments.PaymentTypes indexed paymentType,
         address indexed payer,
         address receiver,
-        uint256 tokensReceiver,
         address indexed dataService,
-        uint256 tokensDataService
+        uint256 tokens
     );
 
     /**
