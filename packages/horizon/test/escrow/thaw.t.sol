@@ -3,8 +3,6 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IPaymentsEscrow } from "../../contracts/interfaces/IPaymentsEscrow.sol";
-
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowThawTest is GraphEscrowTest {
@@ -14,14 +12,7 @@ contract GraphEscrowThawTest is GraphEscrowTest {
      */
 
     function testThaw_Tokens(uint256 amount) public useGateway useDeposit(amount) {
-        uint256 expectedThawEndTimestamp = block.timestamp + withdrawEscrowThawingPeriod;
-        vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.Thaw(users.gateway, users.verifier, users.indexer, amount, expectedThawEndTimestamp);
-        escrow.thaw(users.verifier, users.indexer, amount);
-
-        (, uint256 amountThawing,uint256 thawEndTimestamp) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
-        assertEq(amountThawing, amount);
-        assertEq(thawEndTimestamp, expectedThawEndTimestamp);
+        _thawEscrow(users.verifier, users.indexer, amount);
     }
 
     function testThaw_RevertWhen_InsufficientThawAmount(

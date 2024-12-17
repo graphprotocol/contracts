@@ -32,7 +32,7 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
      * @param protocolPaymentCut The protocol tax in PPM
      */
     constructor(address controller, uint256 protocolPaymentCut) GraphDirectory(controller) {
-        require(PPMMath.isValidPPM(protocolPaymentCut), GraphPaymentsInvalidProtocolPaymentCut(protocolPaymentCut));
+        require(PPMMath.isValidPPM(protocolPaymentCut), GraphPaymentsInvalidCut(protocolPaymentCut));
         PROTOCOL_PAYMENT_CUT = protocolPaymentCut;
         _disableInitializers();
     }
@@ -52,41 +52,54 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 tokensDataService
+        uint256 dataServiceCut
     ) external {
+        require(PPMMath.isValidPPM(dataServiceCut), GraphPaymentsInvalidCut(dataServiceCut));
+
+        // Pull tokens from the sender
         _graphToken().pullTokens(msg.sender, tokens);
 
-        // Calculate cuts
-        uint256 tokensProtocol = tokens.mulPPM(PROTOCOL_PAYMENT_CUT);
-        uint256 delegationFeeCut = _graphStaking().getDelegationFeeCut(receiver, dataService, paymentType);
-        uint256 tokensDelegationPool = tokens.mulPPM(delegationFeeCut);
-        uint256 totalCut = tokensProtocol + tokensDataService + tokensDelegationPool;
-        require(tokens >= totalCut, GraphPaymentsInsufficientTokens(tokens, totalCut));
+        // Calculate token amounts for each party
+        // Order matters: protocol -> data service -> delegators -> receiver
+        // Note the substractions should not underflow as we are only deducting a percentage of the remainder
+        uint256 tokensRemaining = tokens;
 
-        // Pay protocol cut
+        uint256 tokensProtocol = tokensRemaining.mulPPMRoundUp(PROTOCOL_PAYMENT_CUT);
+        tokensRemaining = tokensRemaining - tokensProtocol;
+
+        uint256 tokensDataService = tokensRemaining.mulPPMRoundUp(dataServiceCut);
+        tokensRemaining = tokensRemaining - tokensDataService;
+
+        uint256 tokensDelegationPool = tokensRemaining.mulPPMRoundUp(
+            _graphStaking().getDelegationFeeCut(receiver, dataService, paymentType)
+        );
+        tokensRemaining = tokensRemaining - tokensDelegationPool;
+
+        // Ensure accounting is correct
+        uint256 tokensTotal = tokensProtocol + tokensDataService + tokensDelegationPool + tokensRemaining;
+        require(tokens == tokensTotal, GraphPaymentsBadAccounting(tokens, tokensTotal));
+
+        // Pay all parties
         _graphToken().burnTokens(tokensProtocol);
 
-        // Pay data service cut
         _graphToken().pushTokens(dataService, tokensDataService);
 
-        // Pay delegators
         if (tokensDelegationPool > 0) {
             _graphToken().approve(address(_graphStaking()), tokensDelegationPool);
             _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
         }
 
-        // Pay receiver
-        uint256 tokensReceiverRemaining = tokens - totalCut;
-        _graphToken().pushTokens(receiver, tokensReceiverRemaining);
+        _graphToken().pushTokens(receiver, tokensRemaining);
 
-        emit PaymentCollected(
+        emit GraphPaymentCollected(
             msg.sender,
             receiver,
             dataService,
-            tokensReceiverRemaining,
-            tokensDelegationPool,
+            tokens,
+            tokensProtocol,
             tokensDataService,
-            tokensProtocol
+            tokensDelegationPool,
+            tokensRemaining
         );
     }
 }

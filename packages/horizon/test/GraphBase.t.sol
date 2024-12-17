@@ -71,7 +71,8 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             operator: createUser("operator"),
             gateway: createUser("gateway"),
             verifier: createUser("verifier"),
-            delegator: createUser("delegator")
+            delegator: createUser("delegator"),
+            legacySlasher: createUser("legacySlasher")
         });
 
         // Deploy protocol contracts
@@ -116,7 +117,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         // PaymentsEscrow
         bytes memory escrowImplementationParameters = abi.encode(
             address(controller),
-            revokeCollectorThawingPeriod,withdrawEscrowThawingPeriod
+            withdrawEscrowThawingPeriod
         );
         bytes memory escrowImplementationBytecode = abi.encodePacked(
             type(PaymentsEscrow).creationCode,
