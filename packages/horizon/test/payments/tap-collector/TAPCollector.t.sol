@@ -60,15 +60,16 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
     function _authorizeSigner(address _signer, uint256 _proofDeadline, bytes memory _proof) internal {
         (, address msgSender, ) = vm.readCallers();
-        
+
         vm.expectEmit(address(tapCollector));
         emit ITAPCollector.SignerAuthorized(msgSender, _signer);
-        
+
         tapCollector.authorizeSigner(_signer, _proofDeadline, _proof);
-        
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, 0);
+        assertEq(revoked, false);
     }
 
     function _thawSigner(address _signer) internal {
@@ -80,9 +81,10 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
         tapCollector.thawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, expectedThawEndTimestamp);
+        assertEq(revoked, false);
     }
 
     function _cancelThawSigner(address _signer) internal {
@@ -93,42 +95,69 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
         tapCollector.cancelThawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, 0);
+        assertEq(revoked, false);
     }
 
     function _revokeAuthorizedSigner(address _signer) internal {
         (, address msgSender, ) = vm.readCallers();
+
+        (address beforePayer, uint256 beforeThawEndTimestamp, ) = tapCollector.authorizedSigners(_signer);
 
         vm.expectEmit(address(tapCollector));
         emit ITAPCollector.SignerRevoked(msgSender, _signer);
 
         tapCollector.revokeAuthorizedSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp) = tapCollector.authorizedSigners(_signer);
-        assertEq(_payer, address(0));
-        assertEq(thawEndTimestamp, 0);
+        (address afterPayer, uint256 afterThawEndTimestamp, bool afterRevoked) = tapCollector.authorizedSigners(
+            _signer
+        );
+
+        assertEq(beforePayer, afterPayer);
+        assertEq(beforeThawEndTimestamp, afterThawEndTimestamp);
+        assertEq(afterRevoked, true);
     }
 
     function _collect(IGraphPayments.PaymentTypes _paymentType, bytes memory _data) internal {
-        (ITAPCollector.SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (ITAPCollector.SignedRAV, uint256));
+        __collect(_paymentType, _data, 0);
+    }
+
+    function _collect(IGraphPayments.PaymentTypes _paymentType, bytes memory _data, uint256 _tokensToCollect) internal {
+        __collect(_paymentType, _data, _tokensToCollect);
+    }
+
+    function __collect(
+        IGraphPayments.PaymentTypes _paymentType,
+        bytes memory _data,
+        uint256 _tokensToCollect
+    ) internal {
+        (ITAPCollector.SignedRAV memory signedRAV, ) = abi.decode(
+            _data,
+            (ITAPCollector.SignedRAV, uint256)
+        );
         bytes32 messageHash = tapCollector.encodeRAV(signedRAV.rav);
         address _signer = ECDSA.recover(messageHash, signedRAV.signature);
-        (address _payer, ) = tapCollector.authorizedSigners(_signer);
-        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(signedRAV.rav.dataService, signedRAV.rav.serviceProvider, _payer);
-        uint256 tokensToCollect = signedRAV.rav.valueAggregate - tokensAlreadyCollected;
-        uint256 tokensDataService = tokensToCollect.mulPPM(dataServiceCut);
-        
+        (address _payer, , ) = tapCollector.authorizedSigners(_signer);
+        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(
+            signedRAV.rav.dataService,
+            signedRAV.rav.serviceProvider,
+            _payer
+        );
+        uint256 tokensToCollect = _tokensToCollect == 0
+            ? signedRAV.rav.valueAggregate - tokensAlreadyCollected
+            : _tokensToCollect;
+
         vm.expectEmit(address(tapCollector));
         emit IPaymentsCollector.PaymentCollected(
-            _paymentType, 
+            _paymentType,
             _payer,
             signedRAV.rav.serviceProvider,
-            tokensToCollect,
             signedRAV.rav.dataService,
-            tokensDataService
+            tokensToCollect
         );
+        vm.expectEmit(address(tapCollector));
         emit ITAPCollector.RAVCollected(
             _payer,
             signedRAV.rav.dataService,
@@ -138,11 +167,19 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
             signedRAV.rav.metadata,
             signedRAV.signature
         );
-        
-        uint256 tokensCollected = tapCollector.collect(_paymentType, _data);
-        assertEq(tokensCollected, tokensToCollect);
+        uint256 tokensCollected = _tokensToCollect == 0
+            ? tapCollector.collect(_paymentType, _data)
+            : tapCollector.collect(_paymentType, _data, _tokensToCollect);
 
-        uint256 tokensCollectedAfter = tapCollector.tokensCollected(signedRAV.rav.dataService, signedRAV.rav.serviceProvider, _payer);
-        assertEq(tokensCollectedAfter, signedRAV.rav.valueAggregate);
+        uint256 tokensCollectedAfter = tapCollector.tokensCollected(
+            signedRAV.rav.dataService,
+            signedRAV.rav.serviceProvider,
+            _payer
+        );
+        assertEq(tokensCollected, tokensToCollect);
+        assertEq(
+            tokensCollectedAfter,
+            _tokensToCollect == 0 ? signedRAV.rav.valueAggregate : tokensAlreadyCollected + _tokensToCollect
+        );
     }
 }
