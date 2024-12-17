@@ -80,13 +80,11 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidPaymentType(IGraphPayments.PaymentTypes paymentType);
 
     /**
-     * @notice Thrown when the contract GRT balance is inconsistent with the payment amount collected
-     * from Graph Payments
+     * @notice Thrown when the contract GRT balance is inconsistent after collecting from Graph Payments
      * @param balanceBefore The contract GRT balance before the collection
      * @param balanceAfter The contract GRT balance after the collection
-     * @param tokensDataService The amount of tokens sent to the subgraph service
      */
-    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter, uint256 tokensDataService);
+    error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter);
 
     /**
      * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
@@ -127,22 +125,20 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidZeroStakeToFeesRatio();
 
     /**
-     * @notice Force close an allocation
-     * @dev This function can be permissionlessly called when the allocation is stale or
-     * if the indexer is over-allocated. This ensures that rewards for other allocations are
-     * not diluted by an inactive allocation, and that over-allocated indexers stop accumulating
-     * rewards with tokens they no longer have allocated.
+     * @notice Force close a stale allocation
+     * @dev This function can be permissionlessly called when the allocation is stale. This
+     * ensures that rewards for other allocations are not diluted by an inactive allocation.
      *
      * Requirements:
      * - Allocation must exist and be open
-     * - Allocation must be stale or indexer must be over-allocated
+     * - Allocation must be stale
      * - Allocation cannot be altruistic
      *
      * Emits a {AllocationClosed} event.
      *
      * @param allocationId The id of the allocation
      */
-    function forceCloseAllocation(address allocationId) external;
+    function closeStaleAllocation(address allocationId) external;
 
     /**
      * @notice Change the amount of tokens in an allocation

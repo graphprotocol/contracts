@@ -36,7 +36,6 @@
     "protocolPaymentCut": 10000
   },
   "PaymentsEscrow": {
-    "revokeCollectorThawingPeriod": 10000,
     "withdrawEscrowThawingPeriod": 10000
   },
   "TAPCollector": {

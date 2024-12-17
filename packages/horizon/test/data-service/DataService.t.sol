@@ -65,6 +65,25 @@ contract DataServiceTest is HorizonStakingSharedTest {
         assertEq(max, dataServiceOverride.PROVISION_TOKENS_MAX());
     }
 
+    function test_ProvisionTokens_WhenCheckingAValidProvision_WithThawing(uint256 tokens, uint256 tokensThaw) external useIndexer {
+        dataService.setProvisionTokensRange(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
+        tokens = bound(tokens, dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
+        tokensThaw = bound(tokensThaw, tokens - dataService.PROVISION_TOKENS_MIN() + 1, tokens);
+
+        _createProvision(users.indexer, address(dataService), tokens, 0, 0);
+        staking.thaw(users.indexer, address(dataService), tokensThaw);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProvisionManager.ProvisionManagerInvalidValue.selector,
+                "tokens",
+                tokens - tokensThaw,
+                dataService.PROVISION_TOKENS_MIN(),
+                dataService.PROVISION_TOKENS_MAX()
+            )
+        );
+        dataService.checkProvisionTokens(users.indexer);
+    }
+
     function test_ProvisionTokens_WhenCheckingAValidProvision(uint256 tokens) external useIndexer {
         dataService.setProvisionTokensRange(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
         tokens = bound(tokens, dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());

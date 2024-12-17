@@ -18,5 +18,6 @@ abstract contract DataServiceFeesV1Storage {
     mapping(address serviceProvider => LinkedList.List list) public claimsLists;
 
     /// @dev Gap to allow adding variables in future upgrades
+    /// Note that this contract is not upgradeable but might be inherited by an upgradeable contract
     uint256[50] private __gap;
 }

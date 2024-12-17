@@ -10,10 +10,15 @@ import { DataService } from "../DataService.sol";
  * @title DataServicePausableUpgradeable contract
  * @dev Implementation of the {IDataServicePausable} interface.
  * @dev Upgradeable version of the {DataServicePausable} contract.
+ * @dev This contract inherits from {DataService} which needs to be initialized, please see
+ * {DataService} for detailed instructions.
  */
 abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status
     mapping(address pauseGuardian => bool allowed) public pauseGuardians;
+
+    /// @dev Gap to allow adding variables in future upgrades
+    uint256[50] private __gap;
 
     /**
      * @notice Checks if the caller is a pause guardian.
@@ -61,7 +66,11 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
      * @param _pauseGuardian The address of the pause guardian
      * @param _allowed The allowed status of the pause guardian
      */
-    function _setPauseGuardian(address _pauseGuardian, bool _allowed) internal whenNotPaused {
+    function _setPauseGuardian(address _pauseGuardian, bool _allowed) internal {
+        require(
+            pauseGuardians[_pauseGuardian] == !_allowed,
+            DataServicePausablePauseGuardianNoChange(_pauseGuardian, _allowed)
+        );
         pauseGuardians[_pauseGuardian] = _allowed;
         emit PauseGuardianSet(_pauseGuardian, _allowed);
     }

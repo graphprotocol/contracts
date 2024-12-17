@@ -25,50 +25,6 @@ interface IPaymentsEscrow {
         uint256 thawEndTimestamp;
     }
 
-    /// @notice Details for a payer-collector pair
-    /// @dev Collectors can be removed only after a thawing period
-    struct Collector {
-        // Amount of tokens the collector is allowed to collect
-        uint256 allowance;
-        // Timestamp at which the collector thawing period ends (zero if not thawing)
-        uint256 thawEndTimestamp;
-    }
-
-    /**
-     * @notice Emitted when a payer authorizes a collector to collect funds
-     * @param payer The address of the payer
-     * @param collector The address of the collector
-     * @param addedAllowance The amount of tokens added to the collector's allowance
-     * @param newTotalAllowance The new total allowance after addition
-     */
-    event AuthorizedCollector(
-        address indexed payer,
-        address indexed collector,
-        uint256 addedAllowance,
-        uint256 newTotalAllowance
-    );
-
-    /**
-     * @notice Emitted when a payer thaws a collector
-     * @param payer The address of the payer
-     * @param collector The address of the collector
-     */
-    event ThawCollector(address indexed payer, address indexed collector);
-
-    /**
-     * @notice Emitted when a payer cancels the thawing of a collector
-     * @param payer The address of the payer
-     * @param collector The address of the collector
-     */
-    event CancelThawCollector(address indexed payer, address indexed collector);
-
-    /**
-     * @notice Emitted when a payer revokes a collector authorization.
-     * @param payer The address of the payer
-     * @param collector The address of the collector
-     */
-    event RevokeCollector(address indexed payer, address indexed collector);
-
     /**
      * @notice Emitted when a payer deposits funds into the escrow for a payer-collector-receiver tuple
      * @param payer The address of the payer
@@ -153,13 +109,6 @@ interface IPaymentsEscrow {
     error PaymentsEscrowThawingPeriodTooLong(uint256 thawingPeriod, uint256 maxWaitPeriod);
 
     /**
-     * @notice Thrown when a collector has insufficient allowance to collect funds
-     * @param allowance The current allowance
-     * @param minAllowance The minimum required allowance
-     */
-    error PaymentsEscrowInsufficientAllowance(uint256 allowance, uint256 minAllowance);
-
-    /**
      * @notice Thrown when the contract balance is not consistent with the collection amount
      * @param balanceBefore The balance before the collection
      * @param balanceAfter The balance after the collection
@@ -171,54 +120,6 @@ interface IPaymentsEscrow {
      * @notice Thrown when operating a zero token amount is not allowed.
      */
     error PaymentsEscrowInvalidZeroTokens();
-
-    /**
-     * @notice Authorize a collector to collect funds from the payer's escrow
-     * @dev This function can only be used to increase the allowance of a collector.
-     * To reduce it the authorization must be revoked and a new one must be created.
-     *
-     * Requirements:
-     * - `allowance` must be greater than zero
-     *
-     * Emits an {AuthorizedCollector} event
-     *
-     * @param collector The address of the collector
-     * @param allowance The amount of tokens to add to the collector's allowance
-     */
-    function approveCollector(address collector, uint256 allowance) external;
-
-    /**
-     * @notice Thaw a collector's collector authorization
-     * @dev The thawing period is defined by the `REVOKE_COLLECTOR_THAWING_PERIOD` constant
-     *
-     * Emits a {ThawCollector} event
-     *
-     * @param collector The address of the collector
-     */
-    function thawCollector(address collector) external;
-
-    /**
-     * @notice Cancel a collector's authorization thawing
-     * @dev Requirements:
-     * - `collector` must be thawing
-     *
-     * Emits a {CancelThawCollector} event
-     *
-     * @param collector The address of the collector
-     */
-    function cancelThawCollector(address collector) external;
-
-    /**
-     * @notice Revoke a collector's authorization.
-     * Removes the collector from the list of authorized collectors.
-     * @dev Requirements:
-     * - `collector` must have thawed
-     *
-     * Emits a {RevokeCollector} event
-     *
-     * @param collector The address of the collector
-     */
-    function revokeCollector(address collector) external;
 
     /**
      * @notice Deposits funds into the escrow for a payer-collector-receiver tuple, where
@@ -277,8 +178,6 @@ interface IPaymentsEscrow {
      * @notice Collects funds from the payer-collector-receiver's escrow and sends them to {GraphPayments} for
      * distribution using the Graph Horizon Payments protocol.
      * The function will revert if there are not enough funds in the escrow.
-     * @dev Requirements:
-     * - `collector` needs to be authorized by the payer and have enough allowance
      *
      * Emits an {EscrowCollected} event
      *
@@ -287,7 +186,7 @@ interface IPaymentsEscrow {
      * @param receiver The address of the receiver
      * @param tokens The amount of tokens to collect
      * @param dataService The address of the data service
-     * @param tokensDataService The amount of tokens that {GraphPayments} should send to the data service
+     * @param dataServiceCut The data service cut in PPM that {GraphPayments} should send
      */
     function collect(
         IGraphPayments.PaymentTypes paymentType,
@@ -295,11 +194,12 @@ interface IPaymentsEscrow {
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 tokensDataService
+        uint256 dataServiceCut
     ) external;
 
     /**
      * @notice Get the balance of a payer-collector-receiver tuple
+     * This function will return 0 if the current balance is less than the amount of funds being thawed.
      * @param payer The address of the payer
      * @param collector The address of the collector
      * @param receiver The address of the receiver

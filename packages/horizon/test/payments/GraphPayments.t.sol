@@ -8,8 +8,10 @@ import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
 import { GraphPayments } from "../../contracts/payments/GraphPayments.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
+import { PPMMath } from "../../contracts/libraries/PPMMath.sol";
 
 contract GraphPaymentsTest is HorizonStakingSharedTest {
+    using PPMMath for uint256;
 
     struct CollectPaymentData {
         uint256 escrowBalance;
@@ -24,54 +26,52 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         address _receiver,
         uint256 _tokens,
         address _dataService,
-        uint256 _tokensDataService
+        uint256 _dataServiceCut
     ) private {
         // Previous balances
         CollectPaymentData memory previousBalances = CollectPaymentData({
             escrowBalance: token.balanceOf(address(escrow)),
             paymentsBalance: token.balanceOf(address(payments)),
             receiverBalance: token.balanceOf(_receiver),
-            delegationPoolBalance: staking.getDelegatedTokensAvailable(
-                _receiver,
-                _dataService
-            ),
+            delegationPoolBalance: staking.getDelegatedTokensAvailable(_receiver, _dataService),
             dataServiceBalance: token.balanceOf(_dataService)
         });
 
         // Calculate cuts
-        uint256 protocolPaymentCut = payments.PROTOCOL_PAYMENT_CUT();
-        uint256 delegatorCut = staking.getDelegationFeeCut(
-            _receiver,
-            _dataService,
-            _paymentType
+        uint256 tokensProtocol = _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT());
+        uint256 tokensDataService = (_tokens - tokensProtocol).mulPPMRoundUp(_dataServiceCut);
+        uint256 tokensDelegation = (_tokens - tokensProtocol - tokensDataService).mulPPMRoundUp(
+            staking.getDelegationFeeCut(_receiver, _dataService, _paymentType)
         );
-        uint256 tokensProtocol = _tokens * protocolPaymentCut / MAX_PPM;
-        uint256 tokensDelegation = _tokens * delegatorCut / MAX_PPM;
 
-        uint256 receiverExpectedPayment = _tokens - _tokensDataService - tokensProtocol - tokensDelegation;
+        uint256 receiverExpectedPayment = _tokens - tokensProtocol - tokensDataService - tokensDelegation;
 
-        (,address msgSender, ) = vm.readCallers();
+        (, address msgSender, ) = vm.readCallers();
         vm.expectEmit(address(payments));
-        emit IGraphPayments.PaymentCollected(
+        emit IGraphPayments.GraphPaymentCollected(
             msgSender,
             _receiver,
             _dataService,
-            receiverExpectedPayment,
+            _tokens,
+            tokensProtocol,
+            tokensDataService,
             tokensDelegation,
-            _tokensDataService,
-            tokensProtocol
+            receiverExpectedPayment
         );
-        payments.collect(_paymentType, _receiver, _tokens, _dataService, _tokensDataService);
+        payments.collect(
+            _paymentType,
+            _receiver,
+            _tokens,
+            _dataService,
+            _dataServiceCut
+        );
 
         // After balances
         CollectPaymentData memory afterBalances = CollectPaymentData({
             escrowBalance: token.balanceOf(address(escrow)),
             paymentsBalance: token.balanceOf(address(payments)),
             receiverBalance: token.balanceOf(_receiver),
-            delegationPoolBalance: staking.getDelegatedTokensAvailable(
-                _receiver,
-                _dataService
-            ),
+            delegationPoolBalance: staking.getDelegatedTokensAvailable(_receiver, _dataService),
             dataServiceBalance: token.balanceOf(_dataService)
         });
 
@@ -89,7 +89,7 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         assertEq(previousBalances.paymentsBalance, afterBalances.paymentsBalance);
 
         // Check data service balance after payment
-        assertEq(afterBalances.dataServiceBalance - previousBalances.dataServiceBalance, _tokensDataService);
+        assertEq(afterBalances.dataServiceBalance - previousBalances.dataServiceBalance, tokensDataService);
     }
 
     /*
@@ -97,11 +97,11 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
      */
 
     function testConstructor_RevertIf_InvalidProtocolPaymentCut(uint256 protocolPaymentCut) public {
-        protocolPaymentCut = bound(protocolPaymentCut, MAX_PPM + 1, MAX_PPM + 100);
+        protocolPaymentCut = bound(protocolPaymentCut, MAX_PPM + 1, type(uint256).max);
 
         resetPrank(users.deployer);
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphPayments.GraphPaymentsInvalidProtocolPaymentCut.selector,
+            IGraphPayments.GraphPaymentsInvalidCut.selector,
             protocolPaymentCut
         );
         vm.expectRevert(expectedError);
@@ -110,16 +110,19 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
 
     function testCollect(
         uint256 amount,
-        uint256 tokensDataService,
+        uint256 dataServiceCut,
         uint256 tokensDelegate
-    ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
-        uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
-        uint256 tokensDelegation = amount * delegationFeeCut / MAX_PPM;
-        vm.assume(tokensDataService < amount - tokensProtocol - tokensDelegation);
+    )
+        public
+        useIndexer
+        useProvision(amount, 0, 0)
+        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
+    {
+        dataServiceCut = bound(dataServiceCut, 0, MAX_PPM);
         address escrowAddress = address(escrow);
 
         // Delegate tokens
-        tokensDelegate = bound(tokensDelegate, 1, MAX_STAKING_TOKENS);
+        tokensDelegate = bound(tokensDelegate, MIN_DELEGATION, MAX_STAKING_TOKENS);
         vm.startPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, tokensDelegate, 0);
 
@@ -129,35 +132,50 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         approve(address(payments), amount);
 
         // Collect payments through GraphPayments
-        _collect(IGraphPayments.PaymentTypes.QueryFee, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);
+        _collect(
+            IGraphPayments.PaymentTypes.QueryFee,
+            users.indexer,
+            amount,
+            subgraphDataServiceAddress,
+            dataServiceCut
+        );
         vm.stopPrank();
     }
 
-    function testCollect_RevertWhen_InsufficientAmount(
+    function testCollect_RevertWhen_InvalidDataServiceCut(
         uint256 amount,
-        uint256 tokensDataService
-    ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
-        tokensDataService = bound(tokensDataService, amount + 1, MAX_STAKING_TOKENS + 1);
+        uint256 dataServiceCut
+    )
+        public
+        useIndexer
+        useProvision(amount, 0, 0)
+        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
+    {
+        dataServiceCut = bound(dataServiceCut, MAX_PPM + 1, type(uint256).max);
 
-        address escrowAddress = address(escrow);
-        mint(escrowAddress, amount);
-        vm.startPrank(escrowAddress);
-        approve(address(payments), amount);
-
-        bytes memory expectedError;
-        {
-            uint256 tokensProtocol = amount * protocolPaymentCut / MAX_PPM;
-            uint256 tokensDelegatoion = amount * delegationFeeCut / MAX_PPM;
-            uint256 requiredAmount = tokensDataService + tokensProtocol + tokensDelegatoion;
-            expectedError = abi.encodeWithSignature("GraphPaymentsInsufficientTokens(uint256,uint256)", amount, requiredAmount);
-        }
+        resetPrank(users.deployer);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IGraphPayments.GraphPaymentsInvalidCut.selector,
+            dataServiceCut
+        );
         vm.expectRevert(expectedError);
-        payments.collect(IGraphPayments.PaymentTypes.QueryFee, users.indexer, amount, subgraphDataServiceAddress, tokensDataService);
+        payments.collect(
+            IGraphPayments.PaymentTypes.QueryFee,
+            users.indexer,
+            amount,
+            subgraphDataServiceAddress,
+            dataServiceCut
+        );
     }
 
     function testCollect_RevertWhen_InvalidPool(
         uint256 amount
-    ) public useIndexer useProvision(amount, 0, 0) useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
+    )
+        public
+        useIndexer
+        useProvision(amount, 0, 0)
+        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
+    {
         vm.assume(amount > 1 ether);
         address escrowAddress = address(escrow);
 
@@ -167,11 +185,13 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         approve(address(payments), amount);
 
         // Collect payments through GraphPayments
-        vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
-            users.indexer,
-            subgraphDataServiceAddress
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
+                users.indexer,
+                subgraphDataServiceAddress
+            )
+        );
         payments.collect(IGraphPayments.PaymentTypes.QueryFee, users.indexer, amount, subgraphDataServiceAddress, 1);
     }
 
@@ -181,18 +201,20 @@ contract GraphPaymentsTest is HorizonStakingSharedTest {
         vm.assume(amount > 1 ether);
         vm.assume(amount <= MAX_STAKING_TOKENS);
         address escrowAddress = address(escrow);
-        
+
         // Add tokens in escrow
         mint(escrowAddress, amount);
         vm.startPrank(escrowAddress);
         approve(address(payments), amount);
 
         // Collect payments through GraphPayments
-        vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidProvision.selector,
-            users.indexer,
-            subgraphDataServiceAddress
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IHorizonStakingMain.HorizonStakingInvalidProvision.selector,
+                users.indexer,
+                subgraphDataServiceAddress
+            )
+        );
         payments.collect(IGraphPayments.PaymentTypes.QueryFee, users.indexer, amount, subgraphDataServiceAddress, 1);
     }
 }

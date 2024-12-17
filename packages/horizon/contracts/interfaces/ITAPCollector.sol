@@ -2,6 +2,7 @@
 pragma solidity 0.8.27;
 
 import { IPaymentsCollector } from "./IPaymentsCollector.sol";
+import { IGraphPayments } from "./IGraphPayments.sol";
 
 /**
  * @title Interface for the {TAPCollector} contract
@@ -18,10 +19,14 @@ interface ITAPCollector is IPaymentsCollector {
         address payer;
         // Timestamp at which thawing period ends (zero if not thawing)
         uint256 thawEndTimestamp;
+        // Whether the signer authorization was revoked
+        bool revoked;
     }
 
     /// @notice The Receipt Aggregate Voucher (RAV) struct
     struct ReceiptAggregateVoucher {
+        // The address of the payer the RAV was issued by
+        address payer;
         // The address of the data service the RAV was issued to
         address dataService;
         // The address of the service provider the RAV was issued to
@@ -120,6 +125,19 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorSignerNotAuthorizedByPayer(address payer, address signer);
 
     /**
+     * Thrown when the attempting to revoke a signer that was already revoked
+     * @param signer The address of the signer
+     */
+    error TAPCollectorAuthorizationAlreadyRevoked(address payer, address signer);
+
+    /**
+     * Thrown when attempting to thaw a signer that is already thawing
+     * @param signer The address of the signer
+     * @param thawEndTimestamp The timestamp at which the thawing period ends
+     */
+    error TAPCollectorSignerAlreadyThawing(address signer, uint256 thawEndTimestamp);
+
+    /**
      * Thrown when the signer is not thawing
      * @param signer The address of the signer
      */
@@ -138,6 +156,19 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorInvalidRAVSigner();
 
     /**
+     * Thrown when the RAV payer does not match the signers authorized payer
+     * @param authorizedPayer The address of the authorized payer
+     * @param ravPayer The address of the RAV payer
+     */
+    error TAPCollectorInvalidRAVPayer(address authorizedPayer, address ravPayer);
+
+    /**
+     * Thrown when the RAV is for a data service the service provider has no provision for
+     * @param dataService The address of the data service
+     */
+    error TAPCollectorUnauthorizedDataService(address dataService);
+
+    /**
      * Thrown when the caller is not the data service the RAV was issued to
      * @param caller The address of the caller
      * @param dataService The address of the data service
@@ -153,7 +184,15 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
 
     /**
-     * @notice Authorize a signer to sign on behalf of the payer
+     * Thrown when the attempting to collect more tokens than what it's owed
+     * @param tokensToCollect The amount of tokens to collect
+     * @param maxTokensToCollect The maximum amount of tokens to collect
+     */
+    error TAPCollectorInvalidTokensToCollectAmount(uint256 tokensToCollect, uint256 maxTokensToCollect);
+
+    /**
+     * @notice Authorize a signer to sign on behalf of the payer.
+     * A signer can not be authorized for multiple payers even after revoking previous authorizations.
      * @dev Requirements:
      * - `signer` must not be already authorized
      * - `proofDeadline` must be greater than the current timestamp
@@ -213,4 +252,21 @@ interface ITAPCollector is IPaymentsCollector {
      * @return The hash of the RAV.
      */
     function encodeRAV(ReceiptAggregateVoucher calldata rav) external view returns (bytes32);
+
+    /**
+     * @notice See {IPaymentsCollector.collect}
+     * This variant adds the ability to partially collect a RAV by specifying the amount of tokens to collect.
+     *
+     * Requirements:
+     * - The amount of tokens to collect must be less than or equal to the total amount of tokens in the RAV minus
+     *   the tokens already collected.
+     * @param paymentType The payment type to collect
+     * @param data Additional data required for the payment collection
+     * @param tokensToCollect The amount of tokens to collect
+     */
+    function collect(
+        IGraphPayments.PaymentTypes paymentType,
+        bytes calldata data,
+        uint256 tokensToCollect
+    ) external returns (uint256);
 }
