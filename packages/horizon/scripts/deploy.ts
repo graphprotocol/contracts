@@ -1,6 +1,6 @@
 import { ignition } from 'hardhat'
 
-import Parameters from '../ignition/graph.hardhat.json'
+import Parameters from '../ignition/configs/horizon.hardhat.json'
 import PeripheryModule from '../ignition/modules/periphery'
 
 async function main() {

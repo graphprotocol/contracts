@@ -77,6 +77,7 @@ contract SubgraphService is
      * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.
      * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
      * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
+     * @param stakeToFeesRatio The ratio of stake to fees to lock when collecting query fees
      */
     function initialize(
         uint256 minimumProvisionTokens,
@@ -496,8 +497,7 @@ contract SubgraphService is
      * @return max The maximum is unbounded
      */
     function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
-        uint64 disputePeriod = _disputeManager().getDisputePeriod();
-        return (disputePeriod, DEFAULT_MAX_THAWING_PERIOD);
+        return (_disputeManager().getDisputePeriod(), DEFAULT_MAX_THAWING_PERIOD);
     }
 
     /**
@@ -506,8 +506,7 @@ contract SubgraphService is
      * @return max The maximum is 100% in PPM
      */
     function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
-        uint32 verifierCut = _disputeManager().getVerifierCut();
-        return (verifierCut, DEFAULT_MAX_VERIFIER_CUT);
+        return (_disputeManager().getVerifierCut(), DEFAULT_MAX_VERIFIER_CUT);
     }
 
     /**

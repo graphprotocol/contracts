@@ -485,8 +485,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _proof The EIP712 proof, an EIP712 signed message of (indexer,allocationId)
      */
     function _verifyAllocationProof(address _indexer, address _allocationId, bytes memory _proof) private view {
-        bytes32 digest = _encodeAllocationProof(_indexer, _allocationId);
-        address signer = ECDSA.recover(digest, _proof);
+        address signer = ECDSA.recover(_encodeAllocationProof(_indexer, _allocationId), _proof);
         require(signer == _allocationId, AllocationManagerInvalidAllocationProof(signer, _allocationId));
     }
 }

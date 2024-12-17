@@ -40,6 +40,7 @@
   },
   "TAPCollector": {
     "eip712Name": "TAPCollector",
-    "eip712Version": "1"
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 10000
   }
 }
