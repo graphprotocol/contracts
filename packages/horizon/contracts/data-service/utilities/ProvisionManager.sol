@@ -202,10 +202,16 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
 
     /**
      * @notice Checks if the provision tokens of a service provider are within the valid range.
+     * Note that thawing tokens are not considered in this check.
      * @param _provision The provision to check.
      */
     function _checkProvisionTokens(IHorizonStaking.Provision memory _provision) internal view virtual {
-        _checkValueInRange(_provision.tokens, minimumProvisionTokens, maximumProvisionTokens, "tokens");
+        _checkValueInRange(
+            _provision.tokens - _provision.tokensThawing,
+            minimumProvisionTokens,
+            maximumProvisionTokens,
+            "tokens"
+        );
     }
 
     /**
