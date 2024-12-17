@@ -34,6 +34,39 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         _acceptDispute(disputeID, tokensSlash);
     }
 
+    function test_Query_Accept_Dispute_RevertWhen_SubgraphServiceNotSet(
+        uint256 tokens,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) {
+        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+
+        resetPrank(users.fisherman);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
+        bytes32 disputeID = _createQueryDispute(attestationData);
+
+        resetPrank(users.arbitrator);
+        // clear subgraph service address from storage
+        _setStorage_SubgraphService(address(0));
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerSubgraphServiceNotSet.selector));
+        disputeManager.acceptDispute(disputeID, tokensSlash);
+    }
+
+    function test_Query_Accept_Dispute_OptParam(
+        uint256 tokens,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) {
+        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+
+        resetPrank(users.fisherman);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
+        bytes32 disputeID = _createQueryDispute(attestationData);
+
+        resetPrank(users.arbitrator);
+        _acceptDispute(disputeID, tokensSlash);
+    }
+
     function test_Query_Accept_RevertIf_CallerIsNotArbitrator(
         uint256 tokens,
         uint256 tokensSlash
@@ -71,5 +104,24 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         );
         vm.expectRevert(expectedError);
         disputeManager.acceptDispute(disputeID, tokensSlash);
+    }
+
+    function test_Query_Accept_RevertWhen_UsingConflictAccept(
+        uint256 tokens,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) {
+        tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
+
+        resetPrank(users.fisherman);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
+        bytes32 disputeID = _createQueryDispute(attestationData);
+
+        resetPrank(users.arbitrator);
+        vm.expectRevert(abi.encodeWithSelector(
+            IDisputeManager.DisputeManagerDisputeNotInConflict.selector,
+            disputeID
+        ));
+        disputeManager.acceptDisputeConflict(disputeID, tokensSlash, true, 0);
     }
 }

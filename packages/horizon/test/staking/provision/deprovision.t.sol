@@ -17,7 +17,7 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
         uint256 thawCount,
         uint256 deprovisionCount
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        thawCount = bound(thawCount, 1, MAX_THAW_REQUESTS);
+        thawCount = bound(thawCount, 1, 100);
         deprovisionCount = bound(deprovisionCount, 0, thawCount);
         vm.assume(amount >= thawCount); // ensure the provision has at least 1 token for each thaw step
         uint256 individualThawAmount = amount / thawCount;
@@ -37,7 +37,7 @@ contract HorizonStakingDeprovisionTest is HorizonStakingTest {
         uint64 thawingPeriod,
         uint256 thawCount
     ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
-        thawCount = bound(thawCount, 2, MAX_THAW_REQUESTS);
+        thawCount = bound(thawCount, 2, 100);
         vm.assume(amount >= thawCount); // ensure the provision has at least 1 token for each thaw step
         uint256 individualThawAmount = amount / thawCount;
 

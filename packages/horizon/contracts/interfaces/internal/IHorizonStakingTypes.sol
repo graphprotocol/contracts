@@ -132,6 +132,17 @@ interface IHorizonStakingTypes {
     }
 
     /**
+     * @dev Enum to specify the type of thaw request.
+     * @param Provision Represents a thaw request for a provision.
+     * @param Delegation Represents a thaw request for a delegation.
+     */
+    enum ThawRequestType {
+        Provision,
+        Delegation,
+        DelegationWithBeneficiary
+    }
+
+    /**
      * @notice Details of a stake thawing operation.
      * @dev ThawRequests are stored in linked lists by service provider/delegator,
      * ordered by creation timestamp.
@@ -145,5 +156,43 @@ interface IHorizonStakingTypes {
         bytes32 next;
         // Used to invalidate unfulfilled thaw requests
         uint256 thawingNonce;
+    }
+
+    /**
+     * @notice Parameters to fulfill thaw requests.
+     * @dev This struct is used to avoid stack too deep error in the `fulfillThawRequests` function.
+     * @param requestType The type of thaw request (Provision or Delegation)
+     * @param serviceProvider The address of the service provider
+     * @param verifier The address of the verifier
+     * @param owner The address of the owner of the thaw request
+     * @param tokensThawing The current amount of tokens already thawing
+     * @param sharesThawing The current amount of shares already thawing
+     * @param nThawRequests The number of thaw requests to fulfill. If set to 0, all thaw requests are fulfilled.
+     * @param thawingNonce The current valid thawing nonce. Any thaw request with a different nonce is invalid and should be ignored.
+     */
+    struct FulfillThawRequestsParams {
+        ThawRequestType requestType;
+        address serviceProvider;
+        address verifier;
+        address owner;
+        uint256 tokensThawing;
+        uint256 sharesThawing;
+        uint256 nThawRequests;
+        uint256 thawingNonce;
+    }
+
+    /**
+     * @notice Results of the traversal of thaw requests.
+     * @dev This struct is used to avoid stack too deep error in the `fulfillThawRequests` function.
+     * @param requestsFulfilled The number of thaw requests fulfilled
+     * @param tokensThawed The total amount of tokens thawed
+     * @param tokensThawing The total amount of tokens thawing
+     * @param sharesThawing The total amount of shares thawing
+     */
+    struct TraverseThawRequestsResults {
+        uint256 requestsFulfilled;
+        uint256 tokensThawed;
+        uint256 tokensThawing;
+        uint256 sharesThawing;
     }
 }

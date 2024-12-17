@@ -169,6 +169,8 @@ interface IDisputeManager {
     error DisputeManagerDisputeNotPending(IDisputeManager.DisputeStatus status);
     error DisputeManagerDisputeAlreadyCreated(bytes32 disputeId);
     error DisputeManagerDisputePeriodNotFinished();
+    error DisputeManagerDisputeInConflict(bytes32 disputeId);
+    error DisputeManagerDisputeNotInConflict(bytes32 disputeId);
     error DisputeManagerMustAcceptRelatedDispute(bytes32 disputeId, bytes32 relatedDisputeId);
     error DisputeManagerIndexerNotFound(address allocationId);
     error DisputeManagerNonMatchingSubgraphDeployment(bytes32 subgraphDeploymentId1, bytes32 subgraphDeploymentId2);
@@ -180,6 +182,7 @@ interface IDisputeManager {
         bytes32 responseCID2,
         bytes32 subgraphDeploymentId2
     );
+    error DisputeManagerSubgraphServiceNotSet();
 
     function setDisputePeriod(uint64 disputePeriod) external;
 
@@ -203,6 +206,13 @@ interface IDisputeManager {
     function createIndexingDispute(address allocationId, bytes32 poi) external returns (bytes32);
 
     function acceptDispute(bytes32 disputeId, uint256 tokensSlash) external;
+
+    function acceptDisputeConflict(
+        bytes32 disputeId,
+        uint256 tokensSlash,
+        bool acceptDisputeInConflict,
+        uint256 tokensSlashRelated
+    ) external;
 
     function rejectDispute(bytes32 disputeId) external;
 

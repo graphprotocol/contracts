@@ -3,6 +3,7 @@
 pragma solidity 0.8.27;
 
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 
 /**
  * @title Inferface for the {HorizonStaking} contract.
@@ -206,6 +207,15 @@ interface IHorizonStakingMain {
     );
 
     /**
+     * @notice Emitted when `delegator` withdrew delegated `tokens` from `indexer` using `withdrawDelegated`.
+     * @dev This event is for the legacy `withdrawDelegated` function.
+     * @param indexer The address of the indexer
+     * @param delegator The address of the delegator
+     * @param tokens The amount of tokens withdrawn
+     */
+    event StakeDelegatedWithdrawn(address indexed indexer, address indexed delegator, uint256 tokens);
+
+    /**
      * @notice Emitted when tokens are added to a delegation pool's reserve.
      * @param serviceProvider The address of the service provider
      * @param verifier The address of the verifier
@@ -271,13 +281,15 @@ interface IHorizonStakingMain {
      * @param owner The address of the owner of the thaw requests
      * @param thawRequestsFulfilled The number of thaw requests fulfilled
      * @param tokens The total amount of tokens being released
+     * @param requestType The type of thaw request
      */
     event ThawRequestsFulfilled(
         address indexed serviceProvider,
         address indexed verifier,
         address indexed owner,
         uint256 thawRequestsFulfilled,
-        uint256 tokens
+        uint256 tokens,
+        IHorizonStakingTypes.ThawRequestType requestType
     );
 
     // -- Events: governance --
@@ -303,9 +315,8 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Emitted when the delegation slashing global flag is set.
-     * @param enabled Whether delegation slashing is enabled or disabled.
      */
-    event DelegationSlashingEnabled(bool enabled);
+    event DelegationSlashingEnabled();
 
     // -- Errors: tokens
 
@@ -416,6 +427,20 @@ interface IHorizonStakingMain {
     error HorizonStakingInvalidDelegationPool(address serviceProvider, address verifier);
 
     /**
+     * @notice Thrown when the minimum token amount required for delegation is not met.
+     * @param tokens The actual token amount
+     * @param minTokens The minimum required token amount
+     */
+    error HorizonStakingInsufficientDelegationTokens(uint256 tokens, uint256 minTokens);
+
+    /**
+     * @notice Thrown when the minimum token amount required for undelegation with beneficiary is not met.
+     * @param tokens The actual token amount
+     * @param minTokens The minimum required token amount
+     */
+    error HorizonStakingInsufficientUndelegationTokens(uint256 tokens, uint256 minTokens);
+
+    /**
      * @notice Thrown when attempting to undelegate with a beneficiary that is the zero address.
      */
     error HorizonStakingInvalidBeneficiaryZeroAddress();
@@ -515,6 +540,8 @@ interface IHorizonStakingMain {
      * - During the transition period it's locked for a period of time before it can be withdrawn
      *   by calling {withdraw}.
      * - After the transition period it's immediately withdrawn.
+     * Note that after the transition period if there are tokens still locked they will have to be
+     * withdrawn by calling {withdraw}.
      * @dev Requirements:
      * - `_tokens` cannot be zero.
      * - `_serviceProvider` must have enough idle stake to cover the staking amount and any
@@ -747,7 +774,7 @@ interface IHorizonStakingMain {
      * @param beneficiary The address where the tokens will be withdrawn after thawing
      * @return The ID of the thaw request
      */
-    function undelegate(
+    function undelegateWithBeneficiary(
         address serviceProvider,
         address verifier,
         uint256 shares,
@@ -771,6 +798,28 @@ interface IHorizonStakingMain {
      * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
     function withdrawDelegated(address serviceProvider, address verifier, uint256 nThawRequests) external;
+
+    /**
+     * @notice Withdraw undelegated with beneficiary tokens from a provision after thawing.
+     * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
+     * requests in the event that fulfilling all of them results in a gas limit error.
+     * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
+     * the thaw requests with an amount equal to zero.
+     *
+     * Requirements:
+     * - Must have previously initiated a thaw request using {undelegateWithBeneficiary}.
+     *
+     * Emits {ThawRequestFulfilled}, {ThawRequestsFulfilled} and {DelegatedTokensWithdrawn} events.
+     *
+     * @param serviceProvider The service provider address
+     * @param verifier The verifier address
+     * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
+     */
+    function withdrawDelegatedWithBeneficiary(
+        address serviceProvider,
+        address verifier,
+        uint256 nThawRequests
+    ) external;
 
     /**
      * @notice Re-delegate undelegated tokens from a provision after thawing to a `newServiceProvider` and `newVerifier`.
@@ -838,13 +887,14 @@ interface IHorizonStakingMain {
     /**
      * @notice Withdraw undelegated tokens from the subgraph data service provision after thawing.
      * This function is for backwards compatibility with the legacy staking contract.
-     * It only allows withdrawing from the subgraph data service and DOES NOT have slippage protection in
-     * case the caller opts for re-delegating.
+     * It only allows withdrawing tokens undelegated before horizon upgrade.
      * @dev See {delegate}.
      * @param serviceProvider The service provider address
-     * @param newServiceProvider The address of a new service provider, if the delegator wants to re-delegate
      */
-    function withdrawDelegated(address serviceProvider, address newServiceProvider) external;
+    function withdrawDelegated(
+        address serviceProvider,
+        address // newServiceProvider, deprecated
+    ) external returns (uint256);
 
     /**
      * @notice Slash a service provider. This can only be called by a verifier to which
