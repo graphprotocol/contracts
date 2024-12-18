@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -22,6 +23,8 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, IGraphPayments {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
+
+    /// @notice Protocol payment cut in PPM
     uint256 public immutable PROTOCOL_PAYMENT_CUT;
 
     /**
@@ -70,14 +73,14 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
         uint256 tokensDataService = tokensRemaining.mulPPMRoundUp(dataServiceCut);
         tokensRemaining = tokensRemaining - tokensDataService;
 
-        uint256 tokensDelegationPool = tokensRemaining.mulPPMRoundUp(
-            _graphStaking().getDelegationFeeCut(receiver, dataService, paymentType)
-        );
-        tokensRemaining = tokensRemaining - tokensDelegationPool;
-
-        // Ensure accounting is correct
-        uint256 tokensTotal = tokensProtocol + tokensDataService + tokensDelegationPool + tokensRemaining;
-        require(tokens == tokensTotal, GraphPaymentsBadAccounting(tokens, tokensTotal));
+        uint256 tokensDelegationPool = 0;
+        IHorizonStakingTypes.DelegationPool memory pool = _graphStaking().getDelegationPool(receiver, dataService);
+        if (pool.shares > 0) {
+            tokensDelegationPool = tokensRemaining.mulPPMRoundUp(
+                _graphStaking().getDelegationFeeCut(receiver, dataService, paymentType)
+            );
+            tokensRemaining = tokensRemaining - tokensDelegationPool;
+        }
 
         // Pay all parties
         _graphToken().burnTokens(tokensProtocol);
@@ -92,6 +95,7 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
         _graphToken().pushTokens(receiver, tokensRemaining);
 
         emit GraphPaymentCollected(
+            paymentType,
             msg.sender,
             receiver,
             dataService,
