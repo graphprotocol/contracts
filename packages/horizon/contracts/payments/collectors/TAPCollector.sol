@@ -124,8 +124,10 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     /**
      * @notice Initiate a payment collection through the payments protocol
      * See {IGraphPayments.collect}.
-     * @dev Caller must be the data service the RAV was issued to.
-     * @dev Service provider must have an active provision with the data service to collect payments
+     * @dev Requirements:
+     * - Caller must be the data service the RAV was issued to.
+     * - Signer of the RAV must be authorized to sign for the payer.
+     * - Service provider must have an active provision with the data service to collect payments.
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external override returns (uint256) {
