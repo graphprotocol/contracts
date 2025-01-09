@@ -1,11 +1,22 @@
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'
+import '@tenderly/hardhat-tenderly'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
+import * as dotenv from 'dotenv'
 
 import type { HardhatUserConfig } from 'hardhat/config'
+
+dotenv.config()
+
+const getNetworkAccounts = () => {
+  const accounts: string[] = []
+  if (process.env.DEPLOYER_PRIVATE_KEY) accounts.push(process.env.DEPLOYER_PRIVATE_KEY)
+  if (process.env.GOVERNOR_PRIVATE_KEY) accounts.push(process.env.GOVERNOR_PRIVATE_KEY)
+  return accounts.length > 0 ? accounts : undefined
+}
 
 if (process.env.BUILD_RUN !== 'true') {
   require('hardhat-graph-protocol')
@@ -17,7 +28,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 1,
       },
     },
   },
@@ -41,6 +52,18 @@ const config: HardhatUserConfig = {
       chainId: 421614,
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
     },
+    arbitrumVirtualTestnet: {
+      secureAccounts: {
+        enabled: false,
+      },
+      chainId: 421615,
+      url: process.env.ARBITRUM_VIRTUAL_TESTNET_URL || '',
+      accounts: getNetworkAccounts(),
+    },
+  },
+  tenderly: {
+    project: 'graph-network',
+    username: 'graphprotocol',
   },
   graph: {
     deployments: {

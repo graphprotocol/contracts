@@ -6,13 +6,21 @@ import BridgeEscrowArtifact from '@graphprotocol/contracts/build/contracts/contr
 import ControllerModule from '../periphery/Controller'
 
 export default buildModule('BridgeEscrow', (m) => {
-  const { Controller } = m.useModule(ControllerModule)
+  const isMigrate = m.getParameter('isMigrate', false)
 
-  const { instance: BridgeEscrow } = deployWithGraphProxy(m, {
-    name: 'BridgeEscrow',
-    artifact: BridgeEscrowArtifact,
-    args: [Controller],
-  })
+  let BridgeEscrow
+  if (isMigrate) {
+    const bridgeEscrowProxyAddress = m.getParameter('bridgeEscrowProxyAddress')
+    BridgeEscrow = m.contractAt('BridgeEscrow', BridgeEscrowArtifact, bridgeEscrowProxyAddress)
+  } else {
+    const { Controller } = m.useModule(ControllerModule)
+
+    BridgeEscrow = deployWithGraphProxy(m, {
+      name: 'BridgeEscrow',
+      artifact: BridgeEscrowArtifact,
+      args: [Controller],
+    }).instance
+  }
 
   return { BridgeEscrow }
 })

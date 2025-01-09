@@ -774,12 +774,12 @@ interface IHorizonStakingMain {
      * @param beneficiary The address where the tokens will be withdrawn after thawing
      * @return The ID of the thaw request
      */
-    function undelegateWithBeneficiary(
-        address serviceProvider,
-        address verifier,
-        uint256 shares,
-        address beneficiary
-    ) external returns (bytes32);
+    // function undelegateWithBeneficiary(
+    //     address serviceProvider,
+    //     address verifier,
+    //     uint256 shares,
+    //     address beneficiary
+    // ) external returns (bytes32);
 
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.
@@ -815,11 +815,11 @@ interface IHorizonStakingMain {
      * @param verifier The verifier address
      * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
-    function withdrawDelegatedWithBeneficiary(
-        address serviceProvider,
-        address verifier,
-        uint256 nThawRequests
-    ) external;
+    // function withdrawDelegatedWithBeneficiary(
+    //     address serviceProvider,
+    //     address verifier,
+    //     uint256 nThawRequests
+    // ) external;
 
     /**
      * @notice Re-delegate undelegated tokens from a provision after thawing to a `newServiceProvider` and `newVerifier`.

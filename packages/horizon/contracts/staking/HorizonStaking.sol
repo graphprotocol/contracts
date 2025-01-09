@@ -310,15 +310,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-undelegate}.
      */
-    function undelegateWithBeneficiary(
-        address serviceProvider,
-        address verifier,
-        uint256 shares,
-        address beneficiary
-    ) external override notPaused returns (bytes32) {
-        require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
-        return _undelegate(ThawRequestType.DelegationWithBeneficiary, serviceProvider, verifier, shares, beneficiary);
-    }
+    // function undelegateWithBeneficiary(
+    //     address serviceProvider,
+    //     address verifier,
+    //     uint256 shares,
+    //     address beneficiary
+    // ) external override notPaused returns (bytes32) {
+    //     require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
+    //     return _undelegate(ThawRequestType.DelegationWithBeneficiary, serviceProvider, verifier, shares, beneficiary);
+    // }
 
     /**
      * @notice See {IHorizonStakingMain-withdrawDelegated}.
@@ -342,21 +342,21 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice See {IHorizonStakingMain-withdrawDelegatedWithBeneficiary}.
      */
-    function withdrawDelegatedWithBeneficiary(
-        address serviceProvider,
-        address verifier,
-        uint256 nThawRequests
-    ) external override notPaused {
-        _withdrawDelegated(
-            ThawRequestType.DelegationWithBeneficiary,
-            serviceProvider,
-            verifier,
-            address(0),
-            address(0),
-            0,
-            nThawRequests
-        );
-    }
+    // function withdrawDelegatedWithBeneficiary(
+    //     address serviceProvider,
+    //     address verifier,
+    //     uint256 nThawRequests
+    // ) external override notPaused {
+    //     _withdrawDelegated(
+    //         ThawRequestType.DelegationWithBeneficiary,
+    //         serviceProvider,
+    //         verifier,
+    //         address(0),
+    //         address(0),
+    //         0,
+    //         nThawRequests
+    //     );
+    // }
 
     /**
      * @notice See {IHorizonStakingMain-redelegate}.
