@@ -23,6 +23,7 @@ async function main() {
 
   console.log('Using deployer account:', deployer.address)
   console.log('Using governor account:', governor.address)
+  console.log('==============================================')
 
   const HorizonMigrateConfig = removeNFromBigInts(require('../ignition/configs/horizon-migrate.hardhat.json5'))
 
