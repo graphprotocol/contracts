@@ -7,8 +7,8 @@ import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/G
 
 // TODO: transfer ownership of ProxyAdmin???
 export default buildModule('GraphPayments', (m) => {
-  const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
-  const { GraphPaymentsProxyAdmin, GraphPaymentsProxy, HorizonRegistered } = m.useModule(HorizonProxiesModule)
+  const { Controller } = m.useModule(GraphPeripheryModule)
+  const { GraphPaymentsProxyAdmin, GraphPaymentsProxy } = m.useModule(HorizonProxiesModule)
 
   const protocolPaymentCut = m.getParameter('protocolPaymentCut')
 
@@ -17,7 +17,7 @@ export default buildModule('GraphPayments', (m) => {
     GraphPaymentsArtifact,
     [Controller, protocolPaymentCut],
     {
-      after: [PeripheryRegistered, HorizonRegistered],
+      after: [GraphPeripheryModule, HorizonProxiesModule],
     },
   )
 
