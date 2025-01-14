@@ -12,9 +12,6 @@
   <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml">
     <img src="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml/badge.svg" alt="CI-Contracts">
   </a>
-  <a href="https://github.com/graphprotocol/contracts/actions/workflows/e2e-contracts.yml">
-    <img src="https://github.com/graphprotocol/contracts/actions/workflows/e2e-contracts.yml/badge.svg" alt="E2E-Contracts">
-  </a>
 </p>
 
 <p align="center">
