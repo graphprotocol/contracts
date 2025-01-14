@@ -137,48 +137,48 @@ interface IHorizonStakingBase {
      */
     function getDelegatedTokensAvailable(address serviceProvider, address verifier) external view returns (uint256);
 
-    /**
-     * @notice Gets a thaw request.
-     * @param thawRequestType The type of thaw request.
-     * @param thawRequestId The id of the thaw request.
-     * @return The thaw request details.
-     */
-    function getThawRequest(
-        IHorizonStakingTypes.ThawRequestType thawRequestType,
-        bytes32 thawRequestId
-    ) external view returns (IHorizonStakingTypes.ThawRequest memory);
+    // /**
+    //  * @notice Gets a thaw request.
+    //  * @param thawRequestType The type of thaw request.
+    //  * @param thawRequestId The id of the thaw request.
+    //  * @return The thaw request details.
+    //  */
+    // function getThawRequest(
+    //     IHorizonStakingTypes.ThawRequestType thawRequestType,
+    //     bytes32 thawRequestId
+    // ) external view returns (IHorizonStakingTypes.ThawRequest memory);
 
-    /**
-     * @notice Gets the metadata of a thaw request list.
-     * Service provider and delegators each have their own thaw request list per provision.
-     * Metadata includes the head and tail of the list, plus the total number of thaw requests.
-     * @param thawRequestType The type of thaw request.
-     * @param serviceProvider The address of the service provider.
-     * @param verifier The address of the verifier.
-     * @param owner The owner of the thaw requests. Use either the service provider or delegator address.
-     * @return The thaw requests list metadata.
-     */
-    function getThawRequestList(
-        IHorizonStakingTypes.ThawRequestType thawRequestType,
-        address serviceProvider,
-        address verifier,
-        address owner
-    ) external view returns (LinkedList.List memory);
+    // /**
+    //  * @notice Gets the metadata of a thaw request list.
+    //  * Service provider and delegators each have their own thaw request list per provision.
+    //  * Metadata includes the head and tail of the list, plus the total number of thaw requests.
+    //  * @param thawRequestType The type of thaw request.
+    //  * @param serviceProvider The address of the service provider.
+    //  * @param verifier The address of the verifier.
+    //  * @param owner The owner of the thaw requests. Use either the service provider or delegator address.
+    //  * @return The thaw requests list metadata.
+    //  */
+    // function getThawRequestList(
+    //     IHorizonStakingTypes.ThawRequestType thawRequestType,
+    //     address serviceProvider,
+    //     address verifier,
+    //     address owner
+    // ) external view returns (LinkedList.List memory);
 
-    /**
-     * @notice Gets the amount of thawed tokens for a given provision.
-     * @param thawRequestType The type of thaw request.
-     * @param serviceProvider The address of the service provider.
-     * @param verifier The address of the verifier.
-     * @param owner The owner of the thaw requests. Use either the service provider or delegator address.
-     * @return The amount of thawed tokens.
-     */
-    function getThawedTokens(
-        IHorizonStakingTypes.ThawRequestType thawRequestType,
-        address serviceProvider,
-        address verifier,
-        address owner
-    ) external view returns (uint256);
+    // /**
+    //  * @notice Gets the amount of thawed tokens for a given provision.
+    //  * @param thawRequestType The type of thaw request.
+    //  * @param serviceProvider The address of the service provider.
+    //  * @param verifier The address of the verifier.
+    //  * @param owner The owner of the thaw requests. Use either the service provider or delegator address.
+    //  * @return The amount of thawed tokens.
+    //  */
+    // function getThawedTokens(
+    //     IHorizonStakingTypes.ThawRequestType thawRequestType,
+    //     address serviceProvider,
+    //     address verifier,
+    //     address owner
+    // ) external view returns (uint256);
 
     /**
      * @notice Gets the maximum allowed thawing period for a provision.
