@@ -774,12 +774,12 @@ interface IHorizonStakingMain {
      * @param beneficiary The address where the tokens will be withdrawn after thawing
      * @return The ID of the thaw request
      */
-    // function undelegateWithBeneficiary(
-    //     address serviceProvider,
-    //     address verifier,
-    //     uint256 shares,
-    //     address beneficiary
-    // ) external returns (bytes32);
+    function undelegateWithBeneficiary(
+        address serviceProvider,
+        address verifier,
+        uint256 shares,
+        address beneficiary
+    ) external returns (bytes32);
 
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.
@@ -815,11 +815,11 @@ interface IHorizonStakingMain {
      * @param verifier The verifier address
      * @param nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
-    // function withdrawDelegatedWithBeneficiary(
-    //     address serviceProvider,
-    //     address verifier,
-    //     uint256 nThawRequests
-    // ) external;
+    function withdrawDelegatedWithBeneficiary(
+        address serviceProvider,
+        address verifier,
+        uint256 nThawRequests
+    ) external;
 
     /**
      * @notice Re-delegate undelegated tokens from a provision after thawing to a `newServiceProvider` and `newVerifier`.
@@ -863,26 +863,6 @@ interface IHorizonStakingMain {
         IGraphPayments.PaymentTypes paymentType,
         uint256 feeCut
     ) external;
-
-    /**
-     * @notice Delegate tokens to the subgraph data service provision.
-     * This function is for backwards compatibility with the legacy staking contract.
-     * It only allows delegating to the subgraph data service and DOES NOT have slippage protection.
-     * @dev See {delegate}.
-     * @param serviceProvider The service provider address
-     * @param tokens The amount of tokens to delegate
-     */
-    function delegate(address serviceProvider, uint256 tokens) external;
-
-    /**
-     * @notice Undelegate tokens from the subgraph data service provision and start thawing them.
-     * This function is for backwards compatibility with the legacy staking contract.
-     * It only allows undelegating from the subgraph data service.
-     * @dev See {undelegate}.
-     * @param serviceProvider The service provider address
-     * @param shares The amount of shares to undelegate
-     */
-    function undelegate(address serviceProvider, uint256 shares) external;
 
     /**
      * @notice Withdraw undelegated tokens from the subgraph data service provision after thawing.
