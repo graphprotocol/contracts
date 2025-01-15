@@ -27,5 +27,5 @@ export default buildModule('PaymentsEscrow', (m) => {
   // Load contract with implementation ABI
   const PaymentsEscrow = m.contractAt('PaymentsEscrow', PaymentsEscrowArtifact, PaymentsEscrowProxy, { id: 'PaymentsEscrow_Instance' })
 
-  return { PaymentsEscrow }
+  return { PaymentsEscrow, PaymentsEscrowImplementation }
 })
