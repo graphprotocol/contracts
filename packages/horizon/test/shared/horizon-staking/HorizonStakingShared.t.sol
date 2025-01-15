@@ -826,11 +826,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     }
 
     function _delegate(address serviceProvider, address verifier, uint256 tokens, uint256 minSharesOut) internal {
-        __delegate(serviceProvider, verifier, tokens, minSharesOut, false);
-    }
-
-    function _delegate(address serviceProvider, uint256 tokens) internal {
-        __delegate(serviceProvider, subgraphDataServiceLegacyAddress, tokens, 0, true);
+        bool legacy = verifier == subgraphDataServiceLegacyAddress;
+        __delegate(serviceProvider, verifier, tokens, minSharesOut, legacy);
     }
 
     function __delegate(
@@ -865,11 +862,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         token.approve(address(staking), tokens);
         vm.expectEmit();
         emit IHorizonStakingMain.TokensDelegated(serviceProvider, verifier, delegator, tokens);
-        if (legacy) {
-            staking.delegate(serviceProvider, tokens);
-        } else {
-            staking.delegate(serviceProvider, verifier, tokens, minSharesOut);
-        }
+        staking.delegate(serviceProvider, verifier, tokens, minSharesOut);
 
         // after
         DelegationPoolInternalTest memory afterPool = _getStorage_DelegationPoolInternal(
@@ -905,7 +898,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
     function _undelegate(address serviceProvider, address verifier, uint256 shares) internal {
         (, address caller, ) = vm.readCallers();
-        __undelegate(IHorizonStakingTypes.ThawRequestType.Delegation, serviceProvider, verifier, shares, false, caller);
+        bool legacy = verifier == subgraphDataServiceLegacyAddress;
+        __undelegate(IHorizonStakingTypes.ThawRequestType.Delegation, serviceProvider, verifier, shares, legacy, caller);
     }
 
     function _undelegateWithBeneficiary(address serviceProvider, address verifier, uint256 shares, address beneficiary) internal {
@@ -916,18 +910,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             shares,
             false,
             beneficiary
-        );
-    }
-
-    function _undelegate(address serviceProvider, uint256 shares) internal {
-        (, address caller, ) = vm.readCallers();
-        __undelegate(
-            IHorizonStakingTypes.ThawRequestType.Delegation,
-            serviceProvider,
-            subgraphDataServiceLegacyAddress,
-            shares,
-            true,
-            caller
         );
     }
 
@@ -988,9 +970,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
         vm.expectEmit();
         emit IHorizonStakingMain.TokensUndelegated(serviceProvider, verifier, delegator, calcValues.tokens);
-        if (legacy) {
-            staking.undelegate(serviceProvider, shares);
-        } else if (thawRequestType == IHorizonStakingTypes.ThawRequestType.Delegation) {
+        if (thawRequestType == IHorizonStakingTypes.ThawRequestType.Delegation) {
             staking.undelegate(serviceProvider, verifier, shares);
         } else if (thawRequestType == IHorizonStakingTypes.ThawRequestType.DelegationWithBeneficiary) {
             staking.undelegateWithBeneficiary(serviceProvider, verifier, shares, beneficiary);
