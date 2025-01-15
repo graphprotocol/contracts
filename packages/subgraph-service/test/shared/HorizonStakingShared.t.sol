@@ -33,6 +33,10 @@ abstract contract HorizonStakingSharedTest is SubgraphBaseTest {
         staking.delegate(_indexer, _verifier, _tokens, _minSharesOut);
     }
 
+    function _undelegate(address _indexer, address _verifier, uint256 _shares) internal {
+        staking.undelegate(_indexer, _verifier, _shares);
+    }
+
     function _setDelegationFeeCut(
         address _indexer,
         address _verifier,
