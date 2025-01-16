@@ -81,7 +81,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
         require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
-        require(!authorization.revoked, TAPCollectorAuthorizationAlreadyRevoked(msg.sender, signer));
+        require(!authorization.revoked, TAPCollectorAuthorizationAlreadyRevoked(signer));
         require(
             authorization.thawEndTimestamp == 0,
             TAPCollectorSignerAlreadyThawing(signer, authorization.thawEndTimestamp)

@@ -125,10 +125,10 @@ interface ITAPCollector is IPaymentsCollector {
     error TAPCollectorSignerNotAuthorizedByPayer(address payer, address signer);
 
     /**
-     * Thrown when the attempting to revoke a signer that was already revoked
+     * Thrown when attempting to thaw a signer that is already revoked
      * @param signer The address of the signer
      */
-    error TAPCollectorAuthorizationAlreadyRevoked(address payer, address signer);
+    error TAPCollectorAuthorizationAlreadyRevoked(address signer);
 
     /**
      * Thrown when attempting to thaw a signer that is already thawing
