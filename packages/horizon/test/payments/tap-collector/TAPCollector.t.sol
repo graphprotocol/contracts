@@ -160,8 +160,9 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         vm.expectEmit(address(tapCollector));
         emit ITAPCollector.RAVCollected(
             _payer,
-            signedRAV.rav.dataService,
+            address(tapCollector),
             signedRAV.rav.serviceProvider,
+            signedRAV.rav.dataService,
             signedRAV.rav.timestampNs,
             signedRAV.rav.valueAggregate,
             signedRAV.rav.metadata,

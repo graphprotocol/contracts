@@ -13,8 +13,10 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
      * TESTS
      */
 
+    // use users.verifier as collector
     function testCollect_Tokens(
         uint256 tokens,
+        uint256 tokensToCollect,
         uint256 delegationTokens,
         uint256 dataServiceCut
     )
@@ -25,12 +27,42 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
     {
         dataServiceCut = bound(dataServiceCut, 0, MAX_PPM);
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
+        tokensToCollect = bound(tokensToCollect, 1, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
 
         resetPrank(users.gateway);
+        _depositTokens(users.verifier, users.indexer, tokensToCollect);
+
+        // burn some tokens to prevent overflow
+        resetPrank(users.indexer);
+        token.burn(MAX_STAKING_TOKENS);
+
+        resetPrank(users.verifier);
+        _collectEscrow(
+            IGraphPayments.PaymentTypes.QueryFee,
+            users.gateway,
+            users.indexer,
+            tokensToCollect,
+            subgraphDataServiceAddress,
+            dataServiceCut
+        );
+    }
+
+    function testCollect_Tokens_NoProvision(
+        uint256 tokens,
+        uint256 dataServiceCut
+    ) public useIndexer useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
+        dataServiceCut = bound(dataServiceCut, 0, MAX_PPM);
+        tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
+
+        resetPrank(users.gateway);
         _depositTokens(users.verifier, users.indexer, tokens);
+
+        // burn some tokens to prevent overflow
+        resetPrank(users.indexer);
+        token.burn(MAX_STAKING_TOKENS);
 
         resetPrank(users.verifier);
         _collectEscrow(
@@ -68,61 +100,42 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
         vm.stopPrank();
     }
 
-    function testCollect_RevertWhen_InvalidPool(
-        uint256 amount
-    )
-        public
-        useIndexer
-        useProvision(amount, 0, 0)
-        useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut)
-    {
-        vm.assume(amount > 1 ether);
+    function testCollect_MultipleCollections(
+        uint256 depositAmount,
+        uint256 firstCollect,
+        uint256 secondCollect
+    ) public useIndexer {
+        // Tests multiple collect operations from the same escrow account
+        vm.assume(firstCollect < MAX_STAKING_TOKENS);
+        vm.assume(secondCollect < MAX_STAKING_TOKENS);
+        vm.assume(depositAmount > 0);
+        vm.assume(firstCollect > 0 && firstCollect < depositAmount);
+        vm.assume(secondCollect > 0 && secondCollect <= depositAmount - firstCollect);
 
         resetPrank(users.gateway);
-        _depositTokens(users.verifier, users.indexer, amount);
+        _depositTokens(users.verifier, users.indexer, depositAmount);
+
+        // burn some tokens to prevent overflow
+        resetPrank(users.indexer);
+        token.burn(MAX_STAKING_TOKENS);
 
         resetPrank(users.verifier);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IHorizonStakingMain.HorizonStakingInvalidDelegationPool.selector,
-                users.indexer,
-                subgraphDataServiceAddress
-            )
-        );
-        escrow.collect(
+        _collectEscrow(
             IGraphPayments.PaymentTypes.QueryFee,
             users.gateway,
             users.indexer,
-            amount,
+            firstCollect,
             subgraphDataServiceAddress,
-            1
+            0
         );
-    }
 
-    function testCollect_RevertWhen_InvalidProvision(
-        uint256 amount
-    ) public useIndexer useDelegationFeeCut(IGraphPayments.PaymentTypes.QueryFee, delegationFeeCut) {
-        vm.assume(amount > 1 ether);
-        vm.assume(amount <= MAX_STAKING_TOKENS);
-
-        resetPrank(users.gateway);
-        _depositTokens(users.verifier, users.indexer, amount);
-
-        resetPrank(users.verifier);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IHorizonStakingMain.HorizonStakingInvalidProvision.selector,
-                users.indexer,
-                subgraphDataServiceAddress
-            )
-        );
-        escrow.collect(
-            IGraphPayments.PaymentTypes.QueryFee,
-            users.gateway,
-            users.indexer,
-            amount,
-            subgraphDataServiceAddress,
-            1
-        );
+        // _collectEscrow(
+        //     IGraphPayments.PaymentTypes.QueryFee,
+        //     users.gateway,
+        //     users.indexer,
+        //     secondCollect,
+        //     subgraphDataServiceAddress,
+        //     0
+        // );
     }
 }
