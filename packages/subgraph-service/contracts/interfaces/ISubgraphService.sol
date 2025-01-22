@@ -166,7 +166,7 @@ interface ISubgraphService is IDataServiceFees {
      * @param allocationId The id of the allocation
      * @param subgraphDeploymentId The id of the subgraph deployment
      */
-    // function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentId) external;
+    function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentId) external;
 
     /**
      * @notice Sets a pause guardian
@@ -235,17 +235,17 @@ interface ISubgraphService is IDataServiceFees {
      */
     function encodeAllocationProof(address indexer, address allocationId) external view returns (bytes32);
 
-    // /**
-    //  * @notice Checks if an allocation is stale
-    //  * @param allocationId The id of the allocation
-    //  * @return True if the allocation is stale, false otherwise
-    //  */
-    // function isStaleAllocation(address allocationId) external view returns (bool);
+    /**
+     * @notice Checks if an allocation is stale
+     * @param allocationId The id of the allocation
+     * @return True if the allocation is stale, false otherwise
+     */
+    function isStaleAllocation(address allocationId) external view returns (bool);
 
-    // /**
-    //  * @notice Checks if an indexer is over-allocated
-    //  * @param allocationId The id of the allocation
-    //  * @return True if the indexer is over-allocated, false otherwise
-    //  */
-    // function isOverAllocated(address allocationId) external view returns (bool);
+    /**
+     * @notice Checks if an indexer is over-allocated
+     * @param allocationId The id of the allocation
+     * @return True if the indexer is over-allocated, false otherwise
+     */
+    function isOverAllocated(address allocationId) external view returns (bool);
 }

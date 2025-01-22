@@ -170,62 +170,62 @@ abstract contract HorizonStakingBase is
         return _getDelegatedTokensAvailable(serviceProvider, verifier);
     }
 
-    // /**
-    //  * @notice See {IHorizonStakingBase-getThawRequest}.
-    //  */
-    // function getThawRequest(
-    //     ThawRequestType requestType,
-    //     bytes32 thawRequestId
-    // ) external view override returns (ThawRequest memory) {
-    //     return _getThawRequest(requestType, thawRequestId);
-    // }
+    /**
+     * @notice See {IHorizonStakingBase-getThawRequest}.
+     */
+    function getThawRequest(
+        ThawRequestType requestType,
+        bytes32 thawRequestId
+    ) external view override returns (ThawRequest memory) {
+        return _getThawRequest(requestType, thawRequestId);
+    }
 
-    // /**
-    //  * @notice See {IHorizonStakingBase-getThawRequestList}.
-    //  */
-    // function getThawRequestList(
-    //     ThawRequestType requestType,
-    //     address serviceProvider,
-    //     address verifier,
-    //     address owner
-    // ) external view override returns (LinkedList.List memory) {
-    //     return _getThawRequestList(requestType, serviceProvider, verifier, owner);
-    // }
+    /**
+     * @notice See {IHorizonStakingBase-getThawRequestList}.
+     */
+    function getThawRequestList(
+        ThawRequestType requestType,
+        address serviceProvider,
+        address verifier,
+        address owner
+    ) external view override returns (LinkedList.List memory) {
+        return _getThawRequestList(requestType, serviceProvider, verifier, owner);
+    }
 
-    // /**
-    //  * @notice See {IHorizonStakingBase-getThawedTokens}.
-    //  */
-    // function getThawedTokens(
-    //     ThawRequestType requestType,
-    //     address serviceProvider,
-    //     address verifier,
-    //     address owner
-    // ) external view override returns (uint256) {
-    //     LinkedList.List storage thawRequestList = _getThawRequestList(requestType, serviceProvider, verifier, owner);
-    //     if (thawRequestList.count == 0) {
-    //         return 0;
-    //     }
+    /**
+     * @notice See {IHorizonStakingBase-getThawedTokens}.
+     */
+    function getThawedTokens(
+        ThawRequestType requestType,
+        address serviceProvider,
+        address verifier,
+        address owner
+    ) external view override returns (uint256) {
+        LinkedList.List storage thawRequestList = _getThawRequestList(requestType, serviceProvider, verifier, owner);
+        if (thawRequestList.count == 0) {
+            return 0;
+        }
 
-    //     uint256 thawedTokens = 0;
-    //     Provision storage prov = _provisions[serviceProvider][verifier];
-    //     uint256 tokensThawing = prov.tokensThawing;
-    //     uint256 sharesThawing = prov.sharesThawing;
+        uint256 thawedTokens = 0;
+        Provision storage prov = _provisions[serviceProvider][verifier];
+        uint256 tokensThawing = prov.tokensThawing;
+        uint256 sharesThawing = prov.sharesThawing;
 
-    //     bytes32 thawRequestId = thawRequestList.head;
-    //     while (thawRequestId != bytes32(0)) {
-    //         ThawRequest storage thawRequest = _getThawRequest(requestType, thawRequestId);
-    //         if (thawRequest.thawingUntil <= block.timestamp) {
-    //             uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-    //             tokensThawing = tokensThawing - tokens;
-    //             sharesThawing = sharesThawing - thawRequest.shares;
-    //             thawedTokens = thawedTokens + tokens;
-    //         } else {
-    //             break;
-    //         }
-    //         thawRequestId = thawRequest.next;
-    //     }
-    //     return thawedTokens;
-    // }
+        bytes32 thawRequestId = thawRequestList.head;
+        while (thawRequestId != bytes32(0)) {
+            ThawRequest storage thawRequest = _getThawRequest(requestType, thawRequestId);
+            if (thawRequest.thawingUntil <= block.timestamp) {
+                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+                tokensThawing = tokensThawing - tokens;
+                sharesThawing = sharesThawing - thawRequest.shares;
+                thawedTokens = thawedTokens + tokens;
+            } else {
+                break;
+            }
+            thawRequestId = thawRequest.next;
+        }
+        return thawedTokens;
+    }
 
     /**
      * @notice See {IHorizonStakingBase-getMaxThawingPeriod}.

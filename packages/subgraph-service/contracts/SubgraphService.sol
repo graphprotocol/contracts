@@ -344,13 +344,13 @@ contract SubgraphService is
     /**
      * @notice See {ISubgraphService.migrateLegacyAllocation}
      */
-    // function migrateLegacyAllocation(
-    //     address indexer,
-    //     address allocationId,
-    //     bytes32 subgraphDeploymentID
-    // ) external override onlyOwner {
-    //     _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
-    // }
+    function migrateLegacyAllocation(
+        address indexer,
+        address allocationId,
+        bytes32 subgraphDeploymentID
+    ) external override onlyOwner {
+        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
+    }
 
     /**
      * @notice See {ISubgraphService.setPauseGuardian}
@@ -475,19 +475,19 @@ contract SubgraphService is
         return _encodeAllocationProof(indexer, allocationId);
     }
 
-    // /**
-    //  * @notice See {ISubgraphService.isStaleAllocation}
-    //  */
-    // function isStaleAllocation(address allocationId) external view override returns (bool) {
-    //     return allocations.get(allocationId).isStale(maxPOIStaleness);
-    // }
+    /**
+     * @notice See {ISubgraphService.isStaleAllocation}
+     */
+    function isStaleAllocation(address allocationId) external view override returns (bool) {
+        return allocations.get(allocationId).isStale(maxPOIStaleness);
+    }
 
-    // /**
-    //  * @notice See {ISubgraphService.isOverAllocated}
-    //  */
-    // function isOverAllocated(address indexer) external view override returns (bool) {
-    //     return _isOverAllocated(indexer, delegationRatio);
-    // }
+    /**
+     * @notice See {ISubgraphService.isOverAllocated}
+     */
+    function isOverAllocated(address indexer) external view override returns (bool) {
+        return _isOverAllocated(indexer, delegationRatio);
+    }
 
     // -- Data service parameter getters --
     /**
