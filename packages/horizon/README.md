@@ -2,6 +2,18 @@
 
 Graph Horizon is the next evolution of the Graph Protocol.
 
+## Configuration
+
+The following environment variables might be required:
+
+- `ETHERSCAN_API_KEY`: Etherscan API key
+
+You can set them using Hardhat:
+
+```bash
+npx hardhat vars set ETHERSCAN_API_KEY
+```
+
 ## Deployment 
 
 We use Hardhat Ignition to deploy the contracts. To build and deploy Graph Horizon run the following commands:

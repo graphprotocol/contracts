@@ -31,6 +31,8 @@
     "@nomicfoundation/ignition-core": "^0.15.9",
     "@openzeppelin/contracts": "^5.0.2",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "@tenderly/api-client": "^1.1.0",
+    "@tenderly/hardhat-tenderly": "^2.5.2",
     "@typechain/ethers-v6": "^0.5.0",
     "@typechain/hardhat": "^9.0.0",
     "@types/chai": "^4.2.0",
@@ -70,10 +72,5 @@
     "**/*.json": [
       "yarn lint:ts"
     ]
-  },
-  "dependencies": {
-    "@tenderly/api-client": "^1.1.0",
-    "@tenderly/hardhat-tenderly": "^2.5.1",
-    "dotenv": "^16.4.7"
   }
 }

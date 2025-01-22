@@ -18,14 +18,13 @@ export default buildModule('HorizonProxies', (m) => {
   const isMigrate = m.getParameter('isMigrate', false)
 
   // Deploy HorizonStaking proxy without an implementation
-  let HorizonStakingProxy, setProxyHorizonStaking
+  let HorizonStakingProxy
   if (isMigrate) {
     const horizonStakingProxyAddress = m.getParameter('horizonStakingProxyAddress')
     HorizonStakingProxy = m.contractAt('GraphProxy', GraphProxyArtifact, horizonStakingProxyAddress, { id: 'GraphProxy_HorizonStaking' })
-    setProxyHorizonStaking = HorizonStakingProxy
   } else {
     HorizonStakingProxy = m.contract('GraphProxy', GraphProxyArtifact, [ZERO_ADDRESS, GraphProxyAdmin], { id: 'GraphProxy_HorizonStaking' })
-    setProxyHorizonStaking = m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Staking')), HorizonStakingProxy], { id: 'setContractProxy_HorizonStaking' })
+    m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Staking')), HorizonStakingProxy], { id: 'setContractProxy_HorizonStaking' })
   }
 
   // Deploy proxies for payments contracts using OZ TransparentUpgradeableProxy

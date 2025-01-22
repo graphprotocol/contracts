@@ -1,3 +1,7 @@
+import { vars } from 'hardhat/config'
+import type { HardhatUserConfig } from 'hardhat/config'
+
+// Hardhat plugins
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'
@@ -5,11 +9,10 @@ import '@tenderly/hardhat-tenderly'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
-import * as dotenv from 'dotenv'
 
-import type { HardhatUserConfig } from 'hardhat/config'
-
-dotenv.config()
+// Environment variables
+const ETHERSCAN_API_KEY = vars.get('ETHERSCAN_API_KEY', '')
+const ARBITRUM_VIRTUAL_TESTNET_URL = vars.get('ARBITRUM_VIRTUAL_TESTNET_URL', '')
 
 const getNetworkAccounts = () => {
   const accounts: string[] = []
@@ -57,7 +60,7 @@ const config: HardhatUserConfig = {
         enabled: false,
       },
       chainId: 421615,
-      url: process.env.ARBITRUM_VIRTUAL_TESTNET_URL || '',
+      url: ARBITRUM_VIRTUAL_TESTNET_URL,
       accounts: getNetworkAccounts(),
     },
   },
@@ -74,7 +77,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      arbitrumSepolia: process.env.ETHERSCAN_API_KEY ?? '',
+      arbitrumSepolia: ETHERSCAN_API_KEY,
     },
     customChains: [
       {
