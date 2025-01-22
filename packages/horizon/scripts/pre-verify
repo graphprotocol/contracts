@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Move external artifacts
+cp -r ../contracts/build/contracts/contracts/* build/contracts/contracts
+cp -r ../contracts/build/contracts/build-info/* build/contracts/build-info
+cp -r build/contracts/@openzeppelin/contracts/proxy/transparent/* build/contracts/contracts
+
+# HardHat Ignition deployment ID
+DEPLOYMENT_ID="${1:-chain-421614}"
+
+# .dbg.json files
+DBG_DIR_SRC="./build/contracts/contracts"
+DBG_DIR_DEST="./ignition/deployments/${DEPLOYMENT_ID}/artifacts"
+
+# build-info files
+BUILD_INFO_DIR_SRC="./build/contracts/build-info"
+BUILD_INFO_DIR_DEST="./ignition/deployments/${DEPLOYMENT_ID}/build-info"
+
+# Ensure the destination directories exist
+mkdir -p "$DBG_DIR_DEST"
+mkdir -p "$BUILD_INFO_DIR_DEST"
+
+# Copy .dbg.json files
+echo "Searching for .dbg.json files in $DBG_DIR_SRC and copying them to $DBG_DIR_DEST..."
+find "$DBG_DIR_SRC" -type f -name "*.dbg.json" | while read -r file; do
+    base_name=$(basename "$file" .dbg.json)
+    new_name="${base_name}#${base_name}.dbg.json"
+
+    if [ ! -f "$DBG_DIR_DEST/$new_name" ]; then
+        cp "$file" "$DBG_DIR_DEST/$new_name"
+    fi
+
+    jq '.buildInfo |= sub("../../../../"; "../") | .buildInfo |= sub("../../../"; "../") | .buildInfo |= sub("../../"; "../")' "$DBG_DIR_DEST/$new_name" > "${DBG_DIR_DEST}/${new_name}.tmp" && mv "${DBG_DIR_DEST}/${new_name}.tmp" "$DBG_DIR_DEST/$new_name"
+done
+
+# Copy build-info files
+echo "Searching for build-info files in $BUILD_INFO_DIR_SRC and copying them to $BUILD_INFO_DIR_DEST..."
+find "$BUILD_INFO_DIR_SRC" -type f -name "*.json" | while read -r file; do
+    base_name=$(basename "$file" .json)
+    if [ ! -f "$BUILD_INFO_DIR_DEST/$base_name.json" ]; then
+        cp "$file" "$BUILD_INFO_DIR_DEST/$base_name.json"
+    fi
+done
+
+echo "All files have been processed."
+
+# Patch proxy artifacts
+cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxies#GraphProxy_HorizonStaking.dbg.json"
+cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/L2Curation#GraphProxy.dbg.json"
+cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/L2GraphToken#GraphProxy.dbg.json"
+cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/L2GraphTokenGateway#GraphProxy.dbg.json"
+cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/RewardsManager#GraphProxy.dbg.json"
+cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/BridgeEscrow#GraphProxy.dbg.json"
+cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/EpochManager#GraphProxy.dbg.json"
+
+cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxies#TransparentUpgradeableProxy_GraphPayments.dbg.json"
+cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxies#TransparentUpgradeableProxy_PaymentsEscrow.dbg.json"

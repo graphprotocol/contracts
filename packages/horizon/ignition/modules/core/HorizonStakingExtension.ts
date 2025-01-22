@@ -7,8 +7,7 @@ import ExponentialRebatesArtifact from '../../../build/contracts/contracts/staki
 import HorizonStakingExtensionArtifact from '../../../build/contracts/contracts/staking/HorizonStakingExtension.sol/HorizonStakingExtension.json'
 
 export default buildModule('HorizonStakingExtension', (m) => {
-  const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
-  const { HorizonRegistered } = m.useModule(HorizonProxiesModule)
+  const { Controller } = m.useModule(GraphPeripheryModule)
 
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
 
@@ -19,7 +18,7 @@ export default buildModule('HorizonStakingExtension', (m) => {
       libraries: {
         ExponentialRebates: ExponentialRebates,
       },
-      after: [PeripheryRegistered, HorizonRegistered],
+      after: [GraphPeripheryModule, HorizonProxiesModule],
     })
 
   return { HorizonStakingExtension }

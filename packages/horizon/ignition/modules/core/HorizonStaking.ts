@@ -7,8 +7,8 @@ import HorizonStakingExtensionModule from './HorizonStakingExtension'
 import HorizonStakingArtifact from '../../../build/contracts/contracts/staking/HorizonStaking.sol/HorizonStaking.json'
 
 export default buildModule('HorizonStaking', (m) => {
-  const { Controller, GraphProxyAdmin, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
-  const { HorizonStakingProxy, HorizonRegistered } = m.useModule(HorizonProxiesModule)
+  const { Controller, GraphProxyAdmin } = m.useModule(GraphPeripheryModule)
+  const { HorizonStakingProxy } = m.useModule(HorizonProxiesModule)
   const { HorizonStakingExtension } = m.useModule(HorizonStakingExtensionModule)
 
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
@@ -22,7 +22,7 @@ export default buildModule('HorizonStaking', (m) => {
       subgraphServiceAddress,
     ],
     {
-      after: [PeripheryRegistered, HorizonRegistered],
+      after: [GraphPeripheryModule, HorizonProxiesModule],
     },
   )
 

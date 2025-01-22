@@ -7,7 +7,7 @@ import RewardsManagerModule from '../periphery/RewardsManager'
 import GraphTokenArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json'
 
 // TODO: Ownership transfer is a two step process, the new owner needs to accept it by calling acceptOwnership
-export default buildModule('GraphToken', (m) => {
+export default buildModule('L2GraphToken', (m) => {
   const isMigrate = m.getParameter('isMigrate', false)
 
   let GraphToken
@@ -23,7 +23,7 @@ export default buildModule('GraphToken', (m) => {
     const initialSupply = m.getParameter('initialSupply')
 
     GraphToken = deployWithGraphProxy(m, {
-      name: 'GraphToken',
+      name: 'L2GraphToken',
       artifact: GraphTokenArtifact,
       args: [deployer],
     }).instance

@@ -9,6 +9,7 @@ async function main() {
 
   // Deploy Horizon
   await ignition.deploy(HorizonModule, {
+    displayUi: true,
     parameters: HorizonConfig,
   })
 }

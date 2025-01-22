@@ -7,8 +7,8 @@ import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/
 
 // TODO: transfer ownership of ProxyAdmin???
 export default buildModule('PaymentsEscrow', (m) => {
-  const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
-  const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy, HorizonRegistered } = m.useModule(HorizonProxiesModule)
+  const { Controller } = m.useModule(GraphPeripheryModule)
+  const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy } = m.useModule(HorizonProxiesModule)
 
   const withdrawEscrowThawingPeriod = m.getParameter('withdrawEscrowThawingPeriod')
 
@@ -17,7 +17,7 @@ export default buildModule('PaymentsEscrow', (m) => {
     PaymentsEscrowArtifact,
     [Controller, withdrawEscrowThawingPeriod],
     {
-      after: [PeripheryRegistered, HorizonRegistered],
+      after: [GraphPeripheryModule, HorizonProxiesModule],
     },
   )
 
