@@ -1,41 +1,55 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployWithOZProxy } from '../proxy/TransparentUpgradeableProxy'
+import { deployGraphProxy } from '../proxy/GraphProxy'
+import { deployTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
 import { ethers } from 'ethers'
 
-import GraphPeripheryModule from '../periphery'
-import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
+import GraphPeripheryModule from '../periphery/periphery'
 
-import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
+import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
+import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-
-// HorizonStaking, GraphPayments and PaymentsEscrow use GraphDirectory but they also in the directory.
+// HorizonStaking, GraphPayments and PaymentsEscrow use GraphDirectory but they are also in the directory.
 // So we need to deploy their proxies, register them in the controller before being able to deploy the implementations
 export default buildModule('HorizonProxies', (m) => {
-  const { Controller } = m.useModule(GraphPeripheryModule)
-  const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
+  const { Controller, GraphProxyAdmin } = m.useModule(GraphPeripheryModule)
 
-  const isMigrate = m.getParameter('isMigrate', false)
+  // Deploy HorizonStaking proxy with no implementation
+  const HorizonStakingProxy = deployGraphProxy(m, GraphProxyAdmin)
+  m.call(Controller, 'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('Staking')), HorizonStakingProxy],
+    { id: 'setContractProxy_HorizonStaking' },
+  )
 
-  // Deploy HorizonStaking proxy without an implementation
-  let HorizonStakingProxy
-  if (isMigrate) {
-    const horizonStakingProxyAddress = m.getParameter('horizonStakingProxyAddress')
-    HorizonStakingProxy = m.contractAt('GraphProxy', GraphProxyArtifact, horizonStakingProxyAddress, { id: 'GraphProxy_HorizonStaking' })
-  } else {
-    HorizonStakingProxy = m.contract('GraphProxy', GraphProxyArtifact, [ZERO_ADDRESS, GraphProxyAdmin], { id: 'GraphProxy_HorizonStaking' })
-    m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Staking')), HorizonStakingProxy], { id: 'setContractProxy_HorizonStaking' })
-  }
+  // Deploy GraphPayments proxy
+  const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployTransparentUpgradeableProxy(m, {
+    name: 'GraphPayments',
+    artifact: GraphPaymentsArtifact,
+  })
+  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy], { id: 'setContractProxy_GraphPayments' })
 
-  // Deploy proxies for payments contracts using OZ TransparentUpgradeableProxy
-  const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployWithOZProxy(m, 'GraphPayments')
-  const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployWithOZProxy(m, 'PaymentsEscrow')
-
-  // Register the proxies in the controller
-  // if isMigrate then use from: governor
-  const options = isMigrate ? { from: m.getAccount(1) } : {}
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy], { ...options, id: 'setContractProxy_GraphPayments' })
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy], { ...options, id: 'setContractProxy_PaymentsEscrow' })
+  // Deploy PaymentsEscrow proxy
+  const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployTransparentUpgradeableProxy(m, {
+    name: 'PaymentsEscrow',
+    artifact: PaymentsEscrowArtifact,
+  })
+  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy], { id: 'setContractProxy_PaymentsEscrow' })
 
   return { HorizonStakingProxy, GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
 })
+
+// export const UpgradeHorizonProxiesModule = buildModule('HorizonProxies', (m) => {
+//   const governor = m.getAccount(1)
+
+//   const controllerAddress = m.getParameter('controllerAddress')
+
+//   // Deploy proxies for payments contracts using OZ TransparentUpgradeableProxy
+//   const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployWithOZProxy(m, 'GraphPayments')
+//   const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployWithOZProxy(m, 'PaymentsEscrow')
+
+//   // Register the proxies in the controller
+//   const Controller = m.contractAt('Controller', controllerAddress, { id: 'Controller' })
+//   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy], { id: 'setContractProxy_GraphPayments', from: governor })
+//   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy], { id: 'setContractProxy_PaymentsEscrow', from: governor })
+
+//   return { GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
+// })

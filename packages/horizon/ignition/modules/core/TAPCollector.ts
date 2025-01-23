@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import GraphPeripheryModule from '../periphery'
+import GraphPeripheryModule from '../periphery/periphery'
 import HorizonProxiesModule from './HorizonProxies'
 
 import TAPCollectorArtifact from '../../../build/contracts/contracts/payments/collectors/TAPCollector.sol/TAPCollector.json'

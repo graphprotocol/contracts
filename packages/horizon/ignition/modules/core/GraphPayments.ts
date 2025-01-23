@@ -1,31 +1,34 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+import { deployImplementation } from '../proxy/implementation'
+import { upgradeTransparentUpgradeableProxyNoLoad } from '../proxy/TransparentUpgradeableProxy'
 
-import GraphPeripheryModule from '../periphery'
+import GraphPeripheryModule from '../periphery/periphery'
 import HorizonProxiesModule from './HorizonProxies'
 
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
 
-// TODO: transfer ownership of ProxyAdmin???
 export default buildModule('GraphPayments', (m) => {
   const { Controller } = m.useModule(GraphPeripheryModule)
   const { GraphPaymentsProxyAdmin, GraphPaymentsProxy } = m.useModule(HorizonProxiesModule)
 
   const protocolPaymentCut = m.getParameter('protocolPaymentCut')
 
-  // Deploy GraphPayments implementation
-  const GraphPaymentsImplementation = m.contract('GraphPayments',
-    GraphPaymentsArtifact,
-    [Controller, protocolPaymentCut],
-    {
-      after: [GraphPeripheryModule, HorizonProxiesModule],
-    },
-  )
+  // Deploy GraphPayments implementation - requires periphery and proxies to be registered in the controller
+  const GraphPaymentsImplementation = deployImplementation(m, {
+    name: 'GraphPayments',
+    artifact: GraphPaymentsArtifact,
+    constructorArgs: [Controller, protocolPaymentCut],
+  }, { after: [GraphPeripheryModule, HorizonProxiesModule] })
 
   // Upgrade proxy to implementation contract
-  m.call(GraphPaymentsProxyAdmin, 'upgradeAndCall', [GraphPaymentsProxy, GraphPaymentsImplementation, m.encodeFunctionCall(GraphPaymentsImplementation, 'initialize', [])])
+  const GraphPayments = upgradeTransparentUpgradeableProxyNoLoad(m,
+    GraphPaymentsProxyAdmin,
+    GraphPaymentsProxy,
+    GraphPaymentsImplementation, {
+      name: 'GraphPayments',
+      artifact: GraphPaymentsArtifact,
+      initArgs: [],
+    })
 
-  // Load contract with implementation ABI
-  const GraphPayments = m.contractAt('GraphPayments', GraphPaymentsArtifact, GraphPaymentsProxy, { id: 'GraphPayments_Instance' })
-
-  return { GraphPayments, GraphPaymentsImplementation }
+  return { GraphPayments, GraphPaymentsProxyAdmin }
 })

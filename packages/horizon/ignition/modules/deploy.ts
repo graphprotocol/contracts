@@ -1,7 +1,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import GraphHorizonCoreModule from './core'
-import GraphPeripheryModule from './periphery'
+import GraphHorizonCoreModule from './core/core'
+import GraphPeripheryModule from './periphery/periphery'
 
 export default buildModule('GraphHorizon', (m) => {
   const {
@@ -11,14 +11,19 @@ export default buildModule('GraphHorizon', (m) => {
     GraphProxyAdmin,
     GraphTokenGateway,
     RewardsManager,
-    Curation,
+    L2Curation,
   } = m.useModule(GraphPeripheryModule)
-  const { HorizonStaking, GraphPayments, PaymentsEscrow, TAPCollector } = m.useModule(GraphHorizonCoreModule)
+  const {
+    HorizonStaking,
+    GraphPayments,
+    PaymentsEscrow,
+    TAPCollector,
+  } = m.useModule(GraphHorizonCoreModule)
 
   return {
     BridgeEscrow,
     Controller,
-    Curation,
+    L2Curation,
     EpochManager,
     GraphProxyAdmin,
     GraphTokenGateway,

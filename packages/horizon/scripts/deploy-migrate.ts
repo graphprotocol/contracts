@@ -2,13 +2,13 @@ require('json5/lib/register')
 
 import { ignition } from 'hardhat'
 
-import DeployModule from '../ignition/modules/deploy'
+import MigrateModule from '../ignition/modules/migrate'
 
 async function main() {
-  const HorizonConfig = removeNFromBigInts(require('../ignition/configs/horizon.hardhat.json5'))
+  const HorizonConfig = removeNFromBigInts(require('../ignition/configs/horizon-migrate.hardhat.json5'))
 
   // Deploy Horizon
-  await ignition.deploy(DeployModule, {
+  await ignition.deploy(MigrateModule, {
     displayUi: true,
     parameters: HorizonConfig,
   })

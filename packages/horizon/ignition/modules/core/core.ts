@@ -1,9 +1,9 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import GraphPaymentsModule from './core/GraphPayments'
-import HorizonStakingModule from './core/HorizonStaking'
-import PaymentsEscrowModule from './core/PaymentsEscrow'
-import TAPCollectorModule from './core/TAPCollector'
+import GraphPaymentsModule from './GraphPayments'
+import HorizonStakingModule from './HorizonStaking'
+import PaymentsEscrowModule from './PaymentsEscrow'
+import TAPCollectorModule from './TAPCollector'
 
 export default buildModule('GraphHorizon_Core', (m) => {
   const { HorizonStaking } = m.useModule(HorizonStakingModule)

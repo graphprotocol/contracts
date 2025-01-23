@@ -2,25 +2,19 @@ import { buildModule } from '@nomicfoundation/ignition-core'
 
 import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
-import BridgeEscrowArtifact from '@graphprotocol/contracts/build/contracts/contracts/gateway/BridgeEscrow.sol/BridgeEscrow.json'
 import ControllerModule from '../periphery/Controller'
+import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
 
+import BridgeEscrowArtifact from '@graphprotocol/contracts/build/contracts/contracts/gateway/BridgeEscrow.sol/BridgeEscrow.json'
 export default buildModule('BridgeEscrow', (m) => {
-  const isMigrate = m.getParameter('isMigrate', false)
+  const { Controller } = m.useModule(ControllerModule)
+  const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
 
-  let BridgeEscrow
-  if (isMigrate) {
-    const bridgeEscrowProxyAddress = m.getParameter('bridgeEscrowProxyAddress')
-    BridgeEscrow = m.contractAt('BridgeEscrow', BridgeEscrowArtifact, bridgeEscrowProxyAddress)
-  } else {
-    const { Controller } = m.useModule(ControllerModule)
-
-    BridgeEscrow = deployWithGraphProxy(m, {
-      name: 'BridgeEscrow',
-      artifact: BridgeEscrowArtifact,
-      args: [Controller],
-    }).instance
-  }
+  const BridgeEscrow = deployWithGraphProxy(m, GraphProxyAdmin, {
+    name: 'BridgeEscrow',
+    artifact: BridgeEscrowArtifact,
+    initArgs: [Controller],
+  })
 
   return { BridgeEscrow }
 })
