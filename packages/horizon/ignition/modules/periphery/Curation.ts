@@ -2,8 +2,8 @@ import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-co
 import { deployWithGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'
 import { deployImplementation } from '../proxy/implementation'
 
+import GraphProxyAdminModule, { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
 import ControllerModule from './Controller'
-import GraphProxyAdminModule from './GraphProxyAdmin'
 
 import CurationArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
 import GraphCurationTokenArtifact from '@graphprotocol/contracts/build/contracts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json'
@@ -30,10 +30,11 @@ export default buildModule('L2Curation', (m) => {
 
 // Curation contract is owned by the governor
 export const MigrateCurationModule = buildModule('L2Curation', (m: IgnitionModuleBuilder) => {
+  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
+
   const governor = m.getAccount(1)
-  const graphCurationProxyAddress = m.getParameter('graphCurationProxyAddress')
+  const curationAddress = m.getParameter('curationAddress')
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
-  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
 
   const implementationMetadata = {
     name: 'L2Curation',
@@ -41,7 +42,7 @@ export const MigrateCurationModule = buildModule('L2Curation', (m: IgnitionModul
   }
   const implementation = deployImplementation(m, implementationMetadata)
 
-  const L2Curation = upgradeGraphProxy(m, graphProxyAdminAddress, graphCurationProxyAddress, implementation, implementationMetadata, { from: governor })
+  const L2Curation = upgradeGraphProxy(m, GraphProxyAdmin, curationAddress, implementation, implementationMetadata, { from: governor })
   m.call(L2Curation, 'setSubgraphService', [subgraphServiceAddress], { from: governor })
 
   return { L2Curation }

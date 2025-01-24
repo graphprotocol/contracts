@@ -5,11 +5,11 @@ import GraphPeripheryModule from './periphery/periphery'
 
 export default buildModule('GraphHorizon_Deploy', (m) => {
   const {
-    BridgeEscrow,
     Controller,
     EpochManager,
     GraphProxyAdmin,
     GraphTokenGateway,
+    GraphToken,
     RewardsManager,
     L2Curation,
   } = m.useModule(GraphPeripheryModule)
@@ -21,12 +21,12 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
   } = m.useModule(GraphHorizonCoreModule)
 
   return {
-    BridgeEscrow,
     Controller,
     L2Curation,
     EpochManager,
     GraphProxyAdmin,
     GraphTokenGateway,
+    GraphToken,
     RewardsManager,
     HorizonStaking,
     GraphPayments,

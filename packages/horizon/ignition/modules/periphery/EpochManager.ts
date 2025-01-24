@@ -20,3 +20,11 @@ export default buildModule('EpochManager', (m) => {
 
   return { EpochManager }
 })
+
+export const MigrateEpochManagerModule = buildModule('EpochManager', (m) => {
+  const epochManagerAddress = m.getParameter('epochManagerAddress')
+
+  const EpochManager = m.contractAt('EpochManager', EpochManagerArtifact, epochManagerAddress)
+
+  return { EpochManager }
+})

@@ -5,7 +5,6 @@ import { upgradeTransparentUpgradeableProxyNoLoad } from '../proxy/TransparentUp
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 import HorizonProxiesModule, { MigrateHorizonProxiesModule } from './HorizonProxies'
 
-import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
 
 export default buildModule('GraphPayments', (m) => {
@@ -36,18 +35,16 @@ export default buildModule('GraphPayments', (m) => {
 
 export const MigrateGraphPaymentsModule = buildModule('GraphPayments', (m) => {
   const { GraphPaymentsProxyAdmin, GraphPaymentsProxy } = m.useModule(MigrateHorizonProxiesModule)
+  const { Controller } = m.useModule(MigratePeripheryModule)
 
   const protocolPaymentCut = m.getParameter('protocolPaymentCut')
-  const controllerAddress = m.getParameter('controllerAddress')
-
-  const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
 
   // Deploy GraphPayments implementation
   const GraphPaymentsImplementation = deployImplementation(m, {
     name: 'GraphPayments',
     artifact: GraphPaymentsArtifact,
     constructorArgs: [Controller, protocolPaymentCut],
-  }, { after: [MigrateHorizonProxiesModule, MigratePeripheryModule] })
+  }, { after: [MigrateHorizonProxiesModule] })
 
   // Upgrade proxy to implementation contract
   const GraphPayments = upgradeTransparentUpgradeableProxyNoLoad(m,

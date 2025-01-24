@@ -3,9 +3,8 @@ import { deployGraphProxy } from '../proxy/GraphProxy'
 import { deployTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
 import { ethers } from 'ethers'
 
-import GraphPeripheryModule from '../periphery/periphery'
+import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 
-import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
 import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
 
@@ -45,10 +44,9 @@ export default buildModule('HorizonProxies', (m) => {
 })
 
 export const MigrateHorizonProxiesModule = buildModule('HorizonProxies', (m) => {
-  const governor = m.getAccount(1)
-  const controllerAddress = m.getParameter('controllerAddress')
+  const { Controller } = m.useModule(MigratePeripheryModule)
 
-  const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
+  const governor = m.getAccount(1)
 
   // Deploy and register GraphPayments proxy
   const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployTransparentUpgradeableProxy(m, {

@@ -30,3 +30,11 @@ export default buildModule('L2GraphToken', (m) => {
 
   return { GraphToken }
 })
+
+export const MigrateGraphTokenModule = buildModule('L2GraphToken', (m) => {
+  const graphTokenAddress = m.getParameter('graphTokenAddress')
+
+  const GraphToken = m.contractAt('L2GraphToken', GraphTokenArtifact, graphTokenAddress)
+
+  return { GraphToken }
+})

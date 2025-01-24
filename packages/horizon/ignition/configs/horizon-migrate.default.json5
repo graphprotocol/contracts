@@ -1,20 +1,21 @@
 {
   "$global": {
+    // Addresses for contracts deployed in the original Graph Protocol
     "graphProxyAdminAddress": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
     "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
-    "horizonStakingProxyAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
-    "bridgeEscrowProxyAddress": "0x428Ab6E9EeF41Dc5098a34a6993Cdd5Be5BA24a6",
-    "epochManagerProxyAddress": "0x88b3C7f37253bAA1A9b95feAd69bD5320585826D",
-    "graphTokenProxyAddress": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
-    "graphTokenGatewayProxyAddress": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
+    "horizonStakingAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
+    "epochManagerAddress": "0x88b3C7f37253bAA1A9b95feAd69bD5320585826D",
+    "graphTokenAddress": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
+    "graphTokenGatewayAddress": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
+
     // Placeholder address for a standalone Horizon deployment, see README.md for more details
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
   },
   "RewardsManager": {
-    "rewardsManagerProxyAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79"
+    "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79"
   },
   "L2Curation": {
-    "graphCurationProxyAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5"
+    "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5"
   },
   "HorizonStaking": {
     "maxThawingPeriod": 2419200

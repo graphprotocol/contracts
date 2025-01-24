@@ -10,7 +10,6 @@ import {
 import { deployImplementation, type ImplementationMetadata } from './implementation'
 import { loadProxyWithABI } from './utils'
 
-import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
 export function deployGraphProxy(
@@ -31,17 +30,16 @@ export function deployGraphProxy(
 
 export function upgradeGraphProxy(
   m: IgnitionModuleBuilder,
-  proxyAdmin: string | ModuleParameterRuntimeValue<string>,
+  proxyAdmin: CallableContractFuture<string>,
   proxy: string | ModuleParameterRuntimeValue<string>,
   implementation: ContractFuture<string>,
   metadata: ImplementationMetadata,
   options?: ContractOptions,
 ) {
   const GraphProxy = m.contractAt('GraphProxy', GraphProxyArtifact, proxy)
-  const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, proxyAdmin)
 
-  const upgradeCall = m.call(GraphProxyAdmin, 'upgrade', [GraphProxy, implementation], options)
-  const acceptCall = m.call(GraphProxyAdmin, 'acceptProxy', [implementation, GraphProxy], { ...options, after: [upgradeCall] })
+  const upgradeCall = m.call(proxyAdmin, 'upgrade', [GraphProxy, implementation], options)
+  const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, GraphProxy], { ...options, after: [upgradeCall] })
 
   return loadProxyWithABI(m, GraphProxy, metadata, { ...options, after: [acceptCall] })
 }

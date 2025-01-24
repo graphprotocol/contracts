@@ -5,7 +5,6 @@ import { upgradeTransparentUpgradeableProxyNoLoad } from '../proxy/TransparentUp
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 import HorizonProxiesModule, { MigrateHorizonProxiesModule } from './HorizonProxies'
 
-import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
 
 export default buildModule('PaymentsEscrow', (m) => {
@@ -36,18 +35,16 @@ export default buildModule('PaymentsEscrow', (m) => {
 
 export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => {
   const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy } = m.useModule(MigrateHorizonProxiesModule)
+  const { Controller } = m.useModule(MigratePeripheryModule)
 
   const withdrawEscrowThawingPeriod = m.getParameter('withdrawEscrowThawingPeriod')
-  const controllerAddress = m.getParameter('controllerAddress')
-
-  const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
 
   // Deploy PaymentsEscrow implementation
   const PaymentsEscrowImplementation = deployImplementation(m, {
     name: 'PaymentsEscrow',
     artifact: PaymentsEscrowArtifact,
     constructorArgs: [Controller, withdrawEscrowThawingPeriod],
-  }, { after: [MigrateHorizonProxiesModule, MigratePeripheryModule] })
+  }, { after: [MigrateHorizonProxiesModule] })
 
   // Upgrade proxy to implementation contract
   const PaymentsEscrow = upgradeTransparentUpgradeableProxyNoLoad(m,

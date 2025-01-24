@@ -47,19 +47,21 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      chainId: 31337,
       accounts: {
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },
     },
-    fork: {
+    localhost: {
+      chainId: 31337,
       url: 'http://localhost:8545',
       accounts: getNetworkAccounts(),
     },
     arbitrumSepolia: {
+      chainId: 421614,
       secureAccounts: {
         enabled: true,
       },
-      chainId: 421614,
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
     },
     arbitrumVirtualTestnet: {

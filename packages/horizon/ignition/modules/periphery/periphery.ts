@@ -2,25 +2,18 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
-import BridgeEscrowModule from './BridgeEscrow'
-import ControllerModule from './Controller'
-import CurationModule from './Curation'
-import EpochManagerModule from './EpochManager'
-import GraphProxyAdminModule from './GraphProxyAdmin'
-import GraphTokenGatewayModule from './GraphTokenGateway'
-import GraphTokenModule from './GraphToken'
-import RewardsManagerModule from './RewardsManager'
-
-import { MigrateCurationModule } from './Curation'
-import { MigrateRewardsManagerModule } from './RewardsManager'
-
-import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
+import ControllerModule, { MigrateControllerModule } from './Controller'
+import CurationModule, { MigrateCurationModule } from './Curation'
+import EpochManagerModule, { MigrateEpochManagerModule } from './EpochManager'
+import GraphProxyAdminModule, { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
+import GraphTokenGatewayModule, { MigrateGraphTokenGatewayModule } from './GraphTokenGateway'
+import GraphTokenModule, { MigrateGraphTokenModule } from './GraphToken'
+import RewardsManagerModule, { MigrateRewardsManagerModule } from './RewardsManager'
 
 export default buildModule('GraphHorizon_Periphery', (m) => {
   const { Controller } = m.useModule(ControllerModule)
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
 
-  const { BridgeEscrow } = m.useModule(BridgeEscrowModule)
   const { EpochManager } = m.useModule(EpochManagerModule)
   const { L2Curation } = m.useModule(CurationModule)
   const { RewardsManager } = m.useModule(RewardsManagerModule)
@@ -35,7 +28,6 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Curation')), L2Curation], { id: 'setContractProxy_L2Curation' })
 
   return {
-    BridgeEscrow,
     Controller,
     EpochManager,
     L2Curation,
@@ -49,20 +41,21 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
 export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) => {
   const { L2Curation } = m.useModule(MigrateCurationModule)
   const { RewardsManager } = m.useModule(MigrateRewardsManagerModule)
+  const { Controller } = m.useModule(MigrateControllerModule)
+  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
+  const { EpochManager } = m.useModule(MigrateEpochManagerModule)
+  const { GraphToken } = m.useModule(MigrateGraphTokenModule)
+  const { GraphTokenGateway } = m.useModule(MigrateGraphTokenGatewayModule)
 
-  const governor = m.getAccount(1)
-  const controllerAddress = m.getParameter('controllerAddress')
-  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
-
-  // GraphProxyAdmin was not registered in the controller in the original protocol
-  const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
-  m.call(Controller, 'setContractProxy',
-    [ethers.keccak256(ethers.toUtf8Bytes('GraphProxyAdmin')), graphProxyAdminAddress],
-    { id: 'setContractProxy_GraphProxyAdmin', from: governor },
-  )
+  // Load these contracts so they are available in the address book
 
   return {
+    Controller,
+    EpochManager,
     L2Curation,
+    GraphProxyAdmin,
+    GraphToken,
+    GraphTokenGateway,
     RewardsManager,
   }
 })

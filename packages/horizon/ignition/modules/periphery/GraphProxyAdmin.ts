@@ -10,3 +10,11 @@ export default buildModule('GraphProxyAdmin', (m) => {
 
   return { GraphProxyAdmin }
 })
+
+export const MigrateGraphProxyAdminModule = buildModule('GraphProxyAdmin', (m) => {
+  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
+
+  const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, graphProxyAdminAddress)
+
+  return { GraphProxyAdmin }
+})

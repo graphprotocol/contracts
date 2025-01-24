@@ -2,8 +2,8 @@ import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-co
 import { deployWithGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'
 import { deployImplementation } from '../proxy/implementation'
 
+import GraphProxyAdminModule, { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
 import ControllerModule from './Controller'
-import GraphProxyAdminModule from './GraphProxyAdmin'
 
 import RewardsManagerArtifact from '@graphprotocol/contracts/build/contracts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
 
@@ -29,10 +29,11 @@ export default buildModule('RewardsManager', (m) => {
 
 // RewardsManager contract is owned by the governor
 export const MigrateRewardsManagerModule = buildModule('RewardsManager', (m: IgnitionModuleBuilder) => {
+  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
+
   const governor = m.getAccount(1)
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
-  const rewardsManagerProxyAddress = m.getParameter('rewardsManagerProxyAddress')
-  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
+  const rewardsManagerAddress = m.getParameter('rewardsManagerAddress')
 
   const implementationMetadata = {
     name: 'RewardsManager',
@@ -40,7 +41,7 @@ export const MigrateRewardsManagerModule = buildModule('RewardsManager', (m: Ign
   }
   const implementation = deployImplementation(m, implementationMetadata)
 
-  const RewardsManager = upgradeGraphProxy(m, graphProxyAdminAddress, rewardsManagerProxyAddress, implementation, implementationMetadata, { from: governor })
+  const RewardsManager = upgradeGraphProxy(m, GraphProxyAdmin, rewardsManagerAddress, implementation, implementationMetadata, { from: governor })
   m.call(RewardsManager, 'setSubgraphService', [subgraphServiceAddress], { from: governor })
 
   return { RewardsManager }
