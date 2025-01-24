@@ -3,7 +3,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import GraphHorizonCoreModule from './core/core'
 import GraphPeripheryModule from './periphery/periphery'
 
-export default buildModule('GraphHorizon', (m) => {
+export default buildModule('GraphHorizon_Deploy', (m) => {
   const {
     BridgeEscrow,
     Controller,

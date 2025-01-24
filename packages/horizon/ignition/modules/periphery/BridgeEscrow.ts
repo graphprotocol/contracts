@@ -6,6 +6,7 @@ import ControllerModule from '../periphery/Controller'
 import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
 
 import BridgeEscrowArtifact from '@graphprotocol/contracts/build/contracts/contracts/gateway/BridgeEscrow.sol/BridgeEscrow.json'
+
 export default buildModule('BridgeEscrow', (m) => {
   const { Controller } = m.useModule(ControllerModule)
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)

@@ -53,9 +53,9 @@ export function upgradeTransparentUpgradeableProxyNoLoad(
   metadata: ImplementationMetadata,
   options?: ContractOptions,
 ) {
-  m.call(proxyAdmin, 'upgradeAndCall',
+  const upgradeCall = m.call(proxyAdmin, 'upgradeAndCall',
     [proxy, implementation, m.encodeFunctionCall(implementation, 'initialize', metadata.initArgs)],
     options,
   )
-  return loadProxyWithABI(m, proxy, metadata, options)
+  return loadProxyWithABI(m, proxy, metadata, { ...options, after: [upgradeCall] })
 }

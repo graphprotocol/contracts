@@ -1,12 +1,14 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { deployImplementation } from '../proxy/implementation'
 import { upgradeGraphProxyNoLoad } from '../proxy/GraphProxy'
-import { ethers } from 'ethers'
 
-import GraphPeripheryModule from '../periphery/periphery'
-import HorizonProxiesModule from './HorizonProxies'
+import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
+import HorizonProxiesModule, { MigrateHorizonProxiesModule } from './HorizonProxies'
 
+import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 import ExponentialRebatesArtifact from '../../../build/contracts/contracts/staking/libraries/ExponentialRebates.sol/ExponentialRebates.json'
+import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
+import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 import HorizonStakingArtifact from '../../../build/contracts/contracts/staking/HorizonStaking.sol/HorizonStaking.json'
 import HorizonStakingExtensionArtifact from '../../../build/contracts/contracts/staking/HorizonStakingExtension.sol/HorizonStakingExtension.json'
 
@@ -15,6 +17,7 @@ export default buildModule('HorizonStaking', (m) => {
   const { HorizonStakingProxy } = m.useModule(HorizonProxiesModule)
 
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
+  const maxThawingPeriod = m.getParameter('maxThawingPeriod')
 
   // Deploy HorizonStakingExtension - requires periphery and proxies to be registered in the controller
   const ExponentialRebates = m.library('ExponentialRebates', ExponentialRebatesArtifact)
@@ -39,40 +42,48 @@ export default buildModule('HorizonStaking', (m) => {
     name: 'HorizonStaking',
     artifact: HorizonStakingArtifact,
   })
+  m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod])
 
   return { HorizonStaking }
 })
 
-// export const UpgradeHorizonStakingModule = buildModule('HorizonStaking', (m) => {
-//   const { Controller, GraphProxyAdmin } = m.useModule(GraphPeripheryModule)
-//   const { HorizonStakingProxy } = m.useModule(HorizonProxiesModule)
-//   const { HorizonStakingExtension } = m.useModule(HorizonStakingExtensionModule)
+// HorizonStaking contract is owned by the governor
+export const MigrateHorizonStakingModule = buildModule('HorizonStaking', (m) => {
+  const governor = m.getAccount(1)
+  const maxThawingPeriod = m.getParameter('maxThawingPeriod')
+  const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
+  const horizonStakingProxyAddress = m.getParameter('horizonStakingProxyAddress')
+  const controllerAddress = m.getParameter('controllerAddress')
+  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
 
-//   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
+  const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
+  const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, graphProxyAdminAddress)
+  const HorizonStakingProxy = m.contractAt('HorizonStakingProxy', GraphProxyArtifact, horizonStakingProxyAddress)
 
-//   // Deploy HorizonStaking implementation
-//   const HorizonStakingImplementation = m.contract('HorizonStaking',
-//     HorizonStakingArtifact,
-//     [
-//       Controller,
-//       HorizonStakingExtension,
-//       subgraphServiceAddress,
-//     ],
-//     {
-//       after: [GraphPeripheryModule, HorizonProxiesModule],
-//     },
-//   )
+  // Deploy HorizonStakingExtension - requires periphery and proxies to be registered in the controller
+  const ExponentialRebates = m.library('ExponentialRebates', ExponentialRebatesArtifact)
+  const HorizonStakingExtension = m.contract('HorizonStakingExtension',
+    HorizonStakingExtensionArtifact,
+    [Controller, subgraphServiceAddress], {
+      libraries: {
+        ExponentialRebates: ExponentialRebates,
+      },
+      after: [MigrateHorizonProxiesModule, MigratePeripheryModule],
+    })
 
-//   // Upgrade proxy to implementation contract
-//   const isMigrate = m.getParameter('isMigrate')
-//   const governor = m.getAccount(1)
-//   const options = isMigrate ? { from: governor } : {}
-//   const upgradeCall = m.call(GraphProxyAdmin, 'upgrade', [HorizonStakingProxy, HorizonStakingImplementation], options)
-//   const acceptCall = m.call(GraphProxyAdmin, 'acceptProxy', [HorizonStakingImplementation, HorizonStakingProxy], { ...options, after: [upgradeCall] })
+  // Deploy HorizonStaking implementation
+  const HorizonStakingImplementation = deployImplementation(m, {
+    name: 'HorizonStaking',
+    artifact: HorizonStakingArtifact,
+    constructorArgs: [Controller, HorizonStakingExtension, subgraphServiceAddress],
+  })
 
-//   // Load contract with implementation ABI
-//   const HorizonStaking = m.contractAt('HorizonStaking', HorizonStakingArtifact, HorizonStakingProxy, { after: [acceptCall], id: 'HorizonStaking_Instance' })
-//   m.call(HorizonStaking, 'setMaxThawingPeriod', [m.getParameter('maxThawingPeriod')], options)
+  // Upgrade proxy to implementation contract
+  const HorizonStaking = upgradeGraphProxyNoLoad(m, GraphProxyAdmin, HorizonStakingProxy, HorizonStakingImplementation, {
+    name: 'HorizonStaking',
+    artifact: HorizonStakingArtifact,
+  }, { from: governor })
+  m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod], { from: governor })
 
-//   return { HorizonStakingProxy, HorizonStakingImplementation, HorizonStaking }
-// })
+  return { HorizonStaking }
+})

@@ -5,6 +5,7 @@ import { ethers } from 'ethers'
 
 import GraphPeripheryModule from '../periphery/periphery'
 
+import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
 import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
 
@@ -20,36 +21,54 @@ export default buildModule('HorizonProxies', (m) => {
     { id: 'setContractProxy_HorizonStaking' },
   )
 
-  // Deploy GraphPayments proxy
+  // Deploy and register GraphPayments proxy
   const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployTransparentUpgradeableProxy(m, {
     name: 'GraphPayments',
     artifact: GraphPaymentsArtifact,
   })
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy], { id: 'setContractProxy_GraphPayments' })
+  m.call(Controller, 'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy],
+    { id: 'setContractProxy_GraphPayments' },
+  )
 
-  // Deploy PaymentsEscrow proxy
+  // Deploy and register PaymentsEscrow proxy
   const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployTransparentUpgradeableProxy(m, {
     name: 'PaymentsEscrow',
     artifact: PaymentsEscrowArtifact,
   })
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy], { id: 'setContractProxy_PaymentsEscrow' })
+  m.call(Controller, 'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy],
+    { id: 'setContractProxy_PaymentsEscrow' },
+  )
 
   return { HorizonStakingProxy, GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
 })
 
-// export const UpgradeHorizonProxiesModule = buildModule('HorizonProxies', (m) => {
-//   const governor = m.getAccount(1)
+export const MigrateHorizonProxiesModule = buildModule('HorizonProxies', (m) => {
+  const governor = m.getAccount(1)
+  const controllerAddress = m.getParameter('controllerAddress')
 
-//   const controllerAddress = m.getParameter('controllerAddress')
+  const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
 
-//   // Deploy proxies for payments contracts using OZ TransparentUpgradeableProxy
-//   const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployWithOZProxy(m, 'GraphPayments')
-//   const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployWithOZProxy(m, 'PaymentsEscrow')
+  // Deploy and register GraphPayments proxy
+  const { Proxy: GraphPaymentsProxy, ProxyAdmin: GraphPaymentsProxyAdmin } = deployTransparentUpgradeableProxy(m, {
+    name: 'GraphPayments',
+    artifact: GraphPaymentsArtifact,
+  })
+  m.call(Controller, 'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy],
+    { id: 'setContractProxy_GraphPayments', from: governor },
+  )
 
-//   // Register the proxies in the controller
-//   const Controller = m.contractAt('Controller', controllerAddress, { id: 'Controller' })
-//   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy], { id: 'setContractProxy_GraphPayments', from: governor })
-//   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy], { id: 'setContractProxy_PaymentsEscrow', from: governor })
+  // Deploy and registerPaymentsEscrow proxy
+  const { Proxy: PaymentsEscrowProxy, ProxyAdmin: PaymentsEscrowProxyAdmin } = deployTransparentUpgradeableProxy(m, {
+    name: 'PaymentsEscrow',
+    artifact: PaymentsEscrowArtifact,
+  })
+  m.call(Controller, 'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy],
+    { id: 'setContractProxy_PaymentsEscrow', from: governor },
+  )
 
-//   return { GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
-// })
+  return { GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
+})

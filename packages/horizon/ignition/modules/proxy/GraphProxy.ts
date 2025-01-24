@@ -41,9 +41,9 @@ export function upgradeGraphProxy(
   const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, proxyAdmin)
 
   const upgradeCall = m.call(GraphProxyAdmin, 'upgrade', [GraphProxy, implementation], options)
-  m.call(GraphProxyAdmin, 'acceptProxy', [implementation, GraphProxy], { ...options, after: [upgradeCall] })
+  const acceptCall = m.call(GraphProxyAdmin, 'acceptProxy', [implementation, GraphProxy], { ...options, after: [upgradeCall] })
 
-  return loadProxyWithABI(m, GraphProxy, metadata, options)
+  return loadProxyWithABI(m, GraphProxy, metadata, { ...options, after: [acceptCall] })
 }
 
 // Same as upgradeGraphProxy, but without loading the proxy contracts
@@ -56,9 +56,9 @@ export function upgradeGraphProxyNoLoad(
   options?: ContractOptions,
 ) {
   const upgradeCall = m.call(proxyAdmin, 'upgrade', [proxy, implementation], options)
-  m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], { ...options, after: [upgradeCall] })
+  const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], { ...options, after: [upgradeCall] })
 
-  return loadProxyWithABI(m, proxy, metadata, options)
+  return loadProxyWithABI(m, proxy, metadata, { ...options, after: [acceptCall] })
 }
 
 export function deployWithGraphProxy(
