@@ -43,35 +43,26 @@ const config: HardhatUserConfig = {
     sources: './contracts',
   },
   secureAccounts: {
-    enabled: true,
+    enabled: false,
   },
   networks: {
     hardhat: {
-      secureAccounts: {
-        enabled: false,
-      },
       accounts: {
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },
-      forking: {
-        url: 'https://graph:zowR6sJNdW3yNa@rpc.sepolia.arbitrum.thegraph.com/',
-      },
     },
     fork: {
-      secureAccounts: {
-        enabled: false,
-      },
       url: 'http://localhost:8545',
       accounts: getNetworkAccounts(),
     },
     arbitrumSepolia: {
+      secureAccounts: {
+        enabled: true,
+      },
       chainId: 421614,
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
     },
     arbitrumVirtualTestnet: {
-      secureAccounts: {
-        enabled: false,
-      },
       chainId: 421615,
       url: ARBITRUM_VIRTUAL_TESTNET_URL,
       accounts: getNetworkAccounts(),
