@@ -13,8 +13,18 @@
   ],
   "author": "Tomás Migone <tomas@edgeandnode.com>",
   "license": "MIT",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "./dist/src/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./sdk": {
+      "types": "./src/sdk/index.ts",
+      "default": "./src/sdk/index.ts"
+    }
+  },
+  "types": "./dist/src/index.d.ts",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
@@ -33,7 +43,8 @@
     "@graphprotocol/horizon": "workspace:^0.0.1",
     "@graphprotocol/subgraph-service": "workspace:^0.0.1",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
-    "debug": "^4.3.7"
+    "debug": "^4.3.7",
+    "json5": "^2.2.3"
   },
   "devDependencies": {
     "@types/chai": "^4.0.0",

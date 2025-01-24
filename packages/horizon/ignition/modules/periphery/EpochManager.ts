@@ -2,26 +2,29 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
 import ControllerModule from './Controller'
+import GraphProxyAdminModule from './GraphProxyAdmin'
+
 import EpochManagerArtifact from '@graphprotocol/contracts/build/contracts/contracts/epochs/EpochManager.sol/EpochManager.json'
 
 export default buildModule('EpochManager', (m) => {
-  const isMigrate = m.getParameter('isMigrate', false)
+  const { Controller } = m.useModule(ControllerModule)
+  const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
 
-  let EpochManager
-  if (isMigrate) {
-    const epochManagerProxyAddress = m.getParameter('epochManagerProxyAddress')
-    EpochManager = m.contractAt('EpochManager', EpochManagerArtifact, epochManagerProxyAddress)
-  } else {
-    const { Controller } = m.useModule(ControllerModule)
+  const epochLength = m.getParameter('epochLength')
 
-    const epochLength = m.getParameter('epochLength')
+  const EpochManager = deployWithGraphProxy(m, GraphProxyAdmin, {
+    name: 'EpochManager',
+    artifact: EpochManagerArtifact,
+    initArgs: [Controller, epochLength],
+  })
 
-    EpochManager = deployWithGraphProxy(m, {
-      name: 'EpochManager',
-      artifact: EpochManagerArtifact,
-      args: [Controller, epochLength],
-    }).instance
-  }
+  return { EpochManager }
+})
+
+export const MigrateEpochManagerModule = buildModule('EpochManager', (m) => {
+  const epochManagerAddress = m.getParameter('epochManagerAddress')
+
+  const EpochManager = m.contractAt('EpochManager', EpochManagerArtifact, epochManagerAddress)
 
   return { EpochManager }
 })
