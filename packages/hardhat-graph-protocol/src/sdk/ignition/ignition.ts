@@ -6,8 +6,8 @@ import path from 'path'
 
 export function loadConfig(configPath: string, prefix: string, networkName: string): any {
   const configFileCandidates = [
-    path.join(require.main?.path ?? '', configPath, `${prefix}.${networkName}.json5`),
-    path.join(require.main?.path ?? '', configPath, `${prefix}.default.json5`),
+    path.resolve(process.cwd(), configPath, `${prefix}.${networkName}.json5`),
+    path.resolve(process.cwd(), configPath, `${prefix}.default.json5`),
   ]
 
   const configFile = configFileCandidates.find(file => fs.existsSync(file))

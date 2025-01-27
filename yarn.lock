@@ -5380,7 +5380,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nomicfoundation/hardhat-verify@npm:^2.0.8":
+"@nomicfoundation/hardhat-verify@npm:^2.0.12, @nomicfoundation/hardhat-verify@npm:^2.0.8":
   version: 2.0.12
   resolution: "@nomicfoundation/hardhat-verify@npm:2.0.12"
   dependencies:
@@ -15716,6 +15716,7 @@ __metadata:
     "@graphprotocol/horizon": "workspace:^0.0.1"
     "@graphprotocol/subgraph-service": "workspace:^0.0.1"
     "@nomicfoundation/hardhat-ethers": "npm:^3.0.8"
+    "@nomicfoundation/hardhat-verify": "npm:^2.0.12"
     "@types/chai": "npm:^4.0.0"
     "@types/debug": "npm:^4.1.12"
     "@types/mocha": "npm:^10.0.9"
@@ -15725,6 +15726,7 @@ __metadata:
     eslint-graph-config: "workspace:^0.0.1"
     ethers: "npm:^6.13.4"
     hardhat: "npm:^2.22.16"
+    hardhat-secure-accounts: "npm:^1.0.4"
     json5: "npm:^2.2.3"
     mocha: "npm:^10.8.2"
     ts-node: "npm:^8.0.0"

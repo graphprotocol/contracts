@@ -7,13 +7,13 @@ import { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
 import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 
 export default buildModule('Controller', (m) => {
-  const governor = m.getParameter('governor')
+  const governor = m.getAccount(1)
   const pauseGuardian = m.getParameter('pauseGuardian')
 
   const Controller = m.contract('Controller', ControllerArtifact)
   m.call(Controller, 'setPauseGuardian', [pauseGuardian])
-  m.call(Controller, 'transferOwnership', [governor])
   m.call(Controller, 'setPaused', [false])
+  m.call(Controller, 'transferOwnership', [governor])
 
   return { Controller }
 })
