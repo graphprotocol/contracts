@@ -7,7 +7,7 @@ import CurationArtifact from '@graphprotocol/contracts/build/contracts/contracts
 import GraphCurationTokenArtifact from '@graphprotocol/contracts/build/contracts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json'
 import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
-export default buildModule('Curation', (m) => {
+export default buildModule('L2Curation', (m) => {
   const isMigrate = m.getParameter('isMigrate')
 
   if (isMigrate) {
@@ -25,7 +25,7 @@ function upgradeCuration(m: IgnitionModuleBuilder) {
 
   const GraphProxy = m.contractAt('GraphProxy', GraphProxyArtifact, graphCurationProxyAddress)
   const { instance: Curation, implementation: CurationImplementation } = upgradeWithGraphProxy(m, {
-    name: 'Curation',
+    name: 'L2Curation',
     artifact: CurationArtifact,
     proxyContract: GraphProxy,
   }, { from: governor })
@@ -43,7 +43,7 @@ function deployCuration(m: IgnitionModuleBuilder) {
   const GraphCurationToken = m.contract('GraphCurationToken', GraphCurationTokenArtifact, [])
 
   const { instance: Curation, implementation: CurationImplementation } = deployWithGraphProxy(m, {
-    name: 'Curation',
+    name: 'L2Curation',
     artifact: CurationArtifact,
     args: [Controller, GraphCurationToken, curationTaxPercentage, minimumCurationDeposit],
   })

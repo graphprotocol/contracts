@@ -6,14 +6,18 @@ import HorizonProxiesModule from './HorizonProxies'
 import TAPCollectorArtifact from '../../../build/contracts/contracts/payments/collectors/TAPCollector.sol/TAPCollector.json'
 
 export default buildModule('TAPCollector', (m) => {
-  const { Controller, PeripheryRegistered } = m.useModule(GraphPeripheryModule)
-  const { HorizonRegistered } = m.useModule(HorizonProxiesModule)
+  const { Controller } = m.useModule(GraphPeripheryModule)
 
   const name = m.getParameter('eip712Name')
   const version = m.getParameter('eip712Version')
   const revokeSignerThawingPeriod = m.getParameter('revokeSignerThawingPeriod')
 
-  const TAPCollector = m.contract('TAPCollector', TAPCollectorArtifact, [name, version, Controller, revokeSignerThawingPeriod], { after: [PeripheryRegistered, HorizonRegistered] })
+  const TAPCollector = m.contract(
+    'TAPCollector',
+    TAPCollectorArtifact,
+    [name, version, Controller, revokeSignerThawingPeriod],
+    { after: [GraphPeripheryModule, HorizonProxiesModule] },
+  )
 
   return { TAPCollector }
 })

@@ -5,7 +5,7 @@ import { deployWithGraphProxy } from '../proxy/GraphProxy'
 import ControllerModule from '../periphery/Controller'
 import GraphTokenGatewayArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
 
-export default buildModule('GraphTokenGateway', (m) => {
+export default buildModule('L2GraphTokenGateway', (m) => {
   const isMigrate = m.getParameter('isMigrate', false)
 
   let GraphTokenGateway
@@ -18,7 +18,7 @@ export default buildModule('GraphTokenGateway', (m) => {
     const pauseGuardian = m.getParameter('pauseGuardian')
 
     GraphTokenGateway = deployWithGraphProxy(m, {
-      name: 'GraphTokenGateway',
+      name: 'L2GraphTokenGateway',
       artifact: GraphTokenGatewayArtifact,
       args: [Controller],
     }).instance
