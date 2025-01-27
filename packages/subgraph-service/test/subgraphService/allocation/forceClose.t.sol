@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
@@ -89,6 +90,15 @@ contract SubgraphServiceAllocationForceCloseTest is SubgraphServiceTest {
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceAllocationIsAltruistic.selector, allocationID)
         );
+        subgraphService.closeStaleAllocation(allocationID);
+    }
+
+    function test_SubgraphService_Allocation_ForceClose_RevertIf_Paused() public useIndexer useAllocation(1000 ether) {
+        resetPrank(users.pauseGuardian);
+        subgraphService.pause();
+
+        resetPrank(permissionlessBob);
+        vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
         subgraphService.closeStaleAllocation(allocationID);
     }
 }

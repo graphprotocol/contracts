@@ -23,15 +23,19 @@ async function main() {
   const SubgraphServiceConfig = removeNFromBigInts(require('../ignition/configs/subgraph-service.hardhat.json5'))
 
   // Deploy proxies
-  const { DisputeManagerProxy, DisputeManagerProxyAdmin, SubgraphServiceProxy, SubgraphServiceProxyAdmin } = await ignition.deploy(SubgraphServiceProxiesModule)
+  const { DisputeManagerProxy, DisputeManagerProxyAdmin, SubgraphServiceProxy, SubgraphServiceProxyAdmin } = await ignition.deploy(SubgraphServiceProxiesModule, {
+    displayUi: true,
+  })
 
   // Deploy Horizon
   const { Controller, TAPCollector, Curation } = await ignition.deploy(HorizonModule, {
+    displayUi: true,
     parameters: patchSubgraphServiceAddress(HorizonConfig, SubgraphServiceProxy.target as string),
   })
 
   // Deploy DisputeManager implementation
   await ignition.deploy(DisputeManagerModule, {
+    displayUi: true,
     parameters: deepMerge(SubgraphServiceConfig, {
       DisputeManager: {
         controllerAddress: Controller.target as string,
@@ -43,6 +47,7 @@ async function main() {
 
   // Deploy SubgraphService implementation
   await ignition.deploy(SubgraphServiceModule, {
+    displayUi: true,
     parameters: deepMerge(SubgraphServiceConfig, {
       SubgraphService: {
         controllerAddress: Controller.target as string,

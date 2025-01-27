@@ -59,4 +59,7 @@ tx-builder-*.json
 
 # Hardhat Ignition
 **/chain-31337/
+**/chain-1377/
+**/horizon-localhost/
+**/horizon-hardhat/
 !**/ignition/**/artifacts/

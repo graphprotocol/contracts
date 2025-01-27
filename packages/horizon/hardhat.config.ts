@@ -1,11 +1,28 @@
+import { vars } from 'hardhat/config'
+
+import type { HardhatUserConfig } from 'hardhat/config'
+
+// Hardhat plugins
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'
+import '@tenderly/hardhat-tenderly'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
 
-import type { HardhatUserConfig } from 'hardhat/config'
+// Environment variables
+const ETHERSCAN_API_KEY = vars.get('ETHERSCAN_API_KEY', '')
+const ARBITRUM_VIRTUAL_TESTNET_URL = vars.get('ARBITRUM_VIRTUAL_TESTNET_URL', '')
+const DEPLOYER_PRIVATE_KEY = vars.get('DEPLOYER_PRIVATE_KEY')
+const GOVERNOR_PRIVATE_KEY = vars.get('GOVERNOR_PRIVATE_KEY')
+
+const getNetworkAccounts = () => {
+  const accounts: string[] = []
+  if (vars.has('DEPLOYER_PRIVATE_KEY')) accounts.push(DEPLOYER_PRIVATE_KEY)
+  if (vars.has('GOVERNOR_PRIVATE_KEY')) accounts.push(GOVERNOR_PRIVATE_KEY)
+  return accounts.length > 0 ? accounts : undefined
+}
 
 if (process.env.BUILD_RUN !== 'true') {
   require('hardhat-graph-protocol')
@@ -17,7 +34,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        runs: 1,
       },
     },
   },
@@ -26,21 +43,36 @@ const config: HardhatUserConfig = {
     sources: './contracts',
   },
   secureAccounts: {
-    enabled: true,
+    enabled: false,
   },
   networks: {
     hardhat: {
-      secureAccounts: {
-        enabled: false,
-      },
+      chainId: 31337,
       accounts: {
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },
     },
+    localhost: {
+      chainId: 31337,
+      url: 'http://localhost:8545',
+      accounts: getNetworkAccounts(),
+    },
     arbitrumSepolia: {
       chainId: 421614,
+      secureAccounts: {
+        enabled: true,
+      },
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
     },
+    arbitrumVirtualTestnet: {
+      chainId: 421615,
+      url: ARBITRUM_VIRTUAL_TESTNET_URL,
+      accounts: getNetworkAccounts(),
+    },
+  },
+  tenderly: {
+    project: 'graph-network',
+    username: 'graphprotocol',
   },
   graph: {
     deployments: {
@@ -51,7 +83,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      arbitrumSepolia: process.env.ETHERSCAN_API_KEY ?? '',
+      arbitrumSepolia: ETHERSCAN_API_KEY,
     },
     customChains: [
       {

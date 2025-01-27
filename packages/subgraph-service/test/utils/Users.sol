@@ -12,4 +12,5 @@ struct Users {
     address arbitrator;
     address fisherman;
     address rewardsDestination;
+    address pauseGuardian;
 }

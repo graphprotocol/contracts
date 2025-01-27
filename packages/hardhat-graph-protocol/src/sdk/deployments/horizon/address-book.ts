@@ -3,6 +3,9 @@ import { logDebug, logError } from '../../../logger'
 import { Provider, Signer } from 'ethers'
 import { AddressBook } from '../../address-book'
 import { assertObject } from '../../utils/assertion'
+import { Contract } from 'ethers'
+import { loadArtifact } from '../../lib/artifact'
+import { mergeABIs } from '../../utils/abi'
 
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 
@@ -23,6 +26,20 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
       GraphHorizonArtifactsMap,
       signerOrProvider,
     )
+
+    // Handle HorizonStaking specially to include extension functions
+    if (contracts.HorizonStaking) {
+      const stakingOverride = new Contract(
+        this.getEntry('HorizonStaking').address,
+        mergeABIs(
+          loadArtifact('HorizonStaking', GraphHorizonArtifactsMap.HorizonStaking).abi,
+          loadArtifact('HorizonStakingExtension', GraphHorizonArtifactsMap.HorizonStaking).abi,
+        ),
+        signerOrProvider,
+      )
+      contracts.HorizonStaking = stakingOverride
+    }
+
     this._assertGraphHorizonContracts(contracts)
 
     // Aliases

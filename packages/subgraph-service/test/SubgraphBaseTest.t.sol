@@ -75,7 +75,8 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             delegator: createUser("delegator"),
             arbitrator: createUser("arbitrator"),
             fisherman: createUser("fisherman"),
-            rewardsDestination: createUser("rewardsDestination")
+            rewardsDestination: createUser("rewardsDestination"),
+            pauseGuardian: createUser("pauseGuardian")
         });
 
         deployProtocolContracts();
@@ -191,6 +192,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         epochManager.setEpochLength(EPOCH_LENGTH);
         subgraphService.setMaxPOIStaleness(maxPOIStaleness);
         subgraphService.setCurationCut(curationCut);
+        subgraphService.setPauseGuardian(users.pauseGuardian, true);
     }
 
     function unpauseProtocol() private {
