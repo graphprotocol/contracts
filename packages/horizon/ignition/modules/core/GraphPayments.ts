@@ -27,5 +27,5 @@ export default buildModule('GraphPayments', (m) => {
   // Load contract with implementation ABI
   const GraphPayments = m.contractAt('GraphPayments', GraphPaymentsArtifact, GraphPaymentsProxy, { id: 'GraphPayments_Instance' })
 
-  return { GraphPayments }
+  return { GraphPayments, GraphPaymentsImplementation }
 })

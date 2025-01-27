@@ -6,17 +6,24 @@ import ControllerModule from '../periphery/Controller'
 import GraphTokenGatewayArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
 
 export default buildModule('GraphTokenGateway', (m) => {
-  const { Controller } = m.useModule(ControllerModule)
+  const isMigrate = m.getParameter('isMigrate', false)
 
-  const pauseGuardian = m.getParameter('pauseGuardian')
+  let GraphTokenGateway
+  if (isMigrate) {
+    const graphTokenGatewayProxyAddress = m.getParameter('graphTokenGatewayProxyAddress')
+    GraphTokenGateway = m.contractAt('GraphTokenGateway', GraphTokenGatewayArtifact, graphTokenGatewayProxyAddress)
+  } else {
+    const { Controller } = m.useModule(ControllerModule)
 
-  const { instance: GraphTokenGateway } = deployWithGraphProxy(m, {
-    name: 'GraphTokenGateway',
-    artifact: GraphTokenGatewayArtifact,
-    args: [Controller],
-  })
+    const pauseGuardian = m.getParameter('pauseGuardian')
 
-  m.call(GraphTokenGateway, 'setPauseGuardian', [pauseGuardian])
+    GraphTokenGateway = deployWithGraphProxy(m, {
+      name: 'GraphTokenGateway',
+      artifact: GraphTokenGatewayArtifact,
+      args: [Controller],
+    }).instance
+    m.call(GraphTokenGateway, 'setPauseGuardian', [pauseGuardian])
+  }
 
   return { GraphTokenGateway }
 })
