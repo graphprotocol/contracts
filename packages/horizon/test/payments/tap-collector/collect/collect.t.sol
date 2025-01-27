@@ -16,11 +16,12 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     function _getQueryFeeEncodedData(
         uint256 _signerPrivateKey,
         address _payer,
-        address _indexer,
         address _collector,
+        address _indexer,
+        address _dataService,
         uint128 _tokens
     ) private view returns (bytes memory) {
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(_payer, _indexer, _collector, _tokens);
+        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(_payer, _collector, _indexer, _dataService, _tokens);
         bytes32 messageHash = tapCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -30,14 +31,16 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
     function _getRAV(
         address _payer,
-        address _indexer,
         address _collector,
+        address _indexer,
+        address _dataService,
         uint128 _tokens
     ) private pure returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
                 payer: _payer,
-                dataService: _collector,
+                collector: _collector,
+                dataService: _dataService,
                 serviceProvider: _indexer,
                 timestampNs: 0,
                 valueAggregate: _tokens,
@@ -59,6 +62,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -84,6 +88,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
             bytes memory data = _getQueryFeeEncodedData(
                 signerPrivateKey,
                 users.gateway,
+                address(tapCollector),
                 users.indexer,
                 users.verifier,
                 uint128(payed + tokensPerStep)
@@ -91,6 +96,27 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
             _collect(IGraphPayments.PaymentTypes.QueryFee, data);
             payed += tokensPerStep;
         }
+    }
+
+    function testTAPCollector_Collect_RevertWhen_OtherCollector() public useGateway useSigner {
+        address otherCollector = makeAddr("otherCollector");
+        bytes memory data = _getQueryFeeEncodedData(
+            signerPrivateKey,
+            users.gateway,
+            otherCollector,
+            users.indexer,
+            users.verifier,
+            uint128(0)
+        );
+
+        resetPrank(users.verifier);
+        bytes memory expectedError = abi.encodeWithSelector(
+            ITAPCollector.TAPCollectorInvalidCollector.selector,
+            address(tapCollector),
+            otherCollector
+        );
+        vm.expectRevert(expectedError);
+        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
     function testTAPCollector_Collect_RevertWhen_NoProvision(uint256 tokens) public useGateway useSigner {
@@ -101,6 +127,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -130,6 +157,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -164,6 +192,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             anotherSignerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             anotherSigner,
             uint128(tokens)
@@ -188,6 +217,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -215,6 +245,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             anotherPayer,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -239,6 +270,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -262,6 +294,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -286,6 +319,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -308,6 +342,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -333,6 +368,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -354,6 +390,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)
@@ -374,6 +411,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(
             signerPrivateKey,
             users.gateway,
+            address(tapCollector),
             users.indexer,
             users.verifier,
             uint128(tokens)

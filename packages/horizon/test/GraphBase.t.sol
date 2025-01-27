@@ -41,7 +41,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
     RewardsManagerMock public rewardsManager;
     CurationMock public curation;
     TAPCollector tapCollector;
-    
+
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
 
@@ -103,22 +103,34 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
 
         // GraphPayments predict address
-        bytes memory paymentsParameters = abi.encode(address(controller), protocolPaymentCut);
-        bytes memory paymentsBytecode = abi.encodePacked(
+        bytes memory paymentsImplementationParameters = abi.encode(address(controller), protocolPaymentCut);
+        bytes memory paymentsImplementationBytecode = abi.encodePacked(
             type(GraphPayments).creationCode,
-            paymentsParameters
+            paymentsImplementationParameters
         );
-        address predictedPaymentsAddress = _computeAddress(
+        address predictedPaymentsImplementationAddress = _computeAddress(
             "GraphPayments",
-            paymentsBytecode,
+            paymentsImplementationBytecode,
             users.deployer
         );
-        
-        // PaymentsEscrow
-        bytes memory escrowImplementationParameters = abi.encode(
-            address(controller),
-            withdrawEscrowThawingPeriod
+
+        bytes memory paymentsProxyParameters = abi.encode(
+            predictedPaymentsImplementationAddress,
+            users.governor,
+            abi.encodeCall(GraphPayments.initialize, ())
         );
+        bytes memory paymentsProxyBytecode = abi.encodePacked(
+            type(TransparentUpgradeableProxy).creationCode,
+            paymentsProxyParameters
+        );
+        address predictedPaymentsProxyAddress = _computeAddress(
+            "TransparentUpgradeableProxy",
+            paymentsProxyBytecode,
+            users.deployer
+        );
+
+        // PaymentsEscrow
+        bytes memory escrowImplementationParameters = abi.encode(address(controller), withdrawEscrowThawingPeriod);
         bytes memory escrowImplementationBytecode = abi.encodePacked(
             type(PaymentsEscrow).creationCode,
             escrowImplementationParameters
@@ -157,29 +169,32 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         resetPrank(users.governor);
         controller.setContractProxy(keccak256("GraphToken"), address(token));
         controller.setContractProxy(keccak256("PaymentsEscrow"), predictedEscrowProxyAddress);
-        controller.setContractProxy(keccak256("GraphPayments"), predictedPaymentsAddress);
+        controller.setContractProxy(keccak256("GraphPayments"), predictedPaymentsProxyAddress);
         controller.setContractProxy(keccak256("Staking"), address(stakingProxy));
         controller.setContractProxy(keccak256("EpochManager"), address(epochManager));
         controller.setContractProxy(keccak256("RewardsManager"), address(rewardsManager));
         controller.setContractProxy(keccak256("Curation"), address(curation));
         controller.setContractProxy(keccak256("GraphTokenGateway"), graphTokenGatewayAddress);
         controller.setContractProxy(keccak256("GraphProxyAdmin"), address(proxyAdmin));
-        
+
         resetPrank(users.deployer);
-        address paymentsAddress = _deployContract("GraphPayments", paymentsBytecode);
-        assertEq(paymentsAddress, predictedPaymentsAddress);
-        payments = GraphPayments(paymentsAddress);
+        {
+            address paymentsImplementationAddress = _deployContract("GraphPayments", paymentsImplementationBytecode);
+            address paymentsProxyAddress = _deployContract("TransparentUpgradeableProxy", paymentsProxyBytecode);
+            assertEq(paymentsImplementationAddress, predictedPaymentsImplementationAddress);
+            assertEq(paymentsProxyAddress, predictedPaymentsProxyAddress);
+            payments = GraphPayments(paymentsProxyAddress);
+        }
 
-        address escrowImplementationAddress = _deployContract("PaymentsEscrow", escrowImplementationBytecode);
-        address escrowProxyAddress = _deployContract("TransparentUpgradeableProxy", escrowProxyBytecode);
-        assertEq(escrowImplementationAddress, predictedEscrowImplementationAddress);
-        assertEq(escrowProxyAddress, predictedEscrowProxyAddress);
-        escrow = PaymentsEscrow(escrowProxyAddress);
+        {
+            address escrowImplementationAddress = _deployContract("PaymentsEscrow", escrowImplementationBytecode);
+            address escrowProxyAddress = _deployContract("TransparentUpgradeableProxy", escrowProxyBytecode);
+            assertEq(escrowImplementationAddress, predictedEscrowImplementationAddress);
+            assertEq(escrowProxyAddress, predictedEscrowProxyAddress);
+            escrow = PaymentsEscrow(escrowProxyAddress);
+        }
 
-        stakingExtension = new HorizonStakingExtension(
-            address(controller),
-            subgraphDataServiceLegacyAddress
-        );
+        stakingExtension = new HorizonStakingExtension(address(controller), subgraphDataServiceLegacyAddress);
         stakingBase = new HorizonStaking(
             address(controller),
             address(stakingExtension),
@@ -229,7 +244,11 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
      * PRIVATE
      */
 
-    function _computeAddress(string memory contractName, bytes memory bytecode, address deployer) private pure returns (address) {
+    function _computeAddress(
+        string memory contractName,
+        bytes memory bytecode,
+        address deployer
+    ) private pure returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(contractName, "Salt"));
         return Create2.computeAddress(salt, keccak256(bytecode), deployer);
     }
