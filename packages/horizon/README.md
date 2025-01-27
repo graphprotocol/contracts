@@ -6,12 +6,18 @@ Graph Horizon is the next evolution of the Graph Protocol.
 
 The following environment variables might be required:
 
-- `ETHERSCAN_API_KEY`: Etherscan API key
+| Variable | Description |
+|----------|-------------|
+| `ARBISCAN_API_KEY` | Arbiscan API key |
+| `DEPLOYER_PRIVATE_KEY` | Deployer private key - for testnet deployments |
+| `GOVERNOR_PRIVATE_KEY` | Governor private key - for testnet deployments |
+| `ARBITRUM_SEPOLIA_RPC` | Arbitrum Sepolia RPC URL |
+| `VIRTUAL_ARBITRUM_SEPOLIA_RPC` | Virtual Arbitrum Sepolia RPC URL |
 
 You can set them using Hardhat:
 
 ```bash
-npx hardhat vars set ETHERSCAN_API_KEY
+npx hardhat vars set <variable>
 ```
 
 ## Build

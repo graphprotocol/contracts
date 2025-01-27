@@ -4,7 +4,7 @@ import { IgnitionHelper } from 'hardhat-graph-protocol/sdk'
 import DeployModule from '../ignition/modules/deploy'
 
 async function main() {
-  const HorizonConfig = IgnitionHelper.loadConfig('../ignition/configs/', 'horizon', hre.network.name)
+  const HorizonConfig = IgnitionHelper.loadConfig('./ignition/configs/', 'horizon', hre.network.name)
 
   // Deploy Horizon
   const deployment = await ignition.deploy(DeployModule, {
