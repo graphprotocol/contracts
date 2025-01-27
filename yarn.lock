@@ -15725,6 +15725,7 @@ __metadata:
     eslint-graph-config: "workspace:^0.0.1"
     ethers: "npm:^6.13.4"
     hardhat: "npm:^2.22.16"
+    json5: "npm:^2.2.3"
     mocha: "npm:^10.8.2"
     ts-node: "npm:^8.0.0"
     typescript: "npm:^5.6.3"

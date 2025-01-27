@@ -1,4 +1,5 @@
 import { vars } from 'hardhat/config'
+
 import type { HardhatUserConfig } from 'hardhat/config'
 
 // Hardhat plugins
@@ -13,11 +14,13 @@ import 'hardhat-secure-accounts'
 // Environment variables
 const ETHERSCAN_API_KEY = vars.get('ETHERSCAN_API_KEY', '')
 const ARBITRUM_VIRTUAL_TESTNET_URL = vars.get('ARBITRUM_VIRTUAL_TESTNET_URL', '')
+const DEPLOYER_PRIVATE_KEY = vars.get('DEPLOYER_PRIVATE_KEY')
+const GOVERNOR_PRIVATE_KEY = vars.get('GOVERNOR_PRIVATE_KEY')
 
 const getNetworkAccounts = () => {
   const accounts: string[] = []
-  if (process.env.DEPLOYER_PRIVATE_KEY) accounts.push(process.env.DEPLOYER_PRIVATE_KEY)
-  if (process.env.GOVERNOR_PRIVATE_KEY) accounts.push(process.env.GOVERNOR_PRIVATE_KEY)
+  if (vars.has('DEPLOYER_PRIVATE_KEY')) accounts.push(DEPLOYER_PRIVATE_KEY)
+  if (vars.has('GOVERNOR_PRIVATE_KEY')) accounts.push(GOVERNOR_PRIVATE_KEY)
   return accounts.length > 0 ? accounts : undefined
 }
 
@@ -40,25 +43,28 @@ const config: HardhatUserConfig = {
     sources: './contracts',
   },
   secureAccounts: {
-    enabled: true,
+    enabled: false,
   },
   networks: {
     hardhat: {
-      secureAccounts: {
-        enabled: false,
-      },
+      chainId: 31337,
       accounts: {
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },
     },
+    localhost: {
+      chainId: 31337,
+      url: 'http://localhost:8545',
+      accounts: getNetworkAccounts(),
+    },
     arbitrumSepolia: {
       chainId: 421614,
+      secureAccounts: {
+        enabled: true,
+      },
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
     },
     arbitrumVirtualTestnet: {
-      secureAccounts: {
-        enabled: false,
-      },
       chainId: 421615,
       url: ARBITRUM_VIRTUAL_TESTNET_URL,
       accounts: getNetworkAccounts(),
