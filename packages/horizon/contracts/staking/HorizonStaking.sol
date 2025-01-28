@@ -866,7 +866,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         delegation.shares = delegation.shares + shares;
 
-        emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens);
+        emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens, shares);
     }
 
     /**
@@ -978,10 +978,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 _delegate(_newServiceProvider, _newVerifier, tokensThawed, _minSharesForNewProvider);
             } else {
                 _graphToken().pushTokens(msg.sender, tokensThawed);
+                emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
             }
         }
-
-        emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
     }
 
     /**

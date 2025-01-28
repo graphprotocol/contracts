@@ -169,12 +169,14 @@ interface IHorizonStakingMain {
      * @param verifier The address of the verifier
      * @param delegator The address of the delegator
      * @param tokens The amount of tokens delegated
+     * @param shares The amount of shares delegated
      */
     event TokensDelegated(
         address indexed serviceProvider,
         address indexed verifier,
         address indexed delegator,
-        uint256 tokens
+        uint256 tokens,
+        uint256 shares
     );
 
     /**
