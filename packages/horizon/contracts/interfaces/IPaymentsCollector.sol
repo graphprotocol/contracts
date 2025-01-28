@@ -23,7 +23,8 @@ interface IPaymentsCollector {
      * @param tokens The amount of tokens being collected
      */
     event PaymentCollected(
-        IGraphPayments.PaymentTypes indexed paymentType,
+        IGraphPayments.PaymentTypes paymentType,
+        address indexed paymentId,
         address indexed payer,
         address receiver,
         address indexed dataService,

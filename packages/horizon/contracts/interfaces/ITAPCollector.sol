@@ -25,6 +25,8 @@ interface ITAPCollector is IPaymentsCollector {
 
     /// @notice The Receipt Aggregate Voucher (RAV) struct
     struct ReceiptAggregateVoucher {
+        // The ID of the payment
+        address paymentId;
         // The address of the payer the RAV was issued by
         address payer;
         // The address of the data service the RAV was issued to
