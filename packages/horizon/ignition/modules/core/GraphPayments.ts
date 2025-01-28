@@ -40,6 +40,7 @@ export const MigrateGraphPaymentsModule = buildModule('GraphPayments', (m) => {
   const { GraphPaymentsProxyAdmin, GraphPaymentsProxy } = m.useModule(MigrateHorizonProxiesModule)
   const { Controller } = m.useModule(MigratePeripheryModule)
 
+  const governor = m.getAccount(1)
   const protocolPaymentCut = m.getParameter('protocolPaymentCut')
 
   // Deploy GraphPayments implementation
@@ -58,6 +59,8 @@ export const MigrateGraphPaymentsModule = buildModule('GraphPayments', (m) => {
       artifact: GraphPaymentsArtifact,
       initArgs: [],
     })
+
+  m.call(GraphPaymentsProxyAdmin, 'transferOwnership', [governor], { after: [GraphPayments] })
 
   return { GraphPayments, GraphPaymentsProxyAdmin }
 })

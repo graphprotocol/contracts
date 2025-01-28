@@ -40,6 +40,7 @@ export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => 
   const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy } = m.useModule(MigrateHorizonProxiesModule)
   const { Controller } = m.useModule(MigratePeripheryModule)
 
+  const governor = m.getAccount(1)
   const withdrawEscrowThawingPeriod = m.getParameter('withdrawEscrowThawingPeriod')
 
   // Deploy PaymentsEscrow implementation
@@ -58,6 +59,8 @@ export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => 
       artifact: PaymentsEscrowArtifact,
       initArgs: [],
     })
+
+  m.call(PaymentsEscrowProxyAdmin, 'transferOwnership', [governor], { after: [PaymentsEscrow] })
 
   return { PaymentsEscrow, PaymentsEscrowProxyAdmin }
 })

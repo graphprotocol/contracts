@@ -13,6 +13,7 @@ export default buildModule('GraphHorizon_Migrate', (m) => {
     GraphToken,
     GraphTokenGateway,
   } = m.useModule(MigratePeripheryModule)
+
   const {
     HorizonStaking,
     GraphPayments,

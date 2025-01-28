@@ -29,6 +29,8 @@ yarn build
 
 ## Deploy
 
+Note that this instructions will help you deploy Graph Horizon contracts, but no data service will be deployed. If you want to deploy the Subgraph Service please refer to the [Subgraph Service README](../subgraph-service/README.md) for deploy instructions.
+
 ### New deployment
 To deploy Graph Horizon from scratch run the following command:
 
@@ -36,13 +38,11 @@ To deploy Graph Horizon from scratch run the following command:
 npx hardhat run scripts/deploy.ts --network hardhat
 ```
 
-Note that this will deploy a standalone version of Graph Horizon contracts, meaning the Subgraph Service or any other data service will not be deployed. If you want to deploy the Subgraph Service please refer to the [Subgraph Service README](../subgraph-service/README.md) for deploy instructions.
-
 ### Upgrade deployment
 To upgrade an existing deployment of the original Graph Protocol to Graph Horizon, run the following command:
 
 ```bash
-npx hardhat run scripts/migrate.ts --network hardhat
+npx hardhat run scripts/migrate.ts --network localhost
 ```
 
-Note that this will deploy a standalone version of Graph Horizon contracts, meaning the Subgraph Service or any other data service will not be deployed. If you want to deploy the Subgraph Service please refer to the [Subgraph Service README](../subgraph-service/README.md) for deploy instructions.
+Usually you would run this against a network (or a fork) where the original Graph Protocol was previously deployed.
