@@ -27,7 +27,6 @@ export function deployGraphProxy(
   }
 }
 
-// Same as upgradeGraphProxy, but without loading the proxy contracts
 export function upgradeGraphProxy(
   m: IgnitionModuleBuilder,
   proxyAdmin: CallableContractFuture<string>,
@@ -38,6 +37,19 @@ export function upgradeGraphProxy(
 ) {
   const upgradeCall = m.call(proxyAdmin, 'upgrade', [proxy, implementation], options)
   const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], { ...options, after: [upgradeCall] })
+
+  return loadProxyWithABI(m, proxy, metadata, { ...options, after: [acceptCall] })
+}
+
+export function acceptUpgradeGraphProxy(
+  m: IgnitionModuleBuilder,
+  proxyAdmin: CallableContractFuture<string>,
+  proxy: CallableContractFuture<string>,
+  implementation: ContractFuture<string>,
+  metadata: ImplementationMetadata,
+  options?: ContractOptions,
+) {
+  const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], { ...options })
 
   return loadProxyWithABI(m, proxy, metadata, { ...options, after: [acceptCall] })
 }

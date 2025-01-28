@@ -62,25 +62,20 @@ export const MigrateHorizonProxiesDeployerModule = buildModule('HorizonProxiesDe
 
 export const MigrateHorizonProxiesGovernorModule = buildModule('HorizonProxiesGovernor', (m) => {
   const { Controller } = m.useModule(MigrateControllerGovernorModule)
-  const {
-    GraphPaymentsProxy,
-    PaymentsEscrowProxy,
-    GraphPaymentsProxyAdmin,
-    PaymentsEscrowProxyAdmin,
-  } = m.useModule(MigrateHorizonProxiesDeployerModule)
 
-  const governor = m.getAccount(1)
+  const graphPaymentsAddress = m.getParameter('graphPaymentsAddress')
+  const paymentsEscrowAddress = m.getParameter('paymentsEscrowAddress')
 
   // Register proxies in controller
   m.call(Controller, 'setContractProxy',
-    [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), GraphPaymentsProxy],
-    { id: 'setContractProxy_GraphPayments', from: governor },
+    [ethers.keccak256(ethers.toUtf8Bytes('GraphPayments')), graphPaymentsAddress],
+    { id: 'setContractProxy_GraphPayments' },
   )
 
   m.call(Controller, 'setContractProxy',
-    [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), PaymentsEscrowProxy],
-    { id: 'setContractProxy_PaymentsEscrow', from: governor },
+    [ethers.keccak256(ethers.toUtf8Bytes('PaymentsEscrow')), paymentsEscrowAddress],
+    { id: 'setContractProxy_PaymentsEscrow' },
   )
 
-  return { GraphPaymentsProxy, PaymentsEscrowProxy, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
+  return { }
 })

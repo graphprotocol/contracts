@@ -1,6 +1,7 @@
 {
   "$global": {
     "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
+
     // Placeholder address for a standalone Horizon deployment, see README.md for more details
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
   },

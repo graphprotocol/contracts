@@ -8,7 +8,7 @@ import MigrateModuleStep4 from '../ignition/modules/migrate/migrate-4'
 
 async function main() {
   console.log(getHorizonBanner())
-  const HorizonMigrateConfig = IgnitionHelper.loadConfig('./ignition/configs/', 'horizon-migrate', hre.network.name)
+  const HorizonMigrateConfig = IgnitionHelper.loadConfig('./ignition/configs/', 'horizon-migrate', `horizon-${hre.network.name}`)
 
   const signers = await hre.ethers.getSigners()
   const deployer = signers[0]

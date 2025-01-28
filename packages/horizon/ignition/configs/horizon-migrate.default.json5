@@ -13,13 +13,10 @@
     "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
     "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
 
-    // Placeholder address for a standalone Horizon deployment, see README.md for more details
+    // Must be set for step 4 of the migration
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
   },
-  "HorizonStakingGovernor": {
-    "maxThawingPeriod": 2419200
-  },
-  "GraphPayments": {
+    "GraphPayments": {
     "protocolPaymentCut": 10000
   },
   "PaymentsEscrow": {
@@ -29,5 +26,23 @@
     "eip712Name": "TAPCollector",
     "eip712Version": "1",
     "revokeSignerThawingPeriod": 10000
+  },
+  "HorizonProxiesGovernor": {
+    // These addresses must be set for step 2 of the migration
+    "graphPaymentsAddress": "0x0000000000000000000000000000000000000000",
+    "paymentsEscrowAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "HorizonStakingGovernor": {
+    "maxThawingPeriod": 2419200,
+    // Must be set for step 4 of the migration
+    "horizonStakingImplementationAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "L2CurationGovernor": {
+    // Must be set for step 4 of the migration
+    "curationImplementationAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "RewardsManagerGovernor": {
+    // Must be set for step 4 of the migration
+    "rewardsManagerImplementationAddress": "0x0000000000000000000000000000000000000000"
   }
 }

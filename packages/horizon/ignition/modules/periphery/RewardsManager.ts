@@ -1,10 +1,11 @@
+import { acceptUpgradeGraphProxy, deployWithGraphProxy } from '../proxy/GraphProxy'
 import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
-import { deployWithGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'
 import { deployImplementation } from '../proxy/implementation'
 
-import GraphProxyAdminModule, { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
 import ControllerModule from './Controller'
+import GraphProxyAdminModule from './GraphProxyAdmin'
 
+import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 import RewardsManagerArtifact from '@graphprotocol/contracts/build/contracts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
 
@@ -43,10 +44,14 @@ export const MigrateRewardsManagerDeployerModule = buildModule('RewardsManagerDe
 })
 
 export const MigrateRewardsManagerGovernorModule = buildModule('RewardsManagerGovernor', (m: IgnitionModuleBuilder) => {
-  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
-  const { RewardsManagerProxy, RewardsManagerImplementation } = m.useModule(MigrateRewardsManagerDeployerModule)
+  const rewardsManagerAddress = m.getParameter('rewardsManagerAddress')
+  const rewardsManagerImplementationAddress = m.getParameter('rewardsManagerImplementationAddress')
+  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
 
-  const governor = m.getAccount(1)
+  const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, graphProxyAdminAddress)
+  const RewardsManagerProxy = m.contractAt('RewardsManagerProxy', GraphProxyArtifact, rewardsManagerAddress)
+  const RewardsManagerImplementation = m.contractAt('RewardsManagerImplementation', RewardsManagerArtifact, rewardsManagerImplementationAddress)
+
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
 
   const implementationMetadata = {
@@ -54,8 +59,8 @@ export const MigrateRewardsManagerGovernorModule = buildModule('RewardsManagerGo
     artifact: RewardsManagerArtifact,
   }
 
-  const RewardsManager = upgradeGraphProxy(m, GraphProxyAdmin, RewardsManagerProxy, RewardsManagerImplementation, implementationMetadata, { from: governor })
-  m.call(RewardsManager, 'setSubgraphService', [subgraphServiceAddress], { from: governor })
+  const RewardsManager = acceptUpgradeGraphProxy(m, GraphProxyAdmin, RewardsManagerProxy, RewardsManagerImplementation, implementationMetadata)
+  m.call(RewardsManager, 'setSubgraphService', [subgraphServiceAddress])
 
   return { RewardsManager }
 })

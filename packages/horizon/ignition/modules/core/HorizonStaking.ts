@@ -1,12 +1,12 @@
+import { acceptUpgradeGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { deployImplementation } from '../proxy/implementation'
-import { upgradeGraphProxy } from '../proxy/GraphProxy'
 
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 import HorizonProxiesModule from './HorizonProxies'
-import { MigrateGraphProxyAdminModule } from '../periphery/GraphProxyAdmin'
 
 import ExponentialRebatesArtifact from '../../../build/contracts/contracts/staking/libraries/ExponentialRebates.sol/ExponentialRebates.json'
+import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 import HorizonStakingArtifact from '../../../build/contracts/contracts/staking/HorizonStaking.sol/HorizonStaking.json'
 import HorizonStakingExtensionArtifact from '../../../build/contracts/contracts/staking/HorizonStakingExtension.sol/HorizonStakingExtension.json'
@@ -79,18 +79,21 @@ export const MigrateHorizonStakingDeployerModule = buildModule('HorizonStakingDe
 })
 
 export const MigrateHorizonStakingGovernorModule = buildModule('HorizonStakingGovernor', (m) => {
-  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
-  const { HorizonStakingProxy, HorizonStakingImplementation } = m.useModule(MigrateHorizonStakingDeployerModule)
-
-  const governor = m.getAccount(1)
   const maxThawingPeriod = m.getParameter('maxThawingPeriod')
+  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
+  const horizonStakingAddress = m.getParameter('horizonStakingAddress')
+  const horizonStakingImplementationAddress = m.getParameter('horizonStakingImplementationAddress')
+
+  const HorizonStakingImplementation = m.contractAt('HorizonStakingImplementation', HorizonStakingArtifact, horizonStakingImplementationAddress)
+  const HorizonStakingProxy = m.contractAt('HorizonStakingProxy', GraphProxyArtifact, horizonStakingAddress)
+  const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, graphProxyAdminAddress)
 
   // Upgrade proxy to implementation contract
-  const HorizonStaking = upgradeGraphProxy(m, GraphProxyAdmin, HorizonStakingProxy, HorizonStakingImplementation, {
+  const HorizonStaking = acceptUpgradeGraphProxy(m, GraphProxyAdmin, HorizonStakingProxy, HorizonStakingImplementation, {
     name: 'HorizonStaking',
     artifact: HorizonStakingArtifact,
-  }, { from: governor })
-  m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod], { from: governor })
+  })
+  m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod])
 
   return { HorizonStaking }
 })
