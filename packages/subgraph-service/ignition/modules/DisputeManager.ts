@@ -1,36 +1,46 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+import { deployImplementation } from '@graphprotocol/horizon/ignition/modules/proxy/implementation'
+import { upgradeTransparentUpgradeableProxy } from '@graphprotocol/horizon/ignition/modules/proxy/TransparentUpgradeableProxy'
 
 import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdmin.json'
+import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
 
-// TODO: transfer ownership of ProxyAdmin???
 export default buildModule('DisputeManager', (m) => {
-  // Parameters - dynamically plugged in by the deploy script
+  const governor = m.getParameter('governor')
   const controllerAddress = m.getParameter('controllerAddress')
-  const disputeManagerProxyAddress = m.getParameter('disputeManagerProxyAddress')
+  const disputeManagerAddress = m.getParameter('disputeManagerAddress')
   const disputeManagerProxyAdminAddress = m.getParameter('disputeManagerProxyAdminAddress')
-
-  // Parameters - config file
   const arbitrator = m.getParameter('arbitrator')
   const disputePeriod = m.getParameter('disputePeriod')
   const disputeDeposit = m.getParameter('disputeDeposit')
   const fishermanRewardCut = m.getParameter('fishermanRewardCut')
   const maxSlashingCut = m.getParameter('maxSlashingCut')
 
+  const DisputeManagerProxyAdmin = m.contractAt('ProxyAdmin', ProxyAdminArtifact, disputeManagerProxyAdminAddress)
+  const DisputeManagerProxy = m.contractAt('DisputeManager', TransparentUpgradeableProxyArtifact, disputeManagerAddress)
+
   // Deploy implementation
-  const DisputeManagerImplementation = m.contract('DisputeManager', [controllerAddress])
+  const DisputeManagerImplementation = deployImplementation(m, {
+    name: 'DisputeManager',
+    constructorArgs: [controllerAddress],
+  })
 
   // Upgrade implementation
-  const DisputeManagerProxyAdmin = m.contractAt('ProxyAdmin', ProxyAdminArtifact, disputeManagerProxyAdminAddress)
-  const encodedCall = m.encodeFunctionCall(DisputeManagerImplementation, 'initialize', [
-    arbitrator,
-    disputePeriod,
-    disputeDeposit,
-    fishermanRewardCut,
-    maxSlashingCut,
-  ])
-  m.call(DisputeManagerProxyAdmin, 'upgradeAndCall', [disputeManagerProxyAddress, DisputeManagerImplementation, encodedCall])
+  const DisputeManager = upgradeTransparentUpgradeableProxy(m,
+    DisputeManagerProxyAdmin,
+    DisputeManagerProxy,
+    DisputeManagerImplementation, {
+      name: 'DisputeManager',
+      initArgs: [
+        arbitrator,
+        disputePeriod,
+        disputeDeposit,
+        fishermanRewardCut,
+        maxSlashingCut,
+      ],
+    })
 
-  const DisputeManager = m.contractAt('DisputeManager', disputeManagerProxyAddress, { id: 'DisputeManager_Instance' })
+  m.call(DisputeManagerProxyAdmin, 'transferOwnership', [governor], { after: [DisputeManager] })
 
   return { DisputeManager, DisputeManagerImplementation }
 })

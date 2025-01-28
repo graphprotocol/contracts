@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { deployImplementation } from '../proxy/implementation'
-import { upgradeTransparentUpgradeableProxyNoLoad } from '../proxy/TransparentUpgradeableProxy'
+import { upgradeTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
 
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 import HorizonProxiesModule, { MigrateHorizonProxiesDeployerModule } from './HorizonProxies'
@@ -22,7 +22,7 @@ export default buildModule('PaymentsEscrow', (m) => {
   }, { after: [GraphPeripheryModule, HorizonProxiesModule] })
 
   // Upgrade proxy to implementation contract
-  const PaymentsEscrow = upgradeTransparentUpgradeableProxyNoLoad(m,
+  const PaymentsEscrow = upgradeTransparentUpgradeableProxy(m,
     PaymentsEscrowProxyAdmin,
     PaymentsEscrowProxy,
     PaymentsEscrowImplementation, {
@@ -55,7 +55,7 @@ export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => 
   })
 
   // Upgrade proxy to implementation contract
-  const PaymentsEscrow = upgradeTransparentUpgradeableProxyNoLoad(m,
+  const PaymentsEscrow = upgradeTransparentUpgradeableProxy(m,
     PaymentsEscrowProxyAdmin,
     PaymentsEscrowProxy,
     PaymentsEscrowImplementation, {

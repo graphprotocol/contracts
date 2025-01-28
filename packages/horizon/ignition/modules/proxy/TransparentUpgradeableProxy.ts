@@ -45,7 +45,7 @@ export function deployTransparentUpgradeableProxy(
   }
 }
 
-export function upgradeTransparentUpgradeableProxyNoLoad(
+export function upgradeTransparentUpgradeableProxy(
   m: IgnitionModuleBuilder,
   proxyAdmin: CallableContractFuture<string>,
   proxy: CallableContractFuture<string>,

@@ -96,9 +96,8 @@ export const hardhatBaseConfig: HardhatUserConfig & { etherscan: Partial<Ethersc
   networks: networksUserConfig,
   graph: {
     deployments: {
-      horizon: {
-        addressBook: 'addresses.json',
-      },
+      horizon: require.resolve('@graphprotocol/horizon/addresses.json'),
+      subgraphService: require.resolve('@graphprotocol/subgraph-service/addresses.json'),
     },
   },
   etherscan: etherscanUserConfig,
