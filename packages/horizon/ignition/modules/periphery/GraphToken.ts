@@ -13,7 +13,7 @@ export default buildModule('L2GraphToken', (m) => {
   const { GraphTokenGateway } = m.useModule(GraphTokenGatewayModule)
 
   const deployer = m.getAccount(0)
-  const governor = m.getParameter('governor')
+  const governor = m.getAccount(1)
   const initialSupply = m.getParameter('initialSupply')
 
   const GraphToken = deployWithGraphProxy(m, GraphProxyAdmin, {
@@ -22,11 +22,14 @@ export default buildModule('L2GraphToken', (m) => {
     initArgs: [deployer],
   })
 
-  m.call(GraphToken, 'mint', [deployer, initialSupply])
-  m.call(GraphToken, 'renounceMinter', [])
-  m.call(GraphToken, 'addMinter', [RewardsManager], { id: 'addMinterRewardsManager' })
-  m.call(GraphToken, 'addMinter', [GraphTokenGateway], { id: 'addMinterGateway' })
-  m.call(GraphToken, 'transferOwnership', [governor])
+  const mintCall = m.call(GraphToken, 'mint', [deployer, initialSupply])
+  const renounceMinterCall = m.call(GraphToken, 'renounceMinter', [])
+  const addMinterRewardsManagerCall = m.call(GraphToken, 'addMinter', [RewardsManager], { id: 'addMinterRewardsManager' })
+  const addMinterGatewayCall = m.call(GraphToken, 'addMinter', [GraphTokenGateway], { id: 'addMinterGateway' })
+
+  // No further calls are needed so we can transfer ownership now
+  const transferOwnershipCall = m.call(GraphToken, 'transferOwnership', [governor], { after: [mintCall, renounceMinterCall, addMinterRewardsManagerCall, addMinterGatewayCall] })
+  m.call(GraphToken, 'acceptOwnership', [], { from: governor, after: [transferOwnershipCall] })
 
   return { GraphToken }
 })
