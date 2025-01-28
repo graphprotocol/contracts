@@ -276,7 +276,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         );
 
         // Generate the hash of the payer's address
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, _proofDeadline, msg.sender));
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(this), _proofDeadline, msg.sender));
 
         // Generate the digest to be signed by the signer
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
