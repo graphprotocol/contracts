@@ -7,11 +7,11 @@ import TAPCollectorModule, { MigrateTAPCollectorModule } from './TAPCollector'
 
 export default buildModule('GraphHorizon_Core', (m) => {
   const { HorizonStaking } = m.useModule(HorizonStakingModule)
-  const { GraphPayments, GraphPaymentsProxyAdmin } = m.useModule(GraphPaymentsModule)
-  const { PaymentsEscrow, PaymentsEscrowProxyAdmin } = m.useModule(PaymentsEscrowModule)
+  const { GraphPayments } = m.useModule(GraphPaymentsModule)
+  const { PaymentsEscrow } = m.useModule(PaymentsEscrowModule)
   const { TAPCollector } = m.useModule(TAPCollectorModule)
 
-  return { HorizonStaking, GraphPayments, PaymentsEscrow, TAPCollector, GraphPaymentsProxyAdmin, PaymentsEscrowProxyAdmin }
+  return { HorizonStaking, GraphPayments, PaymentsEscrow, TAPCollector }
 })
 
 export const MigrateHorizonCoreModule = buildModule('GraphHorizon_Core', (m) => {

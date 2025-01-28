@@ -11,6 +11,7 @@ export default buildModule('PaymentsEscrow', (m) => {
   const { Controller } = m.useModule(GraphPeripheryModule)
   const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy } = m.useModule(HorizonProxiesModule)
 
+  const governor = m.getAccount(1)
   const withdrawEscrowThawingPeriod = m.getParameter('withdrawEscrowThawingPeriod')
 
   // Deploy PaymentsEscrow implementation - requires periphery and proxies to be registered in the controller
@@ -29,6 +30,8 @@ export default buildModule('PaymentsEscrow', (m) => {
       artifact: PaymentsEscrowArtifact,
       initArgs: [],
     })
+
+  m.call(PaymentsEscrowProxyAdmin, 'transferOwnership', [governor], { after: [PaymentsEscrow] })
 
   return { PaymentsEscrow, PaymentsEscrowProxyAdmin }
 })
