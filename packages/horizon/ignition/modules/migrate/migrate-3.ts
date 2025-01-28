@@ -1,9 +1,9 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import { MigrateHorizonCoreModule } from './core/core'
-import { MigratePeripheryModule } from './periphery/periphery'
+import { MigrateHorizonCoreModule } from '../core/core'
+import { MigratePeripheryModule } from '../periphery/periphery'
 
-export default buildModule('GraphHorizon_Migrate', (m) => {
+export default buildModule('GraphHorizon_Migrate_3', (m) => {
   const {
     L2Curation,
     RewardsManager,

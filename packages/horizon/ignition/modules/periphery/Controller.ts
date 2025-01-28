@@ -18,13 +18,18 @@ export default buildModule('Controller', (m) => {
   return { Controller }
 })
 
-export const MigrateControllerModule = buildModule('Controller', (m) => {
-  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
-
-  const governor = m.getAccount(1)
+export const MigrateControllerDeployerModule = buildModule('ControllerDeployer', (m) => {
   const controllerAddress = m.getParameter('controllerAddress')
 
   const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
+
+  return { Controller }
+})
+
+export const MigrateControllerGovernorModule = buildModule('ControllerGovernor', (m) => {
+  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
+  const { Controller } = m.useModule(MigrateControllerDeployerModule)
+  const governor = m.getAccount(1)
 
   // GraphProxyAdmin was not registered in the controller in the original protocol
   m.call(Controller, 'setContractProxy',

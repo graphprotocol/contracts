@@ -7,6 +7,7 @@ import ControllerModule from './Controller'
 
 import CurationArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
 import GraphCurationTokenArtifact from '@graphprotocol/contracts/build/contracts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json'
+import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
 export default buildModule('L2Curation', (m) => {
   const { Controller } = m.useModule(ControllerModule)
@@ -28,21 +29,33 @@ export default buildModule('L2Curation', (m) => {
   return { L2Curation }
 })
 
-// Curation contract is owned by the governor
-export const MigrateCurationModule = buildModule('L2Curation', (m: IgnitionModuleBuilder) => {
+export const MigrateCurationDeployerModule = buildModule('L2CurationDeployer', (m: IgnitionModuleBuilder) => {
+  const curationAddress = m.getParameter('curationAddress')
+
+  const L2CurationProxy = m.contractAt('L2CurationProxy', GraphProxyArtifact, curationAddress)
+
+  const implementationMetadata = {
+    name: 'L2Curation',
+    artifact: CurationArtifact,
+  }
+  const L2CurationImplementation = deployImplementation(m, implementationMetadata)
+
+  return { L2CurationProxy, L2CurationImplementation }
+})
+
+export const MigrateCurationGovernorModule = buildModule('L2CurationGovernor', (m: IgnitionModuleBuilder) => {
   const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
+  const { L2CurationProxy, L2CurationImplementation } = m.useModule(MigrateCurationDeployerModule)
 
   const governor = m.getAccount(1)
-  const curationAddress = m.getParameter('curationAddress')
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
 
   const implementationMetadata = {
     name: 'L2Curation',
     artifact: CurationArtifact,
   }
-  const implementation = deployImplementation(m, implementationMetadata)
 
-  const L2Curation = upgradeGraphProxy(m, GraphProxyAdmin, curationAddress, implementation, implementationMetadata, { from: governor })
+  const L2Curation = upgradeGraphProxy(m, GraphProxyAdmin, L2CurationProxy, L2CurationImplementation, implementationMetadata, { from: governor })
   m.call(L2Curation, 'setSubgraphService', [subgraphServiceAddress], { from: governor })
 
   return { L2Curation }

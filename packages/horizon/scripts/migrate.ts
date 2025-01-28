@@ -1,7 +1,10 @@
 import hre, { ignition } from 'hardhat'
 import { IgnitionHelper } from 'hardhat-graph-protocol/sdk'
 
-import MigrateModule from '../ignition/modules/migrate'
+import MigrateModuleStep1 from '../ignition/modules/migrate/migrate-1'
+import MigrateModuleStep2 from '../ignition/modules/migrate/migrate-2'
+import MigrateModuleStep3 from '../ignition/modules/migrate/migrate-3'
+import MigrateModuleStep4 from '../ignition/modules/migrate/migrate-4'
 
 async function main() {
   console.log(getHorizonBanner())
@@ -14,13 +17,35 @@ async function main() {
   console.log('Using deployer account:', deployer.address)
   console.log('Using governor account:', governor.address)
 
-  const deployment = await ignition.deploy(MigrateModule, {
+  console.log('========== Running migration: step 1 ==========')
+  await ignition.deploy(MigrateModuleStep1, {
+    displayUi: true,
+    parameters: HorizonMigrateConfig,
+    deploymentId: `horizon-${hre.network.name}`,
+  })
+
+  console.log('========== Running migration: step 2 ==========')
+  await ignition.deploy(MigrateModuleStep2, {
+    displayUi: true,
+    parameters: HorizonMigrateConfig,
+    deploymentId: `horizon-${hre.network.name}`,
+  })
+
+  console.log('========== Running migration: step 3 ==========')
+  const deployment = await ignition.deploy(MigrateModuleStep3, {
     displayUi: true,
     parameters: HorizonMigrateConfig,
     deploymentId: `horizon-${hre.network.name}`,
   })
 
   IgnitionHelper.saveAddressBook(deployment, hre.network.config.chainId)
+
+  console.log('========== Running migration: step 4 ==========')
+  await ignition.deploy(MigrateModuleStep4, {
+    displayUi: true,
+    parameters: HorizonMigrateConfig,
+    deploymentId: `horizon-${hre.network.name}`,
+  })
 
   console.log('Migration successful! 🎉')
 }

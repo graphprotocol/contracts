@@ -3,7 +3,7 @@ import { deployImplementation } from '../proxy/implementation'
 import { upgradeTransparentUpgradeableProxyNoLoad } from '../proxy/TransparentUpgradeableProxy'
 
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
-import HorizonProxiesModule, { MigrateHorizonProxiesModule } from './HorizonProxies'
+import HorizonProxiesModule, { MigrateHorizonProxiesDeployerModule } from './HorizonProxies'
 
 import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
 
@@ -36,8 +36,12 @@ export default buildModule('PaymentsEscrow', (m) => {
   return { PaymentsEscrow, PaymentsEscrowProxyAdmin }
 })
 
+// Note that this module requires MigrateHorizonProxiesGovernorModule to be executed first
+// The dependency is not made explicit to support the production workflow where the governor is a
+// multisig owned by the Graph Council.
+// For testnet, the dependency can be made explicit by having a parent module establish it.
 export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => {
-  const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy } = m.useModule(MigrateHorizonProxiesModule)
+  const { PaymentsEscrowProxyAdmin, PaymentsEscrowProxy } = m.useModule(MigrateHorizonProxiesDeployerModule)
   const { Controller } = m.useModule(MigratePeripheryModule)
 
   const governor = m.getAccount(1)
@@ -48,7 +52,7 @@ export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => 
     name: 'PaymentsEscrow',
     artifact: PaymentsEscrowArtifact,
     constructorArgs: [Controller, withdrawEscrowThawingPeriod],
-  }, { after: [MigrateHorizonProxiesModule] })
+  })
 
   // Upgrade proxy to implementation contract
   const PaymentsEscrow = upgradeTransparentUpgradeableProxyNoLoad(m,

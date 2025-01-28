@@ -1,7 +1,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import GraphPaymentsModule, { MigrateGraphPaymentsModule } from './GraphPayments'
-import HorizonStakingModule, { MigrateHorizonStakingModule } from './HorizonStaking'
+import HorizonStakingModule, { MigrateHorizonStakingDeployerModule } from './HorizonStaking'
 import PaymentsEscrowModule, { MigratePaymentsEscrowModule } from './PaymentsEscrow'
 import TAPCollectorModule, { MigrateTAPCollectorModule } from './TAPCollector'
 
@@ -15,7 +15,7 @@ export default buildModule('GraphHorizon_Core', (m) => {
 })
 
 export const MigrateHorizonCoreModule = buildModule('GraphHorizon_Core', (m) => {
-  const { HorizonStaking } = m.useModule(MigrateHorizonStakingModule)
+  const { HorizonStakingProxy: HorizonStaking } = m.useModule(MigrateHorizonStakingDeployerModule)
   const { GraphPayments } = m.useModule(MigrateGraphPaymentsModule)
   const { PaymentsEscrow } = m.useModule(MigratePaymentsEscrowModule)
   const { TAPCollector } = m.useModule(MigrateTAPCollectorModule)
