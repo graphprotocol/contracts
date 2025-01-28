@@ -142,6 +142,7 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         (address _payer, , ) = tapCollector.authorizedSigners(_signer);
         uint256 tokensAlreadyCollected = tapCollector.tokensCollected(
             signedRAV.rav.dataService,
+            signedRAV.rav.paymentId,
             signedRAV.rav.serviceProvider,
             _payer
         );
@@ -152,6 +153,7 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         vm.expectEmit(address(tapCollector));
         emit IPaymentsCollector.PaymentCollected(
             _paymentType,
+            signedRAV.rav.paymentId,
             _payer,
             signedRAV.rav.serviceProvider,
             signedRAV.rav.dataService,
@@ -173,6 +175,7 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
         uint256 tokensCollectedAfter = tapCollector.tokensCollected(
             signedRAV.rav.dataService,
+            signedRAV.rav.paymentId,
             signedRAV.rav.serviceProvider,
             _payer
         );

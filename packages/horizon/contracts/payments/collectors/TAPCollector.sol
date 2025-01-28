@@ -36,7 +36,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     mapping(address signer => PayerAuthorization authorizedSigner) public authorizedSigners;
 
     /// @notice Tracks the amount of tokens already collected by a data service from a payer to a receiver
-    mapping(address dataService => mapping(address receiver => mapping(address payer => uint256 tokens)))
+    mapping(address dataService => mapping(address paymentId => mapping(address receiver => mapping(address payer => uint256 tokens))))
         public tokensCollected;
 
     /// @notice The duration (in seconds) in which a signer is thawing before they can be revoked
@@ -182,6 +182,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         address payer = authorizedSigners[signer].payer;
         require(signedRAV.rav.payer == payer, TAPCollectorInvalidRAVPayer(payer, signedRAV.rav.payer));
 
+        address paymentId = signedRAV.rav.paymentId;
         address dataService = signedRAV.rav.dataService;
         address receiver = signedRAV.rav.serviceProvider;
 
@@ -199,7 +200,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         uint256 tokensToCollect = 0;
         {
             uint256 tokensRAV = signedRAV.rav.valueAggregate;
-            uint256 tokensAlreadyCollected = tokensCollected[dataService][receiver][payer];
+            uint256 tokensAlreadyCollected = tokensCollected[dataService][paymentId][receiver][payer];
             require(
                 tokensRAV > tokensAlreadyCollected,
                 TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
@@ -217,11 +218,11 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         }
 
         if (tokensToCollect > 0) {
-            tokensCollected[dataService][receiver][payer] += tokensToCollect;
+            tokensCollected[dataService][paymentId][receiver][payer] += tokensToCollect;
             _graphPaymentsEscrow().collect(_paymentType, payer, receiver, tokensToCollect, dataService, dataServiceCut);
         }
 
-        emit PaymentCollected(_paymentType, payer, receiver, dataService, tokensToCollect);
+        emit PaymentCollected(_paymentType, paymentId, payer, receiver, dataService, tokensToCollect);
         emit RAVCollected(
             payer,
             dataService,
