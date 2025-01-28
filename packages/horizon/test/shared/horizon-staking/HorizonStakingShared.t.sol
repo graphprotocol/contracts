@@ -908,17 +908,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         __undelegate(IHorizonStakingTypes.ThawRequestType.Delegation, serviceProvider, verifier, shares, false, caller);
     }
 
-    function _undelegateWithBeneficiary(address serviceProvider, address verifier, uint256 shares, address beneficiary) internal {
-        __undelegate(
-            IHorizonStakingTypes.ThawRequestType.DelegationWithBeneficiary,
-            serviceProvider,
-            verifier,
-            shares,
-            false,
-            beneficiary
-        );
-    }
-
     function _undelegate(address serviceProvider, uint256 shares) internal {
         (, address caller, ) = vm.readCallers();
         __undelegate(
@@ -992,8 +981,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             staking.undelegate(serviceProvider, shares);
         } else if (thawRequestType == IHorizonStakingTypes.ThawRequestType.Delegation) {
             staking.undelegate(serviceProvider, verifier, shares);
-        } else if (thawRequestType == IHorizonStakingTypes.ThawRequestType.DelegationWithBeneficiary) {
-            staking.undelegateWithBeneficiary(serviceProvider, verifier, shares, beneficiary);
         } else {
             revert("Invalid thaw request type");
         }
@@ -1049,24 +1036,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             minSharesForNewProvider: 0,
             nThawRequests: nThawRequests,
             legacy: verifier == subgraphDataServiceLegacyAddress
-        });
-        __withdrawDelegated(params);
-    }
-
-    function _withdrawDelegatedWithBeneficiary(
-        address serviceProvider,
-        address verifier,
-        uint256 nThawRequests
-    ) internal {
-        Params_WithdrawDelegated memory params = Params_WithdrawDelegated({
-            thawRequestType: IHorizonStakingTypes.ThawRequestType.DelegationWithBeneficiary,
-            serviceProvider: serviceProvider,
-            verifier: verifier,
-            newServiceProvider: address(0),
-            newVerifier: address(0),
-            minSharesForNewProvider: 0,
-            nThawRequests: nThawRequests,
-            legacy: false
         });
         __withdrawDelegated(params);
     }
@@ -1197,8 +1166,6 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             );
         } else if (params.thawRequestType == IHorizonStakingTypes.ThawRequestType.Delegation) {
             staking.withdrawDelegated(params.serviceProvider, params.verifier, params.nThawRequests);
-        } else if (params.thawRequestType == IHorizonStakingTypes.ThawRequestType.DelegationWithBeneficiary) {
-            staking.withdrawDelegatedWithBeneficiary(params.serviceProvider, params.verifier, params.nThawRequests);
         } else {
             revert("Invalid thaw request type");
         }

@@ -44,9 +44,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /// @dev Minimum amount of delegation.
     uint256 private constant MIN_DELEGATION = 1e18;
 
-    /// @dev Minimum amount of undelegation with beneficiary.
-    uint256 private constant MIN_UNDELEGATION_WITH_BENEFICIARY = 10e18;
-
     /**
      * @notice Checks that the caller is authorized to operate over a provision.
      * @param serviceProvider The address of the service provider.
@@ -308,19 +305,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-undelegate}.
-     */
-    // function undelegateWithBeneficiary(
-    //     address serviceProvider,
-    //     address verifier,
-    //     uint256 shares,
-    //     address beneficiary
-    // ) external override notPaused returns (bytes32) {
-    //     require(beneficiary != address(0), HorizonStakingInvalidBeneficiaryZeroAddress());
-    //     return _undelegate(ThawRequestType.DelegationWithBeneficiary, serviceProvider, verifier, shares, beneficiary);
-    // }
-
-    /**
      * @notice See {IHorizonStakingMain-withdrawDelegated}.
      */
     function withdrawDelegated(
@@ -338,25 +322,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             nThawRequests
         );
     }
-
-    /**
-     * @notice See {IHorizonStakingMain-withdrawDelegatedWithBeneficiary}.
-     */
-    // function withdrawDelegatedWithBeneficiary(
-    //     address serviceProvider,
-    //     address verifier,
-    //     uint256 nThawRequests
-    // ) external override notPaused {
-    //     _withdrawDelegated(
-    //         ThawRequestType.DelegationWithBeneficiary,
-    //         serviceProvider,
-    //         verifier,
-    //         address(0),
-    //         address(0),
-    //         0,
-    //         nThawRequests
-    //     );
-    // }
 
     /**
      * @notice See {IHorizonStakingMain-redelegate}.
@@ -935,16 +900,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         // Thawing pool is reset/initialized when the pool is empty: prov.tokensThawing == 0
         uint256 tokens = (_shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
 
-        // Since anyone can undelegate for any beneficiary, we require a minimum amount to prevent
-        // malicious actors from flooding the thaw request list with tiny amounts and causing a
-        // denial of service attack by hitting the MAX_THAW_REQUESTS limit
-        if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
-            require(
-                tokens >= MIN_UNDELEGATION_WITH_BENEFICIARY,
-                HorizonStakingInsufficientUndelegationTokens(tokens, MIN_UNDELEGATION_WITH_BENEFICIARY)
-            );
-        }
-
         // Thawing shares are rounded down to protect the pool and avoid taking extra tokens from other participants.
         uint256 thawingShares = pool.tokensThawing == 0 ? tokens : ((tokens * pool.sharesThawing) / pool.tokensThawing);
         uint64 thawingUntil = uint64(block.timestamp + uint256(_provisions[_serviceProvider][_verifier].thawingPeriod));
@@ -1208,8 +1163,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             return _deleteProvisionThawRequest;
         } else if (_requestType == ThawRequestType.Delegation) {
             return _deleteDelegationThawRequest;
-        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
-            return _deleteDelegationWithBeneficiaryThawRequest;
         } else {
             revert HorizonStakingInvalidThawRequestType();
         }
@@ -1229,14 +1182,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function _deleteDelegationThawRequest(bytes32 _thawRequestId) private {
         delete _thawRequests[ThawRequestType.Delegation][_thawRequestId];
-    }
-
-    /**
-     * @notice Deletes a thaw request for a delegation with a beneficiary.
-     * @param _thawRequestId The ID of the thaw request to delete.
-     */
-    function _deleteDelegationWithBeneficiaryThawRequest(bytes32 _thawRequestId) private {
-        delete _thawRequests[ThawRequestType.DelegationWithBeneficiary][_thawRequestId];
     }
 
     /**
