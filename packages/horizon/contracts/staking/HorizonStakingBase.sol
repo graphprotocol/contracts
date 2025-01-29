@@ -253,13 +253,13 @@ abstract contract HorizonStakingBase is
      * @dev TODO: After transition period move to IHorizonStakingMain. Temporarily it
      * needs to be here since it's used by both {HorizonStaking} and {HorizonStakingExtension}.
      *
-     * Emits a {StakeDeposited} event.
+     * Emits a {HorizonStakeDeposited} event.
      * @param _serviceProvider The address of the service provider.
      * @param _tokens The amount of tokens to deposit.
      */
     function _stake(address _serviceProvider, uint256 _tokens) internal {
         _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
-        emit StakeDeposited(_serviceProvider, _tokens);
+        emit HorizonStakeDeposited(_serviceProvider, _tokens);
     }
 
     /**

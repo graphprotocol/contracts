@@ -24,14 +24,14 @@ interface IHorizonStakingMain {
      * @param tokens The amount of tokens unstaked
      * @param until The block number until the stake is locked
      */
-    event StakeLocked(address indexed serviceProvider, uint256 tokens, uint256 until);
+    event HorizonStakeLocked(address indexed serviceProvider, uint256 tokens, uint256 until);
 
     /**
      * @notice Emitted when a service provider withdraws tokens during the transition period.
      * @param serviceProvider The address of the service provider
      * @param tokens The amount of tokens withdrawn
      */
-    event StakeWithdrawn(address indexed serviceProvider, uint256 tokens);
+    event HorizonStakeWithdrawn(address indexed serviceProvider, uint256 tokens);
 
     // -- Events: provision --
 
@@ -486,7 +486,7 @@ interface IHorizonStakingMain {
      * - `_tokens` cannot be zero.
      * - Caller must have previously approved this contract to pull tokens from their balance.
      *
-     * Emits a {StakeDeposited} event.
+     * Emits a {HorizonStakeDeposited} event.
      *
      * @param tokens Amount of tokens to stake
      */
@@ -500,7 +500,7 @@ interface IHorizonStakingMain {
      * - `_tokens` cannot be zero.
      * - Caller must have previously approved this contract to pull tokens from their balance.
      *
-     * Emits a {StakeDeposited} event.
+     * Emits a {HorizonStakeDeposited} event.
      *
      * @param serviceProvider Address of the service provider
      * @param tokens Amount of tokens to stake
@@ -516,7 +516,7 @@ interface IHorizonStakingMain {
      * - `_tokens` cannot be zero.
      * - Caller must have previously approved this contract to pull tokens from their balance.
      *
-     * Emits {StakeDeposited} and {ProvisionIncreased} events.
+     * Emits {HorizonStakeDeposited} and {ProvisionIncreased} events.
      *
      * @param serviceProvider Address of the service provider
      * @param verifier Address of the verifier
@@ -537,8 +537,8 @@ interface IHorizonStakingMain {
      * - `_serviceProvider` must have enough idle stake to cover the staking amount and any
      *   legacy allocation.
      *
-     * Emits a {StakeLocked} event during the transition period.
-     * Emits a {StakeWithdrawn} event after the transition period.
+     * Emits a {HorizonStakeLocked} event during the transition period.
+     * Emits a {HorizonStakeWithdrawn} event after the transition period.
      *
      * @param tokens Amount of tokens to unstake
      */

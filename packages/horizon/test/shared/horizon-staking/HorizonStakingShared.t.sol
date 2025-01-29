@@ -160,7 +160,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // stakeTo
         token.approve(address(staking), tokens);
         vm.expectEmit();
-        emit IHorizonStakingBase.StakeDeposited(serviceProvider, tokens);
+        emit IHorizonStakingBase.HorizonStakeDeposited(serviceProvider, tokens);
         staking.stakeTo(serviceProvider, tokens);
 
         // after
@@ -209,15 +209,15 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // unstake
         if (deprecatedThawingPeriod == 0) {
             vm.expectEmit(address(staking));
-            emit IHorizonStakingMain.StakeWithdrawn(msgSender, _tokens);
+            emit IHorizonStakingMain.HorizonStakeWithdrawn(msgSender, _tokens);
         } else {
             if (withdrawCalled) {
                 vm.expectEmit(address(staking));
-                emit IHorizonStakingMain.StakeWithdrawn(msgSender, beforeServiceProvider.__DEPRECATED_tokensLocked);
+                emit IHorizonStakingMain.HorizonStakeWithdrawn(msgSender, beforeServiceProvider.__DEPRECATED_tokensLocked);
             }
 
             vm.expectEmit(address(staking));
-            emit IHorizonStakingMain.StakeLocked(
+            emit IHorizonStakingMain.HorizonStakeLocked(
                 msgSender,
                 withdrawCalled ? _tokens : beforeServiceProvider.__DEPRECATED_tokensLocked + _tokens,
                 block.number + deprecatedThawingPeriod
@@ -278,7 +278,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
 
         // withdraw
         vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.StakeWithdrawn(msgSender, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        emit IHorizonStakingMain.HorizonStakeWithdrawn(msgSender, beforeServiceProvider.__DEPRECATED_tokensLocked);
         staking.withdraw();
 
         // after
