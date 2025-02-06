@@ -1,3 +1,5 @@
+/* eslint-disable no-prototype-builtins */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 require('json5/lib/register')
 
@@ -18,6 +20,39 @@ export function loadConfig(configPath: string, prefix: string, networkName: stri
   }
 
   return removeNFromBigInts(require(configFile))
+}
+
+export function patchConfig(jsonData: any, patches: Record<string, any>) {
+  function recursivePatch(obj: any) {
+    if (typeof obj === 'object' && obj !== null) {
+      for (const key in obj) {
+        if (key in patches) {
+          obj[key] = patches[key]
+        } else {
+          recursivePatch(obj[key])
+        }
+      }
+    }
+  }
+
+  recursivePatch(jsonData)
+  return jsonData
+}
+
+export function mergeConfigs(obj1: any, obj2: any) {
+  const merged = { ...obj1 }
+
+  for (const key in obj2) {
+    if (obj2.hasOwnProperty(key)) {
+      if (typeof obj2[key] === 'object' && obj2[key] !== null && obj1[key]) {
+        merged[key] = mergeConfigs(obj1[key], obj2[key])
+      } else {
+        merged[key] = obj2[key]
+      }
+    }
+  }
+
+  return merged
 }
 
 export function saveAddressBook(

@@ -2,8 +2,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
-import { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
-
 import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 
 export default buildModule('Controller', (m) => {
@@ -18,18 +16,23 @@ export default buildModule('Controller', (m) => {
   return { Controller }
 })
 
-export const MigrateControllerModule = buildModule('Controller', (m) => {
-  const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
-
-  const governor = m.getAccount(1)
+export const MigrateControllerDeployerModule = buildModule('ControllerDeployer', (m) => {
   const controllerAddress = m.getParameter('controllerAddress')
 
   const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
 
+  return { Controller }
+})
+
+export const MigrateControllerGovernorModule = buildModule('ControllerGovernor', (m) => {
+  const { Controller } = m.useModule(MigrateControllerDeployerModule)
+
+  const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
+
   // GraphProxyAdmin was not registered in the controller in the original protocol
   m.call(Controller, 'setContractProxy',
-    [ethers.keccak256(ethers.toUtf8Bytes('GraphProxyAdmin')), GraphProxyAdmin],
-    { id: 'setContractProxy_GraphProxyAdmin', from: governor },
+    [ethers.keccak256(ethers.toUtf8Bytes('GraphProxyAdmin')), graphProxyAdminAddress],
+    { id: 'setContractProxy_GraphProxyAdmin' },
   )
 
   return { Controller }

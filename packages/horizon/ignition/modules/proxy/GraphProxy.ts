@@ -4,7 +4,6 @@ import {
   ContractFuture,
   ContractOptions,
   IgnitionModuleBuilder,
-  ModuleParameterRuntimeValue,
 } from '@nomicfoundation/ignition-core'
 
 import { deployImplementation, type ImplementationMetadata } from './implementation'
@@ -31,23 +30,6 @@ export function deployGraphProxy(
 export function upgradeGraphProxy(
   m: IgnitionModuleBuilder,
   proxyAdmin: CallableContractFuture<string>,
-  proxy: string | ModuleParameterRuntimeValue<string>,
-  implementation: ContractFuture<string>,
-  metadata: ImplementationMetadata,
-  options?: ContractOptions,
-) {
-  const GraphProxy = m.contractAt('GraphProxy', GraphProxyArtifact, proxy)
-
-  const upgradeCall = m.call(proxyAdmin, 'upgrade', [GraphProxy, implementation], options)
-  const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, GraphProxy], { ...options, after: [upgradeCall] })
-
-  return loadProxyWithABI(m, GraphProxy, metadata, { ...options, after: [acceptCall] })
-}
-
-// Same as upgradeGraphProxy, but without loading the proxy contracts
-export function upgradeGraphProxyNoLoad(
-  m: IgnitionModuleBuilder,
-  proxyAdmin: CallableContractFuture<string>,
   proxy: CallableContractFuture<string>,
   implementation: ContractFuture<string>,
   metadata: ImplementationMetadata,
@@ -55,6 +37,19 @@ export function upgradeGraphProxyNoLoad(
 ) {
   const upgradeCall = m.call(proxyAdmin, 'upgrade', [proxy, implementation], options)
   const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], { ...options, after: [upgradeCall] })
+
+  return loadProxyWithABI(m, proxy, metadata, { ...options, after: [acceptCall] })
+}
+
+export function acceptUpgradeGraphProxy(
+  m: IgnitionModuleBuilder,
+  proxyAdmin: CallableContractFuture<string>,
+  proxy: CallableContractFuture<string>,
+  implementation: ContractFuture<string>,
+  metadata: ImplementationMetadata,
+  options?: ContractOptions,
+) {
+  const acceptCall = m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], { ...options })
 
   return loadProxyWithABI(m, proxy, metadata, { ...options, after: [acceptCall] })
 }

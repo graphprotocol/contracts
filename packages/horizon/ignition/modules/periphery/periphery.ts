@@ -2,13 +2,13 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
-import ControllerModule, { MigrateControllerModule } from './Controller'
-import CurationModule, { MigrateCurationModule } from './Curation'
+import ControllerModule, { MigrateControllerDeployerModule } from './Controller'
+import CurationModule, { MigrateCurationDeployerModule } from './Curation'
 import EpochManagerModule, { MigrateEpochManagerModule } from './EpochManager'
 import GraphProxyAdminModule, { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
 import GraphTokenGatewayModule, { MigrateGraphTokenGatewayModule } from './GraphTokenGateway'
 import GraphTokenModule, { MigrateGraphTokenModule } from './GraphToken'
-import RewardsManagerModule, { MigrateRewardsManagerModule } from './RewardsManager'
+import RewardsManagerModule, { MigrateRewardsManagerDeployerModule } from './RewardsManager'
 
 export default buildModule('GraphHorizon_Periphery', (m) => {
   const { Controller } = m.useModule(ControllerModule)
@@ -39,9 +39,9 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
 })
 
 export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) => {
-  const { L2Curation } = m.useModule(MigrateCurationModule)
-  const { RewardsManager } = m.useModule(MigrateRewardsManagerModule)
-  const { Controller } = m.useModule(MigrateControllerModule)
+  const { L2CurationProxy: L2Curation, L2CurationImplementation } = m.useModule(MigrateCurationDeployerModule)
+  const { RewardsManagerProxy: RewardsManager, RewardsManagerImplementation } = m.useModule(MigrateRewardsManagerDeployerModule)
+  const { Controller } = m.useModule(MigrateControllerDeployerModule)
   const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
   const { EpochManager } = m.useModule(MigrateEpochManagerModule)
   const { GraphToken } = m.useModule(MigrateGraphTokenModule)
@@ -53,9 +53,11 @@ export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) 
     Controller,
     EpochManager,
     L2Curation,
+    L2CurationImplementation,
     GraphProxyAdmin,
     GraphToken,
     GraphTokenGateway,
     RewardsManager,
+    RewardsManagerImplementation,
   }
 })

@@ -1,9 +1,9 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { deployImplementation } from '../proxy/implementation'
-import { upgradeTransparentUpgradeableProxyNoLoad } from '../proxy/TransparentUpgradeableProxy'
+import { upgradeTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
 
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
-import HorizonProxiesModule, { MigrateHorizonProxiesModule } from './HorizonProxies'
+import HorizonProxiesModule, { MigrateHorizonProxiesDeployerModule } from './HorizonProxies'
 
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
 
@@ -22,7 +22,7 @@ export default buildModule('GraphPayments', (m) => {
   }, { after: [GraphPeripheryModule, HorizonProxiesModule] })
 
   // Upgrade proxy to implementation contract
-  const GraphPayments = upgradeTransparentUpgradeableProxyNoLoad(m,
+  const GraphPayments = upgradeTransparentUpgradeableProxy(m,
     GraphPaymentsProxyAdmin,
     GraphPaymentsProxy,
     GraphPaymentsImplementation, {
@@ -36,11 +36,15 @@ export default buildModule('GraphPayments', (m) => {
   return { GraphPayments, GraphPaymentsProxyAdmin }
 })
 
+// Note that this module requires MigrateHorizonProxiesGovernorModule to be executed first
+// The dependency is not made explicit to support the production workflow where the governor is a
+// multisig owned by the Graph Council.
+// For testnet, the dependency can be made explicit by having a parent module establish it.
 export const MigrateGraphPaymentsModule = buildModule('GraphPayments', (m) => {
-  const { GraphPaymentsProxyAdmin, GraphPaymentsProxy } = m.useModule(MigrateHorizonProxiesModule)
+  const { GraphPaymentsProxyAdmin, GraphPaymentsProxy } = m.useModule(MigrateHorizonProxiesDeployerModule)
   const { Controller } = m.useModule(MigratePeripheryModule)
 
-  const governor = m.getAccount(1)
+  const governor = m.getParameter('governor')
   const protocolPaymentCut = m.getParameter('protocolPaymentCut')
 
   // Deploy GraphPayments implementation
@@ -48,10 +52,10 @@ export const MigrateGraphPaymentsModule = buildModule('GraphPayments', (m) => {
     name: 'GraphPayments',
     artifact: GraphPaymentsArtifact,
     constructorArgs: [Controller, protocolPaymentCut],
-  }, { after: [MigrateHorizonProxiesModule] })
+  })
 
   // Upgrade proxy to implementation contract
-  const GraphPayments = upgradeTransparentUpgradeableProxyNoLoad(m,
+  const GraphPayments = upgradeTransparentUpgradeableProxy(m,
     GraphPaymentsProxyAdmin,
     GraphPaymentsProxy,
     GraphPaymentsImplementation, {

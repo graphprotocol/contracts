@@ -53,5 +53,5 @@ cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/RewardsManager#
 cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/BridgeEscrow#GraphProxy.dbg.json"
 cp "$DBG_DIR_DEST/GraphProxy#GraphProxy.dbg.json" "$DBG_DIR_DEST/EpochManager#GraphProxy.dbg.json"
 
-cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxies#TransparentUpgradeableProxy_GraphPayments.dbg.json"
-cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxies#TransparentUpgradeableProxy_PaymentsEscrow.dbg.json"
+cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxiesDeployer#TransparentUpgradeableProxy_GraphPayments.dbg.json"
+cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxiesDeployer#TransparentUpgradeableProxy_PaymentsEscrow.dbg.json"

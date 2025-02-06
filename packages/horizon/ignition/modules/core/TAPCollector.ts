@@ -1,7 +1,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
-import HorizonProxiesModule, { MigrateHorizonProxiesModule } from './HorizonProxies'
+import HorizonProxiesModule from './HorizonProxies'
 
 import TAPCollectorArtifact from '../../../build/contracts/contracts/payments/collectors/TAPCollector.sol/TAPCollector.json'
 
@@ -22,6 +22,10 @@ export default buildModule('TAPCollector', (m) => {
   return { TAPCollector }
 })
 
+// Note that this module requires MigrateHorizonProxiesGovernorModule to be executed first
+// The dependency is not made explicit to support the production workflow where the governor is a
+// multisig owned by the Graph Council.
+// For testnet, the dependency can be made explicit by having a parent module establish it.
 export const MigrateTAPCollectorModule = buildModule('TAPCollector', (m) => {
   const { Controller } = m.useModule(MigratePeripheryModule)
 
@@ -33,7 +37,6 @@ export const MigrateTAPCollectorModule = buildModule('TAPCollector', (m) => {
     'TAPCollector',
     TAPCollectorArtifact,
     [name, version, Controller, revokeSignerThawingPeriod],
-    { after: [MigrateHorizonProxiesModule] },
   )
 
   return { TAPCollector }
