@@ -47,7 +47,6 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         return
             ITAPCollector.ReceiptAggregateVoucher({
                 payer: users.gateway,
-                collector: address(tapCollector),
                 serviceProvider: indexer,
                 dataService: address(subgraphService),
                 timestampNs: 0,
