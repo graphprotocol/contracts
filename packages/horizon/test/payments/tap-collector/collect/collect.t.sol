@@ -42,7 +42,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     function _getRAV(
         address _allocationId,
         address _payer,
-        address _collector,
         address _indexer,
         address _dataService,
         uint128 _tokens
@@ -51,7 +50,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
             ITAPCollector.ReceiptAggregateVoucher({
                 collectionId: bytes32(uint256(uint160(_allocationId))),
                 payer: _payer,
-                collector: _collector,
                 dataService: _dataService,
                 serviceProvider: _indexer,
                 timestampNs: 0,
@@ -109,27 +107,6 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
             _collect(IGraphPayments.PaymentTypes.QueryFee, data);
             payed += tokensPerStep;
         }
-    }
-
-    function testTAPCollector_Collect_RevertWhen_OtherCollector() public useGateway useSigner {
-        address otherCollector = makeAddr("otherCollector");
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            otherCollector,
-            users.indexer,
-            users.verifier,
-            uint128(0)
-        );
-
-        resetPrank(users.verifier);
-        bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorInvalidCollector.selector,
-            address(tapCollector),
-            otherCollector
-        );
-        vm.expectRevert(expectedError);
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
     function testTAPCollector_Collect_RevertWhen_NoProvision(uint256 tokens) public useGateway useSigner {

@@ -29,7 +29,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     /// @notice The EIP712 typehash for the ReceiptAggregateVoucher struct
     bytes32 private constant EIP712_RAV_TYPEHASH =
         keccak256(
-            "ReceiptAggregateVoucher(address payer,address collector,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
+            "ReceiptAggregateVoucher(address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
         );
 
     /// @notice Authorization details for payer-signer pairs
@@ -168,12 +168,6 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     ) private returns (uint256) {
         (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (SignedRAV, uint256));
 
-        // Ensure the RAV was issued to this collector
-        require(
-            signedRAV.rav.collector == address(this),
-            TAPCollectorInvalidCollector(address(this), signedRAV.rav.collector)
-        );
-
         // Ensure caller is the RAV data service
         require(
             signedRAV.rav.dataService == msg.sender,
@@ -266,7 +260,6 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
                     abi.encode(
                         EIP712_RAV_TYPEHASH,
                         _rav.payer,
-                        _rav.collector,
                         _rav.serviceProvider,
                         _rav.dataService,
                         _rav.timestampNs,
