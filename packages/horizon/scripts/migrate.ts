@@ -18,17 +18,28 @@ async function main() {
   console.log('Using governor account:', governor.address)
 
   console.log('========== Running migration: step 1 ==========')
-  await ignition.deploy(MigrateModuleStep1, {
+  const {
+    GraphPaymentsProxy,
+    PaymentsEscrowProxy
+  } = await ignition.deploy(MigrateModuleStep1, {
     displayUi: true,
     parameters: HorizonMigrateConfig,
     deploymentId: `horizon-${hre.network.name}`,
   })
 
+  let patchedHorizonMigrateConfig = IgnitionHelper.patchConfig(HorizonMigrateConfig, {
+    HorizonProxiesGovernor: {
+      graphPaymentsAddress: GraphPaymentsProxy.target,
+      paymentsEscrowAddress: PaymentsEscrowProxy.target
+    }
+  })
+
   console.log('========== Running migration: step 2 ==========')
   await ignition.deploy(MigrateModuleStep2, {
     displayUi: true,
-    parameters: HorizonMigrateConfig,
+    parameters: patchedHorizonMigrateConfig,
     deploymentId: `horizon-${hre.network.name}`,
+    defaultSender: governor.address,
   })
 
   console.log('========== Running migration: step 3 ==========')
@@ -40,11 +51,24 @@ async function main() {
 
   IgnitionHelper.saveAddressBook(deployment, hre.network.config.chainId)
 
+  patchedHorizonMigrateConfig = IgnitionHelper.patchConfig(patchedHorizonMigrateConfig, {
+    HorizonStakingGovernor: {
+      horizonStakingImplementationAddress: deployment.HorizonStakingImplementation.target
+    },
+    L2CurationGovernor: {
+      curationImplementationAddress: deployment.L2CurationImplementation.target
+    },
+    RewardsManagerGovernor: {
+      rewardsManagerImplementationAddress: deployment.RewardsManagerImplementation.target
+    }
+  })
+
   console.log('========== Running migration: step 4 ==========')
   await ignition.deploy(MigrateModuleStep4, {
     displayUi: true,
-    parameters: HorizonMigrateConfig,
+    parameters: patchedHorizonMigrateConfig,
     deploymentId: `horizon-${hre.network.name}`,
+    defaultSender: governor.address,
   })
 
   console.log('Migration successful! 🎉')

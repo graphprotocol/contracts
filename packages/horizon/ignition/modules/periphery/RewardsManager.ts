@@ -1,4 +1,4 @@
-import { acceptUpgradeGraphProxy, deployWithGraphProxy } from '../proxy/GraphProxy'
+import { upgradeGraphProxy, deployWithGraphProxy } from '../proxy/GraphProxy'
 import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
 import { deployImplementation } from '../proxy/implementation'
 
@@ -59,7 +59,7 @@ export const MigrateRewardsManagerGovernorModule = buildModule('RewardsManagerGo
     artifact: RewardsManagerArtifact,
   }
 
-  const RewardsManager = acceptUpgradeGraphProxy(m, GraphProxyAdmin, RewardsManagerProxy, RewardsManagerImplementation, implementationMetadata)
+  const RewardsManager = upgradeGraphProxy(m, GraphProxyAdmin, RewardsManagerProxy, RewardsManagerImplementation, implementationMetadata)
   m.call(RewardsManager, 'setSubgraphService', [subgraphServiceAddress])
 
   return { RewardsManager }

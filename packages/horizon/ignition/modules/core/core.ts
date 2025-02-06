@@ -15,10 +15,10 @@ export default buildModule('GraphHorizon_Core', (m) => {
 })
 
 export const MigrateHorizonCoreModule = buildModule('GraphHorizon_Core', (m) => {
-  const { HorizonStakingProxy: HorizonStaking } = m.useModule(MigrateHorizonStakingDeployerModule)
+  const { HorizonStakingProxy: HorizonStaking, HorizonStakingImplementation } = m.useModule(MigrateHorizonStakingDeployerModule)
   const { GraphPayments } = m.useModule(MigrateGraphPaymentsModule)
   const { PaymentsEscrow } = m.useModule(MigratePaymentsEscrowModule)
   const { TAPCollector } = m.useModule(MigrateTAPCollectorModule)
 
-  return { HorizonStaking, GraphPayments, PaymentsEscrow, TAPCollector }
+  return { HorizonStaking, HorizonStakingImplementation, GraphPayments, PaymentsEscrow, TAPCollector }
 })

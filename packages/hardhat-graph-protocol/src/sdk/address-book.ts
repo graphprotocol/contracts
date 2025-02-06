@@ -104,15 +104,13 @@ export abstract class AddressBook<
    * @returns the address book entry for the contract
    * Returns an empty address book entry if the contract is not found
    */
-  getEntry(name: ContractName): AddressBookEntry {
-    try {
-      const entry = this.addressBook[this.chainId][name]
-      this._assertAddressBookEntry(entry)
-      return entry
-    } catch (_) {
-      // TODO: should we throw instead?
-      return { address: '0x0000000000000000000000000000000000000000' }
+  getEntry(name: ContractName): { address: string } {
+    const entry = this.addressBook[this.chainId][name]
+    // Handle both object and string formats
+    if (typeof entry === 'string') {
+      return { address: entry }
     }
+    return entry
   }
 
   /**
@@ -215,13 +213,20 @@ export abstract class AddressBook<
   }
 
   // Asserts the provided object is a valid address book entry
-  _assertAddressBookEntry(json: unknown): asserts json is AddressBookEntry {
-    assertObject(json)
+  _assertAddressBookEntry(
+    entry: unknown,
+  ): asserts entry is { address: string } {
+    if (typeof entry === 'string') {
+      // If it's a string, treat it as an address
+      return
+    }
 
-    if (typeof json.address !== 'string') throw new AssertionError({ message: 'Invalid address' })
-    if (json.proxy && typeof json.proxy !== 'boolean')
-      throw new AssertionError({ message: 'Invalid proxy' })
-    if (json.implementation && typeof json.implementation !== 'object')
-      throw new AssertionError({ message: 'Invalid implementation' })
+    assertObject(entry)
+    if (!('address' in entry)) {
+      throw new Error('Address book entry must have an address field')
+    }
+    if (typeof entry.address !== 'string') {
+      throw new Error('Address book entry address must be a string')
+    }
   }
 }
