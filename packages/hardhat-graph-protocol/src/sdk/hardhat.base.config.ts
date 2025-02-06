@@ -16,7 +16,7 @@ const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-r
 const VIRTUAL_ARBITRUM_ONE_RPC = vars.has('VIRTUAL_ARBITRUM_ONE_RPC') ? vars.get('VIRTUAL_ARBITRUM_ONE_RPC') : undefined
 
 // Tenderly API Key
-const TENDERLY_API_KEY = vars.get('TENDERLY_API_KEY', undefined)
+const TENDERLY_API_KEY = vars.has('TENDERLY_API_KEY') ? vars.get('TENDERLY_API_KEY') : undefined
 
 // Accounts
 const DEPLOYER_PRIVATE_KEY = vars.get('DEPLOYER_PRIVATE_KEY', undefined)
@@ -51,8 +51,10 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
   apiKey: {
     arbitrumSepolia: ARBISCAN_API_KEY,
-    virtualArbitrumSepolia: TENDERLY_API_KEY,
-    virtualArbitrumOne: TENDERLY_API_KEY,
+    ...(TENDERLY_API_KEY && {
+      virtualArbitrumSepolia: TENDERLY_API_KEY,
+      virtualArbitrumOne: TENDERLY_API_KEY,
+    }),
   },
   customChains: [
     {
@@ -126,7 +128,6 @@ export const hardhatBaseConfig: HardhatUserConfig & { etherscan: Partial<Ethersc
   graph: {
     deployments: {
       horizon: require.resolve('@graphprotocol/horizon/addresses.json'),
-      subgraphService: require.resolve('@graphprotocol/subgraph-service/addresses.json'),
     },
   },
   etherscan: etherscanUserConfig,

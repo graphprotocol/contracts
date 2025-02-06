@@ -1,5 +1,5 @@
-import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
 import { HardhatUserConfig } from 'hardhat/config'
+import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
 
 // Hardhat plugins
 import '@nomicfoundation/hardhat-foundry'
@@ -15,12 +15,6 @@ if (process.env.BUILD_RUN !== 'true') {
 
 const config: HardhatUserConfig = {
   ...hardhatBaseConfig,
-  graph: {
-    deployments: {
-      ...hardhatBaseConfig.graph?.deployments,
-      subgraphService: false
-    }
-  },
   tenderly: {
     project: "graph-network",
     username: "graphprotocol",
