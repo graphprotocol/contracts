@@ -2,30 +2,23 @@ import { vars } from 'hardhat/config'
 
 import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolidityUserConfig } from 'hardhat/types'
 import type { EtherscanConfig } from '@nomicfoundation/hardhat-verify/types'
+import type { GraphRuntimeEnvironmentOptions } from '../types'
 
-// This next import ensures secure accounts config is correctly typed
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import 'hardhat-secure-accounts'
-
-// Environment variables
-const ARBISCAN_API_KEY = vars.get('ARBISCAN_API_KEY', undefined)
+// TODO: this should be imported from hardhat-secure-accounts, but currently it's not exported
+interface SecureAccountsOptions {
+  enabled?: boolean
+}
 
 // RPCs
-const VIRTUAL_ARBITRUM_SEPOLIA_RPC = vars.has('VIRTUAL_ARBITRUM_SEPOLIA_RPC') ? vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC') : undefined
+const ARBITRUM_ONE_RPC = vars.get('ARBITRUM_ONE_RPC', 'https://arb1.arbitrum.io/rpc')
 const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-rollup.arbitrum.io/rpc')
-const VIRTUAL_ARBITRUM_ONE_RPC = vars.has('VIRTUAL_ARBITRUM_ONE_RPC') ? vars.get('VIRTUAL_ARBITRUM_ONE_RPC') : undefined
-
-// Tenderly API Key
-const TENDERLY_API_KEY = vars.has('TENDERLY_API_KEY') ? vars.get('TENDERLY_API_KEY') : undefined
 
 // Accounts
-const DEPLOYER_PRIVATE_KEY = vars.get('DEPLOYER_PRIVATE_KEY', undefined)
-const GOVERNOR_PRIVATE_KEY = vars.get('GOVERNOR_PRIVATE_KEY', undefined)
 const getTestnetAccounts = () => {
   const accounts: string[] = []
-  if (DEPLOYER_PRIVATE_KEY) accounts.push(DEPLOYER_PRIVATE_KEY)
-  if (GOVERNOR_PRIVATE_KEY) accounts.push(GOVERNOR_PRIVATE_KEY)
-  return accounts.length > 0 ? accounts : undefined
+  if (vars.has('DEPLOYER_PRIVATE_KEY')) accounts.push(vars.get('DEPLOYER_PRIVATE_KEY'))
+  if (vars.has('GOVERNOR_PRIVATE_KEY')) accounts.push(vars.get('GOVERNOR_PRIVATE_KEY'))
+  return accounts
 }
 const getHardhatAccounts = () => {
   return {
@@ -50,34 +43,35 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
 
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
   apiKey: {
-    arbitrumSepolia: ARBISCAN_API_KEY,
-    ...(TENDERLY_API_KEY && {
-      virtualArbitrumSepolia: TENDERLY_API_KEY,
-      virtualArbitrumOne: TENDERLY_API_KEY,
+    ...(vars.has('ARBISCAN_API_KEY') && {
+      arbitrumSepolia: vars.get('ARBISCAN_API_KEY'),
+    }),
+    ...(vars.has('TENDERLY_API_KEY') && {
+      virtualArbitrumSepolia: vars.get('TENDERLY_API_KEY'),
+      virtualArbitrumOne: vars.get('TENDERLY_API_KEY'),
     }),
   },
   customChains: [
-    {
-      network: 'arbitrumSepolia',
-      chainId: 421614,
-      urls: { apiURL: 'https://api-sepolia.arbiscan.io/api', browserURL: 'https://sepolia.arbiscan.io/' },
-    },
-    {
-      network: 'virtualArbitrumSepolia',
-      chainId: 421615,
-      urls: {
-        apiURL: VIRTUAL_ARBITRUM_SEPOLIA_RPC + '/verify/etherscan',
-        browserURL: VIRTUAL_ARBITRUM_SEPOLIA_RPC || 'https://sepolia.arbiscan.io/',
-      },
-    },
-    {
-      network: 'virtualArbitrumOne',
-      chainId: 42162,
-      urls: {
-        apiURL: VIRTUAL_ARBITRUM_ONE_RPC + '/verify/etherscan',
-        browserURL: VIRTUAL_ARBITRUM_SEPOLIA_RPC || 'https://arbiscan.io/',
-      },
-    },
+    ...(vars.has('VIRTUAL_ARBITRUM_SEPOLIA_RPC')
+      ? [{
+          network: 'virtualArbitrumSepolia',
+          chainId: 421615,
+          urls: {
+            apiURL: `${vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC')}/verify/etherscan`,
+            browserURL: vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC') || 'https://sepolia.arbiscan.io/',
+          },
+        }]
+      : []),
+    ...(vars.has('VIRTUAL_ARBITRUM_ONE_RPC')
+      ? [{
+          network: 'virtualArbitrumOne',
+          chainId: 42162,
+          urls: {
+            apiURL: `${vars.get('VIRTUAL_ARBITRUM_ONE_RPC')}/verify/etherscan`,
+            browserURL: vars.get('VIRTUAL_ARBITRUM_ONE_RPC') || 'https://arbiscan.io/',
+          },
+        }]
+      : []),
   ],
 }
 
@@ -85,7 +79,7 @@ export const etherscanUserConfig: Partial<EtherscanConfig> = {
 // - hardhat is used for unit tests
 // - localhost is used for local development on a hardhat network or fork
 // - virtualArbitrumSepolia is for Tenderly Virtual Testnet
-export const networksUserConfig: NetworksUserConfig = {
+export const networksUserConfig: NetworksUserConfig & Record<string, { secureAccounts?: SecureAccountsOptions }> = {
   hardhat: {
     chainId: 31337,
     accounts: getHardhatAccounts(),
@@ -95,6 +89,13 @@ export const networksUserConfig: NetworksUserConfig = {
     url: 'http://localhost:8545',
     accounts: getTestnetAccounts(),
   },
+  arbitrumOne: {
+    chainId: 42161,
+    url: ARBITRUM_ONE_RPC,
+    secureAccounts: {
+      enabled: true,
+    },
+  },
   arbitrumSepolia: {
     chainId: 421614,
     url: ARBITRUM_SEPOLIA_RPC,
@@ -102,23 +103,27 @@ export const networksUserConfig: NetworksUserConfig = {
       enabled: true,
     },
   },
-  ...(VIRTUAL_ARBITRUM_SEPOLIA_RPC && {
+  ...(vars.has('VIRTUAL_ARBITRUM_SEPOLIA_RPC') && {
     virtualArbitrumSepolia: {
       chainId: 421615,
-      url: VIRTUAL_ARBITRUM_SEPOLIA_RPC,
+      url: vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC'),
       accounts: getTestnetAccounts(),
     },
   }),
-  ...(VIRTUAL_ARBITRUM_ONE_RPC && {
+  ...(vars.has('VIRTUAL_ARBITRUM_ONE_RPC') && {
     virtualArbitrumOne: {
       chainId: 42162,
-      url: VIRTUAL_ARBITRUM_ONE_RPC,
+      url: vars.get('VIRTUAL_ARBITRUM_ONE_RPC'),
       accounts: getTestnetAccounts(),
     },
   }),
 }
 
-export const hardhatBaseConfig: HardhatUserConfig & { etherscan: Partial<EtherscanConfig> } = {
+type HardhatBaseConfig = HardhatUserConfig &
+  { etherscan: Partial<EtherscanConfig> } &
+  { graph: GraphRuntimeEnvironmentOptions } &
+  { secureAccounts: SecureAccountsOptions }
+export const hardhatBaseConfig: HardhatBaseConfig = {
   solidity: solidityUserConfig,
   paths: projectPathsUserConfig,
   secureAccounts: {

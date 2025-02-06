@@ -1,6 +1,6 @@
-import { upgradeGraphProxy } from '../proxy/GraphProxy'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { deployImplementation } from '../proxy/implementation'
+import { upgradeGraphProxy } from '../proxy/GraphProxy'
 
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 import HorizonProxiesModule from './HorizonProxies'
