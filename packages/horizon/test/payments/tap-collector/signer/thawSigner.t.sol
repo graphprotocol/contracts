@@ -34,7 +34,6 @@ contract TAPCollectorThawSignerTest is TAPCollectorTest {
 
         bytes memory expectedError = abi.encodeWithSelector(
             ITAPCollector.TAPCollectorAuthorizationAlreadyRevoked.selector,
-            users.gateway,
             signer
         );
         vm.expectRevert(expectedError);
