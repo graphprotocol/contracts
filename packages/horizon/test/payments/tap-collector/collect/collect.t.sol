@@ -17,10 +17,10 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         uint256 _signerPrivateKey,
         address _payer,
         address _indexer,
-        address _collector,
+        address _dataService,
         uint128 _tokens
     ) private view returns (bytes memory) {
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(_payer, _indexer, _collector, _tokens);
+        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(_payer, _indexer, _dataService, _tokens);
         bytes32 messageHash = tapCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -31,13 +31,13 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     function _getRAV(
         address _payer,
         address _indexer,
-        address _collector,
+        address _dataService,
         uint128 _tokens
     ) private pure returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
                 payer: _payer,
-                dataService: _collector,
+                dataService: _dataService,
                 serviceProvider: _indexer,
                 timestampNs: 0,
                 valueAggregate: _tokens,

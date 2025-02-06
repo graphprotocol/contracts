@@ -34,8 +34,10 @@ bin/
 .vscode
 
 # Coverage and other reports
+coverage/
 reports/
 coverage.json
+lcov.info
 
 # Local test files
 addresses-local.json

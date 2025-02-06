@@ -29,7 +29,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     /// @notice The EIP712 typehash for the ReceiptAggregateVoucher struct
     bytes32 private constant EIP712_RAV_TYPEHASH =
         keccak256(
-            "ReceiptAggregateVoucher(address payer,address dataService,address serviceProvider,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
+            "ReceiptAggregateVoucher(address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
         );
 
     /// @notice Authorization details for payer-signer pairs
@@ -164,8 +164,9 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         bytes memory _data,
         uint256 _tokensToCollect
     ) private returns (uint256) {
-        // Ensure caller is the RAV data service
         (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (SignedRAV, uint256));
+
+        // Ensure caller is the RAV data service
         require(
             signedRAV.rav.dataService == msg.sender,
             TAPCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService)
@@ -224,8 +225,8 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         emit PaymentCollected(_paymentType, payer, receiver, dataService, tokensToCollect);
         emit RAVCollected(
             payer,
-            dataService,
             receiver,
+            dataService,
             signedRAV.rav.timestampNs,
             signedRAV.rav.valueAggregate,
             signedRAV.rav.metadata,
@@ -252,8 +253,8 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
                     abi.encode(
                         EIP712_RAV_TYPEHASH,
                         _rav.payer,
-                        _rav.dataService,
                         _rav.serviceProvider,
+                        _rav.dataService,
                         _rav.timestampNs,
                         _rav.valueAggregate,
                         keccak256(_rav.metadata)
