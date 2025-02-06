@@ -9,13 +9,13 @@ abstract contract AllocationManagerV1Storage {
     mapping(address allocationId => Allocation.State allocation) internal allocations;
 
     /// @notice Legacy allocation details
-    mapping(address allocationId => LegacyAllocation.State allocation) public legacyAllocations;
+    mapping(address allocationId => LegacyAllocation.State allocation) internal legacyAllocations;
 
     /// @notice Tracks allocated tokens per indexer
     mapping(address indexer => uint256 tokens) public allocationProvisionTracker;
 
     /// @notice Maximum amount of time, in seconds, allowed between presenting POIs to qualify for indexing rewards
-    uint256 internal maxPOIStaleness;
+    uint256 public maxPOIStaleness;
 
     /// @notice Destination of accrued indexing rewards
     mapping(address indexer => address destination) public rewardsDestination;
