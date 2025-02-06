@@ -22,7 +22,7 @@ interface IHorizonStakingBase {
      * @param serviceProvider The address of the service provider.
      * @param tokens The amount of tokens staked.
      */
-    event StakeDeposited(address indexed serviceProvider, uint256 tokens);
+    event HorizonStakeDeposited(address indexed serviceProvider, uint256 tokens);
 
     /**
      * @notice Thrown when using an invalid thaw request type.

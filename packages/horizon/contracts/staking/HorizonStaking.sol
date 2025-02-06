@@ -652,7 +652,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         if (lockingPeriod == 0) {
             sp.tokensStaked = stakedTokens - _tokens;
             _graphToken().pushTokens(serviceProvider, _tokens);
-            emit StakeWithdrawn(serviceProvider, _tokens);
+            emit HorizonStakeWithdrawn(serviceProvider, _tokens);
         } else {
             // Before locking more tokens, withdraw any unlocked ones if possible
             if (sp.__DEPRECATED_tokensLocked != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
@@ -672,7 +672,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             // Update balances
             sp.__DEPRECATED_tokensLocked = sp.__DEPRECATED_tokensLocked + _tokens;
             sp.__DEPRECATED_tokensLockedUntil = block.number + lockingPeriod;
-            emit StakeLocked(serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
+            emit HorizonStakeLocked(serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
         }
     }
 
@@ -699,7 +699,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         // Return tokens to the service provider
         _graphToken().pushTokens(_serviceProvider, tokensToWithdraw);
 
-        emit StakeWithdrawn(_serviceProvider, tokensToWithdraw);
+        emit HorizonStakeWithdrawn(_serviceProvider, tokensToWithdraw);
     }
 
     /**
@@ -866,7 +866,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         delegation.shares = delegation.shares + shares;
 
-        emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens);
+        emit TokensDelegated(_serviceProvider, _verifier, msg.sender, _tokens, shares);
     }
 
     /**
@@ -978,10 +978,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 _delegate(_newServiceProvider, _newVerifier, tokensThawed, _minSharesForNewProvider);
             } else {
                 _graphToken().pushTokens(msg.sender, tokensThawed);
+                emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
             }
         }
-
-        emit DelegatedTokensWithdrawn(_serviceProvider, _verifier, msg.sender, tokensThawed);
     }
 
     /**
