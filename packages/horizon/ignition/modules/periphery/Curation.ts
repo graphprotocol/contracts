@@ -1,4 +1,4 @@
-import { acceptUpgradeGraphProxy, deployWithGraphProxy } from '../proxy/GraphProxy'
+import { upgradeGraphProxy, deployWithGraphProxy } from '../proxy/GraphProxy'
 import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
 import { deployImplementation } from '../proxy/implementation'
 
@@ -59,7 +59,7 @@ export const MigrateCurationGovernorModule = buildModule('L2CurationGovernor', (
     artifact: CurationArtifact,
   }
 
-  const L2Curation = acceptUpgradeGraphProxy(m, GraphProxyAdmin, L2CurationProxy, L2CurationImplementation, implementationMetadata)
+  const L2Curation = upgradeGraphProxy(m, GraphProxyAdmin, L2CurationProxy, L2CurationImplementation, implementationMetadata)
   m.call(L2Curation, 'setSubgraphService', [subgraphServiceAddress])
 
   return { L2Curation }

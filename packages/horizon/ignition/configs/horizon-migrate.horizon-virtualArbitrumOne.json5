@@ -4,14 +4,14 @@
     "governor": "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
 
     // Addresses for contracts deployed in the original Graph Protocol
-    "graphProxyAdminAddress": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
-    "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
-    "horizonStakingAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
-    "epochManagerAddress": "0x88b3C7f37253bAA1A9b95feAd69bD5320585826D",
-    "graphTokenAddress": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
-    "graphTokenGatewayAddress": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
-    "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
-    "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+    "graphProxyAdminAddress": "0x2983936aC20202a6555993448E0d5654AC8Ca5fd",
+    "controllerAddress": "0x0a8491544221dd212964fbb96487467291b2C97e",
+    "horizonStakingAddress": "0x00669A4CF01450B64E8A2A20E9b1FCB71E61eF03",
+    "epochManagerAddress": "0x5A843145c43d328B9bB7a4401d94918f131bB281",
+    "graphTokenAddress": "0x9623063377AD1B27544C965cCd7342f7EA7e88C7",
+    "graphTokenGatewayAddress": "0x65E1a5e8946e7E87d9774f5288f41c30a99fD302",
+    "rewardsManagerAddress": "0x971B9d3d0Ae3ECa029CAB5eA1fB0F72c85e6a525",
+    "curationAddress": "0x22d78fb4bc72e191C765807f8891B5e1785C8014",
 
     // Must be set for step 4 of the migration
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",

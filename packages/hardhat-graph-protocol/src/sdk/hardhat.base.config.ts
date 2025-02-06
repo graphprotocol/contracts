@@ -5,7 +5,7 @@ import type { EtherscanConfig } from '@nomicfoundation/hardhat-verify/types'
 
 // This next import ensures secure accounts config is correctly typed
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { SecureAccountsOptions } from 'hardhat-secure-accounts/src/type-extensions'
+import 'hardhat-secure-accounts'
 
 // Environment variables
 const ARBISCAN_API_KEY = vars.get('ARBISCAN_API_KEY', undefined)
@@ -13,6 +13,10 @@ const ARBISCAN_API_KEY = vars.get('ARBISCAN_API_KEY', undefined)
 // RPCs
 const VIRTUAL_ARBITRUM_SEPOLIA_RPC = vars.has('VIRTUAL_ARBITRUM_SEPOLIA_RPC') ? vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC') : undefined
 const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-rollup.arbitrum.io/rpc')
+const VIRTUAL_ARBITRUM_ONE_RPC = vars.has('VIRTUAL_ARBITRUM_ONE_RPC') ? vars.get('VIRTUAL_ARBITRUM_ONE_RPC') : undefined
+
+// Tenderly API Key
+const TENDERLY_API_KEY = vars.get('TENDERLY_API_KEY', undefined)
 
 // Accounts
 const DEPLOYER_PRIVATE_KEY = vars.get('DEPLOYER_PRIVATE_KEY', undefined)
@@ -47,12 +51,30 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
   apiKey: {
     arbitrumSepolia: ARBISCAN_API_KEY,
+    virtualArbitrumSepolia: TENDERLY_API_KEY,
+    virtualArbitrumOne: TENDERLY_API_KEY,
   },
   customChains: [
     {
       network: 'arbitrumSepolia',
       chainId: 421614,
       urls: { apiURL: 'https://api-sepolia.arbiscan.io/api', browserURL: 'https://sepolia.arbiscan.io/' },
+    },
+    {
+      network: 'virtualArbitrumSepolia',
+      chainId: 421615,
+      urls: {
+        apiURL: VIRTUAL_ARBITRUM_SEPOLIA_RPC + '/verify/etherscan',
+        browserURL: VIRTUAL_ARBITRUM_SEPOLIA_RPC || 'https://sepolia.arbiscan.io/',
+      },
+    },
+    {
+      network: 'virtualArbitrumOne',
+      chainId: 42162,
+      urls: {
+        apiURL: VIRTUAL_ARBITRUM_ONE_RPC + '/verify/etherscan',
+        browserURL: VIRTUAL_ARBITRUM_SEPOLIA_RPC || 'https://arbiscan.io/',
+      },
     },
   ],
 }
@@ -82,6 +104,13 @@ export const networksUserConfig: NetworksUserConfig = {
     virtualArbitrumSepolia: {
       chainId: 421615,
       url: VIRTUAL_ARBITRUM_SEPOLIA_RPC,
+      accounts: getTestnetAccounts(),
+    },
+  }),
+  ...(VIRTUAL_ARBITRUM_ONE_RPC && {
+    virtualArbitrumOne: {
+      chainId: 42162,
+      url: VIRTUAL_ARBITRUM_ONE_RPC,
       accounts: getTestnetAccounts(),
     },
   }),

@@ -39,8 +39,8 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
 })
 
 export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) => {
-  const { L2CurationProxy: L2Curation } = m.useModule(MigrateCurationDeployerModule)
-  const { RewardsManagerProxy: RewardsManager } = m.useModule(MigrateRewardsManagerDeployerModule)
+  const { L2CurationProxy: L2Curation, L2CurationImplementation } = m.useModule(MigrateCurationDeployerModule)
+  const { RewardsManagerProxy: RewardsManager, RewardsManagerImplementation } = m.useModule(MigrateRewardsManagerDeployerModule)
   const { Controller } = m.useModule(MigrateControllerDeployerModule)
   const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
   const { EpochManager } = m.useModule(MigrateEpochManagerModule)
@@ -53,9 +53,11 @@ export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) 
     Controller,
     EpochManager,
     L2Curation,
+    L2CurationImplementation,
     GraphProxyAdmin,
     GraphToken,
     GraphTokenGateway,
     RewardsManager,
+    RewardsManagerImplementation,
   }
 })

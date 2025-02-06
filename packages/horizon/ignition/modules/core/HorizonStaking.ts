@@ -1,4 +1,4 @@
-import { acceptUpgradeGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'
+import { upgradeGraphProxy } from '../proxy/GraphProxy'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { deployImplementation } from '../proxy/implementation'
 
@@ -89,7 +89,7 @@ export const MigrateHorizonStakingGovernorModule = buildModule('HorizonStakingGo
   const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, graphProxyAdminAddress)
 
   // Upgrade proxy to implementation contract
-  const HorizonStaking = acceptUpgradeGraphProxy(m, GraphProxyAdmin, HorizonStakingProxy, HorizonStakingImplementation, {
+  const HorizonStaking = upgradeGraphProxy(m, GraphProxyAdmin, HorizonStakingProxy, HorizonStakingImplementation, {
     name: 'HorizonStaking',
     artifact: HorizonStakingArtifact,
   })

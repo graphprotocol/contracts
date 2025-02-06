@@ -37,11 +37,21 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     }
     logDebug(`Chain Id: ${chainId}`)
 
-    const deployments = [
-      ...Object.keys(opts.deployments ?? {}),
-      ...Object.keys(hre.network.config.deployments ?? {}),
-      ...Object.keys(hre.config.graph?.deployments ?? {}),
-    ].filter(v => isGraphDeployment(v))
+    const allDeployments = {
+      ...hre.config.graph?.deployments,
+      ...hre.network.config.deployments,
+      ...opts.deployments,
+    }
+
+    // Filter out disabled deployments and validate remaining ones
+    const deployments = Object.entries(allDeployments)
+      .filter(([_, value]) => {
+        // Keep only non-false values (string or object configs)
+        return typeof value === 'string' || (typeof value === 'object' && value !== null)
+      })
+      .map(([key]) => key)
+      .filter(v => isGraphDeployment(v))
+
     logDebug(`Detected deployments: ${deployments.join(', ')}`)
 
     // Build the Graph Runtime Environment (GRE) for each deployment
