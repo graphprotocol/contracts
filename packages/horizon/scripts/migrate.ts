@@ -20,7 +20,7 @@ async function main() {
   console.log('========== Running migration: step 1 ==========')
   const {
     GraphPaymentsProxy,
-    PaymentsEscrowProxy
+    PaymentsEscrowProxy,
   } = await ignition.deploy(MigrateModuleStep1, {
     displayUi: true,
     parameters: HorizonMigrateConfig,
@@ -30,8 +30,8 @@ async function main() {
   let patchedHorizonMigrateConfig = IgnitionHelper.patchConfig(HorizonMigrateConfig, {
     HorizonProxiesGovernor: {
       graphPaymentsAddress: GraphPaymentsProxy.target,
-      paymentsEscrowAddress: PaymentsEscrowProxy.target
-    }
+      paymentsEscrowAddress: PaymentsEscrowProxy.target,
+    },
   })
 
   console.log('========== Running migration: step 2 ==========')
@@ -53,14 +53,14 @@ async function main() {
 
   patchedHorizonMigrateConfig = IgnitionHelper.patchConfig(patchedHorizonMigrateConfig, {
     HorizonStakingGovernor: {
-      horizonStakingImplementationAddress: deployment.HorizonStakingImplementation.target
+      horizonStakingImplementationAddress: deployment.HorizonStakingImplementation.target,
     },
     L2CurationGovernor: {
-      curationImplementationAddress: deployment.L2CurationImplementation.target
+      curationImplementationAddress: deployment.L2CurationImplementation.target,
     },
     RewardsManagerGovernor: {
-      rewardsManagerImplementationAddress: deployment.RewardsManagerImplementation.target
-    }
+      rewardsManagerImplementationAddress: deployment.RewardsManagerImplementation.target,
+    },
   })
 
   console.log('========== Running migration: step 4 ==========')
