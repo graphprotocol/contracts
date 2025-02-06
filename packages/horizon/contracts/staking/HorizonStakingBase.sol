@@ -310,8 +310,6 @@ abstract contract HorizonStakingBase is
             return _getNextProvisionThawRequest;
         } else if (_requestType == ThawRequestType.Delegation) {
             return _getNextDelegationThawRequest;
-        } else if (_requestType == ThawRequestType.DelegationWithBeneficiary) {
-            return _getNextDelegationWithBeneficiaryThawRequest;
         } else {
             revert HorizonStakingInvalidThawRequestType();
         }
@@ -333,15 +331,6 @@ abstract contract HorizonStakingBase is
      */
     function _getNextDelegationThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
         return _thawRequests[ThawRequestType.Delegation][_thawRequestId].next;
-    }
-
-    /**
-     * @notice Retrieves the next thaw request for a delegation with a beneficiary.
-     * @param _thawRequestId The ID of the current thaw request.
-     * @return The ID of the next thaw request in the list.
-     */
-    function _getNextDelegationWithBeneficiaryThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _thawRequests[ThawRequestType.DelegationWithBeneficiary][_thawRequestId].next;
     }
 
     /**

@@ -57,18 +57,6 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 
-    function testUndelegate_WithBeneficiary(
-        uint256 amount,
-        uint256 delegationAmount,
-        address beneficiary
-    ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
-        vm.assume(beneficiary != address(0));
-        vm.assume(delegationAmount >= MIN_UNDELEGATION_WITH_BENEFICIARY);
-        resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
-        _undelegateWithBeneficiary(users.indexer, subgraphDataServiceAddress, delegation.shares, beneficiary);
-    }
-
     function testUndelegate_RevertWhen_InsuficientTokens(
         uint256 amount,
         uint256 delegationAmount,
@@ -254,16 +242,5 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
         // undelegate the rest
         resetPrank(users.delegator);
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares - delegation.shares / 2);
-    }
-
-    function testUndelegate_RevertIf_BeneficiaryIsZero(
-        uint256 amount,
-        uint256 delegationAmount
-    ) public useIndexer useProvision(amount, 0, 0) useDelegation(delegationAmount) {
-        resetPrank(users.delegator);
-        DelegationInternal memory delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
-        bytes memory expectedError = abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingInvalidBeneficiaryZeroAddress.selector);
-        vm.expectRevert(expectedError);
-        staking.undelegateWithBeneficiary(users.indexer, subgraphDataServiceAddress, delegation.shares, address(0));
     }
 }
