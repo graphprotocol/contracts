@@ -24,10 +24,26 @@ jobs:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
-      - name: Build
+      - name: Build contracts
+        run: |
+          pushd packages/contracts
+          yarn build
+          popd
+      - name: Build horizon
+        run: |
+          pushd packages/horizon
+          yarn build
+          popd
+      - name: Build subgraph service
         run: |
           pushd packages/subgraph-service
           yarn build
+          popd
+      - name: Build hardhat-graph-protocol
+        run: |
+          pushd packages/hardhat-graph-protocol
+          yarn build
+          popd
       - name: Run tests
         run: |
           pushd packages/subgraph-service
