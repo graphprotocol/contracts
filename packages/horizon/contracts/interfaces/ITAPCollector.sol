@@ -240,20 +240,6 @@ interface ITAPCollector is IPaymentsCollector {
     function revokeAuthorizedSigner(address signer) external;
 
     /**
-     * @dev Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
-     * @param signedRAV The SignedRAV containing the RAV and its signature.
-     * @return The address of the signer.
-     */
-    function recoverRAVSigner(SignedRAV calldata signedRAV) external view returns (address);
-
-    /**
-     * @dev Computes the hash of a ReceiptAggregateVoucher (RAV).
-     * @param rav The RAV for which to compute the hash.
-     * @return The hash of the RAV.
-     */
-    function encodeRAV(ReceiptAggregateVoucher calldata rav) external view returns (bytes32);
-
-    /**
      * @notice See {IPaymentsCollector.collect}
      * This variant adds the ability to partially collect a RAV by specifying the amount of tokens to collect.
      *
@@ -269,4 +255,18 @@ interface ITAPCollector is IPaymentsCollector {
         bytes calldata data,
         uint256 tokensToCollect
     ) external returns (uint256);
+
+    /**
+     * @dev Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
+     * @param signedRAV The SignedRAV containing the RAV and its signature.
+     * @return The address of the signer.
+     */
+    function recoverRAVSigner(SignedRAV calldata signedRAV) external view returns (address);
+
+    /**
+     * @dev Computes the hash of a ReceiptAggregateVoucher (RAV).
+     * @param rav The RAV for which to compute the hash.
+     * @return The hash of the RAV.
+     */
+    function encodeRAV(ReceiptAggregateVoucher calldata rav) external view returns (bytes32);
 }

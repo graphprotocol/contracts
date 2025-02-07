@@ -25,7 +25,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, _proofDeadline, msgSender));
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(tapCollector), _proofDeadline, msgSender));
         bytes32 proofToDigest = MessageHashUtils.toEthSignedMessageHash(messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signer, proofToDigest);
         return abi.encodePacked(r, s, v);

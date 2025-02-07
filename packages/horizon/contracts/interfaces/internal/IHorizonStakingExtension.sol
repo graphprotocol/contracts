@@ -106,6 +106,16 @@ interface IHorizonStakingExtension is IRewardsIssuer {
     function collect(uint256 tokens, address allocationID) external;
 
     /**
+     * @notice Slash the indexer stake. Delegated tokens are not subject to slashing.
+     * @dev Can only be called by the slasher role.
+     * @param indexer Address of indexer to slash
+     * @param tokens Amount of tokens to slash from the indexer stake
+     * @param reward Amount of reward tokens to send to a beneficiary
+     * @param beneficiary Address of a beneficiary to receive a reward for the slashing
+     */
+    function legacySlash(address indexer, uint256 tokens, uint256 reward, address beneficiary) external;
+
+    /**
      * @notice Return true if operator is allowed for indexer.
      * @param operator Address of the operator
      * @param indexer Address of the indexer
@@ -154,14 +164,4 @@ interface IHorizonStakingExtension is IRewardsIssuer {
      */
     // solhint-disable-next-line func-name-mixedcase
     function __DEPRECATED_getThawingPeriod() external view returns (uint64);
-
-    /**
-     * @notice Slash the indexer stake. Delegated tokens are not subject to slashing.
-     * @dev Can only be called by the slasher role.
-     * @param indexer Address of indexer to slash
-     * @param tokens Amount of tokens to slash from the indexer stake
-     * @param reward Amount of reward tokens to send to a beneficiary
-     * @param beneficiary Address of a beneficiary to receive a reward for the slashing
-     */
-    function legacySlash(address indexer, uint256 tokens, uint256 reward, address beneficiary) external;
 }

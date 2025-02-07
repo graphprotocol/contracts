@@ -299,23 +299,6 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice Determines the correct callback function for `getNextItem` based on the request type.
-     * @param _requestType The type of thaw request (Provision or Delegation).
-     * @return A function pointer to the appropriate `getNextItem` callback.
-     */
-    function _getNextThawRequest(
-        ThawRequestType _requestType
-    ) internal pure returns (function(bytes32) view returns (bytes32)) {
-        if (_requestType == ThawRequestType.Provision) {
-            return _getNextProvisionThawRequest;
-        } else if (_requestType == ThawRequestType.Delegation) {
-            return _getNextDelegationThawRequest;
-        } else {
-            revert HorizonStakingInvalidThawRequestType();
-        }
-    }
-
-    /**
      * @notice Retrieves the next thaw request for a provision.
      * @param _thawRequestId The ID of the current thaw request.
      * @return The ID of the next thaw request in the list.
@@ -365,6 +348,23 @@ abstract contract HorizonStakingBase is
         bytes32 _thawRequestId
     ) internal view returns (IHorizonStakingTypes.ThawRequest storage) {
         return _thawRequests[_requestType][_thawRequestId];
+    }
+
+    /**
+     * @notice Determines the correct callback function for `getNextItem` based on the request type.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @return A function pointer to the appropriate `getNextItem` callback.
+     */
+    function _getNextThawRequest(
+        ThawRequestType _requestType
+    ) internal pure returns (function(bytes32) view returns (bytes32)) {
+        if (_requestType == ThawRequestType.Provision) {
+            return _getNextProvisionThawRequest;
+        } else if (_requestType == ThawRequestType.Delegation) {
+            return _getNextDelegationThawRequest;
+        } else {
+            revert HorizonStakingInvalidThawRequestType();
+        }
     }
 
     /**

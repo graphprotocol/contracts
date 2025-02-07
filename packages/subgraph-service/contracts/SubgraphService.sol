@@ -225,7 +225,7 @@ contract SubgraphService is
     ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
         address allocationId = abi.decode(data, (address));
         require(
-            allocations.get(allocationId).indexer == indexer,
+            _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
         _closeAllocation(allocationId);
@@ -278,7 +278,7 @@ contract SubgraphService is
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
             require(
-                allocations.get(allocationId).indexer == indexer,
+                _allocations.get(allocationId).indexer == indexer,
                 SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
             );
             paymentCollected = _collectIndexingRewards(allocationId, poi, delegationRatio);
@@ -314,7 +314,7 @@ contract SubgraphService is
      * @notice See {ISubgraphService.closeStaleAllocation}
      */
     function closeStaleAllocation(address allocationId) external override whenNotPaused {
-        Allocation.State memory allocation = allocations.get(allocationId);
+        Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _closeAllocation(allocationId);
@@ -335,7 +335,7 @@ contract SubgraphService is
         whenNotPaused
     {
         require(
-            allocations.get(allocationId).indexer == indexer,
+            _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
         _resizeAllocation(allocationId, tokens, delegationRatio);
@@ -407,7 +407,7 @@ contract SubgraphService is
      * @notice See {ISubgraphService.getAllocation}
      */
     function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
-        return allocations[allocationId];
+        return _allocations[allocationId];
     }
 
     /**
@@ -428,7 +428,7 @@ contract SubgraphService is
     function getAllocationData(
         address allocationId
     ) external view override returns (address, bytes32, uint256, uint256, uint256) {
-        Allocation.State memory allo = allocations[allocationId];
+        Allocation.State memory allo = _allocations[allocationId];
         return (
             allo.indexer,
             allo.subgraphDeploymentId,
@@ -446,7 +446,7 @@ contract SubgraphService is
      * @return Total tokens allocated to subgraph
      */
     function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentId) external view override returns (uint256) {
-        return subgraphAllocatedTokens[subgraphDeploymentId];
+        return _subgraphAllocatedTokens[subgraphDeploymentId];
     }
 
     /**
@@ -458,14 +458,14 @@ contract SubgraphService is
      * @return Wether or not the allocation is active
      */
     function isActiveAllocation(address allocationId) external view override returns (bool) {
-        return allocations[allocationId].isOpen();
+        return _allocations[allocationId].isOpen();
     }
 
     /**
      * @notice See {ISubgraphService.getLegacyAllocation}
      */
     function getLegacyAllocation(address allocationId) external view override returns (LegacyAllocation.State memory) {
-        return legacyAllocations[allocationId];
+        return _legacyAllocations[allocationId];
     }
 
     /**
@@ -479,7 +479,7 @@ contract SubgraphService is
      * @notice See {ISubgraphService.isStaleAllocation}
      */
     function isStaleAllocation(address allocationId) external view override returns (bool) {
-        return allocations.get(allocationId).isStale(maxPOIStaleness);
+        return _allocations.get(allocationId).isStale(maxPOIStaleness);
     }
 
     /**
@@ -537,7 +537,7 @@ contract SubgraphService is
     function _collectQueryFees(ITAPCollector.SignedRAV memory _signedRav) private returns (uint256 feesCollected) {
         address indexer = _signedRav.rav.serviceProvider;
         address allocationId = abi.decode(_signedRav.rav.metadata, (address));
-        Allocation.State memory allocation = allocations.get(allocationId);
+        Allocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer
         require(allocation.indexer == indexer, SubgraphServiceInvalidRAV(indexer, allocation.indexer));

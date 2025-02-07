@@ -172,6 +172,54 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         );
     }
 
+    function legacySlash(
+        address indexer,
+        uint256 tokens,
+        uint256 reward,
+        address beneficiary
+    ) external override onlySlasher notPaused {
+        ServiceProviderInternal storage indexerStake = _serviceProviders[indexer];
+
+        // Only able to slash a non-zero number of tokens
+        require(tokens > 0, "!tokens");
+
+        // Rewards comes from tokens slashed balance
+        require(tokens >= reward, "rewards>slash");
+
+        // Cannot slash stake of an indexer without any or enough stake
+        require(indexerStake.tokensStaked > 0, "!stake");
+        require(tokens <= indexerStake.tokensStaked, "slash>stake");
+
+        // Validate beneficiary of slashed tokens
+        require(beneficiary != address(0), "!beneficiary");
+
+        // Slashing more tokens than freely available (over allocation condition)
+        // Unlock locked tokens to avoid the indexer to withdraw them
+        uint256 tokensUsed = indexerStake.__DEPRECATED_tokensAllocated + indexerStake.__DEPRECATED_tokensLocked;
+        uint256 tokensAvailable = tokensUsed > indexerStake.tokensStaked ? 0 : indexerStake.tokensStaked - tokensUsed;
+        if (tokens > tokensAvailable && indexerStake.__DEPRECATED_tokensLocked > 0) {
+            uint256 tokensOverAllocated = tokens - tokensAvailable;
+            uint256 tokensToUnlock = MathUtils.min(tokensOverAllocated, indexerStake.__DEPRECATED_tokensLocked);
+            indexerStake.__DEPRECATED_tokensLocked = indexerStake.__DEPRECATED_tokensLocked - tokensToUnlock;
+            if (indexerStake.__DEPRECATED_tokensLocked == 0) {
+                indexerStake.__DEPRECATED_tokensLockedUntil = 0;
+            }
+        }
+
+        // Remove tokens to slash from the stake
+        indexerStake.tokensStaked = indexerStake.tokensStaked - tokens;
+
+        // -- Interactions --
+
+        // Set apart the reward for the beneficiary and burn remaining slashed stake
+        _graphToken().burnTokens(tokens - reward);
+
+        // Give the beneficiary a reward for slashing
+        _graphToken().pushTokens(beneficiary, reward);
+
+        emit StakeSlashed(indexer, tokens, reward, beneficiary);
+    }
+
     /**
      * @notice Return if allocationID is used.
      * @dev TODO: Remove after Horizon transition period
@@ -261,54 +309,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     // solhint-disable-next-line func-name-mixedcase
     function __DEPRECATED_getThawingPeriod() external view returns (uint64) {
         return __DEPRECATED_thawingPeriod;
-    }
-
-    function legacySlash(
-        address indexer,
-        uint256 tokens,
-        uint256 reward,
-        address beneficiary
-    ) external override onlySlasher notPaused {
-        ServiceProviderInternal storage indexerStake = _serviceProviders[indexer];
-
-        // Only able to slash a non-zero number of tokens
-        require(tokens > 0, "!tokens");
-
-        // Rewards comes from tokens slashed balance
-        require(tokens >= reward, "rewards>slash");
-
-        // Cannot slash stake of an indexer without any or enough stake
-        require(indexerStake.tokensStaked > 0, "!stake");
-        require(tokens <= indexerStake.tokensStaked, "slash>stake");
-
-        // Validate beneficiary of slashed tokens
-        require(beneficiary != address(0), "!beneficiary");
-
-        // Slashing more tokens than freely available (over allocation condition)
-        // Unlock locked tokens to avoid the indexer to withdraw them
-        uint256 tokensUsed = indexerStake.__DEPRECATED_tokensAllocated + indexerStake.__DEPRECATED_tokensLocked;
-        uint256 tokensAvailable = tokensUsed > indexerStake.tokensStaked ? 0 : indexerStake.tokensStaked - tokensUsed;
-        if (tokens > tokensAvailable && indexerStake.__DEPRECATED_tokensLocked > 0) {
-            uint256 tokensOverAllocated = tokens - tokensAvailable;
-            uint256 tokensToUnlock = MathUtils.min(tokensOverAllocated, indexerStake.__DEPRECATED_tokensLocked);
-            indexerStake.__DEPRECATED_tokensLocked = indexerStake.__DEPRECATED_tokensLocked - tokensToUnlock;
-            if (indexerStake.__DEPRECATED_tokensLocked == 0) {
-                indexerStake.__DEPRECATED_tokensLockedUntil = 0;
-            }
-        }
-
-        // Remove tokens to slash from the stake
-        indexerStake.tokensStaked = indexerStake.tokensStaked - tokens;
-
-        // -- Interactions --
-
-        // Set apart the reward for the beneficiary and burn remaining slashed stake
-        _graphToken().burnTokens(tokens - reward);
-
-        // Give the beneficiary a reward for slashing
-        _graphToken().pushTokens(beneficiary, reward);
-
-        emit StakeSlashed(indexer, tokens, reward, beneficiary);
     }
 
     /**

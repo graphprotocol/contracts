@@ -430,6 +430,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         // Check if sender is authorized to slash on the deprecated list
         if (__DEPRECATED_slashers[msg.sender]) {
             // Forward call to staking extension
+            // solhint-disable-next-line avoid-low-level-calls
             (bool success, ) = STAKING_EXTENSION_ADDRESS.delegatecall(
                 abi.encodeWithSelector(
                     IHorizonStakingExtension.legacySlash.selector,
@@ -439,7 +440,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                     verifierDestination
                 )
             );
-            require(success, "Delegatecall to legacySlash failed");
+            require(success, "Delegatecall: legacySlash failed");
             return;
         }
 
@@ -1032,29 +1033,31 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice Traverses a thaw request list and fulfills expired thaw requests.
      * @dev Emits a {ThawRequestsFulfilled} event and a {ThawRequestFulfilled} event for each thaw request fulfilled.
-     * @param params The parameters for fulfilling thaw requests
+     * @param _params The parameters for fulfilling thaw requests
      * @return The amount of thawed tokens
      * @return The amount of tokens still thawing
      * @return The amount of shares still thawing
      */
-    function _fulfillThawRequests(FulfillThawRequestsParams memory params) private returns (uint256, uint256, uint256) {
+    function _fulfillThawRequests(
+        FulfillThawRequestsParams memory _params
+    ) private returns (uint256, uint256, uint256) {
         LinkedList.List storage thawRequestList = _getThawRequestList(
-            params.requestType,
-            params.serviceProvider,
-            params.verifier,
-            params.owner
+            _params.requestType,
+            _params.serviceProvider,
+            _params.verifier,
+            _params.owner
         );
         require(thawRequestList.count > 0, HorizonStakingNothingThawing());
 
-        TraverseThawRequestsResults memory results = _traverseThawRequests(params, thawRequestList);
+        TraverseThawRequestsResults memory results = _traverseThawRequests(_params, thawRequestList);
 
         emit ThawRequestsFulfilled(
-            params.serviceProvider,
-            params.verifier,
-            params.owner,
+            _params.serviceProvider,
+            _params.verifier,
+            _params.owner,
             results.requestsFulfilled,
             results.tokensThawed,
-            params.requestType
+            _params.requestType
         );
 
         return (results.tokensThawed, results.tokensThawing, results.sharesThawing);
@@ -1062,30 +1065,30 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /**
      * @notice Traverses a thaw request list and fulfills expired thaw requests.
-     * @param params The parameters for fulfilling thaw requests
-     * @param thawRequestList The list of thaw requests to traverse
+     * @param _params The parameters for fulfilling thaw requests
+     * @param _thawRequestList The list of thaw requests to traverse
      * @return The results of the traversal
      */
     function _traverseThawRequests(
-        FulfillThawRequestsParams memory params,
-        LinkedList.List storage thawRequestList
+        FulfillThawRequestsParams memory _params,
+        LinkedList.List storage _thawRequestList
     ) private returns (TraverseThawRequestsResults memory) {
-        function(bytes32) view returns (bytes32) getNextItem = _getNextThawRequest(params.requestType);
-        function(bytes32) deleteItem = _getDeleteThawRequest(params.requestType);
+        function(bytes32) view returns (bytes32) getNextItem = _getNextThawRequest(_params.requestType);
+        function(bytes32) deleteItem = _getDeleteThawRequest(_params.requestType);
 
         bytes memory acc = abi.encode(
-            params.requestType,
+            _params.requestType,
             uint256(0),
-            params.tokensThawing,
-            params.sharesThawing,
-            params.thawingNonce
+            _params.tokensThawing,
+            _params.sharesThawing,
+            _params.thawingNonce
         );
-        (uint256 thawRequestsFulfilled, bytes memory data) = thawRequestList.traverse(
+        (uint256 thawRequestsFulfilled, bytes memory data) = _thawRequestList.traverse(
             getNextItem,
             _fulfillThawRequest,
             deleteItem,
             acc,
-            params.nThawRequests
+            _params.nThawRequests
         );
 
         (, uint256 tokensThawed, uint256 tokensThawing, uint256 sharesThawing) = abi.decode(
@@ -1153,21 +1156,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice Determines the correct callback function for `deleteItem` based on the request type.
-     * @param _requestType The type of thaw request (Provision or Delegation).
-     * @return A function pointer to the appropriate `deleteItem` callback.
-     */
-    function _getDeleteThawRequest(ThawRequestType _requestType) private pure returns (function(bytes32)) {
-        if (_requestType == ThawRequestType.Provision) {
-            return _deleteProvisionThawRequest;
-        } else if (_requestType == ThawRequestType.Delegation) {
-            return _deleteDelegationThawRequest;
-        } else {
-            revert HorizonStakingInvalidThawRequestType();
-        }
-    }
-
-    /**
      * @notice Deletes a thaw request for a provision.
      * @param _thawRequestId The ID of the thaw request to delete.
      */
@@ -1211,6 +1199,21 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             return _legacyOperatorAuth[_serviceProvider][_operator];
         } else {
             return _operatorAuth[_serviceProvider][_verifier][_operator];
+        }
+    }
+
+    /**
+     * @notice Determines the correct callback function for `deleteItem` based on the request type.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @return A function pointer to the appropriate `deleteItem` callback.
+     */
+    function _getDeleteThawRequest(ThawRequestType _requestType) private pure returns (function(bytes32)) {
+        if (_requestType == ThawRequestType.Provision) {
+            return _deleteProvisionThawRequest;
+        } else if (_requestType == ThawRequestType.Delegation) {
+            return _deleteDelegationThawRequest;
+        } else {
+            revert HorizonStakingInvalidThawRequestType();
         }
     }
 }
