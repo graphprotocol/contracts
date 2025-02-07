@@ -48,7 +48,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     ) private pure returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
-                paymentId: _allocationId,
+                collectorId: bytes32(uint256(uint160(_allocationId))),
                 payer: _payer,
                 dataService: _collector,
                 serviceProvider: _indexer,
@@ -408,7 +408,12 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
-        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(users.verifier, _allocationId, users.indexer, users.gateway);
+        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(
+            users.verifier,
+            bytes32(uint256(uint160(_allocationId))),
+            users.indexer,
+            users.gateway
+        );
         tokensToCollect = bound(tokensToCollect, tokens - tokensAlreadyCollected + 1, type(uint128).max);
 
         vm.expectRevert(
@@ -448,7 +453,12 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         for (uint256 i = 0; i < numAllocations; i++) {
             assertEq(
-                tapCollector.tokensCollected(collectTestParams[i].collector, collectTestParams[i].allocationId, collectTestParams[i].indexer, collectTestParams[i].payer),
+                tapCollector.tokensCollected(
+                    collectTestParams[i].collector,
+                    bytes32(uint256(uint160(collectTestParams[i].allocationId))),
+                    collectTestParams[i].indexer,
+                    collectTestParams[i].payer
+                ),
                 collectTestParams[i].tokens,
                 "Incorrect tokens collected for allocation"
             );

@@ -536,7 +536,13 @@ contract SubgraphService is
      */
     function _collectQueryFees(ITAPCollector.SignedRAV memory _signedRav) private returns (uint256 feesCollected) {
         address indexer = _signedRav.rav.serviceProvider;
-        address allocationId = abi.decode(_signedRav.rav.metadata, (address));
+
+        // Check that the collectorId fits in an address (160 bits)
+        require(
+            uint256(_signedRav.rav.collectorId) < (1 << 160),
+            SubgraphServiceInvalidCollectorId(_signedRav.rav.collectorId)
+        );
+        address allocationId = address(uint160(uint256(_signedRav.rav.collectorId)));
         Allocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer

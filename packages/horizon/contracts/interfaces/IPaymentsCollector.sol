@@ -24,7 +24,7 @@ interface IPaymentsCollector {
      */
     event PaymentCollected(
         IGraphPayments.PaymentTypes paymentType,
-        address indexed paymentId,
+        bytes32 indexed collectorId,
         address indexed payer,
         address receiver,
         address indexed dataService,

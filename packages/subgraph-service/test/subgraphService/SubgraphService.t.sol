@@ -25,10 +25,6 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     using LinkedList for LinkedList.List;
 
     /*
-     * VARIABLES
-     */
-
-    /*
      * MODIFIERS
      */
 
@@ -203,14 +199,36 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _collect(address _indexer, IGraphPayments.PaymentTypes _paymentType, bytes memory _data) internal {
-        address allocationId;
+        // Reset storage variables
         uint256 paymentCollected = 0;
-        Allocation.State memory allocation;
-        CollectPaymentData memory collectPaymentDataBefore;
-
-        // PaymentType.IndexingRewards variables
+        address allocationId;
         IndexingRewardsData memory indexingRewardsData;
+        CollectPaymentData memory collectPaymentDataBefore = _collectPaymentDataBefore(_indexer);
+
+        if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
+            paymentCollected = _handleQueryFeeCollection(_indexer, _data);
+        } else if (_paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
+            (paymentCollected, allocationId, indexingRewardsData) = _handleIndexingRewardsCollection(_data);
+        }
+
+        vm.expectEmit(address(subgraphService));
+        emit IDataService.ServicePaymentCollected(_indexer, _paymentType, paymentCollected);
+
+        // collect rewards
+        subgraphService.collect(_indexer, _paymentType, _data);
+
+        CollectPaymentData memory collectPaymentDataAfter = _collectPaymentDataAfter(_indexer);
+
+        if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
+            _verifyQueryFeeCollection(_indexer, paymentCollected, _data, collectPaymentDataBefore, collectPaymentDataAfter);
+        } else if (_paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
+            _verifyIndexingRewardsCollection(_indexer, allocationId, indexingRewardsData, collectPaymentDataBefore, collectPaymentDataAfter);
+        }
+    }
+
+    function _collectPaymentDataBefore(address _indexer) private view returns (CollectPaymentData memory) {
         address rewardsDestination = subgraphService.rewardsDestination(_indexer);
+        CollectPaymentData memory collectPaymentDataBefore;
         collectPaymentDataBefore.rewardsDestinationBalance = token.balanceOf(rewardsDestination);
         collectPaymentDataBefore.indexerProvisionBalance = staking.getProviderTokensAvailable(
             _indexer,
@@ -220,74 +238,15 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             _indexer,
             address(subgraphService)
         );
-
-        // PaymentType.QueryFee variables
-        QueryFeeData memory queryFeeData;
-        queryFeeData.protocolPaymentCut = graphPayments.PROTOCOL_PAYMENT_CUT();
         collectPaymentDataBefore.indexerBalance = token.balanceOf(_indexer);
         collectPaymentDataBefore.curationBalance = token.balanceOf(address(curation));
         collectPaymentDataBefore.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
+        return collectPaymentDataBefore;
+    }
 
-        if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            // Recover RAV data
-            ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
-            allocationId = abi.decode(signedRav.rav.metadata, (address));
-            allocation = subgraphService.getAllocation(allocationId);
-            (address payer, , ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
-
-            // Total amount of tokens collected for indexer
-            uint256 tokensCollected = tapCollector.tokensCollected(address(subgraphService), _indexer, payer);
-            // Find out how much of the payment was collected via this RAV
-            paymentCollected = signedRav.rav.valueAggregate - tokensCollected;
-
-            // Calculate curation cut
-            uint256 curationFeesCut = subgraphService.curationFeesCut();
-            queryFeeData.curationCut = curation.isCurated(allocation.subgraphDeploymentId) ? curationFeesCut : 0;
-            uint256 tokensProtocol = paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
-            uint256 tokensCurators = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
-
-            vm.expectEmit(address(subgraphService));
-            emit ISubgraphService.QueryFeesCollected(_indexer, paymentCollected, tokensCurators);
-        } else if (_paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
-            // Recover IndexingRewards data
-            (allocationId, indexingRewardsData.poi) = abi.decode(_data, (address, bytes32));
-            allocation = subgraphService.getAllocation(allocationId);
-
-            // Calculate accumulated tokens, this depends on the rewards manager which we have mocked
-            uint256 accRewardsPerTokens = allocation.tokens.mulPPM(rewardsManager.rewardsPerSignal());
-            // Calculate the payment collected by the indexer for this transaction
-            paymentCollected = accRewardsPerTokens - allocation.accRewardsPerAllocatedToken;
-
-            uint256 delegatorCut = staking.getDelegationFeeCut(
-                allocation.indexer,
-                address(subgraphService),
-                IGraphPayments.PaymentTypes.IndexingRewards
-            );
-            IHorizonStakingTypes.DelegationPool memory delegationPool = staking.getDelegationPool(allocation.indexer, address(subgraphService));
-            indexingRewardsData.tokensDelegationRewards = delegationPool.shares > 0 ? paymentCollected.mulPPM(delegatorCut) : 0;
-            indexingRewardsData.tokensIndexerRewards = paymentCollected - indexingRewardsData.tokensDelegationRewards;
-
-            vm.expectEmit(address(subgraphService));
-            emit AllocationManager.IndexingRewardsCollected(
-                allocation.indexer,
-                allocationId,
-                allocation.subgraphDeploymentId,
-                paymentCollected,
-                indexingRewardsData.tokensIndexerRewards,
-                indexingRewardsData.tokensDelegationRewards,
-                indexingRewardsData.poi,
-                epochManager.currentEpoch()
-            );
-        }
-
-        vm.expectEmit(address(subgraphService));
-        emit IDataService.ServicePaymentCollected(_indexer, _paymentType, paymentCollected);
-
-        // collect rewards
-        subgraphService.collect(_indexer, _paymentType, _data);
-
-        // Collect payment data after
+    function _collectPaymentDataAfter(address _indexer) private view returns (CollectPaymentData memory) {
         CollectPaymentData memory collectPaymentDataAfter;
+        address rewardsDestination = subgraphService.rewardsDestination(_indexer);
         collectPaymentDataAfter.rewardsDestinationBalance = token.balanceOf(rewardsDestination);
         collectPaymentDataAfter.indexerProvisionBalance = staking.getProviderTokensAvailable(
             _indexer,
@@ -300,84 +259,162 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         collectPaymentDataAfter.indexerBalance = token.balanceOf(_indexer);
         collectPaymentDataAfter.curationBalance = token.balanceOf(address(curation));
         collectPaymentDataAfter.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
+        return collectPaymentDataAfter;
+    }
 
-        if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            // Check indexer got paid the correct amount
-            {
-                uint256 tokensProtocol = paymentCollected.mulPPMRoundUp(protocolPaymentCut);
-                uint256 curationTokens = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
-                uint256 expectedIndexerTokensPayment = paymentCollected - tokensProtocol - curationTokens;
-                assertEq(
-                    collectPaymentDataAfter.indexerBalance,
-                    collectPaymentDataBefore.indexerBalance + expectedIndexerTokensPayment
-                );
+    function _handleQueryFeeCollection(address _indexer, bytes memory _data) private returns (uint256 paymentCollected) {
+        ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
+        Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectorId))));
+        (address payer, , ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
 
-                // Check curation got paid the correct amount
-                assertEq(
-                    collectPaymentDataAfter.curationBalance,
-                    collectPaymentDataBefore.curationBalance + curationTokens
-                );
-            }
+        uint256 tokensCollected = tapCollector.tokensCollected(
+            address(subgraphService),
+            signedRav.rav.collectorId,
+            _indexer,
+            payer
+        );
+        paymentCollected = signedRav.rav.valueAggregate - tokensCollected;
 
-            // Check locked tokens
-            uint256 tokensToLock = paymentCollected * subgraphService.stakeToFeesRatio();
-            assertEq(collectPaymentDataAfter.lockedTokens, collectPaymentDataBefore.lockedTokens + tokensToLock);
+        QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
+        uint256 tokensProtocol = paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
+        uint256 tokensCurators = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
 
-            // Check the stake claim
-            LinkedList.List memory claimsList = _getClaimList(_indexer);
-            bytes32 claimId = _buildStakeClaimId(_indexer, claimsList.nonce - 1);
-            IDataServiceFees.StakeClaim memory stakeClaim = _getStakeClaim(claimId);
-            uint64 disputePeriod = disputeManager.getDisputePeriod();
-            assertEq(stakeClaim.tokens, tokensToLock);
-            assertEq(stakeClaim.createdAt, block.timestamp);
-            assertEq(stakeClaim.releasableAt, block.timestamp + disputePeriod);
-            assertEq(stakeClaim.nextClaim, bytes32(0));
-        } else if (_paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
-            // Update allocation after collecting rewards
-            allocation = subgraphService.getAllocation(allocationId);
+        vm.expectEmit(address(subgraphService));
+        emit ISubgraphService.QueryFeesCollected(_indexer, paymentCollected, tokensCurators);
 
-            // Check allocation state
-            assertEq(allocation.accRewardsPending, 0);
-            uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(
-                allocation.subgraphDeploymentId
-            );
-            assertEq(allocation.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
-            assertEq(allocation.lastPOIPresentedAt, block.timestamp);
+        return paymentCollected;
+    }
 
-            // Check indexer got paid the correct amount
-            if (rewardsDestination == address(0)) {
-                // If rewards destination is address zero indexer should get paid to their provision balance
-                assertEq(
-                    collectPaymentDataAfter.indexerProvisionBalance,
-                    collectPaymentDataBefore.indexerProvisionBalance + indexingRewardsData.tokensIndexerRewards
-                );
-            } else {
-                // If rewards destination is set indexer should get paid to the rewards destination address
-                assertEq(
-                    collectPaymentDataAfter.rewardsDestinationBalance,
-                    collectPaymentDataBefore.rewardsDestinationBalance + indexingRewardsData.tokensIndexerRewards
-                );
-            }
+    function _queryFeeData(bytes32 _subgraphDeploymentId) private view returns (QueryFeeData memory) {
+        QueryFeeData memory queryFeeData;
+        queryFeeData.protocolPaymentCut = graphPayments.PROTOCOL_PAYMENT_CUT();
+        uint256 curationFeesCut = subgraphService.curationFeesCut();
+        queryFeeData.curationCut = curation.isCurated(_subgraphDeploymentId) ? curationFeesCut : 0;
+        return queryFeeData;
+    }
 
-            // Check delegation pool got paid the correct amount
+    function _handleIndexingRewardsCollection(bytes memory _data) private returns (uint256 paymentCollected, address allocationId, IndexingRewardsData memory indexingRewardsData) {
+        (allocationId, indexingRewardsData.poi) = abi.decode(_data, (address, bytes32));
+        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+
+        // Calculate accumulated tokens, this depends on the rewards manager which we have mocked
+        uint256 accRewardsPerTokens = allocation.tokens.mulPPM(rewardsManager.rewardsPerSignal());
+        // Calculate the payment collected by the indexer for this transaction
+        paymentCollected = accRewardsPerTokens - allocation.accRewardsPerAllocatedToken;
+
+        uint256 delegatorCut = staking.getDelegationFeeCut(
+            allocation.indexer,
+            address(subgraphService),
+            IGraphPayments.PaymentTypes.IndexingRewards
+        );
+        IHorizonStakingTypes.DelegationPool memory delegationPool = staking.getDelegationPool(allocation.indexer, address(subgraphService));
+        indexingRewardsData.tokensDelegationRewards = delegationPool.shares > 0 ? paymentCollected.mulPPM(delegatorCut) : 0;
+        indexingRewardsData.tokensIndexerRewards = paymentCollected - indexingRewardsData.tokensDelegationRewards;
+
+        vm.expectEmit(address(subgraphService));
+        emit AllocationManager.IndexingRewardsCollected(
+            allocation.indexer,
+            allocationId,
+            allocation.subgraphDeploymentId,
+            paymentCollected,
+            indexingRewardsData.tokensIndexerRewards,
+            indexingRewardsData.tokensDelegationRewards,
+            indexingRewardsData.poi,
+            epochManager.currentEpoch()
+        );
+
+        return (paymentCollected, allocationId, indexingRewardsData);
+    }
+
+    function _verifyQueryFeeCollection(
+        address _indexer,
+        uint256 _paymentCollected,
+        bytes memory _data,
+        CollectPaymentData memory collectPaymentDataBefore,
+        CollectPaymentData memory collectPaymentDataAfter
+    ) private view {
+        ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
+        Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectorId))));
+        QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
+        uint256 tokensProtocol = _paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
+        uint256 curationTokens = (_paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
+        uint256 expectedIndexerTokensPayment = _paymentCollected - tokensProtocol - curationTokens;
+
+        assertEq(
+            collectPaymentDataAfter.indexerBalance,
+            collectPaymentDataBefore.indexerBalance + expectedIndexerTokensPayment
+        );
+        assertEq(
+            collectPaymentDataAfter.curationBalance,
+            collectPaymentDataBefore.curationBalance + curationTokens
+        );
+
+        // Check locked tokens
+        uint256 tokensToLock = _paymentCollected * subgraphService.stakeToFeesRatio();
+        assertEq(collectPaymentDataAfter.lockedTokens, collectPaymentDataBefore.lockedTokens + tokensToLock);
+
+        // Check the stake claim
+        LinkedList.List memory claimsList = _getClaimList(_indexer);
+        bytes32 claimId = _buildStakeClaimId(_indexer, claimsList.nonce - 1);
+        IDataServiceFees.StakeClaim memory stakeClaim = _getStakeClaim(claimId);
+        uint64 disputePeriod = disputeManager.getDisputePeriod();
+        assertEq(stakeClaim.tokens, tokensToLock);
+        assertEq(stakeClaim.createdAt, block.timestamp);
+        assertEq(stakeClaim.releasableAt, block.timestamp + disputePeriod);
+        assertEq(stakeClaim.nextClaim, bytes32(0));
+    }
+
+    function _verifyIndexingRewardsCollection(
+        address _indexer,
+        address allocationId,
+        IndexingRewardsData memory indexingRewardsData,
+        CollectPaymentData memory collectPaymentDataBefore,
+        CollectPaymentData memory collectPaymentDataAfter
+    ) private {
+        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+
+        // Check allocation state
+        assertEq(allocation.accRewardsPending, 0);
+        uint256 accRewardsPerAllocatedToken = rewardsManager.onSubgraphAllocationUpdate(
+            allocation.subgraphDeploymentId
+        );
+        assertEq(allocation.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+        assertEq(allocation.lastPOIPresentedAt, block.timestamp);
+
+        // Check indexer got paid the correct amount
+        address rewardsDestination = subgraphService.rewardsDestination(_indexer);
+        if (rewardsDestination == address(0)) {
+            // If rewards destination is address zero indexer should get paid to their provision balance
             assertEq(
-                collectPaymentDataAfter.delegationPoolBalance,
-                collectPaymentDataBefore.delegationPoolBalance + indexingRewardsData.tokensDelegationRewards
+                collectPaymentDataAfter.indexerProvisionBalance,
+                collectPaymentDataBefore.indexerProvisionBalance + indexingRewardsData.tokensIndexerRewards
             );
+        } else {
+            // If rewards destination is set indexer should get paid to the rewards destination address
+            assertEq(
+                collectPaymentDataAfter.rewardsDestinationBalance,
+                collectPaymentDataBefore.rewardsDestinationBalance + indexingRewardsData.tokensIndexerRewards
+            );
+        }
 
-            // If after collecting indexing rewards the indexer is over allocated the allcation should close
-            uint256 tokensAvailable = staking.getTokensAvailable(
-                _indexer,
-                address(subgraphService),
-                subgraphService.delegationRatio()
-            );
-            if (allocation.tokens <= tokensAvailable) {
-                // Indexer isn't over allocated so allocation should still be open
-                assertTrue(allocation.isOpen());
-            } else {
-                // Indexer is over allocated so allocation should be closed
-                assertFalse(allocation.isOpen());
-            }
+        // Check delegation pool got paid the correct amount
+        assertEq(
+            collectPaymentDataAfter.delegationPoolBalance,
+            collectPaymentDataBefore.delegationPoolBalance + indexingRewardsData.tokensDelegationRewards
+        );
+
+        // If after collecting indexing rewards the indexer is over allocated the allcation should close
+        uint256 tokensAvailable = staking.getTokensAvailable(
+            _indexer,
+            address(subgraphService),
+            subgraphService.delegationRatio()
+        );
+        if (allocation.tokens <= tokensAvailable) {
+            // Indexer isn't over allocated so allocation should still be open
+            assertTrue(allocation.isOpen());
+        } else {
+            // Indexer is over allocated so allocation should be closed
+            assertFalse(allocation.isOpen());
         }
     }
 
