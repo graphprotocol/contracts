@@ -229,6 +229,29 @@ interface ISubgraphService is IDataServiceFees {
     function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory);
 
     /**
+     * @notice Returns the number of free tokens for an indexer.
+     * Free tokens are those that can be immediately used to lock as economic security.
+     * @param indexer The address of the indexer
+     * @param paymentType The type of payment to consider
+     * @return The number of free tokens
+     */
+    // function getTokensFree(address indexer, IGraphPayments.PaymentTypes paymentType) external view returns (uint256);
+
+    /**
+     * @notice Returns the number of free tokens for an indexer for indexing rewards
+     * @param indexer The address of the indexer
+     * @return The number of free tokens
+     */
+    function getAllocationTokensFree(address indexer) external view returns (uint256);
+
+    /**
+     * @notice Returns the number of free tokens for an indexer for query fees
+     * @param indexer The address of the indexer
+     * @return The number of free tokens
+     */
+    function getFeesTokensFree(address indexer) external view returns (uint256);
+
+    /**
      * @notice Encodes the allocation proof for EIP712 signing
      * @param indexer The address of the indexer
      * @param allocationId The id of the allocation

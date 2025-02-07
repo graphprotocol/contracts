@@ -21,6 +21,7 @@ import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
+import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
 /**
  * @title SubgraphService contract
@@ -40,6 +41,7 @@ contract SubgraphService is
     IRewardsIssuer,
     ISubgraphService
 {
+    using ProvisionTracker for mapping(address => uint256);
     using PPMMath for uint256;
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
@@ -489,6 +491,14 @@ contract SubgraphService is
         return _isOverAllocated(indexer, delegationRatio);
     }
 
+    function getAllocationTokensFree(address indexer) external view override returns (uint256) {
+        return _getAllocationTokensFree(indexer, delegationRatio);
+    }
+
+    function getFeesTokensFree(address indexer) external view override returns (uint256) {
+        return feesProvisionTracker.getTokensFree(_graphStaking(), indexer, delegationRatio);
+    }
+
     // -- Data service parameter getters --
     /**
      * @notice Getter for the accepted thawing period range for provisions
@@ -579,6 +589,10 @@ contract SubgraphService is
         return tokensCollected;
     }
 
+    /**
+     * @notice Set the stake to fees ratio
+     * @param _stakeToFeesRatio The new stake to fees ratio
+     */
     function _setStakeToFeesRatio(uint256 _stakeToFeesRatio) private {
         require(_stakeToFeesRatio != 0, SubgraphServiceInvalidZeroStakeToFeesRatio());
         stakeToFeesRatio = _stakeToFeesRatio;

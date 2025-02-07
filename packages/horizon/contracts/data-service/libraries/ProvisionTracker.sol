@@ -72,4 +72,21 @@ library ProvisionTracker {
         uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
         return self[serviceProvider] <= tokensAvailable;
     }
+
+    /**
+     * @notice Returns the number of free tokens for a service provider. Free tokens are those currently available to lock.
+     * @param self The provision tracker mapping
+     * @param graphStaking The HorizonStaking contract
+     * @param serviceProvider The service provider address
+     * @param delegationRatio A delegation ratio to limit the amount of delegation that's usable
+     */
+    function getTokensFree(
+        mapping(address => uint256) storage self,
+        IHorizonStaking graphStaking,
+        address serviceProvider,
+        uint32 delegationRatio
+    ) internal view returns (uint256) {
+        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
+        return tokensAvailable > self[serviceProvider] ? tokensAvailable - self[serviceProvider] : 0;
+    }
 }
