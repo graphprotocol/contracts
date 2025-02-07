@@ -16,6 +16,7 @@ import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interface
 import { Allocation } from "../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../contracts/utilities/AllocationManager.sol";
 import { ISubgraphService } from "../../contracts/interfaces/ISubgraphService.sol";
+import { LegacyAllocation } from "../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
 
 contract SubgraphServiceTest is SubgraphServiceSharedTest {
@@ -386,9 +387,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
 
         subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentID);
 
-        (address afterIndexer, bytes32 afterSubgraphDeploymentId) = subgraphService.legacyAllocations(_allocationId);
-        assertEq(afterIndexer, _indexer);
-        assertEq(afterSubgraphDeploymentId, _subgraphDeploymentID);
+        LegacyAllocation.State memory afterLegacyAllocation = subgraphService.getLegacyAllocation(_allocationId);
+        assertEq(afterLegacyAllocation.indexer, _indexer);
+        assertEq(afterLegacyAllocation.subgraphDeploymentId, _subgraphDeploymentID);
     }
 
     /*

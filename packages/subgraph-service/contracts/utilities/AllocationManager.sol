@@ -178,7 +178,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _subgraphDeploymentId The id of the subgraph deployment
      */
     function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
-        legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
+        _legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
         emit LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
     }
 
@@ -212,8 +212,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
         // Ensure allocation id is not reused
         // need to check both subgraph service (on allocations.create()) and legacy allocations
-        legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
-        Allocation.State memory allocation = allocations.create(
+        _legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
+        Allocation.State memory allocation = _allocations.create(
             _indexer,
             _allocationId,
             _subgraphDeploymentId,
@@ -226,8 +226,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         allocationProvisionTracker.lock(_graphStaking(), _indexer, _tokens, _delegationRatio);
 
         // Update total allocated tokens for the subgraph deployment
-        subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
+        _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
             allocation.tokens;
 
         emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens);
@@ -257,7 +257,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         bytes32 _poi,
         uint32 _delegationRatio
     ) internal returns (uint256) {
-        Allocation.State memory allocation = allocations.get(_allocationId);
+        Allocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
         // Mint indexing rewards if all conditions are met
@@ -268,14 +268,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             : 0;
 
         // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
-        allocations.snapshotRewards(
+        _allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
-        allocations.presentPOI(_allocationId);
+        _allocations.presentPOI(_allocationId);
 
         // Any pending rewards should have been collected now
-        allocations.clearPendingRewards(_allocationId);
+        _allocations.clearPendingRewards(_allocationId);
 
         uint256 tokensIndexerRewards = 0;
         uint256 tokensDelegationRewards = 0;
@@ -351,7 +351,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 _tokens,
         uint32 _delegationRatio
     ) internal returns (Allocation.State memory) {
-        Allocation.State memory allocation = allocations.get(_allocationId);
+        Allocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
         require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
 
@@ -372,22 +372,22 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             : 0;
 
         // Update the allocation
-        allocations[_allocationId].tokens = _tokens;
-        allocations[_allocationId].accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        allocations[_allocationId].accRewardsPending += _graphRewardsManager().calcRewards(
+        _allocations[_allocationId].tokens = _tokens;
+        _allocations[_allocationId].accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+        _allocations[_allocationId].accRewardsPending += _graphRewardsManager().calcRewards(
             oldTokens,
             accRewardsPerAllocatedTokenPending
         );
 
         // Update total allocated tokens for the subgraph deployment
         if (_tokens > oldTokens) {
-            subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
         } else {
-            subgraphAllocatedTokens[allocation.subgraphDeploymentId] -= (oldTokens - _tokens);
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -= (oldTokens - _tokens);
         }
 
         emit AllocationResized(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, _tokens, oldTokens);
-        return allocations[_allocationId];
+        return _allocations[_allocationId];
     }
 
     /**
@@ -402,20 +402,20 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation to be closed
      */
     function _closeAllocation(address _allocationId) internal {
-        Allocation.State memory allocation = allocations.get(_allocationId);
+        Allocation.State memory allocation = _allocations.get(_allocationId);
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
-        allocations.snapshotRewards(
+        _allocations.snapshotRewards(
             _allocationId,
             _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
         );
 
-        allocations.close(_allocationId);
+        _allocations.close(_allocationId);
         allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
 
         // Update total allocated tokens for the subgraph deployment
-        subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
+        _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
             allocation.tokens;
 
         emit AllocationClosed(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, allocation.tokens);
@@ -446,7 +446,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation
      */
     function _getAllocation(address _allocationId) internal view returns (Allocation.State memory) {
-        return allocations.get(_allocationId);
+        return _allocations.get(_allocationId);
     }
 
     /**
@@ -454,7 +454,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the legacy allocation
      */
     function _getLegacyAllocation(address _allocationId) internal view returns (LegacyAllocation.State memory) {
-        return legacyAllocations.get(_allocationId);
+        return _legacyAllocations.get(_allocationId);
     }
 
     /**

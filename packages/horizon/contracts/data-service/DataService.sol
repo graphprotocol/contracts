@@ -36,21 +36,6 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
     constructor(address controller) GraphDirectory(controller) {}
 
     /**
-     * @notice Initializes the contract and any parent contracts.
-     */
-    // solhint-disable-next-line func-name-mixedcase
-    function __DataService_init() internal onlyInitializing {
-        __ProvisionManager_init_unchained();
-        __DataService_init_unchained();
-    }
-
-    /**
-     * @notice Initializes the contract.
-     */
-    // solhint-disable-next-line func-name-mixedcase
-    function __DataService_init_unchained() internal onlyInitializing {}
-
-    /**
      * @notice See {IDataService-getThawingPeriodRange}.
      */
     function getThawingPeriodRange() external view returns (uint64, uint64) {
@@ -77,4 +62,19 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
     function getDelegationRatio() external view returns (uint32) {
         return _getDelegationRatio();
     }
+
+    /**
+     * @notice Initializes the contract and any parent contracts.
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function __DataService_init() internal onlyInitializing {
+        __ProvisionManager_init_unchained();
+        __DataService_init_unchained();
+    }
+
+    /**
+     * @notice Initializes the contract.
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function __DataService_init_unchained() internal onlyInitializing {}
 }

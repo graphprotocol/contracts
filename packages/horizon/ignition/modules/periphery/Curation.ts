@@ -1,5 +1,5 @@
-import { upgradeGraphProxy, deployWithGraphProxy } from '../proxy/GraphProxy'
 import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
+import { deployWithGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'
 import { deployImplementation } from '../proxy/implementation'
 
 import ControllerModule from './Controller'
