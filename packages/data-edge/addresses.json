@@ -1,10 +1,16 @@
 {
+  "1": {
+    "EBODataEdge": "0xADE906194C923b28F03F48BC5D9D987AAE21fFab"
+  },
+  "42161": {
+    "EBOEventfulDataEdge": "0x633bb9790d7c4c59991cebd377c0ed6501a35ebe",
+    "SAOEventfulDataEdge": "0xeD16cEbd4fa74a0016E1149cc03563Db4B223aec"
+  },
   "421614": {
-    "DataEdge": "0x17f1fcD16E2A9fF2a55c63C97a778D96Fa473548",
-    "EventfulDataEdge": "0x9b9402939133F27c6eba81a321dfBFa1feE6714E"
+    "EBOEventfulDataEdge": "0x9b9402939133F27c6eba81a321dfBFa1feE6714E",
+    "SAOEventfulDataEdge": "0xB61AF143c79Cbdd68f179B657AaC86665CC2B469"
   },
   "11155111": {
-    "DataEdge": "0x00C602A72363917Bc30a793593731F93352eB85d",
-    "EventfulDataEdge": "0xEFC8D47673777b899f2FB597C6FC0E87ecce98Cb"
+    "EBOEventfulDataEdge": "0xEFC8D47673777b899f2FB597C6FC0E87ecce98Cb"
   }
 }

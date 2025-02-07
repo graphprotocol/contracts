@@ -1,10 +1,10 @@
 # @graphprotocol/contracts
 
-## 7.0.0
+## 6.3.0
 
-### Major Changes
+### Minor Changes
 
-- 9686ce1: Add Horizon staking interface
+- Remove restriction that prevented closing allocations older than 1 epoch.
 
 ## 6.2.1
 

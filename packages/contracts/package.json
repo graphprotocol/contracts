@@ -13,15 +13,12 @@
     "README.md",
     "addresses.json"
   ],
-  "dependencies": {
-    "@graphprotocol/sdk": "workspace:^0.5.0",
-    "console-table-printer": "^2.11.1"
-  },
   "devDependencies": {
     "@arbitrum/sdk": "~3.1.13",
     "@defi-wonderland/smock": "~2.3.0",
     "@ethersproject/experimental": "^5.6.0",
     "@graphprotocol/common-ts": "^1.8.3",
+    "@graphprotocol/sdk": "workspace:^0.5.0",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "2.0.3",
@@ -49,6 +46,7 @@
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
     "cli-table": "^0.3.6",
+    "console-table-printer": "^2.11.1",
     "dotenv": "^9.0.0",
     "eslint": "^8.57.0",
     "eslint-graph-config": "workspace:^0.0.1",

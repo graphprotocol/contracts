@@ -33,6 +33,7 @@ export {
   getDefaults,
 } from './network/deployment/config'
 
+export * from './network/actions/disputes'
 export * from './network/actions/gns'
 export * from './network/actions/staking'
 export * from './network/actions/graph-token'

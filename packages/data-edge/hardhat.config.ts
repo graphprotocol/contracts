@@ -12,14 +12,17 @@ import '@nomiclabs/hardhat-waffle'
 import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
-import '@tenderly/hardhat-tenderly'
 import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
+
+import * as tdly from "@tenderly/hardhat-tenderly";
+tdly.setup();
 
 // Tasks
 
 import './tasks/craft-calldata'
 import './tasks/post-calldata'
+import './tasks/deploy'
 
 // Networks
 
@@ -58,6 +61,10 @@ function getAccountMnemonic() {
   return process.env.MNEMONIC || ''
 }
 
+function getAccountIndex() {
+  return process.env.ACCOUNT_INDEX ? parseInt(process.env.ACCOUNT_INDEX) : 0
+}
+
 function getDefaultProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
 }
@@ -71,6 +78,8 @@ function setupDefaultNetworkProviders(buidlerConfig) {
       gasPrice: netConfig.gasPrice || 'auto',
       accounts: {
         mnemonic: getAccountMnemonic(),
+        path: "m/44'/60'/0'/0",
+        initialIndex: getAccountIndex(),
       },
     }
   }
