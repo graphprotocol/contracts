@@ -23,10 +23,6 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, IPaymentsEscrow {
     using TokenUtils for IGraphToken;
 
-    /// @notice Escrow account details for payer-collector-receiver tuples
-    mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
-        public escrowAccounts;
-
     /// @notice The maximum thawing period (in seconds) for both escrow withdrawal and collector revocation
     /// @dev This is a precautionary measure to avoid inadvertedly locking funds for too long
     uint256 public constant MAX_WAIT_PERIOD = 90 days;
@@ -34,6 +30,14 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
     /// @notice Thawing period in seconds for escrow funds withdrawal
     uint256 public immutable WITHDRAW_ESCROW_THAWING_PERIOD;
 
+    /// @notice Escrow account details for payer-collector-receiver tuples
+    mapping(address payer => mapping(address collector => mapping(address receiver => IPaymentsEscrow.EscrowAccount escrowAccount)))
+        public escrowAccounts;
+
+    /**
+     * @notice Modifier to prevent function execution when contract is paused
+     * @dev Reverts if the controller indicates the contract is paused
+     */
     modifier notPaused() {
         require(!_graphController().paused(), PaymentsEscrowIsPaused());
         _;
@@ -78,25 +82,30 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      * @notice See {IPaymentsEscrow-thaw}
      */
     function thaw(address collector, address receiver, uint256 tokens) external override notPaused {
+        require(tokens > 0, PaymentsEscrowInvalidZeroTokens());
+
         EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
-
-        // if amount thawing is zero and requested amount is zero this is an invalid request.
-        // otherwise if amount thawing is greater than zero and requested amount is zero this
-        // is a cancel thaw request.
-        if (tokens == 0) {
-            require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
-            account.tokensThawing = 0;
-            account.thawEndTimestamp = 0;
-            emit CancelThaw(msg.sender, receiver);
-            return;
-        }
-
         require(account.balance >= tokens, PaymentsEscrowInsufficientBalance(account.balance, tokens));
 
         account.tokensThawing = tokens;
         account.thawEndTimestamp = block.timestamp + WITHDRAW_ESCROW_THAWING_PERIOD;
 
         emit Thaw(msg.sender, collector, receiver, tokens, account.thawEndTimestamp);
+    }
+
+    /**
+     * @notice See {IPaymentsEscrow-cancelThaw}
+     */
+    function cancelThaw(address collector, address receiver) external override notPaused {
+        EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
+        require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
+
+        uint256 tokensThawing = account.tokensThawing;
+        uint256 thawEndTimestamp = account.thawEndTimestamp;
+        account.tokensThawing = 0;
+        account.thawEndTimestamp = 0;
+
+        emit CancelThaw(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
     }
 
     /**
@@ -138,18 +147,19 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         // Reduce amount from account balance
         account.balance -= tokens;
 
-        uint256 balanceBefore = _graphToken().balanceOf(address(this));
+        uint256 escrowBalanceBefore = _graphToken().balanceOf(address(this));
 
         _graphToken().approve(address(_graphPayments()), tokens);
         _graphPayments().collect(paymentType, receiver, tokens, dataService, dataServiceCut);
 
-        uint256 balanceAfter = _graphToken().balanceOf(address(this));
+        // Verify that the escrow balance is consistent with the collected tokens
+        uint256 escrowBalanceAfter = _graphToken().balanceOf(address(this));
         require(
-            balanceBefore == tokens + balanceAfter,
-            PaymentsEscrowInconsistentCollection(balanceBefore, balanceAfter, tokens)
+            escrowBalanceBefore == tokens + escrowBalanceAfter,
+            PaymentsEscrowInconsistentCollection(escrowBalanceBefore, escrowBalanceAfter, tokens)
         );
 
-        emit EscrowCollected(payer, msg.sender, receiver, tokens);
+        emit EscrowCollected(paymentType, payer, msg.sender, receiver, tokens);
     }
 
     /**
@@ -157,10 +167,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
      */
     function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
         EscrowAccount storage account = escrowAccounts[payer][collector][receiver];
-        if (account.balance <= account.tokensThawing) {
-            return 0;
-        }
-        return account.balance - account.tokensThawing;
+        return account.balance > account.tokensThawing ? account.balance - account.tokensThawing : 0;
     }
 
     /**

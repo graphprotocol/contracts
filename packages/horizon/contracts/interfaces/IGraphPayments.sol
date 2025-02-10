@@ -20,6 +20,7 @@ interface IGraphPayments {
 
     /**
      * @notice Emitted when a payment is collected
+     * @param paymentType The type of payment as defined in {IGraphPayments}
      * @param payer The address of the payer
      * @param receiver The address of the receiver
      * @param dataService The address of the data service
@@ -30,8 +31,9 @@ interface IGraphPayments {
      * @param tokensReceiver Amount of tokens for the receiver
      */
     event GraphPaymentCollected(
+        PaymentTypes indexed paymentType,
         address indexed payer,
-        address indexed receiver,
+        address receiver,
         address indexed dataService,
         uint256 tokens,
         uint256 tokensProtocol,
@@ -39,14 +41,6 @@ interface IGraphPayments {
         uint256 tokensDelegationPool,
         uint256 tokensReceiver
     );
-
-    /**
-     * @notice Thrown when the calculated amount of tokens to be paid out to all parties is
-     * not the same as the amount of tokens being collected
-     * @param tokens The amount of tokens being collected
-     * @param tokensCalculated The sum of all the tokens to be paid out
-     */
-    error GraphPaymentsBadAccounting(uint256 tokens, uint256 tokensCalculated);
 
     /**
      * @notice Thrown when the protocol payment cut is invalid
@@ -63,9 +57,10 @@ interface IGraphPayments {
     /**
      * @notice Collects funds from a payer.
      * It will pay cuts to all relevant parties and forward the rest to the receiver.
+     * Note that the collected amount can be zero.
      * @param paymentType The type of payment as defined in {IGraphPayments}
      * @param receiver The address of the receiver
-     * @param tokens The amount of tokens being collected
+     * @param tokens The amount of tokens being collected.
      * @param dataService The address of the data service
      * @param dataServiceCut The data service cut in PPM
      */

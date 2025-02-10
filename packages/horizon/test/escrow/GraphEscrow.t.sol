@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 import { IPaymentsEscrow } from "../../contracts/interfaces/IPaymentsEscrow.sol";
 import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { PaymentsEscrowSharedTest } from "../shared/payments-escrow/PaymentsEscrowShared.t.sol";
@@ -29,7 +30,9 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
     }
 
     modifier depositAndThawTokens(uint256 amount, uint256 thawAmount) {
+        vm.assume(amount > 0);
         vm.assume(thawAmount > 0);
+        vm.assume(amount <= MAX_STAKING_TOKENS);
         vm.assume(amount > thawAmount);
         _depositTokens(users.verifier, users.indexer, amount);
         escrow.thaw(users.verifier, users.indexer, thawAmount);
@@ -54,6 +57,43 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         (, uint256 amountThawing, uint256 thawEndTimestamp) = escrow.escrowAccounts(msgSender, collector, receiver);
         assertEq(amountThawing, amount);
         assertEq(thawEndTimestamp, expectedThawEndTimestamp);
+    }
+
+    function _cancelThawEscrow(address collector, address receiver) internal {
+        (, address msgSender, ) = vm.readCallers();
+        (, uint256 amountThawingBefore, uint256 thawEndTimestampBefore) = escrow.escrowAccounts(msgSender, collector, receiver);
+
+        vm.expectEmit(address(escrow));
+        emit IPaymentsEscrow.CancelThaw(msgSender, collector, receiver, amountThawingBefore, thawEndTimestampBefore);
+        escrow.cancelThaw(collector, receiver);
+
+        (, uint256 amountThawing, uint256 thawEndTimestamp) = escrow.escrowAccounts(msgSender, collector, receiver);
+        assertEq(amountThawing, 0);
+        assertEq(thawEndTimestamp, 0);
+    }
+
+    function _withdrawEscrow(address collector, address receiver) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        (uint256 balanceBefore, uint256 amountThawingBefore, ) = escrow.escrowAccounts(msgSender, collector, receiver);
+        uint256 tokenBalanceBeforeSender = token.balanceOf(msgSender);
+        uint256 tokenBalanceBeforeEscrow = token.balanceOf(address(escrow));
+
+        uint256 amountToWithdraw = amountThawingBefore > balanceBefore ? balanceBefore : amountThawingBefore;
+        vm.expectEmit(address(escrow));
+        emit IPaymentsEscrow.Withdraw(msgSender, collector, receiver, amountToWithdraw);
+        escrow.withdraw(collector, receiver);
+
+        (uint256 balanceAfter, uint256 tokensThawingAfter, uint256 thawEndTimestampAfter) = escrow.escrowAccounts(msgSender, collector, receiver);
+        uint256 tokenBalanceAfterSender = token.balanceOf(msgSender);
+        uint256 tokenBalanceAfterEscrow = token.balanceOf(address(escrow));
+
+        assertEq(balanceAfter, balanceBefore - amountToWithdraw);
+        assertEq(tokensThawingAfter, 0);
+        assertEq(thawEndTimestampAfter, 0);
+
+        assertEq(tokenBalanceAfterSender, tokenBalanceBeforeSender + amountToWithdraw);
+        assertEq(tokenBalanceAfterEscrow, tokenBalanceBeforeEscrow - amountToWithdraw);        
     }
 
     struct CollectPaymentData {
@@ -91,7 +131,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         }
 
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.EscrowCollected(_payer, _collector, _receiver, _tokens);
+        emit IPaymentsEscrow.EscrowCollected(_paymentType, _payer, _collector, _receiver, _tokens);
         escrow.collect(_paymentType, _payer, _receiver, _tokens, _dataService, _dataServiceCut);
 
         // Calculate cuts
@@ -99,9 +139,12 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         uint256 tokensDataService = (_tokens - _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT())).mulPPMRoundUp(
             _dataServiceCut
         );
-        uint256 tokensDelegation = (_tokens -
-            _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) -
-            tokensDataService).mulPPMRoundUp(staking.getDelegationFeeCut(_receiver, _dataService, _paymentType));
+        uint256 tokensDelegation = 0;
+        IHorizonStakingTypes.DelegationPool memory pool = staking.getDelegationPool(_receiver, _dataService);
+        if (pool.shares > 0) {
+            tokensDelegation = (_tokens - _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) - tokensDataService)
+                .mulPPMRoundUp(staking.getDelegationFeeCut(_receiver, _dataService, _paymentType));
+        }
         uint256 receiverExpectedPayment = _tokens -
             _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) -
             tokensDataService -

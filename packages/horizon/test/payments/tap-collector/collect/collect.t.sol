@@ -43,14 +43,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         address _allocationId,
         address _payer,
         address _indexer,
-        address _collector,
+        address _dataService,
         uint128 _tokens
     ) private pure returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
                 collectionId: bytes32(uint256(uint160(_allocationId))),
                 payer: _payer,
-                dataService: _collector,
+                dataService: _dataService,
                 serviceProvider: _indexer,
                 timestampNs: 0,
                 valueAggregate: _tokens,

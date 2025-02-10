@@ -37,9 +37,18 @@ interface IPaymentsEscrow {
     /**
      * @notice Emitted when a payer cancels an escrow thawing
      * @param payer The address of the payer
+     * @param collector The address of the collector
      * @param receiver The address of the receiver
+     * @param tokensThawing The amount of tokens that were being thawed
+     * @param thawEndTimestamp The timestamp at which the thawing period was ending
      */
-    event CancelThaw(address indexed payer, address indexed receiver);
+    event CancelThaw(
+        address indexed payer,
+        address indexed collector,
+        address indexed receiver,
+        uint256 tokensThawing,
+        uint256 thawEndTimestamp
+    );
 
     /**
      * @notice Emitted when a payer thaws funds from the escrow for a payer-collector-receiver tuple
@@ -68,12 +77,19 @@ interface IPaymentsEscrow {
 
     /**
      * @notice Emitted when a collector collects funds from the escrow for a payer-collector-receiver tuple
+     * @param paymentType The type of payment being collected as defined in the {IGraphPayments} interface
      * @param payer The address of the payer
      * @param collector The address of the collector
      * @param receiver The address of the receiver
      * @param tokens The amount of tokens collected
      */
-    event EscrowCollected(address indexed payer, address indexed collector, address indexed receiver, uint256 tokens);
+    event EscrowCollected(
+        IGraphPayments.PaymentTypes indexed paymentType,
+        address indexed payer,
+        address indexed collector,
+        address receiver,
+        uint256 tokens
+    );
 
     // -- Errors --
 
@@ -145,19 +161,28 @@ interface IPaymentsEscrow {
     /**
      * @notice Thaw a specific amount of escrow from a payer-collector-receiver's escrow account.
      * The payer is the transaction caller.
-     * If `tokens` is zero and funds were already thawing it will cancel the thawing.
      * Note that repeated calls to this function will overwrite the previous thawing amount
      * and reset the thawing period.
      * @dev Requirements:
      * - `tokens` must be less than or equal to the available balance
      *
-     * Emits a {Thaw} event. If `tokens` is zero it will emit a {CancelThaw} event.
+     * Emits a {Thaw} event.
      *
      * @param collector The address of the collector
      * @param receiver The address of the receiver
      * @param tokens The amount of tokens to thaw
      */
     function thaw(address collector, address receiver, uint256 tokens) external;
+
+    /**
+     * @notice Cancels the thawing of escrow from a payer-collector-receiver's escrow account.
+     * @param collector The address of the collector
+     * @param receiver The address of the receiver
+     * @dev Requirements:
+     * - The payer must be thawing funds
+     * Emits a {CancelThaw} event.
+     */
+    function cancelThaw(address collector, address receiver) external;
 
     /**
      * @notice Withdraws all thawed escrow from a payer-collector-receiver's escrow account.
