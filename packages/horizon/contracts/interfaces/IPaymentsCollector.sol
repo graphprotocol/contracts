@@ -17,6 +17,7 @@ interface IPaymentsCollector {
     /**
      * @notice Emitted when a payment is collected
      * @param paymentType The payment type collected as defined by {IGraphPayments}
+     * @param collectionId The id for the collection. Can be used at the discretion of the collector to group multiple payments.
      * @param payer The address of the payer
      * @param receiver The address of the receiver
      * @param dataService The address of the data service
@@ -24,7 +25,7 @@ interface IPaymentsCollector {
      */
     event PaymentCollected(
         IGraphPayments.PaymentTypes paymentType,
-        bytes32 indexed collectorId,
+        bytes32 indexed collectionId,
         address indexed payer,
         address receiver,
         address indexed dataService,

@@ -25,8 +25,8 @@ interface ITAPCollector is IPaymentsCollector {
 
     /// @notice The Receipt Aggregate Voucher (RAV) struct
     struct ReceiptAggregateVoucher {
-        // The ID of the payment
-        bytes32 collectorId;
+        // The ID of the collection "bucket" the RAV belongs to. Note that multiple RAVs can be collected for the same collection id.
+        bytes32 collectionId;
         // The address of the payer the RAV was issued by
         address payer;
         // The address of the data service the RAV was issued to
@@ -82,6 +82,7 @@ interface ITAPCollector is IPaymentsCollector {
 
     /**
      * @notice Emitted when a RAV is collected
+     * @param collectionId The ID of the collection "bucket" the RAV belongs to.
      * @param payer The address of the payer
      * @param dataService The address of the data service
      * @param serviceProvider The address of the service provider
@@ -91,9 +92,10 @@ interface ITAPCollector is IPaymentsCollector {
      * @param signature The signature of the RAV
      */
     event RAVCollected(
+        bytes32 indexed collectionId,
         address indexed payer,
+        address serviceProvider,
         address indexed dataService,
-        address indexed serviceProvider,
         uint64 timestampNs,
         uint128 valueAggregate,
         bytes metadata,

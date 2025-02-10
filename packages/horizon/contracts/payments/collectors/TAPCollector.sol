@@ -35,8 +35,10 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     /// @notice Authorization details for payer-signer pairs
     mapping(address signer => PayerAuthorization authorizedSigner) public authorizedSigners;
 
-    /// @notice Tracks the amount of tokens already collected by a data service from a payer to a receiver
-    mapping(address dataService => mapping(bytes32 collectorId => mapping(address receiver => mapping(address payer => uint256 tokens))))
+    /// @notice Tracks the amount of tokens already collected by a data service from a payer to a receiver.
+    /// @dev The collectionId provides a secondary key for grouping payment tracking if needed. Data services that do not require
+    /// grouping can use the same collectionId for all payments (0x00 or some other default value).
+    mapping(address dataService => mapping(bytes32 collectionId => mapping(address receiver => mapping(address payer => uint256 tokens))))
         public tokensCollected;
 
     /// @notice The duration (in seconds) in which a signer is thawing before they can be revoked
@@ -182,7 +184,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         address payer = authorizedSigners[signer].payer;
         require(signedRAV.rav.payer == payer, TAPCollectorInvalidRAVPayer(payer, signedRAV.rav.payer));
 
-        bytes32 collectorId = signedRAV.rav.collectorId;
+        bytes32 collectionId = signedRAV.rav.collectionId;
         address dataService = signedRAV.rav.dataService;
         address receiver = signedRAV.rav.serviceProvider;
 
@@ -200,7 +202,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         uint256 tokensToCollect = 0;
         {
             uint256 tokensRAV = signedRAV.rav.valueAggregate;
-            uint256 tokensAlreadyCollected = tokensCollected[dataService][collectorId][receiver][payer];
+            uint256 tokensAlreadyCollected = tokensCollected[dataService][collectionId][receiver][payer];
             require(
                 tokensRAV > tokensAlreadyCollected,
                 TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
@@ -218,20 +220,24 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         }
 
         if (tokensToCollect > 0) {
-            tokensCollected[dataService][collectorId][receiver][payer] += tokensToCollect;
+            tokensCollected[dataService][collectionId][receiver][payer] += tokensToCollect;
             _graphPaymentsEscrow().collect(_paymentType, payer, receiver, tokensToCollect, dataService, dataServiceCut);
         }
 
-        emit PaymentCollected(_paymentType, collectorId, payer, receiver, dataService, tokensToCollect);
+        emit PaymentCollected(_paymentType, collectionId, payer, receiver, dataService, tokensToCollect);
+
+        // This event is emitted to allow reconstructing RAV history with onchain data.
         emit RAVCollected(
+            collectionId,
             payer,
-            dataService,
             receiver,
+            dataService,
             signedRAV.rav.timestampNs,
             signedRAV.rav.valueAggregate,
             signedRAV.rav.metadata,
             signedRAV.signature
         );
+
         return tokensToCollect;
     }
 

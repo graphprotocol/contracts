@@ -125,10 +125,10 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidZeroStakeToFeesRatio();
 
     /**
-     * @notice Thrown when collectorId is too large for an address
-     * @param collectorId The collectorId that is too large
+     * @notice Thrown when collectionId is not a valid address
+     * @param collectionId The collectionId
      */
-    error SubgraphServiceInvalidCollectorId(bytes32 collectorId);
+    error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
 
     /**
      * @notice Force close a stale allocation

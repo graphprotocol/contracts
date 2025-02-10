@@ -264,12 +264,12 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
 
     function _handleQueryFeeCollection(address _indexer, bytes memory _data) private returns (uint256 paymentCollected) {
         ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
-        Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectorId))));
+        Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectionId))));
         (address payer, , ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
 
         uint256 tokensCollected = tapCollector.tokensCollected(
             address(subgraphService),
-            signedRav.rav.collectorId,
+            signedRav.rav.collectionId,
             _indexer,
             payer
         );
@@ -334,7 +334,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         CollectPaymentData memory collectPaymentDataAfter
     ) private view {
         ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
-        Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectorId))));
+        Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectionId))));
         QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
         uint256 tokensProtocol = _paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
         uint256 curationTokens = (_paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);

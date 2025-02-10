@@ -42,12 +42,12 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function _getRAV(
         address indexer,
-        bytes32 collectorId,
+        bytes32 collectionId,
         uint128 tokens
     ) private view returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
-                collectorId: collectorId,
+                collectionId: collectionId,
                 payer: users.gateway,
                 dataService: address(subgraphService),
                 serviceProvider: indexer,
@@ -172,15 +172,15 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         subgraphService.collect(newIndexer, paymentType, data);
     }
 
-    function testCollect_QueryFees_RevertWhen_CollectorIdTooLarge() public useIndexer useAllocation(1000 ether) {
-        bytes32 collectorId = keccak256(abi.encodePacked("Large collector id, longer than 160 bits"));
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(users.indexer, collectorId, 1000 ether);
+    function testCollect_QueryFees_RevertWhen_CollectionIdTooLarge() public useIndexer useAllocation(1000 ether) {
+        bytes32 collectionId = keccak256(abi.encodePacked("Large collection id, longer than 160 bits"));
+        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(users.indexer, collectionId, 1000 ether);
         bytes32 messageHash = tapCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
         ITAPCollector.SignedRAV memory signedRAV = ITAPCollector.SignedRAV(rav, signature);
         bytes memory data = abi.encode(signedRAV);
-        vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidCollectorId.selector, collectorId));
+        vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidCollectionId.selector, collectionId));
         subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
     }
 }
