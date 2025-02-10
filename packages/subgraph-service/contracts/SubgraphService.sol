@@ -450,18 +450,6 @@ contract SubgraphService is
     }
 
     /**
-     * @notice Check if an allocation is open
-     * @dev Implements {IRewardsIssuer.isAllocationActive}
-     * @dev To be used by the {RewardsManager}.
-     *
-     * @param allocationId The allocation Id
-     * @return Wether or not the allocation is active
-     */
-    function isActiveAllocation(address allocationId) external view override returns (bool) {
-        return _allocations[allocationId].isOpen();
-    }
-
-    /**
      * @notice See {ISubgraphService.getLegacyAllocation}
      */
     function getLegacyAllocation(address allocationId) external view override returns (LegacyAllocation.State memory) {
@@ -473,13 +461,6 @@ contract SubgraphService is
      */
     function encodeAllocationProof(address indexer, address allocationId) external view override returns (bytes32) {
         return _encodeAllocationProof(indexer, allocationId);
-    }
-
-    /**
-     * @notice See {ISubgraphService.isStaleAllocation}
-     */
-    function isStaleAllocation(address allocationId) external view override returns (bool) {
-        return _allocations.get(allocationId).isStale(maxPOIStaleness);
     }
 
     /**

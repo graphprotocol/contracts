@@ -322,24 +322,11 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
      * @param _allocationID Allocation
      * @return Rewards amount for an allocation
      */
-    function getRewards(address _allocationID) external view override returns (uint256) {
-        address rewardsIssuer = address(0);
-
-        // Check both the legacy and new allocations
-        address[2] memory rewardsIssuers = [address(staking()), address(subgraphService)];
-        for (uint256 i = 0; i < rewardsIssuers.length; i++) {
-            if (rewardsIssuers[i] != address(0)) {
-                if (IRewardsIssuer(rewardsIssuers[i]).isActiveAllocation(_allocationID)) {
-                    rewardsIssuer = address(rewardsIssuers[i]);
-                    break;
-                }
-            }
-        }
-
-        // Bail if allo does not exist
-        if (rewardsIssuer == address(0)) {
-            return 0;
-        }
+    function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
+        require(
+            _rewardsIssuer == address(staking()) || _rewardsIssuer == address(subgraphService),
+            "Not a rewards issuer"
+        );
 
         (
             ,
@@ -347,7 +334,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
             uint256 tokens,
             uint256 alloAccRewardsPerAllocatedToken,
             uint256 accRewardsPending
-        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationID);
+        ) = IRewardsIssuer(_rewardsIssuer).getAllocationData(_allocationID);
 
         (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(subgraphDeploymentId);
         return
