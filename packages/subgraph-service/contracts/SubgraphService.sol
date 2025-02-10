@@ -464,6 +464,13 @@ contract SubgraphService is
     }
 
     /**
+     * @notice See {ISubgraphService.isStaleAllocation}
+     */
+    function isStaleAllocation(address allocationId) external view override returns (bool) {
+        return _allocations.get(allocationId).isStale(maxPOIStaleness);
+    }
+
+    /**
      * @notice See {ISubgraphService.isOverAllocated}
      */
     function isOverAllocated(address indexer) external view override returns (bool) {
