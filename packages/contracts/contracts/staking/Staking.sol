@@ -473,6 +473,27 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
+     * @dev New function to get the allocation data for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function getAllocationData(
+        address _allocationID
+    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
+        Allocation memory alloc = __allocations[_allocationID];
+        return (alloc.indexer, alloc.subgraphDeploymentID, alloc.tokens, alloc.accRewardsPerAllocatedToken, 0);
+    }
+
+    /**
+     * @dev New function to get the allocation active status for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function isActiveAllocation(address _allocationID) external view override returns (bool) {
+        return _getAllocationState(_allocationID) == AllocationState.Active;
+    }
+
+    /**
      * @notice Return the current state of an allocation
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
@@ -893,7 +914,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
-                // Then we call collect() to do the transfer bookeeping
+                // Then we call collect() to do the transfer Bookkeeping
                 rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
                 TokenUtils.pushTokens(_graphToken, address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);

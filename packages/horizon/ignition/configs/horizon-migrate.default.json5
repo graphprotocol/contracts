@@ -1,0 +1,50 @@
+{
+  "$global": {
+    // Accounts
+    "governor": "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
+
+    // Addresses for contracts deployed in the original Graph Protocol
+    "graphProxyAdminAddress": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+    "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
+    "horizonStakingAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
+    "epochManagerAddress": "0x88b3C7f37253bAA1A9b95feAd69bD5320585826D",
+    "graphTokenAddress": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
+    "graphTokenGatewayAddress": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
+    "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+    "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+
+    // Must be set for step 4 of the migration
+    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",
+
+    // Parameters
+    "maxThawingPeriod": 2419200
+  },
+    "GraphPayments": {
+    "protocolPaymentCut": 10000
+  },
+  "PaymentsEscrow": {
+    "withdrawEscrowThawingPeriod": 10000
+  },
+  "TAPCollector": {
+    "eip712Name": "TAPCollector",
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 10000
+  },
+  "HorizonProxiesGovernor": {
+    // These addresses must be set for step 2 of the migration
+    "graphPaymentsAddress": "0x0000000000000000000000000000000000000000",
+    "paymentsEscrowAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "HorizonStakingGovernor": {
+    // Must be set for step 4 of the migration
+    "horizonStakingImplementationAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "L2CurationGovernor": {
+    // Must be set for step 4 of the migration
+    "curationImplementationAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "RewardsManagerGovernor": {
+    // Must be set for step 4 of the migration
+    "rewardsManagerImplementationAddress": "0x0000000000000000000000000000000000000000"
+  }
+}

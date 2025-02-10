@@ -35,9 +35,12 @@ This repository is a Yarn workspaces monorepo containing the following packages:
 | --- | --- | --- |
 | [contracts](./packages/contracts) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts) | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
 | [eslint-graph-config](./packages/eslint-graph-config) | - | Shared linting and formatting rules for TypeScript projects. |
-| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants |
+| [horizon](./packages/horizon) | - | Contracts for Graph Horizon, the next iteration of The Graph protocol. |
 | [sdk](./packages/sdk) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk) | TypeScript based SDK to interact with the protocol contracts |
 | [solhint-graph-config](./packages/solhint-graph-config) | - | Shared linting and formatting rules for Solidity projects. |
+| [solhint-plugin-graph](./packages/solhint-plugin-graph) | - | Plugin for Solhint with specific Graph linting rules. |
+| [subgraph-service](./packages/subgraph-service) | - | Contracts for the Subgraph data service in Graph Horizon. |
+| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants |
 
 
 ## Development

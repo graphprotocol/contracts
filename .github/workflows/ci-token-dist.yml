@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
       - name: Build
@@ -28,4 +30,6 @@ jobs:
           pushd packages/token-distribution
           yarn build
       - name: Run tests
-        run: yarn test
+        run: |
+          pushd packages/token-distribution
+          yarn test

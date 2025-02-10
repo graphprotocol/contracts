@@ -1,13 +1,17 @@
 {
   "name": "solhint-graph-config",
+  "private": true,
   "version": "0.0.1",
   "description": "Linting and formatting rules for The Graph's Solidity projects",
   "main": "index.js",
   "author": "The Graph Team",
   "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "solhint-plugin-graph": "workspace:*"
+  },
   "peerDependencies": {
     "prettier": "^3.2.5",
     "prettier-plugin-solidity": "^1.3.1",
-    "solhint": "^4.1.1"
+    "solhint": "^4.5.4"
   }
 }

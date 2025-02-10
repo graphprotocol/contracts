@@ -579,7 +579,7 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
      * @notice Ignore a dispute with ID `_disputeID`
      * @param _disputeID ID of the dispute to be disregarded
      */
-    function drawDispute(bytes32 _disputeID) public override onlyArbitrator onlyPendingDispute(_disputeID) {
+    function drawDispute(bytes32 _disputeID) external override onlyArbitrator onlyPendingDispute(_disputeID) {
         Dispute storage dispute = disputes[_disputeID];
 
         // Return deposit to the fisherman

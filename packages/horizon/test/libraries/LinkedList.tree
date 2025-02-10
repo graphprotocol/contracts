@@ -1,0 +1,34 @@
+LinkedListTest::add_
+├── given the list is empty
+│   ├── it should have a count of 1 and nonce of 1
+│   ├── it should have the tail set to the element
+│   └── it should have the head set to the element
+├── given the list is not empty
+│   ├── it should have a count of 2 and nonce of 2
+│   ├── it should have the tail set to the new element
+│   └── it should have the head set to the old element
+└── given the list is at max size
+    └── it should revert
+
+LinkedListTest::remove_
+├── given the list is empty
+│   └── it should revert
+└── given the list is not empty
+    ├── it should have a count of 0
+    ├── it should have the tail set to bytes32(0)
+    └── it should have the head set to bytes32(0)
+
+LinkedListTest::traverse
+├── given the list is empty
+│   ├── it should return zero processed elements
+│   └── it should return accumulator value same as the initial value
+└── given the list is not empty
+    └── when iterations are not specified
+    │   ├── it should return process all elements
+    │   └── it should return accumulator value equal to the processed value
+    └── when iterations are specified
+    │   ├── it should return process all elements
+    │   └── it should return accumulator value equal to the processed value
+    └── when iterations are invalid
+        ├── it should return process all elements
+        └── it should return accumulator value equal to the processed value

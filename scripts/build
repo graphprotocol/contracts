@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# List of packages to build - order matters!
+packages=(
+    "packages/eslint-graph-config"
+    # "packages/solhint-graph-config" -- disabled since it doesn't have a build script
+    # "packages/solhint-plugin-graph" -- disabled since it doesn't have a build script
+    "packages/contracts"
+    "packages/horizon"
+    "packages/subgraph-service"
+    "packages/hardhat-graph-protocol"
+    "packages/data-edge"
+    "packages/sdk"
+    "packages/token-distribution"
+)
+
+for package in "${packages[@]}"; do
+    echo -e "\n\n==== Building $package..."
+
+    cd "$package" || { echo "Failed to navigate to $package"; exit 1; }
+
+    if BUILD_RUN=true yarn build; then
+        echo "Successfully built $package"
+    else
+        echo "Build failed for $package" >&2
+        exit 1
+    fi
+
+    cd - > /dev/null
+done
+
+echo "All packages built successfully!"

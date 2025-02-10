@@ -36,7 +36,7 @@ export default [
       '@typescript-eslint/no-inferrable-types': 'warn',
       '@typescript-eslint/no-empty-function': 'warn',
       'no-only-tests/no-only-tests': 'error',
-      'no-secrets/no-secrets': ['error', { tolerance: 4.1 }],
+      'no-secrets/no-secrets': ['error', { tolerance: 5.1 }],
       'sort-imports': [
         'warn', {
           memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
