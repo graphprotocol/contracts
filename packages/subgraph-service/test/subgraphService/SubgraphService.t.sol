@@ -302,6 +302,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // Calculate the payment collected by the indexer for this transaction
         paymentCollected = accRewardsPerTokens - allocation.accRewardsPerAllocatedToken;
 
+        uint256 currentEpoch = epochManager.currentEpoch();
+        paymentCollected = currentEpoch > allocation.createdAtEpoch ? paymentCollected : 0;
+
         uint256 delegatorCut = staking.getDelegationFeeCut(
             allocation.indexer,
             address(subgraphService),
