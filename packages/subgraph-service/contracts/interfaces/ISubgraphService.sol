@@ -125,6 +125,12 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInvalidZeroStakeToFeesRatio();
 
     /**
+     * @notice Thrown when collectionId is not a valid address
+     * @param collectionId The collectionId
+     */
+    error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
+
+    /**
      * @notice Force close a stale allocation
      * @dev This function can be permissionlessly called when the allocation is stale. This
      * ensures that rewards for other allocations are not diluted by an inactive allocation.

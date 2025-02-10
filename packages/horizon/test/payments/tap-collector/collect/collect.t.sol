@@ -13,14 +13,25 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
      * HELPERS
      */
 
+    struct CollectTestParams {
+        uint256 tokens;
+        address allocationId;
+        address payer;
+        address indexer;
+        address collector;
+    }
+
     function _getQueryFeeEncodedData(
         uint256 _signerPrivateKey,
-        address _payer,
-        address _indexer,
-        address _collector,
-        uint128 _tokens
+        CollectTestParams memory params
     ) private view returns (bytes memory) {
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(_payer, _indexer, _collector, _tokens);
+        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(
+            params.allocationId,
+            params.payer,
+            params.indexer,
+            params.collector,
+            uint128(params.tokens)
+        );
         bytes32 messageHash = tapCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -29,6 +40,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     }
 
     function _getRAV(
+        address _allocationId,
         address _payer,
         address _indexer,
         address _collector,
@@ -36,6 +48,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
     ) private pure returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
         return
             ITAPCollector.ReceiptAggregateVoucher({
+                collectionId: bytes32(uint256(uint160(_allocationId))),
                 payer: _payer,
                 dataService: _collector,
                 serviceProvider: _indexer,
@@ -56,13 +69,15 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
@@ -81,13 +96,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         uint256 payed = 0;
         uint256 tokensPerStep = tokens / steps;
         for (uint256 i = 0; i < steps; i++) {
-            bytes memory data = _getQueryFeeEncodedData(
-                signerPrivateKey,
-                users.gateway,
-                users.indexer,
-                users.verifier,
-                uint128(payed + tokensPerStep)
-            );
+            CollectTestParams memory params = CollectTestParams({
+                tokens: payed + tokensPerStep,
+                allocationId: _allocationId,
+                payer: users.gateway,
+                indexer: users.indexer,
+                collector: users.verifier
+            });
+            bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
             _collect(IGraphPayments.PaymentTypes.QueryFee, data);
             payed += tokensPerStep;
         }
@@ -98,13 +114,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -127,13 +144,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         resetPrank(users.gateway);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -161,13 +179,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         }
 
         // And crafts a RAV using the new signer as the data service
-        bytes memory data = _getQueryFeeEncodedData(
-            anotherSignerPrivateKey,
-            users.gateway,
-            users.indexer,
-            anotherSigner,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: anotherSigner
+        });
+        bytes memory data = _getQueryFeeEncodedData(anotherSignerPrivateKey, params);
 
         // the call should revert because the service provider has no provision with the "data service"
         resetPrank(anotherSigner);
@@ -185,13 +204,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         resetPrank(users.gateway);
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.indexer);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -212,13 +232,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
         (address anotherPayer, ) = makeAddrAndKey("anotherPayer");
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            anotherPayer,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: anotherPayer,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -236,13 +257,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         tokens = bound(tokens, 1, type(uint128).max);
 
         _depositTokens(address(tapCollector), users.indexer, tokens);
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
@@ -259,13 +281,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         vm.expectRevert(abi.encodeWithSelector(ITAPCollector.TAPCollectorInvalidRAVSigner.selector));
@@ -283,13 +306,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         _thawSigner(signer);
         skip(revokeSignerThawingPeriod + 1);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
@@ -305,13 +329,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         skip(revokeSignerThawingPeriod + 1);
         _revokeAuthorizedSigner(signer);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         vm.expectRevert(abi.encodeWithSelector(ITAPCollector.TAPCollectorInvalidRAVSigner.selector));
@@ -330,13 +355,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         skip(revokeSignerThawingPeriod + 1);
         _cancelThawSigner(signer);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
@@ -351,13 +377,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
         _collect(IGraphPayments.PaymentTypes.QueryFee, data, tokensToCollect);
@@ -371,16 +398,22 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         _depositTokens(address(tapCollector), users.indexer, tokens);
 
-        bytes memory data = _getQueryFeeEncodedData(
-            signerPrivateKey,
-            users.gateway,
-            users.indexer,
-            users.verifier,
-            uint128(tokens)
-        );
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
-        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(users.verifier, users.indexer, users.gateway);
+        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(
+            users.verifier,
+            bytes32(uint256(uint160(_allocationId))),
+            users.indexer,
+            users.gateway
+        );
         tokensToCollect = bound(tokensToCollect, tokens - tokensAlreadyCollected + 1, type(uint128).max);
 
         vm.expectRevert(
@@ -391,5 +424,60 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
             )
         );
         tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data, tokensToCollect);
+    }
+
+    function testTAPCollector_Collect_SeparateAllocationTracking(
+        uint256 tokens
+    ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
+        tokens = bound(tokens, 1, type(uint64).max);
+        uint8 numAllocations = 10;
+
+        _depositTokens(address(tapCollector), users.indexer, tokens * numAllocations);
+        // Array with collectTestParams for each allocation
+        CollectTestParams[] memory collectTestParams = new CollectTestParams[](numAllocations);
+
+        // Collect tokens for each allocation
+        resetPrank(users.verifier);
+        for (uint256 i = 0; i < numAllocations; i++) {
+            address allocationId = makeAddr(string.concat("allocation", vm.toString(i)));
+            collectTestParams[i] = CollectTestParams({
+                tokens: tokens,
+                allocationId: allocationId,
+                payer: users.gateway,
+                indexer: users.indexer,
+                collector: users.verifier
+            });
+            bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, collectTestParams[i]);
+            _collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        }
+
+        for (uint256 i = 0; i < numAllocations; i++) {
+            assertEq(
+                tapCollector.tokensCollected(
+                    collectTestParams[i].collector,
+                    bytes32(uint256(uint160(collectTestParams[i].allocationId))),
+                    collectTestParams[i].indexer,
+                    collectTestParams[i].payer
+                ),
+                collectTestParams[i].tokens,
+                "Incorrect tokens collected for allocation"
+            );
+
+            // Try to collect again with the same allocation - should revert
+            bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, collectTestParams[i]);
+            vm.expectRevert(
+                abi.encodeWithSelector(ITAPCollector.TAPCollectorInconsistentRAVTokens.selector, tokens, tokens)
+            );
+            tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        }
+
+        // Increase tokens for allocation 0 by 1000 ether and collect again
+        resetPrank(users.gateway);
+        _depositTokens(address(tapCollector), users.indexer, 1000 ether);
+
+        resetPrank(users.verifier);
+        collectTestParams[0].tokens = tokens + 1000 ether;
+        bytes memory allocation0Data = _getQueryFeeEncodedData(signerPrivateKey, collectTestParams[0]);
+        _collect(IGraphPayments.PaymentTypes.QueryFee, allocation0Data);
     }
 }
