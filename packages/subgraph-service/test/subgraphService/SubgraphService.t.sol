@@ -149,9 +149,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _closeStaleAllocation(address _allocationId) internal {
-        assertTrue(subgraphService.isActiveAllocation(_allocationId));
-
         Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
+        assertTrue(allocation.isOpen());
         uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
             allocation.subgraphDeploymentId
         );

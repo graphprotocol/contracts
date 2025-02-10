@@ -17,6 +17,15 @@ if (process.env.BUILD_RUN !== 'true') {
 
 const config: HardhatUserConfig = {
   ...hardhatBaseConfig,
+  solidity: {
+    version: '0.8.27',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 50,
+      },
+    },
+  },
   graph: {
     deployments: {
       ...hardhatBaseConfig.graph?.deployments,

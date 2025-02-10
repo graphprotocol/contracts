@@ -242,13 +242,6 @@ interface ISubgraphService is IDataServiceFees {
     function encodeAllocationProof(address indexer, address allocationId) external view returns (bytes32);
 
     /**
-     * @notice Checks if an allocation is stale
-     * @param allocationId The id of the allocation
-     * @return True if the allocation is stale, false otherwise
-     */
-    function isStaleAllocation(address allocationId) external view returns (bool);
-
-    /**
      * @notice Checks if an indexer is over-allocated
      * @param allocationId The id of the allocation
      * @return True if the indexer is over-allocated, false otherwise

@@ -11,6 +11,8 @@ import { ISubgraphService } from "../../contracts/interfaces/ISubgraphService.so
 import { HorizonStakingSharedTest } from "./HorizonStakingShared.t.sol";
 
 abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
+    using Allocation for Allocation.State;
+
     /*
      * VARIABLES
      */
@@ -101,13 +103,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
         vm.expectEmit(address(subgraphService));
         emit IDataService.ServiceStarted(_indexer, _data);
-        emit AllocationManager.AllocationCreated(
-            _indexer,
-            allocationId,
-            subgraphDeploymentId,
-            tokens,
-            currentEpoch
-        );
+        emit AllocationManager.AllocationCreated(_indexer, allocationId, subgraphDeploymentId, tokens, currentEpoch);
 
         // TODO: improve this
         uint256 accRewardsPerAllocatedToken = 0;
@@ -137,9 +133,9 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
     function _stopService(address _indexer, bytes memory _data) internal {
         address allocationId = abi.decode(_data, (address));
-        assertTrue(subgraphService.isActiveAllocation(allocationId));
 
         Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        assertTrue(allocation.isOpen());
         uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
             allocation.subgraphDeploymentId
         );
