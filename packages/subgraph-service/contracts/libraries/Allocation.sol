@@ -30,6 +30,8 @@ library Allocation {
         uint256 accRewardsPerAllocatedToken;
         // Accumulated rewards that are pending to be claimed due allocation resize
         uint256 accRewardsPending;
+        // Epoch when the allocation was created
+        uint256 createdAtEpoch;
     }
 
     /**
@@ -68,7 +70,8 @@ library Allocation {
         address allocationId,
         bytes32 subgraphDeploymentId,
         uint256 tokens,
-        uint256 accRewardsPerAllocatedToken
+        uint256 accRewardsPerAllocatedToken,
+        uint256 createdAtEpoch
     ) internal returns (State memory) {
         require(!self[allocationId].exists(), AllocationAlreadyExists(allocationId));
 
@@ -80,7 +83,8 @@ library Allocation {
             closedAt: 0,
             lastPOIPresentedAt: 0,
             accRewardsPerAllocatedToken: accRewardsPerAllocatedToken,
-            accRewardsPending: 0
+            accRewardsPending: 0,
+            createdAtEpoch: createdAtEpoch
         });
 
         self[allocationId] = allocation;
