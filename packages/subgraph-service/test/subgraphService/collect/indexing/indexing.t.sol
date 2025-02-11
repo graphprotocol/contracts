@@ -19,6 +19,10 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
     ) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
         bytes memory data = abi.encode(allocationID, bytes32("POI"));
+
+        // skip time to ensure allocation gets rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
         _collect(users.indexer, paymentType, data);
     }
 
@@ -34,6 +38,11 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
             IGraphPayments.PaymentTypes.IndexingRewards,
             delegationFeeCut
         );
+
+
+        // skip time to ensure allocation gets rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
         bytes memory data = abi.encode(allocationID, bytes32("POI"));
         _collect(users.indexer, paymentType, data);
@@ -54,6 +63,10 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         // Undelegate
         resetPrank(users.delegator);
         staking.undelegate(users.indexer, address(subgraphService), delegationTokens);
+
+        // skip time to ensure allocation gets rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
         resetPrank(users.indexer);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
         bytes memory data = abi.encode(allocationID, bytes32("POI"));
@@ -63,6 +76,9 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
     function test_SubgraphService_Collect_Indexing_RewardsDestination(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) useRewardsDestination {
+        // skip time to ensure allocation gets rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
         bytes memory data = abi.encode(allocationID, bytes32("POI"));
         _collect(users.indexer, paymentType, data);
@@ -121,6 +137,9 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         // thaw some tokens to become over allocated
         staking.thaw(users.indexer, address(subgraphService), tokens / 2);
 
+        // skip time to ensure allocation gets rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
         // this collection should close the allocation
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
         bytes memory collectData = abi.encode(allocationID, bytes32("POI"));
@@ -135,6 +154,10 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
         bytes memory data = abi.encode(allocationID, bytes32("POI"));
+
+        // skip time to ensure allocation gets rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
         // Attempt to collect from other indexer's allocation
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector, newIndexer, allocationID)

@@ -149,9 +149,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _closeStaleAllocation(address _allocationId) internal {
-        assertTrue(subgraphService.isActiveAllocation(_allocationId));
-
         Allocation.State memory allocation = subgraphService.getAllocation(_allocationId);
+        assertTrue(allocation.isOpen());
         uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
             allocation.subgraphDeploymentId
         );
@@ -301,6 +300,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 accRewardsPerTokens = allocation.tokens.mulPPM(rewardsManager.rewardsPerSignal());
         // Calculate the payment collected by the indexer for this transaction
         paymentCollected = accRewardsPerTokens - allocation.accRewardsPerAllocatedToken;
+
+        uint256 currentEpoch = epochManager.currentEpoch();
+        paymentCollected = currentEpoch > allocation.createdAtEpoch ? paymentCollected : 0;
 
         uint256 delegatorCut = staking.getDelegationFeeCut(
             allocation.indexer,

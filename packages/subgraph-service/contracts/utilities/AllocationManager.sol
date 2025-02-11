@@ -40,12 +40,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param allocationId The id of the allocation
      * @param subgraphDeploymentId The id of the subgraph deployment
      * @param tokens The amount of tokens allocated
+     * @param currentEpoch The current epoch
      */
     event AllocationCreated(
         address indexed indexer,
         address indexed allocationId,
         bytes32 indexed subgraphDeploymentId,
-        uint256 tokens
+        uint256 tokens,
+        uint256 currentEpoch
     );
 
     /**
@@ -157,17 +159,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     // solhint-disable-next-line func-name-mixedcase
     function __AllocationManager_init(string memory _name, string memory _version) internal onlyInitializing {
         __EIP712_init(_name, _version);
-        __AllocationManager_init_unchained(_name, _version);
+        __AllocationManager_init_unchained();
     }
 
     /**
      * @notice Initializes the contract
      */
     // solhint-disable-next-line func-name-mixedcase
-    function __AllocationManager_init_unchained(
-        string memory _name,
-        string memory _version
-    ) internal onlyInitializing {}
+    function __AllocationManager_init_unchained() internal onlyInitializing {}
 
     /**
      * @notice Imports a legacy allocation id into the subgraph service
@@ -213,12 +212,15 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         // Ensure allocation id is not reused
         // need to check both subgraph service (on allocations.create()) and legacy allocations
         _legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
+
+        uint256 currentEpoch = _graphEpochManager().currentEpoch();
         Allocation.State memory allocation = _allocations.create(
             _indexer,
             _allocationId,
             _subgraphDeploymentId,
             _tokens,
-            _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentId)
+            _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentId),
+            currentEpoch
         );
 
         // Check that the indexer has enough tokens available
@@ -230,7 +232,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             _subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
             allocation.tokens;
 
-        emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens);
+        emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens, currentEpoch);
         return allocation;
     }
 
@@ -238,14 +240,19 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @notice Present a POI to collect indexing rewards for an allocation
      * This function will mint indexing rewards using the {RewardsManager} and distribute them to the indexer and delegators.
      *
-     * To qualify for indexing rewards:
+     * Conditions to qualify for indexing rewards:
      * - POI must be non-zero
      * - POI must not be stale, i.e: older than `maxPOIStaleness`
      * - allocation must not be altruistic (allocated tokens = 0)
+     * - allocation must be open for at least one epoch
      *
      * Note that indexers are required to periodically (at most every `maxPOIStaleness`) present POIs to collect rewards.
      * Rewards will not be issued to stale POIs, which means that indexers are advised to present a zero POI if they are
      * unable to present a valid one to prevent being locked out of future rewards.
+     *
+     * Note on allocation duration restriction: this is required to ensure that non protocol chains have a valid block number for
+     * which to calculate POIs. EBO posts once per epoch typically at each epoch change, so we restrict rewards to allocations
+     * that have gone through at least one epoch change.
      *
      * Emits a {IndexingRewardsCollected} event.
      *
@@ -260,10 +267,12 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         Allocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
+        uint256 currentEpoch = _graphEpochManager().currentEpoch();
+
         // Mint indexing rewards if all conditions are met
         uint256 tokensRewards = (!allocation.isStale(maxPOIStaleness) &&
             !allocation.isAltruistic() &&
-            _poi != bytes32(0))
+            _poi != bytes32(0)) && currentEpoch > allocation.createdAtEpoch
             ? _graphRewardsManager().takeRewards(_allocationId)
             : 0;
 
@@ -318,7 +327,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             tokensIndexerRewards,
             tokensDelegationRewards,
             _poi,
-            _graphEpochManager().currentEpoch()
+            currentEpoch
         );
 
         // Check if the indexer is over-allocated and close the allocation if necessary

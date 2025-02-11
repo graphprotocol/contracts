@@ -275,15 +275,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @notice Return true if allocation is active.
-     * @param allocationID Allocation identifier
-     * @return True if allocation is active
-     */
-    function isActiveAllocation(address allocationID) external view override returns (bool) {
-        return _getAllocationState(allocationID) == AllocationState.Active;
-    }
-
-    /**
      * @notice Get the total amount of tokens staked by the indexer.
      * @param indexer Address of the indexer
      * @return Amount of tokens staked by the indexer

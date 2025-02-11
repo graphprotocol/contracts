@@ -466,7 +466,7 @@ describe('Rewards', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Rewards
-        const contractRewards = await rewardsManager.getRewards(allocationID1)
+        const contractRewards = await rewardsManager.getRewards(staking.address, allocationID1)
 
         // We trust using this function in the test because we tested it
         // standalone in a previous test
@@ -504,12 +504,12 @@ describe('Rewards', () => {
         await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
         // Rewards
-        const contractRewards = await rewardsManager.getRewards(allocationID1)
+        const contractRewards = await rewardsManager.getRewards(staking.address, allocationID1)
         expect(contractRewards).eq(BigNumber.from(0))
       })
       it('rewards should be zero if the allocation does not exist', async function () {
         // Rewards
-        const contractRewards = await rewardsManager.getRewards(allocationIDNull)
+        const contractRewards = await rewardsManager.getRewards(staking.address, allocationIDNull)
         expect(contractRewards).eq(BigNumber.from(0))
       })
     })
@@ -1026,7 +1026,7 @@ describe('Rewards', () => {
       await staking.connect(assetHolder).collect(tokensToCollect, allocationID1)
 
       // check rewards diff
-      await rewardsManager.getRewards(allocationID1).then(formatGRT)
+      await rewardsManager.getRewards(staking.address, allocationID1).then(formatGRT)
 
       await helpers.mine()
       const accrual = await getRewardsAccrual(subgraphs)
