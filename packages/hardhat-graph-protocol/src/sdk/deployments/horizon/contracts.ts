@@ -10,9 +10,9 @@ import type {
 } from '@graphprotocol/contracts'
 import type {
   GraphPayments,
+  GraphTallyCollector,
   HorizonStaking,
   PaymentsEscrow,
-  TAPCollector,
 } from '@graphprotocol/horizon'
 import type { ContractList } from '../../lib/contract'
 
@@ -29,7 +29,7 @@ export const GraphHorizonContractNameList = [
   'HorizonStaking',
   'GraphPayments',
   'PaymentsEscrow',
-  'TAPCollector',
+  'GraphTallyCollector',
 ] as const
 
 const root = path.resolve(__dirname, '../../../../..') // hardhat-graph-protocol root
@@ -49,7 +49,7 @@ export const GraphHorizonArtifactsMap = {
   HorizonStaking: HORIZON_ARTIFACTS_PATH,
   GraphPayments: HORIZON_ARTIFACTS_PATH,
   PaymentsEscrow: HORIZON_ARTIFACTS_PATH,
-  TAPCollector: HORIZON_ARTIFACTS_PATH,
+  GraphTallyCollector: HORIZON_ARTIFACTS_PATH,
 } as const
 
 export interface GraphHorizonContracts extends ContractList<GraphHorizonContractName> {
@@ -65,7 +65,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   HorizonStaking: HorizonStaking
   GraphPayments: GraphPayments
   PaymentsEscrow: PaymentsEscrow
-  TAPCollector: TAPCollector
+  GraphTallyCollector: GraphTallyCollector
 
   // Aliases
   GraphToken: L2GraphToken

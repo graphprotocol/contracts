@@ -9,7 +9,7 @@
     "PaymentsEscrow": {
       "address": "0x09B985a2042848A08bA59060EaF0f07c6F5D4d54"
     },
-    "TAPCollector": {
+    "GraphTallyCollector": {
       "address": "0xacC71844EF6beEF70106ABe6E51013189A1f3738"
     },
     "GraphProxyAdmin": {
