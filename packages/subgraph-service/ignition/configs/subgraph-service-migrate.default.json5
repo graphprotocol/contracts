@@ -7,7 +7,7 @@
     // Addresses for contracts deployed in the original Graph Protocol
     "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
     "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
-    "tapCollectorAddress": "0x0000000000000000000000000000000000000000",
+    "graphTallyCollectorAddress": "0x0000000000000000000000000000000000000000",
 
     // Must be set for step 2 of the migration
     "disputeManagerAddress": "0x0000000000000000000000000000000000000000",

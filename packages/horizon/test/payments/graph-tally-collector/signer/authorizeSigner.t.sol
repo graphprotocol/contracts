@@ -3,11 +3,11 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { ITAPCollector } from "../../../../contracts/interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTallyCollector.sol";
 
-import { TAPCollectorTest } from "../TAPCollector.t.sol";
+import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
-contract TAPCollectorAuthorizeSignerTest is TAPCollectorTest {
+contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
 
     uint256 constant SECP256K1_CURVE_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 
@@ -15,25 +15,25 @@ contract TAPCollectorAuthorizeSignerTest is TAPCollectorTest {
      * TESTS
      */
 
-    function testTAPCollector_AuthorizeSigner(uint256 signerKey) public useGateway {
+    function testGraphTally_AuthorizeSigner(uint256 signerKey) public useGateway {
         signerKey = bound(signerKey, 1, SECP256K1_CURVE_ORDER - 1);
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerKey);
         _authorizeSigner(vm.addr(signerKey), proofDeadline, signerProof);
     }
 
-    function testTAPCollector_AuthorizeSigner_RevertWhen_Invalid() public useGateway {
+    function testGraphTally_AuthorizeSigner_RevertWhen_Invalid() public useGateway {
         // Sign proof with payer
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
         
         // Attempt to authorize delegator with payer's proof
-        bytes memory expectedError = abi.encodeWithSelector(ITAPCollector.TAPCollectorInvalidSignerProof.selector);
+        bytes memory expectedError = abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInvalidSignerProof.selector);
         vm.expectRevert(expectedError);
-        tapCollector.authorizeSigner(users.delegator, proofDeadline, signerProof);
+        graphTallyCollector.authorizeSigner(users.delegator, proofDeadline, signerProof);
     }
 
-    function testTAPCollector_AuthorizeSigner_RevertWhen_AlreadyAuthroized() public useGateway {
+    function testGraphTally_AuthorizeSigner_RevertWhen_AlreadyAuthroized() public useGateway {
         // Authorize signer
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
@@ -41,15 +41,15 @@ contract TAPCollectorAuthorizeSignerTest is TAPCollectorTest {
 
         // Attempt to authorize signer again
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorSignerAlreadyAuthorized.selector,
+            IGraphTallyCollector.GraphTallyCollectorSignerAlreadyAuthorized.selector,
             users.gateway,
             signer
         );
         vm.expectRevert(expectedError);
-        tapCollector.authorizeSigner(signer, proofDeadline, signerProof);
+        graphTallyCollector.authorizeSigner(signer, proofDeadline, signerProof);
     }
 
-    function testTAPCollector_AuthorizeSigner_RevertWhen_AlreadyAuthroizedAfterRevoking() public useGateway {
+    function testGraphTally_AuthorizeSigner_RevertWhen_AlreadyAuthroizedAfterRevoking() public useGateway {
         // Authorize signer
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
@@ -62,26 +62,26 @@ contract TAPCollectorAuthorizeSignerTest is TAPCollectorTest {
 
         // Attempt to authorize signer again
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorSignerAlreadyAuthorized.selector,
+            IGraphTallyCollector.GraphTallyCollectorSignerAlreadyAuthorized.selector,
             users.gateway,
             signer
         );
         vm.expectRevert(expectedError);
-        tapCollector.authorizeSigner(signer, proofDeadline, signerProof);
+        graphTallyCollector.authorizeSigner(signer, proofDeadline, signerProof);
     }
 
-    function testTAPCollector_AuthorizeSigner_RevertWhen_ProofExpired() public useGateway {
+    function testGraphTally_AuthorizeSigner_RevertWhen_ProofExpired() public useGateway {
         // Sign proof with payer
         uint256 proofDeadline = block.timestamp - 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
         
         // Attempt to authorize delegator with expired proof
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorInvalidSignerProofDeadline.selector,
+            IGraphTallyCollector.GraphTallyCollectorInvalidSignerProofDeadline.selector,
             proofDeadline,
             block.timestamp
         );
         vm.expectRevert(expectedError);
-        tapCollector.authorizeSigner(users.delegator, proofDeadline, signerProof);
+        graphTallyCollector.authorizeSigner(users.delegator, proofDeadline, signerProof);
     }
 }

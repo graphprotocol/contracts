@@ -28,8 +28,8 @@
   "PaymentsEscrow": {
     "withdrawEscrowThawingPeriod": 10000
   },
-  "TAPCollector": {
-    "eip712Name": "TAPCollector",
+  "GraphTallyCollector": {
+    "eip712Name": "GraphTallyCollector",
     "eip712Version": "1",
     "revokeSignerThawingPeriod": 10000
   }

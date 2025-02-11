@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
@@ -59,15 +59,15 @@ contract SubgraphService is
      * @dev DataService and Directory constructors set a bunch of immutable variables
      * @param graphController The address of the Graph Controller contract
      * @param disputeManager The address of the DisputeManager contract
-     * @param tapCollector The address of the TAPCollector contract
+     * @param graphTallyCollector The address of the GraphTallyCollector contract
      * @param curation The address of the Curation contract
      */
     constructor(
         address graphController,
         address disputeManager,
-        address tapCollector,
+        address graphTallyCollector,
         address curation
-    ) DataService(graphController) Directory(address(this), disputeManager, tapCollector, curation) {
+    ) DataService(graphController) Directory(address(this), disputeManager, graphTallyCollector, curation) {
         _disableInitializers();
     }
 
@@ -269,7 +269,7 @@ contract SubgraphService is
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            ITAPCollector.SignedRAV memory signedRav = abi.decode(data, (ITAPCollector.SignedRAV));
+            IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(data, (IGraphTallyCollector.SignedRAV));
             require(
                 signedRav.rav.serviceProvider == indexer,
                 SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, indexer)
@@ -500,7 +500,7 @@ contract SubgraphService is
      * manually release the claims, see {IDataServiceFees-releaseStake}, before attempting to collect again.
      *
      * @dev This function is the equivalent of the legacy `collect` function for query fees.
-     * @dev Uses the {TAPCollector} to collect payment from Graph Horizon payments protocol.
+     * @dev Uses the {GraphTallyCollector} to collect payment from Graph Horizon payments protocol.
      * Fees are distributed to service provider and delegators by {GraphPayments}, though curators
      * share is distributed by this function.
      *
@@ -515,7 +515,9 @@ contract SubgraphService is
      *
      * @param _signedRav Signed RAV
      */
-    function _collectQueryFees(ITAPCollector.SignedRAV memory _signedRav) private returns (uint256 feesCollected) {
+    function _collectQueryFees(
+        IGraphTallyCollector.SignedRAV memory _signedRav
+    ) private returns (uint256 feesCollected) {
         address indexer = _signedRav.rav.serviceProvider;
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
@@ -537,7 +539,7 @@ contract SubgraphService is
         uint256 balanceBefore = _graphToken().balanceOf(address(this));
 
         uint256 curationCut = _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0;
-        uint256 tokensCollected = _tapCollector().collect(
+        uint256 tokensCollected = _graphTallyCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
             abi.encode(_signedRav, curationCut)
         );

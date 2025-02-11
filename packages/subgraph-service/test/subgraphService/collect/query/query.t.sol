@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -25,18 +25,18 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(tapCollector), _proofDeadline, msgSender));
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(graphTallyCollector), _proofDeadline, msgSender));
         bytes32 proofToDigest = MessageHashUtils.toEthSignedMessageHash(messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signer, proofToDigest);
         return abi.encodePacked(r, s, v);
     }
 
     function _getQueryFeeEncodedData(address indexer, uint128 tokens) private view returns (bytes memory) {
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(indexer, bytes32(uint256(uint160(allocationID))), tokens);
-        bytes32 messageHash = tapCollector.encodeRAV(rav);
+        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(indexer, bytes32(uint256(uint160(allocationID))), tokens);
+        bytes32 messageHash = graphTallyCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        ITAPCollector.SignedRAV memory signedRAV = ITAPCollector.SignedRAV(rav, signature);
+        IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
         return abi.encode(signedRAV);
     }
 
@@ -44,9 +44,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         address indexer,
         bytes32 collectionId,
         uint128 tokens
-    ) private view returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
+    ) private view returns (IGraphTallyCollector.ReceiptAggregateVoucher memory rav) {
         return
-            ITAPCollector.ReceiptAggregateVoucher({
+            IGraphTallyCollector.ReceiptAggregateVoucher({
                 collectionId: collectionId,
                 payer: users.gateway,
                 serviceProvider: indexer,
@@ -59,13 +59,13 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function _deposit(uint256 tokens) private {
         token.approve(address(escrow), tokens);
-        escrow.deposit(address(tapCollector), users.indexer, tokens);
+        escrow.deposit(address(graphTallyCollector), users.indexer, tokens);
     }
 
     function _authorizeSigner() private {
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory proof = _getSignerProof(proofDeadline, signerPrivateKey);
-        tapCollector.authorizeSigner(signer, proofDeadline, proof);
+        graphTallyCollector.authorizeSigner(signer, proofDeadline, proof);
     }
 
     /*
@@ -174,11 +174,11 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function testCollect_QueryFees_RevertWhen_CollectionIdTooLarge() public useIndexer useAllocation(1000 ether) {
         bytes32 collectionId = keccak256(abi.encodePacked("Large collection id, longer than 160 bits"));
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(users.indexer, collectionId, 1000 ether);
-        bytes32 messageHash = tapCollector.encodeRAV(rav);
+        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(users.indexer, collectionId, 1000 ether);
+        bytes32 messageHash = graphTallyCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        ITAPCollector.SignedRAV memory signedRAV = ITAPCollector.SignedRAV(rav, signature);
+        IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
         bytes memory data = abi.encode(signedRAV);
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidCollectionId.selector, collectionId));
         subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);

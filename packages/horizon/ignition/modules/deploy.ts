@@ -17,7 +17,7 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     HorizonStaking,
     GraphPayments,
     PaymentsEscrow,
-    TAPCollector,
+    GraphTallyCollector,
   } = m.useModule(GraphHorizonCoreModule)
 
   const governor = m.getAccount(1)
@@ -41,6 +41,6 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     HorizonStaking,
     GraphPayments,
     PaymentsEscrow,
-    TAPCollector,
+    GraphTallyCollector,
   }
 })

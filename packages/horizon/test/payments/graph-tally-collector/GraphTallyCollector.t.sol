@@ -6,16 +6,16 @@ import "forge-std/Test.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { ITAPCollector } from "../../../contracts/interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "../../../contracts/interfaces/IGraphTallyCollector.sol";
 import { IPaymentsCollector } from "../../../contracts/interfaces/IPaymentsCollector.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
-import { TAPCollector } from "../../../contracts/payments/collectors/TAPCollector.sol";
+import { GraphTallyCollector } from "../../../contracts/payments/collectors/GraphTallyCollector.sol";
 import { PPMMath } from "../../../contracts/libraries/PPMMath.sol";
 
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { PaymentsEscrowSharedTest } from "../../shared/payments-escrow/PaymentsEscrowShared.t.sol";
 
-contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
+contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
     using PPMMath for uint256;
 
     address signer;
@@ -48,7 +48,7 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
 
     function _getSignerProof(uint256 _proofDeadline, uint256 _signer) internal returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(tapCollector), _proofDeadline, msgSender));
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(graphTallyCollector), _proofDeadline, msgSender));
         bytes32 proofToDigest = MessageHashUtils.toEthSignedMessageHash(messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signer, proofToDigest);
         return abi.encodePacked(r, s, v);
@@ -61,12 +61,12 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
     function _authorizeSigner(address _signer, uint256 _proofDeadline, bytes memory _proof) internal {
         (, address msgSender, ) = vm.readCallers();
 
-        vm.expectEmit(address(tapCollector));
-        emit ITAPCollector.SignerAuthorized(msgSender, _signer);
+        vm.expectEmit(address(graphTallyCollector));
+        emit IGraphTallyCollector.SignerAuthorized(msgSender, _signer);
 
-        tapCollector.authorizeSigner(_signer, _proofDeadline, _proof);
+        graphTallyCollector.authorizeSigner(_signer, _proofDeadline, _proof);
 
-        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = graphTallyCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, 0);
         assertEq(revoked, false);
@@ -76,12 +76,12 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         (, address msgSender, ) = vm.readCallers();
         uint256 expectedThawEndTimestamp = block.timestamp + revokeSignerThawingPeriod;
 
-        vm.expectEmit(address(tapCollector));
-        emit ITAPCollector.SignerThawing(msgSender, _signer, expectedThawEndTimestamp);
+        vm.expectEmit(address(graphTallyCollector));
+        emit IGraphTallyCollector.SignerThawing(msgSender, _signer, expectedThawEndTimestamp);
 
-        tapCollector.thawSigner(_signer);
+        graphTallyCollector.thawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = graphTallyCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, expectedThawEndTimestamp);
         assertEq(revoked, false);
@@ -90,12 +90,12 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
     function _cancelThawSigner(address _signer) internal {
         (, address msgSender, ) = vm.readCallers();
 
-        vm.expectEmit(address(tapCollector));
-        emit ITAPCollector.SignerThawCanceled(msgSender, _signer, 0);
+        vm.expectEmit(address(graphTallyCollector));
+        emit IGraphTallyCollector.SignerThawCanceled(msgSender, _signer, 0);
 
-        tapCollector.cancelThawSigner(_signer);
+        graphTallyCollector.cancelThawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp, bool revoked) = tapCollector.authorizedSigners(_signer);
+        (address _payer, uint256 thawEndTimestamp, bool revoked) = graphTallyCollector.authorizedSigners(_signer);
         assertEq(_payer, msgSender);
         assertEq(thawEndTimestamp, 0);
         assertEq(revoked, false);
@@ -104,14 +104,14 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
     function _revokeAuthorizedSigner(address _signer) internal {
         (, address msgSender, ) = vm.readCallers();
 
-        (address beforePayer, uint256 beforeThawEndTimestamp, ) = tapCollector.authorizedSigners(_signer);
+        (address beforePayer, uint256 beforeThawEndTimestamp, ) = graphTallyCollector.authorizedSigners(_signer);
 
-        vm.expectEmit(address(tapCollector));
-        emit ITAPCollector.SignerRevoked(msgSender, _signer);
+        vm.expectEmit(address(graphTallyCollector));
+        emit IGraphTallyCollector.SignerRevoked(msgSender, _signer);
 
-        tapCollector.revokeAuthorizedSigner(_signer);
+        graphTallyCollector.revokeAuthorizedSigner(_signer);
 
-        (address afterPayer, uint256 afterThawEndTimestamp, bool afterRevoked) = tapCollector.authorizedSigners(
+        (address afterPayer, uint256 afterThawEndTimestamp, bool afterRevoked) = graphTallyCollector.authorizedSigners(
             _signer
         );
 
@@ -133,14 +133,14 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
         bytes memory _data,
         uint256 _tokensToCollect
     ) internal {
-        (ITAPCollector.SignedRAV memory signedRAV, ) = abi.decode(
+        (IGraphTallyCollector.SignedRAV memory signedRAV, ) = abi.decode(
             _data,
-            (ITAPCollector.SignedRAV, uint256)
+            (IGraphTallyCollector.SignedRAV, uint256)
         );
-        bytes32 messageHash = tapCollector.encodeRAV(signedRAV.rav);
+        bytes32 messageHash = graphTallyCollector.encodeRAV(signedRAV.rav);
         address _signer = ECDSA.recover(messageHash, signedRAV.signature);
-        (address _payer, , ) = tapCollector.authorizedSigners(_signer);
-        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(
+        (address _payer, , ) = graphTallyCollector.authorizedSigners(_signer);
+        uint256 tokensAlreadyCollected = graphTallyCollector.tokensCollected(
             signedRAV.rav.dataService,
             signedRAV.rav.collectionId,
             signedRAV.rav.serviceProvider,
@@ -150,7 +150,7 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
             ? signedRAV.rav.valueAggregate - tokensAlreadyCollected
             : _tokensToCollect;
 
-        vm.expectEmit(address(tapCollector));
+        vm.expectEmit(address(graphTallyCollector));
         emit IPaymentsCollector.PaymentCollected(
             _paymentType,
             signedRAV.rav.collectionId,
@@ -159,8 +159,8 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
             signedRAV.rav.dataService,
             tokensToCollect
         );
-        vm.expectEmit(address(tapCollector));
-        emit ITAPCollector.RAVCollected(
+        vm.expectEmit(address(graphTallyCollector));
+        emit IGraphTallyCollector.RAVCollected(
             signedRAV.rav.collectionId,
             _payer,
             signedRAV.rav.serviceProvider,
@@ -171,10 +171,10 @@ contract TAPCollectorTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest 
             signedRAV.signature
         );
         uint256 tokensCollected = _tokensToCollect == 0
-            ? tapCollector.collect(_paymentType, _data)
-            : tapCollector.collect(_paymentType, _data, _tokensToCollect);
+            ? graphTallyCollector.collect(_paymentType, _data)
+            : graphTallyCollector.collect(_paymentType, _data, _tokensToCollect);
 
-        uint256 tokensCollectedAfter = tapCollector.tokensCollected(
+        uint256 tokensCollectedAfter = graphTallyCollector.tokensCollected(
             signedRAV.rav.dataService,
             signedRAV.rav.collectionId,
             signedRAV.rav.serviceProvider,

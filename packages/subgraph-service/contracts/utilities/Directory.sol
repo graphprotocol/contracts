@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
-import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 
 /**
@@ -19,9 +19,9 @@ abstract contract Directory {
     /// @notice The Dispute Manager contract address
     IDisputeManager private immutable DISPUTE_MANAGER;
 
-    /// @notice The TAP Collector contract address
+    /// @notice The Graph Tally Collector contract address
     /// @dev Required to collect payments via Graph Horizon payments protocol
-    ITAPCollector private immutable TAP_COLLECTOR;
+    IGraphTallyCollector private immutable GRAPH_TALLY_COLLECTOR;
 
     /// @notice The Curation contract address
     /// @dev Required for curation fees distribution
@@ -31,13 +31,13 @@ abstract contract Directory {
      * @notice Emitted when the Directory is initialized
      * @param subgraphService The Subgraph Service contract address
      * @param disputeManager The Dispute Manager contract address
-     * @param tapCollector The TAP Collector contract address
+     * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
      */
     event SubgraphServiceDirectoryInitialized(
         address subgraphService,
         address disputeManager,
-        address tapCollector,
+        address graphTallyCollector,
         address curation
     );
 
@@ -63,16 +63,16 @@ abstract contract Directory {
      * @notice Constructor for the Directory contract
      * @param subgraphService The Subgraph Service contract address
      * @param disputeManager The Dispute Manager contract address
-     * @param tapCollector The TAP Collector contract address
+     * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
      */
-    constructor(address subgraphService, address disputeManager, address tapCollector, address curation) {
+    constructor(address subgraphService, address disputeManager, address graphTallyCollector, address curation) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
-        TAP_COLLECTOR = ITAPCollector(tapCollector);
+        GRAPH_TALLY_COLLECTOR = IGraphTallyCollector(graphTallyCollector);
         CURATION = ICuration(curation);
 
-        emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, tapCollector, curation);
+        emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, graphTallyCollector, curation);
     }
 
     /**
@@ -90,10 +90,10 @@ abstract contract Directory {
     }
 
     /**
-     * @notice Returns the TAP Collector contract address
+     * @notice Returns the Graph Tally Collector contract address
      */
-    function _tapCollector() internal view returns (ITAPCollector) {
-        return TAP_COLLECTOR;
+    function _graphTallyCollector() internal view returns (IGraphTallyCollector) {
+        return GRAPH_TALLY_COLLECTOR;
     }
 
     /**

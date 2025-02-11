@@ -21,7 +21,7 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
     HorizonStakingImplementation,
     GraphPayments,
     PaymentsEscrow,
-    TAPCollector,
+    GraphTallyCollector,
   } = m.useModule(MigrateHorizonCoreModule)
 
   return {
@@ -33,7 +33,7 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
     HorizonStakingImplementation,
     GraphPayments,
     PaymentsEscrow,
-    TAPCollector,
+    GraphTallyCollector,
     Controller,
     GraphProxyAdmin,
     EpochManager,

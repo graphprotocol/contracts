@@ -7,7 +7,7 @@ import { IDataService } from "@graphprotocol/horizon/contracts/data-service/inte
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { LinkedList } from "@graphprotocol/horizon/contracts/libraries/LinkedList.sol";
 import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
@@ -262,11 +262,11 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _handleQueryFeeCollection(address _indexer, bytes memory _data) private returns (uint256 paymentCollected) {
-        ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
+        IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(_data, (IGraphTallyCollector.SignedRAV));
         Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectionId))));
-        (address payer, , ) = tapCollector.authorizedSigners(_recoverRAVSigner(signedRav));
+        (address payer, , ) = graphTallyCollector.authorizedSigners(_recoverRAVSigner(signedRav));
 
-        uint256 tokensCollected = tapCollector.tokensCollected(
+        uint256 tokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
             signedRav.rav.collectionId,
             _indexer,
@@ -335,7 +335,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         CollectPaymentData memory collectPaymentDataBefore,
         CollectPaymentData memory collectPaymentDataAfter
     ) private view {
-        ITAPCollector.SignedRAV memory signedRav = abi.decode(_data, (ITAPCollector.SignedRAV));
+        IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(_data, (IGraphTallyCollector.SignedRAV));
         Allocation.State memory allocation = subgraphService.getAllocation(address(uint160(uint256(signedRav.rav.collectionId))));
         QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
         uint256 tokensProtocol = _paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
@@ -456,8 +456,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
      * PRIVATE FUNCTIONS
      */
 
-    function _recoverRAVSigner(ITAPCollector.SignedRAV memory _signedRAV) private view returns (address) {
-        bytes32 messageHash = tapCollector.encodeRAV(_signedRAV.rav);
+    function _recoverRAVSigner(IGraphTallyCollector.SignedRAV memory _signedRAV) private view returns (address) {
+        bytes32 messageHash = graphTallyCollector.encodeRAV(_signedRAV.rav);
         return ECDSA.recover(messageHash, _signedRAV.signature);
     }
 
