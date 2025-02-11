@@ -46,48 +46,29 @@ export const etherscanUserConfig: Partial<EtherscanConfig> = {
     ...(vars.has('ARBISCAN_API_KEY') && {
       arbitrumSepolia: vars.get('ARBISCAN_API_KEY'),
     }),
-    ...(vars.has('TENDERLY_API_KEY') && {
-      virtualArbitrumSepolia: vars.get('TENDERLY_API_KEY'),
-      virtualArbitrumOne: vars.get('TENDERLY_API_KEY'),
-    }),
   },
-  customChains: [
-    ...(vars.has('VIRTUAL_ARBITRUM_SEPOLIA_RPC')
-      ? [{
-          network: 'virtualArbitrumSepolia',
-          chainId: 421615,
-          urls: {
-            apiURL: `${vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC')}/verify/etherscan`,
-            browserURL: vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC') || 'https://sepolia.arbiscan.io/',
-          },
-        }]
-      : []),
-    ...(vars.has('VIRTUAL_ARBITRUM_ONE_RPC')
-      ? [{
-          network: 'virtualArbitrumOne',
-          chainId: 42162,
-          urls: {
-            apiURL: `${vars.get('VIRTUAL_ARBITRUM_ONE_RPC')}/verify/etherscan`,
-            browserURL: vars.get('VIRTUAL_ARBITRUM_ONE_RPC') || 'https://arbiscan.io/',
-          },
-        }]
-      : []),
-  ],
 }
 
 // In general:
 // - hardhat is used for unit tests
 // - localhost is used for local development on a hardhat network or fork
-// - virtualArbitrumSepolia is for Tenderly Virtual Testnet
-export const networksUserConfig: NetworksUserConfig & Record<string, { secureAccounts?: SecureAccountsOptions }> = {
+type BaseNetworksUserConfig = NetworksUserConfig &
+  Record<string, { secureAccounts?: SecureAccountsOptions }>
+export const networksUserConfig: BaseNetworksUserConfig = {
   hardhat: {
     chainId: 31337,
     accounts: getHardhatAccounts(),
+    deployments: {
+      horizon: require.resolve('@graphprotocol/horizon/addresses-local.json'),
+    },
   },
   localhost: {
     chainId: 31337,
     url: 'http://localhost:8545',
     accounts: getTestnetAccounts(),
+    deployments: {
+      horizon: require.resolve('@graphprotocol/horizon/addresses-local.json'),
+    },
   },
   arbitrumOne: {
     chainId: 42161,
@@ -103,27 +84,13 @@ export const networksUserConfig: NetworksUserConfig & Record<string, { secureAcc
       enabled: true,
     },
   },
-  ...(vars.has('VIRTUAL_ARBITRUM_SEPOLIA_RPC') && {
-    virtualArbitrumSepolia: {
-      chainId: 421615,
-      url: vars.get('VIRTUAL_ARBITRUM_SEPOLIA_RPC'),
-      accounts: getTestnetAccounts(),
-    },
-  }),
-  ...(vars.has('VIRTUAL_ARBITRUM_ONE_RPC') && {
-    virtualArbitrumOne: {
-      chainId: 42162,
-      url: vars.get('VIRTUAL_ARBITRUM_ONE_RPC'),
-      accounts: getTestnetAccounts(),
-    },
-  }),
 }
 
-type HardhatBaseConfig = HardhatUserConfig &
+type BaseHardhatConfig = HardhatUserConfig &
   { etherscan: Partial<EtherscanConfig> } &
   { graph: GraphRuntimeEnvironmentOptions } &
   { secureAccounts: SecureAccountsOptions }
-export const hardhatBaseConfig: HardhatBaseConfig = {
+export const hardhatBaseConfig: BaseHardhatConfig = {
   solidity: solidityUserConfig,
   paths: projectPathsUserConfig,
   secureAccounts: {

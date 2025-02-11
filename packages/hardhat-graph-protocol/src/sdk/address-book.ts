@@ -1,6 +1,5 @@
 import fs from 'fs'
 
-import { AssertionError } from 'assert'
 import { assertObject } from './utils/assertion'
 
 import { ContractList, loadContract } from './lib/contract'
