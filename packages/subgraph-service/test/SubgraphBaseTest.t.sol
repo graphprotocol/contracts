@@ -12,8 +12,8 @@ import { HorizonStakingExtension } from "@graphprotocol/horizon/contracts/stakin
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
 import { IPaymentsEscrow } from "@graphprotocol/horizon/contracts/interfaces/IPaymentsEscrow.sol";
-import { ITAPCollector } from "@graphprotocol/horizon/contracts/interfaces/ITAPCollector.sol";
-import { TAPCollector } from "@graphprotocol/horizon/contracts/payments/collectors/TAPCollector.sol";
+import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
+import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
 import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
@@ -43,7 +43,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     IHorizonStaking staking;
     GraphPayments graphPayments;
     IPaymentsEscrow escrow;
-    TAPCollector tapCollector;
+    GraphTallyCollector graphTallyCollector;
 
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
@@ -147,9 +147,9 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         disputeManager = DisputeManager(disputeManagerProxy);
         disputeManager.transferOwnership(users.governor);
 
-        tapCollector = new TAPCollector("TAPCollector", "1", address(controller), revokeSignerThawingPeriod);
+        graphTallyCollector = new GraphTallyCollector("GraphTallyCollector", "1", address(controller), revokeSignerThawingPeriod);
         address subgraphServiceImplementation = address(
-            new SubgraphService(address(controller), address(disputeManager), address(tapCollector), address(curation))
+            new SubgraphService(address(controller), address(disputeManager), address(graphTallyCollector), address(curation))
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
             subgraphServiceImplementation,

@@ -3,12 +3,12 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { ITAPCollector } from "../../../../contracts/interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTallyCollector.sol";
 import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
 
-import { TAPCollectorTest } from "../TAPCollector.t.sol";
+import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
-contract TAPCollectorCollectTest is TAPCollectorTest {
+contract GraphTallyCollectTest is GraphTallyTest {
     /*
      * HELPERS
      */
@@ -25,17 +25,17 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         uint256 _signerPrivateKey,
         CollectTestParams memory params
     ) private view returns (bytes memory) {
-        ITAPCollector.ReceiptAggregateVoucher memory rav = _getRAV(
+        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(
             params.allocationId,
             params.payer,
             params.indexer,
             params.collector,
             uint128(params.tokens)
         );
-        bytes32 messageHash = tapCollector.encodeRAV(rav);
+        bytes32 messageHash = graphTallyCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        ITAPCollector.SignedRAV memory signedRAV = ITAPCollector.SignedRAV(rav, signature);
+        IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
         return abi.encode(signedRAV);
     }
 
@@ -45,9 +45,9 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         address _indexer,
         address _dataService,
         uint128 _tokens
-    ) private pure returns (ITAPCollector.ReceiptAggregateVoucher memory rav) {
+    ) private pure returns (IGraphTallyCollector.ReceiptAggregateVoucher memory rav) {
         return
-            ITAPCollector.ReceiptAggregateVoucher({
+            IGraphTallyCollector.ReceiptAggregateVoucher({
                 collectionId: bytes32(uint256(uint160(_allocationId))),
                 payer: _payer,
                 dataService: _dataService,
@@ -62,12 +62,12 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
      * TESTS
      */
 
-    function testTAPCollector_Collect(
+    function testGraphTally_Collect(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -83,14 +83,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_Multiple(
+    function testGraphTally_Collect_Multiple(
         uint256 tokens,
         uint8 steps
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         steps = uint8(bound(steps, 1, 100));
         tokens = bound(tokens, steps, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         resetPrank(users.verifier);
         uint256 payed = 0;
@@ -109,10 +109,10 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         }
     }
 
-    function testTAPCollector_Collect_RevertWhen_NoProvision(uint256 tokens) public useGateway useSigner {
+    function testGraphTally_Collect_RevertWhen_NoProvision(uint256 tokens) public useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -125,14 +125,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         resetPrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorUnauthorizedDataService.selector,
+            IGraphTallyCollector.GraphTallyCollectorUnauthorizedDataService.selector,
             users.verifier
         );
         vm.expectRevert(expectedError);
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_RevertWhen_ProvisionEmpty(
+    function testGraphTally_Collect_RevertWhen_ProvisionEmpty(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         // thaw tokens from the provision
@@ -142,7 +142,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -155,20 +155,20 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         resetPrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorUnauthorizedDataService.selector,
+            IGraphTallyCollector.GraphTallyCollectorUnauthorizedDataService.selector,
             users.verifier
         );
         vm.expectRevert(expectedError);
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_PreventSignerAttack(
+    function testGraphTally_Collect_PreventSignerAttack(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         // The sender authorizes another signer
         (address anotherSigner, uint256 anotherSignerPrivateKey) = makeAddrAndKey("anotherSigner");
@@ -191,18 +191,18 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         // the call should revert because the service provider has no provision with the "data service"
         resetPrank(anotherSigner);
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorUnauthorizedDataService.selector,
+            IGraphTallyCollector.GraphTallyCollectorUnauthorizedDataService.selector,
             anotherSigner
         );
         vm.expectRevert(expectedError);
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_RevertWhen_CallerNotDataService(uint256 tokens) public useGateway useSigner {
+    function testGraphTally_Collect_RevertWhen_CallerNotDataService(uint256 tokens) public useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -215,21 +215,21 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         resetPrank(users.indexer);
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorCallerNotDataService.selector,
+            IGraphTallyCollector.GraphTallyCollectorCallerNotDataService.selector,
             users.indexer,
             users.verifier
         );
         vm.expectRevert(expectedError);
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_RevertWhen_PayerMismatch(
+    function testGraphTally_Collect_RevertWhen_PayerMismatch(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
         resetPrank(users.gateway);
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         (address anotherPayer, ) = makeAddrAndKey("anotherPayer");
         CollectTestParams memory params = CollectTestParams({
@@ -243,20 +243,20 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         resetPrank(users.verifier);
         bytes memory expectedError = abi.encodeWithSelector(
-            ITAPCollector.TAPCollectorInvalidRAVPayer.selector,
+            IGraphTallyCollector.GraphTallyCollectorInvalidRAVPayer.selector,
             users.gateway,
             anotherPayer
         );
         vm.expectRevert(expectedError);
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_RevertWhen_InconsistentRAVTokens(
+    function testGraphTally_Collect_RevertWhen_InconsistentRAVTokens(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
             allocationId: _allocationId,
@@ -271,15 +271,15 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         // Attempt to collect again
         vm.expectRevert(
-            abi.encodeWithSelector(ITAPCollector.TAPCollectorInconsistentRAVTokens.selector, tokens, tokens)
+            abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInconsistentRAVTokens.selector, tokens, tokens)
         );
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_RevertWhen_SignerNotAuthorized(uint256 tokens) public useGateway {
+    function testGraphTally_Collect_RevertWhen_SignerNotAuthorized(uint256 tokens) public useGateway {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -291,16 +291,16 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
-        vm.expectRevert(abi.encodeWithSelector(ITAPCollector.TAPCollectorInvalidRAVSigner.selector));
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        vm.expectRevert(abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInvalidRAVSigner.selector));
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_ThawingSigner(
+    function testGraphTally_Collect_ThawingSigner(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         // Start thawing signer
         _thawSigner(signer);
@@ -319,10 +319,10 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_RevertIf_SignerWasRevoked(uint256 tokens) public useGateway useSigner {
+    function testGraphTally_Collect_RevertIf_SignerWasRevoked(uint256 tokens) public useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         // Start thawing signer
         _thawSigner(signer);
@@ -339,16 +339,16 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
-        vm.expectRevert(abi.encodeWithSelector(ITAPCollector.TAPCollectorInvalidRAVSigner.selector));
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+        vm.expectRevert(abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInvalidRAVSigner.selector));
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_Collect_ThawingSignerCanceled(
+    function testGraphTally_Collect_ThawingSignerCanceled(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         // Start thawing signer
         _thawSigner(signer);
@@ -368,14 +368,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         _collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
-    function testTAPCollector_CollectPartial(
+    function testGraphTally_CollectPartial(
         uint256 tokens,
         uint256 tokensToCollect
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max);
         tokensToCollect = bound(tokensToCollect, 1, tokens);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -390,13 +390,13 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         _collect(IGraphPayments.PaymentTypes.QueryFee, data, tokensToCollect);
     }
 
-    function testTAPCollector_CollectPartial_RevertWhen_AmountTooHigh(
+    function testGraphTally_CollectPartial_RevertWhen_AmountTooHigh(
         uint256 tokens,
         uint256 tokensToCollect
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint128).max - 1);
 
-        _depositTokens(address(tapCollector), users.indexer, tokens);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
 
         CollectTestParams memory params = CollectTestParams({
             tokens: tokens,
@@ -408,7 +408,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
         bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
-        uint256 tokensAlreadyCollected = tapCollector.tokensCollected(
+        uint256 tokensAlreadyCollected = graphTallyCollector.tokensCollected(
             users.verifier,
             bytes32(uint256(uint160(_allocationId))),
             users.indexer,
@@ -418,21 +418,21 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ITAPCollector.TAPCollectorInvalidTokensToCollectAmount.selector,
+                IGraphTallyCollector.GraphTallyCollectorInvalidTokensToCollectAmount.selector,
                 tokensToCollect,
                 tokens - tokensAlreadyCollected
             )
         );
-        tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data, tokensToCollect);
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data, tokensToCollect);
     }
 
-    function testTAPCollector_Collect_SeparateAllocationTracking(
+    function testGraphTally_Collect_SeparateAllocationTracking(
         uint256 tokens
     ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
         tokens = bound(tokens, 1, type(uint64).max);
         uint8 numAllocations = 10;
 
-        _depositTokens(address(tapCollector), users.indexer, tokens * numAllocations);
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens * numAllocations);
         // Array with collectTestParams for each allocation
         CollectTestParams[] memory collectTestParams = new CollectTestParams[](numAllocations);
 
@@ -453,7 +453,7 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
 
         for (uint256 i = 0; i < numAllocations; i++) {
             assertEq(
-                tapCollector.tokensCollected(
+                graphTallyCollector.tokensCollected(
                     collectTestParams[i].collector,
                     bytes32(uint256(uint160(collectTestParams[i].allocationId))),
                     collectTestParams[i].indexer,
@@ -466,14 +466,14 @@ contract TAPCollectorCollectTest is TAPCollectorTest {
             // Try to collect again with the same allocation - should revert
             bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, collectTestParams[i]);
             vm.expectRevert(
-                abi.encodeWithSelector(ITAPCollector.TAPCollectorInconsistentRAVTokens.selector, tokens, tokens)
+                abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInconsistentRAVTokens.selector, tokens, tokens)
             );
-            tapCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
+            graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
         }
 
         // Increase tokens for allocation 0 by 1000 ether and collect again
         resetPrank(users.gateway);
-        _depositTokens(address(tapCollector), users.indexer, 1000 ether);
+        _depositTokens(address(graphTallyCollector), users.indexer, 1000 ether);
 
         resetPrank(users.verifier);
         collectTestParams[0].tokens = tokens + 1000 ether;

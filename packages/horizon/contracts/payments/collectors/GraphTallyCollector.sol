@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
-import { ITAPCollector } from "../../interfaces/ITAPCollector.sol";
+import { IGraphTallyCollector } from "../../interfaces/IGraphTallyCollector.sol";
 
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
@@ -12,9 +12,9 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
- * @title TAPCollector contract
- * @dev Implements the {ITAPCollector} and {IPaymentCollector} interfaces.
- * @notice A payments collector contract that can be used to collect payments using a TAP RAV (Receipt Aggregate Voucher).
+ * @title GraphTallyCollector contract
+ * @dev Implements the {IGraphTallyCollector} and {IPaymentCollector} interfaces.
+ * @notice A payments collector contract that can be used to collect payments using a GraphTally RAV (Receipt Aggregate Voucher).
  * @dev Note that the contract expects the RAV aggregate value to be monotonically increasing, each successive RAV for the same
  * (data service-payer-receiver) tuple should have a value greater than the previous one. The contract will keep track of the tokens
  * already collected and calculate the difference to collect.
@@ -23,7 +23,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
+contract GraphTallyCollector is EIP712, GraphDirectory, IGraphTallyCollector {
     using PPMMath for uint256;
 
     /// @notice The EIP712 typehash for the ReceiptAggregateVoucher struct
@@ -45,7 +45,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     uint256 public immutable REVOKE_SIGNER_THAWING_PERIOD;
 
     /**
-     * @notice Constructs a new instance of the TAPVerifier contract.
+     * @notice Constructs a new instance of the GraphTallyCollector contract.
      * @param eip712Name The name of the EIP712 domain.
      * @param eip712Version The version of the EIP712 domain.
      * @param controller The address of the Graph controller.
@@ -61,12 +61,12 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     }
 
     /**
-     * See {ITAPCollector.authorizeSigner}.
+     * See {IGraphTallyCollector.authorizeSigner}.
      */
     function authorizeSigner(address signer, uint256 proofDeadline, bytes calldata proof) external override {
         require(
             authorizedSigners[signer].payer == address(0),
-            TAPCollectorSignerAlreadyAuthorized(authorizedSigners[signer].payer, signer)
+            GraphTallyCollectorSignerAlreadyAuthorized(authorizedSigners[signer].payer, signer)
         );
 
         _verifyAuthorizedSignerProof(proof, proofDeadline, signer);
@@ -77,16 +77,16 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     }
 
     /**
-     * See {ITAPCollector.thawSigner}.
+     * See {IGraphTallyCollector.thawSigner}.
      */
     function thawSigner(address signer) external override {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
-        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
-        require(!authorization.revoked, TAPCollectorAuthorizationAlreadyRevoked(msg.sender, signer));
+        require(authorization.payer == msg.sender, GraphTallyCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
+        require(!authorization.revoked, GraphTallyCollectorAuthorizationAlreadyRevoked(msg.sender, signer));
         require(
             authorization.thawEndTimestamp == 0,
-            TAPCollectorSignerAlreadyThawing(signer, authorization.thawEndTimestamp)
+            GraphTallyCollectorSignerAlreadyThawing(signer, authorization.thawEndTimestamp)
         );
 
         authorization.thawEndTimestamp = block.timestamp + REVOKE_SIGNER_THAWING_PERIOD;
@@ -94,29 +94,29 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     }
 
     /**
-     * See {ITAPCollector.cancelThawSigner}.
+     * See {IGraphTallyCollector.cancelThawSigner}.
      */
     function cancelThawSigner(address signer) external override {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
-        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
-        require(authorization.thawEndTimestamp > 0, TAPCollectorSignerNotThawing(signer));
+        require(authorization.payer == msg.sender, GraphTallyCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
+        require(authorization.thawEndTimestamp > 0, GraphTallyCollectorSignerNotThawing(signer));
 
         authorization.thawEndTimestamp = 0;
         emit SignerThawCanceled(msg.sender, signer, 0);
     }
 
     /**
-     * See {ITAPCollector.revokeAuthorizedSigner}.
+     * See {IGraphTallyCollector.revokeAuthorizedSigner}.
      */
     function revokeAuthorizedSigner(address signer) external override {
         PayerAuthorization storage authorization = authorizedSigners[signer];
 
-        require(authorization.payer == msg.sender, TAPCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
-        require(authorization.thawEndTimestamp > 0, TAPCollectorSignerNotThawing(signer));
+        require(authorization.payer == msg.sender, GraphTallyCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
+        require(authorization.thawEndTimestamp > 0, GraphTallyCollectorSignerNotThawing(signer));
         require(
             authorization.thawEndTimestamp <= block.timestamp,
-            TAPCollectorSignerStillThawing(block.timestamp, authorization.thawEndTimestamp)
+            GraphTallyCollectorSignerStillThawing(block.timestamp, authorization.thawEndTimestamp)
         );
 
         authorization.revoked = true;
@@ -145,21 +145,21 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     }
 
     /**
-     * @notice See {ITAPCollector.recoverRAVSigner}
+     * @notice See {IGraphTallyCollector.recoverRAVSigner}
      */
     function recoverRAVSigner(SignedRAV calldata signedRAV) external view override returns (address) {
         return _recoverRAVSigner(signedRAV);
     }
 
     /**
-     * @notice See {ITAPCollector.encodeRAV}
+     * @notice See {IGraphTallyCollector.encodeRAV}
      */
     function encodeRAV(ReceiptAggregateVoucher calldata rav) external view returns (bytes32) {
         return _encodeRAV(rav);
     }
 
     /**
-     * @notice See {ITAPCollector.collect}
+     * @notice See {IGraphTallyCollector.collect}
      */
     function _collect(
         IGraphPayments.PaymentTypes _paymentType,
@@ -171,19 +171,19 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         // Ensure caller is the RAV data service
         require(
             signedRAV.rav.dataService == msg.sender,
-            TAPCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService)
+            GraphTallyCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService)
         );
 
         // Ensure RAV signer is authorized for a payer
         address signer = _recoverRAVSigner(signedRAV);
         require(
             authorizedSigners[signer].payer != address(0) && !authorizedSigners[signer].revoked,
-            TAPCollectorInvalidRAVSigner()
+            GraphTallyCollectorInvalidRAVSigner()
         );
 
         // Ensure RAV payer matches the authorized payer
         address payer = authorizedSigners[signer].payer;
-        require(signedRAV.rav.payer == payer, TAPCollectorInvalidRAVPayer(payer, signedRAV.rav.payer));
+        require(signedRAV.rav.payer == payer, GraphTallyCollectorInvalidRAVPayer(payer, signedRAV.rav.payer));
 
         bytes32 collectionId = signedRAV.rav.collectionId;
         address dataService = signedRAV.rav.dataService;
@@ -197,7 +197,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
                 signedRAV.rav.serviceProvider,
                 signedRAV.rav.dataService
             );
-            require(tokensAvailable > 0, TAPCollectorUnauthorizedDataService(signedRAV.rav.dataService));
+            require(tokensAvailable > 0, GraphTallyCollectorUnauthorizedDataService(signedRAV.rav.dataService));
         }
 
         uint256 tokensToCollect = 0;
@@ -206,7 +206,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
             uint256 tokensAlreadyCollected = tokensCollected[dataService][collectionId][receiver][payer];
             require(
                 tokensRAV > tokensAlreadyCollected,
-                TAPCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
+                GraphTallyCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
             );
 
             if (_tokensToCollect == 0) {
@@ -214,7 +214,10 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
             } else {
                 require(
                     _tokensToCollect <= tokensRAV - tokensAlreadyCollected,
-                    TAPCollectorInvalidTokensToCollectAmount(_tokensToCollect, tokensRAV - tokensAlreadyCollected)
+                    GraphTallyCollectorInvalidTokensToCollectAmount(
+                        _tokensToCollect,
+                        tokensRAV - tokensAlreadyCollected
+                    )
                 );
                 tokensToCollect = _tokensToCollect;
             }
@@ -243,7 +246,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     }
 
     /**
-     * @notice See {ITAPCollector.recoverRAVSigner}
+     * @notice See {IGraphTallyCollector.recoverRAVSigner}
      */
     function _recoverRAVSigner(SignedRAV memory _signedRAV) private view returns (address) {
         bytes32 messageHash = _encodeRAV(_signedRAV.rav);
@@ -251,7 +254,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
     }
 
     /**
-     * @notice See {ITAPCollector.encodeRAV}
+     * @notice See {IGraphTallyCollector.encodeRAV}
      */
     function _encodeRAV(ReceiptAggregateVoucher memory _rav) private view returns (bytes32) {
         return
@@ -280,7 +283,7 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         // Verify that the proofDeadline has not passed
         require(
             _proofDeadline > block.timestamp,
-            TAPCollectorInvalidSignerProofDeadline(_proofDeadline, block.timestamp)
+            GraphTallyCollectorInvalidSignerProofDeadline(_proofDeadline, block.timestamp)
         );
 
         // Generate the hash of the payer's address
@@ -290,6 +293,6 @@ contract TAPCollector is EIP712, GraphDirectory, ITAPCollector {
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
 
         // Verify that the recovered signer matches the expected signer
-        require(ECDSA.recover(digest, _proof) == _signer, TAPCollectorInvalidSignerProof());
+        require(ECDSA.recover(digest, _proof) == _signer, GraphTallyCollectorInvalidSignerProof());
     }
 }

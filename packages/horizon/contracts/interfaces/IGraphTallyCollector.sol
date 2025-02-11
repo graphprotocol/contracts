@@ -5,13 +5,13 @@ import { IPaymentsCollector } from "./IPaymentsCollector.sol";
 import { IGraphPayments } from "./IGraphPayments.sol";
 
 /**
- * @title Interface for the {TAPCollector} contract
+ * @title Interface for the {GraphTallyCollector} contract
  * @dev Implements the {IPaymentCollector} interface as defined by the Graph
  * Horizon payments protocol.
  * @notice Implements a payments collector contract that can be used to collect
- * payments using a TAP RAV (Receipt Aggregate Voucher).
+ * payments using a GraphTally RAV (Receipt Aggregate Voucher).
  */
-interface ITAPCollector is IPaymentsCollector {
+interface IGraphTallyCollector is IPaymentsCollector {
     /// @notice Details for a payer-signer pair
     /// @dev Signers can be removed only after a thawing period
     struct PayerAuthorization {
@@ -33,7 +33,7 @@ interface ITAPCollector is IPaymentsCollector {
         address serviceProvider;
         // The address of the data service the RAV was issued to
         address dataService;
-        // The RAV timestamp, indicating the latest TAP Receipt in the RAV
+        // The RAV timestamp, indicating the latest GraphTally Receipt in the RAV
         uint64 timestampNs;
         // Total amount owed to the service provider since the beginning of the
         // payer-service provider relationship, including all debt that is already paid for.
@@ -107,77 +107,77 @@ interface ITAPCollector is IPaymentsCollector {
      * @param authorizingPayer The address of the payer authorizing the signer
      * @param signer The address of the signer
      */
-    error TAPCollectorSignerAlreadyAuthorized(address authorizingPayer, address signer);
+    error GraphTallyCollectorSignerAlreadyAuthorized(address authorizingPayer, address signer);
 
     /**
      * Thrown when the signer proof deadline is invalid
      * @param proofDeadline The deadline for the proof provided by the signer
      * @param currentTimestamp The current timestamp
      */
-    error TAPCollectorInvalidSignerProofDeadline(uint256 proofDeadline, uint256 currentTimestamp);
+    error GraphTallyCollectorInvalidSignerProofDeadline(uint256 proofDeadline, uint256 currentTimestamp);
 
     /**
      * Thrown when the signer proof is invalid
      */
-    error TAPCollectorInvalidSignerProof();
+    error GraphTallyCollectorInvalidSignerProof();
 
     /**
      * Thrown when the signer is not authorized by the payer
      * @param payer The address of the payer
      * @param signer The address of the signer
      */
-    error TAPCollectorSignerNotAuthorizedByPayer(address payer, address signer);
+    error GraphTallyCollectorSignerNotAuthorizedByPayer(address payer, address signer);
 
     /**
      * Thrown when the attempting to revoke a signer that was already revoked
      * @param signer The address of the signer
      */
-    error TAPCollectorAuthorizationAlreadyRevoked(address payer, address signer);
+    error GraphTallyCollectorAuthorizationAlreadyRevoked(address payer, address signer);
 
     /**
      * Thrown when attempting to thaw a signer that is already thawing
      * @param signer The address of the signer
      * @param thawEndTimestamp The timestamp at which the thawing period ends
      */
-    error TAPCollectorSignerAlreadyThawing(address signer, uint256 thawEndTimestamp);
+    error GraphTallyCollectorSignerAlreadyThawing(address signer, uint256 thawEndTimestamp);
 
     /**
      * Thrown when the signer is not thawing
      * @param signer The address of the signer
      */
-    error TAPCollectorSignerNotThawing(address signer);
+    error GraphTallyCollectorSignerNotThawing(address signer);
 
     /**
      * Thrown when the signer is still thawing
      * @param currentTimestamp The current timestamp
      * @param thawEndTimestamp The timestamp at which the thawing period ends
      */
-    error TAPCollectorSignerStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
+    error GraphTallyCollectorSignerStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
 
     /**
      * Thrown when the RAV signer is invalid
      */
-    error TAPCollectorInvalidRAVSigner();
+    error GraphTallyCollectorInvalidRAVSigner();
 
     /**
      * Thrown when the RAV payer does not match the signers authorized payer
      * @param authorizedPayer The address of the authorized payer
      * @param ravPayer The address of the RAV payer
      */
-    error TAPCollectorInvalidRAVPayer(address authorizedPayer, address ravPayer);
+    error GraphTallyCollectorInvalidRAVPayer(address authorizedPayer, address ravPayer);
 
     /**
      * Thrown when the RAV is for a data service the service provider has no provision for
      * @param dataService The address of the data service
      */
-    error TAPCollectorUnauthorizedDataService(address dataService);
+    error GraphTallyCollectorUnauthorizedDataService(address dataService);
 
     /**
      * Thrown when the caller is not the data service the RAV was issued to
      * @param caller The address of the caller
      * @param dataService The address of the data service
      */
-    error TAPCollectorCallerNotDataService(address caller, address dataService);
+    error GraphTallyCollectorCallerNotDataService(address caller, address dataService);
 
     /**
      * @notice Thrown when the tokens collected are inconsistent with the collection history
@@ -185,14 +185,14 @@ interface ITAPCollector is IPaymentsCollector {
      * @param tokens The amount of tokens in the RAV
      * @param tokensCollected The amount of tokens already collected
      */
-    error TAPCollectorInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
+    error GraphTallyCollectorInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
 
     /**
      * Thrown when the attempting to collect more tokens than what it's owed
      * @param tokensToCollect The amount of tokens to collect
      * @param maxTokensToCollect The maximum amount of tokens to collect
      */
-    error TAPCollectorInvalidTokensToCollectAmount(uint256 tokensToCollect, uint256 maxTokensToCollect);
+    error GraphTallyCollectorInvalidTokensToCollectAmount(uint256 tokensToCollect, uint256 maxTokensToCollect);
 
     /**
      * @notice Authorize a signer to sign on behalf of the payer.

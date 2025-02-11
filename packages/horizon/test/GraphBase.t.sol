@@ -11,7 +11,7 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 
 import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";
 import { GraphPayments } from "contracts/payments/GraphPayments.sol";
-import { TAPCollector } from "contracts/payments/collectors/TAPCollector.sol";
+import { GraphTallyCollector } from "contracts/payments/collectors/GraphTallyCollector.sol";
 import { IHorizonStaking } from "contracts/interfaces/IHorizonStaking.sol";
 import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
 import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtension.sol";
@@ -40,7 +40,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
     EpochManagerMock public epochManager;
     RewardsManagerMock public rewardsManager;
     CurationMock public curation;
-    TAPCollector tapCollector;
+    GraphTallyCollector graphTallyCollector;
 
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
@@ -87,7 +87,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
         vm.label({ account: address(escrow), newLabel: "PaymentsEscrow" });
         vm.label({ account: address(staking), newLabel: "HorizonStaking" });
         vm.label({ account: address(stakingExtension), newLabel: "HorizonStakingExtension" });
-        vm.label({ account: address(tapCollector), newLabel: "TAPCollector" });
+        vm.label({ account: address(graphTallyCollector), newLabel: "GraphTallyCollector" });
 
         // Ensure caller is back to the original msg.sender
         vm.stopPrank();
@@ -201,7 +201,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             subgraphDataServiceLegacyAddress
         );
 
-        tapCollector = new TAPCollector("TAPCollector", "1", address(controller), revokeSignerThawingPeriod);
+        graphTallyCollector = new GraphTallyCollector("GraphTallyCollector", "1", address(controller), revokeSignerThawingPeriod);
 
         resetPrank(users.governor);
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));

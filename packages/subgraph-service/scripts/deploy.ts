@@ -33,7 +33,7 @@ async function main() {
   })
 
   // Deploy Horizon
-  const { Controller, TAPCollector, L2Curation } = await ignition.deploy(HorizonModule, {
+  const { Controller, GraphTallyCollector, L2Curation } = await ignition.deploy(HorizonModule, {
     displayUi: true,
     parameters: IgnitionHelper.patchConfig(HorizonConfig, {
       SubgraphService: {
@@ -63,7 +63,7 @@ async function main() {
         subgraphServiceProxyAddress: SubgraphServiceProxy.target as string,
         subgraphServiceProxyAdminAddress: SubgraphServiceProxyAdmin.target as string,
         disputeManagerAddress: DisputeManagerProxy.target as string,
-        tapCollectorAddress: TAPCollector.target as string,
+        graphTallyCollectorAddress: GraphTallyCollector.target as string,
         curationAddress: L2Curation.target as string,
       },
     }),
