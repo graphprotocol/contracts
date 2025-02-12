@@ -7,7 +7,6 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 
 contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
-
     /*
      * MODIFIERS
      */
@@ -83,6 +82,20 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         vm.stopPrank();
     }
 
+
+    function test_ProvisionParametersAccept_SameParameters(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        _setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
+
+        vm.startPrank(subgraphDataServiceAddress);
+        _acceptProvisionParameters(users.indexer);
+        _acceptProvisionParameters(users.indexer);
+        vm.stopPrank();
+    }
+
     function test_ProvisionParameters_RevertIf_InvalidMaxVerifierCut(
         uint256 amount,
         uint32 maxVerifierCut,
@@ -91,10 +104,7 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         maxVerifierCut = uint32(bound(maxVerifierCut, MAX_PPM + 1, type(uint32).max));
         vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IHorizonStakingMain.HorizonStakingInvalidMaxVerifierCut.selector,
-                maxVerifierCut
-            )
+            abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingInvalidMaxVerifierCut.selector, maxVerifierCut)
         );
         staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
     }
@@ -114,5 +124,17 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
             )
         );
         staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
+    }
+
+    function test_ProvisionParametersAccept_RevertWhen_ProvisionNotExists() public useIndexer {
+        resetPrank(subgraphDataServiceAddress);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "HorizonStakingInvalidProvision(address,address)",
+                users.indexer,
+                subgraphDataServiceAddress
+            )
+        );
+        staking.acceptProvisionParameters(users.indexer);
     }
 }

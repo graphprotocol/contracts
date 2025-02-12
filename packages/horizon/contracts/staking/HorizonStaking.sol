@@ -229,6 +229,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             newThawingPeriod <= _maxThawingPeriod,
             HorizonStakingInvalidThawingPeriod(newThawingPeriod, _maxThawingPeriod)
         );
+
+        // Provision must exist
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
@@ -244,7 +246,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function acceptProvisionParameters(address serviceProvider) external override notPaused {
         address verifier = msg.sender;
+
+        // Provision must exist
         Provision storage prov = _provisions[serviceProvider][verifier];
+        require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
+
         if ((prov.maxVerifierCutPending != prov.maxVerifierCut) || (prov.thawingPeriodPending != prov.thawingPeriod)) {
             prov.maxVerifierCut = prov.maxVerifierCutPending;
             prov.thawingPeriod = prov.thawingPeriodPending;
