@@ -244,6 +244,7 @@ interface IHorizonStakingMain {
     /**
      * @notice Emitted when a thaw request is created.
      * @dev Can be emitted by the service provider when thawing stake or by the delegator when undelegating.
+     * @param requestType The type of thaw request
      * @param serviceProvider The address of the service provider
      * @param verifier The address of the verifier
      * @param owner The address of the owner of the thaw request.
@@ -252,9 +253,10 @@ interface IHorizonStakingMain {
      * @param thawRequestId The ID of the thaw request
      */
     event ThawRequestCreated(
+        IHorizonStakingTypes.ThawRequestType indexed requestType,
         address indexed serviceProvider,
         address indexed verifier,
-        address indexed owner,
+        address owner,
         uint256 shares,
         uint64 thawingUntil,
         bytes32 thawRequestId
@@ -262,6 +264,7 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Emitted when a thaw request is fulfilled, meaning the stake is released.
+     * @param requestType The type of thaw request
      * @param thawRequestId The ID of the thaw request
      * @param tokens The amount of tokens being released
      * @param shares The amount of shares being released
@@ -269,6 +272,7 @@ interface IHorizonStakingMain {
      * @param valid Whether the thaw request was valid at the time of fulfillment
      */
     event ThawRequestFulfilled(
+        IHorizonStakingTypes.ThawRequestType indexed requestType,
         bytes32 indexed thawRequestId,
         uint256 tokens,
         uint256 shares,
@@ -286,12 +290,12 @@ interface IHorizonStakingMain {
      * @param requestType The type of thaw request
      */
     event ThawRequestsFulfilled(
+        IHorizonStakingTypes.ThawRequestType indexed requestType,
         address indexed serviceProvider,
         address indexed verifier,
-        address indexed owner,
+        address owner,
         uint256 thawRequestsFulfilled,
-        uint256 tokens,
-        IHorizonStakingTypes.ThawRequestType requestType
+        uint256 tokens
     );
 
     // -- Events: governance --
