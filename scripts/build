@@ -1,7 +1,15 @@
 #!/bin/bash
 
-# List of packages to build - order matters!
-packages=(
+BUILD_HORIZON_ONLY=${BUILD_HORIZON_ONLY:-false}
+
+# List packages to build - order matters!
+horizon_packages=(
+    "packages/contracts"
+    "packages/horizon"
+    "packages/subgraph-service"
+)
+
+all_packages=(
     "packages/eslint-graph-config"
     # "packages/solhint-graph-config" -- disabled since it doesn't have a build script
     # "packages/solhint-plugin-graph" -- disabled since it doesn't have a build script
@@ -13,6 +21,12 @@ packages=(
     "packages/sdk"
     "packages/token-distribution"
 )
+
+if [ "$BUILD_HORIZON_ONLY" = "true" ]; then
+    packages=("${horizon_packages[@]}")
+else
+    packages=("${all_packages[@]}")
+fi
 
 for package in "${packages[@]}"; do
     echo -e "\n\n==== Building $package..."
