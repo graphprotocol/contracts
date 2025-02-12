@@ -1,4 +1,6 @@
 import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
+import { existsSync, readdirSync } from 'fs'
+import { join } from 'path'
 
 // Hardhat plugins
 import '@nomicfoundation/hardhat-foundry'
@@ -7,6 +9,20 @@ import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
 import { HardhatUserConfig } from 'hardhat/types'
+
+// Hardhat tasks
+function loadTasks() {
+  const tasksPath = join(__dirname, 'tasks')
+  readdirSync(tasksPath)
+    .filter(pth => pth.includes('.ts'))
+    .forEach((file) => {
+      require(join(tasksPath, file))
+    })
+}
+
+if (existsSync(join(__dirname, 'build/contracts'))) {
+  loadTasks()
+}
 
 // Skip importing hardhat-graph-protocol when building the project, it has circular dependency
 if (process.env.BUILD_RUN !== 'true') {
