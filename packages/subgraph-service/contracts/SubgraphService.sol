@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
+import { IIPCollector } from "@graphprotocol/horizon/contracts/interfaces/IIPCollector.sol";
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
@@ -66,8 +67,12 @@ contract SubgraphService is
         address graphController,
         address disputeManager,
         address graphTallyCollector,
-        address curation
-    ) DataService(graphController) Directory(address(this), disputeManager, graphTallyCollector, curation) {
+        address curation,
+        address ipCollector
+    )
+        DataService(graphController)
+        Directory(address(this), disputeManager, graphTallyCollector, curation, ipCollector)
+    {
         _disableInitializers();
     }
 
@@ -572,5 +577,182 @@ contract SubgraphService is
         require(_stakeToFeesRatio != 0, SubgraphServiceInvalidZeroStakeToFeesRatio());
         stakeToFeesRatio = _stakeToFeesRatio;
         emit StakeToFeesRatioSet(_stakeToFeesRatio);
+    }
+
+    /// @notice Tracks the accepted agreements
+    mapping(address indexer => mapping(address payer => mapping(bytes16 agreementId => IndexingAgreementData data)))
+        public agreementsData;
+
+    uint256 constant CANCELED = type(uint256).max;
+
+    // Can only be accepted on behalf of a valid indexer
+    function acceptIAV(
+        address _allocationId,
+        IIPCollector.SignedIAV calldata _signedIAV
+    )
+        external
+        onlyAuthorizedForProvision(_signedIAV.iav.serviceProvider)
+        onlyValidProvision(_signedIAV.iav.serviceProvider)
+        onlyRegisteredIndexer(_signedIAV.iav.serviceProvider)
+        whenNotPaused
+    {
+        // Check that the data service is the subgraph service
+        require(_signedIAV.iav.dataService == address(this), "SubgraphService: Data service mismatch");
+
+        IndexingAgreementVoucherMetadata memory metadata = abi.decode(
+            _signedIAV.iav.metadata,
+            (IndexingAgreementVoucherMetadata)
+        );
+
+        // Do I really need an allocation here? Should I also check the state of the allocation?
+        Allocation.State memory allocation = _allocations.get(_allocationId);
+        require(
+            _signedIAV.iav.serviceProvider == allocation.indexer,
+            SubgraphServiceInvalidSomething(_signedIAV.iav.serviceProvider, allocation.indexer)
+        );
+        require(
+            metadata.subgraphDeploymentId == allocation.subgraphDeploymentId,
+            "SubgraphService: SubgraphDeploymentId mismatch"
+        );
+
+        IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(
+            IndexingAgreementKey({
+                indexer: _signedIAV.iav.serviceProvider,
+                payer: _signedIAV.iav.payer,
+                agreementId: _signedIAV.iav.agreementId
+            })
+        );
+        require(agreement.acceptedAt == 0, "SubgraphService: Agreement already accepted");
+
+        agreement.tokensPerSecond = metadata.tokensPerSecond;
+        agreement.tokensPerEntityPerSecond = metadata.tokensPerEntityPerSecond;
+        agreement.acceptedAt = block.timestamp;
+
+        // Accept the IAV
+        _ipCollector().accept(_signedIAV);
+    }
+
+    // Can only be canceled on behalf of a valid indexer
+    function cancelIAV(
+        address _indexer,
+        address _payer,
+        bytes16 _agreementId
+    )
+        external
+        onlyAuthorizedForProvision(_indexer)
+        onlyValidProvision(_indexer)
+        onlyRegisteredIndexer(_indexer)
+        whenNotPaused
+    {
+        // Do I need to check the allocation?
+        _cancelIAV(_payer, _indexer, _agreementId);
+    }
+
+    function cancelIAVByPayer(address _indexer, address _payer, bytes16 _agreementId) external whenNotPaused {
+        require(_ipCollector().isAuthorized(_payer, msg.sender), "SubgraphService: Caller not authorized by payer");
+        _cancelIAV(_payer, _indexer, _agreementId);
+    }
+
+    function _cancelIAV(address _payer, address _indexer, bytes16 _agreementId) private whenNotPaused {
+        IndexingAgreementData storage agg = _getForUpdateIndexingAgreement(
+            IndexingAgreementKey({ indexer: _indexer, payer: _payer, agreementId: _agreementId })
+        );
+        agg.acceptedAt = CANCELED;
+
+        _ipCollector().cancel(_payer, _indexer, _agreementId);
+    }
+
+    function _getForUpdateIndexingAgreement(
+        IndexingAgreementKey memory _key
+    ) private view returns (IndexingAgreementData storage) {
+        return agreementsData[_key.indexer][_key.payer][_key.agreementId];
+    }
+
+    function collectIndexingFees(
+        IndexingAgreementKey memory _key,
+        bytes32 _collectionId,
+        uint256 _entities,
+        bytes32 _poi
+    )
+        external
+        onlyAuthorizedForProvision(_key.indexer)
+        onlyValidProvision(_key.indexer)
+        onlyRegisteredIndexer(_key.indexer)
+        whenNotPaused
+        returns (uint256)
+    {
+        _requireValidAllocation(_key.indexer, _collectionId);
+
+        uint256 tokensToCollect = _indexingAgreementTokensToCollect(_key, _entities);
+        uint256 tokensCollected = _indexingAgreementCollect(_key, _collectionId, tokensToCollect);
+
+        _releaseAndLockStake(_key.indexer, tokensCollected);
+
+        emit IndexingFeesCollected(
+            address(this),
+            _key.payer,
+            _key.agreementId,
+            _graphEpochManager().currentEpoch(),
+            tokensCollected,
+            _entities,
+            _poi
+        );
+        return tokensCollected;
+    }
+
+    function _requireValidAllocation(address _indexer, bytes32 _collectionId) private view {
+        // Check that collectionId (256 bits) is a valid address (160 bits)
+        // But why!?!?!?
+        require(uint256(_collectionId) <= type(uint160).max, SubgraphServiceInvalidCollectionId(_collectionId));
+        Allocation.State memory allocation = _allocations.get(address(uint160(uint256(_collectionId))));
+
+        require(_indexer == allocation.indexer, SubgraphServiceInvalidSomething(_indexer, allocation.indexer));
+    }
+
+    function _indexingAgreementTokensToCollect(
+        IndexingAgreementKey memory _key,
+        uint256 _entities
+    ) private returns (uint256) {
+        IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(_key);
+
+        uint256 collectionSeconds = block.timestamp;
+        collectionSeconds -= agreement.lastCollection > 0 ? agreement.lastCollection : agreement.acceptedAt;
+        agreement.lastCollection = block.timestamp;
+
+        // this is bad because it encourages people to collect at max seconds allowed to maximize collection.
+        return collectionSeconds * (agreement.tokensPerSecond + agreement.tokensPerEntityPerSecond * _entities);
+    }
+
+    function _indexingAgreementCollect(
+        IndexingAgreementKey memory _key,
+        bytes32 _collectionId,
+        uint256 _tokensToCollect
+    ) private returns (uint256) {
+        bytes memory data = abi.encode(
+            IIPCollector.CollectParams({
+                key: IIPCollector.AgreementKey({
+                    dataService: address(this),
+                    payer: _key.payer,
+                    serviceProvider: _key.indexer,
+                    agreementId: _key.agreementId
+                }),
+                collectionId: _collectionId,
+                tokens: _tokensToCollect,
+                dataServiceCut: 0
+            })
+        );
+        return _ipCollector().collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+    }
+
+    function _releaseAndLockStake(address _indexer, uint256 _tokensCollected) private {
+        _releaseStake(_indexer, 0);
+        if (_tokensCollected > 0) {
+            // lock stake as economic security for fees
+            _lockStake(
+                _indexer,
+                _tokensCollected * stakeToFeesRatio,
+                block.timestamp + _disputeManager().getDisputePeriod()
+            );
+        }
     }
 }

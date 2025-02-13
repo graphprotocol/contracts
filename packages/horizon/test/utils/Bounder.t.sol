@@ -28,4 +28,14 @@ contract Bounder is Test {
     function boundTimestampMin(uint256 _value, uint256 _min) internal pure returns (uint256) {
         return bound(_value, _min, type(uint256).max);
     }
+
+    function boundSkipMin(uint256 _value, uint256 _min) internal view returns (uint256) {
+        uint256 max = type(uint256).max - block.timestamp;
+        return _min >= max ? max : bound(_value, _min, max);
+    }
+
+    function boundSkipMax(uint256 _value, uint256 _max) internal view returns (uint256) {
+        uint256 endOfTime = type(uint256).max - block.timestamp;
+        return _max >= endOfTime ? endOfTime : bound(_value, 0, _max);
+    }
 }

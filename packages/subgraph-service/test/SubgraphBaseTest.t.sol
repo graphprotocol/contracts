@@ -14,6 +14,7 @@ import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHo
 import { IPaymentsEscrow } from "@graphprotocol/horizon/contracts/interfaces/IPaymentsEscrow.sol";
 import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
+import { IPCollector } from "@graphprotocol/horizon/contracts/payments/collectors/IPCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
 import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
@@ -43,6 +44,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     GraphPayments graphPayments;
     IPaymentsEscrow escrow;
     GraphTallyCollector graphTallyCollector;
+    IPCollector ipCollector;
 
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;

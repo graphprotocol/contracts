@@ -356,6 +356,7 @@ contract AuthorizableHelper is Test {
         address signer = vm.addr(_signerKey);
         assertNotAuthorized(_authorizer, signer);
 
+        require(block.timestamp < type(uint256).max, "Test cannot be run at the end of time");
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory proof = generateAuthorizationProof(
             block.chainid,

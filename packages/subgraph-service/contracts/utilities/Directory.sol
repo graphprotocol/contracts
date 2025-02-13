@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
 import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
+import { IIPCollector } from "@graphprotocol/horizon/contracts/interfaces/IIPCollector.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 
 /**
@@ -22,6 +23,10 @@ abstract contract Directory {
     /// @notice The Graph Tally Collector contract address
     /// @dev Required to collect payments via Graph Horizon payments protocol
     IGraphTallyCollector private immutable GRAPH_TALLY_COLLECTOR;
+
+    /// @notice The IP Collector contract address
+    /// @dev Required to collect indexing payments via Graph Horizon payments protocol
+    IIPCollector private immutable IP_COLLECTOR;
 
     /// @notice The Curation contract address
     /// @dev Required for curation fees distribution
@@ -66,11 +71,18 @@ abstract contract Directory {
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
      */
-    constructor(address subgraphService, address disputeManager, address graphTallyCollector, address curation) {
+    constructor(
+        address subgraphService,
+        address disputeManager,
+        address graphTallyCollector,
+        address curation,
+        address ipCollector
+    ) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
         GRAPH_TALLY_COLLECTOR = IGraphTallyCollector(graphTallyCollector);
         CURATION = ICuration(curation);
+        IP_COLLECTOR = IIPCollector(ipCollector);
 
         emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, graphTallyCollector, curation);
     }
@@ -94,6 +106,13 @@ abstract contract Directory {
      */
     function _graphTallyCollector() internal view returns (IGraphTallyCollector) {
         return GRAPH_TALLY_COLLECTOR;
+    }
+
+    /**
+     * @notice Returns the IP Collector contract address
+     */
+    function _ipCollector() internal view returns (IIPCollector) {
+        return IP_COLLECTOR;
     }
 
     /**

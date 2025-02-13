@@ -34,6 +34,37 @@ interface ISubgraphService is IDataServiceFees {
      */
     event QueryFeesCollected(address indexed serviceProvider, uint256 tokensCollected, uint256 tokensCurators);
 
+    struct IndexingAgreementVoucherMetadata {
+        uint256 tokensPerSecond;
+        uint256 tokensPerEntityPerSecond;
+        bytes32 subgraphDeploymentId;
+        string protocolNetwork;
+        string chainId;
+    }
+
+    struct IndexingAgreementKey {
+        address indexer;
+        address payer;
+        bytes16 agreementId;
+    }
+
+    struct IndexingAgreementData {
+        uint256 acceptedAt;
+        uint256 lastCollection;
+        uint256 tokensPerSecond;
+        uint256 tokensPerEntityPerSecond;
+    }
+
+    event IndexingFeesCollected(
+        address indexed serviceProvider,
+        address indexed payer,
+        bytes16 indexed agreementId,
+        uint256 currentEpoch,
+        uint256 tokensCollected,
+        uint256 entities,
+        bytes32 poi
+    );
+
     /**
      * @notice Emitted when the stake to fees ratio is set.
      * @param ratio The stake to fees ratio
@@ -106,6 +137,13 @@ interface ISubgraphService is IDataServiceFees {
      * @param allocationIndexer The address of the allocation indexer
      */
     error SubgraphServiceInvalidRAV(address ravIndexer, address allocationIndexer);
+
+    /**
+     * @notice Thrown when collecting ?
+     * @param indexer The address of the RAV indexer
+     * @param allocationIndexer The address of the allocation indexer
+     */
+    error SubgraphServiceInvalidSomething(address indexer, address allocationIndexer);
 
     /**
      * @notice Thrown when trying to force close an allocation that is not stale and the indexer is not over-allocated
