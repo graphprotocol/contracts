@@ -82,7 +82,6 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         vm.stopPrank();
     }
 
-
     function test_ProvisionParametersAccept_SameParameters(
         uint256 amount,
         uint32 maxVerifierCut,

@@ -103,7 +103,7 @@ contract ControllerMock is IController {
      * @param id Contract id (keccak256 hash of contract name)
      * @return Address of the proxy contract for the provided id
      */
-    function getContractProxy(bytes32 id) external view override returns (address) {
+    function getContractProxy(bytes32 id) external view virtual override returns (address) {
         return _registry[id];
     }
 

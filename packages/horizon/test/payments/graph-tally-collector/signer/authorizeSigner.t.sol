@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTallyCollector.sol";
+import { IAuthorizable } from "../../../../contracts/interfaces/IAuthorizable.sol";
 
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
@@ -27,10 +27,7 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
 
         // Attempt to authorize delegator with payer's proof
-        bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorInvalidSignerProof.selector
-        );
-        vm.expectRevert(expectedError);
+        vm.expectRevert(IAuthorizable.AuthorizableInvalidSignerProof.selector);
         graphTallyCollector.authorizeSigner(users.delegator, proofDeadline, signerProof);
     }
 
@@ -42,9 +39,10 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
 
         // Attempt to authorize signer again
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorSignerAlreadyAuthorized.selector,
+            IAuthorizable.AuthorizableSignerAlreadyAuthorized.selector,
             users.gateway,
-            signer
+            signer,
+            false
         );
         vm.expectRevert(expectedError);
         graphTallyCollector.authorizeSigner(signer, proofDeadline, signerProof);
@@ -55,7 +53,6 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
         _authorizeSigner(signer, proofDeadline, signerProof);
-
         // Revoke signer
         _thawSigner(signer);
         skip(revokeSignerThawingPeriod + 1);
@@ -63,9 +60,10 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
 
         // Attempt to authorize signer again
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorSignerAlreadyAuthorized.selector,
+            IAuthorizable.AuthorizableSignerAlreadyAuthorized.selector,
             users.gateway,
-            signer
+            signer,
+            true
         );
         vm.expectRevert(expectedError);
         graphTallyCollector.authorizeSigner(signer, proofDeadline, signerProof);
@@ -78,7 +76,7 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
 
         // Attempt to authorize delegator with expired proof
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorInvalidSignerProofDeadline.selector,
+            IAuthorizable.AuthorizableInvalidSignerProofDeadline.selector,
             proofDeadline,
             block.timestamp
         );

@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTallyCollector.sol";
+import { IAuthorizable } from "../../../../contracts/interfaces/IAuthorizable.sol";
 
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
@@ -18,7 +18,7 @@ contract GraphTallyThawSignerTest is GraphTallyTest {
 
     function testGraphTally_ThawSigner_RevertWhen_NotAuthorized() public useGateway {
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorSignerNotAuthorizedByPayer.selector,
+            IAuthorizable.AuthorizableSignerNotAuthorized.selector,
             users.gateway,
             signer
         );
@@ -32,7 +32,7 @@ contract GraphTallyThawSignerTest is GraphTallyTest {
         _revokeAuthorizedSigner(signer);
 
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorAuthorizationAlreadyRevoked.selector,
+            IAuthorizable.AuthorizableSignerNotAuthorized.selector,
             users.gateway,
             signer
         );
@@ -40,16 +40,14 @@ contract GraphTallyThawSignerTest is GraphTallyTest {
         graphTallyCollector.thawSigner(signer);
     }
 
-    function testGraphTally_ThawSigner_RevertWhen_AlreadyThawing() public useGateway useSigner {
+    function testGraphTally_ThawSigner_AlreadyThawing() public useGateway useSigner {
         _thawSigner(signer);
+        uint256 originalThawEnd = graphTallyCollector.getThawEnd(signer);
+        skip(1);
 
-        (, uint256 thawEndTimestamp, ) = graphTallyCollector.authorizedSigners(signer);
-        bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorSignerAlreadyThawing.selector,
-            signer,
-            thawEndTimestamp
-        );
-        vm.expectRevert(expectedError);
         graphTallyCollector.thawSigner(signer);
+        uint256 currentThawEnd = graphTallyCollector.getThawEnd(signer);
+        vm.assertEq(originalThawEnd, block.timestamp + revokeSignerThawingPeriod - 1);
+        vm.assertEq(currentThawEnd, block.timestamp + revokeSignerThawingPeriod);
     }
 }

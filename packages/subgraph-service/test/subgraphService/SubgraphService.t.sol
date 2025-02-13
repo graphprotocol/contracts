@@ -281,7 +281,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         Allocation.State memory allocation = subgraphService.getAllocation(
             address(uint160(uint256(signedRav.rav.collectionId)))
         );
-        (address payer, , ) = graphTallyCollector.authorizedSigners(_recoverRAVSigner(signedRav));
+        address payer = graphTallyCollector.isAuthorized(signedRav.rav.payer, _recoverRAVSigner(signedRav))
+            ? signedRav.rav.payer
+            : address(0);
 
         uint256 tokensCollected = graphTallyCollector.tokensCollected(
             address(subgraphService),
