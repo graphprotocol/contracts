@@ -23,6 +23,10 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
+import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { Decoder } from "./libraries/Decoder.sol";
+import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
+
 /**
  * @title SubgraphService contract
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
@@ -45,6 +49,7 @@ contract SubgraphService is
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
     using TokenUtils for IGraphToken;
+    using IndexingAgreement for IndexingAgreement.Manager;
 
     /**
      * @notice Checks that an indexer is registered
@@ -67,8 +72,13 @@ contract SubgraphService is
         address graphController,
         address disputeManager,
         address graphTallyCollector,
-        address curation
-    ) DataService(graphController) Directory(address(this), disputeManager, graphTallyCollector, curation) {
+        address curation,
+        address recurringCollector,
+        address extension
+    )
+        DataService(graphController)
+        Directory(address(this), disputeManager, graphTallyCollector, curation, recurringCollector, extension)
+    {
         _disableInitializers();
     }
 
@@ -226,6 +236,7 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
+        _cancelAllocationIndexingAgreement(allocationId);
         _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
     }
@@ -265,10 +276,10 @@ contract SubgraphService is
     )
         external
         override
+        whenNotPaused
         onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
-        whenNotPaused
         returns (uint256)
     {
         uint256 paymentCollected = 0;
@@ -277,6 +288,9 @@ contract SubgraphService is
             paymentCollected = _collectQueryFees(indexer, data);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             paymentCollected = _collectIndexingRewards(indexer, data);
+        } else if (paymentType == IGraphPayments.PaymentTypes.IndexingFee) {
+            (bytes16 agreementId, bytes memory iaCollectionData) = Decoder.decodeCollectIndexingFeeData(data);
+            paymentCollected = _collectIndexingFees(agreementId, iaCollectionData);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -302,6 +316,7 @@ contract SubgraphService is
         Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
+        _cancelAllocationIndexingAgreement(allocationId);
         _closeAllocation(allocationId, true);
     }
 
@@ -600,5 +615,132 @@ contract SubgraphService is
         uint256 curationCut
     ) private view returns (bytes memory) {
         return abi.encode(signedRav, curationCut, paymentsDestination[signedRav.rav.serviceProvider]);
+    }
+
+    function _cancelAllocationIndexingAgreement(address _allocationId) internal {
+        IndexingAgreement._getManager().cancelForAllocation(_allocationId);
+    }
+
+    /**
+     * @notice Accept an indexing agreement.
+     * See {ISubgraphService.acceptIndexingAgreement}.
+     *
+     * Requirements:
+     * - The agreement's indexer must be registered
+     * - The caller must be authorized by the agreement's indexer
+     * - The provision must be valid according to the subgraph service rules
+     * - Allocation must belong to the indexer and be open
+     * - Agreement must be for this data service
+     * - Agreement's subgraph deployment must match the allocation's subgraph deployment
+     * - Agreement must not have been accepted before
+     * - Allocation must not have an agreement already
+     *
+     * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
+     *
+     * Emits {IndexingAgreementAccepted} event
+     *
+     * @param allocationId The id of the allocation
+     * @param signedRCA The signed Recurring Collection Agreement
+     */
+    function acceptIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.SignedRCA calldata signedRCA
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(signedRCA.rca.serviceProvider)
+        onlyValidProvision(signedRCA.rca.serviceProvider)
+        onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
+    {
+        IndexingAgreement._getManager().accept(_allocations, allocationId, signedRCA);
+    }
+
+    /**
+     * @notice Collect Indexing fees
+     * Stake equal to the amount being collected times the `stakeToFeesRatio` is locked into a stake claim.
+     * This claim can be released at a later stage once expired.
+     *
+     * It's important to note that before collecting this function will attempt to release any expired stake claims.
+     * This could lead to an out of gas error if there are too many expired claims. In that case, the indexer will need to
+     * manually release the claims, see {IDataServiceFees-releaseStake}, before attempting to collect again.
+     *
+     * @dev Uses the {RecurringCollector} to collect payment from Graph Horizon payments protocol.
+     * Fees are distributed to service provider and delegators by {GraphPayments}
+     *
+     * Requirements:
+     * - Indexer must have enough available tokens to lock as economic security for fees
+     * - Allocation must be open
+     *
+     * Emits a {StakeClaimsReleased} event, and a {StakeClaimReleased} event for each claim released.
+     * Emits a {StakeClaimLocked} event.
+     * Emits a {IndexingFeesCollectedV1} event.
+     *
+     * @param _agreementId The id of the indexing agreement
+     * @param _data The indexing agreement collection data
+     * @return The amount of fees collected
+     */
+    function _collectIndexingFees(bytes16 _agreementId, bytes memory _data) private returns (uint256) {
+        (address indexer, uint256 tokensCollected) = IndexingAgreement._getManager().collect(
+            _allocations,
+            _agreementId,
+            _data
+        );
+
+        _releaseAndLockStake(indexer, tokensCollected);
+
+        return tokensCollected;
+    }
+
+    function _releaseAndLockStake(address _indexer, uint256 _tokensCollected) private {
+        _releaseStake(_indexer, 0);
+        if (_tokensCollected > 0) {
+            // lock stake as economic security for fees
+            _lockStake(
+                _indexer,
+                _tokensCollected * stakeToFeesRatio,
+                block.timestamp + _disputeManager().getDisputePeriod()
+            );
+        }
+    }
+
+    function modifiersHack(
+        address caller,
+        address indexer
+    )
+        external
+        view
+        whenNotPaused
+        onlyAuthorizedForProvisionHack(caller, indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+    {}
+
+    /**
+     * @notice Delegates the call to the SubgraphServiceExtension implementation.
+     * @dev This function does not return to its internal call site, it will return directly to the
+     * external caller.
+     */
+    // solhint-disable-next-line payable-fallback, no-complex-fallback
+    fallback() external {
+        address extImpl = _subgraphServiceExtensionImpl();
+        require(extImpl != address(0), "only through proxy");
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            // copy function selector and any arguments
+            calldatacopy(0, 0, calldatasize())
+            // execute function call using the extension implementation
+            let result := delegatecall(gas(), extImpl, 0, calldatasize(), 0, 0)
+            // get any return value
+            returndatacopy(0, 0, returndatasize())
+            // return any return value or error back to the caller
+            switch result
+            case 0 {
+                revert(0, returndatasize())
+            }
+            default {
+                return(0, returndatasize())
+            }
+        }
     }
 }
