@@ -118,6 +118,14 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _;
     }
 
+    modifier onlyAuthorizedForProvisionHack(address caller, address serviceProvider) {
+        require(
+            _graphStaking().isAuthorized(serviceProvider, address(this), caller),
+            ProvisionManagerNotAuthorized(serviceProvider, caller)
+        );
+        _;
+    }
+
     /**
      * @notice Checks if a provision of a service provider is valid according
      * to the parameter ranges established.
