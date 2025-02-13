@@ -10,34 +10,34 @@ import GraphTokenArtifact from '@graphprotocol/contracts/build/contracts/contrac
 export default buildModule('L2GraphToken', (m) => {
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
   const { RewardsManager } = m.useModule(RewardsManagerModule)
-  const { GraphTokenGateway } = m.useModule(GraphTokenGatewayModule)
+  const { L2GraphTokenGateway } = m.useModule(GraphTokenGatewayModule)
 
   const deployer = m.getAccount(0)
   const governor = m.getAccount(1)
   const initialSupply = m.getParameter('initialSupply')
 
-  const GraphToken = deployWithGraphProxy(m, GraphProxyAdmin, {
+  const L2GraphToken = deployWithGraphProxy(m, GraphProxyAdmin, {
     name: 'L2GraphToken',
     artifact: GraphTokenArtifact,
     initArgs: [deployer],
   })
 
-  const mintCall = m.call(GraphToken, 'mint', [deployer, initialSupply])
-  const renounceMinterCall = m.call(GraphToken, 'renounceMinter', [])
-  const addMinterRewardsManagerCall = m.call(GraphToken, 'addMinter', [RewardsManager], { id: 'addMinterRewardsManager' })
-  const addMinterGatewayCall = m.call(GraphToken, 'addMinter', [GraphTokenGateway], { id: 'addMinterGateway' })
+  const mintCall = m.call(L2GraphToken, 'mint', [deployer, initialSupply])
+  const renounceMinterCall = m.call(L2GraphToken, 'renounceMinter', [])
+  const addMinterRewardsManagerCall = m.call(L2GraphToken, 'addMinter', [RewardsManager], { id: 'addMinterRewardsManager' })
+  const addMinterGatewayCall = m.call(L2GraphToken, 'addMinter', [L2GraphTokenGateway], { id: 'addMinterGateway' })
 
   // No further calls are needed so we can transfer ownership now
-  const transferOwnershipCall = m.call(GraphToken, 'transferOwnership', [governor], { after: [mintCall, renounceMinterCall, addMinterRewardsManagerCall, addMinterGatewayCall] })
-  m.call(GraphToken, 'acceptOwnership', [], { from: governor, after: [transferOwnershipCall] })
+  const transferOwnershipCall = m.call(L2GraphToken, 'transferOwnership', [governor], { after: [mintCall, renounceMinterCall, addMinterRewardsManagerCall, addMinterGatewayCall] })
+  m.call(L2GraphToken, 'acceptOwnership', [], { from: governor, after: [transferOwnershipCall] })
 
-  return { GraphToken }
+  return { L2GraphToken }
 })
 
 export const MigrateGraphTokenModule = buildModule('L2GraphToken', (m) => {
   const graphTokenAddress = m.getParameter('graphTokenAddress')
 
-  const GraphToken = m.contractAt('L2GraphToken', GraphTokenArtifact, graphTokenAddress)
+  const L2GraphToken = m.contractAt('L2GraphToken', GraphTokenArtifact, graphTokenAddress)
 
-  return { GraphToken }
+  return { L2GraphToken }
 })

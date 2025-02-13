@@ -12,8 +12,8 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
     Controller,
     GraphProxyAdmin,
     EpochManager,
-    GraphToken,
-    GraphTokenGateway,
+    L2GraphToken,
+    L2GraphTokenGateway,
   } = m.useModule(MigratePeripheryModule)
 
   const {
@@ -37,7 +37,7 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
     Controller,
     GraphProxyAdmin,
     EpochManager,
-    GraphToken,
-    GraphTokenGateway,
+    L2GraphToken,
+    L2GraphTokenGateway,
   }
 })

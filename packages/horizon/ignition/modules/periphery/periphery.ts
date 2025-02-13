@@ -17,13 +17,13 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   const { EpochManager } = m.useModule(EpochManagerModule)
   const { L2Curation } = m.useModule(CurationModule)
   const { RewardsManager } = m.useModule(RewardsManagerModule)
-  const { GraphTokenGateway } = m.useModule(GraphTokenGatewayModule)
-  const { GraphToken } = m.useModule(GraphTokenModule)
+  const { L2GraphTokenGateway } = m.useModule(GraphTokenGatewayModule)
+  const { L2GraphToken } = m.useModule(GraphTokenModule)
 
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('EpochManager')), EpochManager], { id: 'setContractProxy_EpochManager' })
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('RewardsManager')), RewardsManager], { id: 'setContractProxy_RewardsManager' })
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphToken')), GraphToken], { id: 'setContractProxy_GraphToken' })
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphTokenGateway')), GraphTokenGateway], { id: 'setContractProxy_GraphTokenGateway' })
+  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphToken')), L2GraphToken], { id: 'setContractProxy_GraphToken' })
+  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphTokenGateway')), L2GraphTokenGateway], { id: 'setContractProxy_GraphTokenGateway' })
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphProxyAdmin')), GraphProxyAdmin], { id: 'setContractProxy_GraphProxyAdmin' })
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Curation')), L2Curation], { id: 'setContractProxy_L2Curation' })
 
@@ -32,8 +32,8 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
     EpochManager,
     L2Curation,
     GraphProxyAdmin,
-    GraphToken,
-    GraphTokenGateway,
+    L2GraphToken,
+    L2GraphTokenGateway,
     RewardsManager,
   }
 })
@@ -44,8 +44,8 @@ export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) 
   const { Controller } = m.useModule(MigrateControllerDeployerModule)
   const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
   const { EpochManager } = m.useModule(MigrateEpochManagerModule)
-  const { GraphToken } = m.useModule(MigrateGraphTokenModule)
-  const { GraphTokenGateway } = m.useModule(MigrateGraphTokenGatewayModule)
+  const { L2GraphToken } = m.useModule(MigrateGraphTokenModule)
+  const { L2GraphTokenGateway } = m.useModule(MigrateGraphTokenGatewayModule)
 
   // Load these contracts so they are available in the address book
 
@@ -55,8 +55,8 @@ export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) 
     L2Curation,
     L2CurationImplementation,
     GraphProxyAdmin,
-    GraphToken,
-    GraphTokenGateway,
+    L2GraphToken,
+    L2GraphTokenGateway,
     RewardsManager,
     RewardsManagerImplementation,
   }
