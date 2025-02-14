@@ -16,7 +16,7 @@ export default buildModule('L2GraphToken', (m) => {
   const governor = m.getAccount(1)
   const initialSupply = m.getParameter('initialSupply')
 
-  const L2GraphToken = deployWithGraphProxy(m, GraphProxyAdmin, {
+  const { proxy: L2GraphToken, implementation: L2GraphTokenImplementation } = deployWithGraphProxy(m, GraphProxyAdmin, {
     name: 'L2GraphToken',
     artifact: GraphTokenArtifact,
     initArgs: [deployer],
@@ -31,7 +31,7 @@ export default buildModule('L2GraphToken', (m) => {
   const transferOwnershipCall = m.call(L2GraphToken, 'transferOwnership', [governor], { after: [mintCall, renounceMinterCall, addMinterRewardsManagerCall, addMinterGatewayCall] })
   m.call(L2GraphToken, 'acceptOwnership', [], { from: governor, after: [transferOwnershipCall] })
 
-  return { L2GraphToken }
+  return { L2GraphToken, L2GraphTokenImplementation }
 })
 
 export const MigrateGraphTokenModule = buildModule('L2GraphToken', (m) => {

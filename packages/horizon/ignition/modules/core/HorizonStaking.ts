@@ -43,7 +43,7 @@ export default buildModule('HorizonStaking', (m) => {
   })
   m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod])
 
-  return { HorizonStaking }
+  return { HorizonStaking, HorizonStakingImplementation }
 })
 
 // Note that this module requires MigrateHorizonProxiesGovernorModule to be executed first
@@ -95,5 +95,5 @@ export const MigrateHorizonStakingGovernorModule = buildModule('HorizonStakingGo
   })
   m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod])
 
-  return { HorizonStaking }
+  return { HorizonStaking, HorizonStakingImplementation }
 })

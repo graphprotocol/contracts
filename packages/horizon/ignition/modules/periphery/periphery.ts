@@ -14,11 +14,11 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   const { Controller } = m.useModule(ControllerModule)
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
 
-  const { EpochManager } = m.useModule(EpochManagerModule)
-  const { L2Curation } = m.useModule(CurationModule)
-  const { RewardsManager } = m.useModule(RewardsManagerModule)
-  const { L2GraphTokenGateway } = m.useModule(GraphTokenGatewayModule)
-  const { L2GraphToken } = m.useModule(GraphTokenModule)
+  const { EpochManager, EpochManagerImplementation } = m.useModule(EpochManagerModule)
+  const { L2Curation, L2CurationImplementation } = m.useModule(CurationModule)
+  const { RewardsManager, RewardsManagerImplementation } = m.useModule(RewardsManagerModule)
+  const { L2GraphTokenGateway, L2GraphTokenGatewayImplementation } = m.useModule(GraphTokenGatewayModule)
+  const { L2GraphToken, L2GraphTokenImplementation } = m.useModule(GraphTokenModule)
 
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('EpochManager')), EpochManager], { id: 'setContractProxy_EpochManager' })
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('RewardsManager')), RewardsManager], { id: 'setContractProxy_RewardsManager' })
@@ -30,11 +30,16 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   return {
     Controller,
     EpochManager,
+    EpochManagerImplementation,
     L2Curation,
+    L2CurationImplementation,
     GraphProxyAdmin,
     L2GraphToken,
+    L2GraphTokenImplementation,
     L2GraphTokenGateway,
+    L2GraphTokenGatewayImplementation,
     RewardsManager,
+    RewardsManagerImplementation,
   }
 })
 

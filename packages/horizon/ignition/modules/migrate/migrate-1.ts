@@ -11,9 +11,9 @@ export default buildModule('GraphHorizon_Migrate_1', (m) => {
   } = m.useModule(MigrateHorizonProxiesDeployerModule)
 
   return {
-    GraphPaymentsProxy,
-    PaymentsEscrowProxy,
-    GraphPaymentsProxyAdmin,
-    PaymentsEscrowProxyAdmin,
+    Transparent_Proxy_GraphPayments: GraphPaymentsProxy,
+    Transparent_Proxy_PaymentsEscrow: PaymentsEscrowProxy,
+    Transparent_ProxyAdmin_GraphPayments: GraphPaymentsProxyAdmin,
+    Transparent_ProxyAdmin_PaymentsEscrow: PaymentsEscrowProxyAdmin,
   }
 })

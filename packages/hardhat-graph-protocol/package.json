@@ -16,8 +16,8 @@
   "main": "./dist/src/index.js",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "default": "./dist/src/index.js"
+      "types": "./src/types.ts",
+      "default": "./src/index.ts"
     },
     "./sdk": {
       "types": "./src/sdk/index.ts",
@@ -47,7 +47,9 @@
     "json5": "^2.2.3"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.15.9",
     "@nomicfoundation/hardhat-verify": "^2.0.12",
+    "@nomicfoundation/ignition-core": "^0.15.9",
     "@types/chai": "^4.0.0",
     "@types/debug": "^4.1.12",
     "@types/mocha": "^10.0.9",

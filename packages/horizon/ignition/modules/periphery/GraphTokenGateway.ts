@@ -13,14 +13,14 @@ export default buildModule('L2GraphTokenGateway', (m) => {
 
   const pauseGuardian = m.getParameter('pauseGuardian')
 
-  const L2GraphTokenGateway = deployWithGraphProxy(m, GraphProxyAdmin, {
+  const { proxy: L2GraphTokenGateway, implementation: L2GraphTokenGatewayImplementation } = deployWithGraphProxy(m, GraphProxyAdmin, {
     name: 'L2GraphTokenGateway',
     artifact: GraphTokenGatewayArtifact,
     initArgs: [Controller],
   })
   m.call(L2GraphTokenGateway, 'setPauseGuardian', [pauseGuardian])
 
-  return { L2GraphTokenGateway }
+  return { L2GraphTokenGateway, L2GraphTokenGatewayImplementation }
 })
 
 export const MigrateGraphTokenGatewayModule = buildModule('L2GraphTokenGateway', (m) => {

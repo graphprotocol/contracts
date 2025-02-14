@@ -7,16 +7,24 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
   const {
     Controller,
     EpochManager,
+    EpochManagerImplementation,
     GraphProxyAdmin,
     L2GraphTokenGateway,
+    L2GraphTokenGatewayImplementation,
     L2GraphToken,
+    L2GraphTokenImplementation,
     RewardsManager,
+    RewardsManagerImplementation,
     L2Curation,
+    L2CurationImplementation,
   } = m.useModule(GraphPeripheryModule)
   const {
     HorizonStaking,
+    HorizonStakingImplementation,
     GraphPayments,
+    GraphPaymentsImplementation,
     PaymentsEscrow,
+    PaymentsEscrowImplementation,
     GraphTallyCollector,
   } = m.useModule(GraphHorizonCoreModule)
 
@@ -32,15 +40,23 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
 
   return {
     Controller,
-    L2Curation,
-    EpochManager,
+    Graph_Proxy_EpochManager: EpochManager,
+    Implementation_EpochManager: EpochManagerImplementation,
+    Graph_Proxy_L2Curation: L2Curation,
+    Implementation_L2Curation: L2CurationImplementation,
+    Graph_Proxy_RewardsManager: RewardsManager,
+    Implementation_RewardsManager: RewardsManagerImplementation,
+    Graph_Proxy_L2GraphTokenGateway: L2GraphTokenGateway,
+    Implementation_L2GraphTokenGateway: L2GraphTokenGatewayImplementation,
+    Graph_Proxy_L2GraphToken: L2GraphToken,
+    Implementation_L2GraphToken: L2GraphTokenImplementation,
     GraphProxyAdmin,
-    L2GraphTokenGateway,
-    L2GraphToken,
-    RewardsManager,
-    HorizonStaking,
-    GraphPayments,
-    PaymentsEscrow,
+    Graph_Proxy_HorizonStaking: HorizonStaking,
+    Implementation_HorizonStaking: HorizonStakingImplementation,
+    Transparent_Proxy_GraphPayments: GraphPayments,
+    Implementation_GraphPayments: GraphPaymentsImplementation,
+    Transparent_Proxy_PaymentsEscrow: PaymentsEscrow,
+    Implementation_PaymentsEscrow: PaymentsEscrowImplementation,
     GraphTallyCollector,
   }
 })

@@ -12,13 +12,13 @@ export default buildModule('EpochManager', (m) => {
 
   const epochLength = m.getParameter('epochLength')
 
-  const EpochManager = deployWithGraphProxy(m, GraphProxyAdmin, {
+  const { proxy: EpochManager, implementation: EpochManagerImplementation } = deployWithGraphProxy(m, GraphProxyAdmin, {
     name: 'EpochManager',
     artifact: EpochManagerArtifact,
     initArgs: [Controller, epochLength],
   })
 
-  return { EpochManager }
+  return { EpochManager, EpochManagerImplementation }
 })
 
 export const MigrateEpochManagerModule = buildModule('EpochManager', (m) => {

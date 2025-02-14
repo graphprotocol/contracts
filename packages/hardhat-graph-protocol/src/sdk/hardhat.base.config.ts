@@ -13,19 +13,6 @@ interface SecureAccountsOptions {
 const ARBITRUM_ONE_RPC = vars.get('ARBITRUM_ONE_RPC', 'https://arb1.arbitrum.io/rpc')
 const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-rollup.arbitrum.io/rpc')
 
-// Accounts
-const getTestnetAccounts = () => {
-  const accounts: string[] = []
-  if (vars.has('DEPLOYER_PRIVATE_KEY')) accounts.push(vars.get('DEPLOYER_PRIVATE_KEY'))
-  if (vars.has('GOVERNOR_PRIVATE_KEY')) accounts.push(vars.get('GOVERNOR_PRIVATE_KEY'))
-  return accounts
-}
-const getHardhatAccounts = () => {
-  return {
-    mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
-  }
-}
-
 export const solidityUserConfig: SolidityUserConfig = {
   version: '0.8.27',
   settings: {
@@ -57,7 +44,9 @@ type BaseNetworksUserConfig = NetworksUserConfig &
 export const networksUserConfig: BaseNetworksUserConfig = {
   hardhat: {
     chainId: 31337,
-    accounts: getHardhatAccounts(),
+    accounts: {
+      mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
+    },
     deployments: {
       horizon: require.resolve('@graphprotocol/horizon/addresses-local.json'),
     },
@@ -65,7 +54,9 @@ export const networksUserConfig: BaseNetworksUserConfig = {
   localhost: {
     chainId: 31337,
     url: 'http://localhost:8545',
-    accounts: getTestnetAccounts(),
+    secureAccounts: {
+      enabled: true,
+    },
     deployments: {
       horizon: require.resolve('@graphprotocol/horizon/addresses-local.json'),
     },
