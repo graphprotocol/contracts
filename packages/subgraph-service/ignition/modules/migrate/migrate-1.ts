@@ -4,16 +4,16 @@ import ProxiesModule from '../Proxies'
 
 export default buildModule('SubgraphService_Migrate_1', (m) => {
   const {
-    SubgraphServiceProxy,
-    SubgraphServiceProxyAdmin,
-    DisputeManagerProxy,
-    DisputeManagerProxyAdmin,
+    Transparent_Proxy_SubgraphService,
+    Transparent_ProxyAdmin_SubgraphService,
+    Transparent_Proxy_DisputeManager,
+    Transparent_ProxyAdmin_DisputeManager,
   } = m.useModule(ProxiesModule)
 
   return {
-    SubgraphServiceProxy,
-    SubgraphServiceProxyAdmin,
-    DisputeManagerProxy,
-    DisputeManagerProxyAdmin,
+    Transparent_Proxy_SubgraphService,
+    Transparent_ProxyAdmin_SubgraphService,
+    Transparent_Proxy_DisputeManager,
+    Transparent_ProxyAdmin_DisputeManager,
   }
 })

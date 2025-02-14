@@ -51,6 +51,7 @@ addresses-fork.json
 
 # Forge artifacts
 cache_forge
+
 # Graph client
 .graphclient
 
@@ -62,4 +63,6 @@ tx-builder-*.json
 **/chain-1377/
 **/horizon-localhost/
 **/horizon-hardhat/
+**/subgraph-service-localhost/
+**/subgraph-service-hardhat/
 !**/ignition/**/artifacts/

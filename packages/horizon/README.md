@@ -35,14 +35,17 @@ Note that this instructions will help you deploy Graph Horizon contracts, but no
 To deploy Graph Horizon from scratch run the following command:
 
 ```bash
-npx hardhat run scripts/deploy.ts --network hardhat
+npx hardhat deploy:protocol --network hardhat
 ```
 
 ### Upgrade deployment
-To upgrade an existing deployment of the original Graph Protocol to Graph Horizon, run the following command:
+Usually you would run this against a network (or a fork) where the original Graph Protocol was previously deployed. To upgrade an existing deployment of the original Graph Protocol to Graph Horizon, run the following commands. Note that each step might need to be run by different accounts (deployer vs governor):
 
 ```bash
-npx hardhat run scripts/migrate.ts --network localhost
+npx hardhat deploy:migrate --network hardhat --step 1
+npx hardhat deploy:migrate --network hardhat --step 2 # Optionally add --patch-config
+npx hardhat deploy:migrate --network hardhat --step 3
+npx hardhat deploy:migrate --network hardhat --step 4 # Optionally add --patch-config
 ```
 
-Usually you would run this against a network (or a fork) where the original Graph Protocol was previously deployed.
+Steps 2 and 4 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
