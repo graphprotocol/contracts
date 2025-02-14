@@ -5,6 +5,7 @@ require('json5/lib/register')
 
 import fs from 'fs'
 import path from 'path'
+import { AddressBook } from '../address-book'
 
 export function loadConfig(configPath: string, prefix: string, networkName: string): any {
   const configFileCandidates = [
@@ -19,7 +20,7 @@ export function loadConfig(configPath: string, prefix: string, networkName: stri
     )
   }
 
-  return removeNFromBigInts(require(configFile))
+  return { config: removeNFromBigInts(require(configFile)), file: configFile }
 }
 
 export function patchConfig(jsonData: any, patches: Record<string, any>) {
@@ -55,40 +56,62 @@ export function mergeConfigs(obj1: any, obj2: any) {
   return merged
 }
 
-export function saveAddressBook(
+export function saveToAddressBook<ChainId extends number, ContractName extends string>(
   contracts: any,
   chainId: number | undefined,
-  addressBook = 'addresses.json',
-): Record<string, Record<string, string>> {
+  addressBook: AddressBook<ChainId, ContractName>,
+): AddressBook<ChainId, ContractName> {
   if (!chainId) {
     throw new Error('Chain ID is required')
   }
 
-  // Use different address book for local networks - this one can be gitignored
-  if ([1377, 31337].includes(chainId)) {
-    addressBook = 'addresses-local.json'
-  }
-
-  const output = fs.existsSync(addressBook)
-    ? JSON.parse(fs.readFileSync(addressBook, 'utf8'))
-    : {}
-
-  output[chainId] = output[chainId] || {}
-
   // Extract contract names and addresses
-  Object.entries(contracts).forEach(([contractName, contract]: [string, any]) => {
-    output[chainId][contractName] = contract.target
-  })
+  for (const [ignitionContractName, contract] of Object.entries(contracts)) {
+    // Proxy contracts
+    if (ignitionContractName.includes('_Proxy_')) {
+      const contractName = ignitionContractName.replace(/(Transparent_Proxy_|Graph_Proxy_)/, '') as ContractName
+      const proxy = ignitionContractName.includes('Transparent_Proxy_') ? 'transparent' : 'graph'
+      const entry = addressBook.getEntry(contractName)
+      addressBook.setEntry(contractName, {
+        ...entry,
+        address: (contract as any).target,
+        proxy,
+      })
+    }
 
-  // Write to output file
-  const outputDir = path.dirname(addressBook)
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true })
+    // Proxy admin contracts
+    if (ignitionContractName.includes('_ProxyAdmin_')) {
+      const contractName = ignitionContractName.replace(/(Transparent_ProxyAdmin_|Graph_ProxyAdmin_)/, '') as ContractName
+      const proxy = ignitionContractName.includes('Transparent_ProxyAdmin_') ? 'transparent' : 'graph'
+      const entry = addressBook.getEntry(contractName)
+      addressBook.setEntry(contractName, {
+        ...entry,
+        proxy,
+        proxyAdmin: (contract as any).target,
+      })
+    }
+
+    // Implementation contracts
+    if (ignitionContractName.startsWith('Implementation_')) {
+      const contractName = ignitionContractName.replace('Implementation_', '') as ContractName
+      const entry = addressBook.getEntry(contractName)
+      addressBook.setEntry(contractName, {
+        ...entry,
+        implementation: (contract as any).target,
+      })
+    }
+
+    // Non proxied contracts
+    if (addressBook.isContractName(ignitionContractName)) {
+      const entry = addressBook.getEntry(ignitionContractName)
+      addressBook.setEntry(ignitionContractName, {
+        ...entry,
+        address: (contract as any).target,
+      })
+    }
   }
 
-  fs.writeFileSync(addressBook, JSON.stringify(output, null, 2))
-
-  return output as Record<string, Record<string, string>>
+  return addressBook
 }
 
 // Ignition requires "n" suffix for bigints, but not here
