@@ -16,6 +16,18 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     const { config: HorizonConfig, file } = IgnitionHelper.loadConfig('./ignition/configs/', 'horizon', hre.network.name)
     console.log(`Loaded migration configuration from ${file}`)
 
+    // Display the deployer -- this also triggers the secure accounts prompt if being used
+    console.log('\n========== 🔑 Deployer account ==========')
+    const signers = await hre.ethers.getSigners()
+    const deployer = signers[0]
+    console.log('Using deployer account:', deployer.address)
+    const balance = await hre.ethers.provider.getBalance(deployer.address)
+    console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')
+    if (balance === 0n) {
+      console.error('Error: Deployer account has no ETH balance')
+      process.exit(1)
+    }
+
     // Deploy the contracts
     console.log(`\n========== 🚧 Deploy protocol ==========`)
     const deployment = await hre.ignition.deploy(DeployModule, {
@@ -27,10 +39,12 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     console.log('\n========== 📖 Updating address book ==========')
     IgnitionHelper.saveToAddressBook(deployment, hre.network.config.chainId, graph.horizon!.addressBook)
     console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
+
+    console.log('\n\n🎉 ✨ 🚀 ✅ Deployment complete! 🎉 ✨ 🚀 ✅')
   })
 
 task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to Horizon - no data services deployed')
-  .addOptionalParam('step', 'Migration step to run (1, 2, 3 or 4) - runs all if not provided', undefined, types.int)
+  .addOptionalParam('step', 'Migration step to run (1, 2, 3 or 4)', undefined, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     // Task parameters
@@ -42,7 +56,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     // Migration step to run
     console.log('\n========== 🏗️ Migration steps ==========')
-    const validSteps = [0, 1, 2, 3, 4]
+    const validSteps = [1, 2, 3, 4]
     if (!validSteps.includes(step)) {
       console.error(`Error: Invalid migration step provided: ${step}`)
       console.error(`Valid steps are: ${validSteps.join(', ')}`)
@@ -83,7 +97,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
     IgnitionHelper.saveToAddressBook(deployment, hre.network.config.chainId, graph.horizon!.addressBook)
     console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
 
-    console.log('\n\n🎉 ✨ 🚀 ✅ Migration successful! 🎉 ✨ 🚀 ✅')
+    console.log('\n\n🎉 ✨ 🚀 ✅ Migration complete! 🎉 ✨ 🚀 ✅')
   })
 
 // This function patches the Ignition configuration object using an address book to fill in the gaps

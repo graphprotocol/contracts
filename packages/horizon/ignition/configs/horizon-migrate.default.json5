@@ -14,12 +14,12 @@
     "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
 
     // Must be set for step 4 of the migration
-    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",
+    "subgraphServiceAddress": "",
 
     // Parameters
     "maxThawingPeriod": 2419200
   },
-    "GraphPayments": {
+  "GraphPayments": {
     "protocolPaymentCut": 10000
   },
   "PaymentsEscrow": {
@@ -31,20 +31,20 @@
     "revokeSignerThawingPeriod": 10000
   },
   "HorizonProxiesGovernor": {
-    // These addresses must be set for step 2 of the migration
-    "graphPaymentsAddress": "0x0000000000000000000000000000000000000000",
-    "paymentsEscrowAddress": "0x0000000000000000000000000000000000000000"
+    // Must be set for step 2 of the migration
+    "graphPaymentsAddress": "",
+    "paymentsEscrowAddress": ""
   },
   "HorizonStakingGovernor": {
     // Must be set for step 4 of the migration
-    "horizonStakingImplementationAddress": "0x0000000000000000000000000000000000000000"
+    "horizonStakingImplementationAddress": ""
   },
   "L2CurationGovernor": {
     // Must be set for step 4 of the migration
-    "curationImplementationAddress": "0x0000000000000000000000000000000000000000"
+    "curationImplementationAddress": ""
   },
   "RewardsManagerGovernor": {
     // Must be set for step 4 of the migration
-    "rewardsManagerImplementationAddress": "0x0000000000000000000000000000000000000000"
+    "rewardsManagerImplementationAddress": ""
   }
 }

@@ -5,7 +5,8 @@ require('json5/lib/register')
 
 import fs from 'fs'
 import path from 'path'
-import { AddressBook } from '../address-book'
+
+import type { AddressBook } from '../address-book'
 
 export function loadConfig(configPath: string, prefix: string, networkName: string): any {
   const configFileCandidates = [
@@ -24,36 +25,22 @@ export function loadConfig(configPath: string, prefix: string, networkName: stri
 }
 
 export function patchConfig(jsonData: any, patches: Record<string, any>) {
-  function recursivePatch(obj: any) {
-    if (typeof obj === 'object' && obj !== null) {
-      for (const key in obj) {
-        if (key in patches) {
-          obj[key] = patches[key]
+  function recursivePatch(obj: any, patchObj: any) {
+    if (typeof obj === 'object' && obj !== null && typeof patchObj === 'object' && patchObj !== null) {
+      for (const key in patchObj) {
+        if (obj.hasOwnProperty(key) && typeof obj[key] === 'object' && typeof patchObj[key] === 'object') {
+          // Both are objects, recursively merge
+          recursivePatch(obj[key], patchObj[key])
         } else {
-          recursivePatch(obj[key])
+          // Either not an object or new key, directly assign
+          obj[key] = patchObj[key]
         }
       }
     }
+    return obj
   }
 
-  recursivePatch(jsonData)
-  return jsonData
-}
-
-export function mergeConfigs(obj1: any, obj2: any) {
-  const merged = { ...obj1 }
-
-  for (const key in obj2) {
-    if (obj2.hasOwnProperty(key)) {
-      if (typeof obj2[key] === 'object' && obj2[key] !== null && obj1[key]) {
-        merged[key] = mergeConfigs(obj1[key], obj2[key])
-      } else {
-        merged[key] = obj2[key]
-      }
-    }
-  }
-
-  return merged
+  return recursivePatch(jsonData, patches)
 }
 
 export function saveToAddressBook<ChainId extends number, ContractName extends string>(
@@ -71,7 +58,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
     if (ignitionContractName.includes('_Proxy_')) {
       const contractName = ignitionContractName.replace(/(Transparent_Proxy_|Graph_Proxy_)/, '') as ContractName
       const proxy = ignitionContractName.includes('Transparent_Proxy_') ? 'transparent' : 'graph'
-      const entry = addressBook.getEntry(contractName)
+      const entry = addressBook.entryExists(contractName) ? addressBook.getEntry(contractName) : {}
       addressBook.setEntry(contractName, {
         ...entry,
         address: (contract as any).target,
@@ -83,7 +70,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
     if (ignitionContractName.includes('_ProxyAdmin_')) {
       const contractName = ignitionContractName.replace(/(Transparent_ProxyAdmin_|Graph_ProxyAdmin_)/, '') as ContractName
       const proxy = ignitionContractName.includes('Transparent_ProxyAdmin_') ? 'transparent' : 'graph'
-      const entry = addressBook.getEntry(contractName)
+      const entry = addressBook.entryExists(contractName) ? addressBook.getEntry(contractName) : {}
       addressBook.setEntry(contractName, {
         ...entry,
         proxy,
@@ -94,7 +81,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
     // Implementation contracts
     if (ignitionContractName.startsWith('Implementation_')) {
       const contractName = ignitionContractName.replace('Implementation_', '') as ContractName
-      const entry = addressBook.getEntry(contractName)
+      const entry = addressBook.entryExists(contractName) ? addressBook.getEntry(contractName) : {}
       addressBook.setEntry(contractName, {
         ...entry,
         implementation: (contract as any).target,
@@ -103,7 +90,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
 
     // Non proxied contracts
     if (addressBook.isContractName(ignitionContractName)) {
-      const entry = addressBook.getEntry(ignitionContractName)
+      const entry = addressBook.entryExists(ignitionContractName) ? addressBook.getEntry(ignitionContractName) : {}
       addressBook.setEntry(ignitionContractName, {
         ...entry,
         address: (contract as any).target,

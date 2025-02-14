@@ -25,7 +25,7 @@ export const SubgraphServiceContractNameList = [
   'DisputeManager',
 ] as const
 
-const root = path.resolve(__dirname, '../../../../..') // hardhat-graph-protocol root
+const root = path.resolve(__dirname, '../../../..') // hardhat-graph-protocol root
 export const CONTRACTS_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/contracts/build/contracts')
 export const SUBGRAPH_SERVICE_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/subgraph-service/build/contracts')
 

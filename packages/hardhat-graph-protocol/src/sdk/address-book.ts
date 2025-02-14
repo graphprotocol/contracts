@@ -76,11 +76,16 @@ export abstract class AddressBook<
     this.chainId = _chainId
 
     logDebug(`Loading address book from ${this.file}.`)
-    if (!fs.existsSync(this.file)) throw new Error(`Address book path provided does not exist!`)
+
+    // Create empty address book if file doesn't exist
+    if (!fs.existsSync(this.file)) {
+      const emptyAddressBook = { [this.chainId]: {} }
+      fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2))
+      logDebug(`Created new address book at ${this.file}`)
+    }
 
     // Load address book and validate its shape
-    // If it's empty, initialize it with an empty object
-    const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8') || '{}')
+    const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8'))
     if (!fileContents[this.chainId]) {
       fileContents[this.chainId] = {}
     }
@@ -96,6 +101,13 @@ export abstract class AddressBook<
    */
   listEntries(): ContractName[] {
     return this.validContracts
+  }
+
+  entryExists(name: string): boolean {
+    if (!this.isContractName(name)) {
+      throw new Error(`Contract name ${name} is not a valid contract name`)
+    }
+    return this.addressBook[this.chainId][name] !== undefined
   }
 
   /**
