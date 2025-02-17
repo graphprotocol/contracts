@@ -9,14 +9,13 @@ import { IPaymentsEscrow } from "../../contracts/interfaces/IPaymentsEscrow.sol"
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowPausedTest is GraphEscrowTest {
-
     /*
      * MODIFIERS
      */
 
     modifier usePaused(bool paused) {
         address msgSender;
-        (, msgSender,) = vm.readCallers();
+        (, msgSender, ) = vm.readCallers();
         resetPrank(users.governor);
         controller.setPaused(paused);
         resetPrank(msgSender);
@@ -46,7 +45,7 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
     }
 
     function testPaused_RevertWhen_WithdrawTokens(
-        uint256 tokens, 
+        uint256 tokens,
         uint256 thawAmount
     ) public useGateway depositAndThawTokens(tokens, thawAmount) usePaused(true) {
         // advance time
@@ -61,6 +60,13 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
     function testPaused_RevertWhen_CollectTokens(uint256 tokens, uint256 tokensDataService) public usePaused(true) {
         resetPrank(users.verifier);
         vm.expectRevert(abi.encodeWithSelector(IPaymentsEscrow.PaymentsEscrowIsPaused.selector));
-        escrow.collect(IGraphPayments.PaymentTypes.QueryFee, users.gateway, users.indexer, tokens, subgraphDataServiceAddress, tokensDataService);
+        escrow.collect(
+            IGraphPayments.PaymentTypes.QueryFee,
+            users.gateway,
+            users.indexer,
+            tokens,
+            subgraphDataServiceAddress,
+            tokensDataService
+        );
     }
 }

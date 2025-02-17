@@ -14,7 +14,9 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingTest {
      * TESTS
      */
 
-    function testCollectAllocation_RevertWhen_InvalidAllocationId(uint256 tokens) public useIndexer useAllocation(1 ether) {
+    function testCollectAllocation_RevertWhen_InvalidAllocationId(
+        uint256 tokens
+    ) public useIndexer useAllocation(1 ether) {
         vm.expectRevert("!alloc");
         staking.collect(tokens, address(0));
     }

@@ -146,7 +146,12 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
 
         // it should emit a an event
         vm.expectEmit();
-        emit IDataServiceFees.StakeClaimLocked(serviceProvider, calcValues.predictedClaimId, calcValues.stakeToLock, calcValues.unlockTimestamp);
+        emit IDataServiceFees.StakeClaimLocked(
+            serviceProvider,
+            calcValues.predictedClaimId,
+            calcValues.stakeToLock,
+            calcValues.unlockTimestamp
+        );
         dataService.lockStake(serviceProvider, tokens);
 
         // after state
@@ -195,7 +200,9 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
             tokensReleased: 0,
             head: beforeHead
         });
-        while (calcValues.head != bytes32(0) && (calcValues.claimsCount < numClaimsToRelease || numClaimsToRelease == 0)) {
+        while (
+            calcValues.head != bytes32(0) && (calcValues.claimsCount < numClaimsToRelease || numClaimsToRelease == 0)
+        ) {
             (uint256 claimTokens, , uint256 releasableAt, bytes32 nextClaim) = dataService.claims(calcValues.head);
             if (releasableAt > block.timestamp) {
                 break;

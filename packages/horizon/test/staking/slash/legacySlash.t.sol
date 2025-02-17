@@ -8,7 +8,6 @@ import { IHorizonStakingExtension } from "../../../contracts/interfaces/internal
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingLegacySlashTest is HorizonStakingTest {
-
     /*
      * MODIFIERS
      */
@@ -74,7 +73,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         reward = bound(reward, 0, slashTokens);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
-        
+
         resetPrank(users.legacySlasher);
         _legacySlash(users.indexer, slashTokens, reward, makeAddr("fisherman"));
     }
@@ -120,7 +119,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
     ) public useIndexer {
         vm.assume(tokens > 0);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
-        
+
         vm.expectRevert("!slasher");
         staking.legacySlash(users.indexer, slashTokens, reward, makeAddr("fisherman"));
     }
@@ -135,7 +134,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         vm.assume(reward > slashTokens);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
-        
+
         resetPrank(users.legacySlasher);
         vm.expectRevert("rewards>slash");
         staking.legacySlash(users.indexer, slashTokens, reward, makeAddr("fisherman"));
@@ -159,7 +158,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         vm.assume(tokens > 0);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
-        
+
         resetPrank(users.legacySlasher);
         vm.expectRevert("!tokens");
         staking.legacySlash(users.indexer, 0, 0, makeAddr("fisherman"));
@@ -175,7 +174,7 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         reward = bound(reward, 0, slashTokens);
 
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
-        
+
         resetPrank(users.legacySlasher);
         vm.expectRevert("!beneficiary");
         staking.legacySlash(users.indexer, slashTokens, reward, address(0));
@@ -193,10 +192,10 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         // This means tokensUsed (1100 GRT) > tokensStaked (1000 GRT)
         _setIndexer(
             users.indexer,
-            1000 ether,    // tokensStaked
-            800 ether,     // tokensAllocated
-            300 ether,     // tokensLocked
-            0              // tokensLockedUntil
+            1000 ether, // tokensStaked
+            800 ether, // tokensAllocated
+            300 ether, // tokensLocked
+            0 // tokensLockedUntil
         );
 
         // Send tokens manually to staking

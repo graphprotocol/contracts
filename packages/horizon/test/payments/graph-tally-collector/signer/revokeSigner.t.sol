@@ -8,7 +8,6 @@ import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTal
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
 contract GraphTallyRevokeAuthorizedSignerTest is GraphTallyTest {
-
     /*
      * TESTS
      */
@@ -31,7 +30,7 @@ contract GraphTallyRevokeAuthorizedSignerTest is GraphTallyTest {
         vm.expectRevert(expectedError);
         graphTallyCollector.revokeAuthorizedSigner(signer);
     }
-    
+
     function testGraphTally_RevokeAuthorizedSigner_RevertWhen_NotThawing() public useGateway useSigner {
         bytes memory expectedError = abi.encodeWithSelector(
             IGraphTallyCollector.GraphTallyCollectorSignerNotThawing.selector,

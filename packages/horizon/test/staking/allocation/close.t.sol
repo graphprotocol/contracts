@@ -38,7 +38,7 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         _closeAllocation(_allocationId, _poi);
     }
 
-    function testCloseAllocation_Operator(uint256 tokens) public useLegacyOperator() useAllocation(1 ether) {
+    function testCloseAllocation_Operator(uint256 tokens) public useLegacyOperator useAllocation(1 ether) {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
@@ -72,18 +72,20 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         staking.closeAllocation(_allocationId, _poi);
     }
 
-    function testCloseAllocation_AfterMaxEpochs_AnyoneCanClose(uint256 tokens) public useIndexer useAllocation(1 ether) {
+    function testCloseAllocation_AfterMaxEpochs_AnyoneCanClose(
+        uint256 tokens
+    ) public useIndexer useAllocation(1 ether) {
         tokens = bound(tokens, 1, MAX_STAKING_TOKENS);
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
 
         // Skip to over the max allocation epochs
-        vm.roll((MAX_ALLOCATION_EPOCHS + 1)* EPOCH_LENGTH + 1);
+        vm.roll((MAX_ALLOCATION_EPOCHS + 1) * EPOCH_LENGTH + 1);
 
         resetPrank(users.delegator);
         _closeAllocation(_allocationId, 0x0);
     }
 
-    function testCloseAllocation_RevertWhen_ZeroTokensNotAuthorized() public useIndexer useAllocation(1 ether){
+    function testCloseAllocation_RevertWhen_ZeroTokensNotAuthorized() public useIndexer useAllocation(1 ether) {
         _createProvision(users.indexer, subgraphDataServiceLegacyAddress, 100 ether, 0, 0);
 
         resetPrank(users.delegator);
@@ -91,7 +93,11 @@ contract HorizonStakingCloseAllocationTest is HorizonStakingTest {
         staking.closeAllocation(_allocationId, 0x0);
     }
 
-    function testCloseAllocation_WithDelegation(uint256 tokens, uint256 delegationTokens, uint32 indexingRewardCut) public useIndexer useAllocation(1 ether) {
+    function testCloseAllocation_WithDelegation(
+        uint256 tokens,
+        uint256 delegationTokens,
+        uint32 indexingRewardCut
+    ) public useIndexer useAllocation(1 ether) {
         tokens = bound(tokens, 2, MAX_STAKING_TOKENS);
         delegationTokens = bound(delegationTokens, 0, MAX_STAKING_TOKENS);
         vm.assume(indexingRewardCut <= MAX_PPM);

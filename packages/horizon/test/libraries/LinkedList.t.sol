@@ -2,16 +2,16 @@
 pragma solidity 0.8.27;
 
 import "forge-std/console.sol";
-import {Test} from "forge-std/Test.sol";
-import {LinkedList} from "../../contracts/libraries/LinkedList.sol";
+import { Test } from "forge-std/Test.sol";
+import { LinkedList } from "../../contracts/libraries/LinkedList.sol";
 
-import {ListImplementation} from "./ListImplementation.sol";
+import { ListImplementation } from "./ListImplementation.sol";
 
 contract LinkedListTest is Test, ListImplementation {
     using LinkedList for LinkedList.List;
 
     function setUp() internal {
-        list = LinkedList.List({head: bytes32(0), tail: bytes32(0), nonce: 0, count: 0});
+        list = LinkedList.List({ head: bytes32(0), tail: bytes32(0), nonce: 0, count: 0 });
     }
 
     function test_Add_RevertGiven_TheItemIdIsZero() external {
@@ -161,8 +161,13 @@ contract LinkedListTest is Test, ListImplementation {
             }
         }
 
-        (uint256 processedCount, bytes memory acc) =
-            list.traverse(_getNextItem, _processItem, _deleteItem, _initAcc, _n);
+        (uint256 processedCount, bytes memory acc) = list.traverse(
+            _getNextItem,
+            _processItem,
+            _deleteItem,
+            _initAcc,
+            _n
+        );
         uint256 afterNonce = list.nonce;
         uint256 afterCount = list.count;
         bytes32 afterTail = list.tail;

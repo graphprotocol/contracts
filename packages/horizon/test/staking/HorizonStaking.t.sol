@@ -59,19 +59,19 @@ contract HorizonStakingTest is HorizonStakingSharedTest {
 
     modifier useUndelegate(uint256 shares) {
         resetPrank(users.delegator);
-        
+
         DelegationPoolInternalTest memory pool = _getStorage_DelegationPoolInternal(
             users.indexer,
             subgraphDataServiceAddress,
             false
         );
         DelegationInternal memory delegation = _getStorage_Delegation(
-            users.indexer, 
-            subgraphDataServiceAddress, 
-            users.delegator, 
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator,
             false
         );
-        
+
         shares = bound(shares, 1, delegation.shares);
         uint256 tokens = (shares * (pool.tokens - pool.tokensThawing)) / pool.shares;
         if (shares < delegation.shares) {

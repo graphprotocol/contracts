@@ -9,7 +9,6 @@ import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingServiceProviderTest is HorizonStakingTest {
-
     /*
      * TESTS
      */
@@ -33,10 +32,7 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         assertEq(sp.tokensProvisioned, amount);
     }
 
-    function testServiceProvider_SetDelegationFeeCut(
-        uint256 feeCut,
-        uint8 paymentTypeInput
-    ) public useIndexer {
+    function testServiceProvider_SetDelegationFeeCut(uint256 feeCut, uint8 paymentTypeInput) public useIndexer {
         vm.assume(paymentTypeInput < 3);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes(paymentTypeInput);
         feeCut = bound(feeCut, 0, MAX_PPM);
@@ -85,7 +81,11 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         uint256 delegationAmount,
         uint32 delegationRatio
     ) public useIndexer useProvision(amount, MAX_PPM, MAX_THAWING_PERIOD) useDelegation(delegationAmount) {
-        uint256 tokensAvailable = staking.getTokensAvailable(users.indexer, subgraphDataServiceAddress, delegationRatio);
+        uint256 tokensAvailable = staking.getTokensAvailable(
+            users.indexer,
+            subgraphDataServiceAddress,
+            delegationRatio
+        );
 
         uint256 tokensDelegatedMax = amount * (uint256(delegationRatio));
         uint256 tokensDelegatedCapacity = delegationAmount > tokensDelegatedMax ? tokensDelegatedMax : delegationAmount;
@@ -139,10 +139,9 @@ contract HorizonStakingServiceProviderTest is HorizonStakingTest {
         vm.assume(paymentTypeInput < 3);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes(paymentTypeInput);
         cut = bound(cut, MAX_PPM + 1, MAX_PPM + 100);
-        vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationFeeCut.selector,
-            cut
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingInvalidDelegationFeeCut.selector, cut)
+        );
         staking.setDelegationFeeCut(users.indexer, subgraphDataServiceAddress, paymentType, cut);
     }
 }

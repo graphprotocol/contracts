@@ -201,7 +201,12 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             subgraphDataServiceLegacyAddress
         );
 
-        graphTallyCollector = new GraphTallyCollector("GraphTallyCollector", "1", address(controller), revokeSignerThawingPeriod);
+        graphTallyCollector = new GraphTallyCollector(
+            "GraphTallyCollector",
+            "1",
+            address(controller),
+            revokeSignerThawingPeriod
+        );
 
         resetPrank(users.governor);
         proxyAdmin.upgrade(stakingProxy, address(stakingBase));

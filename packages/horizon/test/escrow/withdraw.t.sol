@@ -7,13 +7,12 @@ import { IGraphPayments } from "../../contracts/interfaces/IGraphPayments.sol";
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 
 contract GraphEscrowWithdrawTest is GraphEscrowTest {
-
     /*
      * TESTS
      */
 
     function testWithdraw_Tokens(
-        uint256 amount, 
+        uint256 amount,
         uint256 thawAmount
     ) public useGateway depositAndThawTokens(amount, thawAmount) {
         // advance time
@@ -33,7 +32,11 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
         uint256 amount,
         uint256 thawAmount
     ) public useGateway depositAndThawTokens(amount, thawAmount) {
-        bytes memory expectedError = abi.encodeWithSignature("PaymentsEscrowStillThawing(uint256,uint256)", block.timestamp, block.timestamp + withdrawEscrowThawingPeriod);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "PaymentsEscrowStillThawing(uint256,uint256)",
+            block.timestamp,
+            block.timestamp + withdrawEscrowThawingPeriod
+        );
         vm.expectRevert(expectedError);
         escrow.withdraw(users.verifier, users.indexer);
     }

@@ -8,7 +8,6 @@ import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTal
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
 contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
-
     uint256 constant SECP256K1_CURVE_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 
     /*
@@ -26,9 +25,11 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
         // Sign proof with payer
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
-        
+
         // Attempt to authorize delegator with payer's proof
-        bytes memory expectedError = abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInvalidSignerProof.selector);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IGraphTallyCollector.GraphTallyCollectorInvalidSignerProof.selector
+        );
         vm.expectRevert(expectedError);
         graphTallyCollector.authorizeSigner(users.delegator, proofDeadline, signerProof);
     }
@@ -74,7 +75,7 @@ contract GraphTallyAuthorizeSignerTest is GraphTallyTest {
         // Sign proof with payer
         uint256 proofDeadline = block.timestamp - 1;
         bytes memory signerProof = _getSignerProof(proofDeadline, signerPrivateKey);
-        
+
         // Attempt to authorize delegator with expired proof
         bytes memory expectedError = abi.encodeWithSelector(
             IGraphTallyCollector.GraphTallyCollectorInvalidSignerProofDeadline.selector,
