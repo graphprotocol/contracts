@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "lint:ts": "eslint '**/*.{js,ts}' --fix",
-    "lint:sol": "prettier --write contracts/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
+    "lint:sol": "prettier --write contracts/**/*.sol test/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint": "yarn lint:ts && yarn lint:sol",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "forge build --skip test && BUILD_RUN=true hardhat compile",
