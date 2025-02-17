@@ -1,10 +1,20 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+// import { deployGraphProxy } from '../../../horizon/ignition/modules/proxy/GraphProxy'
 import { deployTransparentUpgradeableProxy } from '@graphprotocol/horizon/ignition/modules/proxy/TransparentUpgradeableProxy'
+// import { ethers } from 'ethers'
 
+// import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
 import DisputeManagerArtifact from '../../build/contracts/contracts/DisputeManager.sol/DisputeManager.json'
+// import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import SubgraphServiceArtifact from '../../build/contracts/contracts/SubgraphService.sol/SubgraphService.json'
 
 export default buildModule('SubgraphServiceProxies', (m) => {
+  // const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
+  // const controllerAddress = m.getParameter('controllerAddress')
+
+  // const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, graphProxyAdminAddress)
+  // const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
+
   // Deploy proxies contracts using OZ TransparentUpgradeableProxy
   const {
     Proxy: DisputeManagerProxy,
@@ -21,10 +31,15 @@ export default buildModule('SubgraphServiceProxies', (m) => {
     artifact: SubgraphServiceArtifact,
   })
 
+  // // Deploy Curation proxy with no implementation
+  // const L2CurationProxy = deployGraphProxy(m, GraphProxyAdmin)
+  // m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Curation')), L2CurationProxy], { id: 'setContractProxy_L2Curation' })
+
   return {
-    Transparent_Proxy_SubgraphService: SubgraphServiceProxy,
-    Transparent_ProxyAdmin_SubgraphService: SubgraphServiceProxyAdmin,
-    Transparent_Proxy_DisputeManager: DisputeManagerProxy,
-    Transparent_ProxyAdmin_DisputeManager: DisputeManagerProxyAdmin,
+    SubgraphServiceProxy,
+    SubgraphServiceProxyAdmin,
+    DisputeManagerProxy,
+    DisputeManagerProxyAdmin,
+    // L2CurationProxy,
   }
 })

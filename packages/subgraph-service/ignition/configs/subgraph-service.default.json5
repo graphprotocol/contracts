@@ -2,10 +2,20 @@
   "$global": {
     "governor": "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
     "arbitrator": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
+  
+    // Must be set for step 1 of the deployment
+    "controllerAddress": "",
+    "graphProxyAdminAddress": "",
 
     // Must be set for step 2 of the deployment
-    "controllerAddress": "",
-    "disputeManagerProxyAddress": ""
+    "subgraphServiceAddress": "",
+  },
+  "L2Curation": {
+    "curationTaxPercentage": 10000,
+    "minimumCurationDeposit": 1,
+
+    // Must be set for step 2 of the deployment
+    "l2CurationAddress": "",
   },
   "DisputeManager": {
     "disputePeriod": 2419200,
@@ -14,6 +24,7 @@
     "maxSlashingCut": 1000000,
 
     // Must be set for step 2 of the deployment
+    "disputeManagerAddress": "",
     "disputeManagerProxyAdminAddress": "",
   },
   "SubgraphService": {
@@ -22,9 +33,7 @@
     "stakeToFeesRatio": 2,
 
    // Must be set for step 2 of the deployment
-    "subgraphServiceProxyAddress": "",
     "subgraphServiceProxyAdminAddress": "",
-    "curationAddress": "",
     "graphTallyCollectorAddress": ""
   }
 }

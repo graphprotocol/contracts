@@ -5,8 +5,6 @@ import { MigratePeripheryModule } from '../periphery/periphery'
 
 export default buildModule('GraphHorizon_Migrate_3', (m) => {
   const {
-    L2Curation,
-    L2CurationImplementation,
     RewardsManager,
     RewardsManagerImplementation,
     Controller,
@@ -27,8 +25,6 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
   } = m.useModule(MigrateHorizonCoreModule)
 
   return {
-    Graph_Proxy_L2Curation: L2Curation,
-    Implementation_L2Curation: L2CurationImplementation,
     Graph_Proxy_RewardsManager: RewardsManager,
     Implementation_RewardsManager: RewardsManagerImplementation,
     Graph_Proxy_HorizonStaking: HorizonStaking,

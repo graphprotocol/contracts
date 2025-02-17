@@ -3,7 +3,6 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
 import ControllerModule, { MigrateControllerDeployerModule } from './Controller'
-import CurationModule, { MigrateCurationDeployerModule } from './Curation'
 import EpochManagerModule, { MigrateEpochManagerModule } from './EpochManager'
 import GraphProxyAdminModule, { MigrateGraphProxyAdminModule } from './GraphProxyAdmin'
 import GraphTokenGatewayModule, { MigrateGraphTokenGatewayModule } from './GraphTokenGateway'
@@ -15,7 +14,6 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)
 
   const { EpochManager, EpochManagerImplementation } = m.useModule(EpochManagerModule)
-  const { L2Curation, L2CurationImplementation } = m.useModule(CurationModule)
   const { RewardsManager, RewardsManagerImplementation } = m.useModule(RewardsManagerModule)
   const { L2GraphTokenGateway, L2GraphTokenGatewayImplementation } = m.useModule(GraphTokenGatewayModule)
   const { L2GraphToken, L2GraphTokenImplementation } = m.useModule(GraphTokenModule)
@@ -25,14 +23,11 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphToken')), L2GraphToken], { id: 'setContractProxy_GraphToken' })
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphTokenGateway')), L2GraphTokenGateway], { id: 'setContractProxy_GraphTokenGateway' })
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GraphProxyAdmin')), GraphProxyAdmin], { id: 'setContractProxy_GraphProxyAdmin' })
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('Curation')), L2Curation], { id: 'setContractProxy_L2Curation' })
 
   return {
     Controller,
     EpochManager,
     EpochManagerImplementation,
-    L2Curation,
-    L2CurationImplementation,
     GraphProxyAdmin,
     L2GraphToken,
     L2GraphTokenImplementation,
@@ -44,7 +39,6 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
 })
 
 export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) => {
-  const { L2CurationProxy: L2Curation, L2CurationImplementation } = m.useModule(MigrateCurationDeployerModule)
   const { RewardsManagerProxy: RewardsManager, RewardsManagerImplementation } = m.useModule(MigrateRewardsManagerDeployerModule)
   const { Controller } = m.useModule(MigrateControllerDeployerModule)
   const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
@@ -57,8 +51,6 @@ export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) 
   return {
     Controller,
     EpochManager,
-    L2Curation,
-    L2CurationImplementation,
     GraphProxyAdmin,
     L2GraphToken,
     L2GraphTokenGateway,
