@@ -48,4 +48,4 @@ cd subgraph-service && npx hardhat deploy:migrate --network hardhat --step 2 && 
 cd horizon && npx hardhat deploy:migrate --network hardhat --step 4 && cd .. # Run with governor. Optionally add --patch-config
 ```
 
-Horizon Steps 2 and 4, and Subgraph Service Step 2 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
+Horizon Steps 2, 3 and 4, and Subgraph Service Step 2 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
