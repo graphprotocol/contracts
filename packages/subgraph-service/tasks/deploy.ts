@@ -5,10 +5,9 @@ import { IgnitionHelper } from 'hardhat-graph-protocol/sdk'
 import type { AddressBook } from '../../hardhat-graph-protocol/src/sdk/address-book'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-import DisputeManagerModule from '../ignition/modules/DisputeManager'
+import Deploy1Module from '../ignition/modules/deploy/deploy-1'
+import Deploy2Module from '../ignition/modules/deploy/deploy-2'
 import HorizonModule from '@graphprotocol/horizon/ignition/modules/deploy'
-import ProxiesModule from '../ignition/modules/Proxies'
-import SubgraphServiceModule from '../ignition/modules/SubgraphService'
 
 // Horizon needs the SubgraphService proxy address before it can be deployed
 // But SubgraphService and DisputeManager implementations need Horizon...
@@ -41,7 +40,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // 1. Deploy SubgraphService and DisputeManager proxies
     console.log(`\n========== 🚧 SubgraphService and DisputeManager proxies ==========`)
-    const proxiesDeployment = await hre.ignition.deploy(ProxiesModule, {
+    const proxiesDeployment = await hre.ignition.deploy(Deploy1Module, {
       displayUi: true,
       parameters: SubgraphServiceConfig,
     })
@@ -58,33 +57,23 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     })
 
     // 3. Deploy SubgraphService and DisputeManager implementations
-    console.log(`\n========== 🚧 Deploy DisputeManager implementation and upgrade ==========`)
-    const disputeManagerDeployment = await hre.ignition.deploy(DisputeManagerModule, {
+    console.log(`\n========== 🚧 Deploy SubgraphService implementations and upgrade them ==========`)
+    const subgraphServiceDeployment = await hre.ignition.deploy(Deploy2Module, {
       displayUi: true,
       parameters: IgnitionHelper.patchConfig(SubgraphServiceConfig, {
         $global: {
           controllerAddress: horizonDeployment.Controller.target as string,
           disputeManagerProxyAddress: proxiesDeployment.Transparent_Proxy_DisputeManager.target as string,
+          curationAddress: horizonDeployment.Graph_Proxy_L2Curation.target as string,
+          curationImplementationAddress: horizonDeployment.Implementation_L2Curation.target as string,
         },
         DisputeManager: {
           disputeManagerProxyAdminAddress: proxiesDeployment.Transparent_ProxyAdmin_DisputeManager.target as string,
-        },
-      }),
-    })
-
-    console.log(`\n========== 🚧 Deploy SubgraphService implementation and upgrade ==========`)
-    const subgraphServiceDeployment = await hre.ignition.deploy(SubgraphServiceModule, {
-      displayUi: true,
-      parameters: IgnitionHelper.patchConfig(SubgraphServiceConfig, {
-        $global: {
-          controllerAddress: horizonDeployment.Controller.target as string,
-          disputeManagerProxyAddress: disputeManagerDeployment.Transparent_Proxy_DisputeManager.target as string,
         },
         SubgraphService: {
           subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
           subgraphServiceProxyAdminAddress: proxiesDeployment.Transparent_ProxyAdmin_SubgraphService.target as string,
           graphTallyCollectorAddress: horizonDeployment.GraphTallyCollector.target as string,
-          curationAddress: horizonDeployment.Graph_Proxy_L2Curation.target as string,
         },
       }),
     })
@@ -93,7 +82,6 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     console.log('\n========== 📖 Updating address book ==========')
     IgnitionHelper.saveToAddressBook(horizonDeployment, hre.network.config.chainId, graph.horizon!.addressBook)
     IgnitionHelper.saveToAddressBook(proxiesDeployment, hre.network.config.chainId, graph.subgraphService!.addressBook)
-    IgnitionHelper.saveToAddressBook(disputeManagerDeployment, hre.network.config.chainId, graph.subgraphService!.addressBook)
     IgnitionHelper.saveToAddressBook(subgraphServiceDeployment, hre.network.config.chainId, graph.subgraphService!.addressBook)
     console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
     console.log(`Address book at ${graph.subgraphService!.addressBook.file} updated!`)

@@ -5,7 +5,9 @@
 
     // Must be set for step 2 of the deployment
     "controllerAddress": "",
-    "disputeManagerProxyAddress": ""
+    "disputeManagerProxyAddress": "",
+    "curationAddress": "",
+    "curationImplementationAddress": ""
   },
   "DisputeManager": {
     "disputePeriod": 2419200,
@@ -24,7 +26,6 @@
    // Must be set for step 2 of the deployment
     "subgraphServiceProxyAddress": "",
     "subgraphServiceProxyAdminAddress": "",
-    "curationAddress": "",
     "graphTallyCollectorAddress": ""
   }
 }

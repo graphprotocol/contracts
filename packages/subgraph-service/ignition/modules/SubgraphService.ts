@@ -44,7 +44,7 @@ export default buildModule('SubgraphService', (m) => {
   m.call(SubgraphServiceProxyAdmin, 'transferOwnership', [governor], { after: [SubgraphService] })
 
   return {
-    Transparent_Proxy_SubgraphService: SubgraphService,
-    Implementation_SubgraphService: SubgraphServiceImplementation,
+    SubgraphService,
+    SubgraphServiceImplementation,
   }
 })

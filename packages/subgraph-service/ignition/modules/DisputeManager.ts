@@ -45,7 +45,7 @@ export default buildModule('DisputeManager', (m) => {
   m.call(DisputeManagerProxyAdmin, 'transferOwnership', [governor], { after: [DisputeManager] })
 
   return {
-    Transparent_Proxy_DisputeManager: DisputeManager,
-    Implementation_DisputeManager: DisputeManagerImplementation,
+    DisputeManager,
+    DisputeManagerImplementation,
   }
 })

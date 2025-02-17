@@ -13,7 +13,7 @@
     "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
     "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
 
-    // Must be set for step 4 of the migration
+    // Must be set for step 3 and 4 of the migration
     "subgraphServiceAddress": "",
 
     // Parameters

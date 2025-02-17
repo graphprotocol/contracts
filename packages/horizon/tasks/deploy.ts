@@ -88,7 +88,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
       MigrationModule,
       {
         displayUi: true,
-        parameters: patchConfig ? _patchStepConfig(step, HorizonMigrateConfig, graph.horizon!.addressBook) : HorizonMigrateConfig,
+        parameters: patchConfig ? _patchStepConfig(step, HorizonMigrateConfig, graph.horizon!.addressBook, graph.subgraphService!.addressBook) : HorizonMigrateConfig,
         deploymentId: `horizon-${hre.network.name}`,
       })
 
@@ -103,13 +103,20 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 // This function patches the Ignition configuration object using an address book to fill in the gaps
 // The resulting configuration is not saved back to the configuration file
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _patchStepConfig<ChainId extends number, ContractName extends string>(step: number, config: any, addressBook: AddressBook<ChainId, ContractName>): any {
+function _patchStepConfig<ChainId extends number, ContractName extends string, HorizonContractName extends string>(
+  step: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: any,
+  horizonAddressBook: AddressBook<ChainId, ContractName>,
+  subgraphServiceAddressBook: AddressBook<ChainId, HorizonContractName>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any {
   let patchedConfig = config
 
   switch (step) {
     case 2:
-      const GraphPayments = addressBook.getEntry('GraphPayments')
-      const PaymentsEscrow = addressBook.getEntry('PaymentsEscrow')
+      const GraphPayments = horizonAddressBook.getEntry('GraphPayments')
+      const PaymentsEscrow = horizonAddressBook.getEntry('PaymentsEscrow')
       patchedConfig = IgnitionHelper.patchConfig(config, {
         HorizonProxiesGovernor: {
           graphPaymentsAddress: GraphPayments.address,
@@ -117,11 +124,24 @@ function _patchStepConfig<ChainId extends number, ContractName extends string>(s
         },
       })
       break
-    case 4:
-      const HorizonStaking = addressBook.getEntry('HorizonStaking')
-      const L2Curation = addressBook.getEntry('L2Curation')
-      const RewardsManager = addressBook.getEntry('RewardsManager')
+    case 3:
+      const SubgraphService3 = subgraphServiceAddressBook.getEntry('SubgraphService')
       patchedConfig = IgnitionHelper.patchConfig(patchedConfig, {
+        $global: {
+          subgraphServiceAddress: SubgraphService3.address,
+        },
+      })
+      console.log(patchedConfig)
+      break
+    case 4:
+      const HorizonStaking = horizonAddressBook.getEntry('HorizonStaking')
+      const L2Curation = horizonAddressBook.getEntry('L2Curation')
+      const RewardsManager = horizonAddressBook.getEntry('RewardsManager')
+      const SubgraphService4 = subgraphServiceAddressBook.getEntry('SubgraphService')
+      patchedConfig = IgnitionHelper.patchConfig(patchedConfig, {
+        $global: {
+          subgraphServiceAddress: SubgraphService4.address,
+        },
         HorizonStakingGovernor: {
           horizonStakingImplementationAddress: HorizonStaking.implementation,
         },

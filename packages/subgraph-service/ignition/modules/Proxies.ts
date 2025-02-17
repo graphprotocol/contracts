@@ -22,9 +22,9 @@ export default buildModule('SubgraphServiceProxies', (m) => {
   })
 
   return {
-    Transparent_Proxy_SubgraphService: SubgraphServiceProxy,
-    Transparent_ProxyAdmin_SubgraphService: SubgraphServiceProxyAdmin,
-    Transparent_Proxy_DisputeManager: DisputeManagerProxy,
-    Transparent_ProxyAdmin_DisputeManager: DisputeManagerProxyAdmin,
+    SubgraphServiceProxy,
+    SubgraphServiceProxyAdmin,
+    DisputeManagerProxy,
+    DisputeManagerProxyAdmin,
   }
 })

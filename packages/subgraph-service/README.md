@@ -43,7 +43,7 @@ cd ../
 cd horizon && npx hardhat deploy:migrate --network hardhat --step 1 && cd ..
 cd subgraph-service && npx hardhat deploy:migrate --network hardhat --step 1 && cd ..
 cd horizon && npx hardhat deploy:migrate --network hardhat --step 2 && cd .. # Run with governor. Optionally add --patch-config
-cd horizon && npx hardhat deploy:migrate --network hardhat --step 3 && cd ..
+cd horizon && npx hardhat deploy:migrate --network hardhat --step 3 && cd .. # Optionally add --patch-config
 cd subgraph-service && npx hardhat deploy:migrate --network hardhat --step 2 && cd .. # Optionally add --patch-config
 cd horizon && npx hardhat deploy:migrate --network hardhat --step 4 && cd .. # Run with governor. Optionally add --patch-config
 ```
