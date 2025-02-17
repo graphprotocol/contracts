@@ -19,10 +19,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Query_Accept_Dispute(
-        uint256 tokens,
-        uint256 tokensSlash
-    ) public useIndexer useAllocation(tokens) {
+    function test_Query_Accept_Dispute(uint256 tokens, uint256 tokensSlash) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
@@ -98,7 +95,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         resetPrank(users.arbitrator);
         uint256 maxTokensToSlash = uint256(maxSlashingPercentage).mulPPM(tokens);
         bytes memory expectedError = abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerInvalidTokensSlash.selector, 
+            IDisputeManager.DisputeManagerInvalidTokensSlash.selector,
             tokensSlash,
             maxTokensToSlash
         );
@@ -118,10 +115,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         bytes32 disputeID = _createQueryDispute(attestationData);
 
         resetPrank(users.arbitrator);
-        vm.expectRevert(abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerDisputeNotInConflict.selector,
-            disputeID
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerDisputeNotInConflict.selector, disputeID));
         disputeManager.acceptDisputeConflict(disputeID, tokensSlash, true, 0);
     }
 }

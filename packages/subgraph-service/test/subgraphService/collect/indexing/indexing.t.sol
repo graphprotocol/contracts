@@ -9,14 +9,11 @@ import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphServ
 import { SubgraphServiceTest } from "../../SubgraphService.t.sol";
 
 contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */
 
-    function test_SubgraphService_Collect_Indexing(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Collect_Indexing(uint256 tokens) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
         bytes memory data = abi.encode(allocationID, bytes32("POI"));
 
@@ -38,7 +35,6 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
             IGraphPayments.PaymentTypes.IndexingRewards,
             delegationFeeCut
         );
-
 
         // skip time to ensure allocation gets rewards
         vm.roll(block.number + EPOCH_LENGTH);
@@ -84,14 +80,16 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         _collect(users.indexer, paymentType, data);
     }
 
-    function test_subgraphService_Collect_Indexing_MultipleOverTime(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_subgraphService_Collect_Indexing_MultipleOverTime(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
         uint8 numberOfPOIs = 20;
         uint256 timeBetweenPOIs = 5 days;
 
         for (uint8 i = 0; i < numberOfPOIs; i++) {
             // Skip forward
             skip(timeBetweenPOIs);
-            
+
             resetPrank(users.indexer);
 
             bytes memory data = abi.encode(allocationID, bytes32("POI"));
@@ -111,13 +109,13 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
             IGraphPayments.PaymentTypes.IndexingRewards,
             delegationFeeCut
         );
-        
+
         uint8 numberOfPOIs = 20;
         uint256 timeBetweenPOIs = 5 days;
         for (uint8 i = 0; i < numberOfPOIs; i++) {
             // Skip forward
             skip(timeBetweenPOIs);
-            
+
             resetPrank(users.indexer);
 
             bytes memory data = abi.encode(allocationID, bytes32("POI"));
@@ -127,11 +125,16 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
     function test_SubgraphService_Collect_Indexing_OverAllocated(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens * 2, 10_000_000_000 ether);
-        
+
         // setup allocation
         _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
-        bytes memory data = _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIDPrivateKey, tokens);
+        bytes memory data = _createSubgraphAllocationData(
+            users.indexer,
+            subgraphDeployment,
+            allocationIDPrivateKey,
+            tokens
+        );
         _startService(users.indexer, data);
 
         // thaw some tokens to become over allocated
@@ -160,7 +163,11 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
         // Attempt to collect from other indexer's allocation
         vm.expectRevert(
-            abi.encodeWithSelector(ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector, newIndexer, allocationID)
+            abi.encodeWithSelector(
+                ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
+                newIndexer,
+                allocationID
+            )
         );
         subgraphService.collect(newIndexer, paymentType, data);
     }

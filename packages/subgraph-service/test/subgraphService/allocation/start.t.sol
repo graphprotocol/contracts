@@ -14,7 +14,6 @@ import { LegacyAllocation } from "../../../contracts/libraries/LegacyAllocation.
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */
@@ -29,7 +28,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _startService(users.indexer, data);
     }
 
-    function test_SubgraphService_Allocation_Start_AllowsZeroTokens(uint256 tokens) public  useIndexer {
+    function test_SubgraphService_Allocation_Start_AllowsZeroTokens(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
@@ -57,22 +56,23 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
 
         resetPrank(users.operator);
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProvisionManager.ProvisionManagerNotAuthorized.selector,
-            users.indexer,
-            users.operator
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProvisionManager.ProvisionManagerNotAuthorized.selector,
+                users.indexer,
+                users.operator
+            )
+        );
         subgraphService.startService(users.indexer, data);
     }
 
     function test_SubgraphService_Allocation_Start_RevertWhen_NoValidProvision(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        
+
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProvisionManager.ProvisionManagerProvisionNotFound.selector,
-            users.indexer
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(ProvisionManager.ProvisionManagerProvisionNotFound.selector, users.indexer)
+        );
         subgraphService.startService(users.indexer, data);
     }
 
@@ -82,10 +82,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
 
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
-            users.indexer
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerNotRegistered.selector, users.indexer)
+        );
         subgraphService.startService(users.indexer, data);
     }
 
@@ -98,9 +97,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, address(0));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
         bytes memory data = abi.encode(subgraphDeployment, tokens, address(0), abi.encodePacked(r, s, v));
-        vm.expectRevert(abi.encodeWithSelector(
-            AllocationManager.AllocationManagerInvalidZeroAllocationId.selector
-        ));
+        vm.expectRevert(abi.encodeWithSelector(AllocationManager.AllocationManagerInvalidZeroAllocationId.selector));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -114,11 +111,13 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, allocationID);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
         bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, abi.encodePacked(r, s, v));
-        vm.expectRevert(abi.encodeWithSelector(
-            AllocationManager.AllocationManagerInvalidAllocationProof.selector,
-            signer,
-            allocationID
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AllocationManager.AllocationManagerInvalidAllocationProof.selector,
+                signer,
+                allocationID
+            )
+        );
         subgraphService.startService(users.indexer, data);
     }
 
@@ -129,14 +128,13 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, _generateRandomHexBytes(32));
-        vm.expectRevert(abi.encodeWithSelector(
-            ECDSA.ECDSAInvalidSignatureLength.selector,
-            32
-        ));
+        vm.expectRevert(abi.encodeWithSelector(ECDSA.ECDSAInvalidSignatureLength.selector, 32));
         subgraphService.startService(users.indexer, data);
     }
 
-    function test_SubgraphService_Allocation_Start_RevertWhen_AlreadyExists_SubgraphService(uint256 tokens) public useIndexer {
+    function test_SubgraphService_Allocation_Start_RevertWhen_AlreadyExists_SubgraphService(
+        uint256 tokens
+    ) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
         _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
@@ -145,10 +143,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes memory data = _generateData(tokens);
         _startService(users.indexer, data);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            Allocation.AllocationAlreadyExists.selector,
-            allocationID
-        ));
+        vm.expectRevert(abi.encodeWithSelector(Allocation.AllocationAlreadyExists.selector, allocationID));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -163,10 +158,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
 
         resetPrank(users.indexer);
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(
-            LegacyAllocation.LegacyAllocationAlreadyExists.selector,
-            allocationID
-        ));
+        vm.expectRevert(abi.encodeWithSelector(LegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -180,10 +172,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _setStorage_allocation_hardcoded(users.indexer, allocationID, tokens);
 
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(
-            LegacyAllocation.LegacyAllocationAlreadyExists.selector,
-            allocationID
-        ));
+        vm.expectRevert(abi.encodeWithSelector(LegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -198,11 +187,9 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = _generateData(lockTokens);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProvisionTracker.ProvisionTrackerInsufficientTokens.selector,
-            tokens,
-            lockTokens
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(ProvisionTracker.ProvisionTrackerInsufficientTokens.selector, tokens, lockTokens)
+        );
         subgraphService.startService(users.indexer, data);
     }
 
@@ -210,14 +197,16 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
      * PRIVATE FUNCTIONS
      */
 
-    function _generateData(uint256 tokens) private view returns(bytes memory) {
+    function _generateData(uint256 tokens) private view returns (bytes memory) {
         return _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIDPrivateKey, tokens);
     }
 
     function _generateRandomHexBytes(uint256 length) private view returns (bytes memory) {
         bytes memory randomBytes = new bytes(length);
         for (uint256 i = 0; i < length; i++) {
-            randomBytes[i] = bytes1(uint8(uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, i))) % 256));
+            randomBytes[i] = bytes1(
+                uint8(uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, i))) % 256)
+            );
         }
         return randomBytes;
     }

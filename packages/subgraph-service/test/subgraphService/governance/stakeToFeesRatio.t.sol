@@ -8,7 +8,6 @@ import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract DisputeManagerGovernanceArbitratorTest is SubgraphServiceTest {
-
     /**
      * ACTIONS
      */

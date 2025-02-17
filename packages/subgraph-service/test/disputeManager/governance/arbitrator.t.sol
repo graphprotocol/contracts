@@ -8,7 +8,6 @@ import { DisputeManagerTest } from "../DisputeManager.t.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract DisputeManagerGovernanceArbitratorTest is DisputeManagerTest {
-
     /*
      * TESTS
      */
@@ -26,7 +25,9 @@ contract DisputeManagerGovernanceArbitratorTest is DisputeManagerTest {
 
     function test_Governance_RevertWhen_NotGovernor() public useFisherman {
         address arbitrator = makeAddr("newArbitrator");
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.fisherman));
+        vm.expectRevert(
+            abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.fisherman)
+        );
         disputeManager.setArbitrator(arbitrator);
     }
 }

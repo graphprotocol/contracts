@@ -10,12 +10,14 @@ import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 
 contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */
 
-    function test_SubgraphService_Allocation_Resize(uint256 tokens, uint256 resizeTokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Resize(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
         resizeTokens = bound(resizeTokens, 1, MAX_TOKENS);
         vm.assume(resizeTokens != tokens);
 
@@ -24,7 +26,10 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         _resizeAllocation(users.indexer, allocationID, resizeTokens);
     }
 
-    function test_SubgraphService_Allocation_Resize_AfterCollectingIndexingRewards(uint256 tokens, uint256 resizeTokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Resize_AfterCollectingIndexingRewards(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
         resizeTokens = bound(resizeTokens, 1, MAX_TOKENS);
         vm.assume(resizeTokens != tokens);
 
@@ -40,7 +45,11 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         _resizeAllocation(users.indexer, allocationID, resizeTokens);
     }
 
-    function test_SubgraphService_Allocation_Resize_SecondTime(uint256 tokens, uint256 firstResizeTokens, uint256 secondResizeTokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Resize_SecondTime(
+        uint256 tokens,
+        uint256 firstResizeTokens,
+        uint256 secondResizeTokens
+    ) public useIndexer useAllocation(tokens) {
         firstResizeTokens = bound(firstResizeTokens, 1, MAX_TOKENS);
         secondResizeTokens = bound(secondResizeTokens, 1, MAX_TOKENS);
         vm.assume(firstResizeTokens != tokens);
@@ -55,36 +64,43 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         _resizeAllocation(users.indexer, allocationID, secondResizeTokens);
     }
 
-    function test_SubgraphService_Allocation_Resize_RevertWhen_NotAuthorized(uint256 tokens, uint256 resizeTokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Resize_RevertWhen_NotAuthorized(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
         resizeTokens = bound(resizeTokens, tokens + 1, MAX_TOKENS);
 
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
-        vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
-            newIndexer,
-            allocationID
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
+                newIndexer,
+                allocationID
+            )
+        );
         subgraphService.resizeAllocation(newIndexer, allocationID, resizeTokens);
     }
 
-    function test_SubgraphService_Allocation_Resize_RevertWhen_SameSize(uint256 tokens) public useIndexer useAllocation(tokens) {
-        vm.expectRevert(abi.encodeWithSelector(
-            AllocationManager.AllocationManagerAllocationSameSize.selector,
-            allocationID,
-            tokens
-        ));
+    function test_SubgraphService_Allocation_Resize_RevertWhen_SameSize(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        vm.expectRevert(
+            abi.encodeWithSelector(AllocationManager.AllocationManagerAllocationSameSize.selector, allocationID, tokens)
+        );
         subgraphService.resizeAllocation(users.indexer, allocationID, tokens);
     }
 
-    function test_SubgraphService_Allocation_Resize_RevertIf_AllocationIsClosed(uint256 tokens, uint256 resizeTokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Resize_RevertIf_AllocationIsClosed(
+        uint256 tokens,
+        uint256 resizeTokens
+    ) public useIndexer useAllocation(tokens) {
         resizeTokens = bound(resizeTokens, tokens + 1, MAX_TOKENS);
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);
-        vm.expectRevert(abi.encodeWithSelector(
-            AllocationManager.AllocationManagerAllocationClosed.selector,
-            allocationID
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(AllocationManager.AllocationManagerAllocationClosed.selector, allocationID)
+        );
         subgraphService.resizeAllocation(users.indexer, allocationID, resizeTokens);
     }
 }

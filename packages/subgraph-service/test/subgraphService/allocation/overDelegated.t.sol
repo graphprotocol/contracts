@@ -11,7 +11,6 @@ import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationOverDelegatedTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */

@@ -9,12 +9,13 @@ import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceCollectTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */
 
-    function test_SubgraphService_Collect_RevertWhen_InvalidPayment(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Collect_RevertWhen_InvalidPayment(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes invalidPaymentType = IGraphPayments.PaymentTypes.IndexingFee;
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidPaymentType.selector, invalidPaymentType)

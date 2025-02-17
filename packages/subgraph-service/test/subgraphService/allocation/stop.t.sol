@@ -14,7 +14,6 @@ import { LegacyAllocation } from "../../../contracts/libraries/LegacyAllocation.
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */
@@ -43,7 +42,9 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
         subgraphService.stopService(newIndexer, data);
     }
 
-    function test_SubgraphService_Allocation_Stop_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Stop_RevertWhen_NotAuthorized(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
         resetPrank(users.operator);
         bytes memory data = abi.encode(allocationID);
         vm.expectRevert(
@@ -64,7 +65,9 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
         subgraphService.stopService(users.indexer, data);
     }
 
-    function test_SubgraphService_Allocation_Stop_RevertWhen_NotOpen(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_SubgraphService_Allocation_Stop_RevertWhen_NotOpen(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);
         vm.expectRevert(abi.encodeWithSelector(Allocation.AllocationClosed.selector, allocationID, block.timestamp));

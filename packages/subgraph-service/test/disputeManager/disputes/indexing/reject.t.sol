@@ -7,7 +7,6 @@ import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManage
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerIndexingRejectDisputeTest is DisputeManagerTest {
-
     /*
      * TESTS
      */
@@ -24,7 +23,7 @@ contract DisputeManagerIndexingRejectDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
 
         // attempt to accept dispute as fisherman
         resetPrank(users.fisherman);

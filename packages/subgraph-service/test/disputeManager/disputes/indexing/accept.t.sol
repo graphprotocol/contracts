@@ -14,15 +14,12 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Indexing_Accept_Dispute(
-        uint256 tokens,
-        uint256 tokensSlash
-    ) public useIndexer useAllocation(tokens) {
+    function test_Indexing_Accept_Dispute(uint256 tokens, uint256 tokensSlash) public useIndexer useAllocation(tokens) {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
-        
+
         resetPrank(users.arbitrator);
         _acceptDispute(disputeID, tokensSlash);
     }
@@ -35,7 +32,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
 
         resetPrank(users.fisherman);
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
-        
+
         resetPrank(users.arbitrator);
         // clear subgraph service address from storage
         _setStorage_SubgraphService(address(0));
@@ -52,7 +49,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
 
         resetPrank(users.fisherman);
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
-        
+
         resetPrank(users.arbitrator);
         _acceptDispute(disputeID, tokensSlash);
     }
@@ -84,7 +81,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         resetPrank(users.arbitrator);
         uint256 maxTokensToSlash = uint256(maxSlashingPercentage).mulPPM(tokens);
         bytes memory expectedError = abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerInvalidTokensSlash.selector, 
+            IDisputeManager.DisputeManagerInvalidTokensSlash.selector,
             tokensSlash,
             maxTokensToSlash
         );

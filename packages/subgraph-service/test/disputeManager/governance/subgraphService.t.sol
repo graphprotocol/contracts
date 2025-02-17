@@ -7,7 +7,6 @@ import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.s
 import { DisputeManagerTest } from "../DisputeManager.t.sol";
 
 contract DisputeManagerGovernanceSubgraphService is DisputeManagerTest {
-
     /*
      * TESTS
      */

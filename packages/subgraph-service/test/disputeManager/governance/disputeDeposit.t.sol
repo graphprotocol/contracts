@@ -8,7 +8,6 @@ import { DisputeManagerTest } from "../DisputeManager.t.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract DisputeManagerGovernanceDisputeDepositTest is DisputeManagerTest {
-
     /*
      * TESTS
      */
@@ -20,13 +19,17 @@ contract DisputeManagerGovernanceDisputeDepositTest is DisputeManagerTest {
 
     function test_Governance_RevertWhen_DepositTooLow(uint256 disputeDeposit) public useGovernor {
         vm.assume(disputeDeposit < MIN_DISPUTE_DEPOSIT);
-        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidDisputeDeposit.selector, disputeDeposit));
+        vm.expectRevert(
+            abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidDisputeDeposit.selector, disputeDeposit)
+        );
         disputeManager.setDisputeDeposit(disputeDeposit);
     }
 
     function test_Governance_RevertWhen_NotGovernor() public useFisherman {
         uint256 disputeDeposit = 100 ether;
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.fisherman));
+        vm.expectRevert(
+            abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.fisherman)
+        );
         disputeManager.setDisputeDeposit(disputeDeposit);
     }
 }

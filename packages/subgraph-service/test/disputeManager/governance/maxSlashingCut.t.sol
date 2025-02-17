@@ -8,7 +8,6 @@ import { DisputeManagerTest } from "../DisputeManager.t.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract DisputeManagerGovernanceMaxSlashingCutTest is DisputeManagerTest {
-
     /*
      * TESTS
      */
@@ -20,13 +19,17 @@ contract DisputeManagerGovernanceMaxSlashingCutTest is DisputeManagerTest {
 
     function test_Governance_RevertWhen_NotPPM(uint32 maxSlashingCut) public useGovernor {
         vm.assume(maxSlashingCut > MAX_PPM);
-        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidMaxSlashingCut.selector, maxSlashingCut));
+        vm.expectRevert(
+            abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidMaxSlashingCut.selector, maxSlashingCut)
+        );
         disputeManager.setMaxSlashingCut(maxSlashingCut);
     }
 
     function test_Governance_RevertWhen_NotGovernor() public useFisherman {
         uint32 maxSlashingCut = 1000;
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.fisherman));
+        vm.expectRevert(
+            abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, users.fisherman)
+        );
         disputeManager.setMaxSlashingCut(maxSlashingCut);
     }
 }

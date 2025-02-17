@@ -8,7 +8,6 @@ import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManage
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryRejectDisputeTest is DisputeManagerTest {
-
     bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
     bytes32 private responseCID = keccak256(abi.encodePacked("Response CID"));
     bytes32 private subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
@@ -17,9 +16,7 @@ contract DisputeManagerQueryRejectDisputeTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Query_Reject_Dispute(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Query_Reject_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
@@ -29,9 +26,7 @@ contract DisputeManagerQueryRejectDisputeTest is DisputeManagerTest {
         _rejectDispute(disputeID);
     }
 
-    function test_Query_Reject_RevertIf_CallerIsNotArbitrator(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Query_Reject_RevertIf_CallerIsNotArbitrator(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
