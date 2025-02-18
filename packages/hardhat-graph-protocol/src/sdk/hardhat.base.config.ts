@@ -12,6 +12,7 @@ interface SecureAccountsOptions {
 // RPCs
 const ARBITRUM_ONE_RPC = vars.get('ARBITRUM_ONE_RPC', 'https://arb1.arbitrum.io/rpc')
 const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-rollup.arbitrum.io/rpc')
+const LOCALHOST_RPC = vars.get('LOCALHOST_RPC', 'http://localhost:8545')
 
 export const solidityUserConfig: SolidityUserConfig = {
   version: '0.8.27',
@@ -54,7 +55,7 @@ export const networksUserConfig: BaseNetworksUserConfig = {
   },
   localhost: {
     chainId: 31337,
-    url: 'http://localhost:8545',
+    url: LOCALHOST_RPC,
     secureAccounts: {
       enabled: true,
     },
