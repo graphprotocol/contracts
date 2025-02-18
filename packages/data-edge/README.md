@@ -2,7 +2,7 @@
 
 A DataEdge contract is used to store arbitrary data on-chain on any EVM compatible blockchain. A subgraph can then read all the calldata sent to a particular contract, decode it and update the subgraph state accordingly.
 
-The DataEdge accepts any function call by using a fallback function that will not revert. It is up to the implementor to define the calldata format as well as how to decode it.
+The DataEdge accepts any function call by using a fallback function that will not revert. It is up to the implementer to define the calldata format as well as how to decode it.
 
 ### Additional Considerations
 
