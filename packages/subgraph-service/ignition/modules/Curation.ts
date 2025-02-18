@@ -10,8 +10,8 @@ export default buildModule('L2Curation', (m) => {
   const curationAddress = m.getParameter('curationAddress')
   const curationImplementationAddress = m.getParameter('curationImplementationAddress')
 
-  const L2Curation = m.contractAt('L2Curation', CurationArtifact, curationAddress)
-  const L2CurationImplementation = m.contractAt('L2CurationImplementation', CurationArtifact, curationImplementationAddress)
+  const L2Curation = m.contractAt('L2CurationAddressBook', CurationArtifact, curationAddress)
+  const L2CurationImplementation = m.contractAt('L2CurationImplementationAddressBook', CurationArtifact, curationImplementationAddress)
 
   return { L2Curation, L2CurationImplementation }
 })
