@@ -2954,7 +2954,7 @@ __metadata:
     hardhat-contract-sizer: "npm:^2.10.0"
     hardhat-gas-reporter: "npm:^1.0.8"
     hardhat-graph-protocol: "workspace:^0.0.1"
-    hardhat-secure-accounts: "npm:^1.0.4"
+    hardhat-secure-accounts: "npm:^1.0.5"
     hardhat-storage-layout: "npm:^0.1.7"
     lint-staged: "npm:^15.2.2"
     prettier: "npm:^3.2.5"
@@ -3049,7 +3049,7 @@ __metadata:
     hardhat-contract-sizer: "npm:^2.10.0"
     hardhat-gas-reporter: "npm:^1.0.8"
     hardhat-graph-protocol: "workspace:^0.0.1"
-    hardhat-secure-accounts: "npm:^1.0.4"
+    hardhat-secure-accounts: "npm:^1.0.5"
     hardhat-storage-layout: "npm:^0.1.7"
     json5: "npm:^2.2.3"
     lint-staged: "npm:^15.2.2"
@@ -14534,6 +14534,22 @@ __metadata:
     ethers: ^6.13.0
     hardhat: ^2.22.0
   checksum: 6406be693502234f342b9e27215bb3ecb3502a0d9f5299c5c1f5e1be28f08d26226cff511723e719639dc12fb2e4e329386a41e5c90f57b3bf3116656c45c2b5
+  languageName: node
+  linkType: hard
+
+"hardhat-secure-accounts@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "hardhat-secure-accounts@npm:1.0.5"
+  dependencies:
+    debug: "npm:^4.3.4"
+    enquirer: "npm:^2.3.6"
+    lodash.clonedeep: "npm:^4.5.0"
+    prompt-sync: "npm:^4.2.0"
+  peerDependencies:
+    "@nomicfoundation/hardhat-ethers": ^3.0.0
+    ethers: ^6.13.0
+    hardhat: ^2.22.0
+  checksum: b1a30f083b1a2919d6aee2f79253edcadff70017e8006df914bba4e6ad9963db622317ca333dfce38f16a9d60ee9425c0591b578cbf8c6db52d617161d4b46ee
   languageName: node
   linkType: hard
 

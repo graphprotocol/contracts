@@ -13,6 +13,7 @@ import 'solidity-docgen'
 // Skip importing hardhat-graph-protocol when building the project, it has circular dependency
 if (process.env.BUILD_RUN !== 'true') {
   require('hardhat-graph-protocol')
+  require('./tasks/deploy')
 }
 
 const config: HardhatUserConfig = {
@@ -24,12 +25,6 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 50,
       },
-    },
-  },
-  graph: {
-    deployments: {
-      ...hardhatBaseConfig.graph?.deployments,
-      subgraphService: './addresses.json',
     },
   },
 }

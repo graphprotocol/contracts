@@ -13,8 +13,9 @@ export type AddressBookJson<
 
 export type AddressBookEntry = {
   address: string
-  proxy?: boolean
-  implementation?: AddressBookEntry
+  proxy?: 'graph' | 'transparent'
+  proxyAdmin?: string
+  implementation?: string
 }
 
 /**
@@ -24,8 +25,9 @@ export type AddressBookEntry = {
  *   "<CHAIN_ID>": {
  *     "<CONTRACT_NAME>": {
  *       "address": "<ADDRESS>",
- *       "proxy": true, // optional
- *       "implementation": { ... } // optional, nested contract structure
+ *       "proxy": "<graph|transparent>", // optional
+ *       "proxyAdmin": "<ADDRESS>", // optional
+ *       "implementation": "<ADDRESS>", // optional
  *     ...
  *    }
  * }
@@ -74,13 +76,18 @@ export abstract class AddressBook<
     this.chainId = _chainId
 
     logDebug(`Loading address book from ${this.file}.`)
-    if (!fs.existsSync(this.file)) throw new Error(`Address book path provided does not exist!`)
+
+    // Create empty address book if file doesn't exist
+    if (!fs.existsSync(this.file)) {
+      const emptyAddressBook = { [this.chainId]: {} }
+      fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2))
+      logDebug(`Created new address book at ${this.file}`)
+    }
 
     // Load address book and validate its shape
-    // If it's empty, initialize it with an empty object
-    const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8') || '{}')
+    const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8'))
     if (!fileContents[this.chainId]) {
-      fileContents[this.chainId] = {} as Record<ContractName, AddressBookEntry>
+      fileContents[this.chainId] = {}
     }
     this.assertAddressBookJson(fileContents)
     this.addressBook = fileContents
@@ -96,29 +103,40 @@ export abstract class AddressBook<
     return this.validContracts
   }
 
+  entryExists(name: string): boolean {
+    if (!this.isContractName(name)) {
+      throw new Error(`Contract name ${name} is not a valid contract name`)
+    }
+    return this.addressBook[this.chainId][name] !== undefined
+  }
+
   /**
    * Get an entry from the address book
    *
    * @param name the name of the contract to get
+   * @param strict if true it will throw an error if the contract is not found
    * @returns the address book entry for the contract
    * Returns an empty address book entry if the contract is not found
    */
-  getEntry(name: ContractName): { address: string } {
-    const entry = this.addressBook[this.chainId][name]
-    // Handle both object and string formats
-    if (typeof entry === 'string') {
-      return { address: entry }
+  getEntry(name: string): AddressBookEntry {
+    if (!this.isContractName(name)) {
+      throw new Error(`Contract name ${name} is not a valid contract name`)
     }
+    const entry = this.addressBook[this.chainId][name]
+    this._assertAddressBookEntry(entry)
     return entry
   }
 
   /**
    * Save an entry to the address book
-   *
+   * Allows partial address book entries to be saved
    * @param name the name of the contract to save
    * @param entry the address book entry for the contract
    */
-  setEntry(name: ContractName, entry: AddressBookEntry): void {
+  setEntry(name: ContractName, entry: Partial<AddressBookEntry>): void {
+    if (entry.address === undefined) {
+      entry.address = '0x0000000000000000000000000000000000000000'
+    }
     this._assertAddressBookEntry(entry)
     this.addressBook[this.chainId][name] = entry
     try {
@@ -162,7 +180,8 @@ export abstract class AddressBook<
   ): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     if (this.listEntries().length == 0) {
-      throw Error('No valid contracts found in address book')
+      logError('No valid contracts found in address book')
+      return contracts
     }
     for (const contractName of this.listEntries()) {
       const artifactPath = typeof artifactsPath === 'object' && !Array.isArray(artifactsPath)
@@ -214,18 +233,17 @@ export abstract class AddressBook<
   // Asserts the provided object is a valid address book entry
   _assertAddressBookEntry(
     entry: unknown,
-  ): asserts entry is { address: string } {
-    if (typeof entry === 'string') {
-      // If it's a string, treat it as an address
-      return
-    }
-
+  ): asserts entry is AddressBookEntry {
     assertObject(entry)
     if (!('address' in entry)) {
       throw new Error('Address book entry must have an address field')
     }
-    if (typeof entry.address !== 'string') {
-      throw new Error('Address book entry address must be a string')
+
+    const allowedFields = ['address', 'implementation', 'proxyAdmin', 'proxy']
+    const entryFields = Object.keys(entry)
+    const invalidFields = entryFields.filter(field => !allowedFields.includes(field))
+    if (invalidFields.length > 0) {
+      throw new Error(`Address book entry contains invalid fields: ${invalidFields.join(', ')}`)
     }
   }
 }

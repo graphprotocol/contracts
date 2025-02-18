@@ -11,6 +11,7 @@ import 'hardhat-secure-accounts'
 // Skip importing hardhat-graph-protocol when building the project, it has circular dependency
 if (process.env.BUILD_RUN !== 'true') {
   require('hardhat-graph-protocol')
+  require('./tasks/deploy')
 }
 
 export default hardhatBaseConfig

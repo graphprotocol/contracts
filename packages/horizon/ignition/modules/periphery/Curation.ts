@@ -20,14 +20,14 @@ export default buildModule('L2Curation', (m) => {
 
   const GraphCurationToken = m.contract('GraphCurationToken', GraphCurationTokenArtifact, [])
 
-  const L2Curation = deployWithGraphProxy(m, GraphProxyAdmin, {
+  const { proxy: L2Curation, implementation: L2CurationImplementation } = deployWithGraphProxy(m, GraphProxyAdmin, {
     name: 'L2Curation',
     artifact: CurationArtifact,
     initArgs: [Controller, GraphCurationToken, curationTaxPercentage, minimumCurationDeposit],
   })
   m.call(L2Curation, 'setSubgraphService', [subgraphServiceAddress])
 
-  return { L2Curation }
+  return { L2Curation, L2CurationImplementation }
 })
 
 export const MigrateCurationDeployerModule = buildModule('L2CurationDeployer', (m: IgnitionModuleBuilder) => {
@@ -62,5 +62,5 @@ export const MigrateCurationGovernorModule = buildModule('L2CurationGovernor', (
   const L2Curation = upgradeGraphProxy(m, GraphProxyAdmin, L2CurationProxy, L2CurationImplementation, implementationMetadata)
   m.call(L2Curation, 'setSubgraphService', [subgraphServiceAddress])
 
-  return { L2Curation }
+  return { L2Curation, L2CurationImplementation }
 })

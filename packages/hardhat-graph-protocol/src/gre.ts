@@ -2,6 +2,7 @@ import path from 'path'
 
 import { getAddressBookPath } from './config'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+import { lazyFunction } from 'hardhat/plugins'
 import { logDebug } from './logger'
 
 import { GraphHorizonAddressBook } from './sdk/deployments/horizon'
@@ -28,7 +29,7 @@ export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<Hard
 }
 
 export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
-  hre.graph = (opts: GraphRuntimeEnvironmentOptions = { deployments: {} }) => {
+  hre.graph = lazyFunction(() => (opts: GraphRuntimeEnvironmentOptions = { deployments: {} }) => {
     logDebug('*** Initializing Graph Runtime Environment (GRE) ***')
     logDebug(`Main network: ${hre.network.name}`)
     const chainId = hre.network.config.chainId
@@ -80,5 +81,5 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     assertGraphRuntimeEnvironment(gre)
     logDebug('GRE initialized successfully!')
     return gre
-  }
+  })
 }

@@ -28,11 +28,7 @@ export function getAddressBookPath(
   }
 
   const normalizedAddressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
-  if (!fs.existsSync(normalizedAddressBookPath)) {
-    throw new GraphPluginError(`Address book not found: ${normalizedAddressBookPath}`)
-  }
-
-  logDebug(`Address book path found: ${normalizedAddressBookPath}`)
+  logDebug(`Address book path: ${normalizedAddressBookPath}`)
   return normalizedAddressBookPath
 }
 

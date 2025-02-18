@@ -33,7 +33,7 @@ export default buildModule('PaymentsEscrow', (m) => {
 
   m.call(PaymentsEscrowProxyAdmin, 'transferOwnership', [governor], { after: [PaymentsEscrow] })
 
-  return { PaymentsEscrow, PaymentsEscrowProxyAdmin }
+  return { PaymentsEscrow, PaymentsEscrowProxyAdmin, PaymentsEscrowImplementation }
 })
 
 // Note that this module requires MigrateHorizonProxiesGovernorModule to be executed first
@@ -66,5 +66,5 @@ export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => 
 
   m.call(PaymentsEscrowProxyAdmin, 'transferOwnership', [governor], { after: [PaymentsEscrow] })
 
-  return { PaymentsEscrow, PaymentsEscrowProxyAdmin }
+  return { PaymentsEscrow, PaymentsEscrowProxyAdmin, PaymentsEscrowImplementation }
 })

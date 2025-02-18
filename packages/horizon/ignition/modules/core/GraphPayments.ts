@@ -33,7 +33,7 @@ export default buildModule('GraphPayments', (m) => {
 
   m.call(GraphPaymentsProxyAdmin, 'transferOwnership', [governor], { after: [GraphPayments] })
 
-  return { GraphPayments, GraphPaymentsProxyAdmin }
+  return { GraphPayments, GraphPaymentsProxyAdmin, GraphPaymentsImplementation }
 })
 
 // Note that this module requires MigrateHorizonProxiesGovernorModule to be executed first
@@ -66,5 +66,5 @@ export const MigrateGraphPaymentsModule = buildModule('GraphPayments', (m) => {
 
   m.call(GraphPaymentsProxyAdmin, 'transferOwnership', [governor], { after: [GraphPayments] })
 
-  return { GraphPayments, GraphPaymentsProxyAdmin }
+  return { GraphPayments, GraphPaymentsProxyAdmin, GraphPaymentsImplementation }
 })

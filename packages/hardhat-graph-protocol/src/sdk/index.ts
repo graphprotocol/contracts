@@ -1,5 +1,5 @@
-import { loadConfig, mergeConfigs, patchConfig, saveAddressBook } from './ignition/ignition'
+import { loadConfig, patchConfig, saveToAddressBook } from './ignition/ignition'
 import { hardhatBaseConfig } from './hardhat.base.config'
 
-const IgnitionHelper = { saveAddressBook, loadConfig, patchConfig, mergeConfigs }
+const IgnitionHelper = { saveToAddressBook, loadConfig, patchConfig }
 export { hardhatBaseConfig, IgnitionHelper }

@@ -73,5 +73,5 @@ export function deployWithGraphProxy(
     m.call(proxyAdmin, 'acceptProxyAndCall', [implementation, proxy, m.encodeFunctionCall(implementation, 'initialize', metadata.initArgs)], options)
   }
 
-  return proxy
+  return { proxy, implementation }
 }

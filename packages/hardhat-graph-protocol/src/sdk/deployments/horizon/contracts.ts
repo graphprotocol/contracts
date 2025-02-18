@@ -24,6 +24,7 @@ export const GraphHorizonContractNameList = [
   'RewardsManager',
   'L2GraphToken',
   'L2GraphTokenGateway',
+  'L2Curation',
 
   // @graphprotocol/horizon
   'HorizonStaking',
@@ -32,7 +33,7 @@ export const GraphHorizonContractNameList = [
   'GraphTallyCollector',
 ] as const
 
-const root = path.resolve(__dirname, '../../../../..') // hardhat-graph-protocol root
+const root = path.resolve(__dirname, '../../../..') // hardhat-graph-protocol root
 export const CONTRACTS_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/contracts/build/contracts')
 export const HORIZON_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/horizon/build/contracts')
 
@@ -44,6 +45,7 @@ export const GraphHorizonArtifactsMap = {
   RewardsManager: CONTRACTS_ARTIFACTS_PATH,
   L2GraphToken: CONTRACTS_ARTIFACTS_PATH,
   L2GraphTokenGateway: CONTRACTS_ARTIFACTS_PATH,
+  L2Curation: CONTRACTS_ARTIFACTS_PATH,
 
   // @graphprotocol/horizon
   HorizonStaking: HORIZON_ARTIFACTS_PATH,
