@@ -4,7 +4,7 @@ set -eo pipefail
 
 if [ -z "${STUDIO_API_KEY}" ]; then
     echo "Warning: STUDIO_API_KEY is not set. Skipping build steps. Some functionality may be limited."
-    exit 1
+    exit 0
 fi
 
 yarn graphclient build
