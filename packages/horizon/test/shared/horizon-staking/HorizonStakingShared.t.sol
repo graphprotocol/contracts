@@ -420,6 +420,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // thaw
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.ThawRequestCreated(
+            IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
             serviceProvider,
@@ -505,6 +506,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             ThawRequest memory thawRequest = calcValues.thawRequestsFulfilledList[i];
             vm.expectEmit(address(staking));
             emit IHorizonStakingMain.ThawRequestFulfilled(
+                params.thawRequestType,
                 calcValues.thawRequestsFulfilledListIds[i],
                 calcValues.thawRequestsFulfilledListTokens[i],
                 thawRequest.shares,
@@ -514,12 +516,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.ThawRequestsFulfilled(
+            IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
             serviceProvider,
             calcValues.thawRequestsFulfilledList.length,
-            calcValues.tokensThawed,
-            IHorizonStakingTypes.ThawRequestType.Provision
+            calcValues.tokensThawed
         );
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.TokensDeprovisioned(serviceProvider, verifier, calcValues.tokensThawed);
@@ -627,6 +629,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             ThawRequest memory thawRequest = calcValues.thawRequestsFulfilledList[i];
             vm.expectEmit(address(staking));
             emit IHorizonStakingMain.ThawRequestFulfilled(
+                params.thawRequestType,
                 calcValues.thawRequestsFulfilledListIds[i],
                 calcValues.thawRequestsFulfilledListTokens[i],
                 thawRequest.shares,
@@ -636,12 +639,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.ThawRequestsFulfilled(
+            IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
             serviceProvider,
             calcValues.thawRequestsFulfilledList.length,
-            calcValues.tokensThawed,
-            IHorizonStakingTypes.ThawRequestType.Provision
+            calcValues.tokensThawed
         );
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.TokensDeprovisioned(serviceProvider, verifier, calcValues.tokensThawed);
@@ -998,6 +1001,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // undelegate
         vm.expectEmit();
         emit IHorizonStakingMain.ThawRequestCreated(
+            thawRequestType,
             serviceProvider,
             verifier,
             beneficiary,
@@ -1163,6 +1167,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             ThawRequest memory thawRequest = calcValues.thawRequestsFulfilledList[i];
             vm.expectEmit(address(staking));
             emit IHorizonStakingMain.ThawRequestFulfilled(
+                params.thawRequestType,
                 calcValues.thawRequestsFulfilledListIds[i],
                 calcValues.thawRequestsFulfilledListTokens[i],
                 thawRequest.shares,
@@ -1172,12 +1177,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         }
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.ThawRequestsFulfilled(
+            params.thawRequestType,
             params.serviceProvider,
             params.verifier,
             msgSender,
             calcValues.thawRequestsFulfilledList.length,
-            calcValues.tokensThawed,
-            params.thawRequestType
+            calcValues.tokensThawed
         );
         if (calcValues.tokensThawed != 0) {
             vm.expectEmit();

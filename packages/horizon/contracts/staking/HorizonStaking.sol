@@ -229,6 +229,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             newThawingPeriod <= _maxThawingPeriod,
             HorizonStakingInvalidThawingPeriod(newThawingPeriod, _maxThawingPeriod)
         );
+
+        // Provision must exist
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
@@ -244,7 +246,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function acceptProvisionParameters(address serviceProvider) external override notPaused {
         address verifier = msg.sender;
+
+        // Provision must exist
         Provision storage prov = _provisions[serviceProvider][verifier];
+        require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
+
         if ((prov.maxVerifierCutPending != prov.maxVerifierCut) || (prov.thawingPeriodPending != prov.thawingPeriod)) {
             prov.maxVerifierCut = prov.maxVerifierCutPending;
             prov.thawingPeriod = prov.thawingPeriodPending;
@@ -1026,7 +1032,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         if (thawRequestList.count != 0) _getThawRequest(_requestType, thawRequestList.tail).next = thawRequestId;
         thawRequestList.addTail(thawRequestId);
 
-        emit ThawRequestCreated(_serviceProvider, _verifier, _owner, _shares, _thawingUntil, thawRequestId);
+        emit ThawRequestCreated(
+            _requestType,
+            _serviceProvider,
+            _verifier,
+            _owner,
+            _shares,
+            _thawingUntil,
+            thawRequestId
+        );
         return thawRequestId;
     }
 
@@ -1052,12 +1066,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         TraverseThawRequestsResults memory results = _traverseThawRequests(_params, thawRequestList);
 
         emit ThawRequestsFulfilled(
+            _params.requestType,
             _params.serviceProvider,
             _params.verifier,
             _params.owner,
             results.requestsFulfilled,
-            results.tokensThawed,
-            _params.requestType
+            results.tokensThawed
         );
 
         return (results.tokensThawed, results.tokensThawing, results.sharesThawing);
@@ -1143,6 +1157,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             tokensThawed = tokensThawed + tokens;
         }
         emit ThawRequestFulfilled(
+            requestType,
             _thawRequestId,
             tokens,
             thawRequest.shares,

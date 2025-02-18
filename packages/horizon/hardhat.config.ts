@@ -7,6 +7,7 @@ import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
+import { HardhatUserConfig } from 'hardhat/types'
 
 // Skip importing hardhat-graph-protocol when building the project, it has circular dependency
 if (process.env.BUILD_RUN !== 'true') {
@@ -14,4 +15,17 @@ if (process.env.BUILD_RUN !== 'true') {
   require('./tasks/deploy')
 }
 
-export default hardhatBaseConfig
+const config: HardhatUserConfig = {
+  ...hardhatBaseConfig,
+  solidity: {
+    version: '0.8.27',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 70,
+      },
+    },
+  },
+}
+
+export default config

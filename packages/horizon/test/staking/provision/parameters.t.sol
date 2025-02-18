@@ -82,6 +82,20 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         vm.stopPrank();
     }
 
+
+    function test_ProvisionParametersAccept_SameParameters(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        _setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
+
+        vm.startPrank(subgraphDataServiceAddress);
+        _acceptProvisionParameters(users.indexer);
+        _acceptProvisionParameters(users.indexer);
+        vm.stopPrank();
+    }
+
     function test_ProvisionParameters_RevertIf_InvalidMaxVerifierCut(
         uint256 amount,
         uint32 maxVerifierCut,
@@ -110,5 +124,17 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
             )
         );
         staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
+    }
+
+    function test_ProvisionParametersAccept_RevertWhen_ProvisionNotExists() public useIndexer {
+        resetPrank(subgraphDataServiceAddress);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "HorizonStakingInvalidProvision(address,address)",
+                users.indexer,
+                subgraphDataServiceAddress
+            )
+        );
+        staking.acceptProvisionParameters(users.indexer);
     }
 }
