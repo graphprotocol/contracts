@@ -6,12 +6,11 @@ import "forge-std/Test.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingGovernanceTest is HorizonStakingTest {
-
     /*
      * MODIFIERS
      */
 
-    modifier useGovernor {
+    modifier useGovernor() {
         vm.startPrank(users.governor);
         _;
     }
@@ -43,7 +42,7 @@ contract HorizonStakingGovernanceTest is HorizonStakingTest {
     function testGovernance_ClearThawingPeriod(uint32 thawingPeriod) public useGovernor {
         // simulate previous thawing period
         _setStorage_DeprecatedThawingPeriod(thawingPeriod);
-        
+
         _clearThawingPeriod();
     }
 

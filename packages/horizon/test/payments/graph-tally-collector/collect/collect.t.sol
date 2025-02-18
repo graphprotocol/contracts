@@ -271,7 +271,11 @@ contract GraphTallyCollectTest is GraphTallyTest {
 
         // Attempt to collect again
         vm.expectRevert(
-            abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInconsistentRAVTokens.selector, tokens, tokens)
+            abi.encodeWithSelector(
+                IGraphTallyCollector.GraphTallyCollectorInconsistentRAVTokens.selector,
+                tokens,
+                tokens
+            )
         );
         graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
@@ -466,7 +470,11 @@ contract GraphTallyCollectTest is GraphTallyTest {
             // Try to collect again with the same allocation - should revert
             bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, collectTestParams[i]);
             vm.expectRevert(
-                abi.encodeWithSelector(IGraphTallyCollector.GraphTallyCollectorInconsistentRAVTokens.selector, tokens, tokens)
+                abi.encodeWithSelector(
+                    IGraphTallyCollector.GraphTallyCollectorInconsistentRAVTokens.selector,
+                    tokens,
+                    tokens
+                )
             );
             graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
         }

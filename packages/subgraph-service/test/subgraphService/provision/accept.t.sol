@@ -9,7 +9,6 @@ import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */
@@ -36,20 +35,21 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_Provision_Accept_RevertWhen_NotRegistered() public useIndexer {
-        vm.expectRevert(abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
-            users.indexer
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerNotRegistered.selector, users.indexer)
+        );
         subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 
     function test_SubgraphService_Provision_Accept_RevertWhen_NotAuthorized() public {
         resetPrank(users.operator);
-        vm.expectRevert(abi.encodeWithSelector(
-            ProvisionManager.ProvisionManagerNotAuthorized.selector,
-            users.indexer,
-            users.operator
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProvisionManager.ProvisionManagerNotAuthorized.selector,
+                users.indexer,
+                users.operator
+            )
+        );
         subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 
@@ -68,13 +68,15 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         _setProvisionParameters(users.indexer, address(subgraphService), newVerifierCut, disputePeriod);
 
         // Should revert since newVerifierCut is invalid
-        vm.expectRevert(abi.encodeWithSelector(
-            ProvisionManager.ProvisionManagerInvalidValue.selector,
-            "maxVerifierCut",
-            newVerifierCut,
-            fishermanRewardPercentage,
-            MAX_PPM
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProvisionManager.ProvisionManagerInvalidValue.selector,
+                "maxVerifierCut",
+                newVerifierCut,
+                fishermanRewardPercentage,
+                MAX_PPM
+            )
+        );
         subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 
@@ -93,13 +95,15 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         _setProvisionParameters(users.indexer, address(subgraphService), fishermanRewardPercentage, newDisputePeriod);
 
         // Should revert since newDisputePeriod is invalid
-        vm.expectRevert(abi.encodeWithSelector(
-            ProvisionManager.ProvisionManagerInvalidValue.selector,
-            "thawingPeriod",
-            newDisputePeriod,
-            disputePeriod,
-            type(uint64).max
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProvisionManager.ProvisionManagerInvalidValue.selector,
+                "thawingPeriod",
+                newDisputePeriod,
+                disputePeriod,
+                type(uint64).max
+            )
+        );
         subgraphService.acceptProvisionPendingParameters(users.indexer, "");
     }
 }

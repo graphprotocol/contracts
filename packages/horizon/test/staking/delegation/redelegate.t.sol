@@ -8,12 +8,11 @@ import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHor
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
-
     /*
      * HELPERS
      */
 
-    function _setupNewIndexer(uint256 tokens) private returns(address) {
+    function _setupNewIndexer(uint256 tokens) private returns (address) {
         (, address msgSender, ) = vm.readCallers();
 
         address newIndexer = createUser("newIndexer");
@@ -23,9 +22,9 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         vm.startPrank(msgSender);
         return newIndexer;
     }
-    
-    function _setupNewIndexerAndVerifier(uint256 tokens) private returns(address, address) {
-        (, address msgSender,) = vm.readCallers();
+
+    function _setupNewIndexerAndVerifier(uint256 tokens) private returns (address, address) {
+        (, address msgSender, ) = vm.readCallers();
 
         address newIndexer = createUser("newIndexer");
         address newVerifier = makeAddr("newVerifier");
@@ -104,7 +103,9 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         // Setup new verifier
         address newVerifier = makeAddr("newVerifier");
-        vm.expectRevert(abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingInvalidServiceProviderZeroAddress.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingInvalidServiceProviderZeroAddress.selector)
+        );
         staking.redelegate(users.indexer, subgraphDataServiceAddress, address(0), newVerifier, 0, 0);
     }
 
@@ -123,7 +124,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
 
         uint256 previousBalance = token.balanceOf(users.delegator);
         _redelegate(users.indexer, subgraphDataServiceAddress, newIndexer, newVerifier, 0, 0);
-        
+
         uint256 newBalance = token.balanceOf(users.delegator);
         assertEq(newBalance, previousBalance);
 

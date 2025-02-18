@@ -29,7 +29,6 @@ import { MockRewardsManager } from "./mocks/MockRewardsManager.sol";
 import { MockEpochManager } from "./mocks/MockEpochManager.sol";
 
 abstract contract SubgraphBaseTest is Utils, Constants {
-
     /*
      * VARIABLES
      */
@@ -89,7 +88,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         resetPrank(users.governor);
         proxyAdmin = new GraphProxyAdmin();
         controller = new Controller();
-        
+
         resetPrank(users.deployer);
         GraphProxy stakingProxy = new GraphProxy(address(0), address(proxyAdmin));
         rewardsManager = new MockRewardsManager(token, rewardsPerSignal, rewardsPerSubgraphAllocationUpdate);
@@ -98,30 +97,27 @@ abstract contract SubgraphBaseTest is Utils, Constants {
 
         // GraphPayments predict address
         bytes32 saltGraphPayments = keccak256("GraphPaymentsSalt");
-        bytes32 paymentsHash = keccak256(bytes.concat(
-            vm.getCode("GraphPayments.sol:GraphPayments"),
-            abi.encode(address(controller), protocolPaymentCut)
-        ));
+        bytes32 paymentsHash = keccak256(
+            bytes.concat(
+                vm.getCode("GraphPayments.sol:GraphPayments"),
+                abi.encode(address(controller), protocolPaymentCut)
+            )
+        );
         address predictedGraphPaymentsAddress = vm.computeCreate2Address(
             saltGraphPayments,
             paymentsHash,
             users.deployer
         );
-        
+
         // GraphEscrow predict address
         bytes32 saltEscrow = keccak256("GraphEscrowSalt");
-        bytes32 escrowHash = keccak256(bytes.concat(
-            vm.getCode("PaymentsEscrow.sol:PaymentsEscrow"),
-            abi.encode(
-                address(controller),
-                withdrawEscrowThawingPeriod
+        bytes32 escrowHash = keccak256(
+            bytes.concat(
+                vm.getCode("PaymentsEscrow.sol:PaymentsEscrow"),
+                abi.encode(address(controller), withdrawEscrowThawingPeriod)
             )
-        ));
-        address predictedEscrowAddress = vm.computeCreate2Address(
-            saltEscrow,
-            escrowHash,
-            users.deployer
         );
+        address predictedEscrowAddress = vm.computeCreate2Address(saltEscrow, escrowHash, users.deployer);
 
         resetPrank(users.governor);
         controller.setContractProxy(keccak256("GraphToken"), address(token));
@@ -147,9 +143,19 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         disputeManager = DisputeManager(disputeManagerProxy);
         disputeManager.transferOwnership(users.governor);
 
-        graphTallyCollector = new GraphTallyCollector("GraphTallyCollector", "1", address(controller), revokeSignerThawingPeriod);
+        graphTallyCollector = new GraphTallyCollector(
+            "GraphTallyCollector",
+            "1",
+            address(controller),
+            revokeSignerThawingPeriod
+        );
         address subgraphServiceImplementation = address(
-            new SubgraphService(address(controller), address(disputeManager), address(graphTallyCollector), address(curation))
+            new SubgraphService(
+                address(controller),
+                address(disputeManager),
+                address(graphTallyCollector),
+                address(curation)
+            )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
             subgraphServiceImplementation,
@@ -158,24 +164,11 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
 
-        stakingExtension = new HorizonStakingExtension(
-            address(controller),
-            address(subgraphService)
-        );
-        stakingBase = new HorizonStaking(
-            address(controller),
-            address(stakingExtension),
-            address(subgraphService)
-        );
+        stakingExtension = new HorizonStakingExtension(address(controller), address(subgraphService));
+        stakingBase = new HorizonStaking(address(controller), address(stakingExtension), address(subgraphService));
 
-        graphPayments = new GraphPayments{salt: saltGraphPayments}(
-            address(controller), 
-            protocolPaymentCut
-        );
-        escrow = new PaymentsEscrow{salt: saltEscrow}(
-            address(controller),
-            withdrawEscrowThawingPeriod
-        );
+        graphPayments = new GraphPayments{ salt: saltGraphPayments }(address(controller), protocolPaymentCut);
+        escrow = new PaymentsEscrow{ salt: saltEscrow }(address(controller), withdrawEscrowThawingPeriod);
 
         resetPrank(users.governor);
         disputeManager.setSubgraphService(address(subgraphService));

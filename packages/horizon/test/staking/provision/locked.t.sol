@@ -6,7 +6,6 @@ import "forge-std/Test.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
-
     /*
      * TESTS
      */
@@ -20,13 +19,7 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
         _setOperatorLocked(subgraphDataServiceAddress, users.operator, true);
 
         vm.startPrank(users.operator);
-        _provisionLocked(
-            users.indexer,
-            subgraphDataServiceAddress,
-            amount,
-            MAX_PPM,
-            MAX_THAWING_PERIOD
-        );
+        _provisionLocked(users.indexer, subgraphDataServiceAddress, amount, MAX_PPM, MAX_THAWING_PERIOD);
 
         provisionTokens = staking.getProviderTokensAvailable(users.indexer, subgraphDataServiceAddress);
         assertEq(provisionTokens, amount);
@@ -46,15 +39,12 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
         _setAllowedLockedVerifier(subgraphDataServiceAddress, false);
 
         vm.startPrank(users.operator);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingVerifierNotAllowed(address)", subgraphDataServiceAddress);
-        vm.expectRevert(expectedError);
-        staking.provisionLocked(
-            users.indexer,
-            subgraphDataServiceAddress,
-            amount,
-            MAX_PPM,
-            MAX_THAWING_PERIOD
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingVerifierNotAllowed(address)",
+            subgraphDataServiceAddress
         );
+        vm.expectRevert(expectedError);
+        staking.provisionLocked(users.indexer, subgraphDataServiceAddress, amount, MAX_PPM, MAX_THAWING_PERIOD);
     }
 
     function testProvisionLocked_RevertWhen_OperatorNotAllowed(
@@ -71,12 +61,6 @@ contract HorizonStakingProvisionLockedTest is HorizonStakingTest {
             users.operator
         );
         vm.expectRevert(expectedError);
-        staking.provisionLocked(
-            users.indexer,
-            subgraphDataServiceAddress,
-            amount,
-            MAX_PPM,
-            MAX_THAWING_PERIOD
-        );
+        staking.provisionLocked(users.indexer, subgraphDataServiceAddress, amount, MAX_PPM, MAX_THAWING_PERIOD);
     }
 }

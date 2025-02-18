@@ -11,7 +11,7 @@ contract PPMMathTest is Test {
     function test_mulPPM(uint256 a, uint256 b) public pure {
         a = bound(a, 0, MAX_PPM);
         b = bound(b, 0, type(uint256).max / MAX_PPM);
-        
+
         uint256 result = PPMMath.mulPPM(a, b);
         assertEq(result, (a * b) / MAX_PPM);
     }
@@ -19,7 +19,7 @@ contract PPMMathTest is Test {
     function test_mulPPMRoundUp(uint256 a, uint256 b) public pure {
         a = bound(a, 0, type(uint256).max / MAX_PPM);
         b = bound(b, 0, MAX_PPM);
-        
+
         uint256 result = PPMMath.mulPPMRoundUp(a, b);
         assertEq(result, a - PPMMath.mulPPM(a, MAX_PPM - b));
     }

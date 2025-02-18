@@ -7,7 +7,6 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
 
 contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
-
     /*
      * MODIFIERS
      */
@@ -91,10 +90,7 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         maxVerifierCut = uint32(bound(maxVerifierCut, MAX_PPM + 1, type(uint32).max));
         vm.assume(thawingPeriod <= MAX_THAWING_PERIOD);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IHorizonStakingMain.HorizonStakingInvalidMaxVerifierCut.selector,
-                maxVerifierCut
-            )
+            abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingInvalidMaxVerifierCut.selector, maxVerifierCut)
         );
         staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
     }

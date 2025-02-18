@@ -25,14 +25,20 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
     function _getSignerProof(uint256 _proofDeadline, uint256 _signer) private returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(graphTallyCollector), _proofDeadline, msgSender));
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(block.chainid, address(graphTallyCollector), _proofDeadline, msgSender)
+        );
         bytes32 proofToDigest = MessageHashUtils.toEthSignedMessageHash(messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signer, proofToDigest);
         return abi.encodePacked(r, s, v);
     }
 
     function _getQueryFeeEncodedData(address indexer, uint128 tokens) private view returns (bytes memory) {
-        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(indexer, bytes32(uint256(uint160(allocationID))), tokens);
+        IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(
+            indexer,
+            bytes32(uint256(uint160(allocationID))),
+            tokens
+        );
         bytes32 messageHash = graphTallyCollector.encodeRAV(rav);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -149,11 +155,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
 
         resetPrank(newIndexer);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                ISubgraphService.SubgraphServiceInvalidRAV.selector,
-                newIndexer,
-                users.indexer
-            )
+            abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidRAV.selector, newIndexer, users.indexer)
         );
         subgraphService.collect(newIndexer, paymentType, data);
     }
@@ -180,7 +182,9 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         bytes memory signature = abi.encodePacked(r, s, v);
         IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
         bytes memory data = abi.encode(signedRAV);
-        vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidCollectionId.selector, collectionId));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidCollectionId.selector, collectionId)
+        );
         subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
     }
 }

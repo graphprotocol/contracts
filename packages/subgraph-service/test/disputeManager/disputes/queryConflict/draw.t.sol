@@ -8,7 +8,6 @@ import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManage
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryConflictDrawDisputeTest is DisputeManagerTest {
-
     bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
     bytes32 private responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
     bytes32 private responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
@@ -17,9 +16,7 @@ contract DisputeManagerQueryConflictDrawDisputeTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Query_Conflict_Draw_Dispute(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Query_Conflict_Draw_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
             requestCID,
             subgraphDeployment,
@@ -30,7 +27,7 @@ contract DisputeManagerQueryConflictDrawDisputeTest is DisputeManagerTest {
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1,) = _createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
         resetPrank(users.arbitrator);
         _drawDispute(disputeID1);
@@ -49,7 +46,7 @@ contract DisputeManagerQueryConflictDrawDisputeTest is DisputeManagerTest {
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1,) = _createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
         // attempt to draw dispute as fisherman
         resetPrank(users.fisherman);

@@ -61,7 +61,7 @@ contract MockRewardsManager is IRewardsManager {
 
     function getAccRewardsPerAllocatedToken(bytes32) external view returns (uint256, uint256) {}
 
-    function getRewards(address,address) external view returns (uint256) {}
+    function getRewards(address, address) external view returns (uint256) {}
 
     function calcRewards(uint256, uint256) external pure returns (uint256) {}
 
@@ -71,12 +71,9 @@ contract MockRewardsManager is IRewardsManager {
 
     function takeRewards(address _allocationID) external returns (uint256) {
         address rewardsIssuer = msg.sender;
-        (
-            ,
-            ,
-            uint256 tokens,
-            uint256 accRewardsPerAllocatedToken
-        ) = IRewardsIssuer(rewardsIssuer).getAllocationData(_allocationID);
+        (, , uint256 tokens, uint256 accRewardsPerAllocatedToken) = IRewardsIssuer(rewardsIssuer).getAllocationData(
+            _allocationID
+        );
 
         uint256 accRewardsPerTokens = tokens.mulPPM(rewardsPerSignal);
         uint256 rewards = accRewardsPerTokens - accRewardsPerAllocatedToken;

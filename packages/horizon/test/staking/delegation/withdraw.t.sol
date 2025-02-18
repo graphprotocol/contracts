@@ -10,7 +10,6 @@ import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
-
     /*
      * TESTS
      */
@@ -31,7 +30,10 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
             subgraphDataServiceAddress,
             users.delegator
         );
-        ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, thawingRequests.tail);
+        ThawRequest memory thawRequest = staking.getThawRequest(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            thawingRequests.tail
+        );
 
         skip(thawRequest.thawingUntil + 1);
 
@@ -57,7 +59,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     {
         uint256 previousBalance = token.balanceOf(users.delegator);
         _withdrawDelegated(users.indexer, subgraphDataServiceAddress, 0);
-        
+
         // Nothing changed since thawing period hasn't finished
         uint256 newBalance = token.balanceOf(users.delegator);
         assertEq(newBalance, previousBalance);
@@ -83,7 +85,10 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
             subgraphDataServiceLegacyAddress,
             users.delegator
         );
-        ThawRequest memory thawRequest = staking.getThawRequest(IHorizonStakingTypes.ThawRequestType.Delegation, thawingRequests.tail);
+        ThawRequest memory thawRequest = staking.getThawRequest(
+            IHorizonStakingTypes.ThawRequestType.Delegation,
+            thawingRequests.tail
+        );
 
         skip(thawRequest.thawingUntil + 1);
 
@@ -93,7 +98,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
     function testWithdrawDelegation_RevertWhen_InvalidPool(
         uint256 tokens,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing() {
+    ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION * 2, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);
@@ -115,15 +120,17 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         // fast forward in time and attempt to withdraw
         skip(MAX_THAWING_PERIOD + 1);
         resetPrank(users.delegator);
-        vm.expectRevert(abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
-            users.indexer,
-            subgraphDataServiceAddress
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IHorizonStakingMain.HorizonStakingInvalidDelegationPoolState.selector,
+                users.indexer,
+                subgraphDataServiceAddress
+            )
+        );
         staking.withdrawDelegated(users.indexer, subgraphDataServiceAddress, 0);
     }
 
-  function testWithdrawDelegation_AfterRecoveringPool(
+    function testWithdrawDelegation_AfterRecoveringPool(
         uint256 tokens
     ) public useIndexer useProvision(tokens, 0, MAX_THAWING_PERIOD) useDelegationSlashing {
         uint256 delegationTokens = MAX_STAKING_TOKENS / 10;

@@ -31,7 +31,7 @@ contract GraphEscrowDepositTest is GraphEscrowTest {
         _depositTokens(users.verifier, users.indexer, amount1);
         _depositTokens(users.verifier, users.indexer, amount2);
 
-        (uint256 balance,,) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
+        (uint256 balance, , ) = escrow.escrowAccounts(users.gateway, users.verifier, users.indexer);
         assertEq(balance, amount1 + amount2);
     }
 }

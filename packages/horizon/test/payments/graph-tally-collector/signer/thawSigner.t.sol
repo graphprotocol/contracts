@@ -8,7 +8,6 @@ import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTal
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
 contract GraphTallyThawSignerTest is GraphTallyTest {
-
     /*
      * TESTS
      */
@@ -44,7 +43,7 @@ contract GraphTallyThawSignerTest is GraphTallyTest {
     function testGraphTally_ThawSigner_RevertWhen_AlreadyThawing() public useGateway useSigner {
         _thawSigner(signer);
 
-        (,uint256 thawEndTimestamp,) = graphTallyCollector.authorizedSigners(signer);
+        (, uint256 thawEndTimestamp, ) = graphTallyCollector.authorizedSigners(signer);
         bytes memory expectedError = abi.encodeWithSelector(
             IGraphTallyCollector.GraphTallyCollectorSignerAlreadyThawing.selector,
             signer,

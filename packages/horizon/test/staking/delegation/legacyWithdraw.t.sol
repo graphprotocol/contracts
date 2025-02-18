@@ -49,7 +49,10 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
 
     function _legacyWithdrawDelegated(address _indexer) internal {
         (, address delegator, ) = vm.readCallers();
-        IHorizonStakingTypes.DelegationPool memory pool = staking.getDelegationPool(_indexer, subgraphDataServiceLegacyAddress);
+        IHorizonStakingTypes.DelegationPool memory pool = staking.getDelegationPool(
+            _indexer,
+            subgraphDataServiceLegacyAddress
+        );
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
         uint256 beforeDelegatorBalance = token.balanceOf(users.delegator);
 

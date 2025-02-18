@@ -7,7 +7,6 @@ import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 import { IHorizonStakingExtension } from "../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
 
 contract HorizonStakingAllocationTest is HorizonStakingTest {
-
     /*
      * TESTS
      */

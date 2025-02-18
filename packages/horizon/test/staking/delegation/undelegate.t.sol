@@ -48,12 +48,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
             _undelegate(users.indexer, subgraphDataServiceAddress, undelegateAmount);
         }
 
-        delegation = _getStorage_Delegation(
-            users.indexer,
-            subgraphDataServiceAddress,
-            users.delegator,
-            false
-        );
+        delegation = _getStorage_Delegation(users.indexer, subgraphDataServiceAddress, users.delegator, false);
         _undelegate(users.indexer, subgraphDataServiceAddress, delegation.shares);
     }
 
@@ -150,7 +145,7 @@ contract HorizonStakingUndelegateTest is HorizonStakingTest {
     function testUndelegate_RevertWhen_InvalidPool(
         uint256 tokens,
         uint256 delegationTokens
-    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing {
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 
         resetPrank(users.delegator);

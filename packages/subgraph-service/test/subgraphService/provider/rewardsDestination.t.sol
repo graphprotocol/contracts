@@ -9,7 +9,6 @@ import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceProviderRewardsDestinationTest is SubgraphServiceTest {
-
     /*
      * TESTS
      */

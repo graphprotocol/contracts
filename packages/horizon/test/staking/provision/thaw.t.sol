@@ -94,7 +94,7 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }
 
-    function testThaw_RevertWhen_ProvisionFullySlashed (
+    function testThaw_RevertWhen_ProvisionFullySlashed(
         uint256 amount,
         uint64 thawingPeriod,
         uint256 thawAmount
@@ -107,7 +107,11 @@ contract HorizonStakingThawTest is HorizonStakingTest {
 
         // Attempt to thaw on a provision that has been fully slashed
         resetPrank(users.indexer);
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInsufficientTokens(uint256,uint256)", 0, thawAmount);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInsufficientTokens(uint256,uint256)",
+            0,
+            thawAmount
+        );
         vm.expectRevert(expectedError);
         staking.thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
     }

@@ -344,9 +344,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         disputeManager.acceptDispute(_disputeId, _tokensSlash);
 
         // Check fisherman's got their reward and their deposit (if any) back
-        uint256 fishermanExpectedBalance = fishermanPreviousBalance +
-            fishermanReward +
-            disputeDeposit;
+        uint256 fishermanExpectedBalance = fishermanPreviousBalance + fishermanReward + disputeDeposit;
         assertEq(
             token.balanceOf(fisherman),
             fishermanExpectedBalance,
@@ -387,11 +385,19 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 expectedBalance;
     }
 
-    function _acceptDisputeConflict(bytes32 _disputeId, uint256 _tokensSlash, bool _acceptRelatedDispute, uint256 _tokensRelatedSlash) internal {
+    function _acceptDisputeConflict(
+        bytes32 _disputeId,
+        uint256 _tokensSlash,
+        bool _acceptRelatedDispute,
+        uint256 _tokensRelatedSlash
+    ) internal {
         IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
         IDisputeManager.Dispute memory relatedDispute = _getDispute(dispute.relatedDisputeId);
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
-        uint256 relatedIndexerTokensAvailable = staking.getProviderTokensAvailable(relatedDispute.indexer, address(subgraphService));
+        uint256 relatedIndexerTokensAvailable = staking.getProviderTokensAvailable(
+            relatedDispute.indexer,
+            address(subgraphService)
+        );
 
         FishermanParams memory params;
         params.fisherman = dispute.fisherman;
@@ -431,7 +437,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         disputeManager.acceptDisputeConflict(_disputeId, _tokensSlash, _acceptRelatedDispute, _tokensRelatedSlash);
 
         // Check fisherman's got their reward and their deposit back
-        params.expectedBalance = params.previousBalance +
+        params.expectedBalance =
+            params.previousBalance +
             params.totalReward +
             params.disputeDeposit +
             params.relatedDisputeDeposit;
@@ -486,7 +493,6 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             }
         }
 
-
         // Check dispute status
         dispute = _getDispute(_disputeId);
         assertEq(
@@ -500,8 +506,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         assertEq(
             uint8(relatedDispute.status),
             _acceptRelatedDispute
-                    ? uint8(IDisputeManager.DisputeStatus.Accepted)
-                    : uint8(IDisputeManager.DisputeStatus.Drawn),
+                ? uint8(IDisputeManager.DisputeStatus.Accepted)
+                : uint8(IDisputeManager.DisputeStatus.Drawn),
             "Related dispute status should be drawn"
         );
     }

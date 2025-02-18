@@ -8,7 +8,6 @@ import { Attestation } from "../../../../contracts/libraries/Attestation.sol";
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
-
     bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
     bytes32 private responseCID = keccak256(abi.encodePacked("Response CID"));
     bytes32 private subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
@@ -24,7 +23,9 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         _createQueryDispute(attestationData);
     }
 
-    function test_Query_Create_Dispute_RevertWhen_SubgraphServiceNotSet(uint256 tokens) public useIndexer useAllocation(tokens) {
+    function test_Query_Create_Dispute_RevertWhen_SubgraphServiceNotSet(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
@@ -51,8 +52,15 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         address otherFisherman = makeAddr("otherFisherman");
         resetPrank(otherFisherman);
         mint(otherFisherman, MAX_TOKENS);
-        Attestation.Receipt memory otherFishermanReceipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
-        bytes memory otherFishermanAttestationData = _createAtestationData(otherFishermanReceipt, allocationIDPrivateKey);
+        Attestation.Receipt memory otherFishermanReceipt = _createAttestationReceipt(
+            requestCID,
+            responseCID,
+            subgraphDeploymentId
+        );
+        bytes memory otherFishermanAttestationData = _createAtestationData(
+            otherFishermanReceipt,
+            allocationIDPrivateKey
+        );
         _createQueryDispute(otherFishermanAttestationData);
     }
 
@@ -87,13 +95,16 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
-        Attestation.Receipt memory newReceipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory newReceipt = _createAttestationReceipt(
+            requestCID,
+            responseCID,
+            subgraphDeploymentId
+        );
         bytes memory newAttestationData = _createAtestationData(newReceipt, allocationIDPrivateKey);
         token.approve(address(disputeManager), disputeDeposit);
-        vm.expectRevert(abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerDisputeAlreadyCreated.selector,
-            disputeID
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(IDisputeManager.DisputeManagerDisputeAlreadyCreated.selector, disputeID)
+        );
         disputeManager.createQueryDispute(newAttestationData);
     }
 
@@ -113,9 +124,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         disputeManager.createQueryDispute(attestationData);
     }
 
-    function test_Query_Create_RevertIf_AllocationDoesNotExist(
-        uint256 tokens
-    ) public useFisherman {
+    function test_Query_Create_RevertIf_AllocationDoesNotExist(uint256 tokens) public useFisherman {
         tokens = bound(tokens, disputeDeposit, 10_000_000_000 ether);
         Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
@@ -129,17 +138,15 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         vm.stopPrank();
     }
 
-    function test_Query_Create_RevertIf_IndexerIsBelowStake(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Query_Create_RevertIf_IndexerIsBelowStake(uint256 tokens) public useIndexer useAllocation(tokens) {
         // Close allocation
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);
-        
+
         // Thaw, deprovision and unstake
         address subgraphDataServiceAddress = address(subgraphService);
         _thawDeprovisionAndUnstake(users.indexer, subgraphDataServiceAddress, tokens);
-        
+
         // Atempt to create dispute
         resetPrank(users.fisherman);
         token.approve(address(disputeManager), tokens);

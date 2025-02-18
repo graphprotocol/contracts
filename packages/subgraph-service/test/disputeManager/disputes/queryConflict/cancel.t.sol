@@ -7,7 +7,6 @@ import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManage
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
-
     bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
     bytes32 private responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
     bytes32 private responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
@@ -16,9 +15,7 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
      * TESTS
      */
 
-    function test_Query_Conflict_Cancel_Dispute(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Query_Conflict_Cancel_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
             requestCID,
             subgraphDeployment,
@@ -29,7 +26,7 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1,) = _createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
         _cancelDispute(disputeID1);
     }
@@ -47,7 +44,7 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1,) = _createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
         resetPrank(users.indexer);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotFisherman.selector));
@@ -67,7 +64,7 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         );
 
         resetPrank(users.fisherman);
-        (bytes32 disputeID1,) = _createQueryDisputeConflict(attestationData1, attestationData2);
+        (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
         resetPrank(users.fisherman);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerDisputePeriodNotFinished.selector));

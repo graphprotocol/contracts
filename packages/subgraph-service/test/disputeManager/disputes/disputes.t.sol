@@ -23,49 +23,36 @@ contract DisputeManagerDisputeTest is DisputeManagerTest {
         bytes32 disputeID = bytes32("0x0");
 
         resetPrank(users.arbitrator);
-        vm.expectRevert(abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerInvalidDispute.selector,
-            disputeID
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidDispute.selector, disputeID));
         disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
-    function test_Dispute_Accept_RevertIf_SlashZeroTokens(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Dispute_Accept_RevertIf_SlashZeroTokens(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID =_createIndexingDispute(allocationID, bytes32("POI101"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"));
 
         // attempt to accept dispute with 0 tokens slashed
         resetPrank(users.arbitrator);
         uint256 maxTokensToSlash = uint256(maxSlashingPercentage).mulPPM(tokens);
-        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidTokensSlash.selector, 0, maxTokensToSlash));
+        vm.expectRevert(
+            abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidTokensSlash.selector, 0, maxTokensToSlash)
+        );
         disputeManager.acceptDispute(disputeID, 0);
     }
 
-    function test_Dispute_Reject_RevertIf_DisputeDoesNotExist(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Dispute_Reject_RevertIf_DisputeDoesNotExist(uint256 tokens) public useIndexer useAllocation(tokens) {
         bytes32 disputeID = bytes32("0x0");
 
         resetPrank(users.arbitrator);
-        vm.expectRevert(abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerInvalidDispute.selector,
-            disputeID
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidDispute.selector, disputeID));
         disputeManager.rejectDispute(disputeID);
     }
 
-    function test_Dispute_Draw_RevertIf_DisputeDoesNotExist(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Dispute_Draw_RevertIf_DisputeDoesNotExist(uint256 tokens) public useIndexer useAllocation(tokens) {
         bytes32 disputeID = bytes32("0x0");
 
         resetPrank(users.arbitrator);
-        vm.expectRevert(abi.encodeWithSelector(
-            IDisputeManager.DisputeManagerInvalidDispute.selector,
-            disputeID
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerInvalidDispute.selector, disputeID));
         disputeManager.drawDispute(disputeID);
     }
 }

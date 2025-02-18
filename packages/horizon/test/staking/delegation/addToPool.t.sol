@@ -7,7 +7,6 @@ import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHor
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
 contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
-
     modifier useValidDelegationAmount(uint256 tokens) {
         vm.assume(tokens <= MAX_STAKING_TOKENS);
         vm.assume(tokens >= MIN_DELEGATION);
@@ -28,7 +27,13 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         uint256 amount,
         uint256 delegationAmount,
         uint256 addToPoolAmount
-    ) public useIndexer useProvision(amount, 0, 0) useValidDelegationAmount(delegationAmount) useValidAddToPoolAmount(addToPoolAmount) {
+    )
+        public
+        useIndexer
+        useProvision(amount, 0, 0)
+        useValidDelegationAmount(delegationAmount)
+        useValidAddToPoolAmount(addToPoolAmount)
+    {
         delegationAmount = bound(delegationAmount, 1, MAX_STAKING_TOKENS);
 
         // Initialize delegation pool
@@ -44,11 +49,17 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
     function test_Delegation_AddToPool_Payments(
         uint256 amount,
         uint256 delegationAmount
-    ) public useIndexer useProvision(amount, 0, 0) useValidDelegationAmount(delegationAmount) useValidAddToPoolAmount(delegationAmount) {
+    )
+        public
+        useIndexer
+        useProvision(amount, 0, 0)
+        useValidDelegationAmount(delegationAmount)
+        useValidAddToPoolAmount(delegationAmount)
+    {
         // Initialize delegation pool
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationAmount, 0);
-        
+
         resetPrank(address(payments));
         mint(address(payments), delegationAmount);
         token.approve(address(staking), delegationAmount);
@@ -59,7 +70,9 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         uint256 amount
     ) public useIndexer useProvision(amount, 0, 0) {
         vm.startPrank(subgraphDataServiceAddress);
-        bytes memory expectedError = abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingInvalidZeroTokens.selector);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IHorizonStakingMain.HorizonStakingInvalidZeroTokens.selector
+        );
         vm.expectRevert(expectedError);
         staking.addToDelegationPool(users.indexer, subgraphDataServiceAddress, 0);
     }
@@ -92,7 +105,7 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         uint256 tokens,
         uint256 delegationTokens,
         uint256 recoverAmount
-    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing {
         recoverAmount = bound(recoverAmount, 1, MAX_STAKING_TOKENS);
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 
@@ -110,12 +123,11 @@ contract HorizonStakingDelegationAddToPoolTest is HorizonStakingTest {
         _addToDelegationPool(users.indexer, subgraphDataServiceAddress, recoverAmount);
     }
 
-
     function test_Delegation_AddToPool_WhenInvalidPool_RevertWhen_PoolHasNoShares(
         uint256 tokens,
         uint256 delegationTokens,
         uint256 recoverAmount
-    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing() {
+    ) public useIndexer useProvision(tokens, 0, 0) useDelegationSlashing {
         recoverAmount = bound(recoverAmount, 1, MAX_STAKING_TOKENS);
         delegationTokens = bound(delegationTokens, MIN_DELEGATION, MAX_STAKING_TOKENS);
 

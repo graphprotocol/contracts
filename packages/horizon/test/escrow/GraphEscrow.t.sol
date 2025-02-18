@@ -61,7 +61,11 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
 
     function _cancelThawEscrow(address collector, address receiver) internal {
         (, address msgSender, ) = vm.readCallers();
-        (, uint256 amountThawingBefore, uint256 thawEndTimestampBefore) = escrow.escrowAccounts(msgSender, collector, receiver);
+        (, uint256 amountThawingBefore, uint256 thawEndTimestampBefore) = escrow.escrowAccounts(
+            msgSender,
+            collector,
+            receiver
+        );
 
         vm.expectEmit(address(escrow));
         emit IPaymentsEscrow.CancelThaw(msgSender, collector, receiver, amountThawingBefore, thawEndTimestampBefore);
@@ -84,7 +88,11 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         emit IPaymentsEscrow.Withdraw(msgSender, collector, receiver, amountToWithdraw);
         escrow.withdraw(collector, receiver);
 
-        (uint256 balanceAfter, uint256 tokensThawingAfter, uint256 thawEndTimestampAfter) = escrow.escrowAccounts(msgSender, collector, receiver);
+        (uint256 balanceAfter, uint256 tokensThawingAfter, uint256 thawEndTimestampAfter) = escrow.escrowAccounts(
+            msgSender,
+            collector,
+            receiver
+        );
         uint256 tokenBalanceAfterSender = token.balanceOf(msgSender);
         uint256 tokenBalanceAfterEscrow = token.balanceOf(address(escrow));
 
@@ -93,7 +101,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         assertEq(thawEndTimestampAfter, 0);
 
         assertEq(tokenBalanceAfterSender, tokenBalanceBeforeSender + amountToWithdraw);
-        assertEq(tokenBalanceAfterEscrow, tokenBalanceBeforeEscrow - amountToWithdraw);        
+        assertEq(tokenBalanceAfterEscrow, tokenBalanceBeforeEscrow - amountToWithdraw);
     }
 
     struct CollectPaymentData {

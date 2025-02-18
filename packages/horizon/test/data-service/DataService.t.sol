@@ -65,7 +65,10 @@ contract DataServiceTest is HorizonStakingSharedTest {
         assertEq(max, dataServiceOverride.PROVISION_TOKENS_MAX());
     }
 
-    function test_ProvisionTokens_WhenCheckingAValidProvision_WithThawing(uint256 tokens, uint256 tokensThaw) external useIndexer {
+    function test_ProvisionTokens_WhenCheckingAValidProvision_WithThawing(
+        uint256 tokens,
+        uint256 tokensThaw
+    ) external useIndexer {
         dataService.setProvisionTokensRange(dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
         tokens = bound(tokens, dataService.PROVISION_TOKENS_MIN(), dataService.PROVISION_TOKENS_MAX());
         tokensThaw = bound(tokensThaw, tokens - dataService.PROVISION_TOKENS_MIN() + 1, tokens);
@@ -313,12 +316,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        _setProvisionParameters(
-            users.indexer,
-            address(dataService),
-            dataService.VERIFIER_CUT_MIN(),
-            thawingPeriod
-        );
+        _setProvisionParameters(users.indexer, address(dataService), dataService.VERIFIER_CUT_MIN(), thawingPeriod);
 
         // accept provision parameters
         vm.expectRevert(
@@ -351,12 +349,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
             dataService.VERIFIER_CUT_MIN(),
             dataService.THAWING_PERIOD_MIN()
         );
-        _setProvisionParameters(
-            users.indexer,
-            address(dataService),
-            maxVerifierCut,
-            dataService.THAWING_PERIOD_MIN()
-        );
+        _setProvisionParameters(users.indexer, address(dataService), maxVerifierCut, dataService.THAWING_PERIOD_MIN());
 
         // accept provision parameters
         if (maxVerifierCut != dataService.VERIFIER_CUT_MIN()) {

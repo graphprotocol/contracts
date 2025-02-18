@@ -86,13 +86,19 @@ contract ProvisionTrackerTest is HorizonStakingSharedTest, ProvisionTrackerImple
         assertEq(provisionTracker[users.indexer], delta);
     }
 
-    function test_Release_RevertGiven_TheProvisionHasInsufficientLockedTokens(uint256 tokens) external useIndexer useProvisionDataService(address(this), tokens, 0, 0) {
+    function test_Release_RevertGiven_TheProvisionHasInsufficientLockedTokens(
+        uint256 tokens
+    ) external useIndexer useProvisionDataService(address(this), tokens, 0, 0) {
         // setup
         provisionTracker.lock(staking, users.indexer, tokens, uint32(0));
 
         uint256 tokensToRelease = tokens + 1;
         vm.expectRevert(
-            abi.encodeWithSelector(ProvisionTracker.ProvisionTrackerInsufficientTokens.selector, tokens, tokensToRelease)
+            abi.encodeWithSelector(
+                ProvisionTracker.ProvisionTrackerInsufficientTokens.selector,
+                tokens,
+                tokensToRelease
+            )
         );
         provisionTracker.release(users.indexer, tokensToRelease);
     }
