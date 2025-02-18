@@ -52,14 +52,6 @@ export const networksUserConfig: BaseNetworksUserConfig = {
       subgraphService: resolveLocalAddressBook('@graphprotocol/subgraph-service/addresses.json'),
     },
   },
-  localhostNoSecureAccounts: {
-    chainId: 31337,
-    url: 'http://localhost:8545',
-    deployments: {
-      horizon: resolveLocalAddressBook('@graphprotocol/horizon/addresses.json'),
-      subgraphService: resolveLocalAddressBook('@graphprotocol/subgraph-service/addresses.json'),
-    },
-  },
   localhost: {
     chainId: 31337,
     url: 'http://localhost:8545',
