@@ -1,0 +1,32 @@
+
+{
+  "$global": {
+    "governor": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "arbitrator": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
+
+    // Must be set for step 2 of the deployment
+    "controllerAddress": "",
+    "disputeManagerProxyAddress": "",
+    "curationAddress": "",
+    "curationImplementationAddress": ""
+  },
+  "DisputeManager": {
+    "disputePeriod": 2419200,
+    "disputeDeposit": "10000000000000000000000n",
+    "fishermanRewardCut": 500000,
+    "maxSlashingCut": 1000000,
+
+    // Must be set for step 2 of the deployment
+    "disputeManagerProxyAdminAddress": "",
+  },
+  "SubgraphService": {
+    "minimumProvisionTokens": "100000000000000000000000n",
+    "maximumDelegationRatio": 16,
+    "stakeToFeesRatio": 2,
+
+   // Must be set for step 2 of the deployment
+    "subgraphServiceProxyAddress": "",
+    "subgraphServiceProxyAdminAddress": "",
+    "graphTallyCollectorAddress": ""
+  }
+}

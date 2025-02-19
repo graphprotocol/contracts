@@ -8,12 +8,13 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 import DeployModule from '../ignition/modules/deploy'
 
 task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon contracts - no data services deployed')
-  .setAction(async (_, hre: HardhatRuntimeEnvironment) => {
+  .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const graph = hre.graph()
 
     // Load configuration for the deployment
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: HorizonConfig, file } = IgnitionHelper.loadConfig('./ignition/configs/', 'horizon', hre.network.name)
+    const { config: HorizonConfig, file } = IgnitionHelper.loadConfig('./ignition/configs/', 'protocol', args.horizonConfig ?? hre.network.name)
     console.log(`Loaded migration configuration from ${file}`)
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
@@ -44,6 +45,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
   })
 
 task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to Horizon - no data services deployed')
+  .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
   .addOptionalParam('step', 'Migration step to run (1, 2, 3 or 4)', undefined, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
@@ -66,7 +68,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     // Load configuration for the migration
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: HorizonMigrateConfig, file } = IgnitionHelper.loadConfig('./ignition/configs/', 'horizon-migrate', `horizon-${hre.network.name}`)
+    const { config: HorizonMigrateConfig, file } = IgnitionHelper.loadConfig('./ignition/configs/', 'migrate', args.horizonConfig ?? hre.network.name)
     console.log(`Loaded migration configuration from ${file}`)
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
