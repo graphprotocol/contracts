@@ -32,7 +32,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     // Deploy the contracts
     console.log(`\n========== 🚧 Deploy protocol ==========`)
     const deployment = await hre.ignition.deploy(DeployModule, {
-      displayUi: true,
+      displayUi: args.displayUi ?? true,
       parameters: HorizonConfig,
     })
 
