@@ -13,6 +13,7 @@ The following environment variables might be required:
 | `ARBITRUM_SEPOLIA_RPC` | Arbitrum Sepolia RPC URL - defaults to `https://sepolia-rollup.arbitrum.io/rpc` |
 | `LOCALHOST_RPC` | Localhost RPC URL - defaults to `http://localhost:8545` |
 | `LOCALHOST_CHAIN_ID` | Localhost chain ID - defaults to `31337` |
+| `LOCALHOST_ACCOUNTS_MNEMONIC` | Localhost accounts mnemonic - no default value. Note that setting this will override any secure accounts configuration. |
 
 You can set them using Hardhat:
 

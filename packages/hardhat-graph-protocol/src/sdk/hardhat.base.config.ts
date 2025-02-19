@@ -60,6 +60,9 @@ export const networksUserConfig: BaseNetworksUserConfig = {
     secureAccounts: {
       enabled: true,
     },
+    ...(vars.has('LOCALHOST_ACCOUNTS_MNEMONIC') && {
+      accounts: { mnemonic: vars.get('LOCALHOST_ACCOUNTS_MNEMONIC') },
+    }),
     deployments: {
       horizon: resolveLocalAddressBook('@graphprotocol/horizon/addresses.json'),
       subgraphService: resolveLocalAddressBook('@graphprotocol/subgraph-service/addresses.json'),

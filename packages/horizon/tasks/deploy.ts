@@ -133,7 +133,6 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
           subgraphServiceAddress: SubgraphService3.address,
         },
       })
-      console.log(patchedConfig)
       break
     case 4:
       const HorizonStaking = horizonAddressBook.getEntry('HorizonStaking')
