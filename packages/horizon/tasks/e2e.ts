@@ -14,10 +14,7 @@ task('test:integration', 'Runs all integration tests')
     if (taskArgs.deployType) {
       switch (taskArgs.deployType.toLowerCase()) {
         case 'deploy':
-          await hre.run('deploy', { deploymentId: 'integration-tests' })
-          break
-        case 'migrate':
-          await hre.run('migrate')
+          await hre.run('deploy:protocol')
           break
         default:
           throw new Error('Invalid mode. Must be either deploy or migrate')
@@ -26,7 +23,9 @@ task('test:integration', 'Runs all integration tests')
 
     const testFiles = await glob('test/integration/**/*.{js,ts}')
 
-    // Use local addresses
+    // Initialize graph config if not exists
+    hre.config.graph = hre.config.graph || {}
+    hre.config.graph.deployments = hre.config.graph.deployments || {}
     hre.config.graph.deployments.horizon = './addresses-local.json'
 
     await hre.run(TASK_TEST, { testFiles: testFiles })
