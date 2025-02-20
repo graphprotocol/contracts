@@ -4,32 +4,6 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ThawRequestType } from '../utils/types'
 
 /* //////////////////////////////////////////////////////////////
-                        INTERFACE DEFINITIONS
-////////////////////////////////////////////////////////////// */
-
-interface ProvisionParams {
-  horizonStaking: HorizonStaking
-  serviceProvider: SignerWithAddress
-  verifier: string
-  tokens: bigint
-  signer?: SignerWithAddress
-}
-
-interface CreateProvisionParams extends ProvisionParams {
-  maxVerifierCut: number
-  thawingPeriod: number
-}
-
-interface DeprovisionParams extends Omit<ProvisionParams, 'tokens'> {
-  nThawRequests: bigint
-}
-
-interface ReprovisionParams extends Omit<ProvisionParams, 'tokens'> {
-  newVerifier: string
-  nThawRequests: bigint
-}
-
-/* //////////////////////////////////////////////////////////////
                           STAKE MANAGEMENT
 ////////////////////////////////////////////////////////////// */
 
@@ -91,6 +65,28 @@ export async function stakeToProvision(
 /* ////////////////////////////////////////////////////////////
                         PROVISION MANAGEMENT
 ////////////////////////////////////////////////////////////// */
+
+interface ProvisionParams {
+  horizonStaking: HorizonStaking
+  serviceProvider: SignerWithAddress
+  verifier: string
+  tokens: bigint
+  signer?: SignerWithAddress
+}
+
+interface CreateProvisionParams extends ProvisionParams {
+  maxVerifierCut: number
+  thawingPeriod: number
+}
+
+interface DeprovisionParams extends Omit<ProvisionParams, 'tokens'> {
+  nThawRequests: bigint
+}
+
+interface ReprovisionParams extends Omit<ProvisionParams, 'tokens'> {
+  newVerifier: string
+  nThawRequests: bigint
+}
 
 export async function createProvision({
   horizonStaking,
@@ -213,6 +209,110 @@ export async function reprovision({
     nThawRequests,
   )
   await reprovisionTx.wait()
+}
+
+/* ////////////////////////////////////////////////////////////
+                            DELEGATION
+////////////////////////////////////////////////////////////// */
+
+interface DelegationParams {
+  horizonStaking: HorizonStaking
+  delegator: SignerWithAddress
+  serviceProvider: SignerWithAddress
+  verifier: string
+}
+
+interface DelegateParams extends DelegationParams {
+  graphToken: IGraphToken
+  tokens: bigint
+  minSharesOut: bigint
+}
+
+export async function delegate({
+  horizonStaking,
+  graphToken,
+  delegator,
+  serviceProvider,
+  verifier,
+  tokens,
+  minSharesOut,
+}: DelegateParams): Promise<void> {
+  // Approve horizon staking contract to pull tokens from delegator
+  await approve(graphToken, delegator, await horizonStaking.getAddress(), tokens)
+
+  const delegateTx = await horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](
+    serviceProvider.address,
+    verifier,
+    tokens,
+    minSharesOut,
+  )
+  await delegateTx.wait()
+}
+
+interface UndelegateParams extends DelegationParams {
+  shares: bigint
+}
+
+export async function undelegate({
+  horizonStaking,
+  delegator,
+  serviceProvider,
+  verifier,
+  shares,
+}: UndelegateParams): Promise<void> {
+  const undelegateTx = await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](
+    serviceProvider.address,
+    verifier,
+    shares,
+  )
+  await undelegateTx.wait()
+}
+
+interface WithdrawDelegatedParams extends DelegationParams {
+  nThawRequests: bigint
+}
+
+interface RedelegateParams extends DelegationParams {
+  newServiceProvider: SignerWithAddress
+  newVerifier: string
+  minSharesForNewProvider: bigint
+  nThawRequests: bigint
+}
+
+export async function redelegate({
+  horizonStaking,
+  delegator,
+  serviceProvider,
+  verifier,
+  newServiceProvider,
+  newVerifier,
+  minSharesForNewProvider,
+  nThawRequests,
+}: RedelegateParams): Promise<void> {
+  const redelegateTx = await horizonStaking.connect(delegator).redelegate(
+    serviceProvider.address,
+    verifier,
+    newServiceProvider.address,
+    newVerifier,
+    minSharesForNewProvider,
+    nThawRequests,
+  )
+  await redelegateTx.wait()
+}
+
+export async function withdrawDelegated({
+  horizonStaking,
+  delegator,
+  serviceProvider,
+  verifier,
+  nThawRequests,
+}: WithdrawDelegatedParams): Promise<void> {
+  const withdrawDelegatedTx = await horizonStaking.connect(delegator)['withdrawDelegated(address,address,uint256)'](
+    serviceProvider.address,
+    verifier,
+    nThawRequests,
+  )
+  await withdrawDelegatedTx.wait()
 }
 
 /* ////////////////////////////////////////////////////////////
