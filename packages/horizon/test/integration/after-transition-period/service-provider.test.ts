@@ -4,7 +4,16 @@ import { expect } from 'chai'
 import { HorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
-import { addToProvision, createProvision, deprovision, reprovision, stake, stakeToProvision, thaw, unstake } from '../shared/staking'
+import {
+  addToProvision,
+  createProvision,
+  deprovision,
+  reprovision,
+  stake,
+  stakeToProvision,
+  thaw,
+  unstake,
+} from '../shared/staking'
 import { PaymentTypes } from '../utils/types'
 
 describe('HorizonStaking Integration Tests', () => {
