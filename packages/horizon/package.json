@@ -19,7 +19,7 @@
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "BUILD_RUN=true hardhat compile",
-    "test": "forge test && hardhat test"
+    "test": "forge test"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
@@ -49,7 +49,6 @@
     "hardhat-gas-reporter": "^1.0.8",
     "hardhat-graph-protocol": "workspace:^0.0.1",
     "hardhat-secure-accounts": "^1.0.5",
-    "hardhat-storage-layout": "^0.1.7",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "prettier-plugin-solidity": "^1.3.1",
