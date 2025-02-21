@@ -3,30 +3,29 @@ import { task } from 'hardhat/config'
 import { glob } from 'glob'
 
 task('test:integration', 'Runs all integration tests')
-  .addOptionalParam('deployType', 'Chose between deploy or migrate. If not specified, skips deployment.')
+  .addParam(
+    'phase',
+    'Test phase to run: "during-transition", "after-transition", "after-delegation-slashing"',
+  )
   .setAction(async (taskArgs, hre) => {
-    // Require hardhat or localhost network
-    if (hre.network.name !== 'hardhat' && hre.network.name !== 'localhost') {
-      throw new Error('Integration tests can only be run on the hardhat or localhost network')
+    // Get test files for each phase
+    const duringTransitionPeriodFiles = await glob('test/integration/during-transition-period/**/*.{js,ts}')
+    const afterTransitionPeriodFiles = await glob('test/integration/after-transition-period/**/*.{js,ts}')
+    const afterDelegationSlashingEnabledFiles = await glob('test/integration/after-delegation-slashing-enabled/**/*.{js,ts}')
+
+    switch (taskArgs.phase) {
+      case 'during-transition':
+        await hre.run(TASK_TEST, { testFiles: duringTransitionPeriodFiles })
+        break
+      case 'after-transition':
+        await hre.run(TASK_TEST, { testFiles: afterTransitionPeriodFiles })
+        break
+      case 'after-delegation-slashing':
+        await hre.run(TASK_TEST, { testFiles: afterDelegationSlashingEnabledFiles })
+        break
+      default:
+        throw new Error(
+          'Invalid phase. Must be "during-transition", "after-transition", "after-delegation-slashing", or "all"',
+        )
     }
-
-    // Handle deployment if mode is specified
-    if (taskArgs.deployType) {
-      switch (taskArgs.deployType.toLowerCase()) {
-        case 'deploy':
-          await hre.run('deploy:protocol')
-          break
-        default:
-          throw new Error('Invalid mode. Must be either deploy or migrate')
-      }
-    }
-
-    const testFiles = await glob('test/integration/**/*.{js,ts}')
-
-    // Initialize graph config if not exists
-    hre.config.graph = hre.config.graph || {}
-    hre.config.graph.deployments = hre.config.graph.deployments || {}
-    hre.config.graph.deployments.horizon = './addresses-local.json'
-
-    await hre.run(TASK_TEST, { testFiles: testFiles })
   })

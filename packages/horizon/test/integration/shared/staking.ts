@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import { HorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ThawRequestType } from '../utils/types'
+import { HDNodeWallet } from 'ethers'
 
 /* //////////////////////////////////////////////////////////////
                           STAKE MANAGEMENT
@@ -66,7 +67,7 @@ export async function stakeToProvision({
 }: StakeToProvisionParams): Promise<void> {
   // Verify provision exists
   const provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
-  expect(provision.tokens).to.not.equal(0, 'Provision should exist')
+  expect(provision.createdAt).to.not.equal(0n, 'Provision should exist')
 
   const approveTx = await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokens)
   await approveTx.wait()
@@ -80,7 +81,7 @@ export async function stakeToProvision({
 }
 
 interface SlashParams extends Omit<StakeParams, 'graphToken'> {
-  verifier: SignerWithAddress
+  verifier: SignerWithAddress | HDNodeWallet
   tokens: bigint
   tokensVerifier: bigint
   verifierDestination: string
