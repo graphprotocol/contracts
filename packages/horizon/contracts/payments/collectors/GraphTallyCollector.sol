@@ -4,26 +4,24 @@ pragma solidity 0.8.27;
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 import { IGraphTallyCollector } from "../../interfaces/IGraphTallyCollector.sol";
 
+import { Authorizable } from "../../utilities/Authorizable.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
 
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title GraphTallyCollector contract
- * @dev Implements the {IGraphTallyCollector} and {IPaymentCollector} interfaces.
+ * @dev Implements the {IGraphTallyCollector}, {IPaymentCollector} and {IAuthorizable} interfaces.
  * @notice A payments collector contract that can be used to collect payments using a GraphTally RAV (Receipt Aggregate Voucher).
  * @dev Note that the contract expects the RAV aggregate value to be monotonically increasing, each successive RAV for the same
  * (data service-payer-receiver) tuple should have a value greater than the previous one. The contract will keep track of the tokens
  * already collected and calculate the difference to collect.
- * @dev The contract also implements a mechanism to authorize signers to sign RAVs on behalf of a payer. Signers cannot be reused
- * for different payers.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-contract GraphTallyCollector is EIP712, GraphDirectory, IGraphTallyCollector {
+contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTallyCollector {
     using PPMMath for uint256;
 
     /// @notice The EIP712 typehash for the ReceiptAggregateVoucher struct
@@ -32,17 +30,11 @@ contract GraphTallyCollector is EIP712, GraphDirectory, IGraphTallyCollector {
             "ReceiptAggregateVoucher(address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
         );
 
-    /// @notice Authorization details for payer-signer pairs
-    mapping(address signer => PayerAuthorization authorizedSigner) public authorizedSigners;
-
     /// @notice Tracks the amount of tokens already collected by a data service from a payer to a receiver.
     /// @dev The collectionId provides a secondary key for grouping payment tracking if needed. Data services that do not require
     /// grouping can use the same collectionId for all payments (0x00 or some other default value).
     mapping(address dataService => mapping(bytes32 collectionId => mapping(address receiver => mapping(address payer => uint256 tokens))))
         public tokensCollected;
-
-    /// @notice The duration (in seconds) in which a signer is thawing before they can be revoked
-    uint256 public immutable REVOKE_SIGNER_THAWING_PERIOD;
 
     /**
      * @notice Constructs a new instance of the GraphTallyCollector contract.
@@ -56,72 +48,7 @@ contract GraphTallyCollector is EIP712, GraphDirectory, IGraphTallyCollector {
         string memory eip712Version,
         address controller,
         uint256 revokeSignerThawingPeriod
-    ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) {
-        REVOKE_SIGNER_THAWING_PERIOD = revokeSignerThawingPeriod;
-    }
-
-    /**
-     * See {IGraphTallyCollector.authorizeSigner}.
-     */
-    function authorizeSigner(address signer, uint256 proofDeadline, bytes calldata proof) external override {
-        require(
-            authorizedSigners[signer].payer == address(0),
-            GraphTallyCollectorSignerAlreadyAuthorized(authorizedSigners[signer].payer, signer)
-        );
-
-        _verifyAuthorizedSignerProof(proof, proofDeadline, signer);
-
-        authorizedSigners[signer].payer = msg.sender;
-        authorizedSigners[signer].thawEndTimestamp = 0;
-        emit SignerAuthorized(msg.sender, signer);
-    }
-
-    /**
-     * See {IGraphTallyCollector.thawSigner}.
-     */
-    function thawSigner(address signer) external override {
-        PayerAuthorization storage authorization = authorizedSigners[signer];
-
-        require(authorization.payer == msg.sender, GraphTallyCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
-        require(!authorization.revoked, GraphTallyCollectorAuthorizationAlreadyRevoked(msg.sender, signer));
-        require(
-            authorization.thawEndTimestamp == 0,
-            GraphTallyCollectorSignerAlreadyThawing(signer, authorization.thawEndTimestamp)
-        );
-
-        authorization.thawEndTimestamp = block.timestamp + REVOKE_SIGNER_THAWING_PERIOD;
-        emit SignerThawing(msg.sender, signer, authorization.thawEndTimestamp);
-    }
-
-    /**
-     * See {IGraphTallyCollector.cancelThawSigner}.
-     */
-    function cancelThawSigner(address signer) external override {
-        PayerAuthorization storage authorization = authorizedSigners[signer];
-
-        require(authorization.payer == msg.sender, GraphTallyCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
-        require(authorization.thawEndTimestamp > 0, GraphTallyCollectorSignerNotThawing(signer));
-
-        authorization.thawEndTimestamp = 0;
-        emit SignerThawCanceled(msg.sender, signer, 0);
-    }
-
-    /**
-     * See {IGraphTallyCollector.revokeAuthorizedSigner}.
-     */
-    function revokeAuthorizedSigner(address signer) external override {
-        PayerAuthorization storage authorization = authorizedSigners[signer];
-
-        require(authorization.payer == msg.sender, GraphTallyCollectorSignerNotAuthorizedByPayer(msg.sender, signer));
-        require(authorization.thawEndTimestamp > 0, GraphTallyCollectorSignerNotThawing(signer));
-        require(
-            authorization.thawEndTimestamp <= block.timestamp,
-            GraphTallyCollectorSignerStillThawing(block.timestamp, authorization.thawEndTimestamp)
-        );
-
-        authorization.revoked = true;
-        emit SignerRevoked(msg.sender, signer);
-    }
+    ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {}
 
     /**
      * @notice Initiate a payment collection through the payments protocol
@@ -174,16 +101,8 @@ contract GraphTallyCollector is EIP712, GraphDirectory, IGraphTallyCollector {
             GraphTallyCollectorCallerNotDataService(msg.sender, signedRAV.rav.dataService)
         );
 
-        // Ensure RAV signer is authorized for a payer
-        address signer = _recoverRAVSigner(signedRAV);
-        require(
-            authorizedSigners[signer].payer != address(0) && !authorizedSigners[signer].revoked,
-            GraphTallyCollectorInvalidRAVSigner()
-        );
-
-        // Ensure RAV payer matches the authorized payer
-        address payer = authorizedSigners[signer].payer;
-        require(signedRAV.rav.payer == payer, GraphTallyCollectorInvalidRAVPayer(payer, signedRAV.rav.payer));
+        // Ensure RAV signer is authorized for the payer
+        _requireAuthorizedSigner(signedRAV);
 
         bytes32 collectionId = signedRAV.rav.collectionId;
         address dataService = signedRAV.rav.dataService;
@@ -201,6 +120,7 @@ contract GraphTallyCollector is EIP712, GraphDirectory, IGraphTallyCollector {
         }
 
         uint256 tokensToCollect = 0;
+        address payer = signedRAV.rav.payer;
         {
             uint256 tokensRAV = signedRAV.rav.valueAggregate;
             uint256 tokensAlreadyCollected = tokensCollected[dataService][collectionId][receiver][payer];
@@ -273,26 +193,10 @@ contract GraphTallyCollector is EIP712, GraphDirectory, IGraphTallyCollector {
             );
     }
 
-    /**
-     * @notice Verify the proof provided by the payer authorizing the signer
-     * @param _proof The proof provided by the payer authorizing the signer
-     * @param _proofDeadline The deadline by which the proof must be verified
-     * @param _signer The signer to be authorized
-     */
-    function _verifyAuthorizedSignerProof(bytes calldata _proof, uint256 _proofDeadline, address _signer) private view {
-        // Verify that the proofDeadline has not passed
+    function _requireAuthorizedSigner(SignedRAV memory _signedRAV) private view {
         require(
-            _proofDeadline > block.timestamp,
-            GraphTallyCollectorInvalidSignerProofDeadline(_proofDeadline, block.timestamp)
+            _isAuthorized(_signedRAV.rav.payer, _recoverRAVSigner(_signedRAV)),
+            GraphTallyCollectorInvalidRAVSigner()
         );
-
-        // Generate the hash of the payer's address
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, address(this), _proofDeadline, msg.sender));
-
-        // Generate the digest to be signed by the signer
-        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
-
-        // Verify that the recovered signer matches the expected signer
-        require(ECDSA.recover(digest, _proof) == _signer, GraphTallyCollectorInvalidSignerProof());
     }
 }

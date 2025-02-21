@@ -242,12 +242,7 @@ contract GraphTallyCollectTest is GraphTallyTest {
         bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
 
         resetPrank(users.verifier);
-        bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorInvalidRAVPayer.selector,
-            users.gateway,
-            anotherPayer
-        );
-        vm.expectRevert(expectedError);
+        vm.expectRevert(IGraphTallyCollector.GraphTallyCollectorInvalidRAVSigner.selector);
         graphTallyCollector.collect(IGraphPayments.PaymentTypes.QueryFee, data);
     }
 

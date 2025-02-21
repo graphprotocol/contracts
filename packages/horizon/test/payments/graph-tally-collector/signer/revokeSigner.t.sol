@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTallyCollector.sol";
+import { IAuthorizable } from "../../../../contracts/interfaces/IAuthorizable.sol";
 
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 
@@ -23,7 +23,7 @@ contract GraphTallyRevokeAuthorizedSignerTest is GraphTallyTest {
 
     function testGraphTally_RevokeAuthorizedSigner_RevertWhen_NotAuthorized() public useGateway {
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorSignerNotAuthorizedByPayer.selector,
+            IAuthorizable.AuthorizableSignerNotAuthorized.selector,
             users.gateway,
             signer
         );
@@ -33,7 +33,7 @@ contract GraphTallyRevokeAuthorizedSignerTest is GraphTallyTest {
 
     function testGraphTally_RevokeAuthorizedSigner_RevertWhen_NotThawing() public useGateway useSigner {
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorSignerNotThawing.selector,
+            IAuthorizable.AuthorizableSignerNotThawing.selector,
             signer
         );
         vm.expectRevert(expectedError);
@@ -43,7 +43,7 @@ contract GraphTallyRevokeAuthorizedSignerTest is GraphTallyTest {
     function testGraphTally_RevokeAuthorizedSigner_RevertWhen_StillThawing() public useGateway useSigner {
         _thawSigner(signer);
         bytes memory expectedError = abi.encodeWithSelector(
-            IGraphTallyCollector.GraphTallyCollectorSignerStillThawing.selector,
+            IAuthorizable.AuthorizableSignerStillThawing.selector,
             block.timestamp,
             block.timestamp + revokeSignerThawingPeriod
         );

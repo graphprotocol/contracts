@@ -9,6 +9,7 @@ import { IHorizonStakingMain } from "../../../contracts/interfaces/internal/IHor
 import { IGraphTallyCollector } from "../../../contracts/interfaces/IGraphTallyCollector.sol";
 import { IPaymentsCollector } from "../../../contracts/interfaces/IPaymentsCollector.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
+import { IAuthorizable } from "../../../contracts/interfaces/IAuthorizable.sol";
 import { GraphTallyCollector } from "../../../contracts/payments/collectors/GraphTallyCollector.sol";
 import { PPMMath } from "../../../contracts/libraries/PPMMath.sol";
 
@@ -49,7 +50,13 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
     function _getSignerProof(uint256 _proofDeadline, uint256 _signer) internal returns (bytes memory) {
         (, address msgSender, ) = vm.readCallers();
         bytes32 messageHash = keccak256(
-            abi.encodePacked(block.chainid, address(graphTallyCollector), _proofDeadline, msgSender)
+            abi.encodePacked(
+                block.chainid,
+                address(graphTallyCollector),
+                "authorizeSignerProof",
+                _proofDeadline,
+                msgSender
+            )
         );
         bytes32 proofToDigest = MessageHashUtils.toEthSignedMessageHash(messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_signer, proofToDigest);
@@ -64,14 +71,11 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         (, address msgSender, ) = vm.readCallers();
 
         vm.expectEmit(address(graphTallyCollector));
-        emit IGraphTallyCollector.SignerAuthorized(msgSender, _signer);
+        emit IAuthorizable.SignerAuthorized(msgSender, _signer);
 
         graphTallyCollector.authorizeSigner(_signer, _proofDeadline, _proof);
-
-        (address _payer, uint256 thawEndTimestamp, bool revoked) = graphTallyCollector.authorizedSigners(_signer);
-        assertEq(_payer, msgSender);
-        assertEq(thawEndTimestamp, 0);
-        assertEq(revoked, false);
+        assertTrue(graphTallyCollector.isAuthorized(msgSender, _signer));
+        assertEq(graphTallyCollector.getThawEnd(_signer), 0);
     }
 
     function _thawSigner(address _signer) internal {
@@ -79,47 +83,38 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         uint256 expectedThawEndTimestamp = block.timestamp + revokeSignerThawingPeriod;
 
         vm.expectEmit(address(graphTallyCollector));
-        emit IGraphTallyCollector.SignerThawing(msgSender, _signer, expectedThawEndTimestamp);
+        emit IAuthorizable.SignerThawing(msgSender, _signer, expectedThawEndTimestamp);
 
         graphTallyCollector.thawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp, bool revoked) = graphTallyCollector.authorizedSigners(_signer);
-        assertEq(_payer, msgSender);
-        assertEq(thawEndTimestamp, expectedThawEndTimestamp);
-        assertEq(revoked, false);
+        assertTrue(graphTallyCollector.isAuthorized(msgSender, _signer));
+        assertEq(graphTallyCollector.getThawEnd(_signer), expectedThawEndTimestamp);
     }
 
     function _cancelThawSigner(address _signer) internal {
         (, address msgSender, ) = vm.readCallers();
 
         vm.expectEmit(address(graphTallyCollector));
-        emit IGraphTallyCollector.SignerThawCanceled(msgSender, _signer, 0);
+        emit IAuthorizable.SignerThawCanceled(msgSender, _signer, graphTallyCollector.getThawEnd(_signer));
 
         graphTallyCollector.cancelThawSigner(_signer);
 
-        (address _payer, uint256 thawEndTimestamp, bool revoked) = graphTallyCollector.authorizedSigners(_signer);
-        assertEq(_payer, msgSender);
-        assertEq(thawEndTimestamp, 0);
-        assertEq(revoked, false);
+        assertTrue(graphTallyCollector.isAuthorized(msgSender, _signer));
+        assertEq(graphTallyCollector.getThawEnd(_signer), 0);
     }
 
     function _revokeAuthorizedSigner(address _signer) internal {
         (, address msgSender, ) = vm.readCallers();
 
-        (address beforePayer, uint256 beforeThawEndTimestamp, ) = graphTallyCollector.authorizedSigners(_signer);
+        assertTrue(graphTallyCollector.isAuthorized(msgSender, _signer));
+        assertLt(graphTallyCollector.getThawEnd(_signer), block.timestamp);
 
         vm.expectEmit(address(graphTallyCollector));
-        emit IGraphTallyCollector.SignerRevoked(msgSender, _signer);
+        emit IAuthorizable.SignerRevoked(msgSender, _signer);
 
         graphTallyCollector.revokeAuthorizedSigner(_signer);
 
-        (address afterPayer, uint256 afterThawEndTimestamp, bool afterRevoked) = graphTallyCollector.authorizedSigners(
-            _signer
-        );
-
-        assertEq(beforePayer, afterPayer);
-        assertEq(beforeThawEndTimestamp, afterThawEndTimestamp);
-        assertEq(afterRevoked, true);
+        assertFalse(graphTallyCollector.isAuthorized(msgSender, _signer));
     }
 
     function _collect(IGraphPayments.PaymentTypes _paymentType, bytes memory _data) internal {
@@ -139,14 +134,11 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
             _data,
             (IGraphTallyCollector.SignedRAV, uint256)
         );
-        bytes32 messageHash = graphTallyCollector.encodeRAV(signedRAV.rav);
-        address _signer = ECDSA.recover(messageHash, signedRAV.signature);
-        (address _payer, , ) = graphTallyCollector.authorizedSigners(_signer);
         uint256 tokensAlreadyCollected = graphTallyCollector.tokensCollected(
             signedRAV.rav.dataService,
             signedRAV.rav.collectionId,
             signedRAV.rav.serviceProvider,
-            _payer
+            signedRAV.rav.payer
         );
         uint256 tokensToCollect = _tokensToCollect == 0
             ? signedRAV.rav.valueAggregate - tokensAlreadyCollected
@@ -156,7 +148,7 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         emit IPaymentsCollector.PaymentCollected(
             _paymentType,
             signedRAV.rav.collectionId,
-            _payer,
+            signedRAV.rav.payer,
             signedRAV.rav.serviceProvider,
             signedRAV.rav.dataService,
             tokensToCollect
@@ -164,7 +156,7 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         vm.expectEmit(address(graphTallyCollector));
         emit IGraphTallyCollector.RAVCollected(
             signedRAV.rav.collectionId,
-            _payer,
+            signedRAV.rav.payer,
             signedRAV.rav.serviceProvider,
             signedRAV.rav.dataService,
             signedRAV.rav.timestampNs,
@@ -180,7 +172,7 @@ contract GraphTallyTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
             signedRAV.rav.dataService,
             signedRAV.rav.collectionId,
             signedRAV.rav.serviceProvider,
-            _payer
+            signedRAV.rav.payer
         );
         assertEq(tokensCollected, tokensToCollect);
         assertEq(
