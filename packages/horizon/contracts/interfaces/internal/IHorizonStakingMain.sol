@@ -363,6 +363,13 @@ interface IHorizonStakingMain {
     error HorizonStakingNotAuthorized(address serviceProvider, address verifier, address caller);
 
     /**
+     * @notice Thrown when attempting to create a provision with a verifier other than the
+     * subgraph data service. This restriction only applies during the transition period.
+     * @param verifier The verifier address
+     */
+    error HorizonStakingInvalidVerifier(address verifier);
+
+    /**
      * @notice Thrown when attempting to create a provision with an invalid maximum verifier cut.
      * @param maxVerifierCut The maximum verifier cut
      */
@@ -562,6 +569,8 @@ interface IHorizonStakingMain {
      * service, where the data service is the verifier.
      * This function can be called by the service provider or by an operator authorized by the provider
      * for this specific verifier.
+     * @dev During the transition period, only the subgraph data service can be used as a verifier. This
+     * prevents an escape hatch for legacy allocation stake.
      * @dev Requirements:
      * - `tokens` cannot be zero.
      * - The `serviceProvider` must have enough idle stake to cover the tokens to provision.

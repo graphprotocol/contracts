@@ -62,10 +62,10 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         _setStorage_ServiceProvider(users.indexer, tokensLocked, 0, tokensLocked, block.number, 0);
 
         // create provision, thaw and deprovision
-        _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
-        _thaw(users.indexer, subgraphDataServiceAddress, tokens);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
+        _thaw(users.indexer, subgraphDataServiceLegacyAddress, tokens);
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
+        _deprovision(users.indexer, subgraphDataServiceLegacyAddress, 0);
 
         // unstake
         _unstake(tokensToUnstake);
@@ -90,10 +90,10 @@ contract HorizonStakingUnstakeTest is HorizonStakingTest {
         _setStorage_ServiceProvider(users.indexer, tokensThawing, 0, tokensThawing, tokensThawingUntilBlock, 0);
 
         // create provision, thaw and deprovision
-        _createProvision(users.indexer, subgraphDataServiceAddress, tokens, 0, MAX_THAWING_PERIOD);
-        _thaw(users.indexer, subgraphDataServiceAddress, tokens);
+        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, MAX_THAWING_PERIOD);
+        _thaw(users.indexer, subgraphDataServiceLegacyAddress, tokens);
         skip(MAX_THAWING_PERIOD + 1);
-        _deprovision(users.indexer, subgraphDataServiceAddress, 0);
+        _deprovision(users.indexer, subgraphDataServiceLegacyAddress, 0);
 
         // unstake
         _unstake(tokensToUnstake);
