@@ -7,46 +7,63 @@ import { ThawRequestType } from '../utils/types'
                           STAKE MANAGEMENT
 ////////////////////////////////////////////////////////////// */
 
-export async function stake(
-  horizonStaking: HorizonStaking,
-  graphToken: IGraphToken,
-  serviceProvider: SignerWithAddress,
-  tokens: bigint,
-): Promise<void> {
+interface StakeParams {
+  horizonStaking: HorizonStaking
+  graphToken: IGraphToken
+  serviceProvider: SignerWithAddress
+  tokens: bigint
+}
+
+export async function stake({
+  horizonStaking,
+  graphToken,
+  serviceProvider,
+  tokens,
+}: StakeParams): Promise<void> {
   await approve(graphToken, serviceProvider, await horizonStaking.getAddress(), tokens)
   const stakeTx = await horizonStaking.connect(serviceProvider).stake(tokens)
   await stakeTx.wait()
 }
 
-export async function stakeTo(
-  horizonStaking: HorizonStaking,
-  graphToken: IGraphToken,
-  signer: SignerWithAddress,
-  serviceProvider: SignerWithAddress,
-  tokens: bigint,
-): Promise<void> {
+interface StakeToParams extends StakeParams {
+  signer: SignerWithAddress
+}
+
+export async function stakeTo({
+  horizonStaking,
+  graphToken,
+  signer,
+  serviceProvider,
+  tokens,
+}: StakeToParams): Promise<void> {
   await approve(graphToken, signer, await horizonStaking.getAddress(), tokens)
 
   const stakeToTx = await horizonStaking.connect(signer).stakeTo(serviceProvider.address, tokens)
   await stakeToTx.wait()
 }
 
-export async function unstake(
-  horizonStaking: HorizonStaking,
-  serviceProvider: SignerWithAddress,
-  tokens: bigint,
-): Promise<void> {
+interface UnstakeParams extends Omit<StakeParams, 'graphToken'> {}
+
+export async function unstake({
+  horizonStaking,
+  serviceProvider,
+  tokens,
+}: UnstakeParams): Promise<void> {
   const unstakeTx = await horizonStaking.connect(serviceProvider).unstake(tokens)
   await unstakeTx.wait()
 }
 
-export async function stakeToProvision(
-  horizonStaking: HorizonStaking,
-  graphToken: IGraphToken,
-  serviceProvider: SignerWithAddress,
-  verifier: string,
-  tokens: bigint,
-): Promise<void> {
+interface StakeToProvisionParams extends StakeParams {
+  verifier: string
+}
+
+export async function stakeToProvision({
+  horizonStaking,
+  graphToken,
+  serviceProvider,
+  verifier,
+  tokens,
+}: StakeToProvisionParams): Promise<void> {
   // Verify provision exists
   const provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
   expect(provision.tokens).to.not.equal(0, 'Provision should exist')
@@ -60,6 +77,30 @@ export async function stakeToProvision(
     tokens,
   )
   await stakeToProvisionTx.wait()
+}
+
+interface SlashParams extends Omit<StakeParams, 'graphToken'> {
+  verifier: SignerWithAddress
+  tokens: bigint
+  tokensVerifier: bigint
+  verifierDestination: string
+}
+
+export async function slash({
+  horizonStaking,
+  verifier,
+  serviceProvider,
+  tokens,
+  tokensVerifier,
+  verifierDestination,
+}: SlashParams): Promise<void> {
+  const slashTx = await horizonStaking.connect(verifier).slash(
+    serviceProvider.address,
+    tokens,
+    tokensVerifier,
+    verifierDestination,
+  )
+  await slashTx.wait()
 }
 
 /* ////////////////////////////////////////////////////////////
@@ -313,6 +354,32 @@ export async function withdrawDelegated({
     nThawRequests,
   )
   await withdrawDelegatedTx.wait()
+}
+
+interface AddToDelegationPoolParams extends Omit<DelegationParams, 'delegator'> {
+  graphToken: IGraphToken
+  signer: SignerWithAddress
+  tokens: bigint
+}
+
+export async function addToDelegationPool({
+  horizonStaking,
+  graphToken,
+  signer,
+  serviceProvider,
+  verifier,
+  tokens,
+}: AddToDelegationPoolParams): Promise<void> {
+  // Approve horizon staking contract to pull tokens from delegator
+  await approve(graphToken, signer, await horizonStaking.getAddress(), tokens)
+
+  // Add tokens to delegation pool
+  const addToDelegationPoolTx = await horizonStaking.connect(signer).addToDelegationPool(
+    serviceProvider.address,
+    verifier,
+    tokens,
+  )
+  await addToDelegationPoolTx.wait()
 }
 
 /* ////////////////////////////////////////////////////////////

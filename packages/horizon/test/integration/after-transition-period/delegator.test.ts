@@ -38,7 +38,7 @@ describe('Delegator (after transition period)', () => {
     newVerifier = await ethers.Wallet.createRandom().getAddress()
 
     // Servide provider stake
-    await stake(horizonStaking, graphToken, serviceProvider, tokens)
+    await stake({ horizonStaking, graphToken, serviceProvider, tokens })
 
     // Create provision
     await createProvision({
@@ -162,7 +162,12 @@ describe('Delegator (after transition period)', () => {
       })
 
       // Create new provision for a new service provider and verifier combo
-      await stake(horizonStaking, graphToken, newServiceProvider, newProvisionTokens)
+      await stake({
+        horizonStaking,
+        graphToken,
+        serviceProvider: newServiceProvider,
+        tokens: newProvisionTokens,
+      })
       await createProvision({
         horizonStaking,
         serviceProvider: newServiceProvider,

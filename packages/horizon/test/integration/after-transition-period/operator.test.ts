@@ -41,10 +41,16 @@ describe('Operator', () => {
     const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
     // Operator stakes on behalf of service provider
-    await stakeTo(horizonStaking, graphToken, operator, serviceProvider, stakeTokens)
+    await stakeTo({
+      horizonStaking,
+      graphToken,
+      signer: operator,
+      serviceProvider,
+      tokens: stakeTokens,
+    })
 
     // Service provider unstakes
-    await unstake(horizonStaking, serviceProvider, stakeTokens)
+    await unstake({ horizonStaking, serviceProvider, tokens: stakeTokens })
 
     // Verify tokens were removed from operator's address
     const operatorBalanceAfter = await graphToken.balanceOf(operator.address)
@@ -80,7 +86,13 @@ describe('Operator', () => {
     before(async () => {
       const provisionTokens = ethers.parseEther('10000')
       // Operator stakes tokens to service provider
-      await stakeTo(horizonStaking, graphToken, operator, serviceProvider, provisionTokens)
+      await stakeTo({
+        horizonStaking,
+        graphToken,
+        signer: operator,
+        serviceProvider,
+        tokens: provisionTokens,
+      })
 
       // Operator creates provision
       await createProvision({
