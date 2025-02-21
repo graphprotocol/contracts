@@ -50,7 +50,6 @@
     "hardhat-gas-reporter": "^1.0.8",
     "hardhat-graph-protocol": "workspace:^0.0.1",
     "hardhat-secure-accounts": "^1.0.5",
-    "hardhat-storage-layout": "^0.1.7",
     "json5": "^2.2.3",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
