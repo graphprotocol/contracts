@@ -13,7 +13,7 @@ import {
   withdrawDelegated,
 } from '../shared/staking'
 
-describe('Delegator (after transition period)', () => {
+describe('Delegator', () => {
   let horizonStaking: HorizonStaking
   let graphToken: IGraphToken
   let delegator: SignerWithAddress

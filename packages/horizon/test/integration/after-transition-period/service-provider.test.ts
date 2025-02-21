@@ -16,7 +16,7 @@ import {
 } from '../shared/staking'
 import { PaymentTypes } from '../utils/types'
 
-describe('HorizonStaking Integration Tests', () => {
+describe('Service provider', () => {
   let horizonStaking: HorizonStaking
   let graphToken: IGraphToken
   let verifier: string
