@@ -29,6 +29,7 @@ contract PPMMathTest is Test {
         assert(result == (value <= MAX_PPM));
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_mullPPM_RevertWhen_InvalidPPM(uint256 a, uint256 b) public {
         a = bound(a, MAX_PPM + 1, type(uint256).max);
         b = bound(b, MAX_PPM + 1, type(uint256).max);
@@ -37,6 +38,7 @@ contract PPMMathTest is Test {
         PPMMath.mulPPM(a, b);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_mullPPMRoundUp_RevertWhen_InvalidPPM(uint256 a, uint256 b) public {
         b = bound(b, MAX_PPM + 1, type(uint256).max);
         bytes memory expectedError = abi.encodeWithSelector(PPMMath.PPMMathInvalidPPM.selector, b);

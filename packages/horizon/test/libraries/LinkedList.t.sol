@@ -14,6 +14,7 @@ contract LinkedListTest is Test, ListImplementation {
         list = LinkedList.List({ head: bytes32(0), tail: bytes32(0), nonce: 0, count: 0 });
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_Add_RevertGiven_TheItemIdIsZero() external {
         vm.expectRevert(LinkedList.LinkedListInvalidZeroId.selector);
         list.addTail(bytes32(0));
@@ -31,6 +32,7 @@ contract LinkedListTest is Test, ListImplementation {
         _assert_addItem(_buildItemId(list.nonce), 1);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_Add_RevertGiven_TheListIsAtMaxSize() external {
         for (uint256 i = 0; i < LinkedList.MAX_ITEMS; i++) {
             bytes32 id = _buildItemId(list.nonce);
@@ -41,6 +43,7 @@ contract LinkedListTest is Test, ListImplementation {
         list.addTail(_buildItemId(list.nonce));
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_Remove_RevertGiven_TheListIsEmpty() external {
         vm.expectRevert(LinkedList.LinkedListEmptyList.selector);
         list.removeHead(_getNextItem, _deleteItem);
@@ -82,6 +85,7 @@ contract LinkedListTest is Test, ListImplementation {
         _assert_traverseList(_processItemAddition, abi.encode(0), n, abi.encode(sum));
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_TraverseWhenIterationsAreInvalid() external givenTheListIsNotEmpty {
         uint256 n = LIST_LENGTH + 1;
         uint256 sum = 0;
