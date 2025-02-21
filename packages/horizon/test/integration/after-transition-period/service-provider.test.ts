@@ -39,8 +39,8 @@ describe('HorizonStaking Integration Tests', () => {
 
     it('should allow staking tokens and unstake right after', async () => {
       const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
-      await stake(horizonStaking, graphToken, serviceProvider, stakeAmount)
-      await unstake(horizonStaking, serviceProvider, stakeAmount)
+      await stake({ horizonStaking, graphToken, serviceProvider, tokens: stakeAmount })
+      await unstake({ horizonStaking, serviceProvider, tokens: stakeAmount })
       const serviceProviderBalanceAfter = await graphToken.balanceOf(serviceProvider.address)
       expect(serviceProviderBalanceAfter).to.equal(serviceProviderBalanceBefore, 'Service provider balance should not change')
     })
@@ -99,7 +99,7 @@ describe('HorizonStaking Integration Tests', () => {
         const createProvisionTokens = ethers.parseEther('10000')
 
         // Add idle stake
-        await stake(horizonStaking, graphToken, serviceProvider, tokensToStake)
+        await stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
 
         // Create provision
         await createProvision({
@@ -118,7 +118,13 @@ describe('HorizonStaking Integration Tests', () => {
 
         // Add stake and provision on the same transaction
         const stakeToProvisionTokens = ethers.parseEther('100')
-        await stakeToProvision(horizonStaking, graphToken, serviceProvider, verifier, stakeToProvisionTokens)
+        await stakeToProvision({
+          horizonStaking,
+          graphToken,
+          serviceProvider,
+          verifier,
+          tokens: stakeToProvisionTokens,
+        })
 
         // Verify provision tokens were updated
         provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -170,7 +176,7 @@ describe('HorizonStaking Integration Tests', () => {
             await deprovision({ horizonStaking, serviceProvider, verifier, nThawRequests: 1n })
 
             // Unstake
-            await unstake(horizonStaking, serviceProvider, tokensToThaw)
+            await unstake({ horizonStaking, serviceProvider, tokens: tokensToThaw })
 
             // Verify service provider balance increased by the unstake tokens
             const serviceProviderBalanceAfter = await graphToken.balanceOf(serviceProvider.address)
