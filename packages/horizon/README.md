@@ -50,3 +50,8 @@ npx hardhat deploy:migrate --network hardhat --step 4 # Run with governor. Optio
 ```
 
 Steps 2, 3 and 4 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
+
+## Testing
+
+- Unit tests can be run with `yarn test`
+- Deployment tests can be run with `yarn test:deployment --network <network>`
