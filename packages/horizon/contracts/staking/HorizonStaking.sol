@@ -720,6 +720,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint64 _thawingPeriod
     ) private {
         require(_tokens > 0, HorizonStakingInvalidZeroTokens());
+        // TODO: Remove this after the transition period - it prevents an early escape hatch for legacy allocations
+        require(
+            __DEPRECATED_thawingPeriod == 0 || _verifier == SUBGRAPH_DATA_SERVICE_ADDRESS,
+            HorizonStakingInvalidVerifier(_verifier)
+        );
         require(PPMMath.isValidPPM(_maxVerifierCut), HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut));
         require(
             _thawingPeriod <= _maxThawingPeriod,
