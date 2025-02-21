@@ -363,7 +363,7 @@ interface IHorizonStakingMain {
     error HorizonStakingNotAuthorized(address serviceProvider, address verifier, address caller);
 
     /**
-     * @notice Thrown when attempting to create a provision for a data service other than the
+     * @notice Thrown when attempting to create a provision with a verifier other than the
      * subgraph data service. This restriction only applies during the transition period.
      * @param verifier The verifier address
      */

@@ -117,7 +117,10 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
 
         // oddly we use subgraphDataServiceLegacyAddress as the subgraph service address
         // so subgraphDataServiceAddress is not the subgraph service ¯\_(ツ)_/¯
-        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingInvalidVerifier(address)", subgraphDataServiceAddress);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingInvalidVerifier(address)",
+            subgraphDataServiceAddress
+        );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, 0, 0);
     }
