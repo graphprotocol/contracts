@@ -722,7 +722,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(_tokens > 0, HorizonStakingInvalidZeroTokens());
         // TODO: Remove this after the transition period - it prevents an early escape hatch for legacy allocations
         require(
-            __DEPRECATED_thawingPeriod == 0 || _verifier == SUBGRAPH_DATA_SERVICE_ADDRESS,
+            _verifier == SUBGRAPH_DATA_SERVICE_ADDRESS || __DEPRECATED_thawingPeriod == 0,
             HorizonStakingInvalidVerifier(_verifier)
         );
         require(PPMMath.isValidPPM(_maxVerifierCut), HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut));
