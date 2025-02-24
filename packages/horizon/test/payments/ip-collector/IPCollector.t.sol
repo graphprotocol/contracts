@@ -6,6 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { ControllerMock } from "../../../contracts/mocks/ControllerMock.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
 import { IPaymentsEscrow } from "../../../contracts/interfaces/IPaymentsEscrow.sol";
+import { IAuthorizable } from "../../../contracts/interfaces/IAuthorizable.sol";
 import { IIPCollector } from "../../../contracts/interfaces/IIPCollector.sol";
 import { IPCollector } from "../../../contracts/payments/collectors/IPCollector.sol";
 import { AuthorizableTest, AuthorizableHelper } from "../../utilities/Authorizable.t.sol";
@@ -46,8 +47,8 @@ contract PaymentsEscrow is IPaymentsEscrow, Test {
 }
 
 contract IPCollectorAuthorizableTest is AuthorizableTest {
-    function setUp() public override {
-        setupAuthorizable(new IPCollector("IPCollector", "1", address(new Controller()), 1));
+    function newAuthorizable(uint256 _thawPeriod) public override returns (IAuthorizable) {
+        return new IPCollector("IPCollector", "1", address(new Controller()), _thawPeriod);
     }
 }
 
@@ -57,7 +58,7 @@ contract IPCollectorTest is Test, Bounder {
 
     function setUp() public {
         ipCollector = new IPCollector("IPCollector", "1", address(new Controller()), 1);
-        authHelper = new AuthorizableHelper(ipCollector);
+        authHelper = new AuthorizableHelper(ipCollector, 1);
     }
 
     function test_Accept(IIPCollector.IndexingAgreementVoucher memory _iav, uint256 _unboundedKey) public {

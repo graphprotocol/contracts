@@ -151,12 +151,14 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             address(controller),
             revokeSignerThawingPeriod
         );
+        ipCollector = new IPCollector("IPCollector", "1", address(controller), revokeSignerThawingPeriod);
         address subgraphServiceImplementation = address(
             new SubgraphService(
                 address(controller),
                 address(disputeManager),
                 address(graphTallyCollector),
-                address(curation)
+                address(curation),
+                address(ipCollector)
             )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
