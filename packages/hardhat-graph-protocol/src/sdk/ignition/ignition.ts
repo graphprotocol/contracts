@@ -9,6 +9,8 @@ import path from 'path'
 import type { AddressBook } from '../address-book'
 
 export function loadConfig(configPath: string, prefix: string, configName: string): any {
+  prefix = process.env.IGNITION_DEPLOYMENT_TYPE ?? prefix
+
   const configFileCandidates = [
     path.resolve(process.cwd(), configPath, `${prefix}.${configName}.json5`),
     path.resolve(process.cwd(), configPath, `${prefix}.default.json5`),
