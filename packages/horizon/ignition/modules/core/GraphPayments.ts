@@ -11,7 +11,7 @@ export default buildModule('GraphPayments', (m) => {
   const { Controller } = m.useModule(GraphPeripheryModule)
   const { GraphPaymentsProxyAdmin, GraphPaymentsProxy } = m.useModule(HorizonProxiesModule)
 
-  const governor = m.getAccount(1)
+  const governor = m.getParameter('governor')
   const protocolPaymentCut = m.getParameter('protocolPaymentCut')
 
   // Deploy GraphPayments implementation - requires periphery and proxies to be registered in the controller
