@@ -1,8 +1,10 @@
-import { task } from 'hardhat/config'
+import { task, types } from 'hardhat/config'
 
 task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
-  .setAction(async (_, hre) => {
-    const [governor] = await hre.ethers.getSigners()
+  .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
+  .setAction(async (taskArgs, hre) => {
+    const signers = await hre.ethers.getSigners()
+    const governor = signers[taskArgs.governorIndex]
     const horizonStaking = hre.graph().horizon!.contracts.HorizonStaking
 
     console.log('Clearing thawing period...')
@@ -12,12 +14,17 @@ task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
   })
 
 task('transition:enable-delegation-slashing', 'Enables delegation slashing in HorizonStaking')
-  .setAction(async (_, hre) => {
-    const [governor] = await hre.ethers.getSigners()
+  .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
+  .setAction(async (taskArgs, hre) => {
+    const signers = await hre.ethers.getSigners()
+    const governor = signers[taskArgs.governorIndex]
     const horizonStaking = hre.graph().horizon!.contracts.HorizonStaking
 
     console.log('Enabling delegation slashing...')
     const tx = await horizonStaking.connect(governor).setDelegationSlashingEnabled()
     await tx.wait()
-    console.log('Delegation slashing enabled')
+
+    // Log if the delegation slashing is enabled
+    const delegationSlashingEnabled = await horizonStaking.isDelegationSlashingEnabled()
+    console.log('Delegation slashing enabled:', delegationSlashingEnabled)
   })

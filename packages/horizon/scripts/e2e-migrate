@@ -2,6 +2,22 @@
 
 set -eo pipefail
 
+# Function to cleanup resources
+cleanup() {
+    # Remove ignition deployment files
+    echo "Removing ignition deployment files..."
+    rm -rf ignition/deployments/horizon-localhost
+
+    # Kill hardhat node
+    if [ ! -z "$NODE_PID" ]; then
+        echo "Cleaning up node process..."
+        kill $NODE_PID 2>/dev/null || true
+    fi
+}
+
+# Set trap to call cleanup function on script exit (normal or error)
+trap cleanup EXIT
+
 # Check required env variables
 if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
     echo "ARBITRUM_SEPOLIA_RPC environment variable is required"
@@ -59,7 +75,7 @@ npx hardhat test:integration --phase during-transition --network localhost
 
 # Clear thawing period
 echo "Clearing thawing period..."
-npx hardhat transition:clear-thawing
+npx hardhat transition:clear-thawing --network localhost --governor-index 0
 
 # Run integration tests - After transition period
 echo "Running after-transition-period tests..."
@@ -67,13 +83,10 @@ npx hardhat test:integration --phase after-transition --network localhost
 
 # Enable delegation slashing
 echo "Enabling delegation slashing..."
-npx hardhat transition:enable-delegation-slashing
+npx hardhat transition:enable-delegation-slashing --network localhost --governor-index 0
 
 # Run integration tests - After delegation slashing enabled
 echo "Running after-delegation-slashing tests..."
 npx hardhat test:integration --phase after-delegation-slashing --network localhost
-
-# Cleanup
-kill $NODE_PID
 
 echo "E2E tests completed successfully!"

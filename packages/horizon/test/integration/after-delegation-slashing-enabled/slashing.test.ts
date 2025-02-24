@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { HDNodeWallet } from 'ethers'
-import { HorizonStaking, IGraphToken } from '../../../typechain-types'
+import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import {
@@ -15,7 +15,7 @@ import {
 } from '../shared/staking'
 
 describe('Slashing', () => {
-  let horizonStaking: HorizonStaking
+  let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
   let serviceProvider: SignerWithAddress
   let delegator: SignerWithAddress
@@ -30,10 +30,14 @@ describe('Slashing', () => {
   before(async () => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
     graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
 
     [serviceProvider, delegator] = await ethers.getSigners()
+
+    // Check that delegation slashing is enabled
+    const delegationSlashingEnabled = await horizonStaking.isDelegationSlashingEnabled()
+    expect(delegationSlashingEnabled).to.be.equal(true, 'Delegation slashing should be enabled')
 
     // Send funds to delegator
     await graphToken.connect(serviceProvider).transfer(delegator.address, delegationTokens * 3n)
