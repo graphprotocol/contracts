@@ -39,12 +39,14 @@
     "GraphPayments": {
       "address": "0xFaAA95dfd5ed6e0A85235c37161070637315106e",
       "proxy": "transparent",
-      "implementation": "0xfdfB7a510F81a020781A7110fd3b52c9c67C00BA"
+      "implementation": "0xfdfB7a510F81a020781A7110fd3b52c9c67C00BA",
+      "proxyAdmin": "0xDC934B75361a42958FE2d951d753E3cb55b10968"
     },
     "PaymentsEscrow": {
       "address": "0x1F4F20A6ECAA394F6980311f7125C709964d6018",
       "proxy": "transparent",
-      "implementation": "0xb3e190392d0c39AbF640e368714baa7E54e29f1D"
+      "implementation": "0xb3e190392d0c39AbF640e368714baa7E54e29f1D",
+      "proxyAdmin": "0x99CaF23F1eCB84934D44E89e5f992FcB5FE33f92"
     },
     "GraphTallyCollector": {
       "address": "0x412823c630CBFC5fF73e6A2a4429C641D5bA711e"
