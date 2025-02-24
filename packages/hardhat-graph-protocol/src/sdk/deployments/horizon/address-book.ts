@@ -45,6 +45,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     // Aliases
     contracts.GraphToken = contracts.L2GraphToken
     contracts.GraphTokenGateway = contracts.L2GraphTokenGateway
+    contracts.Curation = contracts.L2Curation
 
     return contracts
   }

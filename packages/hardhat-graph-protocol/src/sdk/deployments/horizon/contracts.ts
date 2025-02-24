@@ -4,6 +4,7 @@ import type {
   Controller,
   EpochManager,
   GraphProxyAdmin,
+  L2Curation,
   L2GraphToken,
   L2GraphTokenGateway,
   RewardsManager,
@@ -12,6 +13,7 @@ import type {
   GraphPayments,
   GraphTallyCollector,
   HorizonStaking,
+  HorizonStakingExtension,
   PaymentsEscrow,
 } from '@graphprotocol/horizon'
 import type { ContractList } from '../../lib/contract'
@@ -62,9 +64,10 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   Controller: Controller
   L2GraphToken: L2GraphToken
   L2GraphTokenGateway: L2GraphTokenGateway
+  L2Curation: L2Curation // Actually a subgraph service contract
 
   // @graphprotocol/horizon
-  HorizonStaking: HorizonStaking
+  HorizonStaking: HorizonStaking & HorizonStakingExtension
   GraphPayments: GraphPayments
   PaymentsEscrow: PaymentsEscrow
   GraphTallyCollector: GraphTallyCollector
@@ -72,6 +75,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   // Aliases
   GraphToken: L2GraphToken
   GraphTokenGateway: L2GraphTokenGateway
+  Curation: L2Curation
 }
 
 export type GraphHorizonContractName = (typeof GraphHorizonContractNameList)[number]

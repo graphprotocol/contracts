@@ -53,3 +53,19 @@ cd horizon && npx hardhat deploy:migrate --network hardhat --step 4 && cd .. # R
 ```
 
 Horizon Steps 2, 3 and 4, and Subgraph Service Step 2 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
+
+## Testing
+
+- Unit tests can be run with `yarn test`
+- Deployment tests can be run with `yarn test:deployment --network <network>`
+   - By default, deployment tests assume a `migrate` deployment type. This can be overridden by setting the `IGNITION_DEPLOYMENT_TYPE` environment variable to `protocol`, however the tests only cover state transitions
+   originated by a `migrate` deployment.
+
+## Verification
+
+To verify contracts on a network, run the following commands:
+
+```bash
+./scripts/pre-verify <ignition-deployment-id>
+npx hardhat ignition verify --network <network> --include-unrelated-contracts <ignition-deployment-id>
+```
