@@ -10,6 +10,6 @@ abstract contract SubgraphServiceV1Storage {
     ///@notice Multiplier for how many tokens back collected query fees
     uint256 public stakeToFeesRatio;
 
-    /// @notice The cut curators take from query fee payments
+    /// @notice The cut curators take from query fee payments. In PPM.
     uint256 public curationFeesCut;
 }

@@ -160,7 +160,10 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
             subgraphServiceImplementation,
             users.governor,
-            abi.encodeCall(SubgraphService.initialize, (minimumProvisionTokens, delegationRatio, stakeToFeesRatio))
+            abi.encodeCall(
+                SubgraphService.initialize,
+                (users.deployer, minimumProvisionTokens, delegationRatio, stakeToFeesRatio)
+            )
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
 

@@ -164,4 +164,10 @@ interface IHorizonStakingExtension is IRewardsIssuer {
      */
     // solhint-disable-next-line func-name-mixedcase
     function __DEPRECATED_getThawingPeriod() external view returns (uint64);
+
+    /**
+     * @notice Return the address of the subgraph data service.
+     * @return Address of the subgraph data service
+     */
+    function getSubgraphService() external view returns (address);
 }

@@ -434,7 +434,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 tokensAvailable = staking.getTokensAvailable(
             _indexer,
             address(subgraphService),
-            subgraphService.delegationRatio()
+            subgraphService.getDelegationRatio()
         );
         if (allocation.tokens <= tokensAvailable) {
             // Indexer isn't over allocated so allocation should still be open

@@ -284,6 +284,15 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
+     * @notice Return the address of the subgraph data service.
+     * @dev TODO: After transition period move to main HorizonStaking contract
+     * @return Address of the subgraph data service
+     */
+    function getSubgraphService() external view override returns (address) {
+        return SUBGRAPH_DATA_SERVICE_ADDRESS;
+    }
+
+    /**
      * @notice Getter that returns if an indexer has any stake.
      * @param indexer Address of the indexer
      * @return True if indexer has staked tokens
