@@ -1,28 +1,13 @@
 {
   "$global": {
-    // Accounts
-    "pauseGuardian": "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-    // Note that this must match the address derived from the deployer at account index 1!
-    "governor": "0xad834c286A9B590F8264C8D9574fAfCbbBe90b3B",
+    // Accounts for new deployment - derived from hardhat default mnemonic
+    "pauseGuardian": "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d", // index 3
+    "subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117", // index 4
 
     // Placeholder address for a standalone Horizon deployment, see README.md for more details
-    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000"
-  },
-  "RewardsManager": {
-    "subgraphAvailabilityOracle": "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-    "issuancePerBlock": "114155251141552511415n"
-  },
-  "EpochManager": {
-    "epochLength": 60
-  },
-  "L2Curation": {
-    "curationTaxPercentage": 10000,
-    "minimumCurationDeposit": 1
-  },
-  "L2GraphToken": {
-    "initialSupply": "10000000000000000000000000000n"
-  },
-  "HorizonStaking": {
+    "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",
+
+    // Global parameters
     "maxThawingPeriod": 2419200
   },
   "GraphPayments": {
@@ -35,5 +20,20 @@
     "eip712Name": "GraphTallyCollector",
     "eip712Version": "1",
     "revokeSignerThawingPeriod": 10000
-  }
+  },
+  "RewardsManager": {
+    "issuancePerBlock": "114155251141552511415n"
+  },
+  "EpochManager": {
+    "epochLength": 60
+  },
+  "L2Curation": {
+    "curationTaxPercentage": 10000,
+    "minimumCurationDeposit": 1
+  },
+  "L2GraphToken": {
+    "initialSupply": "10000000000000000000000000000n"
+  },
+
+
 }

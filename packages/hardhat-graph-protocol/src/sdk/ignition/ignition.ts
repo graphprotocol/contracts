@@ -47,13 +47,8 @@ export function patchConfig(jsonData: any, patches: Record<string, any>) {
 
 export function saveToAddressBook<ChainId extends number, ContractName extends string>(
   contracts: any,
-  chainId: number | undefined,
   addressBook: AddressBook<ChainId, ContractName>,
 ): AddressBook<ChainId, ContractName> {
-  if (!chainId) {
-    throw new Error('Chain ID is required')
-  }
-
   // Extract contract names and addresses
   for (const [ignitionContractName, contract] of Object.entries(contracts)) {
     // Proxy contracts
