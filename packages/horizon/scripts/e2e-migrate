@@ -24,16 +24,6 @@ if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
     exit 1
 fi
 
-if [ -z "$DEPLOYER_PRIVATE_KEY" ]; then
-    echo "DEPLOYER_PRIVATE_KEY environment variable is required"
-    exit 1
-fi
-
-if [ -z "$GOVERNOR_PRIVATE_KEY" ]; then
-    echo "GOVERNOR_PRIVATE_KEY environment variable is required"
-    exit 1
-fi
-
 echo "Starting e2e tests..."
 
 # Check if port 8545 is in use
