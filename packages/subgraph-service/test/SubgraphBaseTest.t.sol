@@ -137,7 +137,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             users.governor,
             abi.encodeCall(
                 DisputeManager.initialize,
-                (users.arbitrator, disputePeriod, disputeDeposit, fishermanRewardPercentage, maxSlashingPercentage)
+                (users.deployer, users.arbitrator, disputePeriod, disputeDeposit, fishermanRewardPercentage, maxSlashingPercentage)
             )
         );
         disputeManager = DisputeManager(disputeManagerProxy);

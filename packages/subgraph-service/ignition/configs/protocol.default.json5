@@ -8,7 +8,8 @@
     "controllerAddress": "",
     "disputeManagerProxyAddress": "",
     "curationAddress": "",
-    "curationImplementationAddress": ""
+    "curationImplementationAddress": "",
+    "subgraphServiceProxyAddress": ""
   },
   "DisputeManager": {
     "disputePeriod": 2419200,
@@ -27,7 +28,6 @@
     "curationCut": 100000,
 
    // Must be set for step 2 of the deployment
-    "subgraphServiceProxyAddress": "",
     "subgraphServiceProxyAdminAddress": "",
     "graphTallyCollectorAddress": ""
   }

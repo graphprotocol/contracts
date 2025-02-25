@@ -52,7 +52,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     const horizonDeployment = await hre.ignition.deploy(HorizonModule, {
       displayUi: true,
       parameters: IgnitionHelper.patchConfig(HorizonConfig, {
-        SubgraphService: {
+        $global: {
           subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
         },
       }),
@@ -68,12 +68,12 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
           disputeManagerProxyAddress: proxiesDeployment.Transparent_Proxy_DisputeManager.target as string,
           curationAddress: horizonDeployment.Graph_Proxy_L2Curation.target as string,
           curationImplementationAddress: horizonDeployment.Implementation_L2Curation.target as string,
+          subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
         },
         DisputeManager: {
           disputeManagerProxyAdminAddress: proxiesDeployment.Transparent_ProxyAdmin_DisputeManager.target as string,
         },
         SubgraphService: {
-          subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
           subgraphServiceProxyAdminAddress: proxiesDeployment.Transparent_ProxyAdmin_SubgraphService.target as string,
           graphTallyCollectorAddress: horizonDeployment.GraphTallyCollector.target as string,
         },
@@ -170,8 +170,10 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
       const GraphTallyCollector = horizonAddressBook.getEntry('GraphTallyCollector')
 
       patchedConfig = IgnitionHelper.patchConfig(config, {
-        SubgraphService: {
+        $global: {
           subgraphServiceProxyAddress: SubgraphService.address,
+        },
+        SubgraphService: {
           subgraphServiceProxyAdminAddress: SubgraphService.proxyAdmin,
           graphTallyCollectorAddress: GraphTallyCollector.address,
           disputeManagerProxyAddress: DisputeManager.address,

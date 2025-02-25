@@ -7,8 +7,10 @@ import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdm
 import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
 
 export default buildModule('DisputeManager', (m) => {
+  const deployer = m.getAccount(0)
   const governor = m.getParameter('governor')
   const controllerAddress = m.getParameter('controllerAddress')
+  const subgraphServiceProxyAddress = m.getParameter('subgraphServiceProxyAddress')
   const disputeManagerProxyAddress = m.getParameter('disputeManagerProxyAddress')
   const disputeManagerProxyAdminAddress = m.getParameter('disputeManagerProxyAdminAddress')
   const arbitrator = m.getParameter('arbitrator')
@@ -34,6 +36,7 @@ export default buildModule('DisputeManager', (m) => {
       name: 'DisputeManager',
       artifact: DisputeManagerArtifact,
       initArgs: [
+        deployer,
         arbitrator,
         disputePeriod,
         disputeDeposit,
@@ -42,7 +45,10 @@ export default buildModule('DisputeManager', (m) => {
       ],
     })
 
-  m.call(DisputeManagerProxyAdmin, 'transferOwnership', [governor], { after: [DisputeManager] })
+  const callSetSubgraphService = m.call(DisputeManager, 'setSubgraphService', [subgraphServiceProxyAddress])
+
+  m.call(DisputeManager, 'transferOwnership', [governor], { after: [callSetSubgraphService] })
+  m.call(DisputeManagerProxyAdmin, 'transferOwnership', [governor], { after: [callSetSubgraphService] })
 
   return {
     DisputeManager,
