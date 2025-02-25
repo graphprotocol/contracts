@@ -486,6 +486,16 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     }
 
     /**
+     * @notice Returns the number of free tokens for an indexer
+     * @param _indexer The address of the indexer
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @return The number of free tokens
+     */
+    function _getAllocationTokensFree(address _indexer, uint32 _delegationRatio) internal view returns (uint256) {
+        return allocationProvisionTracker.getTokensFree(_graphStaking(), _indexer, _delegationRatio);
+    }
+
+    /**
      * @notice Verifies ownership of an allocation id by verifying an EIP712 allocation proof
      * @dev Requirements:
      * - Signer must be the allocation id address
