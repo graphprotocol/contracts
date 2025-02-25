@@ -45,6 +45,8 @@ localNetwork.json
 arbitrum-addresses-local.json
 tx-*.log
 addresses-fork.json
+addresses-hardhat.json
+addresses-localhost.json
 
 # Keys
 .keystore
