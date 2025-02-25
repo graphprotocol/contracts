@@ -289,7 +289,7 @@ contract IPCollectorTest is Test, Bounder {
             _iav.maxSecondsPerCollection
         );
         skip(collectionSeconds);
-        uint256 maxTokens = (_iav.maxOngoingTokensPerSecond * collectionSeconds);
+        uint256 maxTokens = _iav.maxOngoingTokensPerSecond * collectionSeconds;
         maxTokens += testInitialCollection ? _iav.maxInitialTokens : 0;
         uint256 tokens = bound(_unboundedTokens, maxTokens + 1, type(uint256).max);
         bytes memory data = _generateCollectData(
