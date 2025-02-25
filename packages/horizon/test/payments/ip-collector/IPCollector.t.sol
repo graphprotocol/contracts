@@ -258,6 +258,36 @@ contract IPCollectorTest is Test, Bounder {
         ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
+    function test_Collect_Revert_WhenCollectingTooMuch(
+        IIPCollector.IndexingAgreementVoucher memory _iav,
+        IIPCollector.CollectParams memory _fuzzyParams,
+        uint256 _unboundedKey,
+        uint256 _unboundedFirstCollectionSkip,
+        uint256 _unboundedTokens
+    ) public {
+        _iav = _sensibleIAV(_iav);
+        _authorizeAndAccept(_iav, boundKey(_unboundedKey));
+
+        // skip to collectable time
+        uint256 collectionSeconds = boundSkip(
+            _unboundedFirstCollectionSkip,
+            _iav.minSecondsPerCollection,
+            _iav.maxSecondsPerCollection
+        );
+        skip(collectionSeconds);
+        uint256 tokens = bound(
+            _unboundedTokens,
+            (_iav.maxOngoingTokensPerSecond * collectionSeconds) + _iav.maxInitialTokens + 1,
+            type(uint256).max
+        );
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(_iav, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
+        );
+        vm.expectRevert("IPCollectorCollectionAmountTooHigh");
+        vm.prank(_iav.dataService);
+        ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+    }
+
     function _sensibleIAV(
         IIPCollector.IndexingAgreementVoucher memory _iav
     ) private pure returns (IIPCollector.IndexingAgreementVoucher memory) {
