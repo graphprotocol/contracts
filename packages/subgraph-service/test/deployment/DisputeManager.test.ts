@@ -10,6 +10,11 @@ const addressBookEntry = graph.subgraphService!.addressBook.getEntry('DisputeMan
 const DisputeManager = graph.subgraphService!.contracts.DisputeManager
 
 describe('DisputeManager', function () {
+  it('should be owned by the governor', async function () {
+    const owner = await DisputeManager.owner()
+    expect(owner).to.equal(config.$global.governor)
+  })
+
   it('should set the right arbitrator', async function () {
     const arbitrator = await DisputeManager.arbitrator()
     expect(arbitrator).to.equal(config.$global.arbitrator)
