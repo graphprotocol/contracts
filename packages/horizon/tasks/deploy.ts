@@ -38,7 +38,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // Save the addresses to the address book
     console.log('\n========== 📖 Updating address book ==========')
-    IgnitionHelper.saveToAddressBook(deployment, hre.network.config.chainId, graph.horizon!.addressBook)
+    IgnitionHelper.saveToAddressBook(deployment, graph.horizon!.addressBook)
     console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Deployment complete! 🎉 ✨ 🚀 ✅')
@@ -96,7 +96,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
-    IgnitionHelper.saveToAddressBook(deployment, hre.network.config.chainId, graph.horizon!.addressBook)
+    IgnitionHelper.saveToAddressBook(deployment, graph.horizon!.addressBook)
     console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Migration complete! 🎉 ✨ 🚀 ✅')
@@ -120,17 +120,18 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
       const GraphPayments = horizonAddressBook.getEntry('GraphPayments')
       const PaymentsEscrow = horizonAddressBook.getEntry('PaymentsEscrow')
       patchedConfig = IgnitionHelper.patchConfig(config, {
-        HorizonProxiesGovernor: {
+        $global: {
           graphPaymentsAddress: GraphPayments.address,
           paymentsEscrowAddress: PaymentsEscrow.address,
         },
       })
       break
     case 3:
-      const SubgraphService3 = subgraphServiceAddressBook.getEntry('SubgraphService')
       patchedConfig = IgnitionHelper.patchConfig(patchedConfig, {
         $global: {
-          subgraphServiceAddress: SubgraphService3.address,
+          subgraphServiceAddress: subgraphServiceAddressBook.entryExists('SubgraphService')
+            ? subgraphServiceAddressBook.getEntry('SubgraphService').address
+            : '0x0000000000000000000000000000000000000000',
         },
       })
       break
@@ -138,18 +139,13 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
       const HorizonStaking = horizonAddressBook.getEntry('HorizonStaking')
       const L2Curation = horizonAddressBook.getEntry('L2Curation')
       const RewardsManager = horizonAddressBook.getEntry('RewardsManager')
-      const SubgraphService4 = subgraphServiceAddressBook.getEntry('SubgraphService')
       patchedConfig = IgnitionHelper.patchConfig(patchedConfig, {
         $global: {
-          subgraphServiceAddress: SubgraphService4.address,
-        },
-        HorizonStakingGovernor: {
+          subgraphServiceAddress: subgraphServiceAddressBook.entryExists('SubgraphService')
+            ? subgraphServiceAddressBook.getEntry('SubgraphService').address
+            : '0x0000000000000000000000000000000000000000',
           horizonStakingImplementationAddress: HorizonStaking.implementation,
-        },
-        L2CurationGovernor: {
           curationImplementationAddress: L2Curation.implementation,
-        },
-        RewardsManagerGovernor: {
           rewardsManagerImplementationAddress: RewardsManager.implementation,
         },
       })

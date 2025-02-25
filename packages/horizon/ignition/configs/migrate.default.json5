@@ -1,9 +1,9 @@
 {
   "$global": {
-    // Accounts
+    // Accounts already configured in the original Graph Protocol - Arbitrum Sepolia values
     "governor": "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
 
-    // Addresses for contracts deployed in the original Graph Protocol
+    // Addresses for contracts deployed in the original Graph Protocol - Arbitrum Sepolia values
     "graphProxyAdminAddress": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
     "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
     "horizonStakingAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
@@ -13,10 +13,19 @@
     "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
     "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
 
+    // Must be set for step 2 of the migration
+    "graphPaymentsAddress": "",
+    "paymentsEscrowAddress": "",
+
     // Must be set for step 3 and 4 of the migration
     "subgraphServiceAddress": "",
 
-    // Parameters
+    // Must be set for step 4 of the migration
+    "horizonStakingImplementationAddress": "",
+    "curationImplementationAddress": "",
+    "rewardsManagerImplementationAddress": "",
+
+    // Global parameters
     "maxThawingPeriod": 2419200
   },
   "GraphPayments": {
@@ -29,22 +38,5 @@
     "eip712Name": "GraphTallyCollector",
     "eip712Version": "1",
     "revokeSignerThawingPeriod": 10000
-  },
-  "HorizonProxiesGovernor": {
-    // Must be set for step 2 of the migration
-    "graphPaymentsAddress": "",
-    "paymentsEscrowAddress": ""
-  },
-  "HorizonStakingGovernor": {
-    // Must be set for step 4 of the migration
-    "horizonStakingImplementationAddress": ""
-  },
-  "L2CurationGovernor": {
-    // Must be set for step 4 of the migration
-    "curationImplementationAddress": ""
-  },
-  "RewardsManagerGovernor": {
-    // Must be set for step 4 of the migration
-    "rewardsManagerImplementationAddress": ""
   }
 }

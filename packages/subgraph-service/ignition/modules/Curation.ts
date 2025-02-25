@@ -7,10 +7,10 @@ import CurationArtifact from '@graphprotocol/contracts/build/contracts/contracts
 // due to tight coupling with HorizonStakingExtension contract it's easier to do it on the horizon package.
 // Once the transition period is over we can migrate it.
 export default buildModule('L2Curation', (m) => {
-  const curationAddress = m.getParameter('curationAddress')
+  const curationProxyAddress = m.getParameter('curationProxyAddress')
   const curationImplementationAddress = m.getParameter('curationImplementationAddress')
 
-  const L2Curation = m.contractAt('L2CurationAddressBook', CurationArtifact, curationAddress)
+  const L2Curation = m.contractAt('L2CurationAddressBook', CurationArtifact, curationProxyAddress)
   const L2CurationImplementation = m.contractAt('L2CurationImplementationAddressBook', CurationArtifact, curationImplementationAddress)
 
   return { L2Curation, L2CurationImplementation }

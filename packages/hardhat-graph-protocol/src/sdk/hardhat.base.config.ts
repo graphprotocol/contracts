@@ -50,8 +50,8 @@ export const networksUserConfig: BaseNetworksUserConfig = {
       mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
     },
     deployments: {
-      horizon: resolveLocalAddressBook('@graphprotocol/horizon/addresses.json'),
-      subgraphService: resolveLocalAddressBook('@graphprotocol/subgraph-service/addresses.json'),
+      horizon: resolveAddressBook('@graphprotocol/horizon/addresses.json', 'hardhat'),
+      subgraphService: resolveAddressBook('@graphprotocol/subgraph-service/addresses.json', 'hardhat'),
     },
   },
   localhost: {
@@ -64,8 +64,8 @@ export const networksUserConfig: BaseNetworksUserConfig = {
       accounts: { mnemonic: vars.get('LOCALHOST_ACCOUNTS_MNEMONIC') },
     }),
     deployments: {
-      horizon: resolveLocalAddressBook('@graphprotocol/horizon/addresses.json'),
-      subgraphService: resolveLocalAddressBook('@graphprotocol/subgraph-service/addresses.json'),
+      horizon: resolveAddressBook('@graphprotocol/horizon/addresses.json', 'localhost'),
+      subgraphService: resolveAddressBook('@graphprotocol/subgraph-service/addresses.json', 'localhost'),
     },
   },
   arbitrumOne: {
@@ -86,9 +86,9 @@ export const networksUserConfig: BaseNetworksUserConfig = {
 
 // Local address books are not commited to GitHub so they might not exist
 // require.resolve will throw an error if the file does not exist, so we hack it a bit
-function resolveLocalAddressBook(path: string) {
+function resolveAddressBook(path: string, name: string) {
   const resolvedPath = require.resolve(path)
-  return resolvedPath.replace('addresses.json', 'addresses-local.json')
+  return resolvedPath.replace('addresses.json', `addresses-${name}.json`)
 }
 
 type BaseHardhatConfig = HardhatUserConfig &
