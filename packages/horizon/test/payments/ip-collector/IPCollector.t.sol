@@ -289,13 +289,39 @@ contract IPCollectorTest is Test, Bounder {
             _iav.maxSecondsPerCollection
         );
         skip(collectionSeconds);
-        uint256 maxTokens = (_iav.maxOngoingTokensPerSecond * collectionSeconds) + 1;
+        uint256 maxTokens = (_iav.maxOngoingTokensPerSecond * collectionSeconds);
         maxTokens += testInitialCollection ? _iav.maxInitialTokens : 0;
-        uint256 tokens = bound(_unboundedTokens, maxTokens, type(uint256).max);
+        uint256 tokens = bound(_unboundedTokens, maxTokens + 1, type(uint256).max);
         bytes memory data = _generateCollectData(
             _generateCollectParams(_iav, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
         );
         vm.expectRevert("IPCollectorCollectionAmountTooHigh");
+        vm.prank(_iav.dataService);
+        ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+    }
+
+    function test_Collect_OK(
+        IIPCollector.IndexingAgreementVoucher memory _iav,
+        IIPCollector.CollectParams memory _fuzzyParams,
+        uint256 _unboundedKey,
+        uint256 _unboundedCollectionSkip,
+        uint256 _unboundedTokens
+    ) public {
+        _iav = _sensibleIAV(_iav);
+        _authorizeAndAccept(_iav, boundKey(_unboundedKey));
+
+        // skip to collectable time
+        uint256 collectionSeconds = boundSkip(
+            _unboundedCollectionSkip,
+            _iav.minSecondsPerCollection,
+            _iav.maxSecondsPerCollection
+        );
+        skip(collectionSeconds);
+        uint256 maxTokens = (_iav.maxOngoingTokensPerSecond * collectionSeconds);
+        uint256 tokens = bound(_unboundedTokens, 1, maxTokens);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(_iav, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
+        );
         vm.prank(_iav.dataService);
         ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
