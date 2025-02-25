@@ -675,7 +675,7 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
-          .emit(rewardsManager, 'RewardsAssigned')
+          .emit(rewardsManager, 'HorizonRewardsAssigned')
           .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
@@ -693,7 +693,7 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
-          .emit(rewardsManager, 'RewardsAssigned')
+          .emit(rewardsManager, 'HorizonRewardsAssigned')
           .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
@@ -710,7 +710,7 @@ describe('Rewards', () => {
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
         await expect(tx)
-          .emit(rewardsManager, 'RewardsAssigned')
+          .emit(rewardsManager, 'HorizonRewardsAssigned')
           .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 

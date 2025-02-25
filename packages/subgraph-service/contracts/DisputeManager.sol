@@ -103,6 +103,7 @@ contract DisputeManager is
 
     /**
      * @notice Initialize this contract.
+     * @param owner The owner of the contract
      * @param arbitrator Arbitrator role
      * @param disputePeriod Dispute period in seconds
      * @param disputeDeposit Deposit required to create a Dispute
@@ -110,13 +111,14 @@ contract DisputeManager is
      * @param maxSlashingCut_ Maximum percentage of indexer stake that can be slashed (ppm)
      */
     function initialize(
+        address owner,
         address arbitrator,
         uint64 disputePeriod,
         uint256 disputeDeposit,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
     ) external initializer {
-        __Ownable_init(msg.sender);
+        __Ownable_init(owner);
         __AttestationManager_init();
 
         _setArbitrator(arbitrator);
