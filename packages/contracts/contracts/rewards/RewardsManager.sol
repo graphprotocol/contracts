@@ -38,8 +38,9 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @dev Emitted when rewards are assigned to an indexer.
+     * @dev We use the Horizon prefix to change the event signature which makes network subgraph development much easier
      */
-    event RewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount);
+    event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount);
 
     /**
      * @dev Emitted when rewards are denied to an indexer.
@@ -412,7 +413,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
             graphToken().mint(rewardsIssuer, rewards);
         }
 
-        emit RewardsAssigned(indexer, _allocationID, rewards);
+        emit HorizonRewardsAssigned(indexer, _allocationID, rewards);
 
         return rewards;
     }

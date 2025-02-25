@@ -298,7 +298,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 tokensCurators = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
 
         vm.expectEmit(address(subgraphService));
-        emit ISubgraphService.QueryFeesCollected(_indexer, paymentCollected, tokensCurators);
+        emit ISubgraphService.QueryFeesCollected(_indexer, payer, paymentCollected, tokensCurators);
 
         return paymentCollected;
     }
