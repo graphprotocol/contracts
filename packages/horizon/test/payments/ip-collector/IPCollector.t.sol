@@ -6,6 +6,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { ControllerMock } from "../../../contracts/mocks/ControllerMock.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
 import { IPaymentsEscrow } from "../../../contracts/interfaces/IPaymentsEscrow.sol";
+import { IPaymentsCollector } from "../../../contracts/interfaces/IPaymentsCollector.sol";
 import { IAuthorizable } from "../../../contracts/interfaces/IAuthorizable.sol";
 import { IIPCollector } from "../../../contracts/interfaces/IIPCollector.sol";
 import { IPCollector } from "../../../contracts/payments/collectors/IPCollector.sol";
@@ -19,13 +20,17 @@ contract Controller is ControllerMock, Test {
     address invalidContractAddress;
     IPaymentsEscrow paymentsEscrow;
 
-    constructor() ControllerMock(address(0)) {
+    constructor(address _paymentsEscrow) ControllerMock(address(0)) {
         invalidContractAddress = makeAddr("invalidContractAddress");
-        paymentsEscrow = new PaymentsEscrow();
+        paymentsEscrow = IPaymentsEscrow(_paymentsEscrow);
     }
 
     function getContractProxy(bytes32 _b) external view override returns (address) {
         return _b == keccak256("PaymentsEscrow") ? address(paymentsEscrow) : invalidContractAddress;
+    }
+
+    function getPaymentsEscrow() external view returns (address) {
+        return address(paymentsEscrow);
     }
 }
 
@@ -49,16 +54,18 @@ contract PaymentsEscrow is IPaymentsEscrow, Test {
 
 contract IPCollectorAuthorizableTest is AuthorizableTest {
     function newAuthorizable(uint256 _thawPeriod) public override returns (IAuthorizable) {
-        return new IPCollector("IPCollector", "1", address(new Controller()), _thawPeriod);
+        return new IPCollector("IPCollector", "1", address(new Controller(address(1))), _thawPeriod);
     }
 }
 
 contract IPCollectorTest is Test, Bounder {
     IPCollector ipCollector;
     AuthorizableHelper authHelper;
+    PaymentsEscrow paymentsEscrow;
 
     function setUp() public {
-        ipCollector = new IPCollector("IPCollector", "1", address(new Controller()), 1);
+        paymentsEscrow = new PaymentsEscrow();
+        ipCollector = new IPCollector("IPCollector", "1", address(new Controller(address(paymentsEscrow))), 1);
         authHelper = new AuthorizableHelper(ipCollector, 1);
     }
 
@@ -310,6 +317,46 @@ contract IPCollectorTest is Test, Bounder {
         _iav = _sensibleIAV(_iav);
         _authorizeAndAccept(_iav, boundKey(_unboundedKey));
 
+        (bytes memory data, uint256 tokens) = _doSomething(
+            _iav,
+            _fuzzyParams,
+            _unboundedCollectionSkip,
+            _unboundedTokens
+        );
+        vm.expectCall(
+            address(paymentsEscrow),
+            abi.encodeCall(
+                paymentsEscrow.collect,
+                (
+                    IGraphPayments.PaymentTypes.IndexingFee,
+                    _iav.payer,
+                    _iav.serviceProvider,
+                    tokens,
+                    _iav.dataService,
+                    _fuzzyParams.dataServiceCut
+                )
+            )
+        );
+        vm.expectEmit(address(ipCollector));
+        emit IPaymentsCollector.PaymentCollected(
+            IGraphPayments.PaymentTypes.IndexingFee,
+            _fuzzyParams.collectionId,
+            _iav.payer,
+            _iav.serviceProvider,
+            _iav.dataService,
+            tokens
+        );
+        vm.prank(_iav.dataService);
+        uint256 collected = ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        assertEq(collected, tokens);
+    }
+
+    function _doSomething(
+        IIPCollector.IndexingAgreementVoucher memory _iav,
+        IIPCollector.CollectParams memory _fuzzyParams,
+        uint256 _unboundedCollectionSkip,
+        uint256 _unboundedTokens
+    ) private returns (bytes memory, uint256) {
         // skip to collectable time
         uint256 collectionSeconds = boundSkip(
             _unboundedCollectionSkip,
@@ -317,13 +364,12 @@ contract IPCollectorTest is Test, Bounder {
             _iav.maxSecondsPerCollection
         );
         skip(collectionSeconds);
-        uint256 maxTokens = (_iav.maxOngoingTokensPerSecond * collectionSeconds);
-        uint256 tokens = bound(_unboundedTokens, 1, maxTokens);
+        uint256 tokens = bound(_unboundedTokens, 1, _iav.maxOngoingTokensPerSecond * collectionSeconds);
         bytes memory data = _generateCollectData(
             _generateCollectParams(_iav, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
         );
-        vm.prank(_iav.dataService);
-        ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+
+        return (data, tokens);
     }
 
     function _sensibleIAV(
