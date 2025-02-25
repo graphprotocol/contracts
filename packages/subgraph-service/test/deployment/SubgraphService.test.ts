@@ -10,6 +10,11 @@ const addressBookEntry = graph.subgraphService!.addressBook.getEntry('SubgraphSe
 const SubgraphService = graph.subgraphService!.contracts.SubgraphService
 
 describe('SubgraphService', function () {
+  it('should be owned by the governor', async function () {
+    const owner = await SubgraphService.owner()
+    expect(owner).to.equal(config.$global.governor)
+  })
+
   it('should set the right minimum provision tokens', async function () {
     const [minimumProvisionTokens] = await SubgraphService.getProvisionTokensRange()
     expect(minimumProvisionTokens).to.equal(config.SubgraphService.minimumProvisionTokens)
@@ -40,10 +45,7 @@ describe('SubgraphService', function () {
     expect(curationAddress).to.equal(config.$global.curationProxyAddress)
   })
 
-  it('should set the right pause guardian', async function () {
-    // const pauseGuardian = await SubgraphService.getPauseGuardian()
-    // expect(pauseGuardian).to.equal(config.$global.pauseGuardian)
-  })
+  it('should set the right pause guardian')
 
   it('should set the right maxPOIStaleness', async function () {
     const maxPOIStaleness = await SubgraphService.maxPOIStaleness()
