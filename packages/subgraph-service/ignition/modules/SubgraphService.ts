@@ -7,7 +7,9 @@ import SubgraphServiceArtifact from '../../build/contracts/contracts/SubgraphSer
 import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
 
 export default buildModule('SubgraphService', (m) => {
+  const deployer = m.getAccount(0)
   const governor = m.getParameter('governor')
+  const pauseGuardian = m.getParameter('pauseGuardian')
   const controllerAddress = m.getParameter('controllerAddress')
   const subgraphServiceProxyAddress = m.getParameter('subgraphServiceProxyAddress')
   const subgraphServiceProxyAdminAddress = m.getParameter('subgraphServiceProxyAdminAddress')
@@ -17,6 +19,8 @@ export default buildModule('SubgraphService', (m) => {
   const minimumProvisionTokens = m.getParameter('minimumProvisionTokens')
   const maximumDelegationRatio = m.getParameter('maximumDelegationRatio')
   const stakeToFeesRatio = m.getParameter('stakeToFeesRatio')
+  const maxPOIStaleness = m.getParameter('maxPOIStaleness')
+  const curationCut = m.getParameter('curationCut')
 
   const SubgraphServiceProxyAdmin = m.contractAt('ProxyAdmin', ProxyAdminArtifact, subgraphServiceProxyAdminAddress)
   const SubgraphServiceProxy = m.contractAt('SubgraphServiceProxy', TransparentUpgradeableProxyArtifact, subgraphServiceProxyAddress)
@@ -35,13 +39,17 @@ export default buildModule('SubgraphService', (m) => {
       name: 'SubgraphService',
       artifact: SubgraphServiceArtifact,
       initArgs: [
+        deployer,
         minimumProvisionTokens,
         maximumDelegationRatio,
         stakeToFeesRatio,
       ],
     })
 
-  m.call(SubgraphServiceProxyAdmin, 'transferOwnership', [governor], { after: [SubgraphService] })
+  const callSetPauseGuardian = m.call(SubgraphService, 'setPauseGuardian', [pauseGuardian, true])
+  const callSetMaxPOIStaleness = m.call(SubgraphService, 'setMaxPOIStaleness', [maxPOIStaleness])
+  const callSetCurationCut = m.call(SubgraphService, 'setCurationCut', [curationCut])
+  m.call(SubgraphServiceProxyAdmin, 'transferOwnership', [governor], { after: [callSetPauseGuardian, callSetMaxPOIStaleness, callSetCurationCut] })
 
   return {
     SubgraphService,

@@ -55,6 +55,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         );
 
         WITHDRAW_ESCROW_THAWING_PERIOD = withdrawEscrowThawingPeriod;
+        _disableInitializers();
     }
 
     /**

@@ -75,16 +75,18 @@ contract SubgraphService is
      * @notice Initialize the contract
      * @dev The thawingPeriod and verifierCut ranges are not set here because they are variables
      * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.
+     * @param owner The owner of the contract
      * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
      * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
      * @param stakeToFeesRatio The ratio of stake to fees to lock when collecting query fees
      */
     function initialize(
+        address owner,
         uint256 minimumProvisionTokens,
         uint32 maximumDelegationRatio,
         uint256 stakeToFeesRatio
     ) external initializer {
-        __Ownable_init(msg.sender);
+        __Ownable_init(owner);
         __Multicall_init();
         __DataService_init();
         __DataServicePausable_init();
@@ -454,6 +456,27 @@ contract SubgraphService is
      */
     function getLegacyAllocation(address allocationId) external view override returns (LegacyAllocation.State memory) {
         return _legacyAllocations[allocationId];
+    }
+
+    /**
+     * @notice See {ISubgraphService.getDisputeManager}
+     */
+    function getDisputeManager() external view override returns (address) {
+        return address(_disputeManager());
+    }
+
+    /**
+     * @notice See {ISubgraphService.getGraphTallyCollector}
+     */
+    function getGraphTallyCollector() external view override returns (address) {
+        return address(_graphTallyCollector());
+    }
+
+    /**
+     * @notice See {ISubgraphService.getCuration}
+     */
+    function getCuration() external view override returns (address) {
+        return address(_curation());
     }
 
     /**

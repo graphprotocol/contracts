@@ -247,4 +247,22 @@ interface ISubgraphService is IDataServiceFees {
      * @return True if the indexer is over-allocated, false otherwise
      */
     function isOverAllocated(address allocationId) external view returns (bool);
+
+    /**
+     * @notice Gets the address of the dispute manager
+     * @return The address of the dispute manager
+     */
+    function getDisputeManager() external view returns (address);
+
+    /**
+     * @notice Gets the address of the graph tally collector
+     * @return The address of the graph tally collector
+     */
+    function getGraphTallyCollector() external view returns (address);
+
+    /**
+     * @notice Gets the address of the curation contract
+     * @return The address of the curation contract
+     */
+    function getCuration() external view returns (address);
 }
