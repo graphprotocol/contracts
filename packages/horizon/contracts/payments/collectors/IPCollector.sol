@@ -101,7 +101,7 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         uint256 agreementEnd = agreement.duration < type(uint256).max - agreement.acceptedAt
             ? agreement.acceptedAt + agreement.duration
             : type(uint256).max;
-        require(agreementEnd > block.timestamp, "IPCollectorAgreementElapsed");
+        require(agreementEnd >= block.timestamp, "IPCollectorAgreementElapsed");
 
         uint256 collectionSeconds = block.timestamp;
         collectionSeconds -= lastCollection > 0 ? lastCollection : agreement.acceptedAt;

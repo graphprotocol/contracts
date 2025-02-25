@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import { Test } from "forge-std/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 
 import { ControllerMock } from "../../../contracts/mocks/ControllerMock.sol";
 import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
@@ -13,6 +13,7 @@ import { AuthorizableTest, AuthorizableHelper } from "../../utilities/Authorizab
 import { Bounder } from "../../utils/Bounder.t.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract Controller is ControllerMock, Test {
     address invalidContractAddress;
@@ -180,13 +181,17 @@ contract IPCollectorTest is Test, Bounder {
         uint256 _unboundedCollectAt
     ) public {
         _iav = _sensibleIAV(_iav);
-        skip(boundSkipMax(_unboundedAcceptAt, type(uint256).max - block.timestamp - 1)); // allow for proofdeadline to be valid
+        // ensure agreement is short lived
+        _iav.duration = bound(_iav.duration, 0, _iav.maxSecondsPerCollection * 100);
+        // skip to sometime in the future when there is still plenty of time after the agreement elapsed
+        skip(boundSkipCeil(_unboundedAcceptAt, type(uint256).max - (_iav.duration * 10)));
         _authorizeAndAccept(_iav, boundKey(_unboundedKey));
         bytes memory data = _generateCollectData(
             _generateCollectParams(_iav, _fuzzyParams.collectionId, _fuzzyParams.tokens, _fuzzyParams.dataServiceCut)
         );
 
-        skip(boundSkipMin(_unboundedCollectAt, _iav.duration));
+        // skip to sometime after agreement elapsed
+        skip(boundSkip(_unboundedCollectAt, _iav.duration + 1, orTillEndOfTime(type(uint256).max)));
         vm.expectRevert("IPCollectorAgreementElapsed");
         vm.prank(_iav.dataService);
         ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
@@ -196,9 +201,12 @@ contract IPCollectorTest is Test, Bounder {
         IIPCollector.IndexingAgreementVoucher memory _iav,
         IIPCollector.CollectParams memory _fuzzyParams,
         uint256 _unboundedKey,
+        uint256 _unboundedAcceptAt,
         uint256 _unboundedSkip
     ) public {
         _iav = _sensibleIAV(_iav);
+        // skip to sometime in the future when there are still plenty of collections left
+        skip(boundSkipCeil(_unboundedAcceptAt, type(uint256).max - (_iav.maxSecondsPerCollection * 10)));
         _authorizeAndAccept(_iav, boundKey(_unboundedKey));
 
         skip(_iav.minSecondsPerCollection);
@@ -208,11 +216,44 @@ contract IPCollectorTest is Test, Bounder {
         vm.prank(_iav.dataService);
         ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
 
-        skip(boundSkipMax(_unboundedSkip, _iav.minSecondsPerCollection - 1));
+        skip(boundSkipCeil(_unboundedSkip, _iav.minSecondsPerCollection - 1));
         data = _generateCollectData(
             _generateCollectParams(_iav, _fuzzyParams.collectionId, _fuzzyParams.tokens, _fuzzyParams.dataServiceCut)
         );
         vm.expectRevert("IPCollectorCollectionTooSoon");
+        vm.prank(_iav.dataService);
+        ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+    }
+
+    function test_Collect_Revert_WhenCollectingTooLate(
+        IIPCollector.IndexingAgreementVoucher memory _iav,
+        IIPCollector.CollectParams memory _fuzzyParams,
+        uint256 _unboundedKey,
+        uint256 _unboundedAcceptAt,
+        uint256 _unboundedFirstCollectionSkip,
+        uint256 _unboundedSkip
+    ) public {
+        _iav = _sensibleIAV(_iav);
+        // skip to sometime in the future when there are still plenty of collections left
+        skip(boundSkipCeil(_unboundedAcceptAt, type(uint256).max - (_iav.maxSecondsPerCollection * 10)));
+        uint256 acceptedAt = block.timestamp;
+        _authorizeAndAccept(_iav, boundKey(_unboundedKey));
+
+        // skip to collectable time
+        skip(boundSkip(_unboundedFirstCollectionSkip, _iav.minSecondsPerCollection, _iav.maxSecondsPerCollection));
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(_iav, _fuzzyParams.collectionId, 1, _fuzzyParams.dataServiceCut)
+        );
+        vm.prank(_iav.dataService);
+        ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+
+        uint256 durationLeft = orTillEndOfTime(_iav.duration - (block.timestamp - acceptedAt));
+        // skip beyond collectable time but still within the agreement duration
+        skip(boundSkip(_unboundedSkip, _iav.maxSecondsPerCollection + 1, durationLeft));
+        data = _generateCollectData(
+            _generateCollectParams(_iav, _fuzzyParams.collectionId, _fuzzyParams.tokens, _fuzzyParams.dataServiceCut)
+        );
+        vm.expectRevert("IPCollectorCollectionTooLate");
         vm.prank(_iav.dataService);
         ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
@@ -222,9 +263,9 @@ contract IPCollectorTest is Test, Bounder {
     ) private pure returns (IIPCollector.IndexingAgreementVoucher memory) {
         _iav.minSecondsPerCollection = uint32(bound(_iav.minSecondsPerCollection, 60, 60 * 60 * 24));
         _iav.maxSecondsPerCollection = uint32(
-            bound(_iav.maxSecondsPerCollection, _iav.minSecondsPerCollection, 60 * 60 * 24 * 30)
+            bound(_iav.maxSecondsPerCollection, _iav.minSecondsPerCollection * 2, 60 * 60 * 24 * 30)
         );
-        _iav.duration = bound(_iav.duration, (_iav.minSecondsPerCollection * 100) + 1, type(uint256).max);
+        _iav.duration = bound(_iav.duration, _iav.maxSecondsPerCollection * 10, type(uint256).max);
         _iav.maxInitialTokens = bound(_iav.maxInitialTokens, 0, 1e18 * 100_000_000);
         _iav.maxOngoingTokensPerSecond = bound(_iav.maxOngoingTokensPerSecond, 1, 1e18);
 
