@@ -96,7 +96,7 @@ contract InboxMock is IInbox {
      * @param _maxSubmissionCost Max cost of submitting the ticket, in Wei
      * @param _submissionRefundAddress L2 address to refund for any remaining value from the submission cost
      * @param _valueRefundAddress L2 address to refund if the ticket times out or gets cancelled
-     * @param _maxGas Max gas for the L2 transcation
+     * @param _maxGas Max gas for the L2 transaction
      * @param _gasPriceBid Gas price bid on L2
      * @param _data Encoded calldata for the L2 transaction (including function selector)
      * @return Message number returned by the bridge
