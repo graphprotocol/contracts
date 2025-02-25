@@ -317,12 +317,24 @@ contract IPCollectorTest is Test, Bounder {
         _iav = _sensibleIAV(_iav);
         _authorizeAndAccept(_iav, boundKey(_unboundedKey));
 
-        (bytes memory data, uint256 tokens) = _doSomething(
+        (bytes memory data, uint256 collectionSeconds, uint256 tokens) = _generateValidCollection(
             _iav,
             _fuzzyParams,
             _unboundedCollectionSkip,
             _unboundedTokens
         );
+        skip(collectionSeconds);
+        _expectCollectCallAndEmit(_iav, _fuzzyParams, tokens);
+        vm.prank(_iav.dataService);
+        uint256 collected = ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        assertEq(collected, tokens);
+    }
+
+    function _expectCollectCallAndEmit(
+        IIPCollector.IndexingAgreementVoucher memory _iav,
+        IIPCollector.CollectParams memory _fuzzyParams,
+        uint256 tokens
+    ) private {
         vm.expectCall(
             address(paymentsEscrow),
             abi.encodeCall(
@@ -346,30 +358,25 @@ contract IPCollectorTest is Test, Bounder {
             _iav.dataService,
             tokens
         );
-        vm.prank(_iav.dataService);
-        uint256 collected = ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
-        assertEq(collected, tokens);
     }
 
-    function _doSomething(
+    function _generateValidCollection(
         IIPCollector.IndexingAgreementVoucher memory _iav,
         IIPCollector.CollectParams memory _fuzzyParams,
         uint256 _unboundedCollectionSkip,
         uint256 _unboundedTokens
-    ) private returns (bytes memory, uint256) {
-        // skip to collectable time
+    ) private view returns (bytes memory, uint256, uint256) {
         uint256 collectionSeconds = boundSkip(
             _unboundedCollectionSkip,
             _iav.minSecondsPerCollection,
             _iav.maxSecondsPerCollection
         );
-        skip(collectionSeconds);
         uint256 tokens = bound(_unboundedTokens, 1, _iav.maxOngoingTokensPerSecond * collectionSeconds);
         bytes memory data = _generateCollectData(
             _generateCollectParams(_iav, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
         );
 
-        return (data, tokens);
+        return (data, collectionSeconds, tokens);
     }
 
     function _sensibleIAV(
