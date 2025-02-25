@@ -65,15 +65,11 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
       parameters: IgnitionHelper.patchConfig(SubgraphServiceConfig, {
         $global: {
           controllerAddress: horizonDeployment.Controller.target as string,
-          disputeManagerProxyAddress: proxiesDeployment.Transparent_Proxy_DisputeManager.target as string,
-          curationAddress: horizonDeployment.Graph_Proxy_L2Curation.target as string,
+          curationProxyAddress: horizonDeployment.Graph_Proxy_L2Curation.target as string,
           curationImplementationAddress: horizonDeployment.Implementation_L2Curation.target as string,
-          subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
-        },
-        DisputeManager: {
+          disputeManagerProxyAddress: proxiesDeployment.Transparent_Proxy_DisputeManager.target as string,
           disputeManagerProxyAdminAddress: proxiesDeployment.Transparent_ProxyAdmin_DisputeManager.target as string,
-        },
-        SubgraphService: {
+          subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
           subgraphServiceProxyAdminAddress: proxiesDeployment.Transparent_ProxyAdmin_SubgraphService.target as string,
           graphTallyCollectorAddress: horizonDeployment.GraphTallyCollector.target as string,
         },
@@ -82,9 +78,9 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // Save the addresses to the address book
     console.log('\n========== 📖 Updating address book ==========')
-    IgnitionHelper.saveToAddressBook(horizonDeployment, hre.network.config.chainId, graph.horizon!.addressBook)
-    IgnitionHelper.saveToAddressBook(proxiesDeployment, hre.network.config.chainId, graph.subgraphService!.addressBook)
-    IgnitionHelper.saveToAddressBook(subgraphServiceDeployment, hre.network.config.chainId, graph.subgraphService!.addressBook)
+    IgnitionHelper.saveToAddressBook(horizonDeployment, graph.horizon!.addressBook)
+    IgnitionHelper.saveToAddressBook(proxiesDeployment, graph.subgraphService!.addressBook)
+    IgnitionHelper.saveToAddressBook(subgraphServiceDeployment, graph.subgraphService!.addressBook)
     console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
     console.log(`Address book at ${graph.subgraphService!.addressBook.file} updated!`)
     console.log('Note that Horizon deployment addresses are updated in the Horizon address book')
@@ -144,7 +140,7 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
-    IgnitionHelper.saveToAddressBook(deployment, hre.network.config.chainId, graph.subgraphService!.addressBook)
+    IgnitionHelper.saveToAddressBook(deployment, graph.subgraphService!.addressBook)
     console.log(`Address book at ${graph.subgraphService!.addressBook.file} updated!`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Migration complete! 🎉 ✨ 🚀 ✅')
@@ -171,16 +167,13 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
 
       patchedConfig = IgnitionHelper.patchConfig(config, {
         $global: {
+          disputeManagerProxyAddress: DisputeManager.address,
+          disputeManagerProxyAdminAddress: DisputeManager.proxyAdmin,
           subgraphServiceProxyAddress: SubgraphService.address,
         },
         SubgraphService: {
           subgraphServiceProxyAdminAddress: SubgraphService.proxyAdmin,
           graphTallyCollectorAddress: GraphTallyCollector.address,
-          disputeManagerProxyAddress: DisputeManager.address,
-        },
-        DisputeManager: {
-          disputeManagerProxyAddress: DisputeManager.address,
-          disputeManagerProxyAdminAddress: DisputeManager.proxyAdmin,
         },
       })
       break

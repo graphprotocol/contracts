@@ -4,7 +4,6 @@ import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'
-import 'hardhat-storage-layout'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
 import { HardhatUserConfig } from 'hardhat/types'
@@ -25,6 +24,19 @@ const config: HardhatUserConfig = {
         runs: 20,
       },
     },
+  },
+  etherscan: {
+    ...hardhatBaseConfig.etherscan,
+    customChains: [
+      {
+        network: 'arbitrumSepolia',
+        chainId: 421614,
+        urls: {
+          apiURL: 'https://api-sepolia.arbiscan.io/api',
+          browserURL: 'https://sepolia.arbiscan.io/',
+        },
+      },
+    ],
   },
 }
 

@@ -9,6 +9,8 @@ import path from 'path'
 import type { AddressBook } from '../address-book'
 
 export function loadConfig(configPath: string, prefix: string, configName: string): any {
+  prefix = process.env.IGNITION_DEPLOYMENT_TYPE ?? prefix
+
   const configFileCandidates = [
     path.resolve(process.cwd(), configPath, `${prefix}.${configName}.json5`),
     path.resolve(process.cwd(), configPath, `${prefix}.default.json5`),
@@ -45,13 +47,8 @@ export function patchConfig(jsonData: any, patches: Record<string, any>) {
 
 export function saveToAddressBook<ChainId extends number, ContractName extends string>(
   contracts: any,
-  chainId: number | undefined,
   addressBook: AddressBook<ChainId, ContractName>,
 ): AddressBook<ChainId, ContractName> {
-  if (!chainId) {
-    throw new Error('Chain ID is required')
-  }
-
   // Extract contract names and addresses
   for (const [ignitionContractName, contract] of Object.entries(contracts)) {
     // Proxy contracts
