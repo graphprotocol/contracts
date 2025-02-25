@@ -8,6 +8,7 @@ export default buildModule('SubgraphService_Deploy_2', (m) => {
   const { DisputeManager, DisputeManagerImplementation } = m.useModule(DisputeManagerModule)
   const { SubgraphService, SubgraphServiceImplementation } = m.useModule(SubgraphServiceModule)
   const { L2Curation, L2CurationImplementation } = m.useModule(CurationModule)
+
   return {
     Transparent_Proxy_DisputeManager: DisputeManager,
     Implementation_DisputeManager: DisputeManagerImplementation,

@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 
+import { assert, expect } from 'chai'
 import { AddressBookEntry } from '../../../../hardhat-graph-protocol/src/sdk/address-book'
-import { expect } from 'chai'
 import { zeroPadValue } from 'ethers'
 
 export function transparentUpgradeableProxyTests(contractName: string, addressBookEntry: AddressBookEntry, owner: string): void {
@@ -34,6 +34,9 @@ export function transparentUpgradeableProxyTests(contractName: string, addressBo
 
   describe(`${contractName}: ProxyAdmin`, function () {
     it('should be owned by the governor', async function () {
+      if (process.env.IGNITION_DEPLOYMENT_TYPE === 'protocol') {
+        assert.fail('Deployment type "protocol": unknown governor address')
+      }
       const ownerStorage = await hre.ethers.provider.getStorage(addressBookEntry.proxyAdmin!, 0)
       expect(ownerStorage).to.equal(zeroPadValue(owner, 32))
     })

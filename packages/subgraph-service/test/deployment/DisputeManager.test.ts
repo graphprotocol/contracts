@@ -37,7 +37,7 @@ describe('DisputeManager', function () {
 
   it('should set the right subgraph service address', async function () {
     const subgraphService = await DisputeManager.subgraphService()
-    expect(subgraphService).to.equal(config.SubgraphService.subgraphService)
+    expect(subgraphService).to.equal(config.$global.subgraphServiceProxyAddress)
   })
 })
 

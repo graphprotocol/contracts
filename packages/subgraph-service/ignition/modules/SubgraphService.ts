@@ -15,7 +15,7 @@ export default buildModule('SubgraphService', (m) => {
   const subgraphServiceProxyAdminAddress = m.getParameter('subgraphServiceProxyAdminAddress')
   const disputeManagerProxyAddress = m.getParameter('disputeManagerProxyAddress')
   const graphTallyCollectorAddress = m.getParameter('graphTallyCollectorAddress')
-  const curationAddress = m.getParameter('curationAddress')
+  const curationProxyAddress = m.getParameter('curationProxyAddress')
   const minimumProvisionTokens = m.getParameter('minimumProvisionTokens')
   const maximumDelegationRatio = m.getParameter('maximumDelegationRatio')
   const stakeToFeesRatio = m.getParameter('stakeToFeesRatio')
@@ -28,7 +28,7 @@ export default buildModule('SubgraphService', (m) => {
   // Deploy implementation
   const SubgraphServiceImplementation = deployImplementation(m, {
     name: 'SubgraphService',
-    constructorArgs: [controllerAddress, disputeManagerProxyAddress, graphTallyCollectorAddress, curationAddress],
+    constructorArgs: [controllerAddress, disputeManagerProxyAddress, graphTallyCollectorAddress, curationProxyAddress],
   })
 
   // Upgrade implementation
