@@ -110,6 +110,20 @@ interface IIPCollector is IAuthorizable, IPaymentsCollector {
     error IPCollectorCallerNotDataService(address caller, address dataService);
 
     /**
+     * @dev Accept an indexing agreement.
+     * @param signedIAV The signed Indexing Agreement Voucher which is to be accepted.
+     */
+    function accept(SignedIAV memory signedIAV) external;
+
+    /**
+     * @dev Cancel an indexing agreement.
+     * @param payer The address of the payer for the agreement.
+     * @param serviceProvider The address of the serviceProvider for the agreement.
+     * @param agreementId The agreement's ID.
+     */
+    function cancel(address payer, address serviceProvider, bytes16 agreementId) external;
+
+    /**
      * @dev Computes the hash of a IndexingAgreementVoucher (IAV).
      * @param iav The IAV for which to compute the hash.
      * @return The hash of the IAV.
@@ -122,8 +136,4 @@ interface IIPCollector is IAuthorizable, IPaymentsCollector {
      * @return The address of the signer.
      */
     function recoverIAVSigner(SignedIAV calldata signedIAV) external view returns (address);
-
-    function accept(SignedIAV memory signedIAV) external;
-
-    function cancel(address _payer, address _serviceProvider, bytes16 _agreementId) external;
 }
