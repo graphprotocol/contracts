@@ -34,12 +34,16 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Emitted when a subgraph service collects query fees from Graph Payments
      * @param serviceProvider The address of the service provider
      * @param payer The address paying for the query fees
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
      * @param tokensCollected The amount of tokens collected
      * @param tokensCurators The amount of tokens curators receive
      */
     event QueryFeesCollected(
         address indexed serviceProvider,
         address indexed payer,
+        address indexed allocationId,
+        bytes32 subgraphDeploymentId,
         uint256 tokensCollected,
         uint256 tokensCurators
     );
