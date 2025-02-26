@@ -20,6 +20,8 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         address rando,
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
+        vm.assume(rando != users.pauseGuardian);
+
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
