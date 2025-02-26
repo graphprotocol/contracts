@@ -9,7 +9,6 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
 
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title IPCollector contract
@@ -29,43 +28,100 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
     mapping(address dataService => mapping(address payer => mapping(address serviceProvider => mapping(bytes16 agreementId => AgreementData data))))
         public agreements;
 
-    uint256 constant CANCELED = type(uint256).max;
+    /// @notice Sentinel value to indicate an agreement has been canceled
+    uint256 private constant CANCELED = type(uint256).max;
+
+    modifier onlyDataService(address dataService) {
+        require(dataService == msg.sender, IPCollectorCallerNotDataService(msg.sender, dataService));
+        _;
+    }
 
     /**
      * @notice Constructs a new instance of the IPCollector contract.
-     * @param _eip712Name The name of the EIP712 domain.
-     * @param _eip712Version The version of the EIP712 domain.
-     * @param _controller The address of the Graph controller.
-     * @param _revokeSignerThawingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
+     * @param eip712Name The name of the EIP712 domain.
+     * @param eip712Version The version of the EIP712 domain.
+     * @param controller The address of the Graph controller.
+     * @param revokeSignerThawingPeriod The duration (in seconds) in which a signer is thawing before they can be revoked.
      */
     constructor(
-        string memory _eip712Name,
-        string memory _eip712Version,
-        address _controller,
-        uint256 _revokeSignerThawingPeriod
-    ) EIP712(_eip712Name, _eip712Version) GraphDirectory(_controller) Authorizable(_revokeSignerThawingPeriod) {}
-
-    modifier onlyDataService(address _dataService) {
-        require(_dataService == msg.sender, IPCollectorCallerNotDataService(msg.sender, _dataService));
-        _;
-    }
+        string memory eip712Name,
+        string memory eip712Version,
+        address controller,
+        uint256 revokeSignerThawingPeriod
+    ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {}
 
     /**
      * @notice Initiate a payment collection through the payments protocol.
      * See {IGraphPayments.collect}.
      * @dev Caller must be the data service the IAV was issued to.
      */
-    function collect(IGraphPayments.PaymentTypes _paymentType, bytes calldata _data) external returns (uint256) {
-        require(_paymentType == IGraphPayments.PaymentTypes.IndexingFee, IPCollectorInvalidPaymentType(_paymentType));
-        try this.decodeCollectData(_data) returns (CollectParams memory _params) {
-            return _collect(_params);
+    function collect(IGraphPayments.PaymentTypes paymentType, bytes calldata data) external returns (uint256) {
+        require(paymentType == IGraphPayments.PaymentTypes.IndexingFee, IPCollectorInvalidPaymentType(paymentType));
+        try this.decodeCollectData(data) returns (CollectParams memory params) {
+            return _collect(params);
         } catch {
             revert("IPCollectorInvalidCollectData");
         }
     }
 
-    function decodeCollectData(bytes calldata _data) public pure returns (CollectParams memory) {
-        return abi.decode(_data, (CollectParams));
+    // Called from data service
+    // Data service has to check the service provider
+    // Collector checks the signer (a.k.a. the payer)
+    function accept(SignedIAV memory signedIAV) external onlyDataService(signedIAV.iav.dataService) {
+        // check that the voucher is signed by the payer (or proxy)
+        _requireAuthorizedSigner(signedIAV);
+
+        AgreementData storage agreement = _getForUpdateAgreement(
+            AgreementKey({
+                dataService: signedIAV.iav.dataService,
+                payer: signedIAV.iav.payer,
+                serviceProvider: signedIAV.iav.serviceProvider,
+                agreementId: signedIAV.iav.agreementId
+            })
+        );
+        // check that the agreement is not already accepted
+        require(agreement.acceptedAt == 0, "IPCollectorInvalidAgreementId");
+
+        // accept the agreement
+        agreement.acceptedAt = block.timestamp;
+        // these need to be validated to something that makes sense for the contract
+        agreement.duration = signedIAV.iav.duration;
+        agreement.maxInitialTokens = signedIAV.iav.maxInitialTokens;
+        agreement.maxOngoingTokensPerSecond = signedIAV.iav.maxOngoingTokensPerSecond;
+        agreement.minSecondsPerCollection = signedIAV.iav.minSecondsPerCollection;
+        agreement.maxSecondsPerCollection = signedIAV.iav.maxSecondsPerCollection;
+    }
+
+    // The caller owns their entire agreement namespace
+    function cancel(address payer, address serviceProvider, bytes16 agreementId) external {
+        AgreementData storage agreement = _getForUpdateAgreement(
+            AgreementKey({
+                dataService: msg.sender,
+                payer: payer,
+                serviceProvider: serviceProvider,
+                agreementId: agreementId
+            })
+        );
+        require(agreement.acceptedAt > 0, "IPCollectorInvalidAgreementId");
+        agreement.acceptedAt = CANCELED;
+    }
+
+    /**
+     * @notice See {IIPCollector.recoverIAVSigner}
+     */
+    function recoverIAVSigner(SignedIAV calldata signedIAV) external view returns (address) {
+        return _recoverIAVSigner(signedIAV);
+    }
+
+    /**
+     * @notice See {IIPCollector.encodeIAV}
+     */
+    function encodeIAV(IndexingAgreementVoucher calldata iav) external view returns (bytes32) {
+        return _encodeIAV(iav);
+    }
+
+    function decodeCollectData(bytes calldata data) public pure returns (CollectParams memory) {
+        return abi.decode(data, (CollectParams));
     }
 
     function _collect(CollectParams memory _params) private onlyDataService(_params.key.dataService) returns (uint256) {
@@ -111,68 +167,12 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         uint256 maxTokens = agreement.maxOngoingTokensPerSecond * collectionSeconds;
         maxTokens += lastCollection == 0 ? agreement.maxInitialTokens : 0;
 
-        require(_tokens <= maxTokens, "IPCollectorCollectionAmountTooHigh");
-    }
-
-    // Called from data service
-    // Data service has to check the service provider
-    // Collector checks the signer (a.k.a. the payer)
-    function accept(SignedIAV memory signedIAV) external onlyDataService(signedIAV.iav.dataService) {
-        // check that the voucher is signed by the payer (or proxy)
-        _requireAuthorizedSigner(signedIAV);
-
-        AgreementData storage agreement = _getForUpdateAgreement(
-            AgreementKey({
-                dataService: signedIAV.iav.dataService,
-                payer: signedIAV.iav.payer,
-                serviceProvider: signedIAV.iav.serviceProvider,
-                agreementId: signedIAV.iav.agreementId
-            })
-        );
-        // check that the agreement is not already accepted
-        require(agreement.acceptedAt == 0, "IPCollectorInvalidAgreementId");
-
-        // accept the agreement
-        agreement.acceptedAt = block.timestamp;
-        // these need to be validated to something that makes sense for the contract
-        agreement.duration = signedIAV.iav.duration;
-        agreement.maxInitialTokens = signedIAV.iav.maxInitialTokens;
-        agreement.maxOngoingTokensPerSecond = signedIAV.iav.maxOngoingTokensPerSecond;
-        agreement.minSecondsPerCollection = signedIAV.iav.minSecondsPerCollection;
-        agreement.maxSecondsPerCollection = signedIAV.iav.maxSecondsPerCollection;
-    }
-
-    // The caller owns their entire agreement namespace
-    function cancel(address _payer, address _serviceProvider, bytes16 _agreementId) external {
-        AgreementData storage agreement = _getForUpdateAgreement(
-            AgreementKey({
-                dataService: msg.sender,
-                payer: _payer,
-                serviceProvider: _serviceProvider,
-                agreementId: _agreementId
-            })
-        );
-        require(agreement.acceptedAt > 0, "IPCollectorInvalidAgreementId");
-        agreement.acceptedAt = CANCELED;
-    }
-
-    /**
-     * @notice See {IIPCollector.recoverIAVSigner}
-     */
-    function recoverIAVSigner(SignedIAV calldata _signedIAV) external view returns (address) {
-        return _recoverIAVSigner(_signedIAV);
+        require(_tokens <= maxTokens, "IPCollectorCollectAmountTooHigh");
     }
 
     function _recoverIAVSigner(SignedIAV memory _signedIAV) private view returns (address) {
         bytes32 messageHash = _encodeIAV(_signedIAV.iav);
         return ECDSA.recover(messageHash, _signedIAV.signature);
-    }
-
-    /**
-     * @notice See {IIPCollector.encodeIAV}
-     */
-    function encodeIAV(IndexingAgreementVoucher calldata _iav) external view returns (bytes32) {
-        return _encodeIAV(_iav);
     }
 
     function _encodeIAV(IndexingAgreementVoucher memory _iav) private view returns (bytes32) {

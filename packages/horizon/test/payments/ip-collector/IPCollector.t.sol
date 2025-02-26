@@ -302,7 +302,7 @@ contract IPCollectorTest is Test, Bounder {
         bytes memory data = _generateCollectData(
             _generateCollectParams(_iav, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
         );
-        vm.expectRevert("IPCollectorCollectionAmountTooHigh");
+        vm.expectRevert("IPCollectorCollectAmountTooHigh");
         vm.prank(_iav.dataService);
         ipCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
