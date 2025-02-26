@@ -37,12 +37,31 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
         vm.assume(_notInUsers(rando));
-
         resetPrank(rando);
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerNotAuthorized.selector,
             signedIAV.iav.serviceProvider,
             rando
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.acceptIAV(allocationId, signedIAV);
+    }
+
+    function test_SubgraphService_AcceptIAV_Revert_WhenInvalidProvision(
+        uint256 tokens,
+        address allocationId,
+        IIPCollector.SignedIAV memory signedIAV
+    ) public useIndexer {
+        tokens = bound(tokens, 1, minimumProvisionTokens - 1);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+
+        signedIAV.iav.serviceProvider = users.indexer;
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerInvalidValue.selector,
+            "tokens",
+            tokens,
+            minimumProvisionTokens,
+            maximumProvisionTokens
         );
         vm.expectRevert(expectedErr);
         subgraphService.acceptIAV(allocationId, signedIAV);
