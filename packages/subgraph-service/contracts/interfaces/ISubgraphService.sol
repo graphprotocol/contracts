@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IIPCollector } from "@graphprotocol/horizon/contracts/interfaces/IIPCollector.sol";
 
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
@@ -26,14 +27,6 @@ interface ISubgraphService is IDataServiceFees {
         string geoHash;
     }
 
-    /**
-     * @notice Emitted when a subgraph service collects query fees from Graph Payments
-     * @param serviceProvider The address of the service provider
-     * @param tokensCollected The amount of tokens collected
-     * @param tokensCurators The amount of tokens curators receive
-     */
-    event QueryFeesCollected(address indexed serviceProvider, uint256 tokensCollected, uint256 tokensCurators);
-
     struct IndexingAgreementVoucherMetadata {
         uint256 tokensPerSecond;
         uint256 tokensPerEntityPerSecond;
@@ -54,6 +47,14 @@ interface ISubgraphService is IDataServiceFees {
         uint256 tokensPerSecond;
         uint256 tokensPerEntityPerSecond;
     }
+
+    /**
+     * @notice Emitted when a subgraph service collects query fees from Graph Payments
+     * @param serviceProvider The address of the service provider
+     * @param tokensCollected The amount of tokens collected
+     * @param tokensCurators The amount of tokens curators receive
+     */
+    event QueryFeesCollected(address indexed serviceProvider, uint256 tokensCollected, uint256 tokensCurators);
 
     event IndexingFeesCollected(
         address indexed serviceProvider,
@@ -257,6 +258,20 @@ interface ISubgraphService is IDataServiceFees {
      * @param rewardsDestination The address where indexing rewards should be sent
      */
     function setRewardsDestination(address rewardsDestination) external;
+
+    // TODO: document
+    function acceptIAV(address allocationId, IIPCollector.SignedIAV calldata signedIAV) external;
+
+    function cancelIAV(address indexer, address payer, bytes16 agreementId) external;
+
+    function cancelIAVByPayer(address indexer, address payer, bytes16 agreementId) external;
+
+    function collectIndexingFees(
+        IndexingAgreementKey memory key,
+        bytes32 collectionId,
+        uint256 entities,
+        bytes32 poi
+    ) external returns (uint256);
 
     /**
      * @notice Gets the details of an allocation

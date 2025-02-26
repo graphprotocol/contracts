@@ -24,12 +24,12 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
     bytes32 private constant EIP712_IAV_TYPEHASH =
         keccak256("IndexingAgreementVoucher(address dataService,address serviceProvider,bytes metadata)");
 
+    /// @notice Sentinel value to indicate an agreement has been canceled
+    uint256 private constant CANCELED = type(uint256).max;
+
     /// @notice Tracks agreements
     mapping(address dataService => mapping(address payer => mapping(address serviceProvider => mapping(bytes16 agreementId => AgreementData data))))
         public agreements;
-
-    /// @notice Sentinel value to indicate an agreement has been canceled
-    uint256 private constant CANCELED = type(uint256).max;
 
     /**
      * @notice Checks that msg sender is the data service

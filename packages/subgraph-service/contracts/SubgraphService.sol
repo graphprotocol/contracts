@@ -46,6 +46,13 @@ contract SubgraphService is
     using Allocation for Allocation.State;
     using TokenUtils for IGraphToken;
 
+    /// @notice Sentinel value to indicate an agreement has been canceled
+    uint256 private constant CANCELED = type(uint256).max;
+
+    /// @notice Tracks indexing agreements
+    mapping(address indexer => mapping(address payer => mapping(bytes16 agreementId => IndexingAgreementData data)))
+        public indexingAgreementsData;
+
     /**
      * @notice Checks that an indexer is registered
      * @param indexer The address of the indexer
@@ -409,6 +416,110 @@ contract SubgraphService is
     }
 
     /**
+     * @notice Accept an indexing agreement.
+     * See {ISubgraphService.acceptIAV}.
+     * @dev Can only be accepted on behalf of a valid indexer.
+     */
+    function acceptIAV(
+        address allocationId,
+        IIPCollector.SignedIAV calldata signedIAV
+    )
+        external
+        onlyAuthorizedForProvision(signedIAV.iav.serviceProvider)
+        onlyValidProvision(signedIAV.iav.serviceProvider)
+        onlyRegisteredIndexer(signedIAV.iav.serviceProvider)
+        whenNotPaused
+    {
+        // Check that the data service is the subgraph service
+        require(signedIAV.iav.dataService == address(this), "SubgraphService: Data service mismatch");
+
+        IndexingAgreementVoucherMetadata memory metadata = abi.decode(
+            signedIAV.iav.metadata,
+            (IndexingAgreementVoucherMetadata)
+        );
+
+        // Do I really need an allocation here? Should I also check the state of the allocation?
+        Allocation.State memory allocation = _allocations.get(allocationId);
+        require(
+            signedIAV.iav.serviceProvider == allocation.indexer,
+            SubgraphServiceInvalidSomething(signedIAV.iav.serviceProvider, allocation.indexer)
+        );
+        require(
+            metadata.subgraphDeploymentId == allocation.subgraphDeploymentId,
+            "SubgraphService: SubgraphDeploymentId mismatch"
+        );
+
+        IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(
+            IndexingAgreementKey({
+                indexer: signedIAV.iav.serviceProvider,
+                payer: signedIAV.iav.payer,
+                agreementId: signedIAV.iav.agreementId
+            })
+        );
+        require(agreement.acceptedAt == 0, "SubgraphService: Agreement already accepted");
+
+        agreement.tokensPerSecond = metadata.tokensPerSecond;
+        agreement.tokensPerEntityPerSecond = metadata.tokensPerEntityPerSecond;
+        agreement.acceptedAt = block.timestamp;
+
+        // Accept the IAV
+        _ipCollector().accept(signedIAV);
+    }
+
+    // Can only be canceled on behalf of a valid indexer
+    function cancelIAV(
+        address indexer,
+        address payer,
+        bytes16 agreementId
+    )
+        external
+        onlyAuthorizedForProvision(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+        whenNotPaused
+    {
+        // Do I need to check the allocation?
+        _cancelIAV(payer, indexer, agreementId);
+    }
+
+    function cancelIAVByPayer(address indexer, address payer, bytes16 agreementId) external whenNotPaused {
+        require(_ipCollector().isAuthorized(payer, msg.sender), "SubgraphService: Caller not authorized by payer");
+        _cancelIAV(payer, indexer, agreementId);
+    }
+
+    function collectIndexingFees(
+        IndexingAgreementKey memory key,
+        bytes32 collectionId,
+        uint256 entities,
+        bytes32 poi
+    )
+        external
+        onlyAuthorizedForProvision(key.indexer)
+        onlyValidProvision(key.indexer)
+        onlyRegisteredIndexer(key.indexer)
+        whenNotPaused
+        returns (uint256)
+    {
+        _requireValidAllocation(key.indexer, collectionId);
+
+        uint256 tokensToCollect = _indexingAgreementTokensToCollect(key, entities);
+        uint256 tokensCollected = _indexingAgreementCollect(key, collectionId, tokensToCollect);
+
+        _releaseAndLockStake(key.indexer, tokensCollected);
+
+        emit IndexingFeesCollected(
+            address(this),
+            key.payer,
+            key.agreementId,
+            _graphEpochManager().currentEpoch(),
+            tokensCollected,
+            entities,
+            poi
+        );
+        return tokensCollected;
+    }
+
+    /**
      * @notice See {ISubgraphService.getAllocation}
      */
     function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
@@ -579,136 +690,6 @@ contract SubgraphService is
         emit StakeToFeesRatioSet(_stakeToFeesRatio);
     }
 
-    /// @notice Tracks the accepted agreements
-    mapping(address indexer => mapping(address payer => mapping(bytes16 agreementId => IndexingAgreementData data)))
-        public agreementsData;
-
-    uint256 constant CANCELED = type(uint256).max;
-
-    // Can only be accepted on behalf of a valid indexer
-    function acceptIAV(
-        address _allocationId,
-        IIPCollector.SignedIAV calldata _signedIAV
-    )
-        external
-        onlyAuthorizedForProvision(_signedIAV.iav.serviceProvider)
-        onlyValidProvision(_signedIAV.iav.serviceProvider)
-        onlyRegisteredIndexer(_signedIAV.iav.serviceProvider)
-        whenNotPaused
-    {
-        // Check that the data service is the subgraph service
-        require(_signedIAV.iav.dataService == address(this), "SubgraphService: Data service mismatch");
-
-        IndexingAgreementVoucherMetadata memory metadata = abi.decode(
-            _signedIAV.iav.metadata,
-            (IndexingAgreementVoucherMetadata)
-        );
-
-        // Do I really need an allocation here? Should I also check the state of the allocation?
-        Allocation.State memory allocation = _allocations.get(_allocationId);
-        require(
-            _signedIAV.iav.serviceProvider == allocation.indexer,
-            SubgraphServiceInvalidSomething(_signedIAV.iav.serviceProvider, allocation.indexer)
-        );
-        require(
-            metadata.subgraphDeploymentId == allocation.subgraphDeploymentId,
-            "SubgraphService: SubgraphDeploymentId mismatch"
-        );
-
-        IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(
-            IndexingAgreementKey({
-                indexer: _signedIAV.iav.serviceProvider,
-                payer: _signedIAV.iav.payer,
-                agreementId: _signedIAV.iav.agreementId
-            })
-        );
-        require(agreement.acceptedAt == 0, "SubgraphService: Agreement already accepted");
-
-        agreement.tokensPerSecond = metadata.tokensPerSecond;
-        agreement.tokensPerEntityPerSecond = metadata.tokensPerEntityPerSecond;
-        agreement.acceptedAt = block.timestamp;
-
-        // Accept the IAV
-        _ipCollector().accept(_signedIAV);
-    }
-
-    // Can only be canceled on behalf of a valid indexer
-    function cancelIAV(
-        address _indexer,
-        address _payer,
-        bytes16 _agreementId
-    )
-        external
-        onlyAuthorizedForProvision(_indexer)
-        onlyValidProvision(_indexer)
-        onlyRegisteredIndexer(_indexer)
-        whenNotPaused
-    {
-        // Do I need to check the allocation?
-        _cancelIAV(_payer, _indexer, _agreementId);
-    }
-
-    function cancelIAVByPayer(address _indexer, address _payer, bytes16 _agreementId) external whenNotPaused {
-        require(_ipCollector().isAuthorized(_payer, msg.sender), "SubgraphService: Caller not authorized by payer");
-        _cancelIAV(_payer, _indexer, _agreementId);
-    }
-
-    function _cancelIAV(address _payer, address _indexer, bytes16 _agreementId) private whenNotPaused {
-        IndexingAgreementData storage agg = _getForUpdateIndexingAgreement(
-            IndexingAgreementKey({ indexer: _indexer, payer: _payer, agreementId: _agreementId })
-        );
-        agg.acceptedAt = CANCELED;
-
-        _ipCollector().cancel(_payer, _indexer, _agreementId);
-    }
-
-    function _getForUpdateIndexingAgreement(
-        IndexingAgreementKey memory _key
-    ) private view returns (IndexingAgreementData storage) {
-        return agreementsData[_key.indexer][_key.payer][_key.agreementId];
-    }
-
-    function collectIndexingFees(
-        IndexingAgreementKey memory _key,
-        bytes32 _collectionId,
-        uint256 _entities,
-        bytes32 _poi
-    )
-        external
-        onlyAuthorizedForProvision(_key.indexer)
-        onlyValidProvision(_key.indexer)
-        onlyRegisteredIndexer(_key.indexer)
-        whenNotPaused
-        returns (uint256)
-    {
-        _requireValidAllocation(_key.indexer, _collectionId);
-
-        uint256 tokensToCollect = _indexingAgreementTokensToCollect(_key, _entities);
-        uint256 tokensCollected = _indexingAgreementCollect(_key, _collectionId, tokensToCollect);
-
-        _releaseAndLockStake(_key.indexer, tokensCollected);
-
-        emit IndexingFeesCollected(
-            address(this),
-            _key.payer,
-            _key.agreementId,
-            _graphEpochManager().currentEpoch(),
-            tokensCollected,
-            _entities,
-            _poi
-        );
-        return tokensCollected;
-    }
-
-    function _requireValidAllocation(address _indexer, bytes32 _collectionId) private view {
-        // Check that collectionId (256 bits) is a valid address (160 bits)
-        // But why!?!?!?
-        require(uint256(_collectionId) <= type(uint160).max, SubgraphServiceInvalidCollectionId(_collectionId));
-        Allocation.State memory allocation = _allocations.get(address(uint160(uint256(_collectionId))));
-
-        require(_indexer == allocation.indexer, SubgraphServiceInvalidSomething(_indexer, allocation.indexer));
-    }
-
     function _indexingAgreementTokensToCollect(
         IndexingAgreementKey memory _key,
         uint256 _entities
@@ -754,5 +735,29 @@ contract SubgraphService is
                 block.timestamp + _disputeManager().getDisputePeriod()
             );
         }
+    }
+
+    function _cancelIAV(address _payer, address _indexer, bytes16 _agreementId) private whenNotPaused {
+        IndexingAgreementData storage agg = _getForUpdateIndexingAgreement(
+            IndexingAgreementKey({ indexer: _indexer, payer: _payer, agreementId: _agreementId })
+        );
+        agg.acceptedAt = CANCELED;
+
+        _ipCollector().cancel(_payer, _indexer, _agreementId);
+    }
+
+    function _requireValidAllocation(address _indexer, bytes32 _collectionId) private view {
+        // Check that collectionId (256 bits) is a valid address (160 bits)
+        // But why!?!?!?
+        require(uint256(_collectionId) <= type(uint160).max, SubgraphServiceInvalidCollectionId(_collectionId));
+        Allocation.State memory allocation = _allocations.get(address(uint160(uint256(_collectionId))));
+
+        require(_indexer == allocation.indexer, SubgraphServiceInvalidSomething(_indexer, allocation.indexer));
+    }
+
+    function _getForUpdateIndexingAgreement(
+        IndexingAgreementKey memory _key
+    ) private view returns (IndexingAgreementData storage) {
+        return indexingAgreementsData[_key.indexer][_key.payer][_key.agreementId];
     }
 }
