@@ -39,9 +39,9 @@ interface ISubgraphService is IDataServiceFees {
         address indexed serviceProvider,
         address indexed payer,
         address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId,
+        bytes32 subgraphDeploymentId,
         uint256 tokensCollected,
-        uint256 tokensCurator
+        uint256 tokensCurators
     );
 
     /**
