@@ -524,7 +524,14 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesCollected(indexer, _signedRav.rav.payer, tokensCollected, tokensCurators);
+        emit QueryFeesCollected(
+            indexer,
+            _signedRav.rav.payer,
+            allocationId,
+            subgraphDeploymentId,
+            tokensCollected,
+            tokensCurators
+        );
         return tokensCollected;
     }
 
