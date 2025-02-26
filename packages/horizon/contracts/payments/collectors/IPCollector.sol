@@ -31,6 +31,10 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
     /// @notice Sentinel value to indicate an agreement has been canceled
     uint256 private constant CANCELED = type(uint256).max;
 
+    /**
+     * @notice Checks that msg sender is the data service
+     * @param dataService The address of the dataService
+     */
     modifier onlyDataService(address dataService) {
         require(dataService == msg.sender, IPCollectorCallerNotDataService(msg.sender, dataService));
         _;
@@ -64,9 +68,11 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         }
     }
 
-    // Called from data service
-    // Data service has to check the service provider
-    // Collector checks the signer (a.k.a. the payer)
+    /**
+     * @notice Accept an indexing agreement.
+     * See {IIPCollector.accept}.
+     * @dev Caller must be the data service the IAV was issued to.
+     */
     function accept(SignedIAV memory signedIAV) external onlyDataService(signedIAV.iav.dataService) {
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedSigner(signedIAV);
@@ -92,7 +98,11 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         agreement.maxSecondsPerCollection = signedIAV.iav.maxSecondsPerCollection;
     }
 
-    // The caller owns their entire agreement namespace
+    /**
+     * @notice Cancel an indexing agreement.
+     * See {IIPCollector.cancel}.
+     * @dev Caller must be the data service for the agreement.
+     */
     function cancel(address payer, address serviceProvider, bytes16 agreementId) external {
         AgreementData storage agreement = _getForUpdateAgreement(
             AgreementKey({
@@ -120,10 +130,17 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         return _encodeIAV(iav);
     }
 
+    /**
+     * @notice Decodes the collect data.
+     */
     function decodeCollectData(bytes calldata data) public pure returns (CollectParams memory) {
         return abi.decode(data, (CollectParams));
     }
 
+    /**
+     * @notice Collect payment through the payments protocol.
+     * @dev Caller must be the data service the IAV was issued to.
+     */
     function _collect(CollectParams memory _params) private onlyDataService(_params.key.dataService) returns (uint256) {
         _requireValidCollect(_params.key, _params.tokens);
 
@@ -147,6 +164,9 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         return _params.tokens;
     }
 
+    /**
+     * @notice Validated that a collection is valid for the agreement.
+     */
     function _requireValidCollect(AgreementKey memory _key, uint256 _tokens) private {
         AgreementData storage agreement = _getForUpdateAgreement(_key);
         uint256 lastCollection = agreement.lastCollection;
@@ -170,11 +190,17 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         require(_tokens <= maxTokens, "IPCollectorCollectAmountTooHigh");
     }
 
+    /**
+     * @notice See {IIPCollector.recoverIAVSigner}
+     */
     function _recoverIAVSigner(SignedIAV memory _signedIAV) private view returns (address) {
         bytes32 messageHash = _encodeIAV(_signedIAV.iav);
         return ECDSA.recover(messageHash, _signedIAV.signature);
     }
 
+    /**
+     * @notice See {IIPCollector.encodeIAV}
+     */
     function _encodeIAV(IndexingAgreementVoucher memory _iav) private view returns (bytes32) {
         return
             _hashTypedDataV4(
@@ -184,6 +210,10 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
             );
     }
 
+    /**
+     * @notice Requires that the signer for the IAV is authorized
+     * by the payer of the IAV.
+     */
     function _requireAuthorizedSigner(SignedIAV memory _signedIAV) private view returns (address) {
         address signer = _recoverIAVSigner(_signedIAV);
         require(_isAuthorized(_signedIAV.iav.payer, signer), IPCollectorInvalidIAVSigner());
@@ -191,10 +221,16 @@ contract IPCollector is EIP712, GraphDirectory, Authorizable, IIPCollector {
         return signer;
     }
 
+    /**
+     * @notice Gets an agreement.
+     */
     function _getAgreement(AgreementKey memory _key) private view returns (AgreementData memory) {
         return agreements[_key.dataService][_key.payer][_key.serviceProvider][_key.agreementId];
     }
 
+    /**
+     * @notice Gets an agreement to be updated.
+     */
     function _getForUpdateAgreement(AgreementKey memory _key) private view returns (AgreementData storage) {
         return agreements[_key.dataService][_key.payer][_key.serviceProvider][_key.agreementId];
     }
