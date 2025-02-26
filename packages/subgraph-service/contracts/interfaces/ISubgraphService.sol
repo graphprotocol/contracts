@@ -262,10 +262,13 @@ interface ISubgraphService is IDataServiceFees {
     // TODO: document
     function acceptIAV(address allocationId, IIPCollector.SignedIAV calldata signedIAV) external;
 
+    // TODO: document
     function cancelIAV(address indexer, address payer, bytes16 agreementId) external;
 
+    // TODO: document
     function cancelIAVByPayer(address indexer, address payer, bytes16 agreementId) external;
 
+    // TODO: document
     function collectIndexingFees(
         IndexingAgreementKey memory key,
         bytes32 collectionId,
