@@ -425,10 +425,10 @@ contract SubgraphService is
         IIPCollector.SignedIAV calldata signedIAV
     )
         external
+        whenNotPaused
         onlyAuthorizedForProvision(signedIAV.iav.serviceProvider)
         onlyValidProvision(signedIAV.iav.serviceProvider)
         onlyRegisteredIndexer(signedIAV.iav.serviceProvider)
-        whenNotPaused
     {
         // Check that the data service is the subgraph service
         require(signedIAV.iav.dataService == address(this), "SubgraphService: Data service mismatch");
@@ -473,10 +473,10 @@ contract SubgraphService is
         bytes16 agreementId
     )
         external
+        whenNotPaused
         onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
-        whenNotPaused
     {
         // Do I need to check the allocation?
         _cancelIAV(payer, indexer, agreementId);
@@ -494,10 +494,10 @@ contract SubgraphService is
         bytes32 poi
     )
         external
+        whenNotPaused
         onlyAuthorizedForProvision(key.indexer)
         onlyValidProvision(key.indexer)
         onlyRegisteredIndexer(key.indexer)
-        whenNotPaused
         returns (uint256)
     {
         _requireValidAllocation(key.indexer, collectionId);
