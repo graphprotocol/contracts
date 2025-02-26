@@ -7,7 +7,7 @@ import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGra
 
 import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../../SubgraphService.t.sol";
-
+import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
     /*
      * TESTS
