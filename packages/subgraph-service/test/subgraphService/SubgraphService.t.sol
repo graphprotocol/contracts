@@ -278,7 +278,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         bytes memory _data
     ) private returns (uint256 paymentCollected) {
         IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(_data, (IGraphTallyCollector.SignedRAV));
-        address allocationId = address(uint160(uint256(_signedRav.rav.collectionId)));
+        address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
         Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
         bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
