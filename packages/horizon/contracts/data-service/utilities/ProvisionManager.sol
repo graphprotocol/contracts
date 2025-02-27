@@ -23,12 +23,22 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionManagerV1Storage {
     using UintRange for uint256;
 
-    // Constants
+    /// @notice The default minimum verifier cut.
     uint32 internal constant DEFAULT_MIN_VERIFIER_CUT = type(uint32).min;
+
+    /// @notice The default maximum verifier cut.
     uint32 internal constant DEFAULT_MAX_VERIFIER_CUT = uint32(PPMMath.MAX_PPM);
+
+    /// @notice The default minimum thawing period.
     uint64 internal constant DEFAULT_MIN_THAWING_PERIOD = type(uint64).min;
+
+    /// @notice The default maximum thawing period.
     uint64 internal constant DEFAULT_MAX_THAWING_PERIOD = type(uint64).max;
+
+    /// @notice The default minimum provision tokens.
     uint256 internal constant DEFAULT_MIN_PROVISION_TOKENS = type(uint256).min;
+
+    /// @notice The default maximum provision tokens.
     uint256 internal constant DEFAULT_MAX_PROVISION_TOKENS = type(uint256).max;
 
     /**
@@ -89,6 +99,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
 
     /**
      * @notice Checks if the caller is authorized to manage the provision of a service provider.
+     * @param serviceProvider The address of the service provider.
      */
     modifier onlyAuthorizedForProvision(address serviceProvider) {
         require(
@@ -101,6 +112,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     /**
      * @notice Checks if a provision of a service provider is valid according
      * to the parameter ranges established.
+     * @param serviceProvider The address of the service provider.
      */
     modifier onlyValidProvision(address serviceProvider) virtual {
         IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
@@ -112,7 +124,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     /**
      * @notice Initializes the contract and any parent contracts.
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init() internal onlyInitializing {
         __ProvisionManager_init_unchained();
     }
@@ -121,7 +132,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @notice Initializes the contract.
      * @dev All parameters set to their entire range as valid.
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __ProvisionManager_init_unchained() internal onlyInitializing {
         _setProvisionTokensRange(DEFAULT_MIN_PROVISION_TOKENS, DEFAULT_MAX_PROVISION_TOKENS);
         _setVerifierCutRange(DEFAULT_MIN_VERIFIER_CUT, DEFAULT_MAX_VERIFIER_CUT);
@@ -148,7 +158,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param _ratio The delegation ratio to be set
      */
     function _setDelegationRatio(uint32 _ratio) internal {
-        delegationRatio = _ratio;
+        _delegationRatio = _ratio;
         emit DelegationRatioSet(_ratio);
     }
 
@@ -159,8 +169,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     function _setProvisionTokensRange(uint256 _min, uint256 _max) internal {
         require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
-        minimumProvisionTokens = _min;
-        maximumProvisionTokens = _max;
+        _minimumProvisionTokens = _min;
+        _maximumProvisionTokens = _max;
         emit ProvisionTokensRangeSet(_min, _max);
     }
 
@@ -172,8 +182,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     function _setVerifierCutRange(uint32 _min, uint32 _max) internal {
         require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
         require(PPMMath.isValidPPM(_max), ProvisionManagerInvalidRange(_min, _max));
-        minimumVerifierCut = _min;
-        maximumVerifierCut = _max;
+        _minimumVerifierCut = _min;
+        _maximumVerifierCut = _max;
         emit VerifierCutRangeSet(_min, _max);
     }
 
@@ -184,8 +194,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      */
     function _setThawingPeriodRange(uint64 _min, uint64 _max) internal {
         require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
-        minimumThawingPeriod = _min;
-        maximumThawingPeriod = _max;
+        _minimumThawingPeriod = _min;
+        _maximumThawingPeriod = _max;
         emit ThawingPeriodRangeSet(_min, _max);
     }
 
@@ -208,8 +218,8 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     function _checkProvisionTokens(IHorizonStaking.Provision memory _provision) internal view virtual {
         _checkValueInRange(
             _provision.tokens - _provision.tokensThawing,
-            minimumProvisionTokens,
-            maximumProvisionTokens,
+            _minimumProvisionTokens,
+            _maximumProvisionTokens,
             "tokens"
         );
     }
@@ -249,7 +259,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @return The delegation ratio
      */
     function _getDelegationRatio() internal view returns (uint32) {
-        return delegationRatio;
+        return _delegationRatio;
     }
 
     /**
@@ -258,7 +268,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @return max The maximum allowed value for the provision tokens.
      */
     function _getProvisionTokensRange() internal view virtual returns (uint256 min, uint256 max) {
-        return (minimumProvisionTokens, maximumProvisionTokens);
+        return (_minimumProvisionTokens, _maximumProvisionTokens);
     }
 
     /**
@@ -267,7 +277,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @return max The maximum allowed value for the thawing period.
      */
     function _getThawingPeriodRange() internal view virtual returns (uint64 min, uint64 max) {
-        return (minimumThawingPeriod, maximumThawingPeriod);
+        return (_minimumThawingPeriod, _maximumThawingPeriod);
     }
 
     /**
@@ -276,7 +286,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @return max The maximum allowed value for the max verifier cut.
      */
     function _getVerifierCutRange() internal view virtual returns (uint32 min, uint32 max) {
-        return (minimumVerifierCut, maximumVerifierCut);
+        return (_minimumVerifierCut, _maximumVerifierCut);
     }
 
     /**
@@ -284,6 +294,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @dev Requirements:
      * - The provision must exist.
      * @param _serviceProvider The address of the service provider.
+     * @return The provision.
      */
     function _getProvision(address _serviceProvider) internal view returns (IHorizonStaking.Provision memory) {
         IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_serviceProvider, address(this));

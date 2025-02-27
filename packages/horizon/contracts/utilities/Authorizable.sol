@@ -24,6 +24,7 @@ abstract contract Authorizable is IAuthorizable {
 
     /**
      * @dev Revert if the caller has not authorized the signer
+     * @param signer The address of the signer
      */
     modifier onlyAuthorized(address signer) {
         _requireAuthorized(msg.sender, signer);
@@ -38,9 +39,7 @@ abstract contract Authorizable is IAuthorizable {
         REVOKE_AUTHORIZATION_THAWING_PERIOD = revokeAuthorizationThawingPeriod;
     }
 
-    /**
-     * See {IAuthorizable.authorizeSigner}.
-     */
+    /// @inheritdoc IAuthorizable
     function authorizeSigner(address signer, uint256 proofDeadline, bytes calldata proof) external {
         require(
             authorizations[signer].authorizer == address(0),
@@ -55,17 +54,13 @@ abstract contract Authorizable is IAuthorizable {
         emit SignerAuthorized(msg.sender, signer);
     }
 
-    /**
-     * See {IAuthorizable.thawSigner}.
-     */
+    /// @inheritdoc IAuthorizable
     function thawSigner(address signer) external onlyAuthorized(signer) {
         authorizations[signer].thawEndTimestamp = block.timestamp + REVOKE_AUTHORIZATION_THAWING_PERIOD;
         emit SignerThawing(msg.sender, signer, authorizations[signer].thawEndTimestamp);
     }
 
-    /**
-     * See {IAuthorizable.cancelThawSigner}.
-     */
+    /// @inheritdoc IAuthorizable
     function cancelThawSigner(address signer) external onlyAuthorized(signer) {
         require(authorizations[signer].thawEndTimestamp > 0, AuthorizableSignerNotThawing(signer));
         uint256 thawEnd = authorizations[signer].thawEndTimestamp;
@@ -73,9 +68,7 @@ abstract contract Authorizable is IAuthorizable {
         emit SignerThawCanceled(msg.sender, signer, thawEnd);
     }
 
-    /**
-     * See {IAuthorizable.revokeAuthorizedSigner}.
-     */
+    /// @inheritdoc IAuthorizable
     function revokeAuthorizedSigner(address signer) external onlyAuthorized(signer) {
         uint256 thawEndTimestamp = authorizations[signer].thawEndTimestamp;
         require(thawEndTimestamp > 0, AuthorizableSignerNotThawing(signer));
@@ -84,22 +77,21 @@ abstract contract Authorizable is IAuthorizable {
         emit SignerRevoked(msg.sender, signer);
     }
 
-    /**
-     * See {IAuthorizable.getThawEnd}.
-     */
+    /// @inheritdoc IAuthorizable
     function getThawEnd(address signer) external view returns (uint256) {
         return authorizations[signer].thawEndTimestamp;
     }
 
-    /**
-     * See {IAuthorizable.isAuthorized}.
-     */
+    /// @inheritdoc IAuthorizable
     function isAuthorized(address authorizer, address signer) external view returns (bool) {
         return _isAuthorized(authorizer, signer);
     }
 
     /**
-     * See {IAuthorizable.isAuthorized}.
+     * @notice Returns true if the signer is authorized by the authorizer
+     * @param _authorizer The address of the authorizer
+     * @param _signer The address of the signer
+     * @return true if the signer is authorized by the authorizer, false otherwise
      */
     function _isAuthorized(address _authorizer, address _signer) internal view returns (bool) {
         return (_authorizer != address(0) &&

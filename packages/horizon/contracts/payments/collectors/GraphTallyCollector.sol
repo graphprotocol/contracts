@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 import { IGraphTallyCollector } from "../../interfaces/IGraphTallyCollector.sol";
+import { IPaymentsCollector } from "../../interfaces/IPaymentsCollector.sol";
 
 import { Authorizable } from "../../utilities/Authorizable.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
@@ -51,18 +52,19 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
     ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {}
 
     /**
-     * @notice Initiate a payment collection through the payments protocol
-     * See {IGraphPayments.collect}.
+     * @notice See {IGraphPayments.collect}.
      * @dev Requirements:
      * - Caller must be the data service the RAV was issued to.
      * - Signer of the RAV must be authorized to sign for the payer.
      * - Service provider must have an active provision with the data service to collect payments.
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
      */
+    /// @inheritdoc IPaymentsCollector
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external override returns (uint256) {
         return _collect(paymentType, data, 0);
     }
 
+    /// @inheritdoc IGraphTallyCollector
     function collect(
         IGraphPayments.PaymentTypes paymentType,
         bytes memory data,
@@ -71,22 +73,23 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
         return _collect(paymentType, data, tokensToCollect);
     }
 
-    /**
-     * @notice See {IGraphTallyCollector.recoverRAVSigner}
-     */
+    /// @inheritdoc IGraphTallyCollector
     function recoverRAVSigner(SignedRAV calldata signedRAV) external view override returns (address) {
         return _recoverRAVSigner(signedRAV);
     }
 
-    /**
-     * @notice See {IGraphTallyCollector.encodeRAV}
-     */
+    /// @inheritdoc IGraphTallyCollector
     function encodeRAV(ReceiptAggregateVoucher calldata rav) external view returns (bytes32) {
         return _encodeRAV(rav);
     }
 
     /**
-     * @notice See {IGraphTallyCollector.collect}
+     * @notice See {IPaymentsCollector.collect}
+     * This variant adds the ability to partially collect a RAV by specifying the amount of tokens to collect.
+     * @param _paymentType The payment type to collect
+     * @param _data Additional data required for the payment collection
+     * @param _tokensToCollect The amount of tokens to collect
+     * @return The amount of tokens collected
      */
     function _collect(
         IGraphPayments.PaymentTypes _paymentType,
@@ -166,7 +169,9 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
     }
 
     /**
-     * @notice See {IGraphTallyCollector.recoverRAVSigner}
+     * @dev Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
+     * @param _signedRAV The SignedRAV containing the RAV and its signature.
+     * @return The address of the signer.
      */
     function _recoverRAVSigner(SignedRAV memory _signedRAV) private view returns (address) {
         bytes32 messageHash = _encodeRAV(_signedRAV.rav);
@@ -174,7 +179,9 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
     }
 
     /**
-     * @notice See {IGraphTallyCollector.encodeRAV}
+     * @dev Computes the hash of a ReceiptAggregateVoucher (RAV).
+     * @param _rav The RAV for which to compute the hash.
+     * @return The hash of the RAV.
      */
     function _encodeRAV(ReceiptAggregateVoucher memory _rav) private view returns (bytes32) {
         return
@@ -193,6 +200,10 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
             );
     }
 
+    /**
+     * @notice Reverts if the RAV signer is not authorized by the payer
+     * @param _signedRAV The signed RAV
+     */
     function _requireAuthorizedSigner(SignedRAV memory _signedRAV) private view {
         require(
             _isAuthorized(_signedRAV.rav.payer, _recoverRAVSigner(_signedRAV)),

@@ -58,30 +58,22 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         _disableInitializers();
     }
 
-    /**
-     * @notice Initialize the contract
-     */
+    /// @inheritdoc IPaymentsEscrow
     function initialize() external initializer {
         __Multicall_init();
     }
 
-    /**
-     * @notice See {IPaymentsEscrow-deposit}
-     */
+    /// @inheritdoc IPaymentsEscrow
     function deposit(address collector, address receiver, uint256 tokens) external override notPaused {
         _deposit(msg.sender, collector, receiver, tokens);
     }
 
-    /**
-     * @notice See {IPaymentsEscrow-depositTo}
-     */
+    /// @inheritdoc IPaymentsEscrow
     function depositTo(address payer, address collector, address receiver, uint256 tokens) external override notPaused {
         _deposit(payer, collector, receiver, tokens);
     }
 
-    /**
-     * @notice See {IPaymentsEscrow-thaw}
-     */
+    /// @inheritdoc IPaymentsEscrow
     function thaw(address collector, address receiver, uint256 tokens) external override notPaused {
         require(tokens > 0, PaymentsEscrowInvalidZeroTokens());
 
@@ -94,9 +86,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         emit Thaw(msg.sender, collector, receiver, tokens, account.thawEndTimestamp);
     }
 
-    /**
-     * @notice See {IPaymentsEscrow-cancelThaw}
-     */
+    /// @inheritdoc IPaymentsEscrow
     function cancelThaw(address collector, address receiver) external override notPaused {
         EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
         require(account.tokensThawing != 0, PaymentsEscrowNotThawing());
@@ -109,9 +99,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         emit CancelThaw(msg.sender, collector, receiver, tokensThawing, thawEndTimestamp);
     }
 
-    /**
-     * @notice See {IPaymentsEscrow-withdraw}
-     */
+    /// @inheritdoc IPaymentsEscrow
     function withdraw(address collector, address receiver) external override notPaused {
         EscrowAccount storage account = escrowAccounts[msg.sender][collector][receiver];
         require(account.thawEndTimestamp != 0, PaymentsEscrowNotThawing());
@@ -130,9 +118,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         emit Withdraw(msg.sender, collector, receiver, tokens);
     }
 
-    /**
-     * @notice See {IPaymentsEscrow-collect}
-     */
+    /// @inheritdoc IPaymentsEscrow
     function collect(
         IGraphPayments.PaymentTypes paymentType,
         address payer,
@@ -163,17 +149,17 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         emit EscrowCollected(paymentType, payer, msg.sender, receiver, tokens);
     }
 
-    /**
-     * @notice See {IPaymentsEscrow-getBalance}
-     */
+    /// @inheritdoc IPaymentsEscrow
     function getBalance(address payer, address collector, address receiver) external view override returns (uint256) {
         EscrowAccount storage account = escrowAccounts[payer][collector][receiver];
         return account.balance > account.tokensThawing ? account.balance - account.tokensThawing : 0;
     }
 
     /**
-     * @notice See {IPaymentsEscrow-deposit}
+     * @notice Deposits funds into the escrow for a payer-collector-receiver tuple, where
+     * the payer is the transaction caller.
      * @param _payer The address of the payer
+     * @param _collector The address of the collector
      * @param _receiver The address of the receiver
      * @param _tokens The amount of tokens to deposit
      */

@@ -21,9 +21,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     using ProvisionTracker for mapping(address => uint256);
     using LinkedList for LinkedList.List;
 
-    /**
-     * @notice See {IDataServiceFees-releaseStake}
-     */
+    /// @inheritdoc IDataServiceFees
     function releaseStake(uint256 numClaimsToRelease) external virtual override {
         _releaseStake(msg.sender, numClaimsToRelease);
     }
@@ -42,7 +40,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      */
     function _lockStake(address _serviceProvider, uint256 _tokens, uint256 _unlockTimestamp) internal {
         require(_tokens != 0, DataServiceFeesZeroTokens());
-        feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, delegationRatio);
+        feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, _delegationRatio);
 
         LinkedList.List storage claimsList = claimsLists[_serviceProvider];
 
@@ -61,7 +59,11 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     }
 
     /**
-     * @notice See {IDataServiceFees-releaseStake}
+     * @notice Releases expired stake claims for a service provider.
+     * @dev This function can be overriden and/or disabled.
+     * @dev Emits a {StakeClaimsReleased} event, and a {StakeClaimReleased} event for each claim released.
+     * @param _serviceProvider The address of the service provider
+     * @param _numClaimsToRelease Amount of stake claims to process. If 0, all stake claims are processed.
      */
     function _releaseStake(address _serviceProvider, uint256 _numClaimsToRelease) internal {
         LinkedList.List storage claimsList = claimsLists[_serviceProvider];
@@ -116,6 +118,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     /**
      * @notice Gets the details of a stake claim
      * @param _claimId The ID of the stake claim
+     * @return The stake claim details
      */
     function _getStakeClaim(bytes32 _claimId) private view returns (StakeClaim memory) {
         StakeClaim memory claim = claims[_claimId];
@@ -127,6 +130,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @notice Gets the next stake claim in the linked list
      * @dev This function is used as a callback in the stake claims linked list traversal.
      * @param _claimId The ID of the stake claim
+     * @return The next stake claim ID
      */
     function _getNextStakeClaim(bytes32 _claimId) private view returns (bytes32) {
         return claims[_claimId].nextClaim;
@@ -136,6 +140,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @notice Builds a stake claim ID
      * @param _serviceProvider The address of the service provider
      * @param _nonce A nonce of the stake claim
+     * @return The stake claim ID
      */
     function _buildStakeClaimId(address _serviceProvider, uint256 _nonce) private view returns (bytes32) {
         return keccak256(abi.encodePacked(address(this), _serviceProvider, _nonce));

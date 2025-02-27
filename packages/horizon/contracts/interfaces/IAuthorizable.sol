@@ -10,13 +10,13 @@ interface IAuthorizable {
     /**
      * @notice Details for an authorizer-signer pair
      * @dev Authorizations can be removed only after a thawing period
+     * @param authorizer The address of the authorizer - resource owner
+     * @param thawEndTimestamp The timestamp at which the thawing period ends (zero if not thawing)
+     * @param revoked Whether the signer authorization was revoked
      */
     struct Authorization {
-        // Resource owner
         address authorizer;
-        // Timestamp at which thawing period ends (zero if not thawing)
         uint256 thawEndTimestamp;
-        // Whether the signer authorization was revoked
         bool revoked;
     }
 
@@ -36,7 +36,7 @@ interface IAuthorizable {
     event SignerThawing(address indexed authorizer, address indexed signer, uint256 thawEndTimestamp);
 
     /**
-     * @dev Emitted when the thawing of a signer is cancelled
+     * @notice Emitted when the thawing of a signer is cancelled
      * @param authorizer The address of the authorizer cancelling the thawing
      * @param signer The address of the signer
      * @param thawEndTimestamp The timestamp at which the thawing period was scheduled to end
@@ -44,14 +44,14 @@ interface IAuthorizable {
     event SignerThawCanceled(address indexed authorizer, address indexed signer, uint256 thawEndTimestamp);
 
     /**
-     * @dev Emitted when a signer has been revoked after thawing
+     * @notice Emitted when a signer has been revoked after thawing
      * @param authorizer The address of the authorizer revoking the signer
      * @param signer The address of the signer
      */
     event SignerRevoked(address indexed authorizer, address indexed signer);
 
     /**
-     * Thrown when attempting to authorize a signer that is already authorized
+     * @notice Thrown when attempting to authorize a signer that is already authorized
      * @param authorizer The address of the authorizer
      * @param signer The address of the signer
      * @param revoked The revoked status of the authorization
@@ -59,32 +59,32 @@ interface IAuthorizable {
     error AuthorizableSignerAlreadyAuthorized(address authorizer, address signer, bool revoked);
 
     /**
-     * Thrown when the signer proof deadline is invalid
+     * @notice Thrown when the signer proof deadline is invalid
      * @param proofDeadline The deadline for the proof provided
      * @param currentTimestamp The current timestamp
      */
     error AuthorizableInvalidSignerProofDeadline(uint256 proofDeadline, uint256 currentTimestamp);
 
     /**
-     * Thrown when the signer proof is invalid
+     * @notice Thrown when the signer proof is invalid
      */
     error AuthorizableInvalidSignerProof();
 
     /**
-     * Thrown when the signer is not authorized by the authorizer
+     * @notice Thrown when the signer is not authorized by the authorizer
      * @param authorizer The address of the authorizer
      * @param signer The address of the signer
      */
     error AuthorizableSignerNotAuthorized(address authorizer, address signer);
 
     /**
-     * Thrown when the signer is not thawing
+     * @notice Thrown when the signer is not thawing
      * @param signer The address of the signer
      */
     error AuthorizableSignerNotThawing(address signer);
 
     /**
-     * Thrown when the signer is still thawing
+     * @notice Thrown when the signer is still thawing
      * @param currentTimestamp The current timestamp
      * @param thawEndTimestamp The timestamp at which the thawing period ends
      */
@@ -140,11 +140,16 @@ interface IAuthorizable {
 
     /**
      * @notice Returns the timestamp at which the thawing period ends for a signer
+     * @param signer The address of the signer
+     * @return The timestamp at which the thawing period ends
      */
     function getThawEnd(address signer) external view returns (uint256);
 
     /**
      * @notice Returns true if the signer is authorized by the authorizer
+     * @param authorizer The address of the authorizer
+     * @param signer The address of the signer
+     * @return true if the signer is authorized by the authorizer, false otherwise
      */
     function isAuthorized(address authorizer, address signer) external view returns (bool);
 }

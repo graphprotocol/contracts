@@ -20,7 +20,6 @@
 
 pragma solidity 0.8.27;
 
-// solhint-disable indent
 /// @dev Signed, fixed-point, 127-bit precision math library.
 library LibFixedMath {
     // 1

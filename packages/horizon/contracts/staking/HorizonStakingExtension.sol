@@ -5,6 +5,7 @@ pragma solidity 0.8.27;
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
+import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
@@ -19,8 +20,9 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * to the Horizon Staking contract. It allows indexers to close allocations and collect pending query fees, but it
  * does not allow for the creation of new allocations. This should allow indexers to migrate to a subgraph data service
  * without losing rewards or having service interruptions.
- * @dev TODO: Once the transition period passes this contract can be removed (note that an upgrade to the RewardsManager
- * will also be required). It's expected the transition period to last for a full allocation cycle (28 epochs).
+ * @dev TRANSITION PERIOD: Once the transition period passes this contract can be removed (note that an upgrade to the
+ * RewardsManager will also be required). It's expected the transition period to last for at least a full allocation cycle
+ * (28 epochs).
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -55,29 +57,12 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         address subgraphDataServiceAddress
     ) HorizonStakingBase(controller, subgraphDataServiceAddress) {}
 
-    /**
-     * @notice Close an allocation and free the staked tokens.
-     * To be eligible for rewards a proof of indexing must be presented.
-     * Presenting a bad proof is subject to slashable condition.
-     * To opt out of rewards set _poi to 0x0
-     * @dev TODO: Remove after Horizon transition period
-     * @param allocationID The allocation identifier
-     * @param poi Proof of indexing submitted for the allocated period
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function closeAllocation(address allocationID, bytes32 poi) external override notPaused {
         _closeAllocation(allocationID, poi);
     }
 
-    /**
-     * @dev Collect and rebate query fees from state channels to the indexer
-     * To avoid reverting on the withdrawal from channel flow this function will accept calls with zero tokens.
-     * We use an exponential rebate formula to calculate the amount of tokens to rebate to the indexer.
-     * This implementation allows collecting multiple times on the same allocation, keeping track of the
-     * total amount rebated, the total amount collected and compensating the indexer for the difference.
-     * TODO: Remove after Horizon transition period
-     * @param tokens Amount of tokens to collect
-     * @param allocationID Allocation where the tokens will be assigned
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function collect(uint256 tokens, address allocationID) external override notPaused {
         // Allocation identifier validation
         require(allocationID != address(0), "!alloc");
@@ -172,6 +157,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         );
     }
 
+    /// @inheritdoc IHorizonStakingExtension
     function legacySlash(
         address indexer,
         uint256 tokens,
@@ -220,34 +206,17 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         emit StakeSlashed(indexer, tokens, reward, beneficiary);
     }
 
-    /**
-     * @notice Return if allocationID is used.
-     * @dev TODO: Remove after Horizon transition period
-     * @param allocationID Address used as signer by the indexer for an allocation
-     * @return True if allocationID already used
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function isAllocation(address allocationID) external view override returns (bool) {
         return _getAllocationState(allocationID) != AllocationState.Null;
     }
 
-    /**
-     * @notice Return the allocation by ID.
-     * @dev TODO: Remove after Horizon transition period
-     * @param allocationID Address used as allocation identifier
-     * @return Allocation data
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function getAllocation(address allocationID) external view override returns (Allocation memory) {
         return __DEPRECATED_allocations[allocationID];
     }
 
-    /**
-     * @notice Return allocation data by ID.
-     * @dev To be called by the Rewards Manager to calculate rewards issuance.
-     * @dev TODO: Remove after Horizon transition period
-     * @dev Note that the accRewardsPending field is not used and will always be zero.
-     * @param allocationID Address used as allocation identifier
-     * @return Allocation data
-     */
+    /// @inheritdoc IRewardsIssuer
     function getAllocationData(
         address allocationID
     ) external view override returns (address, bytes32, uint256, uint256, uint256) {
@@ -255,69 +224,37 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         return (allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken, 0);
     }
 
-    /**
-     * @notice Return the current state of an allocation
-     * @dev TODO: Remove after Horizon transition period
-     * @param allocationID Allocation identifier
-     * @return AllocationState enum with the state of the allocation
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function getAllocationState(address allocationID) external view override returns (AllocationState) {
         return _getAllocationState(allocationID);
     }
 
-    /**
-     * @notice Return the total amount of tokens allocated to subgraph.
-     * @param subgraphDeploymentID Deployment ID for the subgraph
-     * @return Total tokens allocated to subgraph
-     */
+    /// @inheritdoc IRewardsIssuer
     function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentID) external view override returns (uint256) {
         return __DEPRECATED_subgraphAllocations[subgraphDeploymentID];
     }
 
-    /**
-     * @notice Get the total amount of tokens staked by the indexer.
-     * @param indexer Address of the indexer
-     * @return Amount of tokens staked by the indexer
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function getIndexerStakedTokens(address indexer) external view override returns (uint256) {
         return _serviceProviders[indexer].tokensStaked;
     }
 
-    /**
-     * @notice Return the address of the subgraph data service.
-     * @dev TODO: After transition period move to main HorizonStaking contract
-     * @return Address of the subgraph data service
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function getSubgraphService() external view override returns (address) {
         return SUBGRAPH_DATA_SERVICE_ADDRESS;
     }
 
-    /**
-     * @notice Getter that returns if an indexer has any stake.
-     * @param indexer Address of the indexer
-     * @return True if indexer has staked tokens
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function hasStake(address indexer) external view override returns (bool) {
         return _serviceProviders[indexer].tokensStaked > 0;
     }
 
-    /**
-     * @notice Return the time in blocks to unstake
-     * Deprecated, now enforced by each data service (verifier)
-     * @return Thawing period in blocks
-     */
-    // solhint-disable-next-line func-name-mixedcase
+    /// @inheritdoc IHorizonStakingExtension
     function __DEPRECATED_getThawingPeriod() external view returns (uint64) {
         return __DEPRECATED_thawingPeriod;
     }
 
-    /**
-     * @notice (Legacy) Return true if operator is allowed for the service provider on the subgraph data service.
-     * @dev TODO: Delete after the transition period
-     * @param operator Address of the operator
-     * @param serviceProvider Address of the service provider
-     * @return True if operator is allowed for indexer, false otherwise
-     */
+    /// @inheritdoc IHorizonStakingExtension
     function isOperator(address operator, address serviceProvider) public view override returns (bool) {
         return _legacyOperatorAuth[serviceProvider][operator];
     }

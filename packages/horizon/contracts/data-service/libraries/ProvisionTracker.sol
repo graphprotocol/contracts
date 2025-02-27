@@ -14,6 +14,8 @@ import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
 library ProvisionTracker {
     /**
      * @notice Thrown when trying to lock more tokens than available
+     * @param tokensAvailable The amount of tokens available
+     * @param tokensRequired The amount of tokens required
      */
     error ProvisionTrackerInsufficientTokens(uint256 tokensAvailable, uint256 tokensRequired);
 
@@ -62,6 +64,7 @@ library ProvisionTracker {
      * @param graphStaking The HorizonStaking contract
      * @param serviceProvider The service provider address
      * @param delegationRatio A delegation ratio to limit the amount of delegation that's usable
+     * @return true if the service provider has enough tokens available to lock, false otherwise
      */
     function check(
         mapping(address => uint256) storage self,

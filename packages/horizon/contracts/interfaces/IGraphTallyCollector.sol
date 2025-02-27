@@ -12,30 +12,33 @@ import { IGraphPayments } from "./IGraphPayments.sol";
  * payments using a GraphTally RAV (Receipt Aggregate Voucher).
  */
 interface IGraphTallyCollector is IPaymentsCollector {
-    /// @notice The Receipt Aggregate Voucher (RAV) struct
+    /**
+     * @notice The Receipt Aggregate Voucher (RAV) struct
+     * @param collectionId The ID of the collection "bucket" the RAV belongs to. Note that multiple RAVs can be collected for the same collection id.
+     * @param payer The address of the payer the RAV was issued by
+     * @param serviceProvider The address of the service provider the RAV was issued to
+     * @param dataService The address of the data service the RAV was issued to
+     * @param timestampNs The RAV timestamp, indicating the latest GraphTally Receipt in the RAV
+     * @param valueAggregate The total amount owed to the service provider since the beginning of the payer-service provider relationship, including all debt that is already paid for.
+     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
+     */
     struct ReceiptAggregateVoucher {
-        // The ID of the collection "bucket" the RAV belongs to. Note that multiple RAVs can be collected for the same collection id.
         bytes32 collectionId;
-        // The address of the payer the RAV was issued by
         address payer;
-        // The address of the service provider the RAV was issued to
         address serviceProvider;
-        // The address of the data service the RAV was issued to
         address dataService;
-        // The RAV timestamp, indicating the latest GraphTally Receipt in the RAV
         uint64 timestampNs;
-        // Total amount owed to the service provider since the beginning of the
-        // payer-service provider relationship, including all debt that is already paid for.
         uint128 valueAggregate;
-        // Arbitrary metadata to extend functionality if a data service requires it
         bytes metadata;
     }
 
-    /// @notice A struct representing a signed RAV
+    /**
+     * @notice A struct representing a signed RAV
+     * @param rav The RAV
+     * @param signature The signature of the RAV - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
+     */
     struct SignedRAV {
-        // The RAV
         ReceiptAggregateVoucher rav;
-        // Signature - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
         bytes signature;
     }
 
@@ -62,18 +65,18 @@ interface IGraphTallyCollector is IPaymentsCollector {
     );
 
     /**
-     * Thrown when the RAV signer is invalid
+     * @notice Thrown when the RAV signer is invalid
      */
     error GraphTallyCollectorInvalidRAVSigner();
 
     /**
-     * Thrown when the RAV is for a data service the service provider has no provision for
+     * @notice Thrown when the RAV is for a data service the service provider has no provision for
      * @param dataService The address of the data service
      */
     error GraphTallyCollectorUnauthorizedDataService(address dataService);
 
     /**
-     * Thrown when the caller is not the data service the RAV was issued to
+     * @notice Thrown when the caller is not the data service the RAV was issued to
      * @param caller The address of the caller
      * @param dataService The address of the data service
      */
@@ -88,7 +91,7 @@ interface IGraphTallyCollector is IPaymentsCollector {
     error GraphTallyCollectorInconsistentRAVTokens(uint256 tokens, uint256 tokensCollected);
 
     /**
-     * Thrown when the attempting to collect more tokens than what it's owed
+     * @notice Thrown when the attempting to collect more tokens than what it's owed
      * @param tokensToCollect The amount of tokens to collect
      * @param maxTokensToCollect The maximum amount of tokens to collect
      */
@@ -104,6 +107,7 @@ interface IGraphTallyCollector is IPaymentsCollector {
      * @param paymentType The payment type to collect
      * @param data Additional data required for the payment collection
      * @param tokensToCollect The amount of tokens to collect
+     * @return The amount of tokens collected
      */
     function collect(
         IGraphPayments.PaymentTypes paymentType,

@@ -14,6 +14,7 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
  * the complete interface.
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
+ * @dev TRANSITION PERIOD: After transition period rename to IHorizonStaking.
  */
 interface IHorizonStakingMain {
     // -- Events: stake --
@@ -458,7 +459,14 @@ interface IHorizonStakingMain {
 
     // -- Errors: thaw requests --
 
+    /**
+     * @notice Thrown when attempting to fulfill a thaw request but there is nothing thawing.
+     */
     error HorizonStakingNothingThawing();
+
+    /**
+     * @notice Thrown when a service provider has too many thaw requests.
+     */
     error HorizonStakingTooManyThawRequests();
 
     // -- Errors: misc --
@@ -473,6 +481,7 @@ interface IHorizonStakingMain {
     /**
      * @notice Thrown when a service provider attempts to operate on verifiers that are not allowed.
      * @dev Only applies to stake from locked wallets.
+     * @param verifier The verifier address
      */
     error HorizonStakingVerifierNotAllowed(address verifier);
 
@@ -844,10 +853,12 @@ interface IHorizonStakingMain {
      * It only allows withdrawing tokens undelegated before horizon upgrade.
      * @dev See {delegate}.
      * @param serviceProvider The service provider address
+     * @param deprecated Deprecated parameter kept for backwards compatibility
+     * @return The amount of tokens withdrawn
      */
     function withdrawDelegated(
         address serviceProvider,
-        address // newServiceProvider, deprecated
+        address deprecated // kept for backwards compatibility
     ) external returns (uint256);
 
     /**

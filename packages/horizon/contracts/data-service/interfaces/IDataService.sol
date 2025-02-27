@@ -110,7 +110,6 @@ interface IDataService {
      * @notice Collects payment earnt by the service provider.
      * @dev The implementation of this function is expected to interact with {GraphPayments}
      * to collect payment from the service payer, which is done via {IGraphPayments-collect}.
-     * @param serviceProvider The address of the service provider.
      *
      * Emits a {ServicePaymentCollected} event.
      *

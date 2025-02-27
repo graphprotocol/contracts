@@ -13,6 +13,7 @@ library UintRange {
      * @param value The value to check.
      * @param min The minimum value of the range.
      * @param max The maximum value of the range.
+     * @return true if the value is in the range, false otherwise.
      */
     function isInRange(uint256 value, uint256 min, uint256 max) internal pure returns (bool) {
         return value >= min && value <= max;

@@ -28,16 +28,12 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
         _;
     }
 
-    /**
-     * @notice See {IDataServicePausable-pause}
-     */
+    /// @inheritdoc IDataServicePausable
     function pause() external override onlyPauseGuardian whenNotPaused {
         _pause();
     }
 
-    /**
-     * @notice See {IDataServicePausable-pause}
-     */
+    /// @inheritdoc IDataServicePausable
     function unpause() external override onlyPauseGuardian whenPaused {
         _unpause();
     }
@@ -45,7 +41,6 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
     /**
      * @notice Initializes the contract and parent contracts
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __DataServicePausable_init() internal onlyInitializing {
         __Pausable_init_unchained();
         __DataServicePausable_init_unchained();
@@ -54,7 +49,6 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
     /**
      * @notice Initializes the contract
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __DataServicePausable_init_unchained() internal onlyInitializing {}
 
     /**

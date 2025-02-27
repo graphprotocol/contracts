@@ -42,6 +42,7 @@ interface IPaymentsCollector {
      * @param paymentType The payment type to collect, as defined by {IGraphPayments}
      * @param data Additional data required for the payment collection. Will vary depending on the collector
      * implementation.
+     * @return The amount of tokens collected
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external returns (uint256);
 }

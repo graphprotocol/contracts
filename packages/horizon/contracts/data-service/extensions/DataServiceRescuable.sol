@@ -36,16 +36,12 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
         _;
     }
 
-    /**
-     * @notice See {IDataServiceRescuable-rescueGRT}
-     */
+    /// @inheritdoc IDataServiceRescuable
     function rescueGRT(address to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, address(_graphToken()), tokens);
     }
 
-    /**
-     * @notice See {IDataServiceRescuable-rescueETH}
-     */
+    /// @inheritdoc IDataServiceRescuable
     function rescueETH(address payable to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, Denominations.NATIVE_TOKEN, tokens);
     }

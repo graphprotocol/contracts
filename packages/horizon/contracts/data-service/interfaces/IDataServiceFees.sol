@@ -25,15 +25,15 @@ interface IDataServiceFees is IDataService {
      * to be released to a service provider.
      * @dev StakeClaims are stored in linked lists by service provider, ordered by
      * creation timestamp.
+     * @param tokens The amount of tokens to be locked in the claim
+     * @param createdAt The timestamp when the claim was created
+     * @param releasableAt The timestamp when the tokens can be released
+     * @param nextClaim The next claim in the linked list
      */
     struct StakeClaim {
-        // The amount of tokens to be locked in the claim
         uint256 tokens;
-        // Timestamp when the claim was created
         uint256 createdAt;
-        // Timestamp when the claim will expire and tokens can be released
         uint256 releasableAt;
-        // Next claim in the linked list
         bytes32 nextClaim;
     }
 
@@ -75,6 +75,7 @@ interface IDataServiceFees is IDataService {
 
     /**
      * @notice Thrown when attempting to get a stake claim that does not exist.
+     * @param claimId The id of the stake claim
      */
     error DataServiceFeesClaimNotFound(bytes32 claimId);
 

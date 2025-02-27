@@ -13,6 +13,8 @@ module.exports = {
     'imports-on-top': 'warn',
     'ordering': 'warn',
     'visibility-modifier-order': 'warn',
+    'func-name-mixedcase': 'off', // see graph/func-name-mixedcase
+    'var-name-mixedcase': 'off', // see graph/var-name-mixedcase
     
     // miscellaneous
     'quotes': ['error', 'double'],
@@ -24,7 +26,8 @@ module.exports = {
 
     // graph
     'graph/leading-underscore': 'warn',
-
+    'graph/func-name-mixedcase': 'warn',
+    'graph/var-name-mixedcase': 'warn',
     'gas-custom-errors': 'off'
   },
 }

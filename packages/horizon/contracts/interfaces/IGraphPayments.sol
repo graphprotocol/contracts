@@ -55,6 +55,11 @@ interface IGraphPayments {
     error GraphPaymentsInvalidCut(uint256 cut);
 
     /**
+     * @notice Initialize the contract
+     */
+    function initialize() external;
+
+    /**
      * @notice Collects funds from a payer.
      * It will pay cuts to all relevant parties and forward the rest to the receiver.
      * Note that the collected amount can be zero.

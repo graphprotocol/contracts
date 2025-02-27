@@ -20,6 +20,8 @@ interface IDataServiceRescuable is IDataService {
 
     /**
      * @notice Emitted when a rescuer is set.
+     * @param account The address of the rescuer
+     * @param allowed Whether the rescuer is allowed to rescue tokens
      */
     event RescuerSet(address indexed account, bool allowed);
 
@@ -30,6 +32,7 @@ interface IDataServiceRescuable is IDataService {
 
     /**
      * @notice Thrown when the caller is not a rescuer.
+     * @param account The address of the account that attempted the rescue
      */
     error DataServiceRescuableNotRescuer(address account);
 

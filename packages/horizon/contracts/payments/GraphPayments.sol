@@ -40,16 +40,12 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
         _disableInitializers();
     }
 
-    /**
-     * @notice Initialize the contract
-     */
+    /// @inheritdoc IGraphPayments
     function initialize() external initializer {
         __Multicall_init();
     }
 
-    /**
-     * @notice See {IGraphPayments-collect}
-     */
+    /// @inheritdoc IGraphPayments
     function collect(
         IGraphPayments.PaymentTypes paymentType,
         address receiver,

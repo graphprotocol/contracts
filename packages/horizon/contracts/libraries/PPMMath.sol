@@ -39,6 +39,7 @@ library PPMMath {
      * - The second value must be in PPM.
      * @param a The first value.
      * @param b The second value.
+     * @return The result of the multiplication.
      */
     function mulPPMRoundUp(uint256 a, uint256 b) internal pure returns (uint256) {
         require(isValidPPM(b), PPMMathInvalidPPM(b));
@@ -49,6 +50,7 @@ library PPMMath {
      * @notice Checks if a value is in PPM.
      * @dev A valid PPM value is between 0 and MAX_PPM.
      * @param value The value to check.
+     * @return true if the value is in PPM, false otherwise.
      */
     function isValidPPM(uint256 value) internal pure returns (bool) {
         return value <= MAX_PPM;
