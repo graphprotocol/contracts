@@ -3037,6 +3037,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@graphprotocol/subgraph-service@workspace:packages/subgraph-service"
   dependencies:
+    "@defi-wonderland/natspec-smells": "npm:^1.1.6"
     "@graphprotocol/contracts": "workspace:^7.0.0"
     "@graphprotocol/horizon": "workspace:^0.0.1"
     "@nomicfoundation/hardhat-chai-matchers": "npm:^2.0.0"

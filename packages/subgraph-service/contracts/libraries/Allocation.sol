@@ -12,25 +12,25 @@ library Allocation {
 
     /**
      * @notice Allocation details
+     * @param indexer The indexer that owns the allocation
+     * @param subgraphDeploymentId The subgraph deployment id the allocation is for
+     * @param tokens The number of tokens allocated
+     * @param createdAt The timestamp when the allocation was created
+     * @param closedAt The timestamp when the allocation was closed
+     * @param lastPOIPresentedAt The timestamp when the last POI was presented
+     * @param accRewardsPerAllocatedToken The accumulated rewards per allocated token
+     * @param accRewardsPending The accumulated rewards that are pending to be claimed due allocation resize
+     * @param createdAtEpoch The epoch when the allocation was created
      */
     struct State {
-        // Indexer that owns the allocation
         address indexer;
-        // Subgraph deployment id the allocation is for
         bytes32 subgraphDeploymentId;
-        // Number of tokens allocated
         uint256 tokens;
-        // Timestamp when the allocation was created
         uint256 createdAt;
-        // Timestamp when the allocation was closed
         uint256 closedAt;
-        // Timestamp when the last POI was presented
         uint256 lastPOIPresentedAt;
-        // Accumulated rewards per allocated token
         uint256 accRewardsPerAllocatedToken;
-        // Accumulated rewards that are pending to be claimed due allocation resize
         uint256 accRewardsPending;
-        // Epoch when the allocation was created
         uint256 createdAtEpoch;
     }
 
@@ -63,6 +63,8 @@ library Allocation {
      * @param subgraphDeploymentId The subgraph deployment id the allocation is for
      * @param tokens The number of tokens allocated
      * @param accRewardsPerAllocatedToken The initial accumulated rewards per allocated token
+     * @param createdAtEpoch The epoch when the allocation was created
+     * @return The allocation
      */
     function create(
         mapping(address => State) storage self,
@@ -154,6 +156,7 @@ library Allocation {
      * @notice Get an allocation
      * @param self The allocation list mapping
      * @param allocationId The allocation id
+     * @return The allocation
      */
     function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
         return _get(self, allocationId);
@@ -163,6 +166,7 @@ library Allocation {
      * @notice Checks if an allocation is stale
      * @param self The allocation
      * @param staleThreshold The time in blocks to consider an allocation stale
+     * @return True if the allocation is stale
      */
     function isStale(State memory self, uint256 staleThreshold) internal view returns (bool) {
         uint256 timeSinceLastPOI = block.timestamp - Math.max(self.createdAt, self.lastPOIPresentedAt);
@@ -172,6 +176,7 @@ library Allocation {
     /**
      * @notice Checks if an allocation exists
      * @param self The allocation
+     * @return True if the allocation exists
      */
     function exists(State memory self) internal pure returns (bool) {
         return self.createdAt != 0;
@@ -180,6 +185,7 @@ library Allocation {
     /**
      * @notice Checks if an allocation is open
      * @param self The allocation
+     * @return True if the allocation is open
      */
     function isOpen(State memory self) internal pure returns (bool) {
         return self.exists() && self.closedAt == 0;
@@ -188,6 +194,7 @@ library Allocation {
     /**
      * @notice Checks if an allocation is alturistic
      * @param self The allocation
+     * @return True if the allocation is alturistic
      */
     function isAltruistic(State memory self) internal pure returns (bool) {
         return self.exists() && self.tokens == 0;
@@ -198,6 +205,7 @@ library Allocation {
      * @dev Reverts if the allocation does not exist
      * @param self The allocation list mapping
      * @param allocationId The allocation id
+     * @return The allocation
      */
     function _get(mapping(address => State) storage self, address allocationId) private view returns (State storage) {
         State storage allocation = self[allocationId];

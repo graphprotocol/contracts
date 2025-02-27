@@ -155,8 +155,9 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
     /**
      * @notice Initializes the contract and parent contracts
+     * @param _name The name to use for EIP712 domain separation
+     * @param _version The version to use for EIP712 domain separation
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __AllocationManager_init(string memory _name, string memory _version) internal onlyInitializing {
         __EIP712_init(_name, _version);
         __AllocationManager_init_unchained();
@@ -165,7 +166,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Initializes the contract
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __AllocationManager_init_unchained() internal onlyInitializing {}
 
     /**
@@ -196,6 +196,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _tokens The amount of tokens to allocate
      * @param _allocationProof Signed proof of allocation id address ownership
      * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @return The allocation details
      */
     function _allocate(
         address _indexer,
@@ -258,6 +259,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      *
      * @param _allocationId The id of the allocation to collect rewards for
      * @param _poi The POI being presented
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @return The amount of tokens collected
      */
     function _collectIndexingRewards(
         address _allocationId,
@@ -354,6 +357,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation to be resized
      * @param _tokens The new amount of tokens to allocate
      * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @return The allocation details
      */
     function _resizeAllocation(
         address _allocationId,
@@ -433,6 +437,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Sets the rewards destination for an indexer to receive indexing rewards
      * @dev Emits a {RewardsDestinationSet} event
+     * @param _indexer The address of the indexer
      * @param _rewardsDestination The address where indexing rewards should be sent
      */
     function _setRewardsDestination(address _indexer, address _rewardsDestination) internal {
@@ -453,6 +458,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Gets the details of an allocation
      * @param _allocationId The id of the allocation
+     * @return The allocation details
      */
     function _getAllocation(address _allocationId) internal view returns (Allocation.State memory) {
         return _allocations.get(_allocationId);
@@ -461,6 +467,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     /**
      * @notice Gets the details of a legacy allocation
      * @param _allocationId The id of the legacy allocation
+     * @return The legacy allocation details
      */
     function _getLegacyAllocation(address _allocationId) internal view returns (LegacyAllocation.State memory) {
         return _legacyAllocations.get(_allocationId);
@@ -470,6 +477,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @notice Encodes the allocation proof for EIP712 signing
      * @param _indexer The address of the indexer
      * @param _allocationId The id of the allocation
+     * @return The encoded allocation proof
      */
     function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {
         return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));

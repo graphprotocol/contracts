@@ -5,6 +5,7 @@ import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGra
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
+import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -71,15 +72,7 @@ contract SubgraphService is
         _disableInitializers();
     }
 
-    /**
-     * @notice Initialize the contract
-     * @dev The thawingPeriod and verifierCut ranges are not set here because they are variables
-     * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.
-     * @param owner The owner of the contract
-     * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
-     * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
-     * @param stakeToFeesRatio The ratio of stake to fees to lock when collecting query fees
-     */
+    /// @inheritdoc ISubgraphService
     function initialize(
         address owner,
         uint256 minimumProvisionTokens,
@@ -115,6 +108,7 @@ contract SubgraphService is
      *  - address `rewardsDestination`: The address where the indexer wants to receive indexing rewards.
      *    Use zero address for automatic reprovisioning to the subgraph service.
      */
+    /// @inheritdoc IDataService
     function register(
         address indexer,
         bytes calldata data
@@ -150,6 +144,7 @@ contract SubgraphService is
      *
      * @param indexer The address of the indexer to accept the provision for
      */
+    /// @inheritdoc IDataService
     function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
@@ -183,6 +178,7 @@ contract SubgraphService is
      * - address `allocationId`: The id of the allocation
      * - bytes `allocationProof`: Signed proof of the allocation id address ownership
      */
+    /// @inheritdoc IDataService
     function startService(
         address indexer,
         bytes calldata data
@@ -198,7 +194,7 @@ contract SubgraphService is
             data,
             (bytes32, uint256, address, bytes)
         );
-        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, delegationRatio);
+        _allocate(indexer, allocationId, subgraphDeploymentId, tokens, allocationProof, _delegationRatio);
         emit ServiceStarted(indexer, data);
     }
 
@@ -221,6 +217,7 @@ contract SubgraphService is
      * @param data Encoded data:
      * - address `allocationId`: The id of the allocation
      */
+    /// @inheritdoc IDataService
     function stopService(
         address indexer,
         bytes calldata data
@@ -253,8 +250,8 @@ contract SubgraphService is
      *
      * @param indexer The address of the indexer
      * @param paymentType The type of payment to collect as defined in {IGraphPayments}
-     * @param data Encoded data to fulfill the payment. The structure of the data depends on the payment type. See above.
      */
+    /// @inheritdoc IDataService
     function collect(
         address indexer,
         IGraphPayments.PaymentTypes paymentType,
@@ -283,7 +280,7 @@ contract SubgraphService is
                 _allocations.get(allocationId).indexer == indexer,
                 SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
             );
-            paymentCollected = _collectIndexingRewards(allocationId, poi, delegationRatio);
+            paymentCollected = _collectIndexingRewards(allocationId, poi, _delegationRatio);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -293,28 +290,18 @@ contract SubgraphService is
     }
 
     /**
-     * @notice Slash an indexer
+     * @notice See {IHorizonStaking-slash} for more details.
      * @dev Slashing is delegated to the {DisputeManager} contract which is the only one that can call this
      * function.
-     *
-     * See {IHorizonStaking-slash} for more details.
-     *
-     * Emits a {ServiceProviderSlashed} event.
-     *
-     * @param indexer The address of the indexer to be slashed
-     * @param data Encoded data:
-     * - uint256 `tokens`: The amount of tokens to slash
-     * - uint256 `reward`: The amount of tokens to reward the slasher
      */
+    /// @inheritdoc IDataService
     function slash(address indexer, bytes calldata data) external override onlyDisputeManager {
         (uint256 tokens, uint256 reward) = abi.decode(data, (uint256, uint256));
         _graphStaking().slash(indexer, tokens, reward, address(_disputeManager()));
         emit ServiceProviderSlashed(indexer, tokens);
     }
 
-    /**
-     * @notice See {ISubgraphService.closeStaleAllocation}
-     */
+    /// @inheritdoc ISubgraphService
     function closeStaleAllocation(address allocationId) external override whenNotPaused {
         Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
@@ -322,9 +309,7 @@ contract SubgraphService is
         _closeAllocation(allocationId);
     }
 
-    /**
-     * @notice See {ISubgraphService.resizeAllocation}
-     */
+    /// @inheritdoc ISubgraphService
     function resizeAllocation(
         address indexer,
         address allocationId,
@@ -340,12 +325,10 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
-        _resizeAllocation(allocationId, tokens, delegationRatio);
+        _resizeAllocation(allocationId, tokens, _delegationRatio);
     }
 
-    /**
-     * @notice See {ISubgraphService.migrateLegacyAllocation}
-     */
+    /// @inheritdoc ISubgraphService
     function migrateLegacyAllocation(
         address indexer,
         address allocationId,
@@ -354,79 +337,49 @@ contract SubgraphService is
         _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
     }
 
-    /**
-     * @notice See {ISubgraphService.setPauseGuardian}
-     */
+    /// @inheritdoc ISubgraphService
     function setPauseGuardian(address pauseGuardian, bool allowed) external override onlyOwner {
         _setPauseGuardian(pauseGuardian, allowed);
     }
 
-    /**
-     * @notice See {ISubgraphService.setRewardsDestination}
-     */
+    /// @inheritdoc ISubgraphService
     function setRewardsDestination(address rewardsDestination) external override {
         _setRewardsDestination(msg.sender, rewardsDestination);
     }
 
-    /**
-     * @notice See {ISubgraphService.setMinimumProvisionTokens}
-     */
+    /// @inheritdoc ISubgraphService
     function setMinimumProvisionTokens(uint256 minimumProvisionTokens) external override onlyOwner {
         _setProvisionTokensRange(minimumProvisionTokens, DEFAULT_MAX_PROVISION_TOKENS);
     }
 
-    /**
-     * @notice See {ISubgraphService.setDelegationRatio}
-     */
+    /// @inheritdoc ISubgraphService
     function setDelegationRatio(uint32 delegationRatio) external override onlyOwner {
         _setDelegationRatio(delegationRatio);
     }
 
-    /**
-     * @notice See {ISubgraphService.setStakeToFeesRatio}
-     */
+    /// @inheritdoc ISubgraphService
     function setStakeToFeesRatio(uint256 stakeToFeesRatio_) external override onlyOwner {
         _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
-    /**
-     * @notice See {ISubgraphService.setMaxPOIStaleness}
-     */
+    /// @inheritdoc ISubgraphService
     function setMaxPOIStaleness(uint256 maxPOIStaleness) external override onlyOwner {
         _setMaxPOIStaleness(maxPOIStaleness);
     }
 
-    /**
-     * @notice See {ISubgraphService.setCurationCut}
-     */
+    /// @inheritdoc ISubgraphService
     function setCurationCut(uint256 curationCut) external override onlyOwner {
         require(PPMMath.isValidPPM(curationCut), SubgraphServiceInvalidCurationCut(curationCut));
         curationFeesCut = curationCut;
         emit CurationCutSet(curationCut);
     }
 
-    /**
-     * @notice See {ISubgraphService.getAllocation}
-     */
+    /// @inheritdoc ISubgraphService
     function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
         return _allocations[allocationId];
     }
 
-    /**
-     * @notice Get allocation data to calculate rewards issuance
-     * @dev Implements {IRewardsIssuer.getAllocationData}
-     * @dev Note that this is slightly different than {getAllocation}. It returns an
-     * unstructured subset of the allocation data, which is the minimum required to mint rewards.
-     *
-     * Should only be used by the {RewardsManager}.
-     *
-     * @param allocationId The allocation Id
-     * @return indexer The indexer address
-     * @return subgraphDeploymentId Subgraph deployment id for the allocation
-     * @return tokens Amount of allocated tokens
-     * @return accRewardsPerAllocatedToken Rewards snapshot
-     * @return accRewardsPending Rewards pending to be minted due to allocation resize
-     */
+    /// @inheritdoc IRewardsIssuer
     function getAllocationData(
         address allocationId
     ) external view override returns (address, bytes32, uint256, uint256, uint256) {
@@ -440,57 +393,39 @@ contract SubgraphService is
         );
     }
 
-    /**
-     * @notice Return the total amount of tokens allocated to subgraph.
-     * @dev Implements {IRewardsIssuer.getSubgraphAllocatedTokens}
-     * @dev To be used by the {RewardsManager}.
-     * @param subgraphDeploymentId Deployment Id for the subgraph
-     * @return Total tokens allocated to subgraph
-     */
+    /// @inheritdoc IRewardsIssuer
     function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentId) external view override returns (uint256) {
         return _subgraphAllocatedTokens[subgraphDeploymentId];
     }
 
-    /**
-     * @notice See {ISubgraphService.getLegacyAllocation}
-     */
+    /// @inheritdoc ISubgraphService
     function getLegacyAllocation(address allocationId) external view override returns (LegacyAllocation.State memory) {
         return _legacyAllocations[allocationId];
     }
 
-    /**
-     * @notice See {ISubgraphService.getDisputeManager}
-     */
+    /// @inheritdoc ISubgraphService
     function getDisputeManager() external view override returns (address) {
         return address(_disputeManager());
     }
 
-    /**
-     * @notice See {ISubgraphService.getGraphTallyCollector}
-     */
+    /// @inheritdoc ISubgraphService
     function getGraphTallyCollector() external view override returns (address) {
         return address(_graphTallyCollector());
     }
 
-    /**
-     * @notice See {ISubgraphService.getCuration}
-     */
+    /// @inheritdoc ISubgraphService
     function getCuration() external view override returns (address) {
         return address(_curation());
     }
 
-    /**
-     * @notice See {ISubgraphService.encodeAllocationProof}
-     */
+    /// @inheritdoc ISubgraphService
     function encodeAllocationProof(address indexer, address allocationId) external view override returns (bytes32) {
         return _encodeAllocationProof(indexer, allocationId);
     }
 
-    /**
-     * @notice See {ISubgraphService.isOverAllocated}
-     */
+    /// @inheritdoc ISubgraphService
     function isOverAllocated(address indexer) external view override returns (bool) {
-        return _isOverAllocated(indexer, delegationRatio);
+        return _isOverAllocated(indexer, _delegationRatio);
     }
 
     // -- Data service parameter getters --
@@ -537,6 +472,7 @@ contract SubgraphService is
      * Emits a {QueryFeesCollected} event.
      *
      * @param _signedRav Signed RAV
+     * @return feesCollected The amount of fees collected
      */
     function _collectQueryFees(
         IGraphTallyCollector.SignedRAV memory _signedRav
@@ -591,6 +527,10 @@ contract SubgraphService is
         return tokensCollected;
     }
 
+    /**
+     * @notice Set the stake to fees ratio.
+     * @param _stakeToFeesRatio The stake to fees ratio
+     */
     function _setStakeToFeesRatio(uint256 _stakeToFeesRatio) private {
         require(_stakeToFeesRatio != 0, SubgraphServiceInvalidZeroStakeToFeesRatio());
         stakeToFeesRatio = _stakeToFeesRatio;

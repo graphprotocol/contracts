@@ -77,6 +77,7 @@ abstract contract Directory {
 
     /**
      * @notice Returns the Subgraph Service contract address
+     * @return The Subgraph Service contract
      */
     function _subgraphService() internal view returns (ISubgraphService) {
         return SUBGRAPH_SERVICE;
@@ -84,6 +85,7 @@ abstract contract Directory {
 
     /**
      * @notice Returns the Dispute Manager contract address
+     * @return The Dispute Manager contract
      */
     function _disputeManager() internal view returns (IDisputeManager) {
         return DISPUTE_MANAGER;
@@ -91,6 +93,7 @@ abstract contract Directory {
 
     /**
      * @notice Returns the Graph Tally Collector contract address
+     * @return The Graph Tally Collector contract
      */
     function _graphTallyCollector() internal view returns (IGraphTallyCollector) {
         return GRAPH_TALLY_COLLECTOR;
@@ -98,6 +101,7 @@ abstract contract Directory {
 
     /**
      * @notice Returns the Curation contract address
+     * @return The Curation contract
      */
     function _curation() internal view returns (ICuration) {
         return CURATION;

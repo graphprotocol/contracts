@@ -14,6 +14,8 @@ library LegacyAllocation {
      * @notice Legacy allocation details
      * @dev Note that we are only storing the indexer and subgraphDeploymentId. The main point of tracking legacy allocations
      * is to prevent them from being re used on the Subgraph Service. We don't need to store the rest of the allocation details.
+     * @param indexer The indexer that owns the allocation
+     * @param subgraphDeploymentId The subgraph deployment id the allocation is for
      */
     struct State {
         address indexer;
@@ -58,6 +60,7 @@ library LegacyAllocation {
      * @notice Get a legacy allocation
      * @param self The legacy allocation list mapping
      * @param allocationId The allocation id
+     * @return The legacy allocation details
      */
     function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
         return _get(self, allocationId);
@@ -69,6 +72,7 @@ library LegacyAllocation {
      * @dev TODO: after the transition period when all the allocations are migrated we can
      * remove the call to the staking contract.
      * @param self The legacy allocation list mapping
+     * @param graphStaking The Horizon Staking contract
      * @param allocationId The allocation id
      */
     function revertIfExists(
@@ -83,6 +87,7 @@ library LegacyAllocation {
     /**
      * @notice Check if a legacy allocation exists
      * @param self The legacy allocation
+     * @return True if the allocation exists
      */
     function exists(State memory self) internal pure returns (bool) {
         return self.indexer != address(0);
@@ -92,6 +97,7 @@ library LegacyAllocation {
      * @notice Get a legacy allocation
      * @param self The legacy allocation list mapping
      * @param allocationId The allocation id
+     * @return The legacy allocation details
      */
     function _get(mapping(address => State) storage self, address allocationId) private view returns (State storage) {
         State storage allocation = self[allocationId];

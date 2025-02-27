@@ -18,6 +18,7 @@
     "test/**/*.ts",
     "ignition/**/*.ts",
     "eslint.config.js",
-    "prettier.config.js"
+    "prettier.config.js",
+    "natspec-smells.config.js"
   ]
 }
