@@ -67,6 +67,22 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         subgraphService.acceptIAV(allocationId, signedIAV);
     }
 
+    function test_SubgraphService_AcceptIAV_Revert_WhenIndexerNotRegistered(
+        uint256 tokens,
+        address allocationId,
+        IIPCollector.SignedIAV memory signedIAV
+    ) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        signedIAV.iav.serviceProvider = users.indexer;
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
+            users.indexer
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.acceptIAV(allocationId, signedIAV);
+    }
+
     function _notInUsers(address _candidate) private view returns (bool) {
         return
             _candidate != users.governor &&
