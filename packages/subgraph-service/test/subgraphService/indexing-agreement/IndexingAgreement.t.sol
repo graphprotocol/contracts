@@ -8,6 +8,7 @@ import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGra
 import { IIPCollector } from "@graphprotocol/horizon/contracts/interfaces/IIPCollector.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
+import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
@@ -109,6 +110,27 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         //     users.indexer
         // );
         vm.expectRevert("SubgraphService: Invalid IAV metadata");
+        subgraphService.acceptIAV(allocationId, signedIAV);
+    }
+
+    function test_SubgraphService_AcceptIAV_Revert_WhenInvalidAllocation(
+        uint256 tokens,
+        address allocationId,
+        IIPCollector.SignedIAV memory signedIAV
+    ) public useIndexer useAllocation(tokens) {
+        signedIAV.iav.serviceProvider = users.indexer;
+        signedIAV.iav.dataService = address(subgraphService);
+        signedIAV.iav.metadata = abi.encode(
+            ISubgraphService.IndexingAgreementVoucherMetadata({
+                tokensPerSecond: 0,
+                tokensPerEntityPerSecond: 0,
+                subgraphDeploymentId: "",
+                protocolNetwork: "",
+                chainId: ""
+            })
+        );
+        bytes memory expectedErr = abi.encodeWithSelector(Allocation.AllocationDoesNotExist.selector, allocationId);
+        vm.expectRevert(expectedErr);
         subgraphService.acceptIAV(allocationId, signedIAV);
     }
 
