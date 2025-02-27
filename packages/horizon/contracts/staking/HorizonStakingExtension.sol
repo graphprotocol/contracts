@@ -40,7 +40,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
      * @dev Check if the caller is the slasher.
      */
     modifier onlySlasher() {
-        require(__DEPRECATED_slashers[msg.sender] == true, "!slasher");
+        require(__DEPRECATED_slashers[msg.sender], "!slasher");
         _;
     }
 
