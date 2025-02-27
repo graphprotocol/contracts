@@ -56,7 +56,7 @@ abstract contract GraphDirectory {
 
     // -- Legacy Graph contracts --
     // These are required for backwards compatibility on HorizonStakingExtension
-    // TODO: remove these once HorizonStakingExtension is removed
+    // TRANSITION PERIOD: remove these once HorizonStakingExtension is removed
 
     /// @notice The Curation contract address
     ICuration private immutable GRAPH_CURATION;

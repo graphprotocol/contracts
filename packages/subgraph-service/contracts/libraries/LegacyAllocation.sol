@@ -69,7 +69,7 @@ library LegacyAllocation {
     /**
      * @notice Revert if a legacy allocation exists
      * @dev We first check the migrated mapping then the old staking contract.
-     * @dev TODO: after the transition period when all the allocations are migrated we can
+     * @dev TRANSITION PERIOD: after the transition period when all the allocations are migrated we can
      * remove the call to the staking contract.
      * @param self The legacy allocation list mapping
      * @param graphStaking The Horizon Staking contract
