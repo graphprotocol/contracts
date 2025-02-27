@@ -146,7 +146,7 @@ const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
-      chainId: 1337,
+      chainId: 31337,
       loggingEnabled: false,
       gas: 12000000,
       gasPrice: 'auto',
@@ -158,7 +158,7 @@ const config: HardhatUserConfig = {
       hardfork: 'london',
     },
     localhost: {
-      chainId: 1337,
+      chainId: 31337,
       url: 'http://127.0.0.1:8545',
       accounts:
         process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },

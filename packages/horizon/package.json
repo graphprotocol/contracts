@@ -16,7 +16,9 @@
     "lint": "yarn lint:ts && yarn lint:sol",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "BUILD_RUN=true hardhat compile",
-    "test": "forge test && hardhat test"
+    "test": "forge test && hardhat test:integration --deploy-type deploy",
+    "test:e2e:deploy": "./scripts/e2e-deploy",
+    "test:e2e:migrate": "./scripts/e2e-migrate"
   },
   "devDependencies": {
     "@graphprotocol/contracts": "workspace:^7.0.0",
@@ -40,6 +42,7 @@
     "eslint": "^8.56.0",
     "eslint-graph-config": "workspace:^0.0.1",
     "ethers": "^6.13.4",
+    "glob": "^11.0.1",
     "hardhat": "^2.22.18",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",

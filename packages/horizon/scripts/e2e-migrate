@@ -1,0 +1,85 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Function to cleanup resources
+cleanup() {
+    # Remove ignition deployment files
+    echo "Removing ignition deployment files..."
+    rm -rf ignition/deployments/horizon-localhost
+
+    # Kill hardhat node only if we started it
+    if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
+        echo "Cleaning up node process..."
+        kill $NODE_PID 2>/dev/null || true
+    fi
+}
+
+# Set trap to call cleanup function on script exit (normal or error)
+trap cleanup EXIT
+
+# Check required env variables
+if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
+    echo "ARBITRUM_SEPOLIA_RPC environment variable is required"
+    exit 1
+fi
+
+echo "Starting e2e tests..."
+
+# Check if hardhat node is already running on port 8545
+STARTED_NODE=false
+if lsof -i:8545 > /dev/null 2>&1; then
+    echo "Hardhat node already running on port 8545, using existing node"
+    # Get the PID of the process using port 8545
+    NODE_PID=$(lsof -t -i:8545)
+else
+    # Start local hardhat node forked from Arbitrum Sepolia
+    echo "Starting local hardhat node..."
+    npx hardhat node --fork $ARBITRUM_SEPOLIA_RPC > node.log 2>&1 &
+    NODE_PID=$!
+    STARTED_NODE=true
+
+    # Wait for node to start
+    sleep 10
+fi
+
+# Run migration steps
+echo "Running migration steps..."
+
+# Step 1 - Deployer
+echo "Step 1 - Deployer"
+npx hardhat deploy:migrate --network localhost --step 1
+
+# Step 2 - Governor
+echo "Step 2 - Governor"
+npx hardhat deploy:migrate --network localhost --step 2 --patch-config
+
+# Step 3 - Deployer
+echo "Step 3 - Deployer"
+npx hardhat deploy:migrate --network localhost --step 3 --patch-config
+
+# Step 4 - Governor
+echo "Step 4 - Governor"
+npx hardhat deploy:migrate --network localhost --step 4 --patch-config
+
+# Run integration tests - During transition period
+echo "Running during-transition-period tests..."
+npx hardhat test:integration --phase during-transition --network localhost
+
+# Clear thawing period
+echo "Clearing thawing period..."
+npx hardhat transition:clear-thawing --network localhost --governor-index 0
+
+# Run integration tests - After transition period
+echo "Running after-transition-period tests..."
+npx hardhat test:integration --phase after-transition --network localhost
+
+# Enable delegation slashing
+echo "Enabling delegation slashing..."
+npx hardhat transition:enable-delegation-slashing --network localhost --governor-index 0
+
+# Run integration tests - After delegation slashing enabled
+echo "Running after-delegation-slashing tests..."
+npx hardhat test:integration --phase after-delegation-slashing --network localhost
+
+echo "E2E tests completed successfully!"
