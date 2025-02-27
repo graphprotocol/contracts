@@ -433,37 +433,51 @@ contract SubgraphService is
         // Check that the data service is the subgraph service
         require(signedIAV.iav.dataService == address(this), "SubgraphService: Data service mismatch");
 
-        IndexingAgreementVoucherMetadata memory metadata = abi.decode(
-            signedIAV.iav.metadata,
-            (IndexingAgreementVoucherMetadata)
-        );
+        try this.decodeIAVMetadata(signedIAV.iav.metadata) returns (IndexingAgreementVoucherMetadata memory metadata) {
+            return _acceptIAV(allocationId, signedIAV, metadata);
+        } catch {
+            revert("SubgraphService: Invalid IAV metadata");
+        }
+    }
 
+    /**
+     * @notice Decodes the IAV metadata.
+     */
+    function decodeIAVMetadata(bytes calldata data) public pure returns (IndexingAgreementVoucherMetadata memory) {
+        return abi.decode(data, (IndexingAgreementVoucherMetadata));
+    }
+
+    function _acceptIAV(
+        address _allocationId,
+        IIPCollector.SignedIAV calldata _signedIAV,
+        IndexingAgreementVoucherMetadata memory _metadata
+    ) private {
         // Do I really need an allocation here? Should I also check the state of the allocation?
-        Allocation.State memory allocation = _allocations.get(allocationId);
+        Allocation.State memory allocation = _allocations.get(_allocationId);
         require(
-            signedIAV.iav.serviceProvider == allocation.indexer,
-            SubgraphServiceInvalidSomething(signedIAV.iav.serviceProvider, allocation.indexer)
+            _signedIAV.iav.serviceProvider == allocation.indexer,
+            SubgraphServiceInvalidSomething(_signedIAV.iav.serviceProvider, allocation.indexer)
         );
         require(
-            metadata.subgraphDeploymentId == allocation.subgraphDeploymentId,
+            _metadata.subgraphDeploymentId == allocation.subgraphDeploymentId,
             "SubgraphService: SubgraphDeploymentId mismatch"
         );
 
         IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(
             IndexingAgreementKey({
-                indexer: signedIAV.iav.serviceProvider,
-                payer: signedIAV.iav.payer,
-                agreementId: signedIAV.iav.agreementId
+                indexer: _signedIAV.iav.serviceProvider,
+                payer: _signedIAV.iav.payer,
+                agreementId: _signedIAV.iav.agreementId
             })
         );
         require(agreement.acceptedAt == 0, "SubgraphService: Agreement already accepted");
 
-        agreement.tokensPerSecond = metadata.tokensPerSecond;
-        agreement.tokensPerEntityPerSecond = metadata.tokensPerEntityPerSecond;
+        agreement.tokensPerSecond = _metadata.tokensPerSecond;
+        agreement.tokensPerEntityPerSecond = _metadata.tokensPerEntityPerSecond;
         agreement.acceptedAt = block.timestamp;
 
         // Accept the IAV
-        _ipCollector().accept(signedIAV);
+        _ipCollector().accept(_signedIAV);
     }
 
     // Can only be canceled on behalf of a valid indexer
