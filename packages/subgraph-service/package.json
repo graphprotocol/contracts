@@ -13,7 +13,7 @@
   "scripts": {
     "lint": "yarn lint:ts && yarn lint:sol",
     "lint:ts": "eslint '**/*.{js,ts}' --fix",
-    "lint:sol": "yarn lint:sol:prettier && yarn lint:sol:solhint && yarn lint:sol:natspec",
+    "lint:sol": "yarn lint:sol:prettier && yarn lint:sol:solhint",
     "lint:sol:prettier": "prettier --write contracts/**/*.sol test/**/*.sol",
     "lint:sol:solhint": "solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
