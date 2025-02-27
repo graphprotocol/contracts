@@ -134,6 +134,44 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         subgraphService.acceptIAV(allocationId, signedIAV);
     }
 
+    function test_SubgraphService_AcceptIAV_Revert_WhenServiceProviderMismatchAllocation(
+        uint256 tokens,
+        address serviceProvider,
+        bytes32 _subgraphDeployment,
+        IIPCollector.SignedIAV memory signedIAV
+    ) public useIndexer useAllocation(tokens) {
+        mint(serviceProvider, tokens);
+        resetPrank(serviceProvider);
+        _createProvision(serviceProvider, tokens, maxSlashingPercentage, disputePeriod);
+        _register(serviceProvider, abi.encode("url", "geoHash", address(0)));
+        (, uint256 _allocationIDPrivateKey) = makeAddrAndKey("allocationIdz");
+        bytes memory data = _createSubgraphAllocationData(
+            serviceProvider,
+            _subgraphDeployment,
+            _allocationIDPrivateKey,
+            tokens
+        );
+        _startService(serviceProvider, data);
+        signedIAV.iav.serviceProvider = serviceProvider;
+        signedIAV.iav.dataService = address(subgraphService);
+        signedIAV.iav.metadata = abi.encode(
+            ISubgraphService.IndexingAgreementVoucherMetadata({
+                tokensPerSecond: 0,
+                tokensPerEntityPerSecond: 0,
+                subgraphDeploymentId: "",
+                protocolNetwork: "",
+                chainId: ""
+            })
+        );
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceInvalidSomething.selector,
+            signedIAV.iav.serviceProvider,
+            users.indexer
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.acceptIAV(allocationID, signedIAV);
+    }
+
     function _notInUsers(address _candidate) private view returns (bool) {
         return
             _candidate != users.governor &&
