@@ -285,7 +285,7 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function encodeReceipt(Attestation.Receipt memory receipt) external view override returns (bytes32) {
+    function encodeReceipt(Attestation.Receipt calldata receipt) external view override returns (bytes32) {
         return _encodeReceipt(receipt);
     }
 
@@ -310,8 +310,8 @@ contract DisputeManager is
 
     /// @inheritdoc IDisputeManager
     function areConflictingAttestations(
-        Attestation.State memory attestation1,
-        Attestation.State memory attestation2
+        Attestation.State calldata attestation1,
+        Attestation.State calldata attestation2
     ) external pure override returns (bool) {
         return Attestation.areConflicting(attestation1, attestation2);
     }

@@ -60,14 +60,14 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
      */
     /// @inheritdoc IPaymentsCollector
-    function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external override returns (uint256) {
+    function collect(IGraphPayments.PaymentTypes paymentType, bytes calldata data) external override returns (uint256) {
         return _collect(paymentType, data, 0);
     }
 
     /// @inheritdoc IGraphTallyCollector
     function collect(
         IGraphPayments.PaymentTypes paymentType,
-        bytes memory data,
+        bytes calldata data,
         uint256 tokensToCollect
     ) external override returns (uint256) {
         return _collect(paymentType, data, tokensToCollect);
@@ -93,7 +93,7 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
      */
     function _collect(
         IGraphPayments.PaymentTypes _paymentType,
-        bytes memory _data,
+        bytes calldata _data,
         uint256 _tokensToCollect
     ) private returns (uint256) {
         (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (SignedRAV, uint256));
