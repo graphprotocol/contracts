@@ -8,8 +8,8 @@ cleanup() {
     echo "Removing ignition deployment files..."
     rm -rf ignition/deployments/horizon-localhost
 
-    # Kill hardhat node
-    if [ ! -z "$NODE_PID" ]; then
+    # Kill hardhat node only if we started it
+    if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
         echo "Cleaning up node process..."
         kill $NODE_PID 2>/dev/null || true
     fi
@@ -26,19 +26,22 @@ fi
 
 echo "Starting e2e tests..."
 
-# Check if port 8545 is in use
+# Check if hardhat node is already running on port 8545
+STARTED_NODE=false
 if lsof -i:8545 > /dev/null 2>&1; then
-    echo "Error: Port 8545 is already in use"
-    exit 1
+    echo "Hardhat node already running on port 8545, using existing node"
+    # Get the PID of the process using port 8545
+    NODE_PID=$(lsof -t -i:8545)
+else
+    # Start local hardhat node forked from Arbitrum Sepolia
+    echo "Starting local hardhat node..."
+    npx hardhat node --fork $ARBITRUM_SEPOLIA_RPC > node.log 2>&1 &
+    NODE_PID=$!
+    STARTED_NODE=true
+
+    # Wait for node to start
+    sleep 10
 fi
-
-# Start local hardhat node forked from Arbitrum Sepolia
-echo "Starting local hardhat node..."
-npx hardhat node --fork $ARBITRUM_SEPOLIA_RPC > node.log 2>&1 &
-NODE_PID=$!
-
-# Wait for node to start
-sleep 10
 
 # Run migration steps
 echo "Running migration steps..."
