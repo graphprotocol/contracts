@@ -137,13 +137,22 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         }
     }
 
+    mapping(address => bool) private _serviceProviders;
+    mapping(address => bool) private _allocationIds;
+
     function _setupFuzzyServiceProvider(
         setupFuzzyServiceProviderParams calldata _params
     ) private returns (serviceProviderParams memory) {
-        vm.assume(_isSafeServiceProvider(_params.serviceProvider));
+        vm.assume(_isSafeServiceProvider(_params.serviceProvider) && !_serviceProviders[_params.serviceProvider]);
+        _serviceProviders[_params.serviceProvider] = true;
+
+        (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_params.unboundedAllocationPrivateKey);
+        vm.assume(!_allocationIds[allocationId]);
+        _allocationIds[allocationId] = true;
+
         uint256 tokens = bound(_params.unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
         mint(_params.serviceProvider, tokens);
-        (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_params.unboundedAllocationPrivateKey);
+
         address originalPrank = _nicerResetPrank(_params.serviceProvider);
         _createProvision(_params.serviceProvider, tokens, maxSlashingPercentage, disputePeriod);
         _register(_params.serviceProvider, abi.encode("url", "geoHash", address(0)));
