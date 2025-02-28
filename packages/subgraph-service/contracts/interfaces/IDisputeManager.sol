@@ -4,6 +4,12 @@ pragma solidity 0.8.27;
 
 import { Attestation } from "../libraries/Attestation.sol";
 
+/**
+ * @title IDisputeManager
+ * @notice Interface for the {Dispute Manager} contract.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
+ */
 interface IDisputeManager {
     /// @notice Types of disputes that can be created
     enum DisputeType {

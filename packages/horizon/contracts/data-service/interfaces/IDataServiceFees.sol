@@ -18,6 +18,8 @@ import { IDataService } from "./IDataService.sol";
  * @dev Note that this implementation uses the entire provisioned stake as collateral for the payment.
  * It can be used to provide economic security for the payments collected as long as the provisioned
  * stake is not being used for other purposes.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IDataServiceFees is IDataService {
     /**

@@ -5,6 +5,8 @@ pragma solidity 0.8.27;
  * @title Interface for the {Authorizable} contract
  * @notice Implements an authorization scheme that allows authorizers to
  * authorize signers to sign on their behalf.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IAuthorizable {
     /**

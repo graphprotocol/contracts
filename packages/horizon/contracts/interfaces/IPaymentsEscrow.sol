@@ -13,6 +13,8 @@ import { IGraphPayments } from "./IGraphPayments.sol";
  * being able to retrieve them after a thawing period. Receivers collect funds from the escrow,
  * provided the payer has authorized them. The payer authorization is delegated to a payment
  * collector contract which implements the {IPaymentsCollector} interface.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IPaymentsEscrow {
     /**

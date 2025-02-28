@@ -16,6 +16,8 @@ pragma solidity 0.8.27;
  * A contract using this library must store:
  * - a LinkedList.List to keep track of the list metadata
  * - a mapping from bytes32 to the item data
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library LinkedList {
     using LinkedList for List;

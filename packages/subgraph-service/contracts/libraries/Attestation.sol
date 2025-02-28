@@ -4,6 +4,8 @@ pragma solidity 0.8.27;
 /**
  * @title Attestation library
  * @notice A library to handle Attestation.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library Attestation {
     /**

@@ -21,6 +21,8 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * @dev Implementation of the {IHorizonStakingBase} interface.
  * @dev It's meant to be inherited by the {HorizonStaking} and {HorizonStakingExtension}
  * contracts so some internal functions are also included here.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract HorizonStakingBase is
     Multicall,

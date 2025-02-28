@@ -19,6 +19,8 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
  * The parameters are:
  * - Provision parameters (thawing period and verifier cut)
  * - Provision tokens
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionManagerV1Storage {
     using UintRange for uint256;

@@ -7,6 +7,8 @@ import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewa
 /**
  * @title Interface for {HorizonStakingExtension} contract.
  * @notice Provides functions for managing legacy allocations.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStakingExtension is IRewardsIssuer {
     /**

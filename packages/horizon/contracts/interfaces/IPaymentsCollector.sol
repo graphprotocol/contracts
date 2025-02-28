@@ -12,6 +12,8 @@ import { IGraphPayments } from "./IGraphPayments.sol";
  *
  * @dev It's important to note that it's the collector contract's responsibility to validate the payment
  * request is legitimate.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IPaymentsCollector {
     /**

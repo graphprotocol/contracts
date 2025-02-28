@@ -16,6 +16,8 @@ import { DataService } from "../DataService.sol";
  * guardians. This should be implemented in the derived contract.
  * @dev This contract inherits from {DataService} which needs to be initialized, please see
  * {DataService} for detailed instructions.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract DataServicePausable is Pausable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status

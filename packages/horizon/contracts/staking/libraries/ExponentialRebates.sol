@@ -9,6 +9,8 @@ import { LibFixedMath } from "../../libraries/LibFixedMath.sol";
  * @notice A library to compute query fee rebates using an exponential formula
  * @dev This is only used for backwards compatibility in HorizonStaking, and should
  * be removed after the transition period.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library ExponentialRebates {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.

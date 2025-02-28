@@ -11,6 +11,8 @@ import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration
  * @notice This contract is meant to be inherited by {SubgraphService} contract.
  * It contains the addresses of the contracts that the contract interacts with.
  * Uses immutable variables to minimize gas costs.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract Directory {
     /// @notice The Subgraph Service contract address

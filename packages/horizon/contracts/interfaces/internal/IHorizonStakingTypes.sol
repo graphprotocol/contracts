@@ -7,6 +7,8 @@ pragma solidity 0.8.27;
  * @dev In order to preserve storage compatibility some data structures keep deprecated fields.
  * These structures have then two representations, an internal one used by the contract storage and a public one.
  * Getter functions should retrieve internal representations, remove deprecated fields and return the public representation.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStakingTypes {
     /**

@@ -20,7 +20,12 @@
 
 pragma solidity 0.8.27;
 
-/// @dev Signed, fixed-point, 127-bit precision math library.
+/**
+ * @title LibFixedMath
+ * @notice This library provides fixed-point arithmetic operations.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
+ */
 library LibFixedMath {
     // 1
     int256 private constant FIXED_1 = int256(0x0000000000000000000000000000000080000000000000000000000000000000);

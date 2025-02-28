@@ -10,6 +10,8 @@ import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
  * their services.
  * The library provides two primitives, lock and release to signal token usage and free up tokens respectively. It
  * does not make any assumptions about the conditions under which tokens are locked or released.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library ProvisionTracker {
     /**

@@ -10,6 +10,8 @@ import { IGraphPayments } from "./IGraphPayments.sol";
  * Horizon payments protocol.
  * @notice Implements a payments collector contract that can be used to collect
  * payments using a GraphTally RAV (Receipt Aggregate Voucher).
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IGraphTallyCollector is IPaymentsCollector {
     /**

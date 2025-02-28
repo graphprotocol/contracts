@@ -14,6 +14,8 @@ import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
  * subgraph indexing and querying. The {SubgraphService} contract implements the flows described in the Data
  * Service framework to allow indexers to register as subgraph service providers, create allocations to signal
  * their commitment to index a subgraph, and collect fees for indexing and querying services.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface ISubgraphService is IDataServiceFees {
     /**

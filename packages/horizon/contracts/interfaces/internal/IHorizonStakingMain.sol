@@ -15,6 +15,8 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
  * @dev TRANSITION PERIOD: After transition period rename to IHorizonStaking.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStakingMain {
     // -- Events: stake --

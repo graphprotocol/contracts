@@ -21,6 +21,8 @@ import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/
  * @notice A helper contract implementing allocation lifecycle management.
  * Allows opening, resizing, and closing allocations, as well as collecting indexing rewards by presenting a Proof
  * of Indexing (POI).
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, AllocationManagerV1Storage {
     using ProvisionTracker for mapping(address => uint256);

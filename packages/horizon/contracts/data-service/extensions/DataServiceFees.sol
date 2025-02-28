@@ -16,6 +16,8 @@ import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
  * using a Horizon provision. See {IDataServiceFees} for more details.
  * @dev This contract inherits from {DataService} which needs to be initialized, please see
  * {DataService} for detailed instructions.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);

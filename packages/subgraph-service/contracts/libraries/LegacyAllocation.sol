@@ -6,6 +6,8 @@ import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHo
 /**
  * @title LegacyAllocation library
  * @notice A library to handle legacy Allocations.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library LegacyAllocation {
     using LegacyAllocation for State;

@@ -12,5 +12,7 @@ import { IHorizonStakingExtension } from "./internal/IHorizonStakingExtension.so
  * @notice This interface exposes all functions implemented by the {HorizonStaking} contract and its extension
  * {HorizonStakingExtension} as well as the custom data types used by the contract.
  * @dev Use this interface to interact with the Horizon Staking contract.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStaking is IHorizonStakingTypes, IHorizonStakingBase, IHorizonStakingMain, IHorizonStakingExtension {}

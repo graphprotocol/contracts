@@ -12,6 +12,8 @@ import { LinkedList } from "../../libraries/LinkedList.sol";
  * @notice Provides getters for {HorizonStaking} and {HorizonStakingExtension} storage variables.
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStakingBase {
     /**

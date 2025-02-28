@@ -4,6 +4,8 @@ pragma solidity 0.8.27;
 /**
  * @title PPMMath library
  * @notice A library for handling calculations with parts per million (PPM) amounts.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library PPMMath {
     /// @notice Maximum value (100%) in parts per million (PPM).

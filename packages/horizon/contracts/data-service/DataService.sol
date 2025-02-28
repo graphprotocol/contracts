@@ -27,6 +27,8 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
  * will be required in the constructor.
  * - Note that in both cases if using {__DataService_init_unchained} variant the corresponding parent
  * initializers must be called in the implementation.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1Storage, IDataService {
     /**

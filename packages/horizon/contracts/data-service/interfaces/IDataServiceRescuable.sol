@@ -7,6 +7,8 @@ import { IDataService } from "./IDataService.sol";
  * @title Interface for the {IDataServicePausable} contract.
  * @notice Extension for the {IDataService} contract, adds the ability to rescue
  * any ERC20 token or ETH from the contract, controlled by a rescuer privileged role.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IDataServiceRescuable is IDataService {
     /**
