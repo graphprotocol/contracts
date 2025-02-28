@@ -172,25 +172,43 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.acceptIAV(params.allocationId, signedIAV);
     }
 
+    // function _sensibleIAVMetadata(serviceProviderParams calldata _params) private returns (bytes memory) {
+    //     return
+    //         abi.encode(
+    //             ISubgraphService.IndexingAgreementVoucherMetadata({
+    //                 tokensPerSecond: 0,
+    //                 tokensPerEntityPerSecond: 0,
+    //                 subgraphDeploymentId: _params.subgraphDeploymentId,
+    //                 protocolNetwork: "",
+    //                 chainId: ""
+    //             })
+    //         );
+    // }
+
     function test_SubgraphService_AcceptIAV_Revert_WhenInvalidAllocation(
-        uint256 tokens,
-        address allocationId,
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
+        address invalidAllocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer useAllocation(tokens) {
-        signedIAV.iav.serviceProvider = users.indexer;
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
         signedIAV.iav.metadata = abi.encode(
             ISubgraphService.IndexingAgreementVoucherMetadata({
                 tokensPerSecond: 0,
                 tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: "",
+                subgraphDeploymentId: params.subgraphDeploymentId,
                 protocolNetwork: "",
                 chainId: ""
             })
         );
-        bytes memory expectedErr = abi.encodeWithSelector(Allocation.AllocationDoesNotExist.selector, allocationId);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            Allocation.AllocationDoesNotExist.selector,
+            invalidAllocationId
+        );
         vm.expectRevert(expectedErr);
-        subgraphService.acceptIAV(allocationId, signedIAV);
+        vm.prank(params.serviceProvider);
+        subgraphService.acceptIAV(invalidAllocationId, signedIAV);
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenServiceProviderMismatchAllocation(
