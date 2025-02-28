@@ -74,7 +74,7 @@ abstract contract HorizonStakingBase is
     }
 
     /// @inheritdoc IHorizonStakingBase
-    function getIdleStake(address serviceProvider) external view override returns (uint256 tokens) {
+    function getIdleStake(address serviceProvider) external view override returns (uint256) {
         return _getIdleStake(serviceProvider);
     }
 

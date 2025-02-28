@@ -266,28 +266,28 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
 
     /**
      * @notice Gets the range for the provision tokens.
-     * @return min The minimum allowed value for the provision tokens.
-     * @return max The maximum allowed value for the provision tokens.
+     * @return The minimum allowed value for the provision tokens.
+     * @return The maximum allowed value for the provision tokens.
      */
-    function _getProvisionTokensRange() internal view virtual returns (uint256 min, uint256 max) {
+    function _getProvisionTokensRange() internal view virtual returns (uint256, uint256) {
         return (_minimumProvisionTokens, _maximumProvisionTokens);
     }
 
     /**
      * @notice  Gets the range for the thawing period.
-     * @return min The minimum allowed value for the thawing period.
-     * @return max The maximum allowed value for the thawing period.
+     * @return The minimum allowed value for the thawing period.
+     * @return The maximum allowed value for the thawing period.
      */
-    function _getThawingPeriodRange() internal view virtual returns (uint64 min, uint64 max) {
+    function _getThawingPeriodRange() internal view virtual returns (uint64, uint64) {
         return (_minimumThawingPeriod, _maximumThawingPeriod);
     }
 
     /**
      * @notice Gets the range for the verifier cut.
-     * @return min The minimum allowed value for the max verifier cut.
-     * @return max The maximum allowed value for the max verifier cut.
+     * @return The minimum allowed value for the max verifier cut.
+     * @return The maximum allowed value for the max verifier cut.
      */
-    function _getVerifierCutRange() internal view virtual returns (uint32 min, uint32 max) {
+    function _getVerifierCutRange() internal view virtual returns (uint32, uint32) {
         return (_minimumVerifierCut, _maximumVerifierCut);
     }
 
