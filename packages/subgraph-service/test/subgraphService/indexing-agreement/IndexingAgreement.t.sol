@@ -23,7 +23,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address payer,
         bytes16 agreementId
     ) public {
-        vm.assume(_isSafeServiceProvider(serviceProvider));
+        vm.assume(_isSafeOperator(serviceProvider));
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
@@ -42,7 +42,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address serviceProvider,
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
-        vm.assume(_isSafeServiceProvider(serviceProvider));
+        vm.assume(_isSafeOperator(serviceProvider));
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
@@ -53,15 +53,16 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
 
     function test_SubgraphService_AcceptIAV_Revert_WhenNotAuthorized(
         address allocationId,
-        address serviceProvider,
+        address operator,
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
-        vm.assume(_isSafeServiceProvider(serviceProvider));
-        resetPrank(serviceProvider);
+        vm.assume(_isSafeOperator(operator));
+        vm.assume(operator != signedIAV.iav.serviceProvider);
+        resetPrank(operator);
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerNotAuthorized.selector,
             signedIAV.iav.serviceProvider,
-            serviceProvider
+            operator
         );
         vm.expectRevert(expectedErr);
         subgraphService.acceptIAV(allocationId, signedIAV);
@@ -73,7 +74,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
     ) public {
-        vm.assume(_isSafeServiceProvider(serviceProvider));
+        vm.assume(_isSafeOperator(serviceProvider));
         uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
         mint(serviceProvider, tokens);
         resetPrank(serviceProvider);
@@ -97,7 +98,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
     ) public {
-        vm.assume(_isSafeServiceProvider(serviceProvider));
+        vm.assume(_isSafeOperator(serviceProvider));
         uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
         mint(serviceProvider, tokens);
         resetPrank(serviceProvider);
@@ -162,7 +163,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     function _setupFuzzyServiceProvider(
         setupFuzzyServiceProviderParams calldata _params
     ) private returns (serviceProviderParams memory) {
-        vm.assume(_isSafeServiceProvider(_params.serviceProvider) && !_serviceProviders[_params.serviceProvider]);
+        vm.assume(_isSafeOperator(_params.serviceProvider) && !_serviceProviders[_params.serviceProvider]);
         _serviceProviders[_params.serviceProvider] = true;
 
         (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_params.unboundedAllocationPrivateKey);
@@ -351,10 +352,9 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.acceptIAV(allocationID, signedIAV);
     }
 
-    function _isSafeServiceProvider(address _candidate) private view returns (bool) {
+    function _isSafeOperator(address _candidate) private view returns (bool) {
         // return true;
-        return _candidate != address(0);
-        // return _candidate != address(0) && _candidate != address(proxyAdmin);
+        return _candidate != address(0) && _candidate != address(proxyAdmin) && _candidate != otherGraphProxyAdmin;
         // _candidate != users.governor &&
         // _candidate != users.deployer &&
         // _candidate != users.indexer &&
