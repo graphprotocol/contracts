@@ -14,39 +14,38 @@ import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
+    modifier withSafeOperator(address operator) {
+        vm.assume(_isSafeOperator(operator));
+        _;
+    }
+
     /*
      * TESTS
      */
 
     function test_SubgraphService_CancelIAV_Revert_WhenPaused(
+        address operator,
         address serviceProvider,
         address payer,
         bytes16 agreementId
-    ) public {
-        vm.assume(_isSafeOperator(serviceProvider));
+    ) public withSafeOperator(operator) {
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
-        // console.log(otherGraphProxyAdmin, address(proxyAdmin));
-
-        // resetPrank(otherGraphProxyAdmin);
-        // resetPrank(address(proxyAdmin));
-        // resetPrank(address(0x15c603B7eaA8eE1a272a69C4af3462F926de777F));
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
-        resetPrank(serviceProvider);
+        resetPrank(operator);
         subgraphService.cancelIAV(serviceProvider, payer, agreementId);
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
-        address serviceProvider,
+        address operator,
         IIPCollector.SignedIAV calldata signedIAV
-    ) public {
-        vm.assume(_isSafeOperator(serviceProvider));
+    ) public withSafeOperator(operator) {
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
-        resetPrank(serviceProvider);
+        resetPrank(operator);
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         subgraphService.acceptIAV(allocationId, signedIAV);
     }
@@ -55,8 +54,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address allocationId,
         address operator,
         IIPCollector.SignedIAV calldata signedIAV
-    ) public {
-        vm.assume(_isSafeOperator(operator));
+    ) public withSafeOperator(operator) {
         vm.assume(operator != signedIAV.iav.serviceProvider);
         resetPrank(operator);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -73,8 +71,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         uint256 unboundedTokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public {
-        vm.assume(_isSafeOperator(serviceProvider));
+    ) public withSafeOperator(serviceProvider) {
         uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
         mint(serviceProvider, tokens);
         resetPrank(serviceProvider);
@@ -97,8 +94,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         uint256 unboundedTokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public {
-        vm.assume(_isSafeOperator(serviceProvider));
+    ) public withSafeOperator(serviceProvider) {
         uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
         mint(serviceProvider, tokens);
         resetPrank(serviceProvider);
@@ -352,9 +348,10 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.acceptIAV(allocationID, signedIAV);
     }
 
-    function _isSafeOperator(address _candidate) private view returns (bool) {
+    function _isSafeOperator(address _candidate) private pure returns (bool) {
+        return _candidate != address(0) && _candidate != address(0xE1C5264f10fad5d1912e5Ba2446a26F5EfdB7482);
         // return true;
-        return _candidate != address(0) && _candidate != address(proxyAdmin) && _candidate != otherGraphProxyAdmin;
+        // return _candidate != address(0) && _candidate != address(proxyAdmin) && _candidate != otherGraphProxyAdmin;
         // _candidate != users.governor &&
         // _candidate != users.deployer &&
         // _candidate != users.indexer &&
