@@ -498,10 +498,10 @@ interface IDisputeManager {
     // -- Getters --
 
     /**
-     * @notice Get the verifier cut.
-     * @return Verifier cut in percentage (ppm)
+     * @notice Get the fisherman reward cut.
+     * @return Fisherman reward cut in percentage (ppm)
      */
-    function getVerifierCut() external view returns (uint32);
+    function getFishermanRewardCut() external view returns (uint32);
 
     /**
      * @notice Get the dispute period.

@@ -290,7 +290,7 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function getVerifierCut() external view override returns (uint32) {
+    function getFishermanRewardCut() external view override returns (uint32) {
         return fishermanRewardCut;
     }
 
