@@ -96,7 +96,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         //     users.indexer
         // );
         vm.expectRevert("SubgraphService: Data service mismatch");
-        vm.startPrank(params.serviceProvider);
+        vm.prank(params.serviceProvider);
         subgraphService.acceptIAV(params.allocationId, signedIAV);
     }
 
