@@ -218,9 +218,9 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         IIPCollector.SignedIAV memory signedIAV
     ) public {
         vm.assume(_fuzzyParamsA.serviceProvider != _fuzzyParamsB.serviceProvider);
+        vm.assume(_fuzzyParamsA.unboundedAllocationPrivateKey != _fuzzyParamsB.unboundedAllocationPrivateKey);
         serviceProviderParams memory paramsA = _setupFuzzyServiceProvider(_fuzzyParamsA);
         serviceProviderParams memory paramsB = _setupFuzzyServiceProvider(_fuzzyParamsB);
-        vm.assume(paramsA.allocationId != paramsB.allocationId);
         signedIAV.iav.serviceProvider = paramsA.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
         signedIAV.iav.metadata = abi.encode(
