@@ -18,6 +18,25 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
      * TESTS
      */
 
+    function test_SubgraphService_CancelIAV_Revert_WhenPaused(
+        address serviceProvider,
+        address payer,
+        bytes16 agreementId
+    ) public {
+        vm.assume(_isSafeServiceProvider(serviceProvider));
+        resetPrank(users.pauseGuardian);
+        subgraphService.pause();
+
+        // console.log(otherGraphProxyAdmin, address(proxyAdmin));
+
+        // resetPrank(otherGraphProxyAdmin);
+        // resetPrank(address(proxyAdmin));
+        // resetPrank(address(0x15c603B7eaA8eE1a272a69C4af3462F926de777F));
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        resetPrank(serviceProvider);
+        subgraphService.cancelIAV(serviceProvider, payer, agreementId);
+    }
+
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
         address serviceProvider,
@@ -264,6 +283,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         bytes32 wrongSubgraphDeploymentId,
         IIPCollector.SignedIAV memory signedIAV
     ) public {
+        vm.assume(_fuzzyParams.subgraphDeploymentId != wrongSubgraphDeploymentId);
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
@@ -332,18 +352,19 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     }
 
     function _isSafeServiceProvider(address _candidate) private view returns (bool) {
-        return
-            _candidate != address(0) &&
-            _candidate != users.governor &&
-            _candidate != users.deployer &&
-            _candidate != users.indexer &&
-            _candidate != users.operator &&
-            _candidate != users.gateway &&
-            _candidate != users.verifier &&
-            _candidate != users.delegator &&
-            _candidate != users.arbitrator &&
-            _candidate != users.fisherman &&
-            _candidate != users.rewardsDestination &&
-            _candidate != users.pauseGuardian;
+        // return true;
+        return _candidate != address(0);
+        // return _candidate != address(0) && _candidate != address(proxyAdmin);
+        // _candidate != users.governor &&
+        // _candidate != users.deployer &&
+        // _candidate != users.indexer &&
+        // _candidate != users.operator &&
+        // _candidate != users.gateway &&
+        // _candidate != users.verifier &&
+        // _candidate != users.delegator &&
+        // _candidate != users.arbitrator &&
+        // _candidate != users.fisherman &&
+        // _candidate != users.rewardsDestination &&
+        // _candidate != users.pauseGuardian;
     }
 }
