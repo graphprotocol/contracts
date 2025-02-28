@@ -432,19 +432,19 @@ contract SubgraphService is
     /**
      * @notice Getter for the accepted thawing period range for provisions
      * @dev This override ensures {ProvisionManager} uses the thawing period from the {DisputeManager}
-     * @return min The minimum thawing period which is defined by {DisputeManager-getDisputePeriod}
-     * @return max The maximum is unbounded
+     * @return The minimum thawing period which is defined by {DisputeManager-getDisputePeriod}
+     * @return The maximum is unbounded
      */
-    function _getThawingPeriodRange() internal view override returns (uint64 min, uint64 max) {
+    function _getThawingPeriodRange() internal view override returns (uint64, uint64) {
         return (_disputeManager().getDisputePeriod(), DEFAULT_MAX_THAWING_PERIOD);
     }
 
     /**
      * @notice Getter for the accepted verifier cut range for provisions
-     * @return min The minimum verifier cut which is defined by {DisputeManager-getVerifierCut}
-     * @return max The maximum is 100% in PPM
+     * @return The minimum verifier cut which is defined by {DisputeManager-getVerifierCut}
+     * @return The maximum is 100% in PPM
      */
-    function _getVerifierCutRange() internal view override returns (uint32 min, uint32 max) {
+    function _getVerifierCutRange() internal view override returns (uint32, uint32) {
         return (_disputeManager().getVerifierCut(), DEFAULT_MAX_VERIFIER_CUT);
     }
 
@@ -472,11 +472,9 @@ contract SubgraphService is
      * Emits a {QueryFeesCollected} event.
      *
      * @param _signedRav Signed RAV
-     * @return feesCollected The amount of fees collected
+     * @return The amount of fees collected
      */
-    function _collectQueryFees(
-        IGraphTallyCollector.SignedRAV memory _signedRav
-    ) private returns (uint256 feesCollected) {
+    function _collectQueryFees(IGraphTallyCollector.SignedRAV memory _signedRav) private returns (uint256) {
         address indexer = _signedRav.rav.serviceProvider;
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
