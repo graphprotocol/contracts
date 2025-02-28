@@ -49,7 +49,8 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         uint256 tokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer {
+    ) public {
+        resetPrank(users.indexer);
         tokens = bound(tokens, 1, minimumProvisionTokens - 1);
         _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
 
@@ -69,7 +70,8 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         uint256 tokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer {
+    ) public {
+        resetPrank(users.indexer);
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
         _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
         signedIAV.iav.serviceProvider = users.indexer;
@@ -82,10 +84,13 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenNotDataService(
-        uint256 tokens,
+        uint256 unboundedTokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer useAllocation(tokens) {
+    ) public {
+        resetPrank(users.indexer);
+        _withAllocation(unboundedTokens);
+
         signedIAV.iav.serviceProvider = users.indexer;
         // bytes memory expectedErr = abi.encodeWithSelector(
         //     ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
@@ -93,6 +98,21 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         // );
         vm.expectRevert("SubgraphService: Data service mismatch");
         subgraphService.acceptIAV(allocationId, signedIAV);
+    }
+
+    function _withAllocation(uint256 _unboundedTokens) private returns (uint256) {
+        uint256 tokens = bound(_unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+        bytes memory data = _createSubgraphAllocationData(
+            users.indexer,
+            subgraphDeployment,
+            allocationIDPrivateKey,
+            tokens
+        );
+        _startService(users.indexer, data);
+
+        return tokens;
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenInvalidMetadata(
