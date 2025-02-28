@@ -20,42 +20,47 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
 
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
-        address rando,
+        address serviceProvider,
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
+        vm.assume(_isSafeServiceProvider(serviceProvider));
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
-        resetPrank(rando);
+        resetPrank(serviceProvider);
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         subgraphService.acceptIAV(allocationId, signedIAV);
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenNotAuthorized(
         address allocationId,
-        address rando,
+        address serviceProvider,
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
-        resetPrank(rando);
+        vm.assume(_isSafeServiceProvider(serviceProvider));
+        resetPrank(serviceProvider);
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerNotAuthorized.selector,
             signedIAV.iav.serviceProvider,
-            rando
+            serviceProvider
         );
         vm.expectRevert(expectedErr);
         subgraphService.acceptIAV(allocationId, signedIAV);
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenInvalidProvision(
-        uint256 tokens,
+        address serviceProvider,
+        uint256 unboundedTokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
     ) public {
-        resetPrank(users.indexer);
-        tokens = bound(tokens, 1, minimumProvisionTokens - 1);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        vm.assume(_isSafeServiceProvider(serviceProvider));
+        uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
+        mint(serviceProvider, tokens);
+        resetPrank(serviceProvider);
+        _createProvision(serviceProvider, tokens, maxSlashingPercentage, disputePeriod);
 
-        signedIAV.iav.serviceProvider = users.indexer;
+        signedIAV.iav.serviceProvider = serviceProvider;
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerInvalidValue.selector,
             "tokens",
@@ -68,17 +73,20 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenIndexerNotRegistered(
-        uint256 tokens,
+        address serviceProvider,
+        uint256 unboundedTokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
     ) public {
-        resetPrank(users.indexer);
-        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
-        signedIAV.iav.serviceProvider = users.indexer;
+        vm.assume(_isSafeServiceProvider(serviceProvider));
+        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        mint(serviceProvider, tokens);
+        resetPrank(serviceProvider);
+        _createProvision(serviceProvider, tokens, maxSlashingPercentage, disputePeriod);
+        signedIAV.iav.serviceProvider = serviceProvider;
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
-            users.indexer
+            serviceProvider
         );
         vm.expectRevert(expectedErr);
         subgraphService.acceptIAV(allocationId, signedIAV);
@@ -93,7 +101,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         signedIAV.iav.serviceProvider = params.serviceProvider;
         // bytes memory expectedErr = abi.encodeWithSelector(
         //     ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
-        //     users.indexer
+        //     signedIAV.iav.serviceProvider
         // );
         vm.expectRevert("SubgraphService: Data service mismatch");
         vm.prank(params.serviceProvider);
@@ -132,7 +140,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     function _setupFuzzyServiceProvider(
         setupFuzzyServiceProviderParams calldata _params
     ) private returns (serviceProviderParams memory) {
-        vm.assume(_params.serviceProvider != address(0));
+        vm.assume(_isSafeServiceProvider(_params.serviceProvider));
         uint256 tokens = bound(_params.unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
         mint(_params.serviceProvider, tokens);
         (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_params.unboundedAllocationPrivateKey);
@@ -314,18 +322,19 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.acceptIAV(allocationID, signedIAV);
     }
 
-    // function _notInUsers(address _candidate) private view returns (bool) {
-    //     return
-    //         _candidate != users.governor &&
-    //         _candidate != users.deployer &&
-    //         _candidate != users.indexer &&
-    //         _candidate != users.operator &&
-    //         _candidate != users.gateway &&
-    //         _candidate != users.verifier &&
-    //         _candidate != users.delegator &&
-    //         _candidate != users.arbitrator &&
-    //         _candidate != users.fisherman &&
-    //         _candidate != users.rewardsDestination &&
-    //         _candidate != users.pauseGuardian;
-    // }
+    function _isSafeServiceProvider(address _candidate) private view returns (bool) {
+        return
+            _candidate != address(0) &&
+            _candidate != users.governor &&
+            _candidate != users.deployer &&
+            _candidate != users.indexer &&
+            _candidate != users.operator &&
+            _candidate != users.gateway &&
+            _candidate != users.verifier &&
+            _candidate != users.delegator &&
+            _candidate != users.arbitrator &&
+            _candidate != users.fisherman &&
+            _candidate != users.rewardsDestination &&
+            _candidate != users.pauseGuardian;
+    }
 }
