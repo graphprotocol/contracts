@@ -132,6 +132,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     function _setupFuzzyServiceProvider(
         setupFuzzyServiceProviderParams calldata _params
     ) private returns (serviceProviderParams memory) {
+        vm.assume(_params.serviceProvider != address(0));
         uint256 tokens = bound(_params.unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
         mint(_params.serviceProvider, tokens);
         (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_params.unboundedAllocationPrivateKey);
@@ -216,8 +217,10 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         setupFuzzyServiceProviderParams calldata _fuzzyParamsB,
         IIPCollector.SignedIAV memory signedIAV
     ) public {
+        vm.assume(_fuzzyParamsA.serviceProvider != _fuzzyParamsB.serviceProvider);
         serviceProviderParams memory paramsA = _setupFuzzyServiceProvider(_fuzzyParamsA);
         serviceProviderParams memory paramsB = _setupFuzzyServiceProvider(_fuzzyParamsB);
+        vm.assume(paramsA.allocationId != paramsB.allocationId);
         signedIAV.iav.serviceProvider = paramsA.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
         signedIAV.iav.metadata = abi.encode(
@@ -240,23 +243,25 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenDeploymentIdMismatch(
-        uint256 tokens,
-        bytes32 subgraphDeploymentId,
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
+        bytes32 wrongSubgraphDeploymentId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer useAllocation(tokens) {
-        signedIAV.iav.serviceProvider = users.indexer;
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
         signedIAV.iav.metadata = abi.encode(
             ISubgraphService.IndexingAgreementVoucherMetadata({
                 tokensPerSecond: 0,
                 tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: subgraphDeploymentId,
+                subgraphDeploymentId: wrongSubgraphDeploymentId,
                 protocolNetwork: "",
                 chainId: ""
             })
         );
         vm.expectRevert("SubgraphService: SubgraphDeploymentId mismatch");
-        subgraphService.acceptIAV(allocationID, signedIAV);
+        vm.prank(params.serviceProvider);
+        subgraphService.acceptIAV(params.allocationId, signedIAV);
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenAgreementAlreadyAccepted(
