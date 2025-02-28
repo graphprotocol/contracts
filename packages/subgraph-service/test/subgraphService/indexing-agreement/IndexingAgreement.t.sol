@@ -7,12 +7,13 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IIPCollector } from "@graphprotocol/horizon/contracts/interfaces/IIPCollector.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
+import { Bounder } from "@graphprotocol/horizon/test/utils/Bounder.t.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
-contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
+contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     /*
      * TESTS
      */
@@ -84,35 +85,75 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenNotDataService(
-        uint256 unboundedTokens,
-        address allocationId,
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
         IIPCollector.SignedIAV memory signedIAV
     ) public {
-        resetPrank(users.indexer);
-        _withAllocation(unboundedTokens);
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
 
-        signedIAV.iav.serviceProvider = users.indexer;
+        signedIAV.iav.serviceProvider = params.serviceProvider;
         // bytes memory expectedErr = abi.encodeWithSelector(
         //     ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
         //     users.indexer
         // );
         vm.expectRevert("SubgraphService: Data service mismatch");
-        subgraphService.acceptIAV(allocationId, signedIAV);
+        vm.startPrank(params.serviceProvider);
+        subgraphService.acceptIAV(params.allocationId, signedIAV);
     }
 
-    function _withAllocation(uint256 _unboundedTokens) private returns (uint256) {
-        uint256 tokens = bound(_unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
-        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+    struct setupFuzzyServiceProviderParams {
+        address serviceProvider;
+        uint256 unboundedTokens;
+        uint256 unboundedAllocationPrivateKey;
+        bytes32 subgraphDeploymentId;
+    }
+
+    struct serviceProviderParams {
+        address serviceProvider;
+        address allocationId;
+        bytes32 subgraphDeploymentId;
+        uint256 tokens;
+    }
+
+    function _nicerResetPrank(address _addr) private returns (address) {
+        address _originalPrankAddress = msg.sender;
+        resetPrank(_addr);
+
+        return _originalPrankAddress;
+    }
+
+    function _stopOrResetPrank(address _originalSender) private {
+        if (_originalSender == 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38) {
+            vm.stopPrank();
+        } else {
+            resetPrank(_originalSender);
+        }
+    }
+
+    function _setupFuzzyServiceProvider(
+        setupFuzzyServiceProviderParams calldata _params
+    ) private returns (serviceProviderParams memory) {
+        uint256 tokens = bound(_params.unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        mint(_params.serviceProvider, tokens);
+        (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_params.unboundedAllocationPrivateKey);
+        address originalPrank = _nicerResetPrank(_params.serviceProvider);
+        _createProvision(_params.serviceProvider, tokens, maxSlashingPercentage, disputePeriod);
+        _register(_params.serviceProvider, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
-            users.indexer,
-            subgraphDeployment,
-            allocationIDPrivateKey,
+            _params.serviceProvider,
+            _params.subgraphDeploymentId,
+            allocationKey,
             tokens
         );
-        _startService(users.indexer, data);
+        _startService(_params.serviceProvider, data);
+        _stopOrResetPrank(originalPrank);
 
-        return tokens;
+        return
+            serviceProviderParams({
+                serviceProvider: _params.serviceProvider,
+                allocationId: allocationId,
+                subgraphDeploymentId: _params.subgraphDeploymentId,
+                tokens: tokens
+            });
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenInvalidMetadata(
