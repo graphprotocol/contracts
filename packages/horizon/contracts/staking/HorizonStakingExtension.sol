@@ -31,14 +31,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     using PPMMath for uint256;
 
     /**
-     * @dev Checks that the sender is the L2GraphTokenGateway as configured on the Controller.
-     */
-    modifier onlyL2Gateway() {
-        require(msg.sender == address(_graphTokenGateway()), "ONLY_GATEWAY");
-        _;
-    }
-
-    /**
      * @dev Check if the caller is the slasher.
      */
     modifier onlySlasher() {
