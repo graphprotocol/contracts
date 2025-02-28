@@ -361,7 +361,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         ) {
             tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
         }
-        require(tokensToWithdraw > 0, "!tokens");
+        require(tokensToWithdraw > 0, HorizonStakingNothingToWithdraw());
 
         // Reset lock
         delegation.__DEPRECATED_tokensLocked = 0;
@@ -402,7 +402,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                     verifierDestination
                 )
             );
-            require(success, "Delegatecall: legacySlash failed");
+            require(success, HorizonStakingLegacySlashFailed());
             return;
         }
 
@@ -560,6 +560,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address operator
     ) external view override returns (bool) {
         return _isAuthorized(serviceProvider, verifier, operator);
+    }
+
+    /*
+     * GETTERS
+     */
+
+    /// @inheritdoc IHorizonStakingMain
+    function getStakingExtension() external view override returns (address) {
+        return STAKING_EXTENSION_ADDRESS;
     }
 
     /*

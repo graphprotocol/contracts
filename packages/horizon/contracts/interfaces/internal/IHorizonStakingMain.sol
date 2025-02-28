@@ -471,6 +471,11 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingTooManyThawRequests();
 
+    /**
+     * @notice Thrown when attempting to withdraw tokens that have not thawed (legacy undelegate).
+     */
+    error HorizonStakingNothingToWithdraw();
+
     // -- Errors: misc --
     /**
      * @notice Thrown during the transition period when attempting to withdraw tokens that are still thawing.
@@ -497,6 +502,11 @@ interface IHorizonStakingMain {
      * @param feeCut The fee cut
      */
     error HorizonStakingInvalidDelegationFeeCut(uint256 feeCut);
+
+    /**
+     * @notice Thrown when a legacy slash fails.
+     */
+    error HorizonStakingLegacySlashFailed();
 
     // -- Functions --
 
@@ -972,4 +982,10 @@ interface IHorizonStakingMain {
      * @return Whether the operator is authorized or not
      */
     function isAuthorized(address serviceProvider, address verifier, address operator) external view returns (bool);
+
+    /**
+     * @notice Get the address of the staking extension.
+     * @return The address of the staking extension
+     */
+    function getStakingExtension() external view returns (address);
 }

@@ -95,7 +95,8 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
         _setStorage_DelegationPool(users.indexer, 0, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, 0, 0);
 
-        vm.expectRevert("!tokens");
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingToWithdraw()");
+        vm.expectRevert(expectedError);
         staking.withdrawDelegated(users.indexer, address(0));
     }
 }

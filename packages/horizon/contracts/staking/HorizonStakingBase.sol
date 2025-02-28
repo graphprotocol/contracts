@@ -50,14 +50,6 @@ abstract contract HorizonStakingBase is
         SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
     }
 
-    /**
-     * @notice Receive ETH into the Staking contract: this will always revert
-     * @dev This function is only here to prevent ETH from being sent to the contract
-     */
-    receive() external payable {
-        revert("RECEIVE_ETH_NOT_ALLOWED");
-    }
-
     /// @inheritdoc IHorizonStakingBase
     /// @dev Removes deprecated fields from the return value.
     function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {
