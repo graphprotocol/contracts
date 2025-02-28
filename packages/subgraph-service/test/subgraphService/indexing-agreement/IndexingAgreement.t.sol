@@ -192,6 +192,56 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         subgraphService.acceptIAV(allocationID, signedIAV);
     }
 
+    function test_SubgraphService_AcceptIAV_Revert_WhenAgreementAlreadyAccepted(
+        uint256 tokens,
+        IIPCollector.SignedIAV memory signedIAV
+    ) public useIndexer useAllocation(tokens) {
+        signedIAV.iav.serviceProvider = users.indexer;
+        signedIAV.iav.dataService = address(subgraphService);
+        signedIAV.iav.metadata = abi.encode(
+            ISubgraphService.IndexingAgreementVoucherMetadata({
+                tokensPerSecond: 0,
+                tokensPerEntityPerSecond: 0,
+                subgraphDeploymentId: subgraphDeployment,
+                protocolNetwork: "",
+                chainId: ""
+            })
+        );
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(IIPCollector.accept.selector, signedIAV),
+            new bytes(0)
+        );
+        subgraphService.acceptIAV(allocationID, signedIAV);
+
+        vm.expectRevert("SubgraphService: Agreement already accepted");
+        subgraphService.acceptIAV(allocationID, signedIAV);
+    }
+
+    function test_SubgraphService_AcceptIAV(
+        uint256 tokens,
+        IIPCollector.SignedIAV memory signedIAV
+    ) public useIndexer useAllocation(tokens) {
+        signedIAV.iav.serviceProvider = users.indexer;
+        signedIAV.iav.dataService = address(subgraphService);
+        signedIAV.iav.metadata = abi.encode(
+            ISubgraphService.IndexingAgreementVoucherMetadata({
+                tokensPerSecond: 0,
+                tokensPerEntityPerSecond: 0,
+                subgraphDeploymentId: subgraphDeployment,
+                protocolNetwork: "",
+                chainId: ""
+            })
+        );
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(IIPCollector.accept.selector, signedIAV),
+            new bytes(0)
+        );
+        vm.expectCall(address(ipCollector), abi.encodeCall(IIPCollector.accept, (signedIAV)));
+        subgraphService.acceptIAV(allocationID, signedIAV);
+    }
+
     function _notInUsers(address _candidate) private view returns (bool) {
         return
             _candidate != users.governor &&
