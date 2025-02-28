@@ -478,6 +478,7 @@ contract SubgraphService is
         address indexer = _signedRav.rav.serviceProvider;
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
+        // collectionId is expected to be a zero padded address so it's safe to cast to uint160
         require(
             uint256(_signedRav.rav.collectionId) <= type(uint160).max,
             SubgraphServiceInvalidCollectionId(_signedRav.rav.collectionId)
