@@ -157,18 +157,19 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenInvalidMetadata(
-        uint256 tokens,
-        address allocationId,
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer useAllocation(tokens) {
-        signedIAV.iav.serviceProvider = users.indexer;
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
         // bytes memory expectedErr = abi.encodeWithSelector(
         //     ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
         //     users.indexer
         // );
         vm.expectRevert("SubgraphService: Invalid IAV metadata");
-        subgraphService.acceptIAV(allocationId, signedIAV);
+        vm.prank(params.serviceProvider);
+        subgraphService.acceptIAV(params.allocationId, signedIAV);
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenInvalidAllocation(
