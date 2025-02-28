@@ -22,8 +22,6 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         address rando,
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
-        vm.assume(_notInUsers(rando));
-
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
@@ -37,7 +35,6 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         address rando,
         IIPCollector.SignedIAV calldata signedIAV
     ) public {
-        vm.assume(_notInUsers(rando));
         resetPrank(rando);
         bytes memory expectedErr = abi.encodeWithSelector(
             ProvisionManager.ProvisionManagerNotAuthorized.selector,
@@ -242,18 +239,18 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest {
         subgraphService.acceptIAV(allocationID, signedIAV);
     }
 
-    function _notInUsers(address _candidate) private view returns (bool) {
-        return
-            _candidate != users.governor &&
-            _candidate != users.deployer &&
-            _candidate != users.indexer &&
-            _candidate != users.operator &&
-            _candidate != users.gateway &&
-            _candidate != users.verifier &&
-            _candidate != users.delegator &&
-            _candidate != users.arbitrator &&
-            _candidate != users.fisherman &&
-            _candidate != users.rewardsDestination &&
-            _candidate != users.pauseGuardian;
-    }
+    // function _notInUsers(address _candidate) private view returns (bool) {
+    //     return
+    //         _candidate != users.governor &&
+    //         _candidate != users.deployer &&
+    //         _candidate != users.indexer &&
+    //         _candidate != users.operator &&
+    //         _candidate != users.gateway &&
+    //         _candidate != users.verifier &&
+    //         _candidate != users.delegator &&
+    //         _candidate != users.arbitrator &&
+    //         _candidate != users.fisherman &&
+    //         _candidate != users.rewardsDestination &&
+    //         _candidate != users.pauseGuardian;
+    // }
 }
