@@ -939,7 +939,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             pool.thawingNonce
         );
 
-        emit TokensUndelegated(_serviceProvider, _verifier, msg.sender, tokens);
+        emit TokensUndelegated(_serviceProvider, _verifier, msg.sender, tokens, _shares);
         return thawRequestId;
     }
 
