@@ -1010,7 +1010,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             calcValues.thawRequestId
         );
         vm.expectEmit();
-        emit IHorizonStakingMain.TokensUndelegated(serviceProvider, verifier, delegator, calcValues.tokens);
+        emit IHorizonStakingMain.TokensUndelegated(serviceProvider, verifier, delegator, calcValues.tokens, shares);
         if (legacy) {
             staking.undelegate(serviceProvider, shares);
         } else if (thawRequestType == IHorizonStakingTypes.ThawRequestType.Delegation) {
