@@ -6,7 +6,6 @@ source $(pwd)/scripts/evm
 ### Setup EVM
 
 # Ensure we compiled sources
-
 yarn build
 
 ### Cleanup

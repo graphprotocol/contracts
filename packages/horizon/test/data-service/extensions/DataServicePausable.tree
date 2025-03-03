@@ -1,0 +1,35 @@
+DataServicePausableTest::pause_
+├── when the caller is a pause guardian
+│   ├── when the protocol is not paused
+│   │   └── it should pause the contract
+│   └── when the protocol is paused
+│       └── it should revert
+└── when the caller is not a pause guardian
+    └── it should revert
+
+DataServicePausableTest::unpause_
+├── when the caller is a pause guardian
+│   ├── when the protocol is paused
+│   │   └── it should unpause the contract
+│   └── when the protocol is not paused
+│       └── it should revert
+└── when the caller is not a pause guardian
+    └── it should revert
+
+DataServicePausableTest::setPauseGuardian_
+├── when setting a pause guardian
+│   └── it should emit an event
+└── when removing a pause guardian
+    └── it should emit an event
+
+DataServicePausableTest::pausedProtectedFn_
+├── when the protocol is paused
+│   └── it should revert
+└── when the protocol is not paused
+    └── it should emit an event
+
+DataServicePausableTest::unpausedProtectedFn_
+├── when the protocol is paused
+│   └── it should emit an event
+└── when the protocol is not paused
+    └── it should revert

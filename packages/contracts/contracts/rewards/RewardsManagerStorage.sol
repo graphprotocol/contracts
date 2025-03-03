@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 import "./IRewardsManager.sol";
 import "../governance/Managed.sol";
+import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 
 contract RewardsManagerV1Storage is Managed {
     // -- State --
@@ -35,4 +36,9 @@ contract RewardsManagerV3Storage is RewardsManagerV2Storage {
 contract RewardsManagerV4Storage is RewardsManagerV3Storage {
     // GRT issued for indexer rewards per block
     uint256 public issuancePerBlock;
+}
+
+contract RewardsManagerV5Storage is RewardsManagerV4Storage {
+    // Address of the subgraph service
+    IRewardsIssuer public subgraphService;
 }

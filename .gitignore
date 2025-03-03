@@ -21,6 +21,8 @@ cached/
 # Build artifacts
 dist/
 build/
+typechain/
+typechain-types/
 deployments/hardhat/
 
 # Ignore solc bin output
@@ -32,8 +34,10 @@ bin/
 .vscode
 
 # Coverage and other reports
+coverage/
 reports/
 coverage.json
+lcov.info
 
 # Local test files
 addresses-local.json
@@ -45,8 +49,20 @@ addresses-fork.json
 # Keys
 .keystore
 
+# Forge artifacts
+cache_forge
+
 # Graph client
 .graphclient
 
 tx-builder-*.json
 !tx-builder-template.json
+
+# Hardhat Ignition
+**/chain-31337/
+**/chain-1377/
+**/horizon-localhost/
+**/horizon-hardhat/
+**/subgraph-service-localhost/
+**/subgraph-service-hardhat/
+!**/ignition/**/artifacts/

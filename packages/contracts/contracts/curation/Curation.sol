@@ -257,7 +257,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
 
     /**
      * @notice Get the amount of token reserves in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of token reserves in the curation pool
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view override returns (uint256) {
@@ -286,7 +286,7 @@ contract Curation is CurationV2Storage, GraphUpgradeable {
 
     /**
      * @notice Get the amount of signal in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal minted for the subgraph deployment
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID) public view override returns (uint256) {

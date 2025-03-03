@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 interface IRewardsManager {
     /**
@@ -18,6 +18,8 @@ interface IRewardsManager {
     function setIssuancePerBlock(uint256 _issuancePerBlock) external;
 
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external;
+
+    function setSubgraphService(address _subgraphService) external;
 
     // -- Denylist --
 
@@ -37,7 +39,9 @@ interface IRewardsManager {
 
     function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID) external view returns (uint256, uint256);
 
-    function getRewards(address _allocationID) external view returns (uint256);
+    function getRewards(address _rewardsIssuer, address _allocationID) external view returns (uint256);
+
+    function calcRewards(uint256 _tokens, uint256 _accRewardsPerAllocatedToken) external pure returns (uint256);
 
     // -- Updates --
 

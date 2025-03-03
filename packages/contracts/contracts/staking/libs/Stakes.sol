@@ -85,7 +85,7 @@ library Stakes {
     /**
      * @dev Unlock tokens.
      * @param stake Stake data
-     * @param _tokens Amount of tokens to unkock
+     * @param _tokens Amount of tokens to unlock
      */
     function unlockTokens(Stakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensLocked = stake.tokensLocked.sub(_tokens);

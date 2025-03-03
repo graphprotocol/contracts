@@ -1,0 +1,11 @@
+GraphDirectoryTest
+├── when the contract is deployed with a valid controller
+│   └── it should emit an initialization event
+├── when the contract is deployed with an invalid controller
+│   └── it should revert
+├── when the contract is deployed with the zero address as the  invalid controller
+│   └── it should revert
+├── when the contract getters are called
+│   └── it should return the contract address
+└── when an invalid contract getter is called
+    └── it should revert

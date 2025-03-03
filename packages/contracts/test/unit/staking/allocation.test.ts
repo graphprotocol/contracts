@@ -895,7 +895,7 @@ describe('Staking:Allocation', () => {
               poi,
               false,
             )
-          await expect(tx).not.to.emit(rewardsManager, 'RewardsAssigned')
+          await expect(tx).not.to.emit(rewardsManager, 'HorizonRewardsAssigned')
         })
 
         it('reject close if not the owner of allocation', async function () {
