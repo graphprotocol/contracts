@@ -16,19 +16,23 @@ pragma solidity 0.8.27;
  * A contract using this library must store:
  * - a LinkedList.List to keep track of the list metadata
  * - a mapping from bytes32 to the item data
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library LinkedList {
     using LinkedList for List;
 
-    /// @notice Represents a linked list
+    /**
+     * @notice Represents a linked list
+     * @param head The head of the list
+     * @param tail The tail of the list
+     * @param nonce A nonce, which can optionally be used to generate unique ids
+     * @param count The number of items in the list
+     */
     struct List {
-        // The head of the list
         bytes32 head;
-        // The tail of the list
         bytes32 tail;
-        // A nonce, which can optionally be used to generate unique ids
         uint256 nonce;
-        // The number of items in the list
         uint256 count;
     }
 
@@ -85,6 +89,7 @@ library LinkedList {
      * the id of the current item and return the id of the next item.
      * @param deleteItem A function to delete an item. This should delete the item from
      * the contract storage. It takes the id of the item to delete.
+     * @return The id of the head of the list.
      */
     function removeHead(
         List storage self,
@@ -115,6 +120,8 @@ library LinkedList {
      * @param processInitAcc The initial accumulator data
      * @param iterations The maximum number of iterations to perform. If 0, the traversal will continue
      * until the end of the list.
+     * @return The number of items processed
+     * @return The final accumulator data.
      */
     function traverse(
         List storage self,

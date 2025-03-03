@@ -110,38 +110,28 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * STAKING
      */
 
-    /**
-     * @notice See {IHorizonStakingMain-stake}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function stake(uint256 tokens) external override notPaused {
         _stakeTo(msg.sender, tokens);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-stakeTo}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function stakeTo(address serviceProvider, uint256 tokens) external override notPaused {
         _stakeTo(serviceProvider, tokens);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-stakeToProvision}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function stakeToProvision(address serviceProvider, address verifier, uint256 tokens) external override notPaused {
         _stakeTo(serviceProvider, tokens);
         _addToProvision(serviceProvider, verifier, tokens);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-unstake}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function unstake(uint256 tokens) external override notPaused {
         _unstake(tokens);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-withdraw}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function withdraw() external override notPaused {
         _withdraw(msg.sender);
     }
@@ -150,9 +140,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * PROVISIONS
      */
 
-    /**
-     * @notice See {IHorizonStakingMain-provision}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function provision(
         address serviceProvider,
         address verifier,
@@ -163,9 +151,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-addToProvision}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function addToProvision(
         address serviceProvider,
         address verifier,
@@ -174,9 +160,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _addToProvision(serviceProvider, verifier, tokens);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-thaw}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function thaw(
         address serviceProvider,
         address verifier,
@@ -185,9 +169,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         return _thaw(serviceProvider, verifier, tokens);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-deprovision}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function deprovision(
         address serviceProvider,
         address verifier,
@@ -196,9 +178,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _deprovision(serviceProvider, verifier, nThawRequests);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-reprovision}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function reprovision(
         address serviceProvider,
         address oldVerifier,
@@ -215,9 +195,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _addToProvision(serviceProvider, newVerifier, tokensThawed);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-setProvisionParameters}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function setProvisionParameters(
         address serviceProvider,
         address verifier,
@@ -241,9 +219,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-acceptProvisionParameters}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function acceptProvisionParameters(address serviceProvider) external override notPaused {
         address verifier = msg.sender;
 
@@ -262,9 +238,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * DELEGATION
      */
 
-    /**
-     * @notice See {IHorizonStakingMain-delegate}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function delegate(
         address serviceProvider,
         address verifier,
@@ -276,9 +250,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _delegate(serviceProvider, verifier, tokens, minSharesOut);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-addToDelegationPool}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function addToDelegationPool(
         address serviceProvider,
         address verifier,
@@ -299,9 +271,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit TokensToDelegationPoolAdded(serviceProvider, verifier, tokens);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-undelegate}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function undelegate(
         address serviceProvider,
         address verifier,
@@ -310,9 +280,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         return _undelegate(ThawRequestType.Delegation, serviceProvider, verifier, shares, msg.sender);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-withdrawDelegated}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function withdrawDelegated(
         address serviceProvider,
         address verifier,
@@ -329,9 +297,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-redelegate}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function redelegate(
         address oldServiceProvider,
         address oldVerifier,
@@ -353,9 +319,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         );
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-setDelegationFeeCut}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function setDelegationFeeCut(
         address serviceProvider,
         address verifier,
@@ -367,28 +331,22 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         emit DelegationFeeCutSet(serviceProvider, verifier, paymentType, feeCut);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-delegate}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function delegate(address serviceProvider, uint256 tokens) external override notPaused {
         require(tokens != 0, HorizonStakingInvalidZeroTokens());
         _graphToken().pullTokens(msg.sender, tokens);
         _delegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, tokens, 0);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-undelegate}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function undelegate(address serviceProvider, uint256 shares) external override notPaused {
         _undelegate(ThawRequestType.Delegation, serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-withdrawDelegated}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function withdrawDelegated(
         address serviceProvider,
-        address // newServiceProvider, deprecated
+        address // deprecated - kept for backwards compatibility
     ) external override notPaused returns (uint256) {
         // Get the delegation pool of the indexer
         address delegator = msg.sender;
@@ -403,7 +361,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         ) {
             tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
         }
-        require(tokensToWithdraw > 0, "!tokens");
+        require(tokensToWithdraw > 0, HorizonStakingNothingToWithdraw());
 
         // Reset lock
         delegation.__DEPRECATED_tokensLocked = 0;
@@ -423,16 +381,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * SLASHING
      */
 
-    /**
-     * @notice See {IHorizonStakingMain-slash}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function slash(
         address serviceProvider,
         uint256 tokens,
         uint256 tokensVerifier,
         address verifierDestination
     ) external override notPaused {
-        // TODO remove after the transition period
+        // TRANSITION PERIOD: remove after the transition period
         // Check if sender is authorized to slash on the deprecated list
         if (__DEPRECATED_slashers[msg.sender]) {
             // Forward call to staking extension
@@ -446,7 +402,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                     verifierDestination
                 )
             );
-            require(success, "Delegatecall: legacySlash failed");
+            require(success, HorizonStakingLegacySlashFailed());
             return;
         }
 
@@ -542,9 +498,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * LOCKED VERIFIERS
      */
 
-    /**
-     * @notice See {IHorizonStakingMain-provisionLocked}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function provisionLocked(
         address serviceProvider,
         address verifier,
@@ -556,9 +510,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _createProvision(serviceProvider, tokens, verifier, maxVerifierCut, thawingPeriod);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-setOperatorLocked}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function setOperatorLocked(address verifier, address operator, bool allowed) external override notPaused {
         require(_allowedLockedVerifiers[verifier], HorizonStakingVerifierNotAllowed(verifier));
         _setOperator(verifier, operator, allowed);
@@ -568,33 +520,25 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * GOVERNANCE
      */
 
-    /**
-     * @notice See {IHorizonStakingMain-setAllowedLockedVerifier}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function setAllowedLockedVerifier(address verifier, bool allowed) external override onlyGovernor {
         _allowedLockedVerifiers[verifier] = allowed;
         emit AllowedLockedVerifierSet(verifier, allowed);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-setDelegationSlashingEnabled}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function setDelegationSlashingEnabled() external override onlyGovernor {
         _delegationSlashingEnabled = true;
         emit DelegationSlashingEnabled();
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-clearThawingPeriod}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function clearThawingPeriod() external override onlyGovernor {
         __DEPRECATED_thawingPeriod = 0;
         emit ThawingPeriodCleared();
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-setMaxThawingPeriod}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function setMaxThawingPeriod(uint64 maxThawingPeriod) external override onlyGovernor {
         _maxThawingPeriod = maxThawingPeriod;
         emit MaxThawingPeriodSet(_maxThawingPeriod);
@@ -604,16 +548,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * OPERATOR
      */
 
-    /**
-     * @notice See {IHorizonStakingMain-setOperator}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function setOperator(address verifier, address operator, bool allowed) external override notPaused {
         _setOperator(verifier, operator, allowed);
     }
 
-    /**
-     * @notice See {IHorizonStakingMain-isAuthorized}.
-     */
+    /// @inheritdoc IHorizonStakingMain
     function isAuthorized(
         address serviceProvider,
         address verifier,
@@ -623,11 +563,23 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /*
+     * GETTERS
+     */
+
+    /// @inheritdoc IHorizonStakingMain
+    function getStakingExtension() external view override returns (address) {
+        return STAKING_EXTENSION_ADDRESS;
+    }
+
+    /*
      * PRIVATE FUNCTIONS
      */
 
     /**
-     * @notice See {IHorizonStakingMain-stakeTo}.
+     * @notice Deposit tokens on the service provider stake, on behalf of the service provider.
+     * @dev Pulls tokens from the caller.
+     * @param _serviceProvider Address of the service provider
+     * @param _tokens Amount of tokens to stake
      */
     function _stakeTo(address _serviceProvider, uint256 _tokens) private {
         require(_tokens != 0, HorizonStakingInvalidZeroTokens());
@@ -640,7 +592,14 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-unstake}.
+     * @notice Move idle stake back to the owner's account.
+     * Stake is removed from the protocol:
+     * - During the transition period it's locked for a period of time before it can be withdrawn
+     *   by calling {withdraw}.
+     * - After the transition period it's immediately withdrawn.
+     * Note that after the transition period if there are tokens still locked they will have to be
+     * withdrawn by calling {withdraw}.
+     * @param _tokens Amount of tokens to unstake
      */
     function _unstake(uint256 _tokens) private {
         address serviceProvider = msg.sender;
@@ -665,7 +624,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             if (sp.__DEPRECATED_tokensLocked != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
                 _withdraw(serviceProvider);
             }
-            // TODO remove after the transition period
+            // TRANSITION PERIOD: remove after the transition period
             // Take into account period averaging for multiple unstake requests
             if (sp.__DEPRECATED_tokensLocked > 0) {
                 lockingPeriod = MathUtils.weightedAverageRoundingUp(
@@ -684,7 +643,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-withdraw}.
+     * @notice Withdraw service provider tokens once the thawing period (initiated by {unstake}) has passed.
+     * All thawed tokens are withdrawn.
+     * @dev TRANSITION PERIOD: This is only needed during the transition period while we still have
+     * a global lock. After that, unstake() will automatically withdraw.
      * @param _serviceProvider Address of service provider to withdraw funds from
      */
     function _withdraw(address _serviceProvider) private {
@@ -710,7 +672,18 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-provision}.
+     * @notice Provision stake to a verifier. The tokens will be locked with a thawing period
+     * and will be slashable by the verifier. This is the main mechanism to provision stake to a data
+     * service, where the data service is the verifier.
+     * This function can be called by the service provider or by an operator authorized by the provider
+     * for this specific verifier.
+     * @dev TRANSITION PERIOD: During the transition period, only the subgraph data service can be used as a verifier. This
+     * prevents an escape hatch for legacy allocation stake.
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
+     * @param _tokens The amount of tokens that will be locked and slashable
+     * @param _maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
+     * @param _thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
      */
     function _createProvision(
         address _serviceProvider,
@@ -720,7 +693,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint64 _thawingPeriod
     ) private {
         require(_tokens > 0, HorizonStakingInvalidZeroTokens());
-        // TODO: Remove this after the transition period - it prevents an early escape hatch for legacy allocations
+        // TRANSITION PERIOD: Remove this after the transition period - it prevents an early escape hatch for legacy allocations
         require(
             _verifier == SUBGRAPH_DATA_SERVICE_ADDRESS || __DEPRECATED_thawingPeriod == 0,
             HorizonStakingInvalidVerifier(_verifier)
@@ -753,7 +726,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-addToProvision}.
+     * @notice Adds tokens from the service provider's idle stake to a provision
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address
+     * @param _tokens The amount of tokens to add to the provision
      */
     function _addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) private {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
@@ -770,10 +746,23 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-thaw}.
+     * @notice Start thawing tokens to remove them from a provision.
+     * This function can be called by the service provider or by an operator authorized by the provider
+     * for this specific verifier.
+     *
+     * Note that removing tokens from a provision is a two step process:
+     * - First the tokens are thawed using this function.
+     * - Then after the thawing period, the tokens are removed from the provision using {deprovision}
+     *   or {reprovision}.
+     *
      * @dev We use a thawing pool to keep track of tokens thawing for multiple thaw requests.
      * If due to slashing the thawing pool loses all of its tokens, the pool is reset and all pending thaw
      * requests are invalidated.
+     *
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address for which the tokens are provisioned
+     * @param _tokens The amount of tokens to thaw
+     * @return The ID of the thaw request
      */
     function _thaw(address _serviceProvider, address _verifier, uint256 _tokens) private returns (bytes32) {
         require(_tokens != 0, HorizonStakingInvalidZeroTokens());
@@ -807,13 +796,19 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-deprovision}.
+     * @notice Remove tokens from a provision and move them back to the service provider's idle stake.
+     * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
+     * requests in the event that fulfilling all of them results in a gas limit error.
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address
+     * @param _nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
+     * @return The amount of tokens that were removed from the provision
      */
     function _deprovision(
         address _serviceProvider,
         address _verifier,
         uint256 _nThawRequests
-    ) private returns (uint256 tokensThawed) {
+    ) private returns (uint256) {
         Provision storage prov = _provisions[_serviceProvider][_verifier];
 
         uint256 tokensThawed_ = 0;
@@ -842,9 +837,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-delegate}.
+     * @notice Delegate tokens to a provision.
      * @dev Note that this function does not pull the delegated tokens from the caller. It expects that to
      * have been done before calling this function.
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address
+     * @param _tokens The amount of tokens to delegate
+     * @param _minSharesOut The minimum amount of shares to accept, slippage protection.
      */
     function _delegate(address _serviceProvider, address _verifier, uint256 _tokens, uint256 _minSharesOut) private {
         // Enforces a minimum delegation amount to prevent share manipulation attacks.
@@ -882,15 +881,24 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-undelegate}.
+     * @notice Undelegate tokens from a provision and start thawing them.
+     * Note that undelegating tokens from a provision is a two step process:
+     * - First the tokens are thawed using this function.
+     * - Then after the thawing period, the tokens are removed from the provision using {withdrawDelegated}.
      * @dev To allow delegation to be slashable even while thawing without breaking accounting
      * the delegation pool shares are burned and replaced with thawing pool shares.
      * @dev Note that due to slashing the delegation pool can enter an invalid state if all it's tokens are slashed.
      * An invalid pool can only be recovered by adding back tokens into the pool with {IHorizonStakingMain-addToDelegationPool}.
      * Any time the delegation pool is invalidated, the thawing pool is also reset and any pending undelegate requests get
      * invalidated.
-     * Note that delegation that is caught thawing when the pool is invalidated will be completely lost! However delegation shares
+     * @dev Note that delegation that is caught thawing when the pool is invalidated will be completely lost! However delegation shares
      * that were not thawing will be preserved.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address
+     * @param _shares The amount of shares to undelegate
+     * @param _beneficiary The beneficiary address
+     * @return The ID of the thaw request
      */
     function _undelegate(
         ThawRequestType _requestType,
@@ -944,7 +952,18 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-withdrawDelegated}.
+     * @notice Withdraw undelegated tokens from a provision after thawing.
+     * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
+     * requests in the event that fulfilling all of them results in a gas limit error.
+     * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
+     * the thaw requests with an amount equal to zero.
+     * @param _requestType The type of thaw request (Provision or Delegation).
+     * @param _serviceProvider The service provider address
+     * @param _verifier The verifier address
+     * @param _newServiceProvider The new service provider address
+     * @param _newVerifier The new verifier address
+     * @param _minSharesForNewProvider The minimum number of shares for the new service provider
+     * @param _nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
     function _withdrawDelegated(
         ThawRequestType _requestType,
@@ -1000,7 +1019,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * Allows creating thaw requests up to a maximum of `MAX_THAW_REQUESTS` per owner.
      * Thaw requests are stored in a linked list per owner (and service provider, verifier) to allow for efficient
      * processing.
-     * @dev Emits a {ThawRequestCreated} event.
+     * @param _requestType The type of thaw request.
      * @param _serviceProvider The address of the service provider
      * @param _verifier The address of the verifier
      * @param _owner The address of the owner of the thaw request
@@ -1051,7 +1070,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /**
      * @notice Traverses a thaw request list and fulfills expired thaw requests.
-     * @dev Emits a {ThawRequestsFulfilled} event and a {ThawRequestFulfilled} event for each thaw request fulfilled.
      * @param _params The parameters for fulfilling thaw requests
      * @return The amount of thawed tokens
      * @return The amount of tokens still thawing
@@ -1127,9 +1145,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice Fulfills a thaw request.
      * @dev This function is used as a callback in the thaw requests linked list traversal.
-     *
-     * Emits a {ThawRequestFulfilled} event.
-     *
      * @param _thawRequestId The ID of the current thaw request
      * @param _acc The accumulator data for the thaw requests being fulfilled
      * @return Whether the thaw request is still thawing, indicating that the traversal should continue or stop.
@@ -1192,9 +1207,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-setOperator}.
+     * @notice Authorize or unauthorize an address to be an operator for the caller on a data service.
      * @dev Note that this function handles the special case where the verifier is the subgraph data service,
      * where the operator settings are stored in the legacy mapping.
+     * @param _verifier The verifier / data service on which they'll be allowed to operate
+     * @param _operator Address to authorize or unauthorize
+     * @param _allowed Whether the operator is authorized or not
      */
     function _setOperator(address _verifier, address _operator, bool _allowed) private {
         require(_operator != msg.sender, HorizonStakingCallerIsServiceProvider());
@@ -1207,9 +1225,13 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @notice See {IHorizonStakingMain-isAuthorized}.
+     * @notice Check if an operator is authorized for the caller on a specific verifier / data service.
      * @dev Note that this function handles the special case where the verifier is the subgraph data service,
      * where the operator settings are stored in the legacy mapping.
+     * @param _serviceProvider The service provider on behalf of whom they're claiming to act
+     * @param _verifier The verifier / data service on which they're claiming to act
+     * @param _operator The address to check for auth
+     * @return Whether the operator is authorized or not
      */
     function _isAuthorized(address _serviceProvider, address _verifier, address _operator) private view returns (bool) {
         if (_operator == _serviceProvider) {

@@ -21,6 +21,8 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * @dev Implementation of the {IHorizonStakingBase} interface.
  * @dev It's meant to be inherited by the {HorizonStaking} and {HorizonStakingExtension}
  * contracts so some internal functions are also included here.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract HorizonStakingBase is
     Multicall,
@@ -48,18 +50,8 @@ abstract contract HorizonStakingBase is
         SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;
     }
 
-    /**
-     * @notice Receive ETH into the Staking contract: this will always revert
-     * @dev This function is only here to prevent ETH from being sent to the contract
-     */
-    receive() external payable {
-        revert("RECEIVE_ETH_NOT_ALLOWED");
-    }
-
-    /**
-     * @notice See {IHorizonStakingBase-getServiceProvider}.
-     * @dev Removes deprecated fields from the return value.
-     */
+    /// @inheritdoc IHorizonStakingBase
+    /// @dev Removes deprecated fields from the return value.
     function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {
         ServiceProvider memory sp;
         ServiceProviderInternal storage spInternal = _serviceProviders[serviceProvider];
@@ -68,24 +60,18 @@ abstract contract HorizonStakingBase is
         return sp;
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getStake}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getStake(address serviceProvider) external view override returns (uint256) {
         return _serviceProviders[serviceProvider].tokensStaked;
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getIdleStake}.
-     */
-    function getIdleStake(address serviceProvider) external view override returns (uint256 tokens) {
+    /// @inheritdoc IHorizonStakingBase
+    function getIdleStake(address serviceProvider) external view override returns (uint256) {
         return _getIdleStake(serviceProvider);
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getDelegationPool}.
-     * @dev Removes deprecated fields from the return value.
-     */
+    /// @inheritdoc IHorizonStakingBase
+    /// @dev Removes deprecated fields from the return value.
     function getDelegationPool(
         address serviceProvider,
         address verifier
@@ -100,10 +86,8 @@ abstract contract HorizonStakingBase is
         return pool;
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getDelegation}.
-     * @dev Removes deprecated fields from the return value.
-     */
+    /// @inheritdoc IHorizonStakingBase
+    /// @dev Removes deprecated fields from the return value.
     function getDelegation(
         address serviceProvider,
         address verifier,
@@ -115,9 +99,7 @@ abstract contract HorizonStakingBase is
         return delegation;
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getDelegationFeeCut}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getDelegationFeeCut(
         address serviceProvider,
         address verifier,
@@ -126,16 +108,12 @@ abstract contract HorizonStakingBase is
         return _delegationFeeCut[serviceProvider][verifier][paymentType];
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getProvision}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getProvision(address serviceProvider, address verifier) external view override returns (Provision memory) {
         return _provisions[serviceProvider][verifier];
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getTokensAvailable}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getTokensAvailable(
         address serviceProvider,
         address verifier,
@@ -150,9 +128,7 @@ abstract contract HorizonStakingBase is
         return tokensAvailableProvider + tokensDelegatedCapacity;
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getProviderTokensAvailable}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getProviderTokensAvailable(
         address serviceProvider,
         address verifier
@@ -160,9 +136,7 @@ abstract contract HorizonStakingBase is
         return _getProviderTokensAvailable(serviceProvider, verifier);
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getDelegatedTokensAvailable}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getDelegatedTokensAvailable(
         address serviceProvider,
         address verifier
@@ -170,9 +144,7 @@ abstract contract HorizonStakingBase is
         return _getDelegatedTokensAvailable(serviceProvider, verifier);
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getThawRequest}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getThawRequest(
         ThawRequestType requestType,
         bytes32 thawRequestId
@@ -180,9 +152,7 @@ abstract contract HorizonStakingBase is
         return _getThawRequest(requestType, thawRequestId);
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getThawRequestList}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getThawRequestList(
         ThawRequestType requestType,
         address serviceProvider,
@@ -192,9 +162,7 @@ abstract contract HorizonStakingBase is
         return _getThawRequestList(requestType, serviceProvider, verifier, owner);
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getThawedTokens}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getThawedTokens(
         ThawRequestType requestType,
         address serviceProvider,
@@ -227,30 +195,24 @@ abstract contract HorizonStakingBase is
         return thawedTokens;
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-getMaxThawingPeriod}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function getMaxThawingPeriod() external view override returns (uint64) {
         return _maxThawingPeriod;
     }
 
-    /**
-     * @notice see {IHorizonStakingBase-isAllowedLockedVerifier}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function isAllowedLockedVerifier(address verifier) external view returns (bool) {
         return _allowedLockedVerifiers[verifier];
     }
 
-    /**
-     * @notice See {IHorizonStakingBase-isDelegationSlashingEnabled}.
-     */
+    /// @inheritdoc IHorizonStakingBase
     function isDelegationSlashingEnabled() external view returns (bool) {
         return _delegationSlashingEnabled;
     }
 
     /**
      * @notice Deposit tokens into the service provider stake.
-     * @dev TODO: After transition period move to IHorizonStakingMain. Temporarily it
+     * @dev TRANSITION PERIOD: After transition period move to IHorizonStakingMain. Temporarily it
      * needs to be here since it's used by both {HorizonStaking} and {HorizonStakingExtension}.
      *
      * Emits a {HorizonStakeDeposited} event.
@@ -263,9 +225,12 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice See {IHorizonStakingBase-getIdleStake}.
+     * @notice Gets the service provider's idle stake which is the stake that is not being
+     * used for any provision. Note that this only includes service provider's self stake.
      * @dev Note that the calculation considers tokens that were locked in the legacy staking contract.
-     * TODO: update the calculation after the transition period.
+     * @dev TRANSITION PERIOD: update the calculation after the transition period.
+     * @param _serviceProvider The address of the service provider.
+     * @return The amount of tokens that are idle.
      */
     function _getIdleStake(address _serviceProvider) internal view returns (uint256) {
         uint256 tokensUsed = _serviceProviders[_serviceProvider].tokensProvisioned +
@@ -276,9 +241,12 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice See {IHorizonStakingBase-getDelegationPool}.
+     * @notice Gets the details of delegation pool.
      * @dev Note that this function handles the special case where the verifier is the subgraph data service,
      * where the pools are stored in the legacy mapping.
+     * @param _serviceProvider The address of the service provider.
+     * @param _verifier The address of the verifier.
+     * @return The delegation pool details.
      */
     function _getDelegationPool(
         address _serviceProvider,
@@ -292,7 +260,11 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice See {IHorizonStakingBase-getProviderTokensAvailable}.
+     * @notice Gets the service provider's tokens available in a provision.
+     * @dev Calculated as the tokens available minus the tokens thawing.
+     * @param _serviceProvider The address of the service provider.
+     * @param _verifier The address of the verifier.
+     * @return The amount of tokens available.
      */
     function _getProviderTokensAvailable(address _serviceProvider, address _verifier) internal view returns (uint256) {
         return _provisions[_serviceProvider][_verifier].tokens - _provisions[_serviceProvider][_verifier].tokensThawing;
@@ -338,7 +310,6 @@ abstract contract HorizonStakingBase is
     /**
      * @notice Retrieves a specific thaw request for the given request type.
      * @dev Uses the `ThawRequestType` to determine which mapping to access.
-     * Reverts if the request type is unknown.
      * @param _requestType The type of thaw request (Provision or Delegation).
      * @param _thawRequestId The unique ID of the thaw request.
      * @return The thaw request data for the specified request type and ID.
@@ -368,7 +339,11 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice See {IHorizonStakingBase-getDelegatedTokensAvailable}.
+     * @notice Gets the delegator's tokens available in a provision.
+     * @dev Calculated as the tokens available minus the tokens thawing.
+     * @param _serviceProvider The address of the service provider.
+     * @param _verifier The address of the verifier.
+     * @return The amount of tokens available.
      */
     function _getDelegatedTokensAvailable(address _serviceProvider, address _verifier) private view returns (uint256) {
         DelegationPoolInternal storage poolInternal = _getDelegationPool(_serviceProvider, _verifier);

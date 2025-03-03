@@ -41,7 +41,14 @@ contract DisputeManagerConstructorTest is DisputeManagerTest {
                 users.governor,
                 abi.encodeCall(
                     DisputeManager.initialize,
-                    (users.deployer, arbitrator, disputePeriod, disputeDeposit, fishermanRewardPercentage, maxSlashingPercentage)
+                    (
+                        users.deployer,
+                        arbitrator,
+                        disputePeriod,
+                        disputeDeposit,
+                        fishermanRewardPercentage,
+                        maxSlashingPercentage
+                    )
                 )
             );
     }

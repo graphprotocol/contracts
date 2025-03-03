@@ -5,6 +5,12 @@ pragma solidity 0.8.27;
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
+/**
+ * @title DisputeManagerStorage
+ * @notice This contract holds all the storage variables for the Dispute Manager contract.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
+ */
 abstract contract DisputeManagerV1Storage {
     /// @notice The Subgraph Service contract address
     ISubgraphService public subgraphService;

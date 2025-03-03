@@ -12,11 +12,13 @@ import { LinkedList } from "../../libraries/LinkedList.sol";
  * @notice Provides getters for {HorizonStaking} and {HorizonStakingExtension} storage variables.
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStakingBase {
     /**
      * @notice Emitted when a service provider stakes tokens.
-     * @dev TODO: After transition period move to IHorizonStakingMain. Temporarily it
+     * @dev TRANSITION PERIOD: After transition period move to IHorizonStakingMain. Temporarily it
      * needs to be here since it's emitted by {_stake} which is used by both {HorizonStaking}
      * and {HorizonStakingExtension}.
      * @param serviceProvider The address of the service provider.
@@ -32,6 +34,7 @@ interface IHorizonStakingBase {
     /**
      * @notice Gets the details of a service provider.
      * @param serviceProvider The address of the service provider.
+     * @return The service provider details.
      */
     function getServiceProvider(
         address serviceProvider
@@ -182,6 +185,7 @@ interface IHorizonStakingBase {
 
     /**
      * @notice Gets the maximum allowed thawing period for a provision.
+     * @return The maximum allowed thawing period in seconds.
      */
     function getMaxThawingPeriod() external view returns (uint64);
 
@@ -194,6 +198,7 @@ interface IHorizonStakingBase {
 
     /**
      * @notice Return true if delegation slashing is enabled, false otherwise.
+     * @return True if delegation slashing is enabled, false otherwise
      */
     function isDelegationSlashingEnabled() external view returns (bool);
 }

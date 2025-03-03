@@ -56,7 +56,9 @@ abstract contract GraphDirectory {
 
     // -- Legacy Graph contracts --
     // These are required for backwards compatibility on HorizonStakingExtension
-    // TODO: remove these once HorizonStakingExtension is removed
+    // TRANSITION PERIOD: remove these once HorizonStakingExtension is removed
+
+    /// @notice The Curation contract address
     ICuration private immutable GRAPH_CURATION;
 
     /**
@@ -131,6 +133,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Graph Token contract
+     * @return The Graph Token contract
      */
     function _graphToken() internal view returns (IGraphToken) {
         return GRAPH_TOKEN;
@@ -138,6 +141,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Horizon Staking contract
+     * @return The Horizon Staking contract
      */
     function _graphStaking() internal view returns (IHorizonStaking) {
         return GRAPH_STAKING;
@@ -145,6 +149,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Graph Payments contract
+     * @return The Graph Payments contract
      */
     function _graphPayments() internal view returns (IGraphPayments) {
         return GRAPH_PAYMENTS;
@@ -152,6 +157,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Payments Escrow contract
+     * @return The Payments Escrow contract
      */
     function _graphPaymentsEscrow() internal view returns (IPaymentsEscrow) {
         return GRAPH_PAYMENTS_ESCROW;
@@ -159,6 +165,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Graph Controller contract
+     * @return The Graph Controller contract
      */
     function _graphController() internal view returns (IController) {
         return GRAPH_CONTROLLER;
@@ -166,6 +173,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Epoch Manager contract
+     * @return The Epoch Manager contract
      */
     function _graphEpochManager() internal view returns (IEpochManager) {
         return GRAPH_EPOCH_MANAGER;
@@ -173,6 +181,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Rewards Manager contract
+     * @return The Rewards Manager contract address
      */
     function _graphRewardsManager() internal view returns (IRewardsManager) {
         return GRAPH_REWARDS_MANAGER;
@@ -180,6 +189,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Graph Token Gateway contract
+     * @return The Graph Token Gateway contract
      */
     function _graphTokenGateway() internal view returns (ITokenGateway) {
         return GRAPH_TOKEN_GATEWAY;
@@ -187,6 +197,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Graph Proxy Admin contract
+     * @return The Graph Proxy Admin contract
      */
     function _graphProxyAdmin() internal view returns (IGraphProxyAdmin) {
         return GRAPH_PROXY_ADMIN;
@@ -194,6 +205,7 @@ abstract contract GraphDirectory {
 
     /**
      * @notice Get the Curation contract
+     * @return The Curation contract
      */
     function _graphCuration() internal view returns (ICuration) {
         return GRAPH_CURATION;
@@ -204,6 +216,7 @@ abstract contract GraphDirectory {
      * @dev Requirements:
      * - The `_contractName` must be registered in the controller
      * @param _contractName The name of the contract to fetch from the controller
+     * @return The address of the contract
      */
     function _getContractFromController(bytes memory _contractName) private view returns (address) {
         address contractAddress = GRAPH_CONTROLLER.getContractProxy(keccak256(_contractName));

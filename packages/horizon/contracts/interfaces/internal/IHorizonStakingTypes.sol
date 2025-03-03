@@ -2,82 +2,82 @@
 
 pragma solidity 0.8.27;
 
-/* solhint-disable var-name-mixedcase */ // TODO: create custom var-name-mixedcase
-
 /**
  * @title Defines the data types used in the Horizon staking contract
  * @dev In order to preserve storage compatibility some data structures keep deprecated fields.
  * These structures have then two representations, an internal one used by the contract storage and a public one.
  * Getter functions should retrieve internal representations, remove deprecated fields and return the public representation.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStakingTypes {
     /**
      * @notice Represents stake assigned to a specific verifier/data service.
      * Provisioned stake is locked and can be used as economic security by a data service.
+     * @param tokens Service provider tokens in the provision (does not include delegated tokens)
+     * @param tokensThawing Service provider tokens that are being thawed (and will stop being slashable soon)
+     * @param sharesThawing Shares representing the thawing tokens
+     * @param maxVerifierCut Max amount that can be taken by the verifier when slashing, expressed in parts-per-million of the amount slashed
+     * @param thawingPeriod Time, in seconds, tokens must thaw before being withdrawn
+     * @param createdAt Timestamp when the provision was created
+     * @param maxVerifierCutPending Pending value for `maxVerifierCut`. Verifier needs to accept it before it becomes active.
+     * @param thawingPeriodPending Pending value for `thawingPeriod`. Verifier needs to accept it before it becomes active.
+     * @param thawingNonce Value of the current thawing nonce. Thaw requests with older nonces are invalid.
      */
     struct Provision {
-        // Service provider tokens in the provision (does not include delegated tokens)
         uint256 tokens;
-        // Service provider tokens that are being thawed (and will stop being slashable soon)
         uint256 tokensThawing;
-        // Shares representing the thawing tokens
         uint256 sharesThawing;
-        // Max amount that can be taken by the verifier when slashing, expressed in parts-per-million of the amount slashed
         uint32 maxVerifierCut;
-        // Time, in seconds, tokens must thaw before being withdrawn
         uint64 thawingPeriod;
-        // Timestamp when the provision was created
         uint64 createdAt;
-        // Pending value for `maxVerifierCut`. Verifier needs to accept it before it becomes active.
         uint32 maxVerifierCutPending;
-        // Pending value for `thawingPeriod`. Verifier needs to accept it before it becomes active.
         uint64 thawingPeriodPending;
-        // Value of the current thawing nonce. Thaw requests with older nonces are invalid.
         uint256 thawingNonce;
     }
 
     /**
      * @notice Public representation of a service provider.
      * @dev See {ServiceProviderInternal} for the actual storage representation
+     * @param tokensStaked Total amount of tokens on the provider stake (only staked by the provider, includes all provisions)
+     * @param tokensProvisioned Total amount of tokens locked in provisions (only staked by the provider)
      */
     struct ServiceProvider {
-        // Total amount of tokens on the provider stake (only staked by the provider, includes all provisions)
         uint256 tokensStaked;
-        // Total amount of tokens locked in provisions (only staked by the provider)
         uint256 tokensProvisioned;
     }
 
     /**
      * @notice Internal representation of a service provider.
      * @dev It contains deprecated fields from the `Indexer` struct to maintain storage compatibility.
+     * @param tokensStaked Total amount of tokens on the provider stake (only staked by the provider, includes all provisions)
+     * @param __DEPRECATED_tokensAllocated (Deprecated) Tokens used in allocations
+     * @param __DEPRECATED_tokensLocked (Deprecated) Tokens locked for withdrawal subject to thawing period
+     * @param __DEPRECATED_tokensLockedUntil (Deprecated) Block when locked tokens can be withdrawn
+     * @param tokensProvisioned Total amount of tokens locked in provisions (only staked by the provider)
      */
     struct ServiceProviderInternal {
-        // Total amount of tokens on the provider stake (only staked by the provider, includes all provisions)
         uint256 tokensStaked;
-        // (Deprecated) Tokens used in allocations
-        uint256 __DEPRECATED_tokensAllocated; // solhint-disable-line graph/leading-underscore
-        // (Deprecated) Tokens locked for withdrawal subject to thawing period
+        uint256 __DEPRECATED_tokensAllocated;
         uint256 __DEPRECATED_tokensLocked;
-        // (Deprecated) Block when locked tokens can be withdrawn
         uint256 __DEPRECATED_tokensLockedUntil;
-        // Total amount of tokens locked in provisions (only staked by the provider)
         uint256 tokensProvisioned;
     }
 
     /**
      * @notice Public representation of a delegation pool.
      * @dev See {DelegationPoolInternal} for the actual storage representation
+     * @param tokens Total tokens as pool reserves
+     * @param shares Total shares minted in the pool
+     * @param tokensThawing Tokens thawing in the pool
+     * @param sharesThawing Shares representing the thawing tokens
+     * @param thawingNonce Value of the current thawing nonce. Thaw requests with older nonces are invalid.
      */
     struct DelegationPool {
-        // Total tokens as pool reserves
         uint256 tokens;
-        // Total shares minted in the pool
         uint256 shares;
-        // Tokens thawing in the pool
         uint256 tokensThawing;
-        // Shares representing the thawing tokens
         uint256 sharesThawing;
-        // Value of the current thawing nonce. Thaw requests with older nonces are invalid.
         uint256 thawingNonce;
     }
 
@@ -85,49 +85,50 @@ interface IHorizonStakingTypes {
      * @notice Internal representation of a delegation pool.
      * @dev It contains deprecated fields from the previous version of the `DelegationPool` struct
      * to maintain storage compatibility.
+     * @param __DEPRECATED_cooldownBlocks (Deprecated) Time, in blocks, an indexer must wait before updating delegation parameters
+     * @param __DEPRECATED_indexingRewardCut (Deprecated) Percentage of indexing rewards for the service provider, in PPM
+     * @param __DEPRECATED_queryFeeCut (Deprecated) Percentage of query fees for the service provider, in PPM
+     * @param __DEPRECATED_updatedAtBlock (Deprecated) Block when the delegation parameters were last updated
+     * @param tokens Total tokens as pool reserves
+     * @param shares Total shares minted in the pool
+     * @param delegators Delegation details by delegator
+     * @param tokensThawing Tokens thawing in the pool
+     * @param sharesThawing Shares representing the thawing tokens
+     * @param thawingNonce Value of the current thawing nonce. Thaw requests with older nonces are invalid.
      */
     struct DelegationPoolInternal {
-        // (Deprecated) Time, in blocks, an indexer must wait before updating delegation parameters
         uint32 __DEPRECATED_cooldownBlocks;
-        // (Deprecated) Percentage of indexing rewards for the service provider, in PPM
         uint32 __DEPRECATED_indexingRewardCut;
-        // (Deprecated) Percentage of query fees for the service provider, in PPM
         uint32 __DEPRECATED_queryFeeCut;
-        // (Deprecated) Block when the delegation parameters were last updated
         uint256 __DEPRECATED_updatedAtBlock;
-        // Total tokens as pool reserves
         uint256 tokens;
-        // Total shares minted in the pool
         uint256 shares;
-        // Delegation details by delegator
         mapping(address delegator => DelegationInternal delegation) delegators;
-        // Tokens thawing in the pool
         uint256 tokensThawing;
-        // Shares representing the thawing tokens
         uint256 sharesThawing;
-        // Value of the current thawing nonce. Thaw requests with older nonces are invalid.
         uint256 thawingNonce;
     }
 
     /**
      * @notice Public representation of delegation details.
      * @dev See {DelegationInternal} for the actual storage representation
+     * @param shares Shares owned by a delegator in the pool
      */
     struct Delegation {
-        uint256 shares; // Shares owned by a delegator in the pool
+        uint256 shares;
     }
 
     /**
      * @notice Internal representation of delegation details.
      * @dev It contains deprecated fields from the previous version of the `Delegation` struct
      * to maintain storage compatibility.
+     * @param shares Shares owned by the delegator in the pool
+     * @param __DEPRECATED_tokensLocked Tokens locked for undelegation
+     * @param __DEPRECATED_tokensLockedUntil Epoch when locked tokens can be withdrawn
      */
     struct DelegationInternal {
-        // Shares owned by the delegator in the pool
         uint256 shares;
-        // (Deprecated) Tokens locked for undelegation
         uint256 __DEPRECATED_tokensLocked;
-        // (Deprecated) Epoch when locked tokens can be withdrawn
         uint256 __DEPRECATED_tokensLockedUntil;
     }
 
@@ -145,15 +146,15 @@ interface IHorizonStakingTypes {
      * @notice Details of a stake thawing operation.
      * @dev ThawRequests are stored in linked lists by service provider/delegator,
      * ordered by creation timestamp.
+     * @param shares Shares that represent the tokens being thawed
+     * @param thawingUntil The timestamp when the thawed funds can be removed from the provision
+     * @param next Id of the next thaw request in the linked list
+     * @param thawingNonce Used to invalidate unfulfilled thaw requests
      */
     struct ThawRequest {
-        // Shares that represent the tokens being thawed
         uint256 shares;
-        // The timestamp when the thawed funds can be removed from the provision
         uint64 thawingUntil;
-        // Id of the next thaw request in the linked list
         bytes32 next;
-        // Used to invalidate unfulfilled thaw requests
         uint256 thawingNonce;
     }
 

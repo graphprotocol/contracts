@@ -3,14 +3,10 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-
 import "../upgrades/GraphUpgradeable.sol";
 import "../staking/libs/MathUtils.sol";
 
 import "./RewardsManagerStorage.sol";
-import "./IRewardsManager.sol";
-import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 
 /**
  * @title Rewards Manager Contract

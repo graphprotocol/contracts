@@ -2,10 +2,23 @@ function hasLeadingUnderscore(text) {
   return text && text[0] === '_'
 }
 
+function match(text, regex) {
+  return text.replace(regex, '').length === 0
+}
+
+function isMixedCase(text) {
+  return match(text, /[_]*[a-z$]+[a-zA-Z0-9$]*[_]?/)
+}
+
+function isUpperSnakeCase(text) {
+  return match(text, /_{0,2}[A-Z0-9$]+[_A-Z0-9$]*/)
+}
+
 class Base {
   constructor(reporter, config, source, fileName) {
     this.ignoreDeprecated = true;
     this.deprecatedPrefix = '__DEPRECATED_';
+    this.underscorePrefix = '__';
     this.reporter = reporter;
     this.ignored = this.constructor.global;
     this.ruleId = this.constructor.ruleId;
@@ -116,5 +129,44 @@ module.exports = [
       )
     }
   },
+  class extends Base {
+    static ruleId = 'func-name-mixedcase';
 
+    FunctionDefinition(node) {
+      // Allow __DEPRECATED_ prefixed functions and __ prefixed functions
+      if (node.name.startsWith(this.deprecatedPrefix) || node.name.startsWith(this.underscorePrefix)) {
+        return
+      }
+
+      if (!isMixedCase(node.name) && !node.isConstructor) { 
+        // Allow external functions to be in UPPER_SNAKE_CASE - for immutable state getters
+        if (node.visibility === 'external' && isUpperSnakeCase(node.name)) {
+          return
+        }
+        this.error(node, 'Function name must be in mixedCase',)
+      }
+    }
+  },
+  class extends Base {
+    static ruleId = 'var-name-mixedcase';
+  
+    VariableDeclaration(node) {
+      if (node.name.startsWith(this.deprecatedPrefix)) {
+        return
+      }
+      if (!node.isDeclaredConst && !node.isImmutable) {
+        this.validateVariablesName(node)
+      }
+    }
+  
+    validateVariablesName(node) {
+      if (node.name.startsWith(this.deprecatedPrefix)) {
+        return
+      }
+      if (!isMixedCase(node.name)) {
+        this.error(node, 'Variable name must be in mixedCase')
+      }
+    }
+  }
+  
 ];

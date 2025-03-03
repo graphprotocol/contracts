@@ -14,15 +14,19 @@ import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
  * subgraph indexing and querying. The {SubgraphService} contract implements the flows described in the Data
  * Service framework to allow indexers to register as subgraph service providers, create allocations to signal
  * their commitment to index a subgraph, and collect fees for indexing and querying services.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface ISubgraphService is IDataServiceFees {
-    /// @notice Contains details for each indexer
+    /**
+     * @notice Indexer details
+     * @param registeredAt The timestamp when the indexer registered
+     * @param url The URL where the indexer can be reached at for queries
+     * @param geoHash The indexer's geo location, expressed as a geo hash
+     */
     struct Indexer {
-        // Timestamp when the indexer registered
         uint256 registeredAt;
-        // The URL where the indexer can be reached at for queries
         string url;
-        // The indexer's geo location, expressed as a geo hash
         string geoHash;
     }
 
@@ -33,7 +37,12 @@ interface ISubgraphService is IDataServiceFees {
      * @param tokensCollected The amount of tokens collected
      * @param tokensCurators The amount of tokens curators receive
      */
-    event QueryFeesCollected(address indexed serviceProvider, address indexed payer, uint256 tokensCollected, uint256 tokensCurators);
+    event QueryFeesCollected(
+        address indexed serviceProvider,
+        address indexed payer,
+        uint256 tokensCollected,
+        uint256 tokensCurators
+    );
 
     /**
      * @notice Emitted when the stake to fees ratio is set.
@@ -48,7 +57,7 @@ interface ISubgraphService is IDataServiceFees {
     event CurationCutSet(uint256 curationCut);
 
     /**
-     * Thrown when trying to set a curation cut that is not a valid PPM value
+     * @notice Thrown when trying to set a curation cut that is not a valid PPM value
      * @param curationCut The curation cut value
      */
     error SubgraphServiceInvalidCurationCut(uint256 curationCut);
@@ -130,6 +139,22 @@ interface ISubgraphService is IDataServiceFees {
      * @param collectionId The collectionId
      */
     error SubgraphServiceInvalidCollectionId(bytes32 collectionId);
+
+    /**
+     * @notice Initialize the contract
+     * @dev The thawingPeriod and verifierCut ranges are not set here because they are variables
+     * on the DisputeManager. We use the {ProvisionManager} overrideable getters to get the ranges.
+     * @param owner The owner of the contract
+     * @param minimumProvisionTokens The minimum amount of provisioned tokens required to create an allocation
+     * @param maximumDelegationRatio The maximum delegation ratio allowed for an allocation
+     * @param stakeToFeesRatio The ratio of stake to fees to lock when collecting query fees
+     */
+    function initialize(
+        address owner,
+        uint256 minimumProvisionTokens,
+        uint32 maximumDelegationRatio,
+        uint256 stakeToFeesRatio
+    ) external;
 
     /**
      * @notice Force close a stale allocation
@@ -225,6 +250,7 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Gets the details of an allocation
      * For legacy allocations use {getLegacyAllocation}
      * @param allocationId The id of the allocation
+     * @return The allocation details
      */
     function getAllocation(address allocationId) external view returns (Allocation.State memory);
 
@@ -232,6 +258,7 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Gets the details of a legacy allocation
      * For non-legacy allocations use {getAllocation}
      * @param allocationId The id of the allocation
+     * @return The legacy allocation details
      */
     function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory);
 
@@ -239,6 +266,7 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Encodes the allocation proof for EIP712 signing
      * @param indexer The address of the indexer
      * @param allocationId The id of the allocation
+     * @return The encoded allocation proof
      */
     function encodeAllocationProof(address indexer, address allocationId) external view returns (bytes32);
 

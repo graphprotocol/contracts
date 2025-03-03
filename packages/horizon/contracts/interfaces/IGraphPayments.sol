@@ -6,6 +6,8 @@ pragma solidity 0.8.27;
  * @notice This contract is part of the Graph Horizon payments protocol. It's designed
  * to pull funds (GRT) from the {PaymentsEscrow} and distribute them according to a
  * set of pre established rules.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IGraphPayments {
     /**
@@ -53,6 +55,11 @@ interface IGraphPayments {
      * @param cut The cut
      */
     error GraphPaymentsInvalidCut(uint256 cut);
+
+    /**
+     * @notice Initialize the contract
+     */
+    function initialize() external;
 
     /**
      * @notice Collects funds from a payer.

@@ -7,6 +7,8 @@ import { LinkedList } from "../../libraries/LinkedList.sol";
 
 /**
  * @title Storage layout for the {DataServiceFees} extension contract.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract DataServiceFeesV1Storage {
     mapping(address serviceProvider => uint256 tokens) public feesProvisionTracker;

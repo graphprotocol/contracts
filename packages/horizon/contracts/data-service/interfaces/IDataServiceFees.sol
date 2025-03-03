@@ -18,6 +18,8 @@ import { IDataService } from "./IDataService.sol";
  * @dev Note that this implementation uses the entire provisioned stake as collateral for the payment.
  * It can be used to provide economic security for the payments collected as long as the provisioned
  * stake is not being used for other purposes.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IDataServiceFees is IDataService {
     /**
@@ -25,15 +27,15 @@ interface IDataServiceFees is IDataService {
      * to be released to a service provider.
      * @dev StakeClaims are stored in linked lists by service provider, ordered by
      * creation timestamp.
+     * @param tokens The amount of tokens to be locked in the claim
+     * @param createdAt The timestamp when the claim was created
+     * @param releasableAt The timestamp when the tokens can be released
+     * @param nextClaim The next claim in the linked list
      */
     struct StakeClaim {
-        // The amount of tokens to be locked in the claim
         uint256 tokens;
-        // Timestamp when the claim was created
         uint256 createdAt;
-        // Timestamp when the claim will expire and tokens can be released
         uint256 releasableAt;
-        // Next claim in the linked list
         bytes32 nextClaim;
     }
 
@@ -75,6 +77,7 @@ interface IDataServiceFees is IDataService {
 
     /**
      * @notice Thrown when attempting to get a stake claim that does not exist.
+     * @param claimId The id of the stake claim
      */
     error DataServiceFeesClaimNotFound(bytes32 claimId);
 

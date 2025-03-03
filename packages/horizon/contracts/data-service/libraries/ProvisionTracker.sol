@@ -10,10 +10,14 @@ import { IHorizonStaking } from "../../interfaces/IHorizonStaking.sol";
  * their services.
  * The library provides two primitives, lock and release to signal token usage and free up tokens respectively. It
  * does not make any assumptions about the conditions under which tokens are locked or released.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 library ProvisionTracker {
     /**
      * @notice Thrown when trying to lock more tokens than available
+     * @param tokensAvailable The amount of tokens available
+     * @param tokensRequired The amount of tokens required
      */
     error ProvisionTrackerInsufficientTokens(uint256 tokensAvailable, uint256 tokensRequired);
 
@@ -62,6 +66,7 @@ library ProvisionTracker {
      * @param graphStaking The HorizonStaking contract
      * @param serviceProvider The service provider address
      * @param delegationRatio A delegation ratio to limit the amount of delegation that's usable
+     * @return true if the service provider has enough tokens available to lock, false otherwise
      */
     function check(
         mapping(address => uint256) storage self,

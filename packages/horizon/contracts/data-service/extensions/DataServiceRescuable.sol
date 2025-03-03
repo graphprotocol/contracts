@@ -19,6 +19,8 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
  * rescuers. This should be implemented in the derived contract.
  * @dev This contract inherits from {DataService} which needs to be initialized, please see
  * {DataService} for detailed instructions.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     /// @notice List of rescuers and their allowed status
@@ -36,16 +38,12 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
         _;
     }
 
-    /**
-     * @notice See {IDataServiceRescuable-rescueGRT}
-     */
+    /// @inheritdoc IDataServiceRescuable
     function rescueGRT(address to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, address(_graphToken()), tokens);
     }
 
-    /**
-     * @notice See {IDataServiceRescuable-rescueETH}
-     */
+    /// @inheritdoc IDataServiceRescuable
     function rescueETH(address payable to, uint256 tokens) external virtual onlyRescuer {
         _rescueTokens(to, Denominations.NATIVE_TOKEN, tokens);
     }

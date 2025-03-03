@@ -12,6 +12,8 @@ import { IGraphPayments } from "./IGraphPayments.sol";
  *
  * @dev It's important to note that it's the collector contract's responsibility to validate the payment
  * request is legitimate.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IPaymentsCollector {
     /**
@@ -42,6 +44,7 @@ interface IPaymentsCollector {
      * @param paymentType The payment type to collect, as defined by {IGraphPayments}
      * @param data Additional data required for the payment collection. Will vary depending on the collector
      * implementation.
+     * @return The amount of tokens collected
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes memory data) external returns (uint256);
 }

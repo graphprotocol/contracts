@@ -13,15 +13,19 @@ import { IGraphPayments } from "./IGraphPayments.sol";
  * being able to retrieve them after a thawing period. Receivers collect funds from the escrow,
  * provided the payer has authorized them. The payer authorization is delegated to a payment
  * collector contract which implements the {IPaymentsCollector} interface.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IPaymentsEscrow {
-    /// @notice Escrow account for a payer-collector-receiver tuple
+    /**
+     * @notice Escrow account for a payer-collector-receiver tuple
+     * @param balance The total token balance for the payer-collector-receiver tuple
+     * @param tokensThawing The amount of tokens currently being thawed
+     * @param thawEndTimestamp The timestamp at which thawing period ends (zero if not thawing)
+     */
     struct EscrowAccount {
-        // Total token balance for the payer-collector-receiver tuple
         uint256 balance;
-        // Amount of tokens currently being thawed
         uint256 tokensThawing;
-        // Timestamp at which thawing period ends (zero if not thawing)
         uint256 thawEndTimestamp;
     }
 
@@ -138,6 +142,11 @@ interface IPaymentsEscrow {
     error PaymentsEscrowInvalidZeroTokens();
 
     /**
+     * @notice Initialize the contract
+     */
+    function initialize() external;
+
+    /**
      * @notice Deposits funds into the escrow for a payer-collector-receiver tuple, where
      * the payer is the transaction caller.
      * @dev Emits a {Deposit} event
@@ -228,6 +237,7 @@ interface IPaymentsEscrow {
      * @param payer The address of the payer
      * @param collector The address of the collector
      * @param receiver The address of the receiver
+     * @return The balance of the payer-collector-receiver tuple
      */
     function getBalance(address payer, address collector, address receiver) external view returns (uint256);
 }

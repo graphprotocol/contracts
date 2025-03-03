@@ -12,6 +12,8 @@ import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
  * the implementation code and the documentation.
  * @dev This interface is expected to be inherited and extended by a data service interface. It can be
  * used to interact with it however it's advised to use the more specific parent interface.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IDataService {
     /**
@@ -110,7 +112,6 @@ interface IDataService {
      * @notice Collects payment earnt by the service provider.
      * @dev The implementation of this function is expected to interact with {GraphPayments}
      * to collect payment from the service payer, which is done via {IGraphPayments-collect}.
-     * @param serviceProvider The address of the service provider.
      *
      * Emits a {ServicePaymentCollected} event.
      *

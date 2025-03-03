@@ -4,7 +4,6 @@ pragma solidity 0.8.27;
 
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 
-// TODO: create custom var-name-mixedcase
 /* solhint-disable var-name-mixedcase */
 
 /**
@@ -13,11 +12,13 @@ import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
  * For Graph Horizon this contract is mostly a shell that uses {GraphDirectory}, however since the {HorizonStaking}
  * contract uses it we need to preserve the storage layout.
  * Inspired by Livepeer: https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract Managed is GraphDirectory {
     // -- State --
 
-    /// Controller that manages this contract
+    /// @notice Controller that manages this contract
     address private __DEPRECATED_controller;
 
     /// @dev Cache for the addresses of the contracts retrieved from the controller

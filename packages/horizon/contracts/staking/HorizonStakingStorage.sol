@@ -8,7 +8,6 @@ import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
 
 import { LinkedList } from "../libraries/LinkedList.sol";
 
-/* solhint-disable var-name-mixedcase */ // TODO: create custom var-name-mixedcase
 /* solhint-disable max-states-count */
 
 /**
@@ -16,6 +15,8 @@ import { LinkedList } from "../libraries/LinkedList.sol";
  * @notice This contract holds all the storage variables for the Staking contract.
  * @dev Deprecated variables are kept to support the transition to Horizon Staking.
  * They can eventually be collapsed into a single storage slot.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract HorizonStakingV1Storage {
     // -- Staking --
@@ -125,9 +126,12 @@ abstract contract HorizonStakingV1Storage {
     /// This is now an immutable variable to save some gas.
     address internal __DEPRECATED_extensionImpl;
 
-    // @dev Additional rebate parameters for exponential rebates
+    /// @dev Rebate lambda numerator for exponential rebates
     /// Deprecated, any rebate mechanism is now applied on the subgraph data service.
     uint32 internal __DEPRECATED_lambdaNumerator;
+
+    /// @dev Rebate lambda denominator for exponential rebates
+    /// Deprecated, any rebate mechanism is now applied on the subgraph data service.
     uint32 internal __DEPRECATED_lambdaDenominator;
 
     // -- Horizon Staking --

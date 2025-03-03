@@ -11,6 +11,8 @@ import { Attestation } from "../libraries/Attestation.sol";
  * @title AttestationManager contract
  * @notice A helper contract implementing attestation verification.
  * Uses a custom implementation of EIP712 for backwards compatibility with attestations.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract AttestationManager is Initializable, AttestationManagerV1Storage {
     /// @notice EIP712 type hash for Receipt struct

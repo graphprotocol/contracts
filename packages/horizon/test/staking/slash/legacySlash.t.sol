@@ -204,4 +204,31 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         resetPrank(users.legacySlasher);
         _legacySlash(users.indexer, 1000 ether, 500 ether, makeAddr("fisherman"));
     }
+
+    function test_LegacySlash_WhenDelegateCallFails() public useIndexer useLegacySlasher(users.legacySlasher) {
+        // Setup indexer with:
+        // - tokensStaked = 1000 GRT
+        // - tokensAllocated = 800 GRT
+        // - tokensLocked = 300 GRT
+
+        _setIndexer(
+            users.indexer,
+            1000 ether, // tokensStaked
+            800 ether, // tokensAllocated
+            300 ether, // tokensLocked
+            0 // tokensLockedUntil
+        );
+
+        // Send tokens manually to staking
+        token.transfer(address(staking), 1100 ether);
+
+        // Change staking extension code to an invalid opcode so the delegatecall reverts
+        address stakingExtension = staking.getStakingExtension();
+        vm.etch(stakingExtension, hex"fe");
+
+        resetPrank(users.legacySlasher);
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingLegacySlashFailed()");
+        vm.expectRevert(expectedError);
+        staking.slash(users.indexer, 1000 ether, 500 ether, makeAddr("fisherman"));
+    }
 }

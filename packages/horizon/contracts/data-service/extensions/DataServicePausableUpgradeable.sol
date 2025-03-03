@@ -12,6 +12,8 @@ import { DataService } from "../DataService.sol";
  * @dev Upgradeable version of the {DataServicePausable} contract.
  * @dev This contract inherits from {DataService} which needs to be initialized, please see
  * {DataService} for detailed instructions.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataService, IDataServicePausable {
     /// @notice List of pause guardians and their allowed status
@@ -28,16 +30,12 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
         _;
     }
 
-    /**
-     * @notice See {IDataServicePausable-pause}
-     */
+    /// @inheritdoc IDataServicePausable
     function pause() external override onlyPauseGuardian whenNotPaused {
         _pause();
     }
 
-    /**
-     * @notice See {IDataServicePausable-pause}
-     */
+    /// @inheritdoc IDataServicePausable
     function unpause() external override onlyPauseGuardian whenPaused {
         _unpause();
     }
@@ -45,7 +43,6 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
     /**
      * @notice Initializes the contract and parent contracts
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __DataServicePausable_init() internal onlyInitializing {
         __Pausable_init_unchained();
         __DataServicePausable_init_unchained();
@@ -54,7 +51,6 @@ abstract contract DataServicePausableUpgradeable is PausableUpgradeable, DataSer
     /**
      * @notice Initializes the contract
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __DataServicePausable_init_unchained() internal onlyInitializing {}
 
     /**

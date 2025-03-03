@@ -4,6 +4,12 @@ pragma solidity 0.8.27;
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
+/**
+ * @title AllocationManagerStorage
+ * @notice This contract holds all the storage variables for the Allocation Manager contract.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
+ */
 abstract contract AllocationManagerV1Storage {
     /// @notice Allocation details
     mapping(address allocationId => Allocation.State allocation) internal _allocations;

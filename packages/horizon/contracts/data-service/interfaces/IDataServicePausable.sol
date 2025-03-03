@@ -8,6 +8,8 @@ import { IDataService } from "./IDataService.sol";
  * @notice Extension for the {IDataService} contract, adds pausing functionality
  * to the data service. Pausing is controlled by privileged accounts called
  * pause guardians.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 interface IDataServicePausable is IDataService {
     /**

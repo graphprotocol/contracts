@@ -27,6 +27,8 @@ import { ProvisionManager } from "./utilities/ProvisionManager.sol";
  * will be required in the constructor.
  * - Note that in both cases if using {__DataService_init_unchained} variant the corresponding parent
  * initializers must be called in the implementation.
+ * @custom:security-contact Please email security+contracts@thegraph.com if you find any
+ * bugs. We may have an active bug bounty program.
  */
 abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1Storage, IDataService {
     /**
@@ -35,30 +37,22 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
      */
     constructor(address controller) GraphDirectory(controller) {}
 
-    /**
-     * @notice See {IDataService-getThawingPeriodRange}.
-     */
+    /// @inheritdoc IDataService
     function getThawingPeriodRange() external view returns (uint64, uint64) {
         return _getThawingPeriodRange();
     }
 
-    /**
-     * @notice See {IDataService-getVerifierCutRange}.
-     */
+    /// @inheritdoc IDataService
     function getVerifierCutRange() external view returns (uint32, uint32) {
         return _getVerifierCutRange();
     }
 
-    /**
-     * @notice See {IDataService-getProvisionTokensRange}.
-     */
+    /// @inheritdoc IDataService
     function getProvisionTokensRange() external view returns (uint256, uint256) {
         return _getProvisionTokensRange();
     }
 
-    /**
-     * @notice See {IDataService-getDelegationRatio}.
-     */
+    /// @inheritdoc IDataService
     function getDelegationRatio() external view returns (uint32) {
         return _getDelegationRatio();
     }
@@ -66,7 +60,6 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
     /**
      * @notice Initializes the contract and any parent contracts.
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __DataService_init() internal onlyInitializing {
         __ProvisionManager_init_unchained();
         __DataService_init_unchained();
@@ -75,6 +68,5 @@ abstract contract DataService is GraphDirectory, ProvisionManager, DataServiceV1
     /**
      * @notice Initializes the contract.
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __DataService_init_unchained() internal onlyInitializing {}
 }
