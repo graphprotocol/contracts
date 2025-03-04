@@ -157,6 +157,26 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     //     subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
     // }
 
+    // function test_SubgraphService_CancelIAV(
+    //     setupFuzzyServiceProviderParams calldata _fuzzyParams,
+    //     address payer,
+    //     bytes16 agreementId
+    // ) public {
+    //     serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+
+    //     resetPrank(params.serviceProvider);
+    //     vm.mockCall(
+    //         address(ipCollector),
+    //         abi.encodeWithSelector(IIPCollector.cancel.selector, payer, params.serviceProvider, agreementId),
+    //         new bytes(0)
+    //     );
+    //     vm.expectCall(
+    //         address(ipCollector),
+    //         abi.encodeCall(IIPCollector.cancel, (payer, params.serviceProvider, agreementId))
+    //     );
+    //     subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
+    // }
+
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
         address operator,
@@ -447,20 +467,24 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     }
 
     function test_SubgraphService_AcceptIAV(
-        uint256 tokens,
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer useAllocation(tokens) {
-        _acceptAgreement(signedIAV);
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        _acceptAgreement(params, signedIAV);
     }
 
-    function _acceptAgreement(IIPCollector.SignedIAV memory signedIAV) private {
-        signedIAV.iav.serviceProvider = users.indexer;
+    function _acceptAgreement(
+        serviceProviderParams memory params,
+        IIPCollector.SignedIAV memory signedIAV
+    ) private returns (IIPCollector.SignedIAV memory) {
+        signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
         signedIAV.iav.metadata = abi.encode(
             ISubgraphService.IndexingAgreementVoucherMetadata({
                 tokensPerSecond: 0,
                 tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: subgraphDeployment,
+                subgraphDeploymentId: params.subgraphDeploymentId,
                 protocolNetwork: "",
                 chainId: ""
             })
@@ -471,7 +495,9 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
             new bytes(0)
         );
         vm.expectCall(address(ipCollector), abi.encodeCall(IIPCollector.accept, (signedIAV)));
-        subgraphService.acceptIAV(allocationID, signedIAV);
+        resetPrank(params.serviceProvider);
+        subgraphService.acceptIAV(params.allocationId, signedIAV);
+        return signedIAV;
     }
 
     function _isSafeServiceProviderAndOperator(address _candidate) private view returns (bool) {
