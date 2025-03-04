@@ -139,23 +139,24 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
     }
 
-    // function test_SubgraphService_CancelIAV_Revert_WhenCanceled(
-    //     setupFuzzyServiceProviderParams calldata _fuzzyParams,
-    //     address payer,
-    //     bytes16 agreementId
-    // ) public {
-    //     serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+    function test_SubgraphService_CancelIAV_Revert_WhenCanceled(
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
+        IIPCollector.SignedIAV calldata fuzzySignedIAV
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
+        _cancelIAV(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
 
-    //     resetPrank(params.serviceProvider);
-    //     bytes memory expectedErr = abi.encodeWithSelector(
-    //         ISubgraphService.IndexingAgreementAlreadyCanceled.selector,
-    //         payer,
-    //         params.serviceProvider,
-    //         agreementId
-    //     );
-    //     vm.expectRevert(expectedErr);
-    //     subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
-    // }
+        resetPrank(params.serviceProvider);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.IndexingAgreementAlreadyCanceled.selector,
+            signedIAV.iav.payer,
+            params.serviceProvider,
+            signedIAV.iav.agreementId
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.cancelIAV(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+    }
 
     function test_SubgraphService_CancelIAV(
         setupFuzzyServiceProviderParams calldata _fuzzyParams,
