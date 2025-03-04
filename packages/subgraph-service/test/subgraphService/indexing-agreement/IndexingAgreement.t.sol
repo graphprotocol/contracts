@@ -12,16 +12,43 @@ import { Bounder } from "@graphprotocol/horizon/test/utils/Bounder.t.sol";
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
+import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
+    address constant TRANSPARENT_UPGRADEABLE_PROXY_ADMIN = 0xE1C5264f10fad5d1912e5Ba2446a26F5EfdB7482;
+
     modifier withSafeOperator(address operator) {
-        vm.assume(_isSafeOperator(operator));
+        vm.assume(_isSafeServiceProviderAndOperator(operator));
         _;
     }
 
     /*
      * TESTS
      */
+
+    function test_SubgraphService_UnsafeOperator_WhenProxyAdmin(
+        address serviceProvider,
+        address payer,
+        bytes16 agreementId
+    ) public {
+        address operator = TRANSPARENT_UPGRADEABLE_PROXY_ADMIN;
+        assertFalse(_isSafeServiceProviderAndOperator(operator));
+
+        vm.expectRevert(TransparentUpgradeableProxy.ProxyDeniedAdminAccess.selector);
+        resetPrank(address(operator));
+        subgraphService.cancelIAV(serviceProvider, payer, agreementId);
+    }
+
+    function test_SubgraphService_UnsafeOperator_WhenGraphProxyAdmin(uint256 unboundedTokens) public {
+        address serviceProvider = 0x15c603B7eaA8eE1a272a69C4af3462F926de777F; // GraphProxyAdmin
+        assertFalse(_isSafeServiceProviderAndOperator(serviceProvider));
+
+        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        mint(serviceProvider, tokens);
+        resetPrank(serviceProvider);
+        vm.expectRevert("Cannot fallback to proxy target");
+        staking.provision(serviceProvider, address(subgraphService), tokens, maxSlashingPercentage, disputePeriod);
+    }
 
     function test_SubgraphService_CancelIAV_Revert_WhenPaused(
         address operator,
@@ -159,7 +186,9 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     function _setupFuzzyServiceProvider(
         setupFuzzyServiceProviderParams calldata _params
     ) private returns (serviceProviderParams memory) {
-        vm.assume(_isSafeOperator(_params.serviceProvider) && !_serviceProviders[_params.serviceProvider]);
+        vm.assume(
+            _isSafeServiceProviderAndOperator(_params.serviceProvider) && !_serviceProviders[_params.serviceProvider]
+        );
         _serviceProviders[_params.serviceProvider] = true;
 
         (uint256 allocationKey, address allocationId) = boundKeyAndAddr(_params.unboundedAllocationPrivateKey);
@@ -348,8 +377,11 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.acceptIAV(allocationID, signedIAV);
     }
 
-    function _isSafeOperator(address _candidate) private pure returns (bool) {
-        return _candidate != address(0) && _candidate != address(0xE1C5264f10fad5d1912e5Ba2446a26F5EfdB7482);
+    function _isSafeServiceProviderAndOperator(address _candidate) private view returns (bool) {
+        return
+            _candidate != address(0) &&
+            _candidate != address(TRANSPARENT_UPGRADEABLE_PROXY_ADMIN) &&
+            _candidate != address(proxyAdmin);
         // return true;
         // return _candidate != address(0) && _candidate != address(proxyAdmin) && _candidate != otherGraphProxyAdmin;
         // _candidate != users.governor &&
