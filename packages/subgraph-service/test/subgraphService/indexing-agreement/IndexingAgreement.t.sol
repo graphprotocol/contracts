@@ -164,25 +164,21 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
 
-        resetPrank(params.serviceProvider);
+        _cancelIAV(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+    }
+
+    function _cancelIAV(address _serviceProvider, address _payer, bytes16 _agreementId) private {
+        resetPrank(_serviceProvider);
         vm.mockCall(
             address(ipCollector),
-            abi.encodeWithSelector(
-                IIPCollector.cancel.selector,
-                signedIAV.iav.payer,
-                params.serviceProvider,
-                signedIAV.iav.agreementId
-            ),
+            abi.encodeWithSelector(IIPCollector.cancel.selector, _payer, _serviceProvider, _agreementId),
             new bytes(0)
         );
         vm.expectCall(
             address(ipCollector),
-            abi.encodeCall(
-                IIPCollector.cancel,
-                (signedIAV.iav.payer, params.serviceProvider, signedIAV.iav.agreementId)
-            )
+            abi.encodeCall(IIPCollector.cancel, (_payer, _serviceProvider, _agreementId))
         );
-        subgraphService.cancelIAV(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+        subgraphService.cancelIAV(_serviceProvider, _payer, _agreementId);
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
