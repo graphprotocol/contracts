@@ -752,10 +752,11 @@ contract SubgraphService is
     }
 
     function _cancelIAV(address _payer, address _indexer, bytes16 _agreementId) private whenNotPaused {
-        IndexingAgreementData storage agg = _getForUpdateIndexingAgreement(
+        IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(
             IndexingAgreementKey({ indexer: _indexer, payer: _payer, agreementId: _agreementId })
         );
-        agg.acceptedAt = CANCELED;
+        require(agreement.acceptedAt > 0, InvalidIndexingAgreementKey(_payer, _indexer, _agreementId));
+        agreement.acceptedAt = CANCELED;
 
         _ipCollector().cancel(_payer, _indexer, _agreementId);
     }

@@ -48,6 +48,8 @@ interface ISubgraphService is IDataServiceFees {
         uint256 tokensPerEntityPerSecond;
     }
 
+    error InvalidIndexingAgreementKey(address payer, address indexer, bytes16 agreementId);
+
     /**
      * @notice Emitted when a subgraph service collects query fees from Graph Payments
      * @param serviceProvider The address of the service provider
