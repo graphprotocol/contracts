@@ -103,6 +103,24 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.cancelIAV(serviceProvider, payer, agreementId);
     }
 
+    function test_SubgraphService_CancelIAV_Revert_WhenIndexerNotRegistered(
+        address serviceProvider,
+        address payer,
+        bytes16 agreementId,
+        uint256 unboundedTokens
+    ) public withSafeServiceProviderOrOperator(serviceProvider) {
+        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        mint(serviceProvider, tokens);
+        resetPrank(serviceProvider);
+        _createProvision(serviceProvider, tokens, maxSlashingPercentage, disputePeriod);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
+            serviceProvider
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.cancelIAV(serviceProvider, payer, agreementId);
+    }
+
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
         address operator,
