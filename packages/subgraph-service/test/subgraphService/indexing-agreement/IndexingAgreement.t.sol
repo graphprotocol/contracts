@@ -26,7 +26,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
      * TESTS
      */
 
-    function test_SubgraphService_UnsafeOperator_WhenProxyAdmin(
+    function test_SubgraphService_Revert_WhenUnsafeAddress_WhenProxyAdmin(
         address serviceProvider,
         address payer,
         bytes16 agreementId
@@ -39,7 +39,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.cancelIAV(serviceProvider, payer, agreementId);
     }
 
-    function test_SubgraphService_UnsafeOperator_WhenGraphProxyAdmin(uint256 unboundedTokens) public {
+    function test_SubgraphService_Revert_WhenUnsafeAddress_WhenGraphProxyAdmin(uint256 unboundedTokens) public {
         address serviceProvider = 0x15c603B7eaA8eE1a272a69C4af3462F926de777F; // GraphProxyAdmin
         assertFalse(_isSafeServiceProviderAndOperator(serviceProvider));
 
