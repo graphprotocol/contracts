@@ -139,6 +139,24 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
     }
 
+    // function test_SubgraphService_CancelIAV_Revert_WhenCanceled(
+    //     setupFuzzyServiceProviderParams calldata _fuzzyParams,
+    //     address payer,
+    //     bytes16 agreementId
+    // ) public {
+    //     serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+
+    //     resetPrank(params.serviceProvider);
+    //     bytes memory expectedErr = abi.encodeWithSelector(
+    //         ISubgraphService.IndexingAgreementAlreadyCanceled.selector,
+    //         payer,
+    //         params.serviceProvider,
+    //         agreementId
+    //     );
+    //     vm.expectRevert(expectedErr);
+    //     subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
+    // }
+
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
         address operator,

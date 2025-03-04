@@ -756,6 +756,7 @@ contract SubgraphService is
             IndexingAgreementKey({ indexer: _indexer, payer: _payer, agreementId: _agreementId })
         );
         require(agreement.acceptedAt > 0, InvalidIndexingAgreementKey(_payer, _indexer, _agreementId));
+        require(agreement.acceptedAt != CANCELED, IndexingAgreementAlreadyCanceled(_payer, _indexer, _agreementId));
         agreement.acceptedAt = CANCELED;
 
         _ipCollector().cancel(_payer, _indexer, _agreementId);

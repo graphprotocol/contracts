@@ -49,6 +49,7 @@ interface ISubgraphService is IDataServiceFees {
     }
 
     error InvalidIndexingAgreementKey(address payer, address indexer, bytes16 agreementId);
+    error IndexingAgreementAlreadyCanceled(address payer, address indexer, bytes16 agreementId);
 
     /**
      * @notice Emitted when a subgraph service collects query fees from Graph Payments
