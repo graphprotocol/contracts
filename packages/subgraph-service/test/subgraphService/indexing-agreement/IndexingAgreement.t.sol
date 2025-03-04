@@ -145,7 +145,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     ) public {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
-        _cancelIAV(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+        _cancelAgreement(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
 
         resetPrank(params.serviceProvider);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -165,10 +165,10 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
 
-        _cancelIAV(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+        _cancelAgreement(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
     }
 
-    function _cancelIAV(address _serviceProvider, address _payer, bytes16 _agreementId) private {
+    function _cancelAgreement(address _serviceProvider, address _payer, bytes16 _agreementId) private {
         resetPrank(_serviceProvider);
         vm.mockCall(
             address(ipCollector),
