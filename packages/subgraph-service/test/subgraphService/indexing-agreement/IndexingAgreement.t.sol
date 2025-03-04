@@ -50,6 +50,20 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         staking.provision(serviceProvider, address(subgraphService), tokens, maxSlashingPercentage, disputePeriod);
     }
 
+    function test_SubgraphService_CancelIAVByPayer(
+        address rando,
+        address serviceProvider,
+        address payer,
+        bytes16 agreementId
+    ) public withSafeServiceProviderOrOperator(rando) {
+        resetPrank(users.pauseGuardian);
+        subgraphService.pause();
+
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        resetPrank(rando);
+        subgraphService.cancelIAVByPayer(serviceProvider, payer, agreementId);
+    }
+
     function test_SubgraphService_CancelIAV_Revert_WhenPaused(
         address operator,
         address serviceProvider,
