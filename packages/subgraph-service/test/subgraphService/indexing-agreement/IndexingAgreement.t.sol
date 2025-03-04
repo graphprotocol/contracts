@@ -50,7 +50,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         staking.provision(serviceProvider, address(subgraphService), tokens, maxSlashingPercentage, disputePeriod);
     }
 
-    function test_SubgraphService_CancelIAVByPayer(
+    function test_SubgraphService_CancelIAVByPayer_Revert_WhenPaused(
         address rando,
         address serviceProvider,
         address payer,
@@ -60,6 +60,17 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.pause();
 
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        resetPrank(rando);
+        subgraphService.cancelIAVByPayer(serviceProvider, payer, agreementId);
+    }
+
+    function test_SubgraphService_CancelIAVByPayer_Revert_WhenNotAuthorized(
+        address rando,
+        address serviceProvider,
+        address payer,
+        bytes16 agreementId
+    ) public withSafeServiceProviderOrOperator(rando) {
+        vm.expectRevert("SubgraphService: Caller not authorized by payer");
         resetPrank(rando);
         subgraphService.cancelIAVByPayer(serviceProvider, payer, agreementId);
     }
