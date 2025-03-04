@@ -157,25 +157,33 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     //     subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
     // }
 
-    // function test_SubgraphService_CancelIAV(
-    //     setupFuzzyServiceProviderParams calldata _fuzzyParams,
-    //     address payer,
-    //     bytes16 agreementId
-    // ) public {
-    //     serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+    function test_SubgraphService_CancelIAV(
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
+        IIPCollector.SignedIAV calldata fuzzySignedIAV
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
 
-    //     resetPrank(params.serviceProvider);
-    //     vm.mockCall(
-    //         address(ipCollector),
-    //         abi.encodeWithSelector(IIPCollector.cancel.selector, payer, params.serviceProvider, agreementId),
-    //         new bytes(0)
-    //     );
-    //     vm.expectCall(
-    //         address(ipCollector),
-    //         abi.encodeCall(IIPCollector.cancel, (payer, params.serviceProvider, agreementId))
-    //     );
-    //     subgraphService.cancelIAV(params.serviceProvider, payer, agreementId);
-    // }
+        resetPrank(params.serviceProvider);
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(
+                IIPCollector.cancel.selector,
+                signedIAV.iav.payer,
+                params.serviceProvider,
+                signedIAV.iav.agreementId
+            ),
+            new bytes(0)
+        );
+        vm.expectCall(
+            address(ipCollector),
+            abi.encodeCall(
+                IIPCollector.cancel,
+                (signedIAV.iav.payer, params.serviceProvider, signedIAV.iav.agreementId)
+            )
+        );
+        subgraphService.cancelIAV(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+    }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
