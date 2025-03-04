@@ -17,7 +17,7 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     address constant TRANSPARENT_UPGRADEABLE_PROXY_ADMIN = 0xE1C5264f10fad5d1912e5Ba2446a26F5EfdB7482;
 
-    modifier withSafeOperator(address operator) {
+    modifier withSafeServiceProviderOrOperator(address operator) {
         vm.assume(_isSafeServiceProviderAndOperator(operator));
         _;
     }
@@ -55,7 +55,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address serviceProvider,
         address payer,
         bytes16 agreementId
-    ) public withSafeOperator(operator) {
+    ) public withSafeServiceProviderOrOperator(operator) {
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
@@ -69,7 +69,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address serviceProvider,
         address payer,
         bytes16 agreementId
-    ) public withSafeOperator(operator) {
+    ) public withSafeServiceProviderOrOperator(operator) {
         vm.assume(operator != serviceProvider);
         resetPrank(operator);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -81,11 +81,33 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.cancelIAV(serviceProvider, payer, agreementId);
     }
 
+    function test_SubgraphService_CancelIAV_Revert_WhenInvalidProvision(
+        address serviceProvider,
+        address payer,
+        bytes16 agreementId,
+        uint256 unboundedTokens
+    ) public withSafeServiceProviderOrOperator(serviceProvider) {
+        uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
+        mint(serviceProvider, tokens);
+        resetPrank(serviceProvider);
+        _createProvision(serviceProvider, tokens, maxSlashingPercentage, disputePeriod);
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerInvalidValue.selector,
+            "tokens",
+            tokens,
+            minimumProvisionTokens,
+            maximumProvisionTokens
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.cancelIAV(serviceProvider, payer, agreementId);
+    }
+
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
         address operator,
         IIPCollector.SignedIAV calldata signedIAV
-    ) public withSafeOperator(operator) {
+    ) public withSafeServiceProviderOrOperator(operator) {
         resetPrank(users.pauseGuardian);
         subgraphService.pause();
 
@@ -98,7 +120,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         address allocationId,
         address operator,
         IIPCollector.SignedIAV calldata signedIAV
-    ) public withSafeOperator(operator) {
+    ) public withSafeServiceProviderOrOperator(operator) {
         vm.assume(operator != signedIAV.iav.serviceProvider);
         resetPrank(operator);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -115,7 +137,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         uint256 unboundedTokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public withSafeOperator(serviceProvider) {
+    ) public withSafeServiceProviderOrOperator(serviceProvider) {
         uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
         mint(serviceProvider, tokens);
         resetPrank(serviceProvider);
@@ -138,7 +160,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         uint256 unboundedTokens,
         address allocationId,
         IIPCollector.SignedIAV memory signedIAV
-    ) public withSafeOperator(serviceProvider) {
+    ) public withSafeServiceProviderOrOperator(serviceProvider) {
         uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
         mint(serviceProvider, tokens);
         resetPrank(serviceProvider);
