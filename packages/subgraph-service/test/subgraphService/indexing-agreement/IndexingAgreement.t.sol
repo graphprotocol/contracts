@@ -64,6 +64,23 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         subgraphService.cancelIAV(serviceProvider, payer, agreementId);
     }
 
+    function test_SubgraphService_CancelIAV_Revert_WhenNotAuthorized(
+        address operator,
+        address serviceProvider,
+        address payer,
+        bytes16 agreementId
+    ) public withSafeOperator(operator) {
+        vm.assume(operator != serviceProvider);
+        resetPrank(operator);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerNotAuthorized.selector,
+            serviceProvider,
+            operator
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.cancelIAV(serviceProvider, payer, agreementId);
+    }
+
     function test_SubgraphService_AcceptIAV_Revert_WhenPaused(
         address allocationId,
         address operator,
