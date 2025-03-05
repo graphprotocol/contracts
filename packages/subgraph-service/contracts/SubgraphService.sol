@@ -751,7 +751,7 @@ contract SubgraphService is
         }
     }
 
-    function _cancelIAV(address _payer, address _indexer, bytes16 _agreementId) private whenNotPaused {
+    function _cancelIAV(address _payer, address _indexer, bytes16 _agreementId) private {
         IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(
             IndexingAgreementKey({ indexer: _indexer, payer: _payer, agreementId: _agreementId })
         );

@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IIPCollector } from "@graphprotocol/horizon/contracts/interfaces/IIPCollector.sol";
+import { IAuthorizable } from "@graphprotocol/horizon/contracts/interfaces/IAuthorizable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { Bounder } from "@graphprotocol/horizon/test/utils/Bounder.t.sol";
 
@@ -73,6 +74,100 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         vm.expectRevert("SubgraphService: Caller not authorized by payer");
         resetPrank(rando);
         subgraphService.cancelIAVByPayer(serviceProvider, payer, agreementId);
+    }
+
+    function test_SubgraphService_CancelIAVByPayer_Revert_WhenInvalidIAV(
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
+        address payer,
+        bytes16 agreementId
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(IAuthorizable.isAuthorized.selector, payer, params.serviceProvider),
+            abi.encode(true)
+        );
+        vm.expectCall(
+            address(ipCollector),
+            abi.encodeCall(IAuthorizable.isAuthorized, (payer, params.serviceProvider))
+        );
+
+        resetPrank(params.serviceProvider);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.InvalidIndexingAgreementKey.selector,
+            payer,
+            params.serviceProvider,
+            agreementId
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.cancelIAVByPayer(params.serviceProvider, payer, agreementId);
+    }
+
+    function test_SubgraphService_CancelIAVByPayer_Revert_WhenCanceled(
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
+        IIPCollector.SignedIAV calldata fuzzySignedIAV,
+        bool cancelSource
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
+        _cancelAgreementBy(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId, cancelSource);
+
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(IAuthorizable.isAuthorized.selector, signedIAV.iav.payer, params.serviceProvider),
+            abi.encode(true)
+        );
+        vm.expectCall(
+            address(ipCollector),
+            abi.encodeCall(IAuthorizable.isAuthorized, (signedIAV.iav.payer, params.serviceProvider))
+        );
+        resetPrank(params.serviceProvider);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.IndexingAgreementAlreadyCanceled.selector,
+            signedIAV.iav.payer,
+            params.serviceProvider,
+            signedIAV.iav.agreementId
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.cancelIAVByPayer(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+    }
+
+    function test_SubgraphService_CancelIAVByPayer(
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
+        IIPCollector.SignedIAV calldata fuzzySignedIAV
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
+
+        _cancelAgreementByPayer(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+    }
+
+    function _cancelAgreementBy(address _serviceProvider, address _payer, bytes16 _agreementId, bool _source) private {
+        _source
+            ? _cancelAgreementByServiceProvider(_serviceProvider, _payer, _agreementId)
+            : _cancelAgreementByPayer(_serviceProvider, _payer, _agreementId);
+    }
+
+    function _cancelAgreementByPayer(address _serviceProvider, address _payer, bytes16 _agreementId) private {
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(IAuthorizable.isAuthorized.selector, _payer, _serviceProvider),
+            abi.encode(true)
+        );
+        vm.expectCall(address(ipCollector), abi.encodeCall(IAuthorizable.isAuthorized, (_payer, _serviceProvider)));
+
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(IIPCollector.cancel.selector, _payer, _serviceProvider, _agreementId),
+            new bytes(0)
+        );
+        vm.expectCall(
+            address(ipCollector),
+            abi.encodeCall(IIPCollector.cancel, (_payer, _serviceProvider, _agreementId))
+        );
+        resetPrank(_serviceProvider);
+        subgraphService.cancelIAVByPayer(_serviceProvider, _payer, _agreementId);
     }
 
     function test_SubgraphService_CancelIAV_Revert_WhenPaused(
@@ -170,7 +265,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     ) public {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
-        _cancelAgreement(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+        _cancelAgreementByServiceProvider(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
 
         resetPrank(params.serviceProvider);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -190,10 +285,10 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
 
-        _cancelAgreement(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+        _cancelAgreementByServiceProvider(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
     }
 
-    function _cancelAgreement(address _serviceProvider, address _payer, bytes16 _agreementId) private {
+    function _cancelAgreementByServiceProvider(address _serviceProvider, address _payer, bytes16 _agreementId) private {
         resetPrank(_serviceProvider);
         vm.mockCall(
             address(ipCollector),
