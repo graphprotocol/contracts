@@ -724,22 +724,24 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     }
 
     function test_SubgraphService_AcceptIAV_Revert_WhenAgreementAlreadyAccepted(
-        uint256 tokens,
+        setupFuzzyServiceProviderParams calldata _fuzzyParams,
         IIPCollector.SignedIAV memory signedIAV
-    ) public useIndexer useAllocation(tokens) {
-        signedIAV.iav.serviceProvider = users.indexer;
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
+        signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
-        signedIAV.iav.metadata = abi.encode(_createAgreementMetadata(subgraphDeployment));
+        signedIAV.iav.metadata = abi.encode(_createAgreementMetadata(params.subgraphDeploymentId));
 
         vm.mockCall(
             address(ipCollector),
             abi.encodeWithSelector(IIPCollector.accept.selector, signedIAV),
             new bytes(0)
         );
-        subgraphService.acceptIAV(allocationID, signedIAV);
+        resetPrank(params.serviceProvider);
+        subgraphService.acceptIAV(params.allocationId, signedIAV);
 
         vm.expectRevert("SubgraphService: Agreement already accepted");
-        subgraphService.acceptIAV(allocationID, signedIAV);
+        subgraphService.acceptIAV(params.allocationId, signedIAV);
     }
 
     function test_SubgraphService_AcceptIAV(
