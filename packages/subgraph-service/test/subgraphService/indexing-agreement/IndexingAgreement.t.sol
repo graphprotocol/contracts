@@ -261,11 +261,12 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
 
     function test_SubgraphService_CancelIAV_Revert_WhenCanceled(
         setupFuzzyServiceProviderParams calldata _fuzzyParams,
-        IIPCollector.SignedIAV calldata fuzzySignedIAV
+        IIPCollector.SignedIAV calldata fuzzySignedIAV,
+        bool cancelSource
     ) public {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
-        _cancelAgreementByServiceProvider(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId);
+        _cancelAgreementBy(params.serviceProvider, signedIAV.iav.payer, signedIAV.iav.agreementId, cancelSource);
 
         resetPrank(params.serviceProvider);
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -378,7 +379,7 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         IIPCollector.SignedIAV memory signedIAV
     ) public {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
-
+        vm.assume(signedIAV.iav.dataService != address(subgraphService));
         signedIAV.iav.serviceProvider = params.serviceProvider;
         // bytes memory expectedErr = abi.encodeWithSelector(
         //     ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
