@@ -27,6 +27,80 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
      * TESTS
      */
 
+    function test_SubgraphService_CollectIndexingFees_Revert_WhenPaused(
+        ISubgraphService.IndexingAgreementKey calldata key,
+        bytes32 collectionId,
+        uint256 entities,
+        bytes32 poi
+    ) public withSafeServiceProviderOrOperator(key.indexer) {
+        resetPrank(users.pauseGuardian);
+        subgraphService.pause();
+
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        resetPrank(key.indexer);
+        subgraphService.collectIndexingFees(key, collectionId, entities, poi);
+    }
+
+    function test_SubgraphService_CollectIndexingFees_Revert_WhenNotAuthorized(
+        address operator,
+        ISubgraphService.IndexingAgreementKey calldata key,
+        bytes32 collectionId,
+        uint256 entities,
+        bytes32 poi
+    ) public withSafeServiceProviderOrOperator(operator) {
+        vm.assume(operator != key.indexer);
+        resetPrank(operator);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerNotAuthorized.selector,
+            key.indexer,
+            operator
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.collectIndexingFees(key, collectionId, entities, poi);
+    }
+
+    function test_SubgraphService_CollectIndexingFees_Revert_WhenInvalidProvision(
+        uint256 unboundedTokens,
+        ISubgraphService.IndexingAgreementKey calldata key,
+        bytes32 collectionId,
+        uint256 entities,
+        bytes32 poi
+    ) public withSafeServiceProviderOrOperator(key.indexer) {
+        uint256 tokens = bound(unboundedTokens, 1, minimumProvisionTokens - 1);
+        mint(key.indexer, tokens);
+        resetPrank(key.indexer);
+        _createProvision(key.indexer, tokens, maxSlashingPercentage, disputePeriod);
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ProvisionManager.ProvisionManagerInvalidValue.selector,
+            "tokens",
+            tokens,
+            minimumProvisionTokens,
+            maximumProvisionTokens
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.collectIndexingFees(key, collectionId, entities, poi);
+    }
+
+    function test_SubgraphService_CollectIndexingFees_Revert_WhenIndexerNotRegistered(
+        uint256 unboundedTokens,
+        ISubgraphService.IndexingAgreementKey calldata key,
+        bytes32 collectionId,
+        uint256 entities,
+        bytes32 poi
+    ) public withSafeServiceProviderOrOperator(key.indexer) {
+        uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);
+        mint(key.indexer, tokens);
+        resetPrank(key.indexer);
+        _createProvision(key.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceIndexerNotRegistered.selector,
+            key.indexer
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.collectIndexingFees(key, collectionId, entities, poi);
+    }
+
     function test_SubgraphService_Revert_WhenUnsafeAddress_WhenProxyAdmin(
         address serviceProvider,
         address payer,
