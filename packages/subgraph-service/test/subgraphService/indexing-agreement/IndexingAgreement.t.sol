@@ -123,19 +123,20 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
 
     function test_SubgraphService_CollectIndexingFees_Revert_WhenInvalidSomething(
         setupFuzzyServiceProviderParams calldata fuzzyParams,
+        setupFuzzyServiceProviderParams calldata fuzzyParamsB,
         ISubgraphService.IndexingAgreementKey memory key,
-        uint256 collectionIdAsInt,
         uint256 entities,
         bytes32 poi
     ) public {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(fuzzyParams);
+        serviceProviderParams memory paramsB = _setupFuzzyServiceProvider(fuzzyParamsB);
         key.indexer = params.serviceProvider;
-        bytes32 collectionId = bytes32(bound(collectionIdAsInt, uint256(type(uint160).max) + 1, type(uint256).max));
+        bytes32 collectionId = bytes32(uint256(uint160(paramsB.allocationId)));
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceInvalidSomething.selector,
-            key.indexer,
-            params.serviceProvider
+            params.serviceProvider,
+            paramsB.serviceProvider
         );
         vm.expectRevert(expectedErr);
         resetPrank(params.serviceProvider);
