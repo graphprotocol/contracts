@@ -709,6 +709,10 @@ contract SubgraphService is
         uint256 _entities
     ) private returns (uint256) {
         IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(_key);
+        require(
+            _isCollectableAgreement(agreement),
+            InvalidIndexingAgreementKey(_key.payer, _key.indexer, _key.agreementId)
+        );
 
         uint256 collectionSeconds = block.timestamp;
         collectionSeconds -= agreement.lastCollection > 0 ? agreement.lastCollection : agreement.acceptedAt;
@@ -716,6 +720,10 @@ contract SubgraphService is
 
         // this is bad because it encourages people to collect at max seconds allowed to maximize collection.
         return collectionSeconds * (agreement.tokensPerSecond + agreement.tokensPerEntityPerSecond * _entities);
+    }
+
+    function _isCollectableAgreement(IndexingAgreementData memory agreement) private pure returns (bool) {
+        return agreement.acceptedAt > 0 && agreement.acceptedAt != CANCELED;
     }
 
     function _indexingAgreementCollect(
