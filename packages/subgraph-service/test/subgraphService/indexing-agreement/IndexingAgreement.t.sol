@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IPaymentsCollector } from "@graphprotocol/horizon/contracts/interfaces/IPaymentsCollector.sol";
 import { IIPCollector } from "@graphprotocol/horizon/contracts/interfaces/IIPCollector.sol";
 import { IAuthorizable } from "@graphprotocol/horizon/contracts/interfaces/IAuthorizable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
@@ -161,6 +162,46 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         );
         vm.expectRevert(expectedErr);
         resetPrank(params.serviceProvider);
+        subgraphService.collectIndexingFees(key, collectionId, entities, poi);
+    }
+
+    function test_SubgraphService_CollectIndexingFees(
+        setupFuzzyServiceProviderParams calldata fuzzyParams,
+        ISubgraphService.IndexingAgreementKey memory key,
+        uint256 entities,
+        bytes32 poi,
+        IIPCollector.SignedIAV calldata fuzzySignedIAV
+    ) public {
+        serviceProviderParams memory params = _setupFuzzyServiceProvider(fuzzyParams);
+        IIPCollector.SignedIAV memory signedIAV = _acceptAgreement(params, fuzzySignedIAV);
+        key.indexer = params.serviceProvider;
+        key.payer = signedIAV.iav.payer;
+        key.agreementId = signedIAV.iav.agreementId;
+        bytes32 collectionId = bytes32(uint256(uint160(params.allocationId)));
+
+        resetPrank(params.serviceProvider);
+        bytes memory data = abi.encode(
+            IIPCollector.CollectParams({
+                key: IIPCollector.AgreementKey({
+                    dataService: address(subgraphService),
+                    payer: key.payer,
+                    serviceProvider: key.indexer,
+                    agreementId: key.agreementId
+                }),
+                collectionId: collectionId,
+                tokens: 0,
+                dataServiceCut: 0
+            })
+        );
+        vm.mockCall(
+            address(ipCollector),
+            abi.encodeWithSelector(IPaymentsCollector.collect.selector, IGraphPayments.PaymentTypes.IndexingFee, data),
+            abi.encode(true)
+        );
+        vm.expectCall(
+            address(ipCollector),
+            abi.encodeCall(IPaymentsCollector.collect, (IGraphPayments.PaymentTypes.IndexingFee, data))
+        );
         subgraphService.collectIndexingFees(key, collectionId, entities, poi);
     }
 
