@@ -32,7 +32,7 @@ interface ISubgraphService is IDataServiceFees {
         uint256 tokensPerEntityPerSecond;
         bytes32 subgraphDeploymentId;
         string protocolNetwork;
-        string chainId;
+        // string chainId;
     }
 
     struct IndexingAgreementKey {

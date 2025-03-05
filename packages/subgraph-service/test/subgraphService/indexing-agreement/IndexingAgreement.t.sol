@@ -673,15 +673,8 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
-        signedIAV.iav.metadata = abi.encode(
-            ISubgraphService.IndexingAgreementVoucherMetadata({
-                tokensPerSecond: 0,
-                tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: params.subgraphDeploymentId,
-                protocolNetwork: "",
-                chainId: ""
-            })
-        );
+        signedIAV.iav.metadata = abi.encode(_createAgreementMetadata(params.subgraphDeploymentId));
+
         bytes memory expectedErr = abi.encodeWithSelector(
             Allocation.AllocationDoesNotExist.selector,
             invalidAllocationId
@@ -702,15 +695,8 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         serviceProviderParams memory paramsB = _setupFuzzyServiceProvider(_fuzzyParamsB);
         signedIAV.iav.serviceProvider = paramsA.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
-        signedIAV.iav.metadata = abi.encode(
-            ISubgraphService.IndexingAgreementVoucherMetadata({
-                tokensPerSecond: 0,
-                tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: paramsA.subgraphDeploymentId,
-                protocolNetwork: "",
-                chainId: ""
-            })
-        );
+        signedIAV.iav.metadata = abi.encode(_createAgreementMetadata(paramsA.subgraphDeploymentId));
+
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceInvalidSomething.selector,
             signedIAV.iav.serviceProvider,
@@ -730,15 +716,8 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         serviceProviderParams memory params = _setupFuzzyServiceProvider(_fuzzyParams);
         signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
-        signedIAV.iav.metadata = abi.encode(
-            ISubgraphService.IndexingAgreementVoucherMetadata({
-                tokensPerSecond: 0,
-                tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: wrongSubgraphDeploymentId,
-                protocolNetwork: "",
-                chainId: ""
-            })
-        );
+        signedIAV.iav.metadata = abi.encode(_createAgreementMetadata(wrongSubgraphDeploymentId));
+
         vm.expectRevert("SubgraphService: SubgraphDeploymentId mismatch");
         vm.prank(params.serviceProvider);
         subgraphService.acceptIAV(params.allocationId, signedIAV);
@@ -750,15 +729,8 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
     ) public useIndexer useAllocation(tokens) {
         signedIAV.iav.serviceProvider = users.indexer;
         signedIAV.iav.dataService = address(subgraphService);
-        signedIAV.iav.metadata = abi.encode(
-            ISubgraphService.IndexingAgreementVoucherMetadata({
-                tokensPerSecond: 0,
-                tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: subgraphDeployment,
-                protocolNetwork: "",
-                chainId: ""
-            })
-        );
+        signedIAV.iav.metadata = abi.encode(_createAgreementMetadata(subgraphDeployment));
+
         vm.mockCall(
             address(ipCollector),
             abi.encodeWithSelector(IIPCollector.accept.selector, signedIAV),
@@ -778,21 +750,26 @@ contract SubgraphServiceIndexingAgreementTest is SubgraphServiceTest, Bounder {
         _acceptAgreement(params, signedIAV);
     }
 
+    function _createAgreementMetadata(
+        bytes32 _subgraphDeploymentId
+    ) private pure returns (ISubgraphService.IndexingAgreementVoucherMetadata memory) {
+        return
+            ISubgraphService.IndexingAgreementVoucherMetadata({
+                tokensPerSecond: 0,
+                tokensPerEntityPerSecond: 0,
+                subgraphDeploymentId: _subgraphDeploymentId,
+                protocolNetwork: "block.chainid"
+            });
+    }
+
     function _acceptAgreement(
         serviceProviderParams memory params,
         IIPCollector.SignedIAV memory signedIAV
     ) private returns (IIPCollector.SignedIAV memory) {
         signedIAV.iav.serviceProvider = params.serviceProvider;
         signedIAV.iav.dataService = address(subgraphService);
-        signedIAV.iav.metadata = abi.encode(
-            ISubgraphService.IndexingAgreementVoucherMetadata({
-                tokensPerSecond: 0,
-                tokensPerEntityPerSecond: 0,
-                subgraphDeploymentId: params.subgraphDeploymentId,
-                protocolNetwork: "",
-                chainId: ""
-            })
-        );
+        signedIAV.iav.metadata = abi.encode(_createAgreementMetadata(params.subgraphDeploymentId));
+
         vm.mockCall(
             address(ipCollector),
             abi.encodeWithSelector(IIPCollector.accept.selector, signedIAV),
