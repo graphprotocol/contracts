@@ -148,7 +148,7 @@ contract SubgraphService is
     function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
-    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
+    ) external override onlyAuthorizedForProvision(indexer) whenNotPaused {
         _checkProvisionTokens(indexer);
         _acceptProvisionParameters(indexer);
         emit ProvisionPendingParametersAccepted(indexer);
