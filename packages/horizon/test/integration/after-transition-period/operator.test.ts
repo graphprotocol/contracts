@@ -1,14 +1,14 @@
 import hre from 'hardhat'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { HorizonStaking, IGraphToken } from '../../../typechain-types'
+import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { createProvision, deprovision, reprovision, stakeTo, thaw, unstake } from '../shared/staking'
 import { PaymentTypes } from '../utils/types'
 
 describe('Operator', () => {
-  let horizonStaking: HorizonStaking
+  let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
   let serviceProvider: SignerWithAddress
   let verifier: string
@@ -21,7 +21,7 @@ describe('Operator', () => {
   before(async () => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
     graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
 
     // Get signers

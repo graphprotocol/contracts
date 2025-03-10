@@ -9,6 +9,7 @@ import DeployModule from '../ignition/modules/deploy'
 
 task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon contracts - no data services deployed')
   .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
+  .addOptionalParam('signerIndex', 'Index of the signer account in getSigners array', 0, types.int)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const graph = hre.graph()
 
@@ -20,7 +21,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     // Display the deployer -- this also triggers the secure accounts prompt if being used
     console.log('\n========== 🔑 Deployer account ==========')
     const signers = await hre.ethers.getSigners()
-    const deployer = signers[0]
+    const deployer = signers[args.signerIndex]
     console.log('Using deployer account:', deployer.address)
     const balance = await hre.ethers.provider.getBalance(deployer.address)
     console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')
@@ -32,8 +33,9 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     // Deploy the contracts
     console.log(`\n========== 🚧 Deploy protocol ==========`)
     const deployment = await hre.ignition.deploy(DeployModule, {
-      displayUi: args.displayUi ?? true,
+      displayUi: true,
       parameters: HorizonConfig,
+      defaultSender: deployer.address,
     })
 
     // Save the addresses to the address book
@@ -47,14 +49,18 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to Horizon - no data services deployed')
   .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
   .addOptionalParam('step', 'Migration step to run (1, 2, 3 or 4)', undefined, types.int)
+  .addOptionalParam('signerIndex', 'Index of the signer account in getSigners array', 0, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
+  .addFlag('hideBanner', 'Hide the banner display')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     // Task parameters
     const step: number = args.step ?? 0
     const patchConfig: boolean = args.patchConfig ?? false
 
     const graph = hre.graph()
-    console.log(getHorizonBanner())
+    if (!args.hideBanner) {
+      console.log(getHorizonBanner())
+    }
 
     // Migration step to run
     console.log('\n========== 🏗️ Migration steps ==========')
@@ -74,7 +80,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
     console.log('\n========== 🔑 Deployer account ==========')
     const signers = await hre.ethers.getSigners()
-    const deployer = signers[0]
+    const deployer = signers[args.signerIndex]
     console.log('Using deployer account:', deployer.address)
     const balance = await hre.ethers.provider.getBalance(deployer.address)
     console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')
@@ -92,14 +98,16 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
         displayUi: true,
         parameters: patchConfig ? _patchStepConfig(step, HorizonMigrateConfig, graph.horizon!.addressBook, graph.subgraphService!.addressBook) : HorizonMigrateConfig,
         deploymentId: `horizon-${hre.network.name}`,
-      })
+        defaultSender: deployer.address,
+      },
+    )
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
     IgnitionHelper.saveToAddressBook(deployment, graph.horizon!.addressBook)
     console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
 
-    console.log('\n\n🎉 ✨ 🚀 ✅ Migration complete! 🎉 ✨ 🚀 ✅')
+    console.log(`\n\n🎉 ✨ 🚀 ✅ Migration step ${step} complete! 🎉 ✨ 🚀 ✅\n`)
   })
 
 // This function patches the Ignition configuration object using an address book to fill in the gaps
