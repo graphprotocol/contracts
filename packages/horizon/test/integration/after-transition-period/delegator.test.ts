@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { HorizonStaking, IGraphToken } from '../../../typechain-types'
+import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import {
@@ -14,7 +14,7 @@ import {
 } from '../shared/staking'
 
 describe('Delegator', () => {
-  let horizonStaking: HorizonStaking
+  let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
   let delegator: SignerWithAddress
   let serviceProvider: SignerWithAddress
@@ -29,7 +29,7 @@ describe('Delegator', () => {
   before(async () => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
     graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
 
     [serviceProvider, delegator, newServiceProvider] = await ethers.getSigners()
@@ -50,7 +50,17 @@ describe('Delegator', () => {
       thawingPeriod,
     })
 
-    // Send funds to delegator and new service provider
+    // Send eth to delegator and new service provider to cover gas fees
+    await serviceProvider.sendTransaction({
+      to: delegator.address,
+      value: ethers.parseEther('0.04'),
+    })
+    await serviceProvider.sendTransaction({
+      to: newServiceProvider.address,
+      value: ethers.parseEther('0.04'),
+    })
+
+    // Send GRT to delegator and new service provider to use for delegation and staking
     await graphToken.connect(serviceProvider).transfer(delegator.address, tokens)
     await graphToken.connect(serviceProvider).transfer(newServiceProvider.address, tokens)
   })
