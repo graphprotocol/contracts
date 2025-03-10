@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { HorizonStaking, IGraphToken } from '../../../typechain-types'
+import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import {
@@ -12,7 +12,7 @@ import {
 } from '../shared/staking'
 
 describe('Add to delegation pool', () => {
-  let horizonStaking: HorizonStaking
+  let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
   let serviceProvider: SignerWithAddress
   let delegator: SignerWithAddress
@@ -27,7 +27,7 @@ describe('Add to delegation pool', () => {
   before(async () => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
     graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
 
     [serviceProvider, delegator, signer] = await ethers.getSigners()

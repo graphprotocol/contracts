@@ -1,0 +1,106 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Save original environment variable values
+ORIGINAL_HARDHAT_FORK=${HARDHAT_FORK:-""}
+ORIGINAL_SECURE_ACCOUNTS_DISABLE_PROVIDER=${SECURE_ACCOUNTS_DISABLE_PROVIDER:-""}
+
+# Set environment variables for this script
+export HARDHAT_FORK=true
+export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
+
+# Function to cleanup resources
+cleanup() {
+    # Remove ignition deployment files
+    echo "Removing ignition deployment files..."
+    rm -rf ignition/deployments/horizon-localhost
+
+    # Kill hardhat node only if we started it
+    if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
+        echo "Cleaning up node process..."
+        kill $NODE_PID 2>/dev/null || true
+    fi
+    
+    # Restore original environment variables
+    echo "Restoring original environment variables..."
+    if [ -z "$ORIGINAL_HARDHAT_FORK" ]; then
+        unset HARDHAT_FORK
+    else
+        export HARDHAT_FORK="$ORIGINAL_HARDHAT_FORK"
+    fi
+    
+    if [ -z "$ORIGINAL_SECURE_ACCOUNTS_DISABLE_PROVIDER" ]; then
+        unset SECURE_ACCOUNTS_DISABLE_PROVIDER
+    else
+        export SECURE_ACCOUNTS_DISABLE_PROVIDER="$ORIGINAL_SECURE_ACCOUNTS_DISABLE_PROVIDER"
+    fi
+}
+
+# Set trap to call cleanup function on script exit (normal or error)
+trap cleanup EXIT
+
+# Check required env variables
+if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
+    echo "ARBITRUM_SEPOLIA_RPC environment variable is required"
+    exit 1
+fi
+
+echo "Starting e2e tests..."
+
+# Check if hardhat node is already running on port 8545
+STARTED_NODE=false
+if lsof -i:8545 > /dev/null 2>&1; then
+    echo "Hardhat node already running on port 8545, using existing node"
+    # Get the PID of the process using port 8545
+    NODE_PID=$(lsof -t -i:8545)
+else
+    # Start local hardhat node forked from Arbitrum Sepolia
+    echo "Starting local hardhat node..."
+    npx hardhat node --fork $ARBITRUM_SEPOLIA_RPC > node.log 2>&1 &
+    NODE_PID=$!
+    STARTED_NODE=true
+
+    # Wait for node to start
+    sleep 10
+fi
+
+# Setup pre horizon migration state needed for the e2e tests
+npx hardhat run ./scripts/e2e/pre-upgrade.ts --network localhost
+
+# Transfer ownership of protocol to hardhat signer 1
+npx hardhat run ./scripts/e2e/transfer-ownership.ts --network localhost
+
+# Step 1 - Deployer
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --signer-index 0
+
+# Step 2 - Governor
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 2 --patch-config --signer-index 1 --hide-banner
+
+# Step 3 - Deployer
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 3 --patch-config --signer-index 0 --hide-banner
+
+# Step 4 - Governor
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 4 --patch-config --signer-index 1 --hide-banner
+
+# Unset subgraph service
+npx hardhat transition:unset-subgraph-service --network localhost --governor-index 1
+
+# Run integration tests - During transition period
+npx hardhat test:integration --phase during-transition-period --network localhost
+
+# Clear thawing period
+npx hardhat transition:clear-thawing --network localhost --governor-index 1
+
+# Run integration tests - After transition period
+npx hardhat test:integration --phase after-transition-period --network localhost
+
+# Enable delegation slashing
+npx hardhat transition:enable-delegation-slashing --network localhost --governor-index 1
+
+# Run integration tests - After delegation slashing enabled
+npx hardhat test:integration --phase after-delegation-slashing-enabled --network localhost
+
+echo ""
+echo "🎉 ✨ 🚀 ✅ E2E tests completed successfully! 🎉 ✨ 🚀 ✅"
+echo ""

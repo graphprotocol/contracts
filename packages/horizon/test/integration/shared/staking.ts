@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { HorizonStaking, IGraphToken } from '../../../typechain-types'
+import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ThawRequestType } from '../utils/types'
 import { HDNodeWallet } from 'ethers'
@@ -9,7 +9,7 @@ import { HDNodeWallet } from 'ethers'
 ////////////////////////////////////////////////////////////// */
 
 interface StakeParams {
-  horizonStaking: HorizonStaking
+  horizonStaking: IHorizonStaking
   graphToken: IGraphToken
   serviceProvider: SignerWithAddress
   tokens: bigint
@@ -52,6 +52,16 @@ export async function unstake({
 }: UnstakeParams): Promise<void> {
   const unstakeTx = await horizonStaking.connect(serviceProvider).unstake(tokens)
   await unstakeTx.wait()
+}
+
+interface WithdrawParams extends Omit<StakeParams, 'graphToken' | 'tokens'> {}
+
+export async function withdraw({
+  horizonStaking,
+  serviceProvider,
+}: WithdrawParams): Promise<void> {
+  const withdrawTx = await horizonStaking.connect(serviceProvider).withdraw()
+  await withdrawTx.wait()
 }
 
 interface StakeToProvisionParams extends StakeParams {
@@ -109,7 +119,7 @@ export async function slash({
 ////////////////////////////////////////////////////////////// */
 
 interface ProvisionParams {
-  horizonStaking: HorizonStaking
+  horizonStaking: IHorizonStaking
   serviceProvider: SignerWithAddress
   verifier: string
   tokens: bigint
@@ -258,7 +268,7 @@ export async function reprovision({
 ////////////////////////////////////////////////////////////// */
 
 interface DelegationParams {
-  horizonStaking: HorizonStaking
+  horizonStaking: IHorizonStaking
   delegator: SignerWithAddress
   serviceProvider: SignerWithAddress
   verifier: string
