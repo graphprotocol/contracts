@@ -26,7 +26,7 @@ contract HorizonStakingCollectAllocationTest is HorizonStakingTest {
         staking.collect(tokens, _allocationId);
     }
 
-    function testCollect_Tokenss(
+    function testCollect_Tokens(
         uint256 allocationTokens,
         uint256 collectTokens,
         uint256 curationTokens,

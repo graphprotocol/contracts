@@ -21,7 +21,8 @@
     "build": "BUILD_RUN=true hardhat compile",
     "test": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test",
-    "test:integration": "hardhat test:integration --deploy-type deploy"
+    "test:integration": "hardhat test:integration --deploy-type deploy",
+    "test:e2e": "./scripts/e2e/e2e"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
