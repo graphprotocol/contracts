@@ -108,7 +108,7 @@ describe('Add to delegation pool', () => {
     await slash({
       horizonStaking,
       verifier: newVerifier,
-      serviceProvider,
+      serviceProvider: serviceProvider.address,
       tokens: slashTokens,
       tokensVerifier,
       verifierDestination: newVerifier.address,
