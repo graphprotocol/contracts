@@ -16,6 +16,7 @@ describe('Service Provider', () => {
   let graphToken: IGraphToken
   let snapshotId: string
   
+  // TODO: FIX THIS
   const subgraphServiceAddress = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B'
 
   before(async () => {
