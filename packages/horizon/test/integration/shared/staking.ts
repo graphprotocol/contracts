@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ThawRequestType } from '../utils/types'
-import { HDNodeWallet } from 'ethers'
+import { ethers, HDNodeWallet } from 'ethers'
 
 /* //////////////////////////////////////////////////////////////
                           STAKE MANAGEMENT
@@ -90,8 +90,9 @@ export async function stakeToProvision({
   await stakeToProvisionTx.wait()
 }
 
-interface SlashParams extends Omit<StakeParams, 'graphToken'> {
+interface SlashParams extends Omit<StakeParams, 'graphToken' | 'serviceProvider'> {
   verifier: SignerWithAddress | HDNodeWallet
+  serviceProvider: string
   tokens: bigint
   tokensVerifier: bigint
   verifierDestination: string
@@ -106,7 +107,7 @@ export async function slash({
   verifierDestination,
 }: SlashParams): Promise<void> {
   const slashTx = await horizonStaking.connect(verifier).slash(
-    serviceProvider.address,
+    serviceProvider,
     tokens,
     tokensVerifier,
     verifierDestination,
@@ -320,10 +321,6 @@ export async function undelegate({
   await undelegateTx.wait()
 }
 
-interface WithdrawDelegatedParams extends DelegationParams {
-  nThawRequests: bigint
-}
-
 interface RedelegateParams extends DelegationParams {
   newServiceProvider: SignerWithAddress
   newVerifier: string
@@ -352,6 +349,10 @@ export async function redelegate({
   await redelegateTx.wait()
 }
 
+interface WithdrawDelegatedParams extends DelegationParams {
+  nThawRequests: bigint
+}
+
 export async function withdrawDelegated({
   horizonStaking,
   delegator,
@@ -363,6 +364,20 @@ export async function withdrawDelegated({
     serviceProvider.address,
     verifier,
     nThawRequests,
+  )
+  await withdrawDelegatedTx.wait()
+}
+
+interface WithdrawDelegatedLegacyParams extends Omit<DelegationParams, 'verifier'> {}
+
+export async function withdrawDelegatedLegacy({
+  horizonStaking,
+  delegator,
+  serviceProvider,
+}: WithdrawDelegatedLegacyParams): Promise<void> {
+  const withdrawDelegatedTx = await horizonStaking.connect(delegator)['withdrawDelegated(address,address)'](
+    serviceProvider.address,
+    ethers.ZeroAddress,
   )
   await withdrawDelegatedTx.wait()
 }
