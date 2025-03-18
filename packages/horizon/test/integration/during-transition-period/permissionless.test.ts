@@ -1,32 +1,26 @@
-import hre from 'hardhat'
-import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { IHorizonStaking, IGraphToken, IRewardsManager, IEpochManager } from '../../../typechain-types'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { indexers } from '../../../scripts/e2e/fixtures/indexers'
+import { expect } from 'chai'
+import hre from 'hardhat'
 import { keccak256 } from 'ethers'
 import { toUtf8Bytes } from 'ethers'
-import EpochManager from '../../../ignition/modules/periphery/EpochManager'
+
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+
+import { IEpochManager, IHorizonStaking } from '../../../typechain-types'
+
+import { indexers } from '../../../scripts/e2e/fixtures/indexers'
 
 describe('Permissionless', () => {
   let horizonStaking: IHorizonStaking
-  let rewardsManager: IRewardsManager
   let epochManager: IEpochManager
-  let graphToken: IGraphToken
   let snapshotId: string
 
-  // TODO: FIX THIS
-  const subgraphServiceAddress = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B'
-
-  before(async () => {
+  before(() => {
     const graph = hre.graph()
 
     // Get contracts
     horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    rewardsManager = graph.horizon!.contracts.RewardsManager as unknown as IRewardsManager
     epochManager = graph.horizon!.contracts.EpochManager as unknown as IEpochManager
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
   })
 
   beforeEach(async () => {
@@ -66,7 +60,7 @@ describe('Permissionless', () => {
       }
 
       // Close allocation
-      await horizonStaking.connect(anySigner).closeAllocation(allocationID, ethers.getBytes(keccak256(toUtf8Bytes("poi"))))
+      await horizonStaking.connect(anySigner).closeAllocation(allocationID, ethers.getBytes(keccak256(toUtf8Bytes('poi'))))
 
       // Get indexer's idle stake after closing allocation
       const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)

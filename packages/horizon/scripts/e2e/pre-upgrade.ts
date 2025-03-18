@@ -1,16 +1,16 @@
 import hre, { ethers } from 'hardhat'
 import { Contract } from 'ethers'
-import { mergeABIs } from 'hardhat-graph-protocol/sdk'
-import { indexers } from './fixtures/indexers'
-import { delegators } from './fixtures/delegators'
 
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 
-import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
-import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
-import L2GraphTokenABI from '@graphprotocol/contracts/build/abis/L2GraphToken.json'
-
 import { IGraphToken, IStaking } from '@graphprotocol/contracts'
+import L2GraphTokenABI from '@graphprotocol/contracts/build/abis/L2GraphToken.json'
+import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
+import { mergeABIs } from 'hardhat-graph-protocol/sdk'
+import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
+
+import { delegators } from './fixtures/delegators'
+import { indexers } from './fixtures/indexers'
 
 // The account on Arbitrum Sepolia that has GRT tokens
 const GRT_HOLDER_ADDRESS = process.env.GRT_HOLDER_ADDRESS || '0xadE6B8EB69a49B56929C1d4F4b428d791861dB6f'
@@ -59,15 +59,16 @@ async function main() {
   const Staking = new Contract(stakingAddress, combinedStakingABI, provider) as unknown as IStaking
 
   // The account on Arbitrum Sepolia that has GRT tokens
-  const assetHolderBalance = await GraphToken.balanceOf(GRT_HOLDER_ADDRESS)
+  const assetHolderBalance = BigInt((await GraphToken.balanceOf(GRT_HOLDER_ADDRESS)).toString())
   console.log(`Asset holder balance: ${assetHolderBalance}`)
 
   // Convert BigNumber to bigint for comparison
-  if (BigInt(assetHolderBalance.toString()) < ethers.parseEther('20000000')) {
+  if (assetHolderBalance < ethers.parseEther('20000000')) {
     throw new Error('Asset holder balance is less than 20M tokens')
   }
-  
+
   // Impersonate the account
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const grtHolder = await ethers.getImpersonatedSigner(GRT_HOLDER_ADDRESS) as any
 
   // Fund with GRT signers from 0 to 19 with 1M tokens
@@ -83,6 +84,7 @@ async function main() {
   console.log('\n--- STEP 1: Indexers Setup ---')
   for (const indexer of indexers) {
     // Impersonate the indexer
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const indexerSigner = await ethers.getSigner(indexer.address) as any
 
     // Approve and stake
@@ -109,6 +111,7 @@ async function main() {
   console.log('\n--- STEP 2: Delegators Delegating ---')
   for (const delegator of delegators) {
     // Impersonate the delegator
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const delegatorSigner = await ethers.getSigner(delegator.address) as any
 
     // Delegate to each indexer
@@ -125,17 +128,18 @@ async function main() {
   console.log('\n--- STEP 3: Creating Allocations ---')
   for (const indexer of indexers) {
     // Impersonate the indexer
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const indexerSigner = await ethers.getSigner(indexer.address) as any
 
     for (const allocation of indexer.allocations) {
       console.log(`Creating allocation of ${allocation.tokens} tokens from indexer ${indexer.address} on subgraph ${allocation.subgraphDeploymentID}...`)
-      
+
       const allocateTx = await Staking.connect(indexerSigner).allocate(
         allocation.subgraphDeploymentID,
         allocation.tokens,
         allocation.allocationID,
         randomHexBytes(), // metadata
-        await generateAllocationProof(indexer.address, allocation.allocationPrivateKey)
+        await generateAllocationProof(indexer.address, allocation.allocationPrivateKey),
       )
       await allocateTx.wait()
     }
@@ -146,7 +150,12 @@ async function main() {
   for (const indexer of indexers) {
     if (indexer.tokensToUnstake) {
       console.log(`Indexer ${indexer.address} is unstaking...`)
+
+      // Impersonate the indexer
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const indexerSigner = await ethers.getSigner(indexer.address) as any
+
+      // Unstake
       const unstakeTx = await Staking.connect(indexerSigner).unstake(indexer.tokensToUnstake)
       await unstakeTx.wait()
     }
@@ -159,13 +168,14 @@ async function main() {
       console.log(`Delegator ${delegator.address} is undelegating...`)
 
       // Impersonate the delegator
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const delegatorSigner = await ethers.getSigner(delegator.address) as any
-      
+
       for (const delegation of delegator.delegations) {
         // Get the delegation information
         const delegationInfo = await Staking.getDelegation(delegation.indexerAddress, delegator.address)
-        const shares = delegationInfo.shares
-        
+        const shares = BigInt(delegationInfo.shares.toString())
+
         console.log(`Undelegating ${shares} shares from indexer ${delegation.indexerAddress}...`)
 
         // Undelegate the shares
@@ -174,7 +184,7 @@ async function main() {
       }
     }
   }
-  
+
   console.log('\n\n🎉 ✨ 🚀 ✅ Pre-upgrade state setup complete! 🎉 ✨ 🚀 ✅\n')
 }
 

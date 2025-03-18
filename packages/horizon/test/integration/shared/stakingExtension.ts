@@ -1,5 +1,6 @@
-import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+
+import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
 
 /* ////////////////////////////////////////////////////////////
                         STAKING EXTENSION
@@ -22,7 +23,7 @@ export async function collect({
 }: CollectParams): Promise<void> {
   // Approve horizon staking contract to pull tokens from gateway
   await approve(graphToken, gateway, await horizonStaking.getAddress(), tokens)
-  
+
   // Collect query fees
   const collectTx = await horizonStaking.connect(gateway).collect(tokens, allocationID)
   await collectTx.wait()

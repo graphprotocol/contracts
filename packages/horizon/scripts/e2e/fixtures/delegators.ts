@@ -1,5 +1,5 @@
-import { parseEther } from 'ethers'
 import { indexers } from './indexers'
+import { parseEther } from 'ethers'
 
 export interface Delegator {
   address: string
@@ -21,7 +21,7 @@ export const delegators: Delegator[] = [
       {
         indexerAddress: indexers[1].address,
         tokens: parseEther('25000'),
-      }
+      },
     ],
     undelegate: false,
   },
@@ -31,7 +31,7 @@ export const delegators: Delegator[] = [
       {
         indexerAddress: indexers[1].address,
         tokens: parseEther('75000'),
-      }
+      },
     ],
     undelegate: false,
   },
@@ -41,7 +41,7 @@ export const delegators: Delegator[] = [
       {
         indexerAddress: indexers[0].address,
         tokens: parseEther('100000'),
-      }
+      },
     ],
     undelegate: true, // This delegator will undelegate
   },
@@ -54,5 +54,5 @@ export const delegators: Delegator[] = [
     address: '0x2F560290FEF1B3Ada194b6aA9c40aa71f8e95598', // Hardhat account #14
     delegations: [],
     undelegate: false,
-  }
+  },
 ]
