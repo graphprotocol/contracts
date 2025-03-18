@@ -1,12 +1,11 @@
-import hre from 'hardhat'
-import { ethers } from 'hardhat'
 import { Contract } from 'ethers'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
+import { IStaking } from '@graphprotocol/contracts'
 import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
-import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
-
 import { mergeABIs } from 'hardhat-graph-protocol/sdk'
-import { IStaking } from '@graphprotocol/contracts/build/types/IStaking'
+import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
 
 async function main() {
   console.log(getBanner())
@@ -20,6 +19,7 @@ async function main() {
 
   // Get signers
   const signers = await ethers.getSigners()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const newGovernor = signers[1] as any
   const newSlasher = signers[2]
 
@@ -37,20 +37,22 @@ async function main() {
   const staking = new Contract(stakingAddress, combinedStakingABI, ethers.provider) as unknown as IStaking
   const controller = hre.graph().horizon!.contracts.Controller
   const graphProxyAdmin = hre.graph().horizon!.contracts.GraphProxyAdmin
-  
+
   // Get current owners
   const controllerGovernor = await controller.governor()
   const proxyAdminGovernor = await graphProxyAdmin.governor()
-  
+
   console.log(`Current Controller governor: ${controllerGovernor}`)
   console.log(`Current GraphProxyAdmin governor: ${proxyAdminGovernor}`)
 
   // Get impersonated signers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controllerSigner = await ethers.getImpersonatedSigner(controllerGovernor) as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const proxyAdminSigner = await ethers.getImpersonatedSigner(proxyAdminGovernor) as any
 
   console.log('\n--- STEP 1: Transfer ownership of Controller ---')
-  
+
   // Transfer Controller ownership
   console.log('Transferring Controller ownership...')
   const controllerTx = await controller.connect(controllerSigner).transferOwnership(newGovernor.address)

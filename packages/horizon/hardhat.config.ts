@@ -1,14 +1,14 @@
-import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
 import { existsSync, readdirSync } from 'fs'
+import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
+import { HardhatUserConfig } from 'hardhat/types'
 import { join } from 'path'
 
-// Hardhat plugins
+// Plugin imports (single imports)
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
-import { HardhatUserConfig } from 'hardhat/types'
 
 // Hardhat tasks
 function loadTasks() {

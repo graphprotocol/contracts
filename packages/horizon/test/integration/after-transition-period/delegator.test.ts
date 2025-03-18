@@ -1,8 +1,10 @@
-import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
+import hre from 'hardhat'
+
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+
+import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
 
 import {
   createProvision,
