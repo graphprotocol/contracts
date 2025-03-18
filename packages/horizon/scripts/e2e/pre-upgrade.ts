@@ -68,8 +68,7 @@ async function main() {
   }
   
   // Impersonate the account
-  await ethers.provider.send('hardhat_impersonateAccount', [GRT_HOLDER_ADDRESS])
-  const grtHolder = await ethers.getSigner(GRT_HOLDER_ADDRESS) as any
+  const grtHolder = await ethers.getImpersonatedSigner(GRT_HOLDER_ADDRESS) as any
 
   // Fund with GRT signers from 0 to 19 with 1M tokens
   console.log('Funding signers from 0 to 19 with 1M tokens...')
@@ -175,12 +174,6 @@ async function main() {
       }
     }
   }
-
-  // Stop impersonating the account
-  await hre.network.provider.request({
-    method: "hardhat_stopImpersonatingAccount",
-    params: [GRT_HOLDER_ADDRESS],
-  });
   
   console.log('\n\n🎉 ✨ 🚀 ✅ Pre-upgrade state setup complete! 🎉 ✨ 🚀 ✅\n')
 }

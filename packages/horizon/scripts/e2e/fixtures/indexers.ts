@@ -72,6 +72,7 @@ export const indexers: Indexer[] = [
   {
     address: INDEXER_TWO_ADDRESS,
     stake: parseEther('1000000'),
+    tokensToUnstake: parseEther('1000000'),
     indexingRewardCut: 850000, // 85%
     queryFeeCut: 850000, // 85%
     rewardsDestination: INDEXER_TWO_REWARDS_DESTINATION,

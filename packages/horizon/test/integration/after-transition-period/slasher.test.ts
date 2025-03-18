@@ -13,7 +13,7 @@ import {
   thaw,
 } from '../shared/staking'
 
-describe('Slashing', () => {
+describe('Slasher', () => {
   let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
   let serviceProvider: SignerWithAddress
@@ -78,7 +78,7 @@ describe('Slashing', () => {
     await slash({
       horizonStaking,
       verifier,
-      serviceProvider,
+      serviceProvider: serviceProvider.address,
       tokens: slashTokens,
       tokensVerifier,
       verifierDestination,
@@ -112,7 +112,7 @@ describe('Slashing', () => {
     await slash({
       horizonStaking,
       verifier,
-      serviceProvider,
+      serviceProvider: serviceProvider.address,
       tokens: slashTokens,
       tokensVerifier,
       verifierDestination,
@@ -167,7 +167,7 @@ describe('Slashing', () => {
     await slash({
       horizonStaking,
       verifier: slashingVerifier,
-      serviceProvider,
+      serviceProvider: serviceProvider.address,
       tokens: slashTokens,
       tokensVerifier,
       verifierDestination,
