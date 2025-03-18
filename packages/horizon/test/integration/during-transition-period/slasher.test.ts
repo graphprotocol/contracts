@@ -1,9 +1,11 @@
-import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
+import hre from 'hardhat'
+
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
-import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
+import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
+
 import { indexers } from '../../../scripts/e2e/fixtures/indexers'
 import { slash } from '../shared/staking'
 
@@ -15,7 +17,7 @@ describe('Slasher', () => {
   let indexer: string
   let slasher: SignerWithAddress
   let tokensToSlash: bigint
-  
+
   before(async () => {
     const graph = hre.graph()
 
@@ -36,8 +38,7 @@ describe('Slasher', () => {
   })
 
   describe('Available tokens', () => {
-    
-    before(async () => {
+    before(() => {
       const indexerFixture = indexers[0]
       indexer = indexerFixture.address
       tokensToSlash = ethers.parseEther('10000')
@@ -70,8 +71,7 @@ describe('Slasher', () => {
   })
 
   describe('Locked tokens', () => {
-
-    before(async () => {
+    before(() => {
       const indexerFixture = indexers[1]
       indexer = indexerFixture.address
       tokensToSlash = indexerFixture.stake
@@ -81,7 +81,7 @@ describe('Slasher', () => {
       // Before slash state
       const tokensVerifier = tokensToSlash / 2n
       const slasherBeforeBalance = await graphToken.balanceOf(slasher.address)
-      
+
       // Slash tokens
       await slash({
         horizonStaking,

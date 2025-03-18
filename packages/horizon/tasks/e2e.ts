@@ -1,6 +1,6 @@
-import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
-import { task } from 'hardhat/config'
 import { glob } from 'glob'
+import { task } from 'hardhat/config'
+import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 
 task('test:integration', 'Runs all integration tests')
   .addParam(
@@ -15,7 +15,7 @@ task('test:integration', 'Runs all integration tests')
 
     // Display banner for the current test phase
     console.log(getTestPhaseBanner(taskArgs.phase))
-    
+
     switch (taskArgs.phase) {
       case 'during-transition-period':
         await hre.run(TASK_TEST, { testFiles: duringTransitionPeriodFiles })
@@ -38,25 +38,25 @@ function getTestPhaseBanner(phase: string): string {
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
-  
+
   const baseText = 'INTEGRATION TESTS: '
   const fullText = baseText + title
-  
+
   // Calculate minimum banner width needed for the text
   const contentWidth = fullText.length
   const bannerWidth = Math.max(47, contentWidth + 10) // Add padding
-  
+
   // Create the centered text line
   const paddingLeft = Math.floor((bannerWidth - contentWidth) / 2)
   const paddingRight = bannerWidth - contentWidth - paddingLeft
   const centeredLine = '|' + ' '.repeat(paddingLeft) + fullText + ' '.repeat(paddingRight) + '|'
-  
+
   // Create empty line with correct width
   const emptyLine = '|' + ' '.repeat(bannerWidth) + '|'
-  
+
   // Create border with correct width
   const border = '+' + '-'.repeat(bannerWidth) + '+'
-  
+
   return `
 ${border}
 ${emptyLine}
