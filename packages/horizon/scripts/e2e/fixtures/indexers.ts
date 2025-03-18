@@ -43,7 +43,7 @@ const SUBGRAPH_DEPLOYMENT_ID_THREE = '0x0472e8c46f728adb65a22187c6740532f82c2eba
 
 export const indexers: Indexer[] = [
   {
-    address: INDEXER_ONE_ADDRESS, 
+    address: INDEXER_ONE_ADDRESS,
     stake: parseEther('1000000'),
     tokensToUnstake: parseEther('10000'),
     indexingRewardCut: 900000, // 90%

@@ -5,7 +5,7 @@ task('transition:unset-subgraph-service', 'Unsets the subgraph service in Horizo
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
     console.log(getTransitionBanner('UNSETTING SUBGRAPH SERVICE'))
-    
+
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
     const rewardsManager = hre.graph().horizon!.contracts.RewardsManager
@@ -20,7 +20,7 @@ task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
     console.log(getTransitionBanner('CLEARING THAWING PERIOD'))
-    
+
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
     const horizonStaking = hre.graph().horizon!.contracts.HorizonStaking
@@ -35,7 +35,7 @@ task('transition:enable-delegation-slashing', 'Enables delegation slashing in Ho
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
     console.log(getTransitionBanner('ENABLING DELEGATION SLASHING'))
-    
+
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
     const horizonStaking = hre.graph().horizon!.contracts.HorizonStaking
@@ -52,14 +52,14 @@ task('transition:enable-delegation-slashing', 'Enables delegation slashing in Ho
 function getTransitionBanner(title: string): string {
   const bannerWidth = 47 // Total width inside the box
   const fullText = title
-  
+
   // Calculate padding needed to center the text
   const totalPadding = bannerWidth - fullText.length
   const leftPadding = Math.floor(totalPadding / 2)
   const rightPadding = totalPadding - leftPadding
-  
+
   const centeredText = ' '.repeat(leftPadding) + fullText + ' '.repeat(rightPadding)
-  
+
   return `
 +-----------------------------------------------+
 |                                               |

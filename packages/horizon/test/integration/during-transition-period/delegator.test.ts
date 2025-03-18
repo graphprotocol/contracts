@@ -1,21 +1,20 @@
-import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
+import hre from 'hardhat'
+
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
-import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
+import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
 
-import {
-  withdrawDelegatedLegacy,
-} from '../shared/staking'
 import { delegators } from '../../../scripts/e2e/fixtures/delegators'
+import { withdrawDelegatedLegacy } from '../shared/staking'
 
 describe('Delegator', () => {
   let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
   let snapshotId: string
 
-  before(async () => {
+  before(() => {
     const graph = hre.graph()
 
     horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
@@ -33,7 +32,6 @@ describe('Delegator', () => {
   })
 
   describe('Existing Protocol Users', () => {
-
     describe('User undelegated before horizon was deployed', () => {
       let indexer: SignerWithAddress
       let delegator: SignerWithAddress

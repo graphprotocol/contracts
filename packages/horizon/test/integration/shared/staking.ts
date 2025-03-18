@@ -1,8 +1,11 @@
-import { expect } from 'chai'
-import { IHorizonStaking, IGraphToken } from '../../../typechain-types'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { ThawRequestType } from '../utils/types'
 import { ethers, HDNodeWallet } from 'ethers'
+import { expect } from 'chai'
+
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+
+import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
+
+import { ThawRequestType } from '../utils/types'
 
 /* //////////////////////////////////////////////////////////////
                           STAKE MANAGEMENT
