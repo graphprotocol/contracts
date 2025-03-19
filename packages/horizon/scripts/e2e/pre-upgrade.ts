@@ -9,6 +9,7 @@ import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
 import { mergeABIs } from 'hardhat-graph-protocol/sdk'
 import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
 
+import { createBanner } from '../../utils/banners'
 import { delegators } from './fixtures/delegators'
 import { indexers } from './fixtures/indexers'
 
@@ -33,7 +34,7 @@ function generateAllocationProof(indexerAddress: string, allocationPrivateKey: s
 const randomHexBytes = (n = 32): string => ethers.hexlify(ethers.randomBytes(n))
 
 async function main() {
-  console.log(getBanner())
+  console.log(createBanner('PRE-HORIZON UPGRADE SETUP'))
 
   console.log('\n--- STEP 0: Setup ---')
 
@@ -194,13 +195,3 @@ main()
     console.error(error)
     process.exitCode = 1
   })
-
-function getBanner() {
-  return `
-+-----------------------------------------------+
-|                                               |
-|           PRE-HORIZON UPGRADE SETUP           |
-|                                               |
-+-----------------------------------------------+
-  `
-}

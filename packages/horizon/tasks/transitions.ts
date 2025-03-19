@@ -1,13 +1,15 @@
 import { task, types } from 'hardhat/config'
+import { createBanner } from '../utils/banners'
 import { ethers } from 'ethers'
 
 task('transition:unset-subgraph-service', 'Unsets the subgraph service in HorizonStaking')
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
-    console.log(getTransitionBanner('UNSETTING SUBGRAPH SERVICE'))
+    console.log(createBanner('UNSETTING SUBGRAPH SERVICE'))
 
     const signers = await hre.ethers.getSigners()
-    const governor = signers[taskArgs.governorIndex]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const governor = signers[taskArgs.governorIndex] as any
     const rewardsManager = hre.graph().horizon!.contracts.RewardsManager
 
     console.log('Unsetting subgraph service...')
@@ -19,7 +21,7 @@ task('transition:unset-subgraph-service', 'Unsets the subgraph service in Horizo
 task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
-    console.log(getTransitionBanner('CLEARING THAWING PERIOD'))
+    console.log(createBanner('CLEARING THAWING PERIOD'))
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
@@ -34,7 +36,7 @@ task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
 task('transition:enable-delegation-slashing', 'Enables delegation slashing in HorizonStaking')
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
-    console.log(getTransitionBanner('ENABLING DELEGATION SLASHING'))
+    console.log(createBanner('ENABLING DELEGATION SLASHING'))
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
@@ -48,23 +50,3 @@ task('transition:enable-delegation-slashing', 'Enables delegation slashing in Ho
     const delegationSlashingEnabled = await horizonStaking.isDelegationSlashingEnabled()
     console.log('Delegation slashing enabled:', delegationSlashingEnabled)
   })
-
-function getTransitionBanner(title: string): string {
-  const bannerWidth = 47 // Total width inside the box
-  const fullText = title
-
-  // Calculate padding needed to center the text
-  const totalPadding = bannerWidth - fullText.length
-  const leftPadding = Math.floor(totalPadding / 2)
-  const rightPadding = totalPadding - leftPadding
-
-  const centeredText = ' '.repeat(leftPadding) + fullText + ' '.repeat(rightPadding)
-
-  return `
-+-----------------------------------------------+
-|                                               |
-|${centeredText}|
-|                                               |
-+-----------------------------------------------+
-`
-}
