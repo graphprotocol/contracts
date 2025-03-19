@@ -12,10 +12,6 @@ export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
 
 # Function to cleanup resources
 cleanup() {
-    # Remove ignition deployment files
-    echo "Removing ignition deployment files..."
-    rm -rf ignition/deployments/horizon-localhost
-
     # Kill hardhat node only if we started it
     if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
         echo "Cleaning up node process..."
@@ -39,6 +35,19 @@ cleanup() {
 
 # Set trap to call cleanup function on script exit (normal or error)
 trap cleanup EXIT
+
+# Check if ignition deployment folder exists and prompt before proceeding
+if [ -d "ignition/deployments/horizon-localhost" ]; then
+    read -p "Ignition deployment files already exist. These must be removed for the tests to work properly. Remove them? (y/n) [y]: " confirm
+    confirm=${confirm:-y}
+    if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        echo "Removing existing ignition deployment files..."
+        rm -rf ignition/deployments/horizon-localhost
+    else
+        echo "Cannot continue with existing deployment files. Exiting."
+        exit 1
+    fi
+fi
 
 # Check required env variables
 if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
