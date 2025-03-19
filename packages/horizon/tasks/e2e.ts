@@ -1,6 +1,7 @@
 import { glob } from 'glob'
 import { task } from 'hardhat/config'
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
+import { createBanner } from '../utils/banners'
 
 task('test:integration', 'Runs all integration tests')
   .addParam(
@@ -34,34 +35,5 @@ task('test:integration', 'Runs all integration tests')
   })
 
 function getTestPhaseBanner(phase: string): string {
-  const title = phase
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-
-  const baseText = 'INTEGRATION TESTS: '
-  const fullText = baseText + title
-
-  // Calculate minimum banner width needed for the text
-  const contentWidth = fullText.length
-  const bannerWidth = Math.max(47, contentWidth + 10) // Add padding
-
-  // Create the centered text line
-  const paddingLeft = Math.floor((bannerWidth - contentWidth) / 2)
-  const paddingRight = bannerWidth - contentWidth - paddingLeft
-  const centeredLine = '|' + ' '.repeat(paddingLeft) + fullText + ' '.repeat(paddingRight) + '|'
-
-  // Create empty line with correct width
-  const emptyLine = '|' + ' '.repeat(bannerWidth) + '|'
-
-  // Create border with correct width
-  const border = '+' + '-'.repeat(bannerWidth) + '+'
-
-  return `
-${border}
-${emptyLine}
-${centeredLine}
-${emptyLine}
-${border}
-`
+  return createBanner(phase, 'INTEGRATION TESTS: ')
 }

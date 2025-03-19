@@ -3,7 +3,7 @@ import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
 import { HardhatUserConfig } from 'hardhat/types'
 import { join } from 'path'
 
-// Plugin imports (single imports)
+// Hardhat plugins
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'

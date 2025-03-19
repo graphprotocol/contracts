@@ -7,8 +7,10 @@ import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
 import { mergeABIs } from 'hardhat-graph-protocol/sdk'
 import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
 
+import { createBanner } from '../../utils/banners'
+
 async function main() {
-  console.log(getBanner())
+  console.log(createBanner('TRANSFER OWNERSHIP'))
 
   // Check that we're on a local network
   if (hre.network.name !== 'localhost' && hre.network.name !== 'hardhat') {
@@ -94,13 +96,3 @@ main()
     console.error(error)
     process.exit(1)
   })
-
-function getBanner() {
-  return `
-  +-----------------------------------------------+
-  |                                               |
-  |         TRANSFER OWNERSHIP SCRIPT             |
-  |                                               |
-  +-----------------------------------------------+
-  `
-}
