@@ -92,8 +92,18 @@ describe('Service Provider', () => {
       // Second unstake request
       await unstake({ horizonStaking, serviceProvider, tokens: request2 })
 
+      // Mine remaining blocks to complete first unstake thawing period
+      for (let i = 0; i < halfThawingPeriod; i++) {
+        await ethers.provider.send('evm_mine', [])
+      }
+
+      // Check that withdraw reverts since thawing period is not complete
+      await expect(
+        withdraw({ horizonStaking, serviceProvider }),
+      ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingStillThawing')
+
       // Mine remaining blocks to complete thawing period
-      for (let i = 0; i < Number(thawingPeriod) + 1; i++) {
+      for (let i = 0; i < halfThawingPeriod + 1; i++) {
         await ethers.provider.send('evm_mine', [])
       }
 
@@ -195,7 +205,7 @@ describe('Service Provider', () => {
           expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationRewardsTokens, 'Delegators cut was not added to delegation pool')
         })
 
-        it('should be able to collect indexing fees', async () => {
+        it('should be able to collect query fees', async () => {
           const tokensToCollect = ethers.parseEther('1000')
 
           // Get idle stake before collecting
@@ -205,7 +215,53 @@ describe('Service Provider', () => {
           const delegationPoolBefore = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
-          // Collect indexing fees
+          // Collect query fees
+          await collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
+
+          // Get idle stake after collecting
+          const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
+
+          // Subtract protocol tax (1%) and curation fees (10% after the protocol tax deduction)
+          const protocolTax = tokensToCollect * 1n / 100n
+          const curationFees = tokensToCollect * 99n / 1000n
+          const remainingTokens = tokensToCollect - protocolTax - curationFees
+
+          // Verify tokens minus delegators cut are restaked
+          const indexerCutTokens = remainingTokens * BigInt(delegationQueryFeeCut) / 1000000n
+          expect(idleStakeAfter).to.equal(idleStakeBefore + indexerCutTokens, 'Indexer cut was not restaked')
+
+          // Verify delegators cut is added to delegation pool
+          const delegationPool = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
+          const delegationPoolTokensAfter = delegationPool.tokens
+          const delegationCutTokens = remainingTokens - indexerCutTokens
+          expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationCutTokens, 'Delegators cut was not added to delegation pool')
+        })
+
+        it('should be able to close an allocation and collect query fees for the closed allocation', async () => {
+          // Use a non-zero POI
+          const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+          const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
+
+          // Mine blocks to simulate time passing
+          const halfThawingPeriod = Number(thawingPeriod) / 2
+          for (let i = 0; i < halfThawingPeriod; i++) {
+            await ethers.provider.send('evm_mine', [])
+          }
+
+          // Close allocation
+          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+
+          // Tokens to collect
+          const tokensToCollect = ethers.parseEther('1000')
+
+          // Get idle stake before collecting
+          const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
+
+          // Get delegation pool before collecting
+          const delegationPoolBefore = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
+          const delegationPoolTokensBefore = delegationPoolBefore.tokens
+
+          // Collect query fees
           await collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
 
           // Get idle stake after collecting
@@ -283,7 +339,7 @@ describe('Service Provider', () => {
           expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationCutTokens, 'Delegators cut was not added to delegation pool')
         })
 
-        it('should be able to collect indexing fees', async () => {
+        it('should be able to collect query fees', async () => {
           const tokensToCollect = ethers.parseEther('1000')
 
           // Get rewards destination balance before collecting
@@ -293,7 +349,7 @@ describe('Service Provider', () => {
           const delegationPoolBefore = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
-          // Collect indexing fees
+          // Collect query fees
           await collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
 
           // Get rewards destination balance after collecting
