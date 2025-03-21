@@ -666,7 +666,8 @@ interface IHorizonStakingMain {
     /**
      * @notice Remove tokens from a provision and move them back to the service provider's idle stake.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfilling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
+     * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {thaw}.
@@ -790,7 +791,8 @@ interface IHorizonStakingMain {
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfilling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
+     * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
      * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
      * the thaw requests with an amount equal to zero.
      *
