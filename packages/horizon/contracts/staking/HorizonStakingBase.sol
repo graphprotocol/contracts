@@ -182,14 +182,18 @@ abstract contract HorizonStakingBase is
         bytes32 thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = _getThawRequest(requestType, thawRequestId);
-            if (thawRequest.thawingUntil <= block.timestamp) {
-                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-                tokensThawing = tokensThawing - tokens;
-                sharesThawing = sharesThawing - thawRequest.shares;
-                thawedTokens = thawedTokens + tokens;
-            } else {
-                break;
+            if (thawRequest.thawingNonce == prov.thawingNonce) {
+                if (thawRequest.thawingUntil <= block.timestamp) {
+                    // sharesThawing cannot be zero if there is a valid thaw request so the next division is safe
+                    uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+                    tokensThawing = tokensThawing - tokens;
+                    sharesThawing = sharesThawing - thawRequest.shares;
+                    thawedTokens = thawedTokens + tokens;
+                } else {
+                    break;
+                }
             }
+
             thawRequestId = thawRequest.next;
         }
         return thawedTokens;
