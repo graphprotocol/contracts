@@ -256,6 +256,7 @@ interface IHorizonStakingMain {
      * @param shares The amount of shares being thawed
      * @param thawingUntil The timestamp until the stake is thawed
      * @param thawRequestId The ID of the thaw request
+     * @param nonce The nonce of the thaw request
      */
     event ThawRequestCreated(
         IHorizonStakingTypes.ThawRequestType indexed requestType,
@@ -264,7 +265,8 @@ interface IHorizonStakingMain {
         address owner,
         uint256 shares,
         uint64 thawingUntil,
-        bytes32 thawRequestId
+        bytes32 thawRequestId,
+        uint256 nonce
     );
 
     /**

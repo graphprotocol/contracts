@@ -1065,7 +1065,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _owner,
             _shares,
             _thawingUntil,
-            thawRequestId
+            thawRequestId,
+            _thawingNonce
         );
         return thawRequestId;
     }
@@ -1173,6 +1174,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokens = 0;
         bool validThawRequest = thawRequest.thawingNonce == thawingNonce;
         if (validThawRequest) {
+            // sharesThawing cannot be zero if there is a valid thaw request so the next division is safe
             tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
             tokensThawing = tokensThawing - tokens;
             sharesThawing = sharesThawing - thawRequest.shares;

@@ -428,7 +428,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             serviceProvider,
             thawingShares,
             uint64(block.timestamp + beforeProvision.thawingPeriod),
-            expectedThawRequestId
+            expectedThawRequestId,
+            beforeProvision.thawingNonce
         );
         vm.expectEmit(address(staking));
         emit IHorizonStakingMain.ProvisionThawed(serviceProvider, verifier, tokens);
@@ -1019,7 +1020,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             beneficiary,
             calcValues.thawingShares,
             calcValues.thawingUntil,
-            calcValues.thawRequestId
+            calcValues.thawRequestId,
+            beforeValues.pool.thawingNonce
         );
         vm.expectEmit();
         emit IHorizonStakingMain.TokensUndelegated(serviceProvider, verifier, delegator, calcValues.tokens, shares);
