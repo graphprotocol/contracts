@@ -22,6 +22,8 @@ interface IHorizonStakingTypes {
      * @param createdAt Timestamp when the provision was created
      * @param maxVerifierCutPending Pending value for `maxVerifierCut`. Verifier needs to accept it before it becomes active.
      * @param thawingPeriodPending Pending value for `thawingPeriod`. Verifier needs to accept it before it becomes active.
+     * @param lastParametersStagedAt Timestamp when the provision parameters were last staged. Can be used by data service implementation to
+     * implement arbitrary parameter update logic.
      * @param thawingNonce Value of the current thawing nonce. Thaw requests with older nonces are invalid.
      */
     struct Provision {
@@ -33,6 +35,7 @@ interface IHorizonStakingTypes {
         uint64 createdAt;
         uint32 maxVerifierCutPending;
         uint64 thawingPeriodPending;
+        uint256 lastParametersStagedAt;
         uint256 thawingNonce;
     }
 
