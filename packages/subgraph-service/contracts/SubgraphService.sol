@@ -431,12 +431,14 @@ contract SubgraphService is
     // -- Data service parameter getters --
     /**
      * @notice Getter for the accepted thawing period range for provisions
+     * The accepted range is just the dispute period defined by {DisputeManager-getDisputePeriod}
      * @dev This override ensures {ProvisionManager} uses the thawing period from the {DisputeManager}
-     * @return The minimum thawing period which is defined by {DisputeManager-getDisputePeriod}
-     * @return The maximum is unbounded
+     * @return The minimum thawing period - the dispute period
+     * @return The maximum thawing period - the dispute period
      */
     function _getThawingPeriodRange() internal view override returns (uint64, uint64) {
-        return (_disputeManager().getDisputePeriod(), DEFAULT_MAX_THAWING_PERIOD);
+        uint64 disputePeriod = _disputeManager().getDisputePeriod();
+        return (disputePeriod, disputePeriod);
     }
 
     /**
