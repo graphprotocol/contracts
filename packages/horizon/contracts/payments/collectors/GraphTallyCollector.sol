@@ -28,7 +28,7 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
     /// @notice The EIP712 typehash for the ReceiptAggregateVoucher struct
     bytes32 private constant EIP712_RAV_TYPEHASH =
         keccak256(
-            "ReceiptAggregateVoucher(address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
+            "ReceiptAggregateVoucher(bytes32 collectionId,address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)"
         );
 
     /// @notice Tracks the amount of tokens already collected by a data service from a payer to a receiver.
@@ -189,6 +189,7 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
                 keccak256(
                     abi.encode(
                         EIP712_RAV_TYPEHASH,
+                        _rav.collectionId,
                         _rav.payer,
                         _rav.serviceProvider,
                         _rav.dataService,
