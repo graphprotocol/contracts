@@ -1,11 +1,35 @@
 import { ethers, HDNodeWallet } from 'ethers'
 import { expect } from 'chai'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
+import { IGraphToken, IHorizonStaking } from '@graphprotocol/horizon'
 
 import { ThawRequestType } from '../utils/types'
+
+/* //////////////////////////////////////////////////////////////
+                            EXPORTS
+////////////////////////////////////////////////////////////// */
+
+export const HorizonHelper = {
+  addToDelegationPool,
+  delegate,
+  deprovision,
+  redelegate,
+  reprovision,
+  stake,
+  stakeTo,
+  stakeToProvision,
+  slash,
+  thaw,
+  undelegate,
+  unstake,
+  withdraw,
+  withdrawDelegated,
+  withdrawDelegatedLegacy,
+  createProvision,
+  addToProvision
+}
 
 /* //////////////////////////////////////////////////////////////
                           STAKE MANAGEMENT
@@ -14,11 +38,11 @@ import { ThawRequestType } from '../utils/types'
 interface StakeParams {
   horizonStaking: IHorizonStaking
   graphToken: IGraphToken
-  serviceProvider: SignerWithAddress
+  serviceProvider: HardhatEthersSigner
   tokens: bigint
 }
 
-export async function stake({
+async function stake({
   horizonStaking,
   graphToken,
   serviceProvider,
@@ -30,10 +54,10 @@ export async function stake({
 }
 
 interface StakeToParams extends StakeParams {
-  signer: SignerWithAddress
+  signer: HardhatEthersSigner
 }
 
-export async function stakeTo({
+async function stakeTo({
   horizonStaking,
   graphToken,
   signer,
@@ -48,7 +72,7 @@ export async function stakeTo({
 
 interface UnstakeParams extends Omit<StakeParams, 'graphToken'> {}
 
-export async function unstake({
+async function unstake({
   horizonStaking,
   serviceProvider,
   tokens,
@@ -59,7 +83,7 @@ export async function unstake({
 
 interface WithdrawParams extends Omit<StakeParams, 'graphToken' | 'tokens'> {}
 
-export async function withdraw({
+async function withdraw({
   horizonStaking,
   serviceProvider,
 }: WithdrawParams): Promise<void> {
@@ -71,7 +95,7 @@ interface StakeToProvisionParams extends StakeParams {
   verifier: string
 }
 
-export async function stakeToProvision({
+async function stakeToProvision({
   horizonStaking,
   graphToken,
   serviceProvider,
@@ -94,14 +118,14 @@ export async function stakeToProvision({
 }
 
 interface SlashParams extends Omit<StakeParams, 'graphToken' | 'serviceProvider'> {
-  verifier: SignerWithAddress | HDNodeWallet
+  verifier: HardhatEthersSigner | HDNodeWallet
   serviceProvider: string
   tokens: bigint
   tokensVerifier: bigint
   verifierDestination: string
 }
 
-export async function slash({
+async function slash({
   horizonStaking,
   verifier,
   serviceProvider,
@@ -124,10 +148,10 @@ export async function slash({
 
 interface ProvisionParams {
   horizonStaking: IHorizonStaking
-  serviceProvider: SignerWithAddress
+  serviceProvider: HardhatEthersSigner
   verifier: string
   tokens: bigint
-  signer?: SignerWithAddress
+  signer?: HardhatEthersSigner
 }
 
 interface CreateProvisionParams extends ProvisionParams {
@@ -144,7 +168,7 @@ interface ReprovisionParams extends Omit<ProvisionParams, 'tokens'> {
   nThawRequests: bigint
 }
 
-export async function createProvision({
+async function createProvision({
   horizonStaking,
   serviceProvider,
   verifier,
@@ -170,7 +194,7 @@ export async function createProvision({
   expect(provision.thawingPeriod).to.equal(thawingPeriod, 'Provision thawing period was not set')
 }
 
-export async function addToProvision({
+async function addToProvision({
   horizonStaking,
   serviceProvider,
   verifier,
@@ -186,7 +210,7 @@ export async function addToProvision({
   await addToProvisionTx.wait()
 }
 
-export async function thaw({
+async function thaw({
   horizonStaking,
   serviceProvider,
   verifier,
@@ -233,7 +257,7 @@ export async function thaw({
   expect(thawRequest.shares).to.equal(expectedThawRequestShares, 'Thaw request shares were not set')
 }
 
-export async function deprovision({
+async function deprovision({
   horizonStaking,
   serviceProvider,
   verifier,
@@ -249,7 +273,7 @@ export async function deprovision({
   await deprovisionTx.wait()
 }
 
-export async function reprovision({
+async function reprovision({
   horizonStaking,
   serviceProvider,
   verifier: oldVerifier,
@@ -273,8 +297,8 @@ export async function reprovision({
 
 interface DelegationParams {
   horizonStaking: IHorizonStaking
-  delegator: SignerWithAddress
-  serviceProvider: SignerWithAddress
+  delegator: HardhatEthersSigner
+  serviceProvider: HardhatEthersSigner
   verifier: string
 }
 
@@ -284,7 +308,7 @@ interface DelegateParams extends DelegationParams {
   minSharesOut: bigint
 }
 
-export async function delegate({
+async function delegate({
   horizonStaking,
   graphToken,
   delegator,
@@ -309,7 +333,7 @@ interface UndelegateParams extends DelegationParams {
   shares: bigint
 }
 
-export async function undelegate({
+async function undelegate({
   horizonStaking,
   delegator,
   serviceProvider,
@@ -325,13 +349,13 @@ export async function undelegate({
 }
 
 interface RedelegateParams extends DelegationParams {
-  newServiceProvider: SignerWithAddress
+  newServiceProvider: HardhatEthersSigner
   newVerifier: string
   minSharesForNewProvider: bigint
   nThawRequests: bigint
 }
 
-export async function redelegate({
+async function redelegate({
   horizonStaking,
   delegator,
   serviceProvider,
@@ -356,7 +380,7 @@ interface WithdrawDelegatedParams extends DelegationParams {
   nThawRequests: bigint
 }
 
-export async function withdrawDelegated({
+async function withdrawDelegated({
   horizonStaking,
   delegator,
   serviceProvider,
@@ -373,7 +397,7 @@ export async function withdrawDelegated({
 
 interface WithdrawDelegatedLegacyParams extends Omit<DelegationParams, 'verifier'> {}
 
-export async function withdrawDelegatedLegacy({
+async function withdrawDelegatedLegacy({
   horizonStaking,
   delegator,
   serviceProvider,
@@ -387,11 +411,11 @@ export async function withdrawDelegatedLegacy({
 
 interface AddToDelegationPoolParams extends Omit<DelegationParams, 'delegator'> {
   graphToken: IGraphToken
-  signer: SignerWithAddress
+  signer: HardhatEthersSigner
   tokens: bigint
 }
 
-export async function addToDelegationPool({
+async function addToDelegationPool({
   horizonStaking,
   graphToken,
   signer,
@@ -417,7 +441,7 @@ export async function addToDelegationPool({
 
 async function approve(
   graphToken: IGraphToken,
-  signer: SignerWithAddress,
+  signer: HardhatEthersSigner,
   spender: string,
   tokens: bigint,
 ): Promise<void> {
