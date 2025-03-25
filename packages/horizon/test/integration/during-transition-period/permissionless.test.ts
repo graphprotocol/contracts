@@ -8,7 +8,7 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IEpochManager, IHorizonStaking } from '../../../typechain-types'
 
-import { indexers } from '../../../scripts/e2e/fixtures/indexers'
+import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Permissionless', () => {
   let horizonStaking: IHorizonStaking
