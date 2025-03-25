@@ -80,19 +80,6 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         staking.provision(users.indexer, subgraphDataServiceAddress, amount / 2, maxVerifierCut, thawingPeriod);
     }
 
-    function testProvision_OperatorAddTokensToProvision(
-        uint256 amount,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod,
-        uint256 tokensToAdd
-    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useOperator {
-        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
-
-        // Add more tokens to the provision
-        _stakeTo(users.indexer, tokensToAdd);
-        _addToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
-    }
-
     function testProvision_RevertWhen_OperatorNotAuthorized(
         uint256 amount,
         uint32 maxVerifierCut,
@@ -123,5 +110,114 @@ contract HorizonStakingProvisionTest is HorizonStakingTest {
         );
         vm.expectRevert(expectedError);
         staking.provision(users.indexer, subgraphDataServiceAddress, amount, 0, 0);
+    }
+
+    function testProvision_AddTokensToProvision(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 tokensToAdd
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
+
+        // Add more tokens to the provision
+        _stakeTo(users.indexer, tokensToAdd);
+        _addToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
+    }
+
+    function testProvision_OperatorAddTokensToProvision(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 tokensToAdd
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useOperator {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
+
+        // Add more tokens to the provision
+        _stakeTo(users.indexer, tokensToAdd);
+        _addToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
+    }
+
+    function testProvision_AddTokensToProvision_RevertWhen_NotAuthorized(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 tokensToAdd
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
+
+        // Add more tokens to the provision
+        _stakeTo(users.indexer, tokensToAdd);
+
+        // use delegator as a non authorized operator
+        vm.startPrank(users.delegator);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingNotAuthorized(address,address,address)",
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator
+        );
+        vm.expectRevert(expectedError);
+        staking.addToProvision(users.indexer, subgraphDataServiceAddress, amount);
+    }
+
+    function testProvision_StakeToProvision(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 tokensToAdd
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
+
+        // Add more tokens to the provision
+        _stakeToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
+    }
+
+    function testProvision_Operator_StakeToProvision(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 tokensToAdd
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) useOperator {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
+
+        // Add more tokens to the provision
+        _stakeToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
+    }
+
+    function testProvision_Verifier_StakeToProvision(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 tokensToAdd
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
+
+        // Ensure the verifier has enough tokens to then stake to the provision
+        token.transfer(subgraphDataServiceAddress, tokensToAdd);
+
+        // Add more tokens to the provision
+        resetPrank(subgraphDataServiceAddress);
+        _stakeToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
+    }
+
+    function testProvision_StakeToProvision_RevertWhen_NotAuthorized(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod,
+        uint256 tokensToAdd
+    ) public useIndexer useProvision(amount, maxVerifierCut, thawingPeriod) {
+        tokensToAdd = bound(tokensToAdd, 1, MAX_STAKING_TOKENS);
+
+        // Add more tokens to the provision
+        vm.startPrank(users.delegator);
+        bytes memory expectedError = abi.encodeWithSignature(
+            "HorizonStakingNotAuthorized(address,address,address)",
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.delegator
+        );
+        vm.expectRevert(expectedError);
+        staking.stakeToProvision(users.indexer, subgraphDataServiceAddress, tokensToAdd);
     }
 }

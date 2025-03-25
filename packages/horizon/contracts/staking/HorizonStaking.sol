@@ -58,6 +58,19 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
+     * @notice Checks that the caller is authorized to operate over a provision or it is the verifier.
+     * @param serviceProvider The address of the service provider.
+     * @param verifier The address of the verifier.
+     */
+    modifier onlyAuthorizedOrVerifier(address serviceProvider, address verifier) {
+        require(
+            _isAuthorized(serviceProvider, verifier, msg.sender) || msg.sender == verifier,
+            HorizonStakingNotAuthorized(serviceProvider, verifier, msg.sender)
+        );
+        _;
+    }
+
+    /**
      * @dev The staking contract is upgradeable however we still use the constructor to set
      * a few immutable variables.
      * @param controller The address of the Graph controller contract.
@@ -121,7 +134,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /// @inheritdoc IHorizonStakingMain
-    function stakeToProvision(address serviceProvider, address verifier, uint256 tokens) external override notPaused {
+    function stakeToProvision(
+        address serviceProvider,
+        address verifier,
+        uint256 tokens
+    ) external override notPaused onlyAuthorizedOrVerifier(serviceProvider, verifier) {
         _stakeTo(serviceProvider, tokens);
         _addToProvision(serviceProvider, verifier, tokens);
     }
