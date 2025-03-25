@@ -2,10 +2,6 @@
 
 set -eo pipefail
 
-# Save original environment variable values
-ORIGINAL_HARDHAT_FORK=${HARDHAT_FORK:-""}
-ORIGINAL_SECURE_ACCOUNTS_DISABLE_PROVIDER=${SECURE_ACCOUNTS_DISABLE_PROVIDER:-""}
-
 # Set environment variables for this script
 export HARDHAT_FORK=true
 export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
@@ -16,20 +12,6 @@ cleanup() {
     if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
         echo "Cleaning up node process..."
         kill $NODE_PID 2>/dev/null || true
-    fi
-    
-    # Restore original environment variables
-    echo "Restoring original environment variables..."
-    if [ -z "$ORIGINAL_HARDHAT_FORK" ]; then
-        unset HARDHAT_FORK
-    else
-        export HARDHAT_FORK="$ORIGINAL_HARDHAT_FORK"
-    fi
-    
-    if [ -z "$ORIGINAL_SECURE_ACCOUNTS_DISABLE_PROVIDER" ]; then
-        unset SECURE_ACCOUNTS_DISABLE_PROVIDER
-    else
-        export SECURE_ACCOUNTS_DISABLE_PROVIDER="$ORIGINAL_SECURE_ACCOUNTS_DISABLE_PROVIDER"
     fi
 }
 
@@ -75,10 +57,10 @@ else
 fi
 
 # Setup pre horizon migration state needed for the e2e tests
-npx hardhat run ./scripts/e2e/pre-upgrade.ts --network localhost
+npx hardhat test:integration:pre-upgrade --network localhost
 
 # Transfer ownership of protocol to hardhat signer 1
-npx hardhat run ./scripts/e2e/transfer-ownership.ts --network localhost
+npx hardhat test:integration:transfer-ownership --network localhost
 
 # Step 1 - Deployer
 npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --signer-index 0

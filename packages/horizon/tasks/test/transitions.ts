@@ -1,5 +1,5 @@
 import { task, types } from 'hardhat/config'
-import { createBanner } from '../utils/banners'
+import { createBanner } from '../../utils/banners'
 import { ethers } from 'ethers'
 
 task('transition:unset-subgraph-service', 'Unsets the subgraph service in HorizonStaking')
