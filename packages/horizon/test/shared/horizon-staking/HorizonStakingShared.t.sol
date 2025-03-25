@@ -181,6 +181,62 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         );
     }
 
+    function _stakeToProvision(address serviceProvider, address verifier, uint256 tokens) internal {
+        (, address msgSender, ) = vm.readCallers();
+
+        // before
+        uint256 beforeStakingBalance = token.balanceOf(address(staking));
+        uint256 beforeSenderBalance = token.balanceOf(msgSender);
+        ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
+
+        // stakeTo
+        token.approve(address(staking), tokens);
+        vm.expectEmit();
+        emit IHorizonStakingBase.HorizonStakeDeposited(serviceProvider, tokens);
+        vm.expectEmit();
+        emit IHorizonStakingMain.ProvisionIncreased(serviceProvider, verifier, tokens);
+        staking.stakeToProvision(serviceProvider, verifier, tokens);
+
+        // after
+        uint256 afterStakingBalance = token.balanceOf(address(staking));
+        uint256 afterSenderBalance = token.balanceOf(msgSender);
+        ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
+        Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
+
+        // assert - stakeTo
+        assertEq(afterStakingBalance, beforeStakingBalance + tokens);
+        assertEq(afterSenderBalance, beforeSenderBalance - tokens);
+        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked + tokens);
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned + tokens);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
+
+        // assert - addToProvision
+        assertEq(afterProvision.tokens, beforeProvision.tokens + tokens);
+        assertEq(afterProvision.tokensThawing, beforeProvision.tokensThawing);
+        assertEq(afterProvision.sharesThawing, beforeProvision.sharesThawing);
+        assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCut);
+        assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriod);
+        assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.lastParametersStagedAt, beforeProvision.lastParametersStagedAt);
+        assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
+        assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
+        assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked + tokens);
+        assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned + tokens);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
+        assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProvider.__DEPRECATED_tokensLockedUntil,
+            beforeServiceProvider.__DEPRECATED_tokensLockedUntil
+        );
+    }
+
     function _unstake(uint256 _tokens) internal {
         (, address msgSender, ) = vm.readCallers();
 
