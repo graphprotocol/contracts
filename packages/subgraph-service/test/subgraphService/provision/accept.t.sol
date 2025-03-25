@@ -34,11 +34,24 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         _acceptProvision(users.indexer, "");
     }
 
-    function test_SubgraphService_Provision_Accept_RevertWhen_NotRegistered() public useIndexer {
-        vm.expectRevert(
-            abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerNotRegistered.selector, users.indexer)
-        );
-        subgraphService.acceptProvisionPendingParameters(users.indexer, "");
+    function test_SubgraphService_Provision_Accept_When_NotRegistered(
+        uint256 tokens,
+        uint32 newVerifierCut,
+        uint64 newDisputePeriod
+    ) public useIndexer {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        vm.assume(newVerifierCut >= fishermanRewardPercentage);
+        vm.assume(newVerifierCut <= MAX_PPM);
+        newDisputePeriod = uint64(bound(newDisputePeriod, disputePeriod, MAX_WAIT_PERIOD));
+
+        // Setup indexer but dont register
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+
+        // Update parameters with new values
+        _setProvisionParameters(users.indexer, address(subgraphService), newVerifierCut, newDisputePeriod);
+
+        // Accept provision and check parameters
+        _acceptProvision(users.indexer, "");
     }
 
     function test_SubgraphService_Provision_Accept_RevertWhen_NotAuthorized() public {
