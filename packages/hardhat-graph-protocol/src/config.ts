@@ -1,5 +1,3 @@
-import fs from 'fs'
-
 import { GraphPluginError } from './sdk/utils/error'
 import { logDebug } from './logger'
 import { normalizePath } from './sdk/utils/path'
