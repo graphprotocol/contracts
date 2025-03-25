@@ -16,7 +16,7 @@ import {
   thaw,
   unstake,
 } from '../shared/staking'
-import { PaymentTypes } from '../utils/types'
+import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
 
 describe('Service provider', () => {
   let horizonStaking: IHorizonStaking
@@ -56,7 +56,7 @@ describe('Service provider', () => {
 
     it('should be able to set delegation fee cut for payment type', async () => {
       const delegationFeeCut = 10_000 // 10%
-      const paymentType = PaymentTypes.QueryFee
+      const paymentType = HorizonTypes.PaymentTypes.QueryFee
 
       const tx = await horizonStaking.connect(serviceProvider).setDelegationFeeCut(
         serviceProvider.address,

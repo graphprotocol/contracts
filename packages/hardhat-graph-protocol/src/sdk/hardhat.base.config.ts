@@ -78,7 +78,7 @@ export const networksUserConfig: BaseNetworksUserConfig = {
     },
     ...(vars.has('FORK') && vars.get('FORK') === 'true'
       ? { accounts: 'remote' }
-      : vars.has('LOCALHOST_ACCOUNTS_MNEMONIC') 
+      : vars.has('LOCALHOST_ACCOUNTS_MNEMONIC')
         ? { accounts: { mnemonic: vars.get('LOCALHOST_ACCOUNTS_MNEMONIC') } }
         : {}
     ),
