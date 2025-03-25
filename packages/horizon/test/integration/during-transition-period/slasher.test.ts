@@ -6,7 +6,7 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
 
-import { indexers } from '../../../scripts/e2e/fixtures/indexers'
+import { indexers } from '../../../tasks/test/fixtures/indexers'
 import { slash } from '../shared/staking'
 
 describe('Slasher', () => {

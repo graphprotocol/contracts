@@ -9,7 +9,7 @@ import { IGraphToken, IHorizonStaking, IRewardsManager } from '../../../typechai
 
 import { stake, unstake, withdraw } from '../shared/staking'
 import { collect } from '../shared/stakingExtension'
-import { indexers } from '../../../scripts/e2e/fixtures/indexers'
+import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Service Provider', () => {
   let horizonStaking: IHorizonStaking
