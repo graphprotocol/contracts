@@ -2,19 +2,20 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
 
-import { createProvision, deprovision, reprovision, stakeTo, thaw, unstake } from '../shared/staking'
-import { PaymentTypes } from '../utils/types'
+// import { createProvision, deprovision, reprovision, stakeTo, thaw, unstake } from '../shared/staking'
+import { HorizonHelper } from 'hardhat-graph-protocol/sdk'
+import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
 
 describe('Operator', () => {
   let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
-  let serviceProvider: SignerWithAddress
+  let serviceProvider: HardhatEthersSigner
   let verifier: string
-  let operator: SignerWithAddress
+  let operator: HardhatEthersSigner
 
   const tokens = ethers.parseEther('100000')
   const maxVerifierCut = 1000000 // 100%
@@ -43,7 +44,7 @@ describe('Operator', () => {
     const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
     // Operator stakes on behalf of service provider
-    await stakeTo({
+    await HorizonHelper.stakeTo({
       horizonStaking,
       graphToken,
       signer: operator,
@@ -52,7 +53,7 @@ describe('Operator', () => {
     })
 
     // Service provider unstakes
-    await unstake({ horizonStaking, serviceProvider, tokens: stakeTokens })
+    await HorizonHelper.unstake({ horizonStaking, serviceProvider, tokens: stakeTokens })
 
     // Verify tokens were removed from operator's address
     const operatorBalanceAfter = await graphToken.balanceOf(operator.address)
@@ -65,7 +66,7 @@ describe('Operator', () => {
 
   it('operator sets delegation fee cut', async () => {
     const feeCut = 100000 // 10%
-    const paymentType = PaymentTypes.QueryFee
+    const paymentType = HorizonTypes.PaymentTypes.QueryFee
 
     // Operator sets delegation fee cut
     await horizonStaking.connect(operator).setDelegationFeeCut(
@@ -88,7 +89,7 @@ describe('Operator', () => {
     before(async () => {
       const provisionTokens = ethers.parseEther('10000')
       // Operator stakes tokens to service provider
-      await stakeTo({
+      await HorizonHelper.stakeTo({
         horizonStaking,
         graphToken,
         signer: operator,
@@ -97,7 +98,7 @@ describe('Operator', () => {
       })
 
       // Operator creates provision
-      await createProvision({
+      await HorizonHelper.createProvision({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -118,7 +119,7 @@ describe('Operator', () => {
       const provisionTokensBefore = (await horizonStaking.getProvision(serviceProvider.address, verifier)).tokens
 
       // Operator thaws tokens
-      await thaw({
+      await HorizonHelper.thaw({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -131,7 +132,7 @@ describe('Operator', () => {
       await ethers.provider.send('evm_mine', [])
 
       // Operator deprovisions
-      await deprovision({
+      await HorizonHelper.deprovision({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -152,7 +153,7 @@ describe('Operator', () => {
       const thawTokens = ethers.parseEther('100')
 
       // Operator thaws tokens
-      await thaw({
+      await HorizonHelper.thaw({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -169,7 +170,7 @@ describe('Operator', () => {
       await horizonStaking.connect(serviceProvider).setOperator(newVerifier, operator.address, true)
 
       // Operator creates a provision for the new verifier
-      await createProvision({
+      await HorizonHelper.createProvision({
         horizonStaking,
         serviceProvider,
         verifier: newVerifier,
@@ -180,7 +181,7 @@ describe('Operator', () => {
       })
 
       // Operator reprovisions
-      await reprovision({
+      await HorizonHelper.reprovision({
         horizonStaking,
         serviceProvider,
         verifier,
