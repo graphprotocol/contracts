@@ -8,7 +8,7 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IHorizonStaking, IRewardsManager } from '../../../typechain-types'
 
-import { indexers } from '../../../scripts/e2e/fixtures/indexers'
+import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Operator', () => {
   let horizonStaking: IHorizonStaking

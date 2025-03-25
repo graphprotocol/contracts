@@ -6,7 +6,7 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
 
-import { delegators } from '../../../scripts/e2e/fixtures/delegators'
+import { delegators } from '../../../tasks/test/fixtures/delegators'
 import { withdrawDelegatedLegacy } from '../shared/staking'
 
 describe('Delegator', () => {
