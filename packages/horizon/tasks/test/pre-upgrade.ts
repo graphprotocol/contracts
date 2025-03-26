@@ -3,23 +3,22 @@ import { task } from 'hardhat/config'
 
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 
+import ControllerABI from '@graphprotocol/contracts/build/abis/Controller.json'
 import L2GraphTokenABI from '@graphprotocol/contracts/build/abis/L2GraphToken.json'
 import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
 import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
 
-import { IGraphToken, IStaking } from '@graphprotocol/contracts'
+import { IController, IGraphToken, IStaking } from '@graphprotocol/contracts'
 import { mergeABIs } from 'hardhat-graph-protocol/sdk'
 import { printBanner } from 'hardhat-graph-protocol/sdk'
 
 import { delegators } from './fixtures/delegators'
 import { indexers } from './fixtures/indexers'
 
-// The account on Arbitrum Sepolia that has GRT tokens
-const GRT_HOLDER_ADDRESS = process.env.GRT_HOLDER_ADDRESS || '0xadE6B8EB69a49B56929C1d4F4b428d791861dB6f'
-
 // Load ABIs
 const combinedStakingABI = mergeABIs(L2StakingABI, StakingExtensionABI)
 const graphTokenABI = L2GraphTokenABI
+const controllerABI = ControllerABI
 
 task('test:integration:pre-upgrade', 'Sets up the pre-upgrade state for testing')
   .setAction(async (_, hre) => {
@@ -50,37 +49,49 @@ task('test:integration:pre-upgrade', 'Sets up the pre-upgrade state for testing'
     const addressesJson = require('@graphprotocol/contracts/addresses.json')
     const arbSepoliaAddresses = addressesJson['421614']
 
-    // Get contract addresses
+    // Get addresses
     const stakingAddress = arbSepoliaAddresses.L2Staking.address
     const graphTokenAddress = arbSepoliaAddresses.L2GraphToken.address
+    const controllerAddress = arbSepoliaAddresses.Controller.address
 
     console.log(`Using Staking contract at: ${stakingAddress}`)
     console.log(`Using GraphToken contract at: ${graphTokenAddress}`)
 
     // Create contract instances
+    // Note: Using ABIs directly instead of hre.graph().horizon because these are the old deployed contract instances
     const provider = new HardhatEthersProvider(hre.network.provider, hre.network.name)
     const GraphToken = new Contract(graphTokenAddress, graphTokenABI, provider) as unknown as IGraphToken
     const Staking = new Contract(stakingAddress, combinedStakingABI, provider) as unknown as IStaking
+    const Controller = new Contract(controllerAddress, controllerABI, provider) as unknown as IController
 
-    // The account on Arbitrum Sepolia that has GRT tokens
-    const assetHolderBalance = BigInt((await GraphToken.balanceOf(GRT_HOLDER_ADDRESS)).toString())
-    console.log(`Asset holder balance: ${assetHolderBalance}`)
-
-    // Convert BigNumber to bigint for comparison
-    if (assetHolderBalance < hre.ethers.parseEther('20000000')) {
-      throw new Error('Asset holder balance is less than 20M tokens')
-    }
-
-    // Impersonate the account
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const grtHolder = await hre.ethers.getImpersonatedSigner(GRT_HOLDER_ADDRESS) as any
-
-    // Fund with GRT signers from 0 to 19 with 1M tokens
-    console.log('Funding signers from 0 to 19 with 1M tokens...')
+    // Use account 0 as the minter
     const signers = await hre.ethers.getSigners()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const minterAccount = signers[0] as any
+    console.log(`Using minter account: ${minterAccount.address}`)
+
+    // Impersonate the governor to add minting permissions
+    const governorAddress = await Controller.getGovernor()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const governorSigner = await hre.ethers.getImpersonatedSigner(governorAddress) as any
+
+    // Add minting permissions for our minter account
+    console.log(`Adding minting permissions for ${minterAccount.address}...`)
+    const addMinterTx = await GraphToken.connect(governorSigner).addMinter(minterAccount.address)
+    await addMinterTx.wait()
+    console.log(`Successfully added minting permissions for ${minterAccount.address}`)
+
+    // Mint tokens to our minter account
+    const mintAmount = hre.ethers.parseEther('50000000') // 50M tokens
+    console.log(`Minting ${mintAmount} tokens to ${minterAccount.address}...`)
+    const mintTx = await GraphToken.connect(minterAccount).mint(minterAccount.address, mintAmount)
+    await mintTx.wait()
+
+    // Fund with GRT signers from 1 to 19 with 1M tokens
+    console.log('Funding signers from 1 to 19 with 1M tokens...')
     for (let i = 0; i < 20; i++) {
       const signer = signers[i]
-      const transferTx = await GraphToken.connect(grtHolder).transfer(signer.address, hre.ethers.parseEther('1000000'))
+      const transferTx = await GraphToken.connect(minterAccount).transfer(signer.address, hre.ethers.parseEther('1000000'))
       await transferTx.wait()
     }
 

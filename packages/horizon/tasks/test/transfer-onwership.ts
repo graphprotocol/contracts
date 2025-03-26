@@ -39,6 +39,7 @@ task('test:integration:transfer-ownership', 'Transfer ownership of protocol cont
     const combinedStakingABI = mergeABIs(L2StakingABI, StakingExtensionABI)
 
     // Get contracts
+    // Note: Using ABIs directly instead of hre.graph().horizon because these are the old deployed contract instances
     const staking = new Contract(stakingAddress, combinedStakingABI, hre.ethers.provider) as unknown as IStaking
     const controller = hre.graph().horizon!.contracts.Controller
     const graphProxyAdmin = hre.graph().horizon!.contracts.GraphProxyAdmin
