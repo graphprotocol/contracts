@@ -700,9 +700,14 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Stages a provision parameter update. Note that the change is not effective until the verifier calls
-     * {acceptProvisionParameters}.
+     * {acceptProvisionParameters}. Calling this function is a no-op if the new parameters are the same as the current
+     * ones.
      * @dev This two step update process prevents the service provider from changing the parameters
      * without the verifier's consent.
+     *
+     * Requirements:
+     * - `thawingPeriod` must be less than or equal to `_maxThawingPeriod`. Note that if `_maxThawingPeriod` changes the
+     * function will not revert if called with the same thawing period as the current one.
      *
      * Emits a {ProvisionParametersStaged} event if at least one of the parameters changed.
      *
