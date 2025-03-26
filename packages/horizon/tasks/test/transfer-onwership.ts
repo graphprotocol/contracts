@@ -1,19 +1,19 @@
 import { task, types } from 'hardhat/config'
 import { Contract } from 'ethers'
 
-import { IStaking } from '@graphprotocol/contracts'
 import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
-import { mergeABIs } from 'hardhat-graph-protocol/sdk'
 import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
 
-import { createBanner } from '../../utils/banners'
+import { IStaking } from '@graphprotocol/contracts'
+import { mergeABIs } from 'hardhat-graph-protocol/sdk'
+import { printBanner } from 'hardhat-graph-protocol/sdk'
 
 task('test:integration:transfer-ownership', 'Transfer ownership of protocol contracts to a new governor')
   .addOptionalParam('governorIndex', 'Index of the new governor account in getSigners array', 1, types.int)
   .addOptionalParam('slasherIndex', 'Index of the new slasher account in getSigners array', 2, types.int)
   .addFlag('skipNetworkCheck', 'Skip the network check (use with caution)')
   .setAction(async (taskArgs, hre) => {
-    console.log(createBanner('TRANSFER OWNERSHIP'))
+    printBanner('TRANSFER OWNERSHIP')
 
     // Check that we're on a local network
     if (!taskArgs.skipNetworkCheck && hre.network.name !== 'localhost' && hre.network.name !== 'hardhat') {

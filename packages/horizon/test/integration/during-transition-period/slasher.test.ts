@@ -5,9 +5,9 @@ import hre from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
-import { slash } from '../shared/staking'
 
 describe('Slasher', () => {
   let horizonStaking: IHorizonStaking
@@ -51,7 +51,7 @@ describe('Slasher', () => {
       const slasherBeforeBalance = await graphToken.balanceOf(slasher.address)
 
       // Slash tokens
-      await slash({
+      await HorizonStakingActions.slash({
         horizonStaking,
         verifier: slasher,
         serviceProvider: indexer,
@@ -83,7 +83,7 @@ describe('Slasher', () => {
       const slasherBeforeBalance = await graphToken.balanceOf(slasher.address)
 
       // Slash tokens
-      await slash({
+      await HorizonStakingActions.slash({
         horizonStaking,
         verifier: slasher,
         serviceProvider: indexer,

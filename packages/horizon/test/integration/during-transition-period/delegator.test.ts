@@ -5,9 +5,9 @@ import hre from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 
 import { delegators } from '../../../tasks/test/fixtures/delegators'
-import { withdrawDelegatedLegacy } from '../shared/staking'
 
 describe('Delegator', () => {
   let horizonStaking: IHorizonStaking
@@ -65,7 +65,7 @@ describe('Delegator', () => {
         const balanceBefore = await graphToken.balanceOf(delegator.address)
 
         // Withdraw tokens
-        await withdrawDelegatedLegacy({
+        await HorizonStakingActions.withdrawDelegatedLegacy({
           horizonStaking,
           delegator,
           serviceProvider: indexer,
@@ -83,7 +83,7 @@ describe('Delegator', () => {
 
       it('should revert if the thawing period has not passed', async () => {
         // Withdraw tokens
-        await expect(withdrawDelegatedLegacy({
+        await expect(HorizonStakingActions.withdrawDelegatedLegacy({
           horizonStaking,
           delegator,
           serviceProvider: indexer,
