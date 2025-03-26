@@ -6,9 +6,9 @@ import hre from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking, IRewardsManager } from '../../../typechain-types'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
+import { HorizonStakingExtensionActions } from 'hardhat-graph-protocol/sdk'
 
-import { stake, unstake, withdraw } from '../shared/staking'
-import { collect } from '../shared/stakingExtension'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Service Provider', () => {
@@ -48,7 +48,7 @@ describe('Service Provider', () => {
       serviceProvider = signers[7]
 
       // Stake tokens to service provider
-      await stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
+      await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
     })
 
     it('should allow service provider to unstake and withdraw after thawing period', async () => {
@@ -56,7 +56,7 @@ describe('Service Provider', () => {
       const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
       // First unstake request
-      await unstake({ horizonStaking, serviceProvider, tokens: tokensToUnstake })
+      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: tokensToUnstake })
 
       // During transition period, tokens are locked by thawing period
       const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
@@ -67,7 +67,7 @@ describe('Service Provider', () => {
       }
 
       // Now we can withdraw
-      await withdraw({ horizonStaking, serviceProvider })
+      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider })
       const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
 
       expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
@@ -81,7 +81,7 @@ describe('Service Provider', () => {
       const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
       // First unstake request
-      await unstake({ horizonStaking, serviceProvider, tokens: request1 })
+      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: request1 })
 
       // Mine half of thawing period blocks
       const halfThawingPeriod = Number(thawingPeriod) / 2
@@ -90,7 +90,7 @@ describe('Service Provider', () => {
       }
 
       // Second unstake request
-      await unstake({ horizonStaking, serviceProvider, tokens: request2 })
+      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: request2 })
 
       // Mine remaining blocks to complete first unstake thawing period
       for (let i = 0; i < halfThawingPeriod; i++) {
@@ -99,7 +99,7 @@ describe('Service Provider', () => {
 
       // Check that withdraw reverts since thawing period is not complete
       await expect(
-        withdraw({ horizonStaking, serviceProvider }),
+        HorizonStakingActions.withdraw({ horizonStaking, serviceProvider }),
       ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingStillThawing')
 
       // Mine remaining blocks to complete thawing period
@@ -111,7 +111,7 @@ describe('Service Provider', () => {
       const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
       // Withdraw all thawed tokens
-      await withdraw({ horizonStaking, serviceProvider })
+      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider })
 
       // Verify all tokens are withdrawn and transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
@@ -142,7 +142,7 @@ describe('Service Provider', () => {
       }
 
       // Withdraw tokens
-      await withdraw({ horizonStaking, serviceProvider: indexer })
+      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider: indexer })
 
       // Verify tokens are transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(indexer.address)
@@ -216,7 +216,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
+          await HorizonStakingExtensionActions.collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
 
           // Get idle stake after collecting
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
@@ -262,7 +262,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
+          await HorizonStakingExtensionActions.collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
 
           // Get idle stake after collecting
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
@@ -350,7 +350,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
+          await HorizonStakingExtensionActions.collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
 
           // Get rewards destination balance after collecting
           const balanceAfter = await graphToken.balanceOf(rewardsDestination)

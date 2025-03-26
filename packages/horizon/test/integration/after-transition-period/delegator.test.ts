@@ -5,15 +5,7 @@ import hre from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-
-import {
-  createProvision,
-  delegate,
-  redelegate,
-  stake,
-  undelegate,
-  withdrawDelegated,
-} from '../shared/staking'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 
 describe('Delegator', () => {
   let horizonStaking: IHorizonStaking
@@ -24,8 +16,8 @@ describe('Delegator', () => {
   let verifier: string
   let newVerifier: string
 
-  const maxVerifierCut = 1000000
-  const thawingPeriod = 2419200 // 28 days
+  const maxVerifierCut = 1000000n
+  const thawingPeriod = 2419200n // 28 days
   const tokens = ethers.parseEther('100000')
 
   before(async () => {
@@ -40,10 +32,10 @@ describe('Delegator', () => {
     newVerifier = await ethers.Wallet.createRandom().getAddress()
 
     // Servide provider stake
-    await stake({ horizonStaking, graphToken, serviceProvider, tokens })
+    await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens })
 
     // Create provision
-    await createProvision({
+    await HorizonStakingActions.createProvision({
       horizonStaking,
       serviceProvider,
       verifier,
@@ -72,7 +64,7 @@ describe('Delegator', () => {
     const delegationTokens = ethers.parseEther('1000')
 
     // Delegate tokens to the service provider and verifier
-    await delegate({
+    await HorizonStakingActions.delegate({
       horizonStaking,
       graphToken,
       delegator,
@@ -99,7 +91,7 @@ describe('Delegator', () => {
     expect(delegation.shares).to.equal(delegationTokens, 'Delegation shares were not minted correctly')
 
     // Undelegate tokens
-    await undelegate({
+    await HorizonStakingActions.undelegate({
       horizonStaking,
       delegator,
       serviceProvider,
@@ -108,11 +100,11 @@ describe('Delegator', () => {
     })
 
     // Wait for thawing period
-    await ethers.provider.send('evm_increaseTime', [thawingPeriod])
+    await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
     await ethers.provider.send('evm_mine', [])
 
     // Withdraw tokens
-    await withdrawDelegated({
+    await HorizonStakingActions.withdrawDelegated({
       horizonStaking,
       delegator,
       serviceProvider,
@@ -129,7 +121,7 @@ describe('Delegator', () => {
     const invalidVerifier = await ethers.Wallet.createRandom().getAddress()
 
     await expect(
-      delegate({
+      HorizonStakingActions.delegate({
         horizonStaking,
         graphToken,
         delegator,
@@ -145,7 +137,7 @@ describe('Delegator', () => {
     const minDelegation = ethers.parseEther('1')
 
     await expect(
-      delegate({
+      HorizonStakingActions.delegate({
         horizonStaking,
         graphToken,
         delegator,
@@ -163,7 +155,7 @@ describe('Delegator', () => {
 
     before(async () => {
       // Delegate tokens to initialize the delegation pool
-      await delegate({
+      await HorizonStakingActions.delegate({
         horizonStaking,
         graphToken,
         delegator,
@@ -174,13 +166,13 @@ describe('Delegator', () => {
       })
 
       // Create new provision for a new service provider and verifier combo
-      await stake({
+      await HorizonStakingActions.stake({
         horizonStaking,
         graphToken,
         serviceProvider: newServiceProvider,
         tokens: newProvisionTokens,
       })
-      await createProvision({
+      await HorizonStakingActions.createProvision({
         horizonStaking,
         serviceProvider: newServiceProvider,
         verifier: newVerifier,
@@ -199,7 +191,7 @@ describe('Delegator', () => {
       )
       const undelegateShares = delegation.shares / 5n
 
-      await undelegate({
+      await HorizonStakingActions.undelegate({
         horizonStaking,
         delegator,
         serviceProvider,
@@ -208,10 +200,10 @@ describe('Delegator', () => {
       })
 
       // Wait for thawing period
-      await ethers.provider.send('evm_increaseTime', [thawingPeriod])
+      await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
 
-      await redelegate({
+      await HorizonStakingActions.redelegate({
         horizonStaking,
         delegator,
         serviceProvider,
@@ -260,7 +252,7 @@ describe('Delegator', () => {
         const tokensOut = (undelegateShares * remainingPoolTokens) / remainingShares
         totalExpectedTokens += tokensOut
 
-        await undelegate({
+        await HorizonStakingActions.undelegate({
           horizonStaking,
           delegator,
           serviceProvider,
@@ -273,11 +265,11 @@ describe('Delegator', () => {
       }
 
       // Wait for thawing period
-      await ethers.provider.send('evm_increaseTime', [thawingPeriod])
+      await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
 
       // Withdraw all thaw requests
-      await withdrawDelegated({
+      await HorizonStakingActions.withdrawDelegated({
         horizonStaking,
         delegator,
         serviceProvider,
@@ -313,7 +305,7 @@ describe('Delegator', () => {
         const tokensOut = (undelegateShares * remainingPoolTokens) / remainingShares
         totalExpectedTokens += tokensOut
 
-        await undelegate({
+        await HorizonStakingActions.undelegate({
           horizonStaking,
           delegator,
           serviceProvider,
@@ -326,12 +318,12 @@ describe('Delegator', () => {
       }
 
       // Wait for thawing period
-      await ethers.provider.send('evm_increaseTime', [thawingPeriod])
+      await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
 
       // Withdraw each thaw request individually
       for (let i = 0; i < 3; i++) {
-        await withdrawDelegated({
+        await HorizonStakingActions.withdrawDelegated({
           horizonStaking,
           delegator,
           serviceProvider,
@@ -354,7 +346,7 @@ describe('Delegator', () => {
       )
       const undelegateShares = delegation.shares / 10n
 
-      await undelegate({
+      await HorizonStakingActions.undelegate({
         horizonStaking,
         delegator,
         serviceProvider,
@@ -363,7 +355,7 @@ describe('Delegator', () => {
       })
 
       await expect(
-        withdrawDelegated({
+        HorizonStakingActions.withdrawDelegated({
           horizonStaking,
           delegator,
           serviceProvider,

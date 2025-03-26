@@ -11,7 +11,7 @@ import { ThawRequestType } from '../utils/types'
                             EXPORTS
 ////////////////////////////////////////////////////////////// */
 
-export const HorizonHelper = {
+export const HorizonStakingActions = {
   addToDelegationPool,
   delegate,
   deprovision,
@@ -155,17 +155,8 @@ interface ProvisionParams {
 }
 
 interface CreateProvisionParams extends ProvisionParams {
-  maxVerifierCut: number
-  thawingPeriod: number
-}
-
-interface DeprovisionParams extends Omit<ProvisionParams, 'tokens'> {
-  nThawRequests: bigint
-}
-
-interface ReprovisionParams extends Omit<ProvisionParams, 'tokens'> {
-  newVerifier: string
-  nThawRequests: bigint
+  maxVerifierCut: bigint
+  thawingPeriod: bigint
 }
 
 async function createProvision({
@@ -257,6 +248,10 @@ async function thaw({
   expect(thawRequest.shares).to.equal(expectedThawRequestShares, 'Thaw request shares were not set')
 }
 
+interface DeprovisionParams extends Omit<ProvisionParams, 'tokens'> {
+  nThawRequests: bigint
+}
+
 async function deprovision({
   horizonStaking,
   serviceProvider,
@@ -271,6 +266,11 @@ async function deprovision({
     nThawRequests,
   )
   await deprovisionTx.wait()
+}
+
+interface ReprovisionParams extends Omit<ProvisionParams, 'tokens'> {
+  newVerifier: string
+  nThawRequests: bigint
 }
 
 async function reprovision({

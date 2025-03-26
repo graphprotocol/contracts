@@ -5,9 +5,7 @@ import hre from 'hardhat'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-
-// import { createProvision, deprovision, reprovision, stakeTo, thaw, unstake } from '../shared/staking'
-import { HorizonHelper } from 'hardhat-graph-protocol/sdk'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
 
 describe('Operator', () => {
@@ -18,8 +16,8 @@ describe('Operator', () => {
   let operator: HardhatEthersSigner
 
   const tokens = ethers.parseEther('100000')
-  const maxVerifierCut = 1000000 // 100%
-  const thawingPeriod = 2419200
+  const maxVerifierCut = 1000000n // 100%
+  const thawingPeriod = 2419200n
 
   before(async () => {
     const graph = hre.graph()
@@ -44,7 +42,7 @@ describe('Operator', () => {
     const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
     // Operator stakes on behalf of service provider
-    await HorizonHelper.stakeTo({
+    await HorizonStakingActions.stakeTo({
       horizonStaking,
       graphToken,
       signer: operator,
@@ -53,7 +51,7 @@ describe('Operator', () => {
     })
 
     // Service provider unstakes
-    await HorizonHelper.unstake({ horizonStaking, serviceProvider, tokens: stakeTokens })
+    await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: stakeTokens })
 
     // Verify tokens were removed from operator's address
     const operatorBalanceAfter = await graphToken.balanceOf(operator.address)
@@ -89,7 +87,7 @@ describe('Operator', () => {
     before(async () => {
       const provisionTokens = ethers.parseEther('10000')
       // Operator stakes tokens to service provider
-      await HorizonHelper.stakeTo({
+      await HorizonStakingActions.stakeTo({
         horizonStaking,
         graphToken,
         signer: operator,
@@ -98,7 +96,7 @@ describe('Operator', () => {
       })
 
       // Operator creates provision
-      await HorizonHelper.createProvision({
+      await HorizonStakingActions.createProvision({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -119,7 +117,7 @@ describe('Operator', () => {
       const provisionTokensBefore = (await horizonStaking.getProvision(serviceProvider.address, verifier)).tokens
 
       // Operator thaws tokens
-      await HorizonHelper.thaw({
+      await HorizonStakingActions.thaw({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -128,11 +126,11 @@ describe('Operator', () => {
       })
 
       // Increase time
-      await ethers.provider.send('evm_increaseTime', [thawingPeriod])
+      await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
 
       // Operator deprovisions
-      await HorizonHelper.deprovision({
+      await HorizonStakingActions.deprovision({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -153,7 +151,7 @@ describe('Operator', () => {
       const thawTokens = ethers.parseEther('100')
 
       // Operator thaws tokens
-      await HorizonHelper.thaw({
+      await HorizonStakingActions.thaw({
         horizonStaking,
         serviceProvider,
         verifier,
@@ -162,7 +160,7 @@ describe('Operator', () => {
       })
 
       // Increase time
-      await ethers.provider.send('evm_increaseTime', [thawingPeriod])
+      await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
 
       // Create new verifier and authorize operator
@@ -170,7 +168,7 @@ describe('Operator', () => {
       await horizonStaking.connect(serviceProvider).setOperator(newVerifier, operator.address, true)
 
       // Operator creates a provision for the new verifier
-      await HorizonHelper.createProvision({
+      await HorizonStakingActions.createProvision({
         horizonStaking,
         serviceProvider,
         verifier: newVerifier,
@@ -181,7 +179,7 @@ describe('Operator', () => {
       })
 
       // Operator reprovisions
-      await HorizonHelper.reprovision({
+      await HorizonStakingActions.reprovision({
         horizonStaking,
         serviceProvider,
         verifier,
