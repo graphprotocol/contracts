@@ -63,16 +63,16 @@ npx hardhat test:integration:pre-upgrade --network localhost
 npx hardhat test:integration:transfer-ownership --network localhost
 
 # Step 1 - Deployer
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --signer-index 0
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --account-index 0
 
 # Step 2 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 2 --patch-config --signer-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 2 --patch-config --account-index 1 --hide-banner
 
 # Step 3 - Deployer
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 3 --patch-config --signer-index 0 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 3 --patch-config --account-index 0 --hide-banner
 
 # Step 4 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 4 --patch-config --signer-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 4 --patch-config --account-index 1 --hide-banner
 
 # Unset subgraph service
 npx hardhat transition:unset-subgraph-service --network localhost --governor-index 1

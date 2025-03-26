@@ -284,7 +284,7 @@ describe('Service Provider', () => {
         })
       })
 
-      describe('With beneficiary', () => {
+      describe('With rewardsDestination set', () => {
         let delegationIndexingCut: number
         let delegationQueryFeeCut: number
         let rewardsDestination: string

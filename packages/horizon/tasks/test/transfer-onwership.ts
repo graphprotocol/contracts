@@ -9,8 +9,8 @@ import { mergeABIs } from 'hardhat-graph-protocol/sdk'
 import { printBanner } from 'hardhat-graph-protocol/sdk'
 
 task('test:integration:transfer-ownership', 'Transfer ownership of protocol contracts to a new governor')
-  .addOptionalParam('governorIndex', 'Index of the new governor account in getSigners array', 1, types.int)
-  .addOptionalParam('slasherIndex', 'Index of the new slasher account in getSigners array', 2, types.int)
+  .addOptionalParam('governorIndex', 'Derivation path index for the new governor account', 1, types.int)
+  .addOptionalParam('slasherIndex', 'Derivation path index for the new slasher account', 2, types.int)
   .addFlag('skipNetworkCheck', 'Skip the network check (use with caution)')
   .setAction(async (taskArgs, hre) => {
     printBanner('TRANSFER OWNERSHIP')

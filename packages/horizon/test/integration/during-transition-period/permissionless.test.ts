@@ -49,7 +49,7 @@ describe('Permissionless', () => {
       allocationTokens = indexers[0].allocations[0].tokens
     })
 
-    it('should allow any user to close an allocation with zero POI', async () => {
+    it('should allow any user to close an allocation with zero POI after 28 epochs', async () => {
       // Get indexer's idle stake before closing allocation
       const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
