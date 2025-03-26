@@ -6,14 +6,7 @@ import hre from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-
-import {
-  createProvision,
-  delegate,
-  slash,
-  stake,
-  thaw,
-} from '../shared/staking'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 
 describe('Slasher', () => {
   let horizonStaking: IHorizonStaking
@@ -23,8 +16,8 @@ describe('Slasher', () => {
   let verifier: HDNodeWallet
   let verifierDestination: string
 
-  const maxVerifierCut = 1000000 // 100%
-  const thawingPeriod = 2419200 // 28 days
+  const maxVerifierCut = 1000000n // 100%
+  const thawingPeriod = 2419200n // 28 days
   const provisionTokens = ethers.parseEther('10000')
   const delegationTokens = ethers.parseEther('1000')
 
@@ -39,8 +32,8 @@ describe('Slasher', () => {
     verifierDestination = await ethers.Wallet.createRandom().getAddress()
 
     // Create provision
-    await stake({ horizonStaking, graphToken, serviceProvider, tokens: provisionTokens })
-    await createProvision({
+    await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: provisionTokens })
+    await HorizonStakingActions.createProvision({
       horizonStaking,
       serviceProvider,
       verifier: verifier.address,
@@ -53,7 +46,7 @@ describe('Slasher', () => {
     await graphToken.connect(serviceProvider).transfer(delegator.address, delegationTokens * 3n)
 
     // Initialize delegation pool if it does not exist
-    await delegate({
+    await HorizonStakingActions.delegate({
       horizonStaking,
       graphToken,
       delegator,
@@ -77,7 +70,7 @@ describe('Slasher', () => {
     const verifierDestinationBalanceBefore = await graphToken.balanceOf(verifierDestination)
 
     // Slash provision
-    await slash({
+    await HorizonStakingActions.slash({
       horizonStaking,
       verifier,
       serviceProvider: serviceProvider.address,
@@ -98,7 +91,7 @@ describe('Slasher', () => {
   it('should slash service provider tokens when tokens are thawing', async () => {
     // Start thawing
     const thawTokens = ethers.parseEther('1000')
-    await thaw({
+    await HorizonStakingActions.thaw({
       horizonStaking,
       serviceProvider,
       verifier: verifier.address,
@@ -111,7 +104,7 @@ describe('Slasher', () => {
     const verifierDestinationBalanceBefore = await graphToken.balanceOf(verifierDestination)
 
     // Slash provision
-    await slash({
+    await HorizonStakingActions.slash({
       horizonStaking,
       verifier,
       serviceProvider: serviceProvider.address,
@@ -141,8 +134,8 @@ describe('Slasher', () => {
     })
 
     // Create provision for slashing verifier
-    await stake({ horizonStaking, graphToken, serviceProvider, tokens: provisionTokens })
-    await createProvision({
+    await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: provisionTokens })
+    await HorizonStakingActions.createProvision({
       horizonStaking,
       serviceProvider,
       verifier: slashingVerifier.address,
@@ -152,7 +145,7 @@ describe('Slasher', () => {
     })
 
     // Initialize delegation pool for slashing verifier
-    await delegate({
+    await HorizonStakingActions.delegate({
       horizonStaking,
       graphToken,
       delegator,
@@ -166,7 +159,7 @@ describe('Slasher', () => {
     const poolBefore = await horizonStaking.getDelegationPool(serviceProvider.address, slashingVerifier.address)
 
     // Slash the provision for all service provider and delegation pool tokens
-    await slash({
+    await HorizonStakingActions.slash({
       horizonStaking,
       verifier: slashingVerifier,
       serviceProvider: serviceProvider.address,

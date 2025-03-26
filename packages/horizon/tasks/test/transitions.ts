@@ -1,11 +1,12 @@
 import { task, types } from 'hardhat/config'
-import { createBanner } from '../../utils/banners'
 import { ethers } from 'ethers'
+
+import { printBanner } from 'hardhat-graph-protocol/sdk'
 
 task('transition:unset-subgraph-service', 'Unsets the subgraph service in HorizonStaking')
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
-    console.log(createBanner('UNSETTING SUBGRAPH SERVICE'))
+    printBanner('UNSETTING SUBGRAPH SERVICE')
 
     const signers = await hre.ethers.getSigners()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +22,7 @@ task('transition:unset-subgraph-service', 'Unsets the subgraph service in Horizo
 task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
-    console.log(createBanner('CLEARING THAWING PERIOD'))
+    printBanner('CLEARING THAWING PERIOD')
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
@@ -36,7 +37,7 @@ task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
 task('transition:enable-delegation-slashing', 'Enables delegation slashing in HorizonStaking')
   .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
   .setAction(async (taskArgs, hre) => {
-    console.log(createBanner('ENABLING DELEGATION SLASHING'))
+    printBanner('ENABLING DELEGATION SLASHING')
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]

@@ -6,15 +6,7 @@ import hre from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-
-import {
-  createProvision,
-  delegate,
-  slash,
-  stake,
-  undelegate,
-  withdrawDelegated,
-} from '../shared/staking'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 
 describe('Slasher', () => {
   let horizonStaking: IHorizonStaking
@@ -24,8 +16,8 @@ describe('Slasher', () => {
   let verifier: HDNodeWallet
   let verifierDestination: string
 
-  const maxVerifierCut = 1000000 // 100%
-  const thawingPeriod = 2419200 // 28 days
+  const maxVerifierCut = 1000000n // 100%
+  const thawingPeriod = 2419200n // 28 days
   const provisionTokens = ethers.parseEther('10000')
   const delegationTokens = ethers.parseEther('1000')
 
@@ -50,8 +42,8 @@ describe('Slasher', () => {
     verifierDestination = await ethers.Wallet.createRandom().getAddress()
 
     // Create provision
-    await stake({ horizonStaking, graphToken, serviceProvider, tokens: provisionTokens })
-    await createProvision({
+    await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: provisionTokens })
+    await HorizonStakingActions.createProvision({
       horizonStaking,
       serviceProvider,
       verifier: verifier.address,
@@ -61,7 +53,7 @@ describe('Slasher', () => {
     })
 
     // Initialize delegation pool if it does not exist
-    await delegate({
+    await HorizonStakingActions.delegate({
       horizonStaking,
       graphToken,
       delegator,
@@ -85,7 +77,7 @@ describe('Slasher', () => {
     const tokensVerifier = slashTokens / 2n
 
     // Slash the provision for all service provider and half of the delegation pool tokens
-    await slash({
+    await HorizonStakingActions.slash({
       horizonStaking,
       verifier,
       serviceProvider: serviceProvider.address,
@@ -111,7 +103,7 @@ describe('Slasher', () => {
     const tokensVerifier = slashTokens / 2n
 
     // Slash the provision for all service provider and delegation pool tokens
-    await slash({
+    await HorizonStakingActions.slash({
       horizonStaking,
       verifier,
       serviceProvider: serviceProvider.address,
@@ -125,7 +117,7 @@ describe('Slasher', () => {
 
     // Try to delegate to slashed pool
     await expect(
-      delegate({
+      HorizonStakingActions.delegate({
         horizonStaking,
         graphToken,
         delegator,
@@ -138,7 +130,7 @@ describe('Slasher', () => {
 
     // Try to undelegate from slashed pool
     await expect(
-      undelegate({
+      HorizonStakingActions.undelegate({
         horizonStaking,
         delegator,
         serviceProvider,
@@ -149,7 +141,7 @@ describe('Slasher', () => {
 
     // Try to withdraw from slashed pool
     await expect(
-      withdrawDelegated({
+      HorizonStakingActions.withdrawDelegated({
         horizonStaking,
         delegator,
         serviceProvider,

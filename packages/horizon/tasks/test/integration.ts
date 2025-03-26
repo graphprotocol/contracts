@@ -2,7 +2,7 @@ import { glob } from 'glob'
 import { task } from 'hardhat/config'
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 
-import { createBanner } from '../../utils/banners'
+import { printBanner } from 'hardhat-graph-protocol/sdk'
 
 task('test:integration', 'Runs all integration tests')
   .addParam(
@@ -16,7 +16,7 @@ task('test:integration', 'Runs all integration tests')
     const afterDelegationSlashingEnabledFiles = await glob('test/integration/after-delegation-slashing-enabled/**/*.{js,ts}')
 
     // Display banner for the current test phase
-    console.log(getTestPhaseBanner(taskArgs.phase))
+    printBanner(taskArgs.phase, 'INTEGRATION TESTS: ')
 
     switch (taskArgs.phase) {
       case 'during-transition-period':
@@ -34,7 +34,3 @@ task('test:integration', 'Runs all integration tests')
         )
     }
   })
-
-function getTestPhaseBanner(phase: string): string {
-  return createBanner(phase, 'INTEGRATION TESTS: ')
-}
