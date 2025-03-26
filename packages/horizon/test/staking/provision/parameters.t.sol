@@ -70,6 +70,41 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
     }
 
+    function test_ProvisionParametersSet_MaxMaxThawingPeriodChanged(
+        uint256 amount,
+        uint32 maxVerifierCut,
+        uint64 thawingPeriod
+    ) public useIndexer {
+        vm.assume(amount > 0);
+        vm.assume(amount <= MAX_STAKING_TOKENS);
+        vm.assume(maxVerifierCut <= MAX_PPM);
+        
+        // create provision with initial parameters
+        uint32 initialMaxVerifierCut = 1000;
+        uint64 initialThawingPeriod = 14 days;  // Max thawing period is 28 days
+        _createProvision(users.indexer, subgraphDataServiceAddress, amount, initialMaxVerifierCut, initialThawingPeriod);
+
+        // change the max thawing period allowed so that the initial thawing period is not valid anymore
+        uint64 newMaxThawingPeriod = 7 days;
+        resetPrank(users.governor);
+        _setMaxThawingPeriod(newMaxThawingPeriod);
+
+        // set the verifier cut to a new value - keep the thawing period the same, it should be allowed
+        resetPrank(users.indexer);
+        _setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, initialThawingPeriod);
+
+        // now try to change the thawing period to a new value that is invalid
+        vm.assume(thawingPeriod > initialThawingPeriod);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IHorizonStakingMain.HorizonStakingInvalidThawingPeriod.selector,
+                thawingPeriod,
+                newMaxThawingPeriod
+            )
+        );
+        staking.setProvisionParameters(users.indexer, subgraphDataServiceAddress, maxVerifierCut, thawingPeriod);
+    }
+
     function test_ProvisionParametersAccept(
         uint256 amount,
         uint32 maxVerifierCut,

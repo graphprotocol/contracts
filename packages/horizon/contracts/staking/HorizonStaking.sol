@@ -219,19 +219,26 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint32 newMaxVerifierCut,
         uint64 newThawingPeriod
     ) external override notPaused onlyAuthorized(serviceProvider, verifier) {
-        require(PPMMath.isValidPPM(newMaxVerifierCut), HorizonStakingInvalidMaxVerifierCut(newMaxVerifierCut));
-        require(
-            newThawingPeriod <= _maxThawingPeriod,
-            HorizonStakingInvalidThawingPeriod(newThawingPeriod, _maxThawingPeriod)
-        );
-
         // Provision must exist
         Provision storage prov = _provisions[serviceProvider][verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(serviceProvider, verifier));
 
-        if ((prov.maxVerifierCutPending != newMaxVerifierCut) || (prov.thawingPeriodPending != newThawingPeriod)) {
-            prov.maxVerifierCutPending = newMaxVerifierCut;
-            prov.thawingPeriodPending = newThawingPeriod;
+        bool verifierCutChanged = prov.maxVerifierCutPending != newMaxVerifierCut;
+        bool thawingPeriodChanged = prov.thawingPeriodPending != newThawingPeriod;
+
+        if (verifierCutChanged || thawingPeriodChanged) {
+            if (verifierCutChanged) {
+                require(PPMMath.isValidPPM(newMaxVerifierCut), HorizonStakingInvalidMaxVerifierCut(newMaxVerifierCut));
+                prov.maxVerifierCutPending = newMaxVerifierCut;
+            }
+            if (thawingPeriodChanged) {
+                require(
+                    newThawingPeriod <= _maxThawingPeriod,
+                    HorizonStakingInvalidThawingPeriod(newThawingPeriod, _maxThawingPeriod)
+                );
+                prov.thawingPeriodPending = newThawingPeriod;
+            }
+
             prov.lastParametersStagedAt = block.timestamp;
             emit ProvisionParametersStaged(serviceProvider, verifier, newMaxVerifierCut, newThawingPeriod);
         }
