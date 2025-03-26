@@ -4,9 +4,15 @@ import { ethers } from 'ethers'
 import { printBanner } from 'hardhat-graph-protocol/sdk'
 
 task('transition:unset-subgraph-service', 'Unsets the subgraph service in HorizonStaking')
-  .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
+  .addOptionalParam('governorIndex', 'Derivation path index for the governor account', 0, types.int)
+  .addFlag('skipNetworkCheck', 'Skip the network check (use with caution)')
   .setAction(async (taskArgs, hre) => {
     printBanner('UNSETTING SUBGRAPH SERVICE')
+
+    // Check that we're on a local network
+    if (!taskArgs.skipNetworkCheck && hre.network.name !== 'localhost' && hre.network.name !== 'hardhat') {
+      throw new Error('This task can only be run on localhost or hardhat network. Use --skip-network-check to override (use with caution)')
+    }
 
     const signers = await hre.ethers.getSigners()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,9 +26,15 @@ task('transition:unset-subgraph-service', 'Unsets the subgraph service in Horizo
   })
 
 task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
-  .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
+  .addOptionalParam('governorIndex', 'Derivation path index for the governor account', 0, types.int)
+  .addFlag('skipNetworkCheck', 'Skip the network check (use with caution)')
   .setAction(async (taskArgs, hre) => {
     printBanner('CLEARING THAWING PERIOD')
+
+    // Check that we're on a local network
+    if (!taskArgs.skipNetworkCheck && hre.network.name !== 'localhost' && hre.network.name !== 'hardhat') {
+      throw new Error('This task can only be run on localhost or hardhat network. Use --skip-network-check to override (use with caution)')
+    }
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
@@ -35,9 +47,15 @@ task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
   })
 
 task('transition:enable-delegation-slashing', 'Enables delegation slashing in HorizonStaking')
-  .addOptionalParam('governorIndex', 'Index of the governor account in getSigners array', 0, types.int)
+  .addOptionalParam('governorIndex', 'Derivation path index for the governor account', 0, types.int)
+  .addFlag('skipNetworkCheck', 'Skip the network check (use with caution)')
   .setAction(async (taskArgs, hre) => {
     printBanner('ENABLING DELEGATION SLASHING')
+
+    // Check that we're on a local network
+    if (!taskArgs.skipNetworkCheck && hre.network.name !== 'localhost' && hre.network.name !== 'hardhat') {
+      throw new Error('This task can only be run on localhost or hardhat network. Use --skip-network-check to override (use with caution)')
+    }
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
