@@ -3,13 +3,14 @@ import { task } from 'hardhat/config'
 
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 
-import { IGraphToken, IStaking } from '@graphprotocol/contracts'
 import L2GraphTokenABI from '@graphprotocol/contracts/build/abis/L2GraphToken.json'
 import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
-import { mergeABIs } from 'hardhat-graph-protocol/sdk'
 import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
 
-import { createBanner } from '../../utils/banners'
+import { IGraphToken, IStaking } from '@graphprotocol/contracts'
+import { mergeABIs } from 'hardhat-graph-protocol/sdk'
+import { printBanner } from 'hardhat-graph-protocol/sdk'
+
 import { delegators } from './fixtures/delegators'
 import { indexers } from './fixtures/indexers'
 
@@ -22,7 +23,7 @@ const graphTokenABI = L2GraphTokenABI
 
 task('test:integration:pre-upgrade', 'Sets up the pre-upgrade state for testing')
   .setAction(async (_, hre) => {
-    console.log(createBanner('PRE-HORIZON UPGRADE SETUP'))
+    printBanner('PRE-HORIZON UPGRADE SETUP')
 
     console.log('\n--- STEP 0: Setup ---')
 

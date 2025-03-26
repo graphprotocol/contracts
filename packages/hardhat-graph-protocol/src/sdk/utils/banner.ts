@@ -1,11 +1,10 @@
 /**
- * Creates a box-style banner with centered text
+ * Creates and prints a box-style banner with centered text to the console
  * @param title The main title text to display
  * @param prefix Optional prefix text that appears before the title (default: '')
  * @param minWidth Minimum width of the banner (default: 47)
- * @returns A string containing the formatted banner
  */
-export function createBanner(title: string, prefix = '', minWidth = 47): string {
+export function printBanner(title: string, prefix = '', minWidth = 47): void {
   // Format title with capitalized words if it contains hyphens
   const formattedTitle = title.includes('-')
     ? title
@@ -31,11 +30,11 @@ export function createBanner(title: string, prefix = '', minWidth = 47): string 
   // Create border with correct width
   const border = '+' + '-'.repeat(bannerWidth) + '+'
 
-  return `
+  console.log(`
 ${border}
 ${emptyLine}
 ${centeredLine}
 ${emptyLine}
 ${border}
-`
+`)
 }

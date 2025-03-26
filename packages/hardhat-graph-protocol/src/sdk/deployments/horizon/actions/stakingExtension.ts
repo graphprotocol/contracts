@@ -1,6 +1,14 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
+import { IGraphToken, IHorizonStaking } from '@graphprotocol/horizon'
+
+/* //////////////////////////////////////////////////////////////
+                            EXPORTS
+////////////////////////////////////////////////////////////// */
+
+export const HorizonStakingExtensionActions = {
+  collect,
+}
 
 /* ////////////////////////////////////////////////////////////
                         STAKING EXTENSION

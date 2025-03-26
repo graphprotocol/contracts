@@ -5,13 +5,7 @@ import hre from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-
-import {
-  addToDelegationPool,
-  createProvision,
-  delegate,
-  stake,
-} from '../shared/staking'
+import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 
 describe('Add to delegation pool', () => {
   let horizonStaking: IHorizonStaking
@@ -21,8 +15,8 @@ describe('Add to delegation pool', () => {
   let signer: SignerWithAddress
   let verifier: string
 
-  const maxVerifierCut = 1000000
-  const thawingPeriod = 2419200 // 28 days
+  const maxVerifierCut = 1000000n
+  const thawingPeriod = 2419200n // 28 days
   const tokens = ethers.parseEther('100000')
   const delegationTokens = ethers.parseEther('1000')
 
@@ -36,7 +30,7 @@ describe('Add to delegation pool', () => {
     verifier = await ethers.Wallet.createRandom().getAddress()
 
     // Service provider stake
-    await stake({
+    await HorizonStakingActions.stake({
       horizonStaking,
       graphToken,
       serviceProvider,
@@ -45,7 +39,7 @@ describe('Add to delegation pool', () => {
 
     // Create provision
     const provisionTokens = ethers.parseEther('1000')
-    await createProvision({
+    await HorizonStakingActions.createProvision({
       horizonStaking,
       serviceProvider,
       verifier,
@@ -59,7 +53,7 @@ describe('Add to delegation pool', () => {
     await graphToken.connect(serviceProvider).transfer(signer.address, tokens)
 
     // Initialize delegation pool
-    await delegate({
+    await HorizonStakingActions.delegate({
       horizonStaking,
       graphToken,
       delegator,
@@ -75,7 +69,7 @@ describe('Add to delegation pool', () => {
     const addTokens = ethers.parseEther('500')
 
     // Add tokens to the delegation pool
-    await addToDelegationPool({
+    await HorizonStakingActions.addToDelegationPool({
       horizonStaking,
       graphToken,
       signer,
@@ -96,7 +90,7 @@ describe('Add to delegation pool', () => {
 
     // Attempt to add tokens to a non-existent provision
     await expect(
-      addToDelegationPool({
+      HorizonStakingActions.addToDelegationPool({
         horizonStaking,
         graphToken,
         signer,
@@ -111,7 +105,7 @@ describe('Add to delegation pool', () => {
     // Create new provision without any delegations
     const newVerifier = await ethers.Wallet.createRandom().getAddress()
     const newVerifierProvisionTokens = ethers.parseEther('1000')
-    await createProvision({
+    await HorizonStakingActions.createProvision({
       horizonStaking,
       serviceProvider,
       verifier: newVerifier,
@@ -123,7 +117,7 @@ describe('Add to delegation pool', () => {
     // Attempt to add tokens to the new provision
     const addTokens = ethers.parseEther('500')
     await expect(
-      addToDelegationPool({
+      HorizonStakingActions.addToDelegationPool({
         horizonStaking,
         graphToken,
         signer,
