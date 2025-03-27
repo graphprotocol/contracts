@@ -40,12 +40,11 @@ describe('Service Provider', () => {
 
   describe(('New Protocol Users'), () => {
     let serviceProvider: SignerWithAddress
-
-    const tokensToStake = ethers.parseEther('1000')
+    let tokensToStake = ethers.parseEther('1000')
 
     before(async () => {
       const signers = await ethers.getSigners()
-      serviceProvider = signers[7]
+      serviceProvider = signers[8]
 
       // Stake tokens to service provider
       await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
@@ -116,6 +115,68 @@ describe('Service Provider', () => {
       // Verify all tokens are withdrawn and transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
       expect(balanceAfter).to.equal(balanceBefore + request1 + request2, 'Tokens were not transferred back to service provider')
+    })
+
+    describe('Transition period is over', () => {
+      let governor: SignerWithAddress
+      let tokensToUnstake: bigint
+
+      before(async () => {
+        // Get governor
+        const signers = await ethers.getSigners()
+        governor = signers[1]
+
+        // Set tokens
+        tokensToStake = ethers.parseEther('100000')
+        tokensToUnstake = ethers.parseEther('10000')
+      })
+
+      it('should be able to withdraw tokens that were unstaked during transition period', async () => {
+        // Stake tokens
+        await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
+
+        // Unstake tokens
+        await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: tokensToUnstake })
+
+        // Get balance before withdrawing
+        const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
+
+        // Get thawing period
+        const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
+
+        // Clear thawing period
+        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+
+        // Mine blocks to complete thawing period
+        for (let i = 0; i < Number(thawingPeriod) + 1; i++) {
+          await ethers.provider.send('evm_mine', [])
+        }
+
+        // Withdraw tokens
+        await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider })
+
+        // Get balance after withdrawing
+        const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
+        expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
+      })
+
+      it('should be able to unstake tokens without a thawing period', async () => {
+        // Stake tokens
+        await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
+
+        // Clear thawing period
+        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+
+        // Get balance before withdrawing
+        const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
+
+        // Unstake tokens
+        await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: tokensToUnstake })
+
+        // Get balance after withdrawing
+        const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
+        expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
+      })
     })
   })
 
@@ -370,6 +431,50 @@ describe('Service Provider', () => {
           const delegationCutTokens = remainingTokens - indexerCutTokens
           expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationCutTokens, 'Delegators cut was not added to delegation pool')
         })
+      })
+    })
+
+    describe('Transition period is over', () => {
+      let governor: SignerWithAddress
+      let tokensToUnstake: bigint
+
+      before(async () => {
+        // Get governor
+        const signers = await ethers.getSigners()
+        governor = signers[1]
+
+        // Get indexer
+        const indexerFixture = indexers[2]
+        indexer = await ethers.getSigner(indexerFixture.address)
+
+        // Set tokens
+        tokensToUnstake = ethers.parseEther('10000')
+      })
+
+      it('should be able to withdraw tokens that were unstaked during transition period', async () => {
+        // Unstake tokens during transition period
+        await HorizonStakingActions.unstake({ horizonStaking, serviceProvider: indexer, tokens: tokensToUnstake })
+
+        // Get thawing period
+        const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
+
+        // Clear thawing period
+        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+
+        // Mine blocks to complete thawing period
+        for (let i = 0; i < Number(thawingPeriod) + 1; i++) {
+          await ethers.provider.send('evm_mine', [])
+        }
+
+        // Get balance before withdrawing
+        const balanceBefore = await graphToken.balanceOf(indexer.address)
+
+        // Withdraw tokens
+        await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider: indexer })
+
+        // Get balance after withdrawing
+        const balanceAfter = await graphToken.balanceOf(indexer.address)
+        expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
       })
     })
   })

@@ -26,7 +26,7 @@ describe('Add to delegation pool', () => {
     graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
 
     const signers = await ethers.getSigners()
-    serviceProvider = signers[7]
+    serviceProvider = signers[8]
     delegator = signers[13]
     signer = signers[19]
     verifier = await ethers.Wallet.createRandom().getAddress()
