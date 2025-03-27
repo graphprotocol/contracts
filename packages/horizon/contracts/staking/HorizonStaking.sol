@@ -32,9 +32,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using PPMMath for uint256;
     using LinkedList for LinkedList.List;
 
-    /// @dev Fixed point precision
-    uint256 private constant FIXED_POINT_PRECISION = 1e18;
-
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
     uint256 private constant MAX_THAW_REQUESTS = 1_000;
 
@@ -449,12 +446,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             // Burn remainder
             _graphToken().burnTokens(providerTokensSlashed - tokensVerifier);
 
-            // Provision accounting
-            uint256 provisionFractionSlashed = (providerTokensSlashed * FIXED_POINT_PRECISION + prov.tokens - 1) /
-                prov.tokens;
-            prov.tokensThawing =
-                (prov.tokensThawing * (FIXED_POINT_PRECISION - provisionFractionSlashed)) /
-                (FIXED_POINT_PRECISION);
+            // Provision accounting - round down, 1 wei max precision loss
+            prov.tokensThawing = (prov.tokensThawing * (prov.tokens - providerTokensSlashed)) / prov.tokens;
             prov.tokens = prov.tokens - providerTokensSlashed;
 
             // If the slashing leaves the thawing shares with no thawing tokens, cancel pending thawings by:
@@ -485,13 +478,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
                 // Burn tokens
                 _graphToken().burnTokens(tokensToSlash);
 
-                // Delegation pool accounting
-                uint256 delegationFractionSlashed = (tokensToSlash * FIXED_POINT_PRECISION + pool.tokens - 1) /
-                    pool.tokens;
+                // Delegation pool accounting - round down, 1 wei max precision loss
+                pool.tokensThawing = (pool.tokensThawing * (pool.tokens - tokensToSlash)) / pool.tokens;
                 pool.tokens = pool.tokens - tokensToSlash;
-                pool.tokensThawing =
-                    (pool.tokensThawing * (FIXED_POINT_PRECISION - delegationFractionSlashed)) /
-                    FIXED_POINT_PRECISION;
 
                 // If the slashing leaves the thawing shares with no thawing tokens, cancel pending thawings by:
                 // - deleting all thawing shares
