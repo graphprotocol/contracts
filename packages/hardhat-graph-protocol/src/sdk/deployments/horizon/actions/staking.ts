@@ -28,7 +28,8 @@ export const HorizonStakingActions = {
   withdrawDelegated,
   withdrawDelegatedLegacy,
   createProvision,
-  addToProvision
+  addToProvision,
+  clearThawingPeriod,
 }
 
 /* //////////////////////////////////////////////////////////////
@@ -433,6 +434,23 @@ async function addToDelegationPool({
     tokens,
   )
   await addToDelegationPoolTx.wait()
+}
+
+/* ////////////////////////////////////////////////////////////
+                        THAWING PERIOD
+////////////////////////////////////////////////////////////// */
+
+interface ClearThawingPeriodParams {
+  horizonStaking: IHorizonStaking
+  governor: HardhatEthersSigner
+}
+
+async function clearThawingPeriod({
+  horizonStaking,
+  governor,
+}: ClearThawingPeriodParams): Promise<void> {
+  const clearThawingPeriodTx = await horizonStaking.connect(governor).clearThawingPeriod()
+  await clearThawingPeriodTx.wait()
 }
 
 /* ////////////////////////////////////////////////////////////

@@ -36,6 +36,9 @@ const INDEXER_TWO_FIRST_ALLOCATION_PRIVATE_KEY = '0x80ff89a67cf4b41ea3ece2574b72
 const INDEXER_TWO_SECOND_ALLOCATION_ID = '0x63280ec9EA63859b7e2041f07a549F311C86B3bd'
 const INDEXER_TWO_SECOND_ALLOCATION_PRIVATE_KEY = '0xab6cb9dbb3646a856e6cac2c0e2a59615634e93cde11385eb6c6ba58e2873a46'
 
+// Indexer three data
+const INDEXER_THREE_ADDRESS = '0x28a8746e75304c0780E011BEd21C72cD78cd535E' // Hardhat account #6
+
 // Subgraph deployment IDs
 const SUBGRAPH_DEPLOYMENT_ID_ONE = '0x02cd85012c1f075fd58fad178fd23ab841d3b5ddcf5cd3377c30118da97cb2a4'
 const SUBGRAPH_DEPLOYMENT_ID_TWO = '0x03ca89485a59894f1acfa34660c69024b6b90ce45171dece7662b0886bc375c7'
@@ -90,5 +93,12 @@ export const indexers: Indexer[] = [
         tokens: parseEther('200000'),
       },
     ],
+  },
+  {
+    address: INDEXER_THREE_ADDRESS,
+    stake: parseEther('1000000'),
+    indexingRewardCut: 800000, // 80%
+    queryFeeCut: 800000, // 80%
+    allocations: [],
   },
 ]
