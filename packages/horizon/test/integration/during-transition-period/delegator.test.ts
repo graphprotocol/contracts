@@ -14,6 +14,11 @@ describe('Delegator', () => {
   let graphToken: IGraphToken
   let snapshotId: string
 
+  const thawingPeriod = 2419200n // 28 days
+
+  // TODO: FIX THIS
+  const subgraphServiceAddress = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B'
+
   before(() => {
     const graph = hre.graph()
 
@@ -88,6 +93,73 @@ describe('Delegator', () => {
           delegator,
           serviceProvider: indexer,
         })).to.be.revertedWith('!tokens')
+      })
+    })
+
+    describe('Transition period is over', () => {
+      let governor: SignerWithAddress
+      let indexer: SignerWithAddress
+      let delegator: SignerWithAddress
+      let tokens: bigint
+
+      before(async () => {
+        const delegatorFixture = delegators[0]
+        const delegationFixture = delegatorFixture.delegations[0]
+
+        // Get signers
+        governor = (await ethers.getSigners())[1]
+        indexer = await ethers.getSigner(delegationFixture.indexerAddress)
+        delegator = await ethers.getSigner(delegatorFixture.address)
+
+        // Get tokens
+        tokens = delegationFixture.tokens
+      })
+
+      it('should be able to undelegate during transition period and withdraw after transition period', async () => {
+        // Get delegator's delegation
+        const delegation = await horizonStaking.getDelegation(
+          indexer.address,
+          subgraphServiceAddress,
+          delegator.address,
+        )
+
+        // Undelegate tokens
+        await HorizonStakingActions.undelegate({
+          horizonStaking,
+          delegator,
+          serviceProvider: indexer,
+          verifier: subgraphServiceAddress,
+          shares: delegation.shares,
+        })
+
+        // Wait for thawing period
+        await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod) + 1])
+        await ethers.provider.send('evm_mine', [])
+
+        // Clear thawing period
+        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+
+        // Get delegator balance before withdrawing
+        const balanceBefore = await graphToken.balanceOf(delegator.address)
+
+        // Withdraw tokens
+        await HorizonStakingActions.withdrawDelegated({
+          horizonStaking,
+          delegator,
+          serviceProvider: indexer,
+          verifier: subgraphServiceAddress,
+          nThawRequests: BigInt(1),
+        })
+
+        // Get delegator balance after withdrawing
+        const balanceAfter = await graphToken.balanceOf(delegator.address)
+
+        // Expected balance after is the balance before plus the tokens minus the 0.5% delegation tax
+        // because the delegation was before the horizon upgrade, after the upgrade there is no tax
+        const expectedBalanceAfter = balanceBefore + tokens - (tokens * 5000n / 1000000n)
+
+        // Verify tokens are withdrawn
+        expect(balanceAfter).to.equal(expectedBalanceAfter)
       })
     })
   })

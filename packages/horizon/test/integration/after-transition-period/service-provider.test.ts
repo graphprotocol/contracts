@@ -8,11 +8,12 @@ import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
 import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
 import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
 
+import { indexers } from '../../../tasks/test/fixtures/indexers'
+
 describe('Service provider', () => {
   let horizonStaking: IHorizonStaking
   let graphToken: IGraphToken
   let verifier: string
-  let serviceProvider: SignerWithAddress
   const thawingPeriod = 2419200n
 
   before(async () => {
@@ -21,13 +22,17 @@ describe('Service provider', () => {
     horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
     graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
 
-    verifier = await ethers.Wallet.createRandom().getAddress();
-
-    [serviceProvider] = await ethers.getSigners()
+    verifier = await ethers.Wallet.createRandom().getAddress()
   })
 
-  describe('Service provider', () => {
+  describe('New Protocol Users', () => {
+    let serviceProvider: SignerWithAddress
     const stakeAmount = ethers.parseEther('1000')
+
+    before(async () => {
+      const signers = await ethers.getSigners()
+      serviceProvider = signers[8]
+    })
 
     it('should allow staking tokens and unstake right after', async () => {
       const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
@@ -297,6 +302,62 @@ describe('Service provider', () => {
           expect(provision.thawingPeriodPending).to.equal(newThawingPeriod, 'Thawing period should be set')
         })
       })
+    })
+  })
+
+  describe('Existing Protocol Users', () => {
+    let indexer: SignerWithAddress
+    let tokensToUnstake: bigint
+    let snapshotId: string
+
+    before(async () => {
+      // Get indexer
+      const indexerFixture = indexers[0]
+      indexer = await ethers.getSigner(indexerFixture.address)
+
+      // Set tokens
+      tokensToUnstake = ethers.parseEther('10000')
+    })
+
+    beforeEach(async () => {
+      // Take a snapshot before each test
+      snapshotId = await ethers.provider.send('evm_snapshot', [])
+    })
+
+    afterEach(async () => {
+      // Revert to the snapshot after each test
+      await ethers.provider.send('evm_revert', [snapshotId])
+    })
+
+    it('should be able to unstake tokens without thawing', async () => {
+      // Get balance before unstaking
+      const balanceBefore = await graphToken.balanceOf(indexer.address)
+
+      // Unstake tokens
+      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider: indexer, tokens: tokensToUnstake })
+
+      // Verify tokens are transferred back to service provider
+      const balanceAfter = await graphToken.balanceOf(indexer.address)
+      expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
+    })
+
+    it('should be able to withdraw locked tokens after thawing period', async () => {
+      const oldThawingPeriod = 6646
+
+      // Mine blocks to complete thawing period
+      for (let i = 0; i < oldThawingPeriod + 1; i++) {
+        await ethers.provider.send('evm_mine', [])
+      }
+
+      // Get balance before withdrawing
+      const balanceBefore = await graphToken.balanceOf(indexer.address)
+
+      // Withdraw tokens
+      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider: indexer })
+
+      // Get balance after withdrawing
+      const balanceAfter = await graphToken.balanceOf(indexer.address)
+      expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
     })
   })
 })
