@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Dummy",
+  "sourceName": "contracts/mocks/Dummy.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea264697066735822122081eeeeb2e55704976a5bd19451809712b1b76b2d5b7a994dc02b32128a829da764736f6c634300081b0033",
+  "deployedBytecode": "0x6080604052600080fdfea264697066735822122081eeeeb2e55704976a5bd19451809712b1b76b2d5b7a994dc02b32128a829da764736f6c634300081b0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

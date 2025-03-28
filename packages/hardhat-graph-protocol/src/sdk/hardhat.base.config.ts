@@ -31,6 +31,16 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
 }
 
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
+  customChains: [
+    {
+      network: 'arbitrumSepolia',
+      chainId: 421614,
+      urls: {
+        apiURL: 'https://api-sepolia.arbiscan.io/api',
+        browserURL: 'https://sepolia.arbiscan.io',
+      },
+    },
+  ],
   apiKey: {
     ...(vars.has('ARBISCAN_API_KEY') && {
       arbitrumSepolia: vars.get('ARBISCAN_API_KEY'),

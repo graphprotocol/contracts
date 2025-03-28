@@ -1,2 +1,21 @@
 {
+  "421614": {
+    "SubgraphService": {
+      "address": "0x0868B07C7d69760BAD17A19890e2B06cD58C1Dc7",
+      "proxy": "transparent",
+      "proxyAdmin": "0xB2664FA9c00c0B7DE25cB7bC6E69D6eAdfD11D16",
+      "implementation": "0xbEACda9ED95E3400E91D0988fB67173BC3a03515"
+    },
+    "DisputeManager": {
+      "address": "0x0FFbE68742F0f9Ed861Efd3dAa066cf30FCc0bf8",
+      "proxy": "transparent",
+      "proxyAdmin": "0x8e6124398485EEecA7D491de369E48A7891d98f6",
+      "implementation": "0x0307B2f9f05fFBeDD6a0902069511D93d60e4128"
+    },
+    "L2Curation": {
+      "address": "0x2876528a557C19446781F36EdD33c2FAfe19C7B3",
+      "proxy": "graph",
+      "implementation": "0x9764b00cd4dC8640EC63dec1fE426003128F9b91"
+    }
+  }
 }
