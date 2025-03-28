@@ -6,7 +6,6 @@ import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHo
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
 
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";

@@ -15,7 +15,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
     function test_SubgraphService_Collect_Indexing(uint256 tokens) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"));
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
 
         // skip time to ensure allocation gets rewards
         vm.roll(block.number + EPOCH_LENGTH);
@@ -40,7 +40,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         vm.roll(block.number + EPOCH_LENGTH);
 
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"));
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
         _collect(users.indexer, paymentType, data);
     }
 
@@ -65,7 +65,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
         resetPrank(users.indexer);
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"));
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
         _collect(users.indexer, paymentType, data);
     }
 
@@ -76,7 +76,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         vm.roll(block.number + EPOCH_LENGTH);
 
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory data = abi.encode(allocationID, bytes32("POI"));
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
         _collect(users.indexer, paymentType, data);
     }
 
@@ -92,7 +92,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
             resetPrank(users.indexer);
 
-            bytes memory data = abi.encode(allocationID, bytes32("POI"));
+            bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
             _collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
         }
     }
@@ -118,7 +118,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
             resetPrank(users.indexer);
 
-            bytes memory data = abi.encode(allocationID, bytes32("POI"));
+            bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
             _collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
         }
     }
@@ -145,7 +145,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
 
         // this collection should close the allocation
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.IndexingRewards;
-        bytes memory collectData = abi.encode(allocationID, bytes32("POI"));
+        bytes memory collectData = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
         _collect(users.indexer, paymentType, collectData);
     }
 
@@ -156,7 +156,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         // Setup new indexer
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
-        bytes memory data = abi.encode(allocationID, bytes32("POI"));
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
 
         // skip time to ensure allocation gets rewards
         vm.roll(block.number + EPOCH_LENGTH);

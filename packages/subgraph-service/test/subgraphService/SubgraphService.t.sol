@@ -180,6 +180,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
 
     struct IndexingRewardsData {
         bytes32 poi;
+        bytes poiMetadata;
         uint256 tokensIndexerRewards;
         uint256 tokensDelegationRewards;
     }
@@ -326,7 +327,10 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     function _handleIndexingRewardsCollection(
         bytes memory _data
     ) private returns (uint256 paymentCollected, address allocationId, IndexingRewardsData memory indexingRewardsData) {
-        (allocationId, indexingRewardsData.poi) = abi.decode(_data, (address, bytes32));
+        (allocationId, indexingRewardsData.poi, indexingRewardsData.poiMetadata) = abi.decode(
+            _data,
+            (address, bytes32, bytes)
+        );
         Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
 
         // Calculate accumulated tokens, this depends on the rewards manager which we have mocked
@@ -360,6 +364,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             indexingRewardsData.tokensIndexerRewards,
             indexingRewardsData.tokensDelegationRewards,
             indexingRewardsData.poi,
+            indexingRewardsData.poiMetadata,
             epochManager.currentEpoch()
         );
 
@@ -513,5 +518,15 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     function _getStakeClaim(bytes32 _claimId) private view returns (IDataServiceFees.StakeClaim memory) {
         (uint256 tokens, uint256 createdAt, uint256 releasableAt, bytes32 nextClaim) = subgraphService.claims(_claimId);
         return IDataServiceFees.StakeClaim(tokens, createdAt, releasableAt, nextClaim);
+    }
+
+    // This doesn't matter for testing because the metadata is not decoded onchain but it's expected to be of the form:
+    // - uint256 blockNumber - the block number (indexed chain) the poi’s where computed at
+    // - bytes32 publicPOI - the public POI matching the presenting poi
+    // - uint8 indexingStatus - status (failed, syncing, etc). Mapping maintained by indexer agent.
+    // - uint8 errorCode - Again up to indexer agent, but seems sensible to use 0 if no error, and error codes for anything else.
+    // - uint256 errorBlockNumber - Block number (indexed chain) where the indexing error happens. 0 if no error.
+    function _getHardcodedPOIMetadata() internal view returns (bytes memory) {
+        return abi.encode(block.number, bytes32("PUBLIC_POI1"), uint8(0), uint8(0), uint256(0));
     }
 }
