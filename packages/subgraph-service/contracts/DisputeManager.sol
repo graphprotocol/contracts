@@ -556,7 +556,7 @@ contract DisputeManager is
 
     /**
      * @notice Make the subgraph service contract slash the indexer and reward the fisherman.
-     * Give the fisherman a reward equal to the fishermanRewardPercentage of slashed amount
+     * Give the fisherman a reward equal to the fishermanRewardCut of slashed amount
      * @param _indexer Address of the indexer
      * @param _tokensSlash Amount of tokens to slash from the indexer
      * @param _tokensStakeSnapshot Snapshot of the indexer's stake at the time of the dispute creation
@@ -627,8 +627,8 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Set the percent reward that the fisherman gets when slashing occurs.
-     * @dev Update the reward percentage to `_percentage`
+     * @notice Set the reward cut that the fisherman gets when slashing occurs.
+     * @dev Update the reward cut to `_fishermanRewardCut`
      * @param _fishermanRewardCut The fisherman reward cut, in PPM
      */
     function _setFishermanRewardCut(uint32 _fishermanRewardCut) private {
@@ -641,8 +641,8 @@ contract DisputeManager is
     }
 
     /**
-     * @notice Set the maximum percentage that can be used for slashing indexers.
-     * @param _maxSlashingCut Max percentage slashing for disputes, in PPM
+     * @notice Set the maximum cut that can be used for slashing indexers.
+     * @param _maxSlashingCut Max slashing cut, in PPM
      */
     function _setMaxSlashingCut(uint32 _maxSlashingCut) private {
         require(PPMMath.isValidPPM(_maxSlashingCut), DisputeManagerInvalidMaxSlashingCut(_maxSlashingCut));
