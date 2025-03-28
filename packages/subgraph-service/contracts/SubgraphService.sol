@@ -249,6 +249,13 @@ contract SubgraphService is
      *
      * @param indexer The address of the indexer
      * @param paymentType The type of payment to collect as defined in {IGraphPayments}
+     * @param data Encoded data:
+     *    - For query fees:
+     *      - IGraphTallyCollector.SignedRAV `signedRav`: The signed RAV
+     *    - For indexing rewards:
+     *      - address `allocationId`: The id of the allocation
+     *      - bytes32 `poi`: The POI being presented
+     *      - bytes `poiMetadata`: The metadata associated with the POI. See {AllocationManager-_collectIndexingRewards} for more details.
      */
     /// @inheritdoc IDataService
     function collect(
@@ -277,12 +284,12 @@ contract SubgraphService is
             );
             paymentCollected = _collectQueryFees(signedRav, tokensToCollect);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
-            (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
+            (address allocationId, bytes32 poi, bytes memory poiMetadata) = abi.decode(data, (address, bytes32, bytes));
             require(
                 _allocations.get(allocationId).indexer == indexer,
                 SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
             );
-            paymentCollected = _collectIndexingRewards(allocationId, poi, _delegationRatio);
+            paymentCollected = _collectIndexingRewards(allocationId, poi, poiMetadata, _delegationRatio);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -477,13 +484,13 @@ contract SubgraphService is
      * Emits a {QueryFeesCollected} event.
      *
      * @param _signedRav Signed RAV
-     * @param tokensToCollect The amount of tokens to collect. Allows partially collecting a RAV. If 0, the entire RAV will
+     * @param _tokensToCollect The amount of tokens to collect. Allows partially collecting a RAV. If 0, the entire RAV will
      * be collected.
      * @return The amount of fees collected
      */
     function _collectQueryFees(
         IGraphTallyCollector.SignedRAV memory _signedRav,
-        uint256 tokensToCollect
+        uint256 _tokensToCollect
     ) private returns (uint256) {
         address indexer = _signedRav.rav.serviceProvider;
 
@@ -510,7 +517,7 @@ contract SubgraphService is
         uint256 tokensCollected = _graphTallyCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
             abi.encode(_signedRav, curationCut),
-            tokensToCollect
+            _tokensToCollect
         );
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
