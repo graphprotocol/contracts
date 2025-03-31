@@ -7,7 +7,6 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
 import { Attestation } from "../../../contracts/libraries/Attestation.sol";
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
-import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
 
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
 
