@@ -32,7 +32,10 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
       const stakingOverride = new Contract(
         this.getEntry('HorizonStaking').address,
         mergeABIs(
-          loadArtifact('HorizonStaking', GraphHorizonArtifactsMap.HorizonStaking).abi,
+          mergeABIs(
+            loadArtifact('HorizonStaking', GraphHorizonArtifactsMap.HorizonStaking).abi,
+            loadArtifact('HorizonStakingBase', GraphHorizonArtifactsMap.HorizonStaking).abi,
+          ),
           loadArtifact('HorizonStakingExtension', GraphHorizonArtifactsMap.HorizonStaking).abi,
         ),
         signerOrProvider,
