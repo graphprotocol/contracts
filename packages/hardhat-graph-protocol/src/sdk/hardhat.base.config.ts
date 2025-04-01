@@ -12,6 +12,7 @@ interface SecureAccountsOptions {
 // Hardhat variables
 const ARBITRUM_ONE_RPC = vars.get('ARBITRUM_ONE_RPC', 'https://arb1.arbitrum.io/rpc')
 const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-rollup.arbitrum.io/rpc')
+const LOCAL_NETWORK_RPC = vars.get('LOCAL_NETWORK_RPC', 'http://chain:8545')
 const LOCALHOST_RPC = vars.get('LOCALHOST_RPC', 'http://localhost:8545')
 const LOCALHOST_CHAIN_ID = vars.get('LOCALHOST_CHAIN_ID', '31337')
 
@@ -39,8 +40,9 @@ export const etherscanUserConfig: Partial<EtherscanConfig> = {
 }
 
 // In general:
-// - hardhat is used for unit tests
-// - localhost is used for local development on a hardhat network or fork
+// - "hardhat" is used for unit tests
+// - "localhost" is used for local development on a hardhat network or fork
+// - "localNetwork" is used for testing in the local network environment
 type BaseNetworksUserConfig = NetworksUserConfig &
   Record<string, { secureAccounts?: SecureAccountsOptions }>
 export const networksUserConfig: BaseNetworksUserConfig = {
@@ -53,6 +55,16 @@ export const networksUserConfig: BaseNetworksUserConfig = {
       horizon: resolveAddressBook('@graphprotocol/horizon/addresses.json', 'hardhat'),
       subgraphService: resolveAddressBook('@graphprotocol/subgraph-service/addresses.json', 'hardhat'),
     },
+  },
+  localNetwork: {
+    chainId: 1337,
+    url: LOCAL_NETWORK_RPC,
+    secureAccounts: {
+      enabled: false,
+    },
+    ...(vars.has('LOCAL_NETWORK_ACCOUNTS_MNEMONIC') && {
+      accounts: { mnemonic: vars.get('LOCAL_NETWORK_ACCOUNTS_MNEMONIC') },
+    }),
   },
   localhost: {
     chainId: parseInt(LOCALHOST_CHAIN_ID),
