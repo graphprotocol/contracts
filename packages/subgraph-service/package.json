@@ -19,7 +19,7 @@
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "BUILD_RUN=true hardhat compile",
-    "test": "forge test && hardhat test",
+    "test": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test"
   },
   "devDependencies": {
