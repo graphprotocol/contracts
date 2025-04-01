@@ -65,6 +65,10 @@ export const networksUserConfig: BaseNetworksUserConfig = {
     ...(vars.has('LOCAL_NETWORK_ACCOUNTS_MNEMONIC') && {
       accounts: { mnemonic: vars.get('LOCAL_NETWORK_ACCOUNTS_MNEMONIC') },
     }),
+    deployments: {
+      horizon: resolveAddressBook('@graphprotocol/horizon/addresses.json', 'local-network'),
+      subgraphService: resolveAddressBook('@graphprotocol/subgraph-service/addresses.json', 'local-network'),
+    },
   },
   localhost: {
     chainId: parseInt(LOCALHOST_CHAIN_ID),
