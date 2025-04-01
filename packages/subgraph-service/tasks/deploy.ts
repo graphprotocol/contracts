@@ -53,7 +53,8 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
       displayUi: true,
       parameters: IgnitionHelper.patchConfig(HorizonConfig, {
         $global: {
-          subgraphServiceProxyAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
+          // The naming convention in the horizon package is slightly different
+          subgraphServiceAddress: proxiesDeployment.Transparent_Proxy_SubgraphService.target as string,
         },
       }),
     })
