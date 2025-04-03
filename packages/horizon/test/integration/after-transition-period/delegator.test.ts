@@ -22,8 +22,8 @@ describe('Delegator', () => {
   const thawingPeriod = 2419200n // 28 days
   const tokens = ethers.parseEther('100000')
 
-  // TODO: FIX THIS
-  const subgraphServiceAddress = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B'
+  // Subgraph service address is not set for integration tests
+  const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
   before(async () => {
     const graph = hre.graph()
