@@ -48,6 +48,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^4.5.0",
     "@openzeppelin/hardhat-upgrades": "^1.8.2",
+    "@tenderly/api-client": "^1.0.13",
     "@tenderly/hardhat-tenderly": "^1.0.13",
     "@typechain/ethers-v5": "^9.0.0",
     "@typechain/hardhat": "^4.0.0",
