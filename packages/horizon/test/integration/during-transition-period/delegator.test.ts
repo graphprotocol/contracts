@@ -16,8 +16,8 @@ describe('Delegator', () => {
 
   const thawingPeriod = 2419200n // 28 days
 
-  // TODO: FIX THIS
-  const subgraphServiceAddress = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B'
+  // Subgraph service address is not set for integration tests
+  const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
   before(() => {
     const graph = hre.graph()
@@ -92,7 +92,7 @@ describe('Delegator', () => {
           horizonStaking,
           delegator,
           serviceProvider: indexer,
-        })).to.be.revertedWith('!tokens')
+        })).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingNothingToWithdraw')
       })
     })
 

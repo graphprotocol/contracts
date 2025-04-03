@@ -3,7 +3,6 @@
 set -eo pipefail
 
 # Set environment variables for this script
-export HARDHAT_FORK=true
 export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
 
 # Function to cleanup resources
@@ -32,12 +31,13 @@ if [ -d "ignition/deployments/horizon-localhost" ]; then
 fi
 
 # Check required env variables
+ARBITRUM_SEPOLIA_RPC=${ARBITRUM_SEPOLIA_RPC:-$(npx hardhat vars get ARBITRUM_SEPOLIA_RPC)}
 if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
     echo "ARBITRUM_SEPOLIA_RPC environment variable is required"
     exit 1
 fi
 
-echo "Starting e2e tests..."
+echo "Starting integration tests..."
 
 # Check if hardhat node is already running on port 8545
 STARTED_NODE=false
@@ -56,23 +56,26 @@ else
     sleep 10
 fi
 
-# Setup pre horizon migration state needed for the e2e tests
+# Setup horizon address book
+jq '{"31337": ."421614"}' addresses.json > addresses-localhost.json
+
+# Setup pre horizon migration state needed for the integration tests
 npx hardhat test:integration:pre-upgrade --network localhost
 
 # Transfer ownership of protocol to hardhat signer 1
 npx hardhat test:integration:transfer-ownership --network localhost
 
 # Step 1 - Deployer
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --account-index 0
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 1 --account-index 0
 
 # Step 2 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 2 --patch-config --account-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 2 --patch-config --account-index 1 --hide-banner
 
 # Step 3 - Deployer
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 3 --patch-config --account-index 0 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 3 --patch-config --account-index 0 --hide-banner
 
 # Step 4 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 4 --patch-config --account-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 4 --patch-config --account-index 1 --hide-banner
 
 # Unset subgraph service
 npx hardhat transition:unset-subgraph-service --network localhost --governor-index 1
@@ -93,5 +96,5 @@ npx hardhat transition:enable-delegation-slashing --network localhost --governor
 npx hardhat test:integration --phase after-delegation-slashing-enabled --network localhost
 
 echo ""
-echo "🎉 ✨ 🚀 ✅ E2E tests completed successfully! 🎉 ✨ 🚀 ✅"
+echo "🎉 ✨ 🚀 ✅ Integration tests completed successfully! 🎉 ✨ 🚀 ✅"
 echo ""
