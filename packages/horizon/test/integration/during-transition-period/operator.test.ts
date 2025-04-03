@@ -15,8 +15,8 @@ describe('Operator', () => {
   let rewardsManager: IRewardsManager
   let snapshotId: string
 
-  // TODO: FIX THIS
-  const subgraphServiceAddress = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B'
+  // Subgraph service address is not set for integration tests
+  const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
   before(() => {
     const graph = hre.graph()
