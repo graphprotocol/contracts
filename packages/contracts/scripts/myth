@@ -9,7 +9,7 @@
 # - https://github.com/ConsenSys/mythril#usage
 
 pip3 install --user mythril && \
-yarn build && \
+pnpm build && \
 mkdir -p reports/myth
 
 echo "Myth Analysis..."

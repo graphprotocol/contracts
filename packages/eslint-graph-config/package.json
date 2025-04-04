@@ -8,7 +8,7 @@
   "scripts": {
     "clean": "rm -rf index.js",
     "lint": "eslint '**/*.{js,ts}' --ignore-pattern index.js --fix",
-    "build": "yarn clean && tsc"
+    "build": "pnpm clean && tsc"
   },
   "dependencies": {
     "@stylistic/eslint-plugin": "^1.6.2",
@@ -20,6 +20,7 @@
   "devDependencies": {
     "@types/eslint__js": "^8.42.3",
     "@types/node": "^20.11.19",
+    "globals": "^16.0.0",
     "typescript": "^5.3.3"
   },
   "peerDependencies": {

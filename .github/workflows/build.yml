@@ -22,4 +22,4 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup
       - name: Build
-        run: yarn build || yarn build
+        run: pnpm build || pnpm build

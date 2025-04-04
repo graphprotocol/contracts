@@ -27,24 +27,24 @@ jobs:
       - name: Build contracts
         run: |
           pushd packages/contracts
-          yarn build
+          pnpm build
           popd
       - name: Build horizon
         run: |
           pushd packages/horizon
-          yarn build
+          pnpm build
           popd
       - name: Build subgraph service
         run: |
           pushd packages/subgraph-service
-          yarn build
+          pnpm build
           popd
       - name: Build hardhat-graph-protocol
         run: |
           pushd packages/hardhat-graph-protocol
-          yarn build
+          pnpm build
           popd
       - name: Run tests
         run: |
           pushd packages/horizon
-          yarn test
+          pnpm test
