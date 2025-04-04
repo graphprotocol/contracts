@@ -5,26 +5,12 @@
   "license": "GPL-2.0-or-later",
   "repository": "git@github.com:graphprotocol/contracts.git",
   "author": "The Graph team",
-  "packageManager": "yarn@4.0.2",
-  "workspaces": [
-    "packages/contracts",
-    "packages/data-edge",
-    "packages/eslint-graph-config",
-    "packages/hardhat-graph-protocol",
-    "packages/horizon",
-    "packages/sdk",
-    "packages/solhint-graph-config",
-    "packages/solhint-plugin-graph",
-    "packages/subgraph-service",
-    "packages/token-distribution"
-  ],
+  "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879",
   "scripts": {
     "postinstall": "husky install",
-    "clean": "yarn workspaces foreach --all --parallel --verbose run clean",
-    "clean:all": "yarn clean && rm -rf node_modules packages/*/node_modules",
-    "build": "chmod +x ./scripts/build && ./scripts/build",
-    "lint": "yarn workspaces foreach --all --parallel --verbose run lint",
-    "test": "yarn workspaces foreach --all --parallel --verbose --interlaced run test"
+    "clean": "pnpm -r --parallel --reporter=append-only run clean",
+    "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules",
+    "build": "chmod +x ./scripts/build && ./scripts/build"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",

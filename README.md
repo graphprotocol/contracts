@@ -29,7 +29,7 @@
 
 ## Packages
 
-This repository is a Yarn workspaces monorepo containing the following packages:
+This repository is a pnpm workspaces monorepo containing the following packages:
 
 | Package | Latest version | Description |
 | --- | --- | --- |
@@ -46,15 +46,11 @@ This repository is a Yarn workspaces monorepo containing the following packages:
 ## Development
 
 ### Setup
-To set up this project you'll need [git](https://git-scm.com) and [yarn](https://yarnpkg.com/) installed. Note that Yarn v4 is required to install the dependencies and build the project. 
+To set up this project you'll need [git](https://git-scm.com) and [pnpm](https://pnpm.io/) installed.
 
 From your command line:
 
 ```bash
-# Enable Yarn v4
-corepack enable
-yarn set version stable
-
 # Clone this repository
 $ git clone https://github.com/graphprotocol/contracts
 
@@ -62,10 +58,10 @@ $ git clone https://github.com/graphprotocol/contracts
 $ cd contracts
 
 # Install dependencies
-$ yarn
+$ pnpm install
 
 # Build projects
-$ yarn build
+$ pnpm build
 ```
 
 ### Versioning and publishing packages
@@ -77,7 +73,7 @@ We use [changesets](https://github.com/changesets/changesets) to manage package 
 A changeset is a file that describes the changes that have been made to the packages in the repository. To create a changeset, run the following command from the root of the repository:
 
 ```bash
-$ yarn changeset
+$ pnpm changeset
 ```
 
 Changeset files are stored in the `.changeset` directory until they are packaged into a release. You can commit these files and even merge them into your main branch without publishing a release.
@@ -87,7 +83,7 @@ Changeset files are stored in the `.changeset` directory until they are packaged
 When you are ready to create a new package release, run the following command to package all changesets, this will also bump package versions and dependencies:
 
 ```bash
-$ yarn changeset version
+$ pnpm changeset version
 ```
 
 ### Step 3: Tagging the release
@@ -97,7 +93,7 @@ __Note__: this step is meant to be run on the main branch.
 After creating a package release, you will need to tag the release commit with the version number. To do this, run the following command from the root of the repository:
 
 ```bash
-$ yarn changeset tag
+$ pnpm changeset tag
 $ git push --follow-tags
 ```
 
@@ -109,7 +105,7 @@ Packages are published and distributed via NPM. To publish a package, run the fo
 
 ```bash
 # Publish the package
-$ yarn npm publish --access public --tag <tag>
+$ pnpm npm publish --access public --tag <tag>
 ```
 
 Alternatively, there is a GitHub action that can be manually triggered to publish a package.

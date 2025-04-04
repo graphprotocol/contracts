@@ -33,7 +33,7 @@ for package in "${packages[@]}"; do
 
     cd "$package" || { echo "Failed to navigate to $package"; exit 1; }
 
-    if BUILD_RUN=true yarn build; then
+    if BUILD_RUN=true pnpm build; then
         echo "Successfully built $package"
     else
         echo "Build failed for $package" >&2

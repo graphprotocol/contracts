@@ -41,7 +41,7 @@ function loadTasks() {
 if (fs.existsSync(path.join(__dirname, 'build', 'types'))) {
   loadTasks()
 } else if (!SKIP_LOAD) {
-  execSync('yarn build', { stdio: 'inherit' })
+  execSync('pnpm build', { stdio: 'inherit' })
   loadTasks()
 }
 

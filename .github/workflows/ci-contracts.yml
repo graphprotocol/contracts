@@ -27,11 +27,11 @@ jobs:
       - name: Build
         run: |
           pushd packages/contracts
-          yarn build || yarn build
+          pnpm build || pnpm build
       - name: Run tests
         run: |
           pushd packages/contracts
-          yarn test:coverage
+          pnpm test:coverage
       - name: Upload coverage report
         uses: codecov/codecov-action@v3
         with:

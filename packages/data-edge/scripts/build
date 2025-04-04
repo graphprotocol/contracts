@@ -3,4 +3,4 @@
 set -eo pipefail
 
 # Build
-yarn compile
+pnpm compile
