@@ -11,9 +11,9 @@
     "addresses.json"
   ],
   "scripts": {
-    "lint": "yarn lint:ts && yarn lint:sol",
+    "lint": "pnpm lint:ts && pnpm lint:sol",
     "lint:ts": "eslint '**/*.{js,ts}' --fix",
-    "lint:sol": "yarn lint:sol:prettier && yarn lint:sol:solhint",
+    "lint:sol": "pnpm lint:sol:prettier && pnpm lint:sol:solhint",
     "lint:sol:prettier": "prettier --write contracts/**/*.sol test/**/*.sol",
     "lint:sol:solhint": "solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
@@ -66,16 +66,16 @@
   },
   "lint-staged": {
     "contracts/**/*.sol": [
-      "yarn lint:sol"
+      "pnpm lint:sol"
     ],
     "**/*.ts": [
-      "yarn lint:ts"
+      "pnpm lint:ts"
     ],
     "**/*.js": [
-      "yarn lint:ts"
+      "pnpm lint:ts"
     ],
     "**/*.json": [
-      "yarn lint:ts"
+      "pnpm lint:ts"
     ]
   }
 }

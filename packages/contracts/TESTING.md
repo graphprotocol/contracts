@@ -8,7 +8,7 @@ Testing is done with the following stack:
 
 ## Unit testing
 
-To test all the smart contracts, use `yarn test`.
+To test all the smart contracts, use `pnpm test`.
 To test a single file run: `npx hardhat test test/<FILE_NAME>.ts`
 
 ## E2E Testing
@@ -37,7 +37,7 @@ There are several types of e2e tests which can be run separately:
 It can be useful to run E2E tests against a fresh protocol deployment on L1, this can be done with the following:
 
 ```bash
-L1_NETWORK=localhost yarn test:e2e
+L1_NETWORK=localhost pnpm test:e2e
 ```
 
 The command will:
@@ -51,7 +51,7 @@ The command will:
 If you want to test the protocol on an L1/L2 setup, you can run:
 
 ```bash
-L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 yarn test:e2e
+L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 pnpm test:e2e
 ```
 
 In this case the command will:

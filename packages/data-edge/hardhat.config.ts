@@ -15,8 +15,8 @@ import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
 import '@typechain/hardhat'
 
-import * as tdly from "@tenderly/hardhat-tenderly";
-tdly.setup();
+import "@tenderly/hardhat-tenderly";
+
 
 // Tasks
 
