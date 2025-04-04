@@ -1,5 +1,8 @@
+<!-- markdownlint-disable MD033 --><!-- Allow inline HTML. -->
+<!-- markdownlint-disable MD041 --><!-- Allow first line not be main heading. -->
+
 <p align="center">
-  <a href="https://thegraph.com/"><img src="https://storage.thegraph.com/logos/grt.png" alt="The Graph" width="200"></a> 
+  <a href="https://thegraph.com/"><img src="https://storage.thegraph.com/logos/grt.png" alt="The Graph" width="200"></a>
 </p>
 
 <h3 align="center">The Graph Protocol</h3>
@@ -25,7 +28,7 @@
 
 ---
 
-[The Graph](https://thegraph.com/) is an indexing protocol for querying networks like Ethereum, IPFS, Polygon, and other blockchains. Anyone can build and Publish open APIs, called subgraphs, making data easily accessible.
+[The Graph](https://thegraph.com/) is an indexing protocol for querying networks like Ethereum, IPFS, Polygon, and other blockchains. Anyone can build and publish open APIs, called subgraphs, making data easily accessible.
 
 ## Packages
 
@@ -42,11 +45,11 @@ This repository is a Yarn workspaces monorepo containing the following packages:
 | [subgraph-service](./packages/subgraph-service) | - | Contracts for the Subgraph data service in Graph Horizon. |
 | [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants |
 
-
 ## Development
 
 ### Setup
-To set up this project you'll need [git](https://git-scm.com) and [yarn](https://yarnpkg.com/) installed. Note that Yarn v4 is required to install the dependencies and build the project. 
+
+To set up this project you'll need [git](https://git-scm.com) and [yarn](https://yarnpkg.com/) installed. Note that Yarn v4 is required to install the dependencies and build the project.
 
 From your command line:
 
@@ -56,16 +59,16 @@ corepack enable
 yarn set version stable
 
 # Clone this repository
-$ git clone https://github.com/graphprotocol/contracts
+git clone https://github.com/graphprotocol/contracts
 
 # Go into the repository
-$ cd contracts
+cd contracts
 
 # Install dependencies
-$ yarn
+yarn
 
 # Build projects
-$ yarn build
+yarn build
 ```
 
 ### Versioning and publishing packages
@@ -77,7 +80,7 @@ We use [changesets](https://github.com/changesets/changesets) to manage package 
 A changeset is a file that describes the changes that have been made to the packages in the repository. To create a changeset, run the following command from the root of the repository:
 
 ```bash
-$ yarn changeset
+yarn changeset
 ```
 
 Changeset files are stored in the `.changeset` directory until they are packaged into a release. You can commit these files and even merge them into your main branch without publishing a release.
@@ -87,7 +90,7 @@ Changeset files are stored in the `.changeset` directory until they are packaged
 When you are ready to create a new package release, run the following command to package all changesets, this will also bump package versions and dependencies:
 
 ```bash
-$ yarn changeset version
+yarn changeset version
 ```
 
 ### Step 3: Tagging the release
@@ -97,8 +100,8 @@ __Note__: this step is meant to be run on the main branch.
 After creating a package release, you will need to tag the release commit with the version number. To do this, run the following command from the root of the repository:
 
 ```bash
-$ yarn changeset tag
-$ git push --follow-tags
+yarn changeset tag
+git push --follow-tags
 ```
 
 #### Step 4: Publishing a package release
