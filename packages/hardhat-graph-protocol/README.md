@@ -3,13 +3,13 @@
 
 ## Usage
 
-Install with yarn
+Install with pnpm
 
 ```bash
-yarn add --dev hardhat-graph-protocol
+pnpm add --dev hardhat-graph-protocol
 
 # From the monorepo
-yarn add --dev hardhat-graph-protocol@workspace:^x.y.z
+pnpm add --dev hardhat-graph-protocol@workspace:^x.y.z
 ```
 
 And add it to your `hardhat.config.ts`:

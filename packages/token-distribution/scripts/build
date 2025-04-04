@@ -7,5 +7,5 @@ if [ -z "${STUDIO_API_KEY}" ]; then
     exit 0
 fi
 
-yarn graphclient build
-yarn run compile
+pnpm graphclient build
+pnpm run compile
