@@ -2,7 +2,12 @@ import { vars } from 'hardhat/config'
 
 import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolidityUserConfig } from 'hardhat/types'
 import type { EtherscanConfig } from '@nomicfoundation/hardhat-verify/types'
-import type { GraphRuntimeEnvironmentOptions } from '../types'
+import type { GraphRuntimeEnvironmentOptions } from 'hardhat-graph-protocol'
+
+// This base config file assumes the project is using the following hardhat plugins:
+// - hardhat-graph-protocol
+// - hardhat-secure-accounts
+// - hardhat-verify
 
 // TODO: this should be imported from hardhat-secure-accounts, but currently it's not exported
 interface SecureAccountsOptions {
@@ -43,8 +48,17 @@ export const etherscanUserConfig: Partial<EtherscanConfig> = {
 // - "hardhat" is used for unit tests
 // - "localhost" is used for local development on a hardhat network or fork
 // - "localNetwork" is used for testing in the local network environment
-type BaseNetworksUserConfig = NetworksUserConfig &
-  Record<string, { secureAccounts?: SecureAccountsOptions }>
+type EnhancedNetworkConfig<T> = T & {
+  secureAccounts?: SecureAccountsOptions
+  deployments?: {
+    horizon: string
+    subgraphService: string
+  }
+}
+
+type BaseNetworksUserConfig = {
+  [K in keyof NetworksUserConfig]: EnhancedNetworkConfig<NetworksUserConfig[K]>
+}
 export const networksUserConfig: BaseNetworksUserConfig = {
   hardhat: {
     chainId: 31337,
@@ -100,13 +114,6 @@ export const networksUserConfig: BaseNetworksUserConfig = {
   },
 }
 
-// Local address books are not commited to GitHub so they might not exist
-// require.resolve will throw an error if the file does not exist, so we hack it a bit
-function resolveAddressBook(path: string, name: string) {
-  const resolvedPath = require.resolve(path)
-  return resolvedPath.replace('addresses.json', `addresses-${name}.json`)
-}
-
 type BaseHardhatConfig = HardhatUserConfig &
   { etherscan: Partial<EtherscanConfig> } &
   { graph: GraphRuntimeEnvironmentOptions } &
@@ -128,3 +135,11 @@ export const hardhatBaseConfig: BaseHardhatConfig = {
 }
 
 export default hardhatBaseConfig
+
+// Local address books are not commited to GitHub so they might not exist
+// require.resolve will throw an error if the file does not exist, so we hack it a bit
+// using addresses.json as the file to resolve as it should always exist
+function resolveAddressBook(path: string, name: string): string {
+  const resolvedPath = require.resolve(path)
+  return resolvedPath.replace('addresses.json', `addresses-${name}.json`)
+}
