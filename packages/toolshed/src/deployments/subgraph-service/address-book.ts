@@ -1,8 +1,7 @@
-import { logDebug, logError } from '../../../logger'
 import { Provider, Signer } from 'ethers'
 import { SubgraphServiceArtifactsMap, SubgraphServiceContractNameList } from './contracts'
-import { AddressBook } from '../../address-book'
-import { assertObject } from '../../utils/assertion'
+import { AddressBook } from '../address-book'
+import { assertObject } from '../../../../hardhat-graph-protocol/src/sdk/utils/assertion'
 
 import type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
 
@@ -17,19 +16,22 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
   loadContracts(
     signerOrProvider?: Signer | Provider,
   ): SubgraphServiceContracts {
-    logDebug('Loading Subgraph Service contracts...')
+    console.debug('Loading Subgraph Service contracts...')
 
     const contracts = this._loadContracts(
       SubgraphServiceArtifactsMap,
       signerOrProvider,
     )
-    this._assertSubgraphServiceContracts(contracts)
 
     // Aliases
-    contracts.Curation = contracts.L2Curation
-    contracts.GNS = contracts.L2GNS
+    const contractsWithAliases = {
+      ...contracts,
+      Curation: contracts.L2Curation,
+      GNS: contracts.L2GNS,
+    }
 
-    return contracts
+    this._assertSubgraphServiceContracts(contractsWithAliases)
+    return contractsWithAliases
   }
 
   _assertSubgraphServiceContracts(
@@ -41,7 +43,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
     for (const contractName of SubgraphServiceContractNameList) {
       if (!contracts[contractName]) {
         const errMessage = `Missing SubgraphService contract: ${contractName}`
-        logError(errMessage)
+        console.error(errMessage)
       }
     }
   }

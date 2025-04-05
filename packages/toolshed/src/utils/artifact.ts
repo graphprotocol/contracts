@@ -1,5 +1,4 @@
 import { Artifacts } from 'hardhat/internal/artifacts'
-import { logError } from '../../logger'
 
 import type { Artifact } from 'hardhat/types'
 
@@ -26,9 +25,9 @@ export const loadArtifact = (name: string, buildDir?: string[] | string): Artifa
       break
     } catch (error) {
       if (error instanceof Error) {
-        logError(`Could not load artifact ${name} from ${dir} - ${error.message}`)
+        throw new Error(`Could not load artifact ${name} from ${dir} - ${error.message}`)
       } else {
-        logError(`Could not load artifact ${name} from ${dir}`)
+        throw new Error(`Could not load artifact ${name} from ${dir}`)
       }
     }
   }

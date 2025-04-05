@@ -1,11 +1,11 @@
 import { GraphHorizonArtifactsMap, GraphHorizonContractNameList } from './contracts'
-import { logDebug, logError } from '../../../logger'
+import { logDebug, logError } from '../../../../hardhat-graph-protocol/src/logger'
 import { Provider, Signer } from 'ethers'
-import { AddressBook } from '../../address-book'
-import { assertObject } from '../../utils/assertion'
+import { AddressBook } from '../address-book'
+import { assertObject } from '../../../../hardhat-graph-protocol/src/sdk/utils/assertion'
 import { Contract } from 'ethers'
-import { loadArtifact } from '../../lib/artifact'
-import { mergeABIs } from '../../utils/abi'
+import { loadArtifact } from '../../utils/artifact'
+import { mergeABIs } from '../../../../hardhat-graph-protocol/src/sdk/utils/abi'
 
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 
