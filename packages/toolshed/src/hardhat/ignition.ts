@@ -1,14 +1,18 @@
-/* eslint-disable no-prototype-builtins */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-require('json5/lib/register')
-
 import fs from 'fs'
+import { parse } from 'json5'
 import path from 'path'
 
-import type { AddressBook } from '../address-book'
+import type { AddressBook } from '../deployments/address-book'
 
-export function loadConfig(configPath: string, prefix: string, configName: string): any {
+type IgnitionConfigValue = string | number
+type IgnitionConfig = {
+  [key: string]: Record<string, IgnitionConfigValue>
+}
+
+export function loadConfig(configPath: string, prefix: string, configName: string): {
+  config: IgnitionConfig
+  file: string
+} {
   prefix = process.env.IGNITION_DEPLOYMENT_TYPE ?? prefix
 
   const configFileCandidates = [
@@ -23,33 +27,38 @@ export function loadConfig(configPath: string, prefix: string, configName: strin
     )
   }
 
-  return { config: removeNFromBigInts(require(configFile)), file: configFile }
+  const config = parse<IgnitionConfig>(fs.readFileSync(configFile, 'utf8'))
+
+  return {
+    config: removeNFromBigInts(config),
+    file: configFile,
+  }
 }
 
-export function patchConfig(jsonData: any, patches: Record<string, any>) {
-  function recursivePatch(obj: any, patchObj: any) {
-    if (typeof obj === 'object' && obj !== null && typeof patchObj === 'object' && patchObj !== null) {
-      for (const key in patchObj) {
-        if (obj.hasOwnProperty(key) && typeof obj[key] === 'object' && typeof patchObj[key] === 'object') {
-          // Both are objects, recursively merge
-          recursivePatch(obj[key], patchObj[key])
-        } else {
-          // Either not an object or new key, directly assign
-          obj[key] = patchObj[key]
-        }
-      }
+export function patchConfig(jsonData: IgnitionConfig, patches: IgnitionConfig): IgnitionConfig {
+  const result: IgnitionConfig = { ...jsonData }
+  for (const [key, patchValue] of Object.entries(patches)) {
+    const existingValue = result[key]
+    if (existingValue) {
+      result[key] = { ...existingValue, ...patchValue }
+    } else {
+      result[key] = patchValue
     }
-    return obj
   }
+  return result
+}
 
-  return recursivePatch(jsonData, patches)
+type IgnitionModuleResult = {
+  [key: string]: {
+    target: string
+  }
 }
 
 export function saveToAddressBook<ChainId extends number, ContractName extends string>(
-  contracts: any,
+  ignitionModuleResult: unknown,
   addressBook: AddressBook<ChainId, ContractName>,
 ): AddressBook<ChainId, ContractName> {
-  // Extract contract names and addresses
+  const contracts = ignitionModuleResult as IgnitionModuleResult
   for (const [ignitionContractName, contract] of Object.entries(contracts)) {
     // Proxy contracts
     if (ignitionContractName.includes('_Proxy_')) {
@@ -58,7 +67,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
       const entry = addressBook.entryExists(contractName) ? addressBook.getEntry(contractName) : {}
       addressBook.setEntry(contractName, {
         ...entry,
-        address: (contract as any).target,
+        address: contract.target,
         proxy,
       })
     }
@@ -71,7 +80,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
       addressBook.setEntry(contractName, {
         ...entry,
         proxy,
-        proxyAdmin: (contract as any).target,
+        proxyAdmin: contract.target,
       })
     }
 
@@ -81,7 +90,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
       const entry = addressBook.entryExists(contractName) ? addressBook.getEntry(contractName) : {}
       addressBook.setEntry(contractName, {
         ...entry,
-        implementation: (contract as any).target,
+        implementation: contract.target,
       })
     }
 
@@ -90,7 +99,7 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
       const entry = addressBook.entryExists(ignitionContractName) ? addressBook.getEntry(ignitionContractName) : {}
       addressBook.setEntry(ignitionContractName, {
         ...entry,
-        address: (contract as any).target,
+        address: contract.target,
       })
     }
   }
@@ -98,16 +107,18 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
   return addressBook
 }
 
-// Ignition requires "n" suffix for bigints, but not here
-function removeNFromBigInts(obj: any): any {
-  if (typeof obj === 'string') {
-    return obj.replace(/(\d+)n/g, '$1')
-  } else if (Array.isArray(obj)) {
-    return obj.map(removeNFromBigInts)
-  } else if (typeof obj === 'object' && obj !== null) {
-    for (const key in obj) {
-      obj[key] = removeNFromBigInts(obj[key])
+// Ignition requires "n" suffix for bigints, but not in js runtime
+function removeNFromBigInts(config: IgnitionConfig): IgnitionConfig {
+  const result: IgnitionConfig = {}
+  for (const [key, value] of Object.entries(config)) {
+    if (typeof value === 'object') {
+      result[key] = Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [
+          k,
+          typeof v === 'string' && /^\d+n$/.test(v) ? v.slice(0, -1) : v,
+        ]),
+      )
     }
   }
-  return obj
+  return result
 }

@@ -1,5 +1,5 @@
-import type { GraphHorizonAddressBook, GraphHorizonContracts } from './sdk/deployments/horizon'
-import type { SubgraphServiceAddressBook, SubgraphServiceContracts } from './sdk/deployments/subgraph-service'
+import type { GraphHorizonAddressBook, GraphHorizonContracts } from '../../toolshed/src/deployments'
+import type { SubgraphServiceAddressBook, SubgraphServiceContracts } from '../../toolshed/src/deployments/subgraph-service'
 
 // List of supported Graph deployments
 export const GraphDeploymentsList = [
