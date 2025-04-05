@@ -11,7 +11,7 @@ import type {
   DisputeManager,
   SubgraphService,
 } from '@graphprotocol/subgraph-service'
-import type { ContractList } from '../../lib/contract'
+import type { ContractList } from '../../utils/contract'
 
 export const SubgraphServiceContractNameList = [
   // @graphprotocol/contracts

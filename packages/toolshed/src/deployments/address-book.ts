@@ -1,9 +1,8 @@
 import fs from 'fs'
 
-import { assertObject } from './utils/assertion'
+import { assertObject } from '../../../hardhat-graph-protocol/src/sdk/utils/assertion'
 
-import { ContractList, loadContract } from './lib/contract'
-import { logDebug, logError, logWarn } from '../logger'
+import { ContractList, loadContract } from '../utils/contract'
 import { Provider, Signer } from 'ethers'
 
 export type AddressBookJson<
@@ -75,17 +74,20 @@ export abstract class AddressBook<
     this.file = _file
     this.chainId = _chainId
 
-    logDebug(`Loading address book from ${this.file}.`)
+    console.debug(`Loading address book from ${this.file}.`)
 
     // Create empty address book if file doesn't exist
     if (!fs.existsSync(this.file)) {
       const emptyAddressBook = { [this.chainId]: {} }
       fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2))
-      logDebug(`Created new address book at ${this.file}`)
+      console.debug(`Created new address book at ${this.file}`)
     }
 
     // Load address book and validate its shape
-    const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8'))
+    const fileContents = JSON.parse(fs.readFileSync(this.file, 'utf8')) as Record<string, unknown>
+    if (typeof fileContents !== 'object' || fileContents === null) {
+      throw new Error('Address book is not an object')
+    }
     if (!fileContents[this.chainId]) {
       fileContents[this.chainId] = {}
     }
@@ -142,8 +144,8 @@ export abstract class AddressBook<
     try {
       fs.writeFileSync(this.file, JSON.stringify(this.addressBook, null, 2))
     } catch (e: unknown) {
-      if (e instanceof Error) logError(`Error saving entry: ${e.message}`)
-      else logError(`Error saving entry`)
+      if (e instanceof Error) console.error(`Error saving entry: ${e.message}`)
+      else console.error(`Error saving entry`)
     }
   }
 
@@ -163,7 +165,7 @@ export abstract class AddressBook<
     }
 
     if (this.invalidContracts.length > 0) {
-      logWarn(`Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`)
+      console.warn(`Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`)
     }
   }
 
@@ -180,7 +182,7 @@ export abstract class AddressBook<
   ): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     if (this.listEntries().length == 0) {
-      logError('No valid contracts found in address book')
+      console.error('No valid contracts found in address book')
       return contracts
     }
     for (const contractName of this.listEntries()) {
@@ -191,11 +193,11 @@ export abstract class AddressBook<
       if (Array.isArray(artifactPath)
         ? !artifactPath.some(fs.existsSync)
         : !fs.existsSync(artifactPath)) {
-        logWarn(`Could not load contract ${contractName} - artifact not found`)
-        logWarn(artifactPath)
+        console.warn(`Could not load contract ${contractName} - artifact not found`)
+        console.warn(artifactPath)
         continue
       }
-      logDebug(`Loading contract ${contractName}`)
+      console.debug(`Loading contract ${contractName}`)
 
       const contract = loadContract(
         contractName,
