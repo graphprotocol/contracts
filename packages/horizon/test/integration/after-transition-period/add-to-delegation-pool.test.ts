@@ -2,14 +2,11 @@ import hre from 'hardhat'
 
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
 
 import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
-import type { GraphRuntimeEnvironment } from 'hardhat-graph-protocol'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Add to delegation pool', () => {
-  let graph: GraphRuntimeEnvironment
   let horizonStaking: HorizonStaking
   let graphToken: L2GraphToken
   let serviceProvider: HardhatEthersSigner
@@ -23,7 +20,7 @@ describe('Add to delegation pool', () => {
   const delegationTokens = ethers.parseEther('1000')
 
   before(async () => {
-    graph = hre.graph()
+    const graph = hre.graph()
 
     horizonStaking = graph.horizon!.contracts.HorizonStaking
     graphToken = graph.horizon!.contracts.L2GraphToken
@@ -32,38 +29,20 @@ describe('Add to delegation pool', () => {
     verifier = ethers.Wallet.createRandom().address
 
     // Service provider stake
-    await HorizonStakingActions.stake({
-      horizonStaking,
-      graphToken,
-      serviceProvider,
-      tokens,
-    })
+    await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokens)
+    await horizonStaking.connect(serviceProvider).stake(tokens)
 
     // Create provision
     const provisionTokens = ethers.parseEther('1000')
-    await HorizonStakingActions.createProvision({
-      horizonStaking,
-      serviceProvider,
-      verifier,
-      tokens: provisionTokens,
-      maxVerifierCut,
-      thawingPeriod,
-    })
+    await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, provisionTokens, maxVerifierCut, thawingPeriod)
 
     // Send funds to delegator and signer
     await graphToken.connect(serviceProvider).transfer(delegator.address, tokens)
     await graphToken.connect(serviceProvider).transfer(signer.address, tokens)
 
     // Initialize delegation pool
-    await HorizonStakingActions.delegate({
-      horizonStaking,
-      graphToken,
-      delegator,
-      serviceProvider,
-      verifier,
-      tokens: delegationTokens,
-      minSharesOut: 0n,
-    })
+    await graphToken.connect(delegator).approve(horizonStaking.target, delegationTokens)
+    await horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](serviceProvider.address, verifier, delegationTokens, 0n)
   })
 
   it('should add tokens to an existing delegation pool', async () => {
@@ -71,14 +50,8 @@ describe('Add to delegation pool', () => {
     const addTokens = ethers.parseEther('500')
 
     // Add tokens to the delegation pool
-    await HorizonStakingActions.addToDelegationPool({
-      horizonStaking,
-      graphToken,
-      signer,
-      serviceProvider,
-      verifier,
-      tokens: addTokens,
-    })
+    await graphToken.connect(signer).approve(horizonStaking.target, addTokens)
+    await horizonStaking.connect(signer).addToDelegationPool(serviceProvider.address, verifier, addTokens)
 
     // Verify tokens were added to the pool
     const poolAfter = await horizonStaking.getDelegationPool(serviceProvider.address, verifier)
@@ -92,14 +65,7 @@ describe('Add to delegation pool', () => {
 
     // Attempt to add tokens to a non-existent provision
     await expect(
-      HorizonStakingActions.addToDelegationPool({
-        horizonStaking,
-        graphToken,
-        signer,
-        serviceProvider,
-        verifier: invalidVerifier,
-        tokens: addTokens,
-      }),
+      horizonStaking.connect(signer).addToDelegationPool(serviceProvider.address, invalidVerifier, addTokens),
     ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingInvalidProvision')
   })
 
@@ -107,26 +73,14 @@ describe('Add to delegation pool', () => {
     // Create new provision without any delegations
     const newVerifier = await ethers.Wallet.createRandom().getAddress()
     const newVerifierProvisionTokens = ethers.parseEther('1000')
-    await HorizonStakingActions.createProvision({
-      horizonStaking,
-      serviceProvider,
-      verifier: newVerifier,
-      tokens: newVerifierProvisionTokens,
-      maxVerifierCut,
-      thawingPeriod,
-    })
+    await graphToken.connect(serviceProvider).approve(horizonStaking.target, newVerifierProvisionTokens)
+    await horizonStaking.connect(serviceProvider).stake(newVerifierProvisionTokens)
+    await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, newVerifier, newVerifierProvisionTokens, maxVerifierCut, thawingPeriod)
 
     // Attempt to add tokens to the new provision
     const addTokens = ethers.parseEther('500')
     await expect(
-      HorizonStakingActions.addToDelegationPool({
-        horizonStaking,
-        graphToken,
-        signer,
-        serviceProvider,
-        verifier: newVerifier,
-        tokens: addTokens,
-      }),
+      horizonStaking.connect(signer).addToDelegationPool(serviceProvider.address, newVerifier, addTokens),
     ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingInvalidDelegationPool')
   })
 })

@@ -1,12 +1,12 @@
 import hre from 'hardhat'
 
-import { createPOIFromString } from '@graphprotocol/toolshed/utils'
+import { createPOIFromString } from '@graphprotocol/toolshed'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { HorizonStaking, HorizonStakingExtension, RewardsManager } from '@graphprotocol/toolshed/deployments/horizon'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Operator', () => {
   let horizonStaking: HorizonStaking
