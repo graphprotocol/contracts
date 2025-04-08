@@ -30,6 +30,20 @@ if [ -d "ignition/deployments/horizon-localhost" ]; then
     fi
 fi
 
+if [ -f "addresses-localhost.json" ] || [ -f "../subgraph-service/addresses-localhost.json" ]; then
+    read -p "Address books for horizon and subgraph service will be deleted. Continue? (y/n) [y]: " confirm
+    confirm=${confirm:-y}
+    if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        echo "Deleting addresses-localhost.json..."
+        rm -f addresses-localhost.json
+        echo "Deleting ../subgraph-service/addresses-localhost.json..."
+        rm -f ../subgraph-service/addresses-localhost.json
+    else
+        echo "Operation cancelled. Exiting..."
+        exit 1
+    fi
+fi
+
 # Check required env variables
 ARBITRUM_SEPOLIA_RPC=${ARBITRUM_SEPOLIA_RPC:-$(npx hardhat vars get ARBITRUM_SEPOLIA_RPC)}
 if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then

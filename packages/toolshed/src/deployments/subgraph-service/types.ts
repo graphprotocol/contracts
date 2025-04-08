@@ -1,14 +1,10 @@
-// import type {
-//   IL2Curation,
-//   L2GNS,
-//   ServiceRegistry,
-//   SubgraphNFT,
-// } from '@graphprotocol/subgraph-service'
+import type {
+  IL2Curation,
+  IL2GNS,
+} from '@graphprotocol/subgraph-service'
 
 // These are just type re-declarations to keep naming conventions consistent
 export {
-//   L2Curation,
-//   L2GNS,
-//   ServiceRegistry,
-//   SubgraphNFT,
+  IL2Curation as L2Curation,
+  IL2GNS as L2GNS,
 }
