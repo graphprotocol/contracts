@@ -3,7 +3,7 @@ import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/tools
 import { task, types } from 'hardhat/config'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed/utils'
 
-import type { AddressBook } from '../../hardhat-graph-protocol/src/sdk/address-book'
+import type { AddressBook } from '@graphprotocol/toolshed/deployments'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 import Deploy1Module from '../ignition/modules/deploy/deploy-1'

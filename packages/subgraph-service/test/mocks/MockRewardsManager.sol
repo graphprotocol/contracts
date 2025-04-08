@@ -93,4 +93,8 @@ contract MockRewardsManager is IRewardsManager {
         subgraphs[_subgraphDeploymentID] = true;
         return 0;
     }
+
+    function subgraphService() external view override returns (address) {
+        return address(0x00);
+    }
 }
