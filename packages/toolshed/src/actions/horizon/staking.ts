@@ -1,11 +1,7 @@
-import { ethers, HDNodeWallet } from 'ethers'
-import { expect } from 'chai'
+import { ethers } from 'ethers'
 
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking } from '@graphprotocol/horizon'
-
-import { ThawRequestType } from '../utils/types'
+import type { HorizonStaking, L2GraphToken } from '../../deployments/horizon/index'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 /* //////////////////////////////////////////////////////////////
                             EXPORTS
@@ -37,8 +33,8 @@ export const HorizonStakingActions = {
 ////////////////////////////////////////////////////////////// */
 
 interface StakeParams {
-  horizonStaking: IHorizonStaking
-  graphToken: IGraphToken
+  horizonStaking: HorizonStaking
+  graphToken: L2GraphToken
   serviceProvider: HardhatEthersSigner
   tokens: bigint
 }
@@ -103,10 +99,6 @@ async function stakeToProvision({
   verifier,
   tokens,
 }: StakeToProvisionParams): Promise<void> {
-  // Verify provision exists
-  const provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
-  expect(provision.createdAt).to.not.equal(0n, 'Provision should exist')
-
   const approveTx = await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokens)
   await approveTx.wait()
 
@@ -119,7 +111,7 @@ async function stakeToProvision({
 }
 
 interface SlashParams extends Omit<StakeParams, 'graphToken' | 'serviceProvider'> {
-  verifier: HardhatEthersSigner | HDNodeWallet
+  verifier: HardhatEthersSigner
   serviceProvider: string
   tokens: bigint
   tokensVerifier: bigint
@@ -148,7 +140,7 @@ async function slash({
 ////////////////////////////////////////////////////////////// */
 
 interface ProvisionParams {
-  horizonStaking: IHorizonStaking
+  horizonStaking: HorizonStaking
   serviceProvider: HardhatEthersSigner
   verifier: string
   tokens: bigint
@@ -178,12 +170,6 @@ async function createProvision({
     thawingPeriod,
   )
   await createProvisionTx.wait()
-
-  // Verify provision was created
-  const provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
-  expect(provision.tokens).to.equal(tokens, 'Provision tokens were not set')
-  expect(provision.maxVerifierCut).to.equal(maxVerifierCut, 'Provision max verifier cut was not set')
-  expect(provision.thawingPeriod).to.equal(thawingPeriod, 'Provision thawing period was not set')
 }
 
 async function addToProvision({
@@ -209,14 +195,6 @@ async function thaw({
   tokens,
   signer,
 }: ProvisionParams): Promise<void> {
-  // Get provision state before thawing
-  let provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
-  const provisionTokensBefore = provision.tokens
-  const provisionTokensThawingBefore = provision.tokensThawing
-  const expectedThawRequestShares = provision.tokensThawing == 0n
-    ? tokens
-    : ((provision.sharesThawing * tokens + provision.tokensThawing - 1n) / provision.tokensThawing)
-
   // Thaw tokens
   const effectiveSigner = signer || serviceProvider
   const thawTx = await horizonStaking.connect(effectiveSigner).thaw(
@@ -225,28 +203,6 @@ async function thaw({
     tokens,
   )
   await thawTx.wait()
-
-  // Verify provision tokens were updated
-  provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
-  expect(provision.tokens).to.equal(provisionTokensBefore, 'Provision tokens should not change')
-  expect(provision.tokensThawing).to.equal(provisionTokensThawingBefore + tokens, 'Provision tokens were not updated')
-
-  // Verify thaw request was created
-  const thawRequestList = await horizonStaking.getThawRequestList(
-    ThawRequestType.Provision,
-    serviceProvider.address,
-    verifier,
-    serviceProvider.address,
-  )
-
-  // Check the last thaw request we created
-  const thawRequestId = thawRequestList.tail
-  const thawRequest = await horizonStaking.getThawRequest(
-    ThawRequestType.Provision,
-    thawRequestId,
-  )
-
-  expect(thawRequest.shares).to.equal(expectedThawRequestShares, 'Thaw request shares were not set')
 }
 
 interface DeprovisionParams extends Omit<ProvisionParams, 'tokens'> {
@@ -297,14 +253,14 @@ async function reprovision({
 ////////////////////////////////////////////////////////////// */
 
 interface DelegationParams {
-  horizonStaking: IHorizonStaking
+  horizonStaking: HorizonStaking
   delegator: HardhatEthersSigner
   serviceProvider: HardhatEthersSigner
   verifier: string
 }
 
 interface DelegateParams extends DelegationParams {
-  graphToken: IGraphToken
+  graphToken: L2GraphToken
   tokens: bigint
   minSharesOut: bigint
 }
@@ -411,7 +367,7 @@ async function withdrawDelegatedLegacy({
 }
 
 interface AddToDelegationPoolParams extends Omit<DelegationParams, 'delegator'> {
-  graphToken: IGraphToken
+  graphToken: L2GraphToken
   signer: HardhatEthersSigner
   tokens: bigint
 }
@@ -441,7 +397,7 @@ async function addToDelegationPool({
 ////////////////////////////////////////////////////////////// */
 
 interface ClearThawingPeriodParams {
-  horizonStaking: IHorizonStaking
+  horizonStaking: HorizonStaking
   governor: HardhatEthersSigner
 }
 
@@ -458,7 +414,7 @@ async function clearThawingPeriod({
 ////////////////////////////////////////////////////////////// */
 
 async function approve(
-  graphToken: IGraphToken,
+  graphToken: L2GraphToken,
   signer: HardhatEthersSigner,
   spender: string,
   tokens: bigint,

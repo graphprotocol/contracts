@@ -1,26 +1,25 @@
+import hre from 'hardhat'
+
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import hre from 'hardhat'
-import { keccak256 } from 'ethers'
-import { toUtf8Bytes } from 'ethers'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IEpochManager, IHorizonStaking } from '../../../typechain-types'
-
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
+import type { EpochManager, HorizonStaking, HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
+import { createPOIFromString } from '@graphprotocol/toolshed/utils'
+
 describe('Permissionless', () => {
-  let horizonStaking: IHorizonStaking
-  let epochManager: IEpochManager
+  let horizonStaking: HorizonStaking
+  let epochManager: EpochManager
   let snapshotId: string
 
   before(() => {
     const graph = hre.graph()
 
     // Get contracts
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    epochManager = graph.horizon!.contracts.EpochManager as unknown as IEpochManager
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    epochManager = graph.horizon!.contracts.EpochManager
   })
 
   beforeEach(async () => {
@@ -34,8 +33,8 @@ describe('Permissionless', () => {
   })
 
   describe('After max allocation epochs', () => {
-    let indexer: SignerWithAddress
-    let anySigner: SignerWithAddress
+    let indexer: HardhatEthersSigner
+    let anySigner: HardhatEthersSigner
     let allocationID: string
     let allocationTokens: bigint
 
@@ -60,7 +59,8 @@ describe('Permissionless', () => {
       }
 
       // Close allocation
-      await horizonStaking.connect(anySigner).closeAllocation(allocationID, ethers.getBytes(keccak256(toUtf8Bytes('poi'))))
+      const poi = createPOIFromString('poi')
+      await (horizonStaking as HorizonStakingExtension).connect(anySigner).closeAllocation(allocationID, poi)
 
       // Get indexer's idle stake after closing allocation
       const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
