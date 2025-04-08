@@ -1,3 +1,4 @@
+import { resolveNodeModulesPath } from '../lib/path'
 import { vars } from 'hardhat/config'
 
 import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolidityUserConfig } from 'hardhat/types'
@@ -84,8 +85,8 @@ export const networksUserConfig: BaseNetworksUserConfig = {
       mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
     },
     deployments: {
-      horizon: resolveAddressBook('@graphprotocol/horizon/addresses.json', 'hardhat'),
-      subgraphService: resolveAddressBook('@graphprotocol/subgraph-service/addresses.json', 'hardhat'),
+      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-hardhat.json'),
+      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-hardhat.json'),
     },
   },
   localNetwork: {
@@ -98,8 +99,8 @@ export const networksUserConfig: BaseNetworksUserConfig = {
       accounts: { mnemonic: vars.get('LOCAL_NETWORK_ACCOUNTS_MNEMONIC') },
     }),
     deployments: {
-      horizon: resolveAddressBook('@graphprotocol/horizon/addresses.json', 'local-network'),
-      subgraphService: resolveAddressBook('@graphprotocol/subgraph-service/addresses.json', 'local-network'),
+      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-local-network.json'),
+      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-local-network.json'),
     },
   },
   localhost: {
@@ -112,8 +113,8 @@ export const networksUserConfig: BaseNetworksUserConfig = {
       accounts: { mnemonic: vars.get('LOCALHOST_ACCOUNTS_MNEMONIC') },
     }),
     deployments: {
-      horizon: resolveAddressBook('@graphprotocol/horizon/addresses.json', 'localhost'),
-      subgraphService: resolveAddressBook('@graphprotocol/subgraph-service/addresses.json', 'localhost'),
+      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-localhost.json'),
+      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-localhost.json'),
     },
   },
   arbitrumOne: {
@@ -145,19 +146,11 @@ export const hardhatBaseConfig: BaseHardhatConfig = {
   networks: networksUserConfig,
   graph: {
     deployments: {
-      horizon: require.resolve('@graphprotocol/horizon/addresses.json'),
-      subgraphService: require.resolve('@graphprotocol/subgraph-service/addresses.json'),
+      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses.json'),
+      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses.json'),
     },
   },
   etherscan: etherscanUserConfig,
 }
 
 export default hardhatBaseConfig
-
-// Local address books are not commited to GitHub so they might not exist
-// require.resolve will throw an error if the file does not exist, so we hack it a bit
-// using addresses.json as the file to resolve as it should always exist
-function resolveAddressBook(path: string, name: string): string {
-  const resolvedPath = require.resolve(path)
-  return resolvedPath.replace('addresses.json', `addresses-${name}.json`)
-}

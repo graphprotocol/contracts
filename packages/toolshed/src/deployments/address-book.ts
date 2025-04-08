@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { assertObject } from '../utils/assert'
+import { assertObject } from '../lib/assert'
 
 import { ContractList, loadContract } from './contract'
 import { Provider, Signer } from 'ethers'
