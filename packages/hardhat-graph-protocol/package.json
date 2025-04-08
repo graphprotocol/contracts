@@ -42,6 +42,7 @@
     "@graphprotocol/contracts": "workspace:^7.0.0",
     "@graphprotocol/horizon": "workspace:^0.0.1",
     "@graphprotocol/subgraph-service": "workspace:^0.0.1",
+    "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "debug": "^4.3.7",
     "json5": "^2.2.3"

@@ -1,19 +1,21 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import { HDNodeWallet } from 'ethers'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
+import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
+import type { GraphRuntimeEnvironment } from 'hardhat-graph-protocol'
 
 describe('Slasher', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
-  let serviceProvider: SignerWithAddress
-  let delegator: SignerWithAddress
-  let verifier: HDNodeWallet
+  let snapshotId: string
+  let graph: GraphRuntimeEnvironment
+  let horizonStaking: HorizonStaking
+  let graphToken: L2GraphToken
+  let serviceProvider: HardhatEthersSigner
+  let delegator: HardhatEthersSigner
+  let verifier: HardhatEthersSigner
   let verifierDestination: string
 
   const maxVerifierCut = 1000000n // 100%
@@ -22,25 +24,25 @@ describe('Slasher', () => {
   const delegationTokens = ethers.parseEther('1000')
 
   before(async () => {
-    const graph = hre.graph()
+    graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    graphToken = graph.horizon!.contracts.L2GraphToken
 
-    [serviceProvider, delegator] = await ethers.getSigners()
+    // index 2 is registered as slasher so we skip it
+    ;[serviceProvider, delegator, , verifier] = await ethers.getSigners()
+    verifierDestination = ethers.Wallet.createRandom().address
+  })
 
+  beforeEach(async () => {
+    // Take a snapshot before each test
+    snapshotId = await ethers.provider.send('evm_snapshot', [])
     // Check that delegation slashing is enabled
     const delegationSlashingEnabled = await horizonStaking.isDelegationSlashingEnabled()
     expect(delegationSlashingEnabled).to.be.equal(true, 'Delegation slashing should be enabled')
 
     // Send funds to delegator
     await graphToken.connect(serviceProvider).transfer(delegator.address, delegationTokens * 3n)
-  })
-
-  beforeEach(async () => {
-    verifier = ethers.Wallet.createRandom().connect(ethers.provider)
-    verifierDestination = await ethers.Wallet.createRandom().getAddress()
-
     // Create provision
     await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: provisionTokens })
     await HorizonStakingActions.createProvision({
@@ -68,6 +70,11 @@ describe('Slasher', () => {
       to: verifier.address,
       value: ethers.parseEther('0.1'),
     })
+  })
+
+  afterEach(async () => {
+    // Revert to the snapshot after each test
+    await ethers.provider.send('evm_revert', [snapshotId])
   })
 
   it('should slash service provider and delegation pool tokens', async () => {

@@ -1,18 +1,20 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
+import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
+import type { GraphRuntimeEnvironment } from 'hardhat-graph-protocol'
 
 describe('Add to delegation pool', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
-  let serviceProvider: SignerWithAddress
-  let delegator: SignerWithAddress
-  let signer: SignerWithAddress
+  let graph: GraphRuntimeEnvironment
+  let horizonStaking: HorizonStaking
+  let graphToken: L2GraphToken
+  let serviceProvider: HardhatEthersSigner
+  let delegator: HardhatEthersSigner
+  let signer: HardhatEthersSigner
   let verifier: string
 
   const maxVerifierCut = 1000000n
@@ -21,13 +23,13 @@ describe('Add to delegation pool', () => {
   const delegationTokens = ethers.parseEther('1000')
 
   before(async () => {
-    const graph = hre.graph()
+    graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    graphToken = graph.horizon!.contracts.L2GraphToken
 
-    [serviceProvider, delegator, signer] = await ethers.getSigners()
-    verifier = await ethers.Wallet.createRandom().getAddress()
+    ;[serviceProvider, delegator, signer] = await ethers.getSigners()
+    verifier = ethers.Wallet.createRandom().address
 
     // Service provider stake
     await HorizonStakingActions.stake({

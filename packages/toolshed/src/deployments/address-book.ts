@@ -1,8 +1,8 @@
 import fs from 'fs'
 
-import { assertObject } from '../../../hardhat-graph-protocol/src/sdk/utils/assertion'
+import { assertObject } from '../utils/assert'
 
-import { ContractList, loadContract } from '../utils/contract'
+import { ContractList, loadContract } from './contract'
 import { Provider, Signer } from 'ethers'
 
 export type AddressBookJson<

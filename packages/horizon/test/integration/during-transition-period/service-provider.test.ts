@@ -1,20 +1,20 @@
-import { keccak256, toUtf8Bytes } from 'ethers'
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking, IRewardsManager } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-import { HorizonStakingExtensionActions } from 'hardhat-graph-protocol/sdk'
-
+import { HorizonStakingActions, HorizonStakingExtensionActions } from '@graphprotocol/toolshed/actions/horizon'
+import { createPOIFromString } from '@graphprotocol/toolshed/utils'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
+import type { HorizonStaking, HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
+import type { L2GraphToken, RewardsManager } from '@graphprotocol/toolshed/deployments/horizon'
+
 describe('Service Provider', () => {
-  let horizonStaking: IHorizonStaking
-  let rewardsManager: IRewardsManager
-  let graphToken: IGraphToken
+  let horizonStaking: HorizonStaking
+  let horizonStakingExtension: HorizonStakingExtension
+  let rewardsManager: RewardsManager
+  let graphToken: L2GraphToken
   let snapshotId: string
 
   // Subgraph service address is not set for integration tests
@@ -23,9 +23,10 @@ describe('Service Provider', () => {
   before(() => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    rewardsManager = graph.horizon!.contracts.RewardsManager as unknown as IRewardsManager
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    horizonStakingExtension = horizonStaking as HorizonStakingExtension
+    rewardsManager = graph.horizon!.contracts.RewardsManager
+    graphToken = graph.horizon!.contracts.L2GraphToken
   })
 
   beforeEach(async () => {
@@ -39,7 +40,7 @@ describe('Service Provider', () => {
   })
 
   describe(('New Protocol Users'), () => {
-    let serviceProvider: SignerWithAddress
+    let serviceProvider: HardhatEthersSigner
     let tokensToStake = ethers.parseEther('1000')
 
     before(async () => {
@@ -118,7 +119,7 @@ describe('Service Provider', () => {
     })
 
     describe('Transition period is over', () => {
-      let governor: SignerWithAddress
+      let governor: HardhatEthersSigner
       let tokensToUnstake: bigint
 
       before(async () => {
@@ -181,7 +182,7 @@ describe('Service Provider', () => {
   })
 
   describe('Existing Protocol Users', () => {
-    let indexer: SignerWithAddress
+    let indexer: HardhatEthersSigner
     let tokensUnstaked: bigint
 
     before(async () => {
@@ -216,7 +217,7 @@ describe('Service Provider', () => {
         let delegationQueryFeeCut: number
         let allocationID: string
         let allocationTokens: bigint
-        let gateway: SignerWithAddress
+        let gateway: HardhatEthersSigner
 
         beforeEach(async () => {
           const indexerFixture = indexers[0]
@@ -230,7 +231,7 @@ describe('Service Provider', () => {
 
         it('should be able to close an open legacy allocation and collect rewards', async () => {
           // Use a non-zero POI
-          const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+          const poi = createPOIFromString('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Get delegation pool before closing allocation
@@ -247,7 +248,7 @@ describe('Service Provider', () => {
           const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
           // Close allocation
-          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
 
           // Get rewards
           const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)
@@ -300,7 +301,7 @@ describe('Service Provider', () => {
 
         it('should be able to close an allocation and collect query fees for the closed allocation', async () => {
           // Use a non-zero POI
-          const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+          const poi = createPOIFromString('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Mine blocks to simulate time passing
@@ -310,7 +311,7 @@ describe('Service Provider', () => {
           }
 
           // Close allocation
-          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
 
           // Tokens to collect
           const tokensToCollect = ethers.parseEther('1000')
@@ -350,7 +351,7 @@ describe('Service Provider', () => {
         let delegationQueryFeeCut: number
         let rewardsDestination: string
         let allocationID: string
-        let gateway: SignerWithAddress
+        let gateway: HardhatEthersSigner
 
         beforeEach(async () => {
           const indexerFixture = indexers[1]
@@ -364,7 +365,7 @@ describe('Service Provider', () => {
 
         it('should be able to close an open allocation and collect rewards', async () => {
           // Use a non-zero POI
-          const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+          const poi = createPOIFromString('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Get delegation tokens before
@@ -381,7 +382,7 @@ describe('Service Provider', () => {
           const balanceBefore = await graphToken.balanceOf(rewardsDestination)
 
           // Close allocation
-          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
 
           // Get rewards
           const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)
@@ -435,7 +436,7 @@ describe('Service Provider', () => {
     })
 
     describe('Transition period is over', () => {
-      let governor: SignerWithAddress
+      let governor: HardhatEthersSigner
       let tokensToUnstake: bigint
 
       before(async () => {
