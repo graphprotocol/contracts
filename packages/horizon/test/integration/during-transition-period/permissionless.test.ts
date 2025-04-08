@@ -3,11 +3,11 @@ import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { createPOIFromString } from '@graphprotocol/toolshed'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { EpochManager, HorizonStaking, HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
-import { createPOIFromString } from '@graphprotocol/toolshed/utils'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Permissionless', () => {
   let horizonStaking: HorizonStaking
