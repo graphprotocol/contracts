@@ -5,8 +5,8 @@ import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/
 import { lazyFunction } from 'hardhat/plugins'
 import { logDebug } from './logger'
 
-import { GraphHorizonAddressBook } from './sdk/deployments/horizon'
-import { SubgraphServiceAddressBook } from './sdk/deployments/subgraph-service'
+import { GraphHorizonAddressBook } from '@graphprotocol/toolshed/deployments/horizon'
+import { SubgraphServiceAddressBook } from '@graphprotocol/toolshed/deployments/subgraph-service'
 
 import { assertGraphRuntimeEnvironment, type GraphRuntimeEnvironmentOptions, isGraphDeployment } from './types'
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'

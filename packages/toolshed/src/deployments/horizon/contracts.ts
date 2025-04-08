@@ -2,21 +2,20 @@ import path from 'path'
 
 import type {
   Controller,
-  EpochManager,
-  GraphProxyAdmin,
-  L2Curation,
-  L2GraphToken,
-  L2GraphTokenGateway,
-  RewardsManager,
-} from '@graphprotocol/contracts'
-import type {
   GraphPayments,
+  GraphProxyAdmin,
   GraphTallyCollector,
   HorizonStaking,
   HorizonStakingExtension,
   PaymentsEscrow,
 } from '@graphprotocol/horizon'
-import type { ContractList } from '../lib/contract'
+import type {
+  EpochManager,
+  L2Curation,
+  L2GraphToken,
+  RewardsManager,
+} from './types'
+import type { ContractList } from '../contract'
 
 export const GraphHorizonContractNameList = [
   // @graphprotocol/contracts
@@ -35,7 +34,7 @@ export const GraphHorizonContractNameList = [
   'GraphTallyCollector',
 ] as const
 
-const root = path.resolve(__dirname, '../../../..') // hardhat-graph-protocol root
+const root = path.resolve(__dirname, '../../..') // toolshed root
 export const CONTRACTS_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/contracts/build/contracts')
 export const HORIZON_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/horizon/build/contracts')
 
@@ -63,7 +62,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   GraphProxyAdmin: GraphProxyAdmin
   Controller: Controller
   L2GraphToken: L2GraphToken
-  L2GraphTokenGateway: L2GraphTokenGateway
+  // L2GraphTokenGateway: L2GraphTokenGateway
   L2Curation: L2Curation // Actually a subgraph service contract
 
   // @graphprotocol/horizon
@@ -74,7 +73,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
 
   // Aliases
   GraphToken: L2GraphToken
-  GraphTokenGateway: L2GraphTokenGateway
+  // GraphTokenGateway: L2GraphTokenGateway
   Curation: L2Curation
 }
 

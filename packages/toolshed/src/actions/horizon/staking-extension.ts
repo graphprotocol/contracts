@@ -1,6 +1,5 @@
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking } from '@graphprotocol/horizon'
+import type { HorizonStakingExtension, L2GraphToken } from '../../deployments/horizon/index'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 /* //////////////////////////////////////////////////////////////
                             EXPORTS
@@ -15,9 +14,9 @@ export const HorizonStakingExtensionActions = {
 ////////////////////////////////////////////////////////////// */
 
 interface CollectParams {
-  horizonStaking: IHorizonStaking
-  graphToken: IGraphToken
-  gateway: SignerWithAddress
+  horizonStaking: HorizonStakingExtension
+  graphToken: L2GraphToken
+  gateway: HardhatEthersSigner
   allocationID: string
   tokens: bigint
 }
@@ -42,8 +41,8 @@ export async function collect({
 ////////////////////////////////////////////////////////////// */
 
 async function approve(
-  graphToken: IGraphToken,
-  signer: SignerWithAddress,
+  graphToken: L2GraphToken,
+  signer: HardhatEthersSigner,
   spender: string,
   tokens: bigint,
 ): Promise<void> {

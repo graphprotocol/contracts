@@ -1,17 +1,16 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-
 import { delegators } from '../../../tasks/test/fixtures/delegators'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
+
+import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 
 describe('Delegator', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
+  let horizonStaking: HorizonStaking
+  let graphToken: L2GraphToken
   let snapshotId: string
 
   const thawingPeriod = 2419200n // 28 days
@@ -22,8 +21,8 @@ describe('Delegator', () => {
   before(() => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    graphToken = graph.horizon!.contracts.L2GraphToken
   })
 
   beforeEach(async () => {
@@ -38,8 +37,8 @@ describe('Delegator', () => {
 
   describe('Existing Protocol Users', () => {
     describe('User undelegated before horizon was deployed', () => {
-      let indexer: SignerWithAddress
-      let delegator: SignerWithAddress
+      let indexer: HardhatEthersSigner
+      let delegator: HardhatEthersSigner
       let tokens: bigint
 
       before(async () => {
@@ -97,9 +96,9 @@ describe('Delegator', () => {
     })
 
     describe('Transition period is over', () => {
-      let governor: SignerWithAddress
-      let indexer: SignerWithAddress
-      let delegator: SignerWithAddress
+      let governor: HardhatEthersSigner
+      let indexer: HardhatEthersSigner
+      let delegator: HardhatEthersSigner
       let tokens: bigint
 
       before(async () => {
