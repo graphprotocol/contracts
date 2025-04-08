@@ -1,11 +1,10 @@
 import { GraphHorizonArtifactsMap, GraphHorizonContractNameList } from './contracts'
-import { logDebug, logError } from '../../../../hardhat-graph-protocol/src/logger'
 import { Provider, Signer } from 'ethers'
 import { AddressBook } from '../address-book'
-import { assertObject } from '../../../../hardhat-graph-protocol/src/sdk/utils/assertion'
+import { assertObject } from '../../utils/assert'
 import { Contract } from 'ethers'
-import { loadArtifact } from '../../utils/artifact'
-import { mergeABIs } from '../../../../hardhat-graph-protocol/src/sdk/utils/abi'
+import { loadArtifact } from '../artifact'
+import { mergeABIs } from '../../utils/abi'
 
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 
@@ -20,7 +19,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
   loadContracts(
     signerOrProvider?: Signer | Provider,
   ): GraphHorizonContracts {
-    logDebug('Loading Graph Horizon contracts...')
+    console.debug('Loading Graph Horizon contracts...')
 
     const contracts = this._loadContracts(
       GraphHorizonArtifactsMap,
@@ -32,10 +31,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
       const stakingOverride = new Contract(
         this.getEntry('HorizonStaking').address,
         mergeABIs(
-          mergeABIs(
-            loadArtifact('HorizonStaking', GraphHorizonArtifactsMap.HorizonStaking).abi,
-            loadArtifact('HorizonStakingBase', GraphHorizonArtifactsMap.HorizonStaking).abi,
-          ),
+          loadArtifact('HorizonStaking', GraphHorizonArtifactsMap.HorizonStaking).abi,
           loadArtifact('HorizonStakingExtension', GraphHorizonArtifactsMap.HorizonStaking).abi,
         ),
         signerOrProvider,
@@ -46,8 +42,10 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     this._assertGraphHorizonContracts(contracts)
 
     // Aliases
+
     contracts.GraphToken = contracts.L2GraphToken
-    contracts.GraphTokenGateway = contracts.L2GraphTokenGateway
+    // contracts.GraphTokenGateway = contracts.L2GraphTokenGateway
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     contracts.Curation = contracts.L2Curation
 
     return contracts
@@ -62,7 +60,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     for (const contractName of GraphHorizonContractNameList) {
       if (!contracts[contractName]) {
         const errMessage = `Missing GraphHorizon contract: ${contractName}`
-        logError(errMessage)
+        console.error(errMessage)
       }
     }
   }

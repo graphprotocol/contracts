@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 /**
  * @title Interface of the L2 Curation contract.
@@ -43,4 +43,10 @@ interface IL2Curation {
         bytes32 _subgraphDeploymentID,
         uint256 _tokensIn
     ) external view returns (uint256);
+
+    /**
+     * @notice Get the address of the subgraph service.
+     * @return Address of the subgraph service
+     */
+    function subgraphService() external view returns (address);
 }

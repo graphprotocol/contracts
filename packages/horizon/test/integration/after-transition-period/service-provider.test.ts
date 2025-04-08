@@ -1,32 +1,32 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
-
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { PaymentTypes } from '@graphprotocol/toolshed/deployments/horizon'
+
+import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 
 describe('Service provider', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
+  let horizonStaking: HorizonStaking
+  let graphToken: L2GraphToken
   let verifier: string
   const thawingPeriod = 2419200n
 
   before(async () => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    graphToken = graph.horizon!.contracts.L2GraphToken
 
     verifier = await ethers.Wallet.createRandom().getAddress()
   })
 
   describe('New Protocol Users', () => {
-    let serviceProvider: SignerWithAddress
+    let serviceProvider: HardhatEthersSigner
     const stakeAmount = ethers.parseEther('1000')
 
     before(async () => {
@@ -51,7 +51,7 @@ describe('Service provider', () => {
 
     it('should be able to set delegation fee cut for payment type', async () => {
       const delegationFeeCut = 10_000 // 10%
-      const paymentType = HorizonTypes.PaymentTypes.QueryFee
+      const paymentType = PaymentTypes.QueryFee
 
       const tx = await horizonStaking.connect(serviceProvider).setDelegationFeeCut(
         serviceProvider.address,
@@ -306,7 +306,7 @@ describe('Service provider', () => {
   })
 
   describe('Existing Protocol Users', () => {
-    let indexer: SignerWithAddress
+    let indexer: HardhatEthersSigner
     let tokensToUnstake: bigint
     let snapshotId: string
 

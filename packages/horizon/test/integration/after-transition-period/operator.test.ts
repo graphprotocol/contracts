@@ -3,14 +3,14 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
+import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
+import { PaymentTypes } from '@graphprotocol/toolshed/deployments/horizon'
 
 describe('Operator', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
+  let horizonStaking: HorizonStaking
+  let graphToken: L2GraphToken
   let serviceProvider: HardhatEthersSigner
   let verifier: string
   let operator: HardhatEthersSigner
@@ -22,11 +22,11 @@ describe('Operator', () => {
   before(async () => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    graphToken = graph.horizon!.contracts.L2GraphToken
 
     // Get signers
-    [serviceProvider, operator] = await ethers.getSigners()
+    ;[serviceProvider, operator] = await ethers.getSigners()
     verifier = await ethers.Wallet.createRandom().getAddress()
 
     // Authorize operator for verifier
@@ -64,7 +64,7 @@ describe('Operator', () => {
 
   it('operator sets delegation fee cut', async () => {
     const feeCut = 100000 // 10%
-    const paymentType = HorizonTypes.PaymentTypes.QueryFee
+    const paymentType = PaymentTypes.QueryFee
 
     // Operator sets delegation fee cut
     await horizonStaking.connect(operator).setDelegationFeeCut(

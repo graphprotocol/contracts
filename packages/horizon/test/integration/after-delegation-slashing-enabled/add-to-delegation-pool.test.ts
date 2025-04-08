@@ -1,18 +1,23 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
+import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
+import type { GraphRuntimeEnvironment } from 'hardhat-graph-protocol'
+
 describe('Add to delegation pool', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
-  let serviceProvider: SignerWithAddress
-  let delegator: SignerWithAddress
-  let signer: SignerWithAddress
-  let verifier: string
+  let graph: GraphRuntimeEnvironment
+  let horizonStaking: HorizonStaking
+  let graphToken: L2GraphToken
+  let serviceProvider: HardhatEthersSigner
+  let delegator: HardhatEthersSigner
+  let signer: HardhatEthersSigner
+  let verifier: HardhatEthersSigner
+  let newVerifier: HardhatEthersSigner
+  let snapshotId: string
 
   const maxVerifierCut = 1000000n
   const thawingPeriod = 2419200n // 28 days
@@ -20,16 +25,22 @@ describe('Add to delegation pool', () => {
   const delegationTokens = ethers.parseEther('1000')
 
   before(async () => {
-    const graph = hre.graph()
+    graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    graphToken = graph.horizon!.contracts.L2GraphToken
 
     const signers = await ethers.getSigners()
     serviceProvider = signers[8]
     delegator = signers[13]
     signer = signers[19]
-    verifier = await ethers.Wallet.createRandom().getAddress()
+    verifier = signers[15]
+    newVerifier = signers[16]
+  })
+
+  beforeEach(async () => {
+    // Take a snapshot before each test
+    snapshotId = await ethers.provider.send('evm_snapshot', [])
 
     // Service provider stake
     await HorizonStakingActions.stake({
@@ -44,7 +55,7 @@ describe('Add to delegation pool', () => {
     await HorizonStakingActions.createProvision({
       horizonStaking,
       serviceProvider,
-      verifier,
+      verifier: verifier.address,
       tokens: provisionTokens,
       maxVerifierCut,
       thawingPeriod,
@@ -56,15 +67,18 @@ describe('Add to delegation pool', () => {
       graphToken,
       delegator,
       serviceProvider,
-      verifier,
+      verifier: verifier.address,
       tokens: delegationTokens,
       minSharesOut: 0n,
     })
   })
 
+  afterEach(async () => {
+    // Revert to the snapshot after each test
+    await ethers.provider.send('evm_revert', [snapshotId])
+  })
+
   it('should recover delegation pool from invalid state by adding tokens', async () => {
-    // Setup a new verifier
-    const newVerifier = ethers.Wallet.createRandom().connect(ethers.provider)
     // Send eth to new verifier to cover gas fees
     await serviceProvider.sendTransaction({
       to: newVerifier.address,

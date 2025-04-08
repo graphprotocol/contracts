@@ -7,6 +7,14 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
+    "./actions": {
+      "types": "./src/actions/index.ts",
+      "default": "./src/actions/index.ts"
+    },
+    "./deployments": {
+      "types": "./src/deployments/index.ts",
+      "default": "./src/deployments/index.ts"
+    },
     "./hardhat": {
       "types": "./src/hardhat/index.ts",
       "default": "./src/hardhat/index.ts"
@@ -14,6 +22,10 @@
     "./utils": {
       "types": "./src/utils/index.ts",
       "default": "./src/utils/index.ts"
+    },
+    "./*": {
+      "types": "./src/*/index.ts",
+      "default": "./src/*/index.ts"
     }
   },
   "scripts": {
@@ -33,6 +45,7 @@
     "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/horizon": "workspace:^",
     "@graphprotocol/subgraph-service": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "debug": "^4.4.0",
     "ethers": "^6.13.5",
     "glob": "^11.0.1",
@@ -40,16 +53,10 @@
     "json5": "^2.2.3"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-verify": "^2.0.13",
     "@types/debug": "^4.1.12",
     "@types/json5": "^2.2.0",
     "eslint": "^8.56.0",
     "eslint-graph-config": "workspace:^",
-    "hardhat-graph-protocol": "workspace:^",
     "typescript": "^5.0.0"
-  },
-  "peerDependencies": {
-    "@nomicfoundation/hardhat-verify": "^2.0.13",
-    "hardhat-graph-protocol": "workspace:^"
   }
 }

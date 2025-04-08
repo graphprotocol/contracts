@@ -1,20 +1,19 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-
 import { delegators } from '../../../tasks/test/fixtures/delegators'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
+
+import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 
 describe('Delegator', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
-  let delegator: SignerWithAddress
-  let serviceProvider: SignerWithAddress
-  let newServiceProvider: SignerWithAddress
+  let horizonStaking: HorizonStaking
+  let graphToken: L2GraphToken
+  let delegator: HardhatEthersSigner
+  let serviceProvider: HardhatEthersSigner
+  let newServiceProvider: HardhatEthersSigner
   let verifier: string
   let newVerifier: string
 
@@ -28,13 +27,13 @@ describe('Delegator', () => {
   before(async () => {
     const graph = hre.graph()
 
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
+    horizonStaking = graph.horizon!.contracts.HorizonStaking
+    graphToken = graph.horizon!.contracts.L2GraphToken
 
-    [serviceProvider, delegator, newServiceProvider] = await ethers.getSigners()
+    ;[serviceProvider, delegator, newServiceProvider] = await ethers.getSigners()
 
-    verifier = await ethers.Wallet.createRandom().getAddress()
-    newVerifier = await ethers.Wallet.createRandom().getAddress()
+    verifier = ethers.Wallet.createRandom().address
+    newVerifier = ethers.Wallet.createRandom().address
 
     // Servide provider stake
     await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens })
@@ -368,8 +367,8 @@ describe('Delegator', () => {
   })
 
   describe('Existing Protocol Users', () => {
-    let indexer: SignerWithAddress
-    let existingDelegator: SignerWithAddress
+    let indexer: HardhatEthersSigner
+    let existingDelegator: HardhatEthersSigner
     let delegatedTokens: bigint
 
     let snapshotId: string

@@ -1,17 +1,35 @@
 import { vars } from 'hardhat/config'
 
 import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolidityUserConfig } from 'hardhat/types'
-import type { EtherscanConfig } from '@nomicfoundation/hardhat-verify/types'
-import type { GraphRuntimeEnvironmentOptions } from 'hardhat-graph-protocol'
 
 // This base config file assumes the project is using the following hardhat plugins:
 // - hardhat-graph-protocol
 // - hardhat-secure-accounts
 // - hardhat-verify
-
-// TODO: this should be imported from hardhat-secure-accounts, but currently it's not exported
+// To avoid adding those dependencies on toolshed we re-declare some types here
 interface SecureAccountsOptions {
   enabled?: boolean
+}
+
+type GraphRuntimeEnvironmentOptions = {
+  deployments?: {
+    [deployment in ('horizon' | 'subgraphService')]?: string | {
+      addressBook: string
+    }
+  }
+}
+
+interface EtherscanConfig {
+  apiKey: string | Record<string, string>
+  customChains: {
+    network: string
+    chainId: number
+    urls: {
+      apiURL: string
+      browserURL: string
+    }
+  }[]
+  enabled: boolean
 }
 
 // Hardhat variables
