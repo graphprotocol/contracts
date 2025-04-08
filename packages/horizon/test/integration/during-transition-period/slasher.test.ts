@@ -3,11 +3,10 @@ import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { HorizonStakingActions } from '@graphprotocol/toolshed/actions/horizon'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Slasher', () => {
   let horizonStaking: HorizonStaking
@@ -51,14 +50,7 @@ describe('Slasher', () => {
       const slasherBeforeBalance = await graphToken.balanceOf(slasher.address)
 
       // Slash tokens
-      await HorizonStakingActions.slash({
-        horizonStaking,
-        verifier: slasher,
-        serviceProvider: indexer,
-        tokens: tokensToSlash,
-        tokensVerifier,
-        verifierDestination: slasher.address,
-      })
+      await horizonStaking.connect(slasher).slash(indexer, tokensToSlash, tokensVerifier, slasher.address)
 
       // Indexer's stake should have decreased
       const idleStakeAfterSlash = await horizonStaking.getIdleStake(indexer)
@@ -83,14 +75,7 @@ describe('Slasher', () => {
       const slasherBeforeBalance = await graphToken.balanceOf(slasher.address)
 
       // Slash tokens
-      await HorizonStakingActions.slash({
-        horizonStaking,
-        verifier: slasher,
-        serviceProvider: indexer,
-        tokens: tokensToSlash,
-        tokensVerifier,
-        verifierDestination: slasher.address,
-      })
+      await horizonStaking.connect(slasher).slash(indexer, tokensToSlash, tokensVerifier, slasher.address)
 
       // Indexer's entire stake should have been slashed
       const indexerStakeAfterSlash = await horizonStaking.getServiceProvider(indexer)
