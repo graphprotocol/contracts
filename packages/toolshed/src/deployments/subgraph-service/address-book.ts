@@ -1,7 +1,7 @@
 import { Provider, Signer } from 'ethers'
 import { SubgraphServiceArtifactsMap, SubgraphServiceContractNameList } from './contracts'
 import { AddressBook } from '../address-book'
-import { assertObject } from '../../utils/assert'
+import { assertObject } from '../../lib/assert'
 
 import type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
 
@@ -26,8 +26,8 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
     // Aliases
     const contractsWithAliases = {
       ...contracts,
-      // Curation: contracts.L2Curation,
-      // GNS: contracts.L2GNS,
+      Curation: contracts.L2Curation,
+      GNS: contracts.L2GNS,
     }
 
     this._assertSubgraphServiceContracts(contractsWithAliases)

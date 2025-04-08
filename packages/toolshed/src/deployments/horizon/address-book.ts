@@ -1,7 +1,7 @@
 import { GraphHorizonArtifactsMap, GraphHorizonContractNameList } from './contracts'
 import { Provider, Signer } from 'ethers'
 import { AddressBook } from '../address-book'
-import { assertObject } from '../../utils/assert'
+import { assertObject } from '../../lib/assert'
 import { Contract } from 'ethers'
 import { loadArtifact } from '../artifact'
 import { mergeABIs } from '../../utils/abi'
