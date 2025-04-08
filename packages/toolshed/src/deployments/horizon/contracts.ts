@@ -1,4 +1,4 @@
-import path from 'path'
+import { resolveNodeModulesPath } from '../../lib/path'
 
 import type {
   Controller,
@@ -34,9 +34,8 @@ export const GraphHorizonContractNameList = [
   'GraphTallyCollector',
 ] as const
 
-const root = path.resolve(__dirname, '../../..') // toolshed root
-export const CONTRACTS_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/contracts/build/contracts')
-export const HORIZON_ARTIFACTS_PATH = path.resolve(root, 'node_modules', '@graphprotocol/horizon/build/contracts')
+export const CONTRACTS_ARTIFACTS_PATH = resolveNodeModulesPath('@graphprotocol/contracts/build/contracts')
+export const HORIZON_ARTIFACTS_PATH = resolveNodeModulesPath('@graphprotocol/horizon/build/contracts')
 
 export const GraphHorizonArtifactsMap = {
   // @graphprotocol/contracts
