@@ -5,12 +5,9 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
 
-import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Delegator', () => {
-  let horizonStaking: HorizonStaking
-  let graphToken: L2GraphToken
   let snapshotId: string
 
   const thawingPeriod = 2419200n // 28 days
@@ -18,12 +15,9 @@ describe('Delegator', () => {
   // Subgraph service address is not set for integration tests
   const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
-  before(() => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken
-  })
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
 
   beforeEach(async () => {
     // Take a snapshot before each test

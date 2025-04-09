@@ -4,12 +4,9 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { PaymentTypes } from '@graphprotocol/toolshed/deployments/horizon'
 
-import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Operator', () => {
-  let horizonStaking: HorizonStaking
-  let graphToken: L2GraphToken
   let serviceProvider: HardhatEthersSigner
   let verifier: string
   let operator: HardhatEthersSigner
@@ -18,14 +15,14 @@ describe('Operator', () => {
   const maxVerifierCut = 1000000n // 100%
   const thawingPeriod = 2419200n
 
+  const graph = hre.graph()
+  const { stakeTo } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
+
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken
-
     // Get signers
-    ;[serviceProvider, operator] = await ethers.getSigners()
+    [serviceProvider, operator] = await ethers.getSigners()
     verifier = await ethers.Wallet.createRandom().getAddress()
 
     // Authorize operator for verifier
@@ -41,8 +38,7 @@ describe('Operator', () => {
     const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
     // Operator stakes on behalf of service provider
-    await graphToken.connect(operator).approve(horizonStaking.target, stakeTokens)
-    await horizonStaking.connect(operator).stakeTo(serviceProvider.address, stakeTokens)
+    await stakeTo(operator, [serviceProvider.address, stakeTokens])
 
     // Service provider unstakes
     await horizonStaking.connect(serviceProvider).unstake(stakeTokens)
@@ -81,8 +77,7 @@ describe('Operator', () => {
     before(async () => {
       const provisionTokens = ethers.parseEther('10000')
       // Operator stakes tokens to service provider
-      await graphToken.connect(operator).approve(horizonStaking.target, provisionTokens)
-      await horizonStaking.connect(operator).stakeTo(serviceProvider.address, provisionTokens)
+      await stakeTo(operator, [serviceProvider.address, provisionTokens])
 
       // Operator creates provision
       await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, provisionTokens, maxVerifierCut, thawingPeriod)
