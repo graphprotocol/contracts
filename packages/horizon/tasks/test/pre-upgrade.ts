@@ -9,7 +9,7 @@ import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
 import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
 
 import { IController, IGraphToken, IStaking } from '@graphprotocol/contracts'
-import { mergeABIs } from '@graphprotocol/toolshed/utils'
+import { mergeABIs } from '@graphprotocol/toolshed'
 import { printBanner } from 'hardhat-graph-protocol/sdk'
 
 import { delegators } from './fixtures/delegators'

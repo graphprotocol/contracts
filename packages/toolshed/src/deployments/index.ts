@@ -1,3 +1,4 @@
-import { AddressBook, AddressBookEntry } from './address-book'
+export { AddressBook, AddressBookEntry } from './address-book'
+export { GraphDeploymentsList } from './types'
 
-export { AddressBook, AddressBookEntry }
+export type { GraphDeploymentName, GraphDeployments } from './types'

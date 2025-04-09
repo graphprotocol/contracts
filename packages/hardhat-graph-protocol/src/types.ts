@@ -1,34 +1,23 @@
-import { type GraphDeploymentRuntimeEnvironmentMap, GraphDeploymentsList } from './deployment-list'
+import { GraphDeploymentsList } from '@graphprotocol/toolshed/deployments'
+
+import type { GraphDeploymentName, GraphDeployments } from '@graphprotocol/toolshed/deployments'
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 
-export type GraphDeployment = (typeof GraphDeploymentsList)[number]
-
-export type GraphDeployments = {
-  [deployment in GraphDeployment]?: string | {
-    addressBook: string
-  }
+export type GraphDeploymentOptions = {
+  [deployment in GraphDeploymentName]?: string
 }
 
 export type GraphRuntimeEnvironmentOptions = {
-  deployments?: {
-    [deployment in GraphDeployment]?: string | {
-      addressBook: string
-    }
-  }
+  deployments?: GraphDeploymentOptions
 }
 
-export type GraphRuntimeEnvironment = {
-  [deployment in keyof GraphDeploymentRuntimeEnvironmentMap]?: GraphDeploymentRuntimeEnvironmentMap[deployment]
-} & {
+export type GraphRuntimeEnvironment = GraphDeployments & {
   provider: HardhatEthersProvider
   chainId: number
 }
 
-export function isGraphDeployment(deployment: unknown): deployment is GraphDeployment {
-  return (
-    typeof deployment === 'string'
-    && GraphDeploymentsList.includes(deployment as GraphDeployment)
-  )
+export function isGraphDeployment(deployment: unknown): deployment is GraphDeploymentName {
+  return typeof deployment === 'string' && GraphDeploymentsList.includes(deployment as GraphDeploymentName)
 }
 
 export function assertGraphRuntimeEnvironment(
@@ -36,10 +25,10 @@ export function assertGraphRuntimeEnvironment(
 ): obj is GraphRuntimeEnvironment {
   if (typeof obj !== 'object' || obj === null) return false
 
-  const deployments = obj as Partial<GraphDeploymentRuntimeEnvironmentMap>
+  const deployments = obj as GraphDeployments
 
   for (const deployment in deployments) {
-    const environment = deployments[deployment as keyof GraphDeploymentRuntimeEnvironmentMap]
+    const environment = deployments[deployment as keyof GraphDeployments]
     if (!environment || typeof environment !== 'object') {
       return false
     }

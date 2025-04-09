@@ -22,9 +22,7 @@ describe('GRE init functions', function () {
       this.hre = loadHardhatContext('network-address-book', 'mainnet')
       const addressBook = getAddressBookPath('horizon', this.hre, {
         deployments: {
-          horizon: {
-            addressBook: 'addresses-opt.json',
-          },
+          horizon: 'addresses-opt.json',
         },
       })
       expect(path.basename(addressBook)).to.equal('addresses-opt.json')

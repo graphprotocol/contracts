@@ -5,28 +5,21 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
-import type { HorizonStaking, HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
-import type { L2GraphToken, RewardsManager } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
 
 describe('Service Provider', () => {
-  let horizonStaking: HorizonStaking
-  let horizonStakingExtension: HorizonStakingExtension
-  let rewardsManager: RewardsManager
-  let graphToken: L2GraphToken
   let snapshotId: string
+
+  const graph = hre.graph()
+  const { stake, collect } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const horizonStakingExtension = horizonStaking as HorizonStakingExtension
+  const rewardsManager = graph.horizon.contracts.RewardsManager
+  const graphToken = graph.horizon.contracts.L2GraphToken
 
   // Subgraph service address is not set for integration tests
   const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
-
-  before(() => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    horizonStakingExtension = horizonStaking as HorizonStakingExtension
-    rewardsManager = graph.horizon!.contracts.RewardsManager
-    graphToken = graph.horizon!.contracts.L2GraphToken
-  })
 
   beforeEach(async () => {
     // Take a snapshot before each test
@@ -47,8 +40,7 @@ describe('Service Provider', () => {
       serviceProvider = signers[8]
 
       // Stake tokens to service provider
-      await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokensToStake)
-      await horizonStaking.connect(serviceProvider).stake(tokensToStake)
+      await stake(serviceProvider, [tokensToStake])
     })
 
     it('should allow service provider to unstake and withdraw after thawing period', async () => {
@@ -134,8 +126,7 @@ describe('Service Provider', () => {
 
       it('should be able to withdraw tokens that were unstaked during transition period', async () => {
         // Stake tokens
-        await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokensToStake)
-        await horizonStaking.connect(serviceProvider).stake(tokensToStake)
+        await stake(serviceProvider, [tokensToStake])
 
         // Unstake tokens
         await horizonStaking.connect(serviceProvider).unstake(tokensToUnstake)
@@ -164,8 +155,7 @@ describe('Service Provider', () => {
 
       it('should be able to unstake tokens without a thawing period', async () => {
         // Stake tokens
-        await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokensToStake)
-        await horizonStaking.connect(serviceProvider).stake(tokensToStake)
+        await stake(serviceProvider, [tokensToStake])
 
         // Clear thawing period
         await horizonStaking.connect(governor).clearThawingPeriod()
@@ -280,8 +270,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await graphToken.connect(gateway).approve(horizonStaking.target, tokensToCollect)
-          await horizonStakingExtension.connect(gateway).collect(tokensToCollect, allocationID)
+          await collect(gateway, [tokensToCollect, allocationID])
 
           // Get idle stake after collecting
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
@@ -327,8 +316,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await graphToken.connect(gateway).approve(horizonStaking.target, tokensToCollect)
-          await horizonStakingExtension.connect(gateway).collect(tokensToCollect, allocationID)
+          await collect(gateway, [tokensToCollect, allocationID])
 
           // Get idle stake after collecting
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
@@ -416,8 +404,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await graphToken.connect(gateway).approve(horizonStaking.target, tokensToCollect)
-          await horizonStakingExtension.connect(gateway).collect(tokensToCollect, allocationID)
+          await collect(gateway, [tokensToCollect, allocationID])
 
           // Get rewards destination balance after collecting
           const balanceAfter = await graphToken.balanceOf(rewardsDestination)
