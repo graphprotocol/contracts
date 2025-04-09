@@ -5,24 +5,20 @@ import { expect } from 'chai'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
-import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Slasher', () => {
-  let horizonStaking: HorizonStaking
-  let graphToken: L2GraphToken
   let snapshotId: string
 
   let indexer: string
   let slasher: HardhatEthersSigner
   let tokensToSlash: bigint
 
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
+
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken
-
     slasher = (await ethers.getSigners())[2]
   })
 

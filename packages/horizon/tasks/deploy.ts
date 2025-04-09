@@ -1,7 +1,7 @@
 /* eslint-disable no-case-declarations */
 import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
 import { task, types } from 'hardhat/config'
-import { ZERO_ADDRESS } from '@graphprotocol/toolshed/utils'
+import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
 
 import type { AddressBook } from '@graphprotocol/toolshed/deployments'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'

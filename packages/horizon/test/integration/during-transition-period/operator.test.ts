@@ -5,24 +5,18 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
-import type { HorizonStaking, HorizonStakingExtension, RewardsManager } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
 
 describe('Operator', () => {
-  let horizonStaking: HorizonStaking
-  let rewardsManager: RewardsManager
   let snapshotId: string
 
   // Subgraph service address is not set for integration tests
   const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
-  before(() => {
-    const graph = hre.graph()
-
-    // Get contracts
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    rewardsManager = graph.horizon!.contracts.RewardsManager
-  })
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const rewardsManager = graph.horizon.contracts.RewardsManager
 
   beforeEach(async () => {
     // Take a snapshot before each test
