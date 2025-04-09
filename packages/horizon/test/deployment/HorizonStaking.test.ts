@@ -7,9 +7,9 @@ import { loadConfig } from '@graphprotocol/toolshed/hardhat'
 const config = loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
 const graph = hre.graph()
 
-const horizonStakingAddressBookEntry = graph.horizon!.addressBook.getEntry('HorizonStaking')
-const HorizonStaking = graph.horizon!.contracts.HorizonStaking
-const graphProxyAdminAddressBookEntry = graph.horizon!.addressBook.getEntry('GraphProxyAdmin')
+const horizonStakingAddressBookEntry = graph.horizon.addressBook.getEntry('HorizonStaking')
+const HorizonStaking = graph.horizon.contracts.HorizonStaking
+const graphProxyAdminAddressBookEntry = graph.horizon.addressBook.getEntry('GraphProxyAdmin')
 
 describe('HorizonStaking', function () {
   it('should set the right maxThawingPeriod', async function () {
