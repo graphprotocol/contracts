@@ -41,8 +41,8 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // Save the addresses to the address book
     console.log('\n========== 📖 Updating address book ==========')
-    saveToAddressBook(deployment, graph.horizon!.addressBook)
-    console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
+    saveToAddressBook(deployment, graph.horizon.addressBook)
+    console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Deployment complete! 🎉 ✨ 🚀 ✅')
   })
@@ -97,7 +97,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
       MigrationModule,
       {
         displayUi: true,
-        parameters: patchConfig ? _patchStepConfig(step, HorizonMigrateConfig, graph.horizon!.addressBook, graph.subgraphService!.addressBook) : HorizonMigrateConfig,
+        parameters: patchConfig ? _patchStepConfig(step, HorizonMigrateConfig, graph.horizon.addressBook, graph.subgraphService.addressBook) : HorizonMigrateConfig,
         deploymentId: `horizon-${hre.network.name}`,
         defaultSender: deployer.address,
       },
@@ -105,8 +105,8 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
-    saveToAddressBook(deployment, graph.horizon!.addressBook)
-    console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
+    saveToAddressBook(deployment, graph.horizon.addressBook)
+    console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
 
     console.log(`\n\n🎉 ✨ 🚀 ✅ Migration step ${step} complete! 🎉 ✨ 🚀 ✅\n`)
   })
