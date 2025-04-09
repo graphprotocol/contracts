@@ -5,12 +5,9 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
 
-import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Delegator', () => {
-  let horizonStaking: HorizonStaking
-  let graphToken: L2GraphToken
   let delegator: HardhatEthersSigner
   let serviceProvider: HardhatEthersSigner
   let newServiceProvider: HardhatEthersSigner
@@ -23,15 +20,13 @@ describe('Delegator', () => {
 
   // Subgraph service address is not set for integration tests
   const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
+  const graph = hre.graph()
+  const { provision, delegate } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken
-
-    ;[serviceProvider, delegator, newServiceProvider] = await ethers.getSigners()
-
+    [serviceProvider, delegator, newServiceProvider] = await ethers.getSigners()
     verifier = ethers.Wallet.createRandom().address
     newVerifier = ethers.Wallet.createRandom().address
   })
@@ -40,12 +35,8 @@ describe('Delegator', () => {
     // Take a snapshot before each test
     snapshotId = await ethers.provider.send('evm_snapshot', [])
 
-    // Servide provider stake
-    await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokens)
-    await horizonStaking.connect(serviceProvider).stake(tokens)
-
     // Create provision
-    await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, tokens, maxVerifierCut, thawingPeriod)
+    await provision(serviceProvider, [serviceProvider.address, verifier, tokens, maxVerifierCut, thawingPeriod])
 
     // Send GRT to delegator and new service provider to use for delegation and staking
     await graphToken.connect(serviceProvider).transfer(delegator.address, tokens)
@@ -63,8 +54,7 @@ describe('Delegator', () => {
       const delegationTokens = ethers.parseEther('1000')
 
       // Delegate tokens to the service provider and verifier
-      await graphToken.connect(delegator).approve(horizonStaking.target, delegationTokens)
-      await horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](serviceProvider.address, verifier, delegationTokens, 0n)
+      await delegate(delegator, [serviceProvider.address, verifier, delegationTokens, 0n])
 
       // Verify delegation tokens were added to the delegation pool
       const delegationPool = await horizonStaking.getDelegationPool(
@@ -121,13 +111,10 @@ describe('Delegator', () => {
 
       beforeEach(async () => {
         // Delegate tokens to initialize the delegation pool
-        await graphToken.connect(delegator).approve(horizonStaking.target, delegationPoolTokens)
-        await horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](serviceProvider.address, verifier, delegationPoolTokens, 0n)
+        await delegate(delegator, [serviceProvider.address, verifier, delegationPoolTokens, 0n])
 
         // Create new provision for a new service provider and verifier combo
-        await graphToken.connect(newServiceProvider).approve(horizonStaking.target, newProvisionTokens)
-        await horizonStaking.connect(newServiceProvider).stake(newProvisionTokens)
-        await horizonStaking.connect(newServiceProvider).provision(newServiceProvider.address, newVerifier, newProvisionTokens, maxVerifierCut, thawingPeriod)
+        await provision(newServiceProvider, [newServiceProvider.address, newVerifier, newProvisionTokens, maxVerifierCut, thawingPeriod])
       })
 
       it('should allow delegator to undelegate and redelegate to new provider and verifier', async () => {
@@ -145,8 +132,7 @@ describe('Delegator', () => {
         await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
         await ethers.provider.send('evm_mine', [])
 
-        await graphToken.connect(delegator).approve(horizonStaking.target, undelegateShares)
-        await horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](newServiceProvider.address, newVerifier, undelegateShares, 0n)
+        await delegate(delegator, [newServiceProvider.address, newVerifier, undelegateShares, 0n])
 
         // Verify delegation shares were transferred to the new service provider
         const delegationPool = await horizonStaking.getDelegationPool(

@@ -1,15 +1,17 @@
+/* eslint-disable no-case-declarations */
 import path from 'path'
 
+import { assertGraphRuntimeEnvironment, isGraphDeployment } from './types'
 import { getAddressBookPath } from './config'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import { lazyFunction } from 'hardhat/plugins'
+import { loadGraphHorizon } from '@graphprotocol/toolshed/deployments/horizon'
+import { loadSubgraphService } from '@graphprotocol/toolshed/deployments/subgraph-service'
 import { logDebug } from './logger'
 
-import { GraphHorizonAddressBook } from '@graphprotocol/toolshed/deployments/horizon'
-import { SubgraphServiceAddressBook } from '@graphprotocol/toolshed/deployments/subgraph-service'
-
-import { assertGraphRuntimeEnvironment, type GraphRuntimeEnvironmentOptions, isGraphDeployment } from './types'
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
+import type { GraphDeployments } from '@graphprotocol/toolshed/deployments'
+import type { GraphRuntimeEnvironmentOptions } from './types'
 
 export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
   const userPath = userConfig.paths?.graph
@@ -47,26 +49,17 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
 
     // Build the Graph Runtime Environment (GRE) for each deployment
     const provider = new HardhatEthersProvider(hre.network.provider, hre.network.name)
-    const greDeployments: Record<string, unknown> = {}
+    const greDeployments: GraphDeployments = {} as GraphDeployments
+
     for (const deployment of deployments) {
       logDebug(`== Initializing deployment: ${deployment} ==`)
       const addressBookPath = getAddressBookPath(deployment, hre, opts)
-      let addressBook
-
       switch (deployment) {
         case 'horizon':
-          addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)
-          greDeployments.horizon = {
-            addressBook: addressBook,
-            contracts: addressBook.loadContracts(provider),
-          }
+          greDeployments.horizon = loadGraphHorizon(addressBookPath, chainId, provider)
           break
         case 'subgraphService':
-          addressBook = new SubgraphServiceAddressBook(addressBookPath, chainId)
-          greDeployments.subgraphService = {
-            addressBook: addressBook,
-            contracts: addressBook.loadContracts(provider),
-          }
+          greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
           break
         default:
           break

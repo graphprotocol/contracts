@@ -6,21 +6,15 @@ import { expect } from 'chai'
 import { createPOIFromString } from '@graphprotocol/toolshed'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
-import type { EpochManager, HorizonStaking, HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
 
 describe('Permissionless', () => {
-  let horizonStaking: HorizonStaking
-  let epochManager: EpochManager
   let snapshotId: string
 
-  before(() => {
-    const graph = hre.graph()
-
-    // Get contracts
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    epochManager = graph.horizon!.contracts.EpochManager
-  })
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const epochManager = graph.horizon.contracts.EpochManager
 
   beforeEach(async () => {
     // Take a snapshot before each test

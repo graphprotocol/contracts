@@ -2,11 +2,12 @@ import { GraphPluginError } from './sdk/utils/error'
 import { logDebug } from './logger'
 import { normalizePath } from './sdk/utils/path'
 
-import type { GraphDeployment, GraphRuntimeEnvironmentOptions } from './types'
+import type { GraphDeploymentName } from '@graphprotocol/toolshed/deployments'
+import type { GraphRuntimeEnvironmentOptions } from './types'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 export function getAddressBookPath(
-  deployment: GraphDeployment,
+  deployment: GraphDeploymentName,
   hre: HardhatRuntimeEnvironment,
   opts: GraphRuntimeEnvironmentOptions,
 ): string {

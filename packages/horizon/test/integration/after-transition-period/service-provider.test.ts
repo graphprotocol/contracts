@@ -5,21 +5,18 @@ import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 import { PaymentTypes } from '@graphprotocol/toolshed/deployments/horizon'
 
-import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Service provider', () => {
-  let horizonStaking: HorizonStaking
-  let graphToken: L2GraphToken
   let verifier: string
   const thawingPeriod = 2419200n
 
+  const graph = hre.graph()
+  const { stake, stakeToProvision, addToProvision } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
+
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken
-
     verifier = await ethers.Wallet.createRandom().getAddress()
   })
 
@@ -34,8 +31,7 @@ describe('Service provider', () => {
 
     it('should allow staking tokens and unstake right after', async () => {
       const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
-      await graphToken.connect(serviceProvider).approve(horizonStaking.target, stakeAmount)
-      await horizonStaking.connect(serviceProvider).stake(stakeAmount)
+      await stake(serviceProvider, [stakeAmount])
       await horizonStaking.connect(serviceProvider).unstake(stakeAmount)
       const serviceProviderBalanceAfter = await graphToken.balanceOf(serviceProvider.address)
       expect(serviceProviderBalanceAfter).to.equal(serviceProviderBalanceBefore, 'Service provider balance should not change')
@@ -95,8 +91,7 @@ describe('Service provider', () => {
         const createProvisionTokens = ethers.parseEther('10000')
 
         // Add idle stake
-        await graphToken.connect(serviceProvider).approve(horizonStaking.target, tokensToStake)
-        await horizonStaking.connect(serviceProvider).stake(tokensToStake)
+        await stake(serviceProvider, [tokensToStake])
         await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, createProvisionTokens, maxVerifierCut, thawingPeriod)
       })
 
@@ -106,8 +101,7 @@ describe('Service provider', () => {
 
         // Add stake and provision on the same transaction
         const stakeToProvisionTokens = ethers.parseEther('100')
-        await graphToken.connect(serviceProvider).approve(horizonStaking.target, stakeToProvisionTokens)
-        await horizonStaking.connect(serviceProvider).stakeToProvision(serviceProvider.address, verifier, stakeToProvisionTokens)
+        await stakeToProvision(serviceProvider, [serviceProvider.address, verifier, stakeToProvisionTokens])
 
         // Verify provision tokens were updated
         provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -120,8 +114,7 @@ describe('Service provider', () => {
 
         // Add to provision using idle stake
         const addToProvisionTokens = ethers.parseEther('100')
-        await graphToken.connect(serviceProvider).approve(horizonStaking.target, addToProvisionTokens)
-        await horizonStaking.connect(serviceProvider).addToProvision(serviceProvider.address, verifier, addToProvisionTokens)
+        await addToProvision(serviceProvider, [serviceProvider.address, verifier, addToProvisionTokens])
 
         // Verify provision tokens were updated
         provision = await horizonStaking.getProvision(serviceProvider.address, verifier)

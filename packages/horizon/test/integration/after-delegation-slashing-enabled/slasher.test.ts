@@ -3,13 +3,10 @@ import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 
-import type { HorizonStaking, L2GraphToken } from '@graphprotocol/toolshed/deployments/horizon'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Slasher', () => {
   let snapshotId: string
-  let horizonStaking: HorizonStaking
-  let graphToken: L2GraphToken
   let serviceProvider: HardhatEthersSigner
   let delegator: HardhatEthersSigner
   let verifier: HardhatEthersSigner
@@ -20,14 +17,14 @@ describe('Slasher', () => {
   const provisionTokens = ethers.parseEther('10000')
   const delegationTokens = ethers.parseEther('1000')
 
+  const graph = hre.graph()
+  const { provision, delegate } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
+
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken
-
     // index 2 is registered as slasher so we skip it
-    ;[serviceProvider, delegator, , verifier] = await ethers.getSigners()
+    [serviceProvider, delegator, , verifier] = await ethers.getSigners()
     verifierDestination = ethers.Wallet.createRandom().address
   })
 
@@ -41,13 +38,10 @@ describe('Slasher', () => {
     // Send funds to delegator
     await graphToken.connect(serviceProvider).transfer(delegator.address, delegationTokens * 3n)
     // Create provision
-    await graphToken.connect(serviceProvider).approve(horizonStaking.target, provisionTokens)
-    await horizonStaking.connect(serviceProvider).stake(provisionTokens)
-    await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier.address, provisionTokens, maxVerifierCut, thawingPeriod)
+    await provision(serviceProvider, [serviceProvider.address, verifier.address, provisionTokens, maxVerifierCut, thawingPeriod])
 
     // Initialize delegation pool if it does not exist
-    await graphToken.connect(delegator).approve(horizonStaking.target, delegationTokens)
-    await horizonStaking.connect(delegator)['delegate(address,address,uint256,uint256)'](serviceProvider.address, verifier.address, delegationTokens, 0n)
+    await delegate(delegator, [serviceProvider.address, verifier.address, delegationTokens, 0n])
 
     // Send eth to verifier to cover gas fees
     await serviceProvider.sendTransaction({
