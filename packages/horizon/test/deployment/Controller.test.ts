@@ -4,9 +4,8 @@ import { expect } from 'chai'
 import { toUtf8Bytes } from 'ethers'
 
 const graph = hre.graph()
-const addressBook = graph.horizon!.addressBook
-
-const Controller = graph.horizon!.contracts.Controller
+const addressBook = graph.horizon.addressBook
+const Controller = graph.horizon.contracts.Controller
 
 describe('Controller', function () {
   it('should have GraphToken registered', async function () {
