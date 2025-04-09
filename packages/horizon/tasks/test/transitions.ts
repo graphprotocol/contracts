@@ -17,7 +17,7 @@ task('transition:unset-subgraph-service', 'Unsets the subgraph service in Horizo
     const signers = await hre.ethers.getSigners()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const governor = signers[taskArgs.governorIndex] as any
-    const rewardsManager = hre.graph().horizon!.contracts.RewardsManager
+    const rewardsManager = hre.graph().horizon.contracts.RewardsManager
 
     console.log('Unsetting subgraph service...')
     const tx = await rewardsManager.connect(governor).setSubgraphService(ethers.ZeroAddress)
@@ -38,7 +38,7 @@ task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
-    const horizonStaking = hre.graph().horizon!.contracts.HorizonStaking
+    const horizonStaking = hre.graph().horizon.contracts.HorizonStaking
 
     console.log('Clearing thawing period...')
     const tx = await horizonStaking.connect(governor).clearThawingPeriod()
@@ -59,7 +59,7 @@ task('transition:enable-delegation-slashing', 'Enables delegation slashing in Ho
 
     const signers = await hre.ethers.getSigners()
     const governor = signers[taskArgs.governorIndex]
-    const horizonStaking = hre.graph().horizon!.contracts.HorizonStaking
+    const horizonStaking = hre.graph().horizon.contracts.HorizonStaking
 
     console.log('Enabling delegation slashing...')
     const tx = await horizonStaking.connect(governor).setDelegationSlashingEnabled()

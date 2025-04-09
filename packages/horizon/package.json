@@ -11,9 +11,9 @@
     "addresses.json"
   ],
   "scripts": {
+    "lint": "pnpm lint:ts && pnpm lint:sol",
     "lint:ts": "eslint '**/*.{js,ts}' --fix --no-warn-ignored",
     "lint:sol": "prettier --write contracts/**/*.sol test/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
-    "lint": "pnpm lint:ts && pnpm lint:sol",
     "lint:sol:prettier": "prettier --write contracts/**/*.sol test/**/*.sol",
     "lint:sol:solhint": "solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
