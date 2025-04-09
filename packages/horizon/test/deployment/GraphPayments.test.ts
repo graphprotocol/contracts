@@ -1,13 +1,14 @@
-import { expect } from 'chai'
 import hre from 'hardhat'
+
+import { expect } from 'chai'
 import { loadConfig } from '@graphprotocol/toolshed/hardhat'
 import { transparentUpgradeableProxyTests } from './lib/TransparentUpgradeableProxy.tests'
 
 const config = loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
 const graph = hre.graph()
 
-const addressBookEntry = graph.horizon!.addressBook.getEntry('GraphPayments')
-const GraphPayments = graph.horizon!.contracts.GraphPayments
+const addressBookEntry = graph.horizon.addressBook.getEntry('GraphPayments')
+const GraphPayments = graph.horizon.contracts.GraphPayments
 
 describe('GraphPayments', function () {
   it('should set the right protocolPaymentCut', async function () {
