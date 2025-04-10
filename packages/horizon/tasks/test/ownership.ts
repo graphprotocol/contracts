@@ -1,48 +1,32 @@
 import { task, types } from 'hardhat/config'
-import { Contract } from 'ethers'
-
-import L2StakingABI from '@graphprotocol/contracts/build/abis/L2Staking.json'
-import StakingExtensionABI from '@graphprotocol/contracts/build/abis/StakingExtension.json'
-
-import { IStaking } from '@graphprotocol/contracts'
-import { mergeABIs } from '@graphprotocol/toolshed'
 import { printBanner } from 'hardhat-graph-protocol/sdk'
+import { requireLocalNetwork } from '@graphprotocol/toolshed/hardhat'
 
-task('test:integration:transfer-ownership', 'Transfer ownership of protocol contracts to a new governor')
+// This is required because we cannot impersonate Ignition accounts
+// so we impersonate current governor and transfer ownership to accounts that Ignition can control
+task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a new governor')
   .addOptionalParam('governorIndex', 'Derivation path index for the new governor account', 1, types.int)
   .addOptionalParam('slasherIndex', 'Derivation path index for the new slasher account', 2, types.int)
-  .addFlag('skipNetworkCheck', 'Skip the network check (use with caution)')
   .setAction(async (taskArgs, hre) => {
     printBanner('TRANSFER OWNERSHIP')
 
-    // Check that we're on a local network
-    if (!taskArgs.skipNetworkCheck && hre.network.name !== 'localhost' && hre.network.name !== 'hardhat') {
-      throw new Error('This task can only be run on localhost or hardhat network. Use --skip-network-check to override (use with caution)')
-    }
+    // this task uses impersonation so we NEED a local network
+    requireLocalNetwork(hre)
 
     console.log('\n--- STEP 0: Setup ---')
 
     // Get signers
     const signers = await hre.ethers.getSigners()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const newGovernor = signers[taskArgs.governorIndex] as any
+    const newGovernor = signers[taskArgs.governorIndex]
     const newSlasher = signers[taskArgs.slasherIndex]
 
     console.log(`New governor will be: ${newGovernor.address}`)
 
-    // Get contract addresses
-    const addressesJson = require('@graphprotocol/contracts/addresses.json')
-    const arbSepoliaAddresses = addressesJson['421614']
-    const stakingAddress = arbSepoliaAddresses.L2Staking.address
-
-    // Get ABIs
-    const combinedStakingABI = mergeABIs(L2StakingABI, StakingExtensionABI)
-
     // Get contracts
-    // Note: Using ABIs directly instead of hre.graph().horizon because these are the old deployed contract instances
-    const staking = new Contract(stakingAddress, combinedStakingABI, hre.ethers.provider) as unknown as IStaking
-    const controller = hre.graph().horizon.contracts.Controller
-    const graphProxyAdmin = hre.graph().horizon.contracts.GraphProxyAdmin
+    const graph = hre.graph()
+    const staking = graph.horizon.contracts.LegacyStaking
+    const controller = graph.horizon.contracts.Controller
+    const graphProxyAdmin = graph.horizon.contracts.GraphProxyAdmin
 
     // Get current owners
     const controllerGovernor = await controller.governor()
@@ -52,10 +36,8 @@ task('test:integration:transfer-ownership', 'Transfer ownership of protocol cont
     console.log(`Current GraphProxyAdmin governor: ${proxyAdminGovernor}`)
 
     // Get impersonated signers
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const controllerSigner = await hre.ethers.getImpersonatedSigner(controllerGovernor) as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const proxyAdminSigner = await hre.ethers.getImpersonatedSigner(proxyAdminGovernor) as any
+    const controllerSigner = await hre.ethers.getImpersonatedSigner(controllerGovernor)
+    const proxyAdminSigner = await hre.ethers.getImpersonatedSigner(proxyAdminGovernor)
 
     console.log('\n--- STEP 1: Transfer ownership of Controller ---')
 

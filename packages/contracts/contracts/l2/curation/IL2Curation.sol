@@ -43,10 +43,4 @@ interface IL2Curation {
         bytes32 _subgraphDeploymentID,
         uint256 _tokensIn
     ) external view returns (uint256);
-
-    /**
-     * @notice Get the address of the subgraph service.
-     * @return Address of the subgraph service
-     */
-    function subgraphService() external view returns (address);
 }

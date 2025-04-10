@@ -1,9 +1,10 @@
 import hre from 'hardhat'
 
+import { ONE_MILLION, ZERO_ADDRESS } from '@graphprotocol/toolshed'
 import { delegators } from '../../../tasks/test/fixtures/delegators'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
@@ -29,6 +30,8 @@ describe('Delegator', () => {
     [serviceProvider, delegator, newServiceProvider] = await ethers.getSigners()
     verifier = ethers.Wallet.createRandom().address
     newVerifier = ethers.Wallet.createRandom().address
+    await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)
+    await setGRTBalance(graph.provider, graphToken.target, newServiceProvider.address, ONE_MILLION)
   })
 
   beforeEach(async () => {
@@ -269,6 +272,9 @@ describe('Delegator', () => {
       // Get delegator
       existingDelegator = await ethers.getSigner(delegators[0].address)
 
+      await setGRTBalance(graph.provider, graphToken.target, indexer.address, ONE_MILLION)
+      await setGRTBalance(graph.provider, graphToken.target, existingDelegator.address, ONE_MILLION)
+
       // Get delegated tokens
       delegatedTokens = delegators[0].delegations[0].tokens
     })
@@ -323,6 +329,7 @@ describe('Delegator', () => {
         // Get signers
         indexer = await ethers.getSigner(delegationFixture.indexerAddress)
         existingDelegator = await ethers.getSigner(delegatorFixture.address)
+        await setGRTBalance(graph.provider, graphToken.target, indexer.address, ONE_MILLION)
 
         // Verify delegator is undelegated
         expect(delegatorFixture.undelegate).to.be.true

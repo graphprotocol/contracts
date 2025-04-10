@@ -1,9 +1,10 @@
 import hre from 'hardhat'
 
-import { createPOIFromString } from '@graphprotocol/toolshed'
+import { createPOIFromString, ONE_MILLION } from '@graphprotocol/toolshed'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
@@ -38,6 +39,7 @@ describe('Service Provider', () => {
     before(async () => {
       const signers = await ethers.getSigners()
       serviceProvider = signers[8]
+      await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
 
       // Stake tokens to service provider
       await stake(serviceProvider, [tokensToStake])
@@ -181,6 +183,8 @@ describe('Service Provider', () => {
       const indexerFixture = indexers[0]
       indexer = await ethers.getSigner(indexerFixture.address)
       tokensUnstaked = indexerFixture.tokensToUnstake || 0n
+
+      await setGRTBalance(graph.provider, graphToken.target, indexer.address, ONE_MILLION)
     })
 
     it('should allow service provider to withdraw their locked tokens after thawing period passes', async () => {
@@ -219,6 +223,7 @@ describe('Service Provider', () => {
           allocationID = indexerFixture.allocations[0].allocationID
           allocationTokens = indexerFixture.allocations[0].tokens
           gateway = (await ethers.getSigners())[18]
+          await setGRTBalance(graph.provider, graphToken.target, gateway.address, ONE_MILLION)
         })
 
         it('should be able to close an open legacy allocation and collect rewards', async () => {
@@ -353,6 +358,7 @@ describe('Service Provider', () => {
           rewardsDestination = indexerFixture.rewardsDestination!
           allocationID = indexerFixture.allocations[0].allocationID
           gateway = (await ethers.getSigners())[18]
+          await setGRTBalance(graph.provider, graphToken.target, gateway.address, ONE_MILLION)
         })
 
         it('should be able to close an open allocation and collect rewards', async () => {
