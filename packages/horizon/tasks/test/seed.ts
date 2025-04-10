@@ -29,21 +29,17 @@ task('test:seed', 'Sets up some protocol state for testing')
 
       // Approve and stake
       console.log(`Staking ${indexer.stake} tokens for indexer ${indexer.address}...`)
-      const approveTx = await GraphToken.connect(indexerSigner).approve(Staking.target, indexer.stake)
-      await approveTx.wait()
-      const stakeTx = await Staking.connect(indexerSigner).stake(indexer.stake)
-      await stakeTx.wait()
+      await GraphToken.connect(indexerSigner).approve(Staking.target, indexer.stake)
+      await Staking.connect(indexerSigner).stake(indexer.stake)
 
       // Set delegation parameters
       console.log(`Setting delegation parameters for indexer ${indexer.address}...`)
-      const setDelegationParametersTx = await Staking.connect(indexerSigner).setDelegationParameters(indexer.indexingRewardCut, indexer.queryFeeCut, 0)
-      await setDelegationParametersTx.wait()
+      await Staking.connect(indexerSigner).setDelegationParameters(indexer.indexingRewardCut, indexer.queryFeeCut, 0)
 
       // Set rewards destination if it exists
       if (indexer.rewardsDestination) {
         console.log(`Setting rewards destination for indexer ${indexer.address} to ${indexer.rewardsDestination}...`)
-        const setRewardsDestinationTx = await Staking.connect(indexerSigner).setRewardsDestination(indexer.rewardsDestination)
-        await setRewardsDestinationTx.wait()
+        await Staking.connect(indexerSigner).setRewardsDestination(indexer.rewardsDestination)
       }
     }
 
@@ -58,10 +54,8 @@ task('test:seed', 'Sets up some protocol state for testing')
       // Delegate to each indexer
       for (const delegation of delegator.delegations) {
         console.log(`Delegating ${delegation.tokens} tokens from ${delegator.address} to indexer ${delegation.indexerAddress}...`)
-        const delegationApproveTx = await GraphToken.connect(delegatorSigner).approve(Staking.target, delegation.tokens)
-        await delegationApproveTx.wait()
-        const delegateTx = await Staking.connect(delegatorSigner).delegate(delegation.indexerAddress, delegation.tokens)
-        await delegateTx.wait()
+        await GraphToken.connect(delegatorSigner).approve(Staking.target, delegation.tokens)
+        await Staking.connect(delegatorSigner).delegate(delegation.indexerAddress, delegation.tokens)
       }
     }
 
@@ -74,14 +68,13 @@ task('test:seed', 'Sets up some protocol state for testing')
       for (const allocation of indexer.allocations) {
         console.log(`Creating allocation of ${allocation.tokens} tokens from indexer ${indexer.address} on subgraph ${allocation.subgraphDeploymentID}...`)
 
-        const allocateTx = await Staking.connect(indexerSigner).allocate(
+        await Staking.connect(indexerSigner).allocate(
           allocation.subgraphDeploymentID,
           allocation.tokens,
           allocation.allocationID,
           randomAllocationMetadata(),
           await generateAllocationProof(indexer.address, allocation.allocationPrivateKey),
         )
-        await allocateTx.wait()
       }
     }
 
@@ -95,8 +88,7 @@ task('test:seed', 'Sets up some protocol state for testing')
         const indexerSigner = await hre.ethers.getImpersonatedSigner(indexer.address)
 
         // Unstake
-        const unstakeTx = await Staking.connect(indexerSigner).unstake(indexer.tokensToUnstake)
-        await unstakeTx.wait()
+        await Staking.connect(indexerSigner).unstake(indexer.tokensToUnstake)
       }
     }
 
@@ -117,8 +109,7 @@ task('test:seed', 'Sets up some protocol state for testing')
           console.log(`Undelegating ${shares} shares from indexer ${delegation.indexerAddress}...`)
 
           // Undelegate the shares
-          const undelegateTx = await Staking.connect(delegatorSigner).undelegate(delegation.indexerAddress, shares)
-          await undelegateTx.wait()
+          await Staking.connect(delegatorSigner).undelegate(delegation.indexerAddress, shares)
         }
       }
     }

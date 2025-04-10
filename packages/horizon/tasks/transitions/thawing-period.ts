@@ -17,7 +17,6 @@ task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
     const horizonStaking = hre.graph().horizon.contracts.HorizonStaking
 
     console.log('Clearing thawing period...')
-    const tx = await horizonStaking.connect(governor).clearThawingPeriod()
-    await tx.wait()
+    await horizonStaking.connect(governor).clearThawingPeriod()
     console.log('Thawing period cleared')
   })
