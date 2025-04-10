@@ -1,6 +1,7 @@
-import { GraphPluginError } from './sdk/utils/error'
+import path from 'path'
+
+import { GraphPluginError } from './error'
 import { logDebug } from './logger'
-import { normalizePath } from './sdk/utils/path'
 
 import type { GraphDeploymentName } from '@graphprotocol/toolshed/deployments'
 import type { GraphRuntimeEnvironmentOptions } from './types'
@@ -29,6 +30,13 @@ export function getAddressBookPath(
   const normalizedAddressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
   logDebug(`Address book path: ${normalizedAddressBookPath}`)
   return normalizedAddressBookPath
+}
+
+function normalizePath(_path: string, graphPath?: string): string {
+  if (!path.isAbsolute(_path) && graphPath !== undefined) {
+    _path = path.join(graphPath, _path)
+  }
+  return _path
 }
 
 function getPath(value: string | {

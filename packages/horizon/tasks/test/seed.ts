@@ -2,7 +2,7 @@ import { generateAllocationProof, randomAllocationMetadata } from '@graphprotoco
 import { requireLocalNetwork, setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { delegators } from './fixtures/delegators'
 import { indexers } from './fixtures/indexers'
-import { printBanner } from 'hardhat-graph-protocol/sdk'
+import { printBanner } from '@graphprotocol/toolshed/utils'
 import { task } from 'hardhat/config'
 
 task('test:seed', 'Sets up some protocol state for testing')

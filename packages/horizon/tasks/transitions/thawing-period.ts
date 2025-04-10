@@ -1,5 +1,5 @@
 import { task, types } from 'hardhat/config'
-import { printBanner } from 'hardhat-graph-protocol/sdk'
+import { printBanner } from '@graphprotocol/toolshed/utils'
 import { requireLocalNetwork } from '@graphprotocol/toolshed/hardhat'
 
 task('transition:clear-thawing', 'Clears the thawing period in HorizonStaking')
