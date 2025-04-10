@@ -5,7 +5,7 @@ import { AddressBook } from '../address-book'
 import { assertObject } from '../../lib/assert'
 import { Contract } from 'ethers'
 import { loadArtifact } from '../artifact'
-import { mergeABIs } from '../../utils/abi'
+import { mergeABIs } from '../../core/abi'
 
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 import type { LegacyStaking } from './types'
