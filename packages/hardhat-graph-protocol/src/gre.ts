@@ -2,11 +2,11 @@
 import path from 'path'
 
 import { assertGraphRuntimeEnvironment, isGraphDeployment } from './types'
+import { loadGraphHorizon, loadSubgraphService } from '@graphprotocol/toolshed/deployments'
 import { getAddressBookPath } from './config'
+import { GraphPluginError } from './error'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import { lazyFunction } from 'hardhat/plugins'
-import { loadGraphHorizon } from '@graphprotocol/toolshed/deployments/horizon'
-import { loadSubgraphService } from '@graphprotocol/toolshed/deployments/subgraph-service'
 import { logDebug } from './logger'
 
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
@@ -36,7 +36,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     logDebug(`Main network: ${hre.network.name}`)
     const chainId = hre.network.config.chainId
     if (chainId === undefined) {
-      throw new Error('Please define chainId in your Hardhat network configuration')
+      throw new GraphPluginError('Please define chainId in your Hardhat network configuration')
     }
     logDebug(`Chain Id: ${chainId}`)
 

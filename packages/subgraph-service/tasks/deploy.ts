@@ -1,6 +1,7 @@
 /* eslint-disable no-case-declarations */
 import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
 import { task, types } from 'hardhat/config'
+import { printHorizonBanner } from '@graphprotocol/toolshed/utils'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
 
 import type { AddressBook } from '@graphprotocol/toolshed/deployments'
@@ -80,11 +81,11 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // Save the addresses to the address book
     console.log('\n========== 📖 Updating address book ==========')
-    saveToAddressBook(horizonDeployment, graph.horizon!.addressBook)
-    saveToAddressBook(proxiesDeployment, graph.subgraphService!.addressBook)
-    saveToAddressBook(subgraphServiceDeployment, graph.subgraphService!.addressBook)
-    console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
-    console.log(`Address book at ${graph.subgraphService!.addressBook.file} updated!`)
+    saveToAddressBook(horizonDeployment, graph.horizon.addressBook)
+    saveToAddressBook(proxiesDeployment, graph.subgraphService.addressBook)
+    saveToAddressBook(subgraphServiceDeployment, graph.subgraphService.addressBook)
+    console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
+    console.log(`Address book at ${graph.subgraphService.addressBook.file} updated!`)
     console.log('Note that Horizon deployment addresses are updated in the Horizon address book')
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Deployment complete! 🎉 ✨ 🚀 ✅')
@@ -100,7 +101,7 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
     const patchConfig: boolean = args.patchConfig ?? false
 
     const graph = hre.graph()
-    console.log(getHorizonBanner())
+    printHorizonBanner()
 
     // Migration step to run
     console.log('\n========== 🏗️ Migration steps ==========')
@@ -136,14 +137,14 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
       MigrationModule,
       {
         displayUi: true,
-        parameters: patchConfig ? _patchStepConfig(step, SubgraphServiceMigrateConfig, graph.subgraphService!.addressBook, graph.horizon!.addressBook) : SubgraphServiceMigrateConfig,
+        parameters: patchConfig ? _patchStepConfig(step, SubgraphServiceMigrateConfig, graph.subgraphService.addressBook, graph.horizon.addressBook) : SubgraphServiceMigrateConfig,
         deploymentId: `subgraph-service-${hre.network.name}`,
       })
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
-    saveToAddressBook(deployment, graph.subgraphService!.addressBook)
-    console.log(`Address book at ${graph.subgraphService!.addressBook.file} updated!`)
+    saveToAddressBook(deployment, graph.subgraphService.addressBook)
+    console.log(`Address book at ${graph.subgraphService.addressBook.file} updated!`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Migration complete! 🎉 ✨ 🚀 ✅')
   })
@@ -182,22 +183,4 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
   }
 
   return patchedConfig
-}
-
-function getHorizonBanner(): string {
-  return `
-  ██╗  ██╗ ██████╗ ██████╗ ██╗███████╗ ██████╗ ███╗   ██╗
-  ██║  ██║██╔═══██╗██╔══██╗██║╚══███╔╝██╔═══██╗████╗  ██║
-  ███████║██║   ██║██████╔╝██║  ███╔╝ ██║   ██║██╔██╗ ██║
-  ██╔══██║██║   ██║██╔══██╗██║ ███╔╝  ██║   ██║██║╚██╗██║
-  ██║  ██║╚██████╔╝██║  ██║██║███████╗╚██████╔╝██║ ╚████║
-  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
-                                                          
-  ██╗   ██╗██████╗  ██████╗ ██████╗  █████╗ ██████╗ ███████╗
-  ██║   ██║██╔══██╗██╔════╝ ██╔══██╗██╔══██╗██╔══██╗██╔════╝
-  ██║   ██║██████╔╝██║  ███╗██████╔╝███████║██║  ██║█████╗  
-  ██║   ██║██╔═══╝ ██║   ██║██╔══██╗██╔══██║██║  ██║██╔══╝  
-  ╚██████╔╝██║     ╚██████╔╝██║  ██║██║  ██║██████╔╝███████╗
-   ╚═════╝ ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝
-  `
 }
