@@ -2,7 +2,9 @@ import hre from 'hardhat'
 
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
+import { ONE_MILLION } from '@graphprotocol/toolshed'
 import { PaymentTypes } from '@graphprotocol/toolshed/deployments/horizon'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
@@ -24,6 +26,7 @@ describe('Operator', () => {
     // Get signers
     [serviceProvider, operator] = await ethers.getSigners()
     verifier = await ethers.Wallet.createRandom().getAddress()
+    await setGRTBalance(graph.provider, graphToken.target, operator.address, ONE_MILLION)
 
     // Authorize operator for verifier
     await horizonStaking.connect(serviceProvider).setOperator(verifier, operator.address, true)

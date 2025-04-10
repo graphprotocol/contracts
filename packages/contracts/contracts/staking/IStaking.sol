@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity >=0.6.12 <0.8.0;
+pragma solidity >=0.6.12 <0.8.0 || 0.8.27;
 pragma abicoder v2;
 
 import { IStakingBase } from "./IStakingBase.sol";

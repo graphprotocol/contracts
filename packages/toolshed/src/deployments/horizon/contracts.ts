@@ -13,6 +13,7 @@ import type {
   EpochManager,
   L2Curation,
   L2GraphToken,
+  LegacyStaking,
   RewardsManager,
 } from './types'
 import type { ContractList } from '../contract'
@@ -47,6 +48,9 @@ export const GraphHorizonArtifactsMap = {
   L2GraphTokenGateway: CONTRACTS_ARTIFACTS_PATH,
   L2Curation: CONTRACTS_ARTIFACTS_PATH,
 
+  // @graphprotocol/contracts - legacy
+  LegacyStaking: CONTRACTS_ARTIFACTS_PATH,
+
   // @graphprotocol/horizon
   HorizonStaking: HORIZON_ARTIFACTS_PATH,
   GraphPayments: HORIZON_ARTIFACTS_PATH,
@@ -74,6 +78,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   GraphToken: L2GraphToken
   // GraphTokenGateway: L2GraphTokenGateway
   Curation: L2Curation
+  LegacyStaking: LegacyStaking
 }
 
 export type GraphHorizonContractName = (typeof GraphHorizonContractNameList)[number]

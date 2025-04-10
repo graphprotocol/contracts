@@ -74,10 +74,10 @@ fi
 jq '{"31337": ."421614"}' addresses.json > addresses-localhost.json
 
 # Setup pre horizon migration state needed for the integration tests
-npx hardhat test:integration:pre-upgrade --network localhost
+npx hardhat test:seed --network localhost
 
 # Transfer ownership of protocol to hardhat signer 1
-npx hardhat test:integration:transfer-ownership --network localhost
+npx hardhat test:transfer-ownership --network localhost
 
 # Step 1 - Deployer
 npx hardhat deploy:migrate --network localhost --horizon-config integration --step 1 --account-index 0
@@ -106,8 +106,8 @@ npx hardhat test:integration --phase after-transition-period --network localhost
 # Enable delegation slashing
 npx hardhat transition:enable-delegation-slashing --network localhost --governor-index 1
 
-# # Run integration tests - After delegation slashing enabled
-# npx hardhat test:integration --phase after-delegation-slashing-enabled --network localhost
+# Run integration tests - After delegation slashing enabled
+npx hardhat test:integration --phase after-delegation-slashing-enabled --network localhost
 
 echo ""
 echo "🎉 ✨ 🚀 ✅ Integration tests completed successfully! 🎉 ✨ 🚀 ✅"

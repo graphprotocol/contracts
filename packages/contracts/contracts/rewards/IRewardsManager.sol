@@ -54,6 +54,4 @@ interface IRewardsManager {
     function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID) external returns (uint256);
 
     function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) external returns (uint256);
-
-    function subgraphService() external view returns (address);
 }

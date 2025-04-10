@@ -14,6 +14,7 @@ import { IStakingBase } from "./IStakingBase.sol";
 import { StakingV4Storage } from "./StakingStorage.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 import { Stakes } from "./libs/Stakes.sol";
+import { IStakes } from "./libs/IStakes.sol";
 import { Managed } from "../governance/Managed.sol";
 import { ICuration } from "../curation/ICuration.sol";
 import { IRewardsManager } from "../rewards/IRewardsManager.sol";
@@ -32,7 +33,7 @@ import { LibExponential } from "./libs/Exponential.sol";
  */
 abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, Multicall {
     using SafeMath for uint256;
-    using Stakes for Stakes.Indexer;
+    using Stakes for IStakes.Indexer;
 
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
@@ -245,7 +246,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      */
     function unstake(uint256 _tokens) external override notPartialPaused {
         address indexer = msg.sender;
-        Stakes.Indexer storage indexerStake = __stakes[indexer];
+        IStakes.Indexer storage indexerStake = __stakes[indexer];
 
         require(indexerStake.tokensStaked > 0, "!stake");
 
@@ -556,7 +557,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @return Amount of tokens available to allocate including delegation
      */
     function getIndexerCapacity(address _indexer) public view override returns (uint256) {
-        Stakes.Indexer memory indexerStake = __stakes[_indexer];
+        IStakes.Indexer memory indexerStake = __stakes[_indexer];
         uint256 tokensDelegated = __delegationPools[_indexer].tokens;
 
         uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(__delegationRatio));
