@@ -18,7 +18,6 @@ task('transition:unset-subgraph-service', 'Unsets the subgraph service in Horizo
     const rewardsManager = hre.graph().horizon.contracts.RewardsManager
 
     console.log('Unsetting subgraph service...')
-    const tx = await rewardsManager.connect(governor).setSubgraphService(ethers.ZeroAddress)
-    await tx.wait()
+    await rewardsManager.connect(governor).setSubgraphService(ethers.ZeroAddress)
     console.log('Subgraph service unset')
   })

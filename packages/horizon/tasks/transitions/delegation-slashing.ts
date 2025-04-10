@@ -17,8 +17,7 @@ task('transition:enable-delegation-slashing', 'Enables delegation slashing in Ho
     const horizonStaking = hre.graph().horizon.contracts.HorizonStaking
 
     console.log('Enabling delegation slashing...')
-    const tx = await horizonStaking.connect(governor).setDelegationSlashingEnabled()
-    await tx.wait()
+    await horizonStaking.connect(governor).setDelegationSlashingEnabled()
 
     // Log if the delegation slashing is enabled
     const delegationSlashingEnabled = await horizonStaking.isDelegationSlashingEnabled()
