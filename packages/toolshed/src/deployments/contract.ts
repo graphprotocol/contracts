@@ -1,4 +1,4 @@
-import { Contract, Provider, Signer } from 'ethers'
+import { Contract, Interface, Provider, Signer } from 'ethers'
 import { loadArtifact } from './artifact'
 
 export type ContractList<T extends string = string> = Partial<Record<T, unknown>>
@@ -36,4 +36,8 @@ export function loadContract<ContractName extends string = string>(
       throw new Error(`Could not load contract ${name}`)
     }
   }
+}
+
+export function rebindContractABI(contract: Contract, abi: Interface): Contract {
+  return new Contract(contract.target, abi, contract.runner)
 }

@@ -7,6 +7,7 @@ import { loadArtifact } from '../artifact'
 import { mergeABIs } from '../../utils/abi'
 
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
+import type { LegacyStaking } from './types'
 
 export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonContractName> {
   isContractName(name: unknown): name is GraphHorizonContractName {
@@ -26,7 +27,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
       signerOrProvider,
     )
 
-    // Handle HorizonStaking specially to include extension functions
+    // rewire HorizonStaking to include HorizonStakingExtension abi
     if (contracts.HorizonStaking) {
       const stakingOverride = new Contract(
         this.getEntry('HorizonStaking').address,
@@ -42,11 +43,18 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     this._assertGraphHorizonContracts(contracts)
 
     // Aliases
-
     contracts.GraphToken = contracts.L2GraphToken
     // contracts.GraphTokenGateway = contracts.L2GraphTokenGateway
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     contracts.Curation = contracts.L2Curation
+    if (contracts.HorizonStaking) {
+      // add LegacyStaking alias using old IL2Staking abi
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      contracts.LegacyStaking = new Contract(
+        contracts.HorizonStaking.target,
+        loadArtifact('IL2Staking', GraphHorizonArtifactsMap.LegacyStaking).abi,
+        signerOrProvider,
+      ) as unknown as LegacyStaking
+    }
 
     return contracts
   }
