@@ -43,34 +43,29 @@ task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a n
 
     // Transfer Controller ownership
     console.log('Transferring Controller ownership...')
-    const controllerTx = await controller.connect(controllerSigner).transferOwnership(newGovernor.address)
-    await controllerTx.wait()
+    await controller.connect(controllerSigner).transferOwnership(newGovernor.address)
     console.log('Accepting Controller ownership...')
 
     // Accept ownership of Controller
-    const acceptControllerTx = await controller.connect(newGovernor).acceptOwnership()
-    await acceptControllerTx.wait()
+    await controller.connect(newGovernor).acceptOwnership()
     console.log(`New Controller governor: ${await controller.governor()}`)
 
     console.log('\n--- STEP 2: Transfer ownership of GraphProxyAdmin ---')
 
     // Transfer GraphProxyAdmin ownership
     console.log('Transferring GraphProxyAdmin ownership...')
-    const proxyAdminTx = await graphProxyAdmin.connect(proxyAdminSigner).transferOwnership(newGovernor.address)
-    await proxyAdminTx.wait()
+    await graphProxyAdmin.connect(proxyAdminSigner).transferOwnership(newGovernor.address)
     console.log('Accepting GraphProxyAdmin ownership...')
 
     // Accept ownership of GraphProxyAdmin
-    const acceptProxyAdminTx = await graphProxyAdmin.connect(newGovernor).acceptOwnership()
-    await acceptProxyAdminTx.wait()
+    await graphProxyAdmin.connect(newGovernor).acceptOwnership()
     console.log(`New GraphProxyAdmin governor: ${await graphProxyAdmin.governor()}`)
 
     console.log('\n--- STEP 3: Assign new slasher ---')
 
     // Assign new slasher
     console.log('Assigning new slasher...')
-    const slasherTx = await staking.connect(newGovernor).setSlasher(newSlasher.address, true)
-    await slasherTx.wait()
+    await staking.connect(newGovernor).setSlasher(newSlasher.address, true)
     console.log(`New slasher: ${newSlasher.address}, allowed: ${await staking.slashers(newSlasher.address)}`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Transfer ownership complete! 🎉 ✨ 🚀 ✅\n')

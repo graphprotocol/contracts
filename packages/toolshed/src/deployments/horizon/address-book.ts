@@ -6,6 +6,7 @@ import { assertObject } from '../../lib/assert'
 import { Contract } from 'ethers'
 import { loadArtifact } from '../artifact'
 import { mergeABIs } from '../../core/abi'
+import { wrapTransactionCalls } from '../tx-logging'
 
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 import type { LegacyStaking } from './types'
@@ -38,7 +39,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
         ),
         signerOrProvider,
       )
-      contracts.HorizonStaking = stakingOverride
+      contracts.HorizonStaking = wrapTransactionCalls(stakingOverride, 'HorizonStaking')
     }
 
     this._assertGraphHorizonContracts(contracts)
@@ -49,12 +50,11 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     contracts.Curation = contracts.L2Curation
     if (contracts.HorizonStaking) {
       // add LegacyStaking alias using old IL2Staking abi
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      contracts.LegacyStaking = new Contract(
+      contracts.LegacyStaking = wrapTransactionCalls(new Contract(
         contracts.HorizonStaking.target,
         loadArtifact('IL2Staking', GraphHorizonArtifactsMap.LegacyStaking).abi,
         signerOrProvider,
-      ) as unknown as LegacyStaking
+      ), 'LegacyStaking') as unknown as LegacyStaking
     }
 
     return contracts

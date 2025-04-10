@@ -1,5 +1,6 @@
 import { Contract, Provider, Signer } from 'ethers'
 import { loadArtifact } from './artifact'
+import { wrapTransactionCalls } from './tx-logging'
 
 export type ContractList<T extends string = string> = Partial<Record<T, unknown>>
 
@@ -27,6 +28,8 @@ export function loadContract<ContractName extends string = string>(
     if (signerOrProvider) {
       contract = contract.connect(signerOrProvider) as Contract
     }
+
+    contract = wrapTransactionCalls(contract, name)
 
     return contract
   } catch (err: unknown) {
