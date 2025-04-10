@@ -7,8 +7,8 @@ import { transparentUpgradeableProxyTests } from '../../../horizon/test/deployme
 const config = loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
 const graph = hre.graph()
 
-const addressBookEntry = graph.subgraphService!.addressBook.getEntry('DisputeManager')
-const DisputeManager = graph.subgraphService!.contracts.DisputeManager
+const addressBookEntry = graph.subgraphService.addressBook.getEntry('DisputeManager')
+const DisputeManager = graph.subgraphService.contracts.DisputeManager
 
 describe('DisputeManager', function () {
   it('should be owned by the governor', async function () {
