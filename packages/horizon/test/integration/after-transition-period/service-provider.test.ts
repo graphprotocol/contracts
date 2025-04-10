@@ -50,13 +50,12 @@ describe('Service provider', () => {
       const delegationFeeCut = 10_000 // 10%
       const paymentType = PaymentTypes.QueryFee
 
-      const tx = await horizonStaking.connect(serviceProvider).setDelegationFeeCut(
+      await horizonStaking.connect(serviceProvider).setDelegationFeeCut(
         serviceProvider.address,
         verifier,
         paymentType,
         delegationFeeCut,
       )
-      await tx.wait()
 
       // Verify delegation fee cut was set
       const delegationFeeCutAfterSet = await horizonStaking.getDelegationFeeCut(

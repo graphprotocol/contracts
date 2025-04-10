@@ -383,7 +383,7 @@ importers:
         version: 3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))
       debug:
         specifier: ^4.3.7
-        version: 4.4.0(supports-color@8.1.1)
+        version: 4.4.0(supports-color@9.4.0)
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -924,7 +924,7 @@ importers:
         version: 3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))
       debug:
         specifier: ^4.4.0
-        version: 4.4.0(supports-color@9.4.0)
+        version: 4.4.0(supports-color@8.1.1)
       ethers:
         specifier: ^6.13.5
         version: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -15477,7 +15477,7 @@ snapshots:
 
   '@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))':
     dependencies:
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       ethers: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
       lodash.isequal: 4.5.0
@@ -15486,7 +15486,7 @@ snapshots:
 
   '@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))':
     dependencies:
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       ethers: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
       lodash.isequal: 4.5.0
@@ -15572,7 +15572,7 @@ snapshots:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/address': 5.8.0
       cbor: 8.1.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
       lodash.clonedeep: 4.5.0
       picocolors: 1.1.1
@@ -21191,7 +21191,7 @@ snapshots:
   hardhat-secure-accounts@1.0.5(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)))(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)):
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       enquirer: 2.4.1
       ethers: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
@@ -21404,7 +21404,7 @@ snapshots:
       boxen: 5.1.2
       chokidar: 4.0.3
       ci-info: 2.0.0
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       enquirer: 2.4.1
       env-paths: 2.2.1
       ethereum-cryptography: 1.2.0
@@ -21459,7 +21459,7 @@ snapshots:
       boxen: 5.1.2
       chokidar: 4.0.3
       ci-info: 2.0.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       enquirer: 2.4.1
       env-paths: 2.2.1
       ethereum-cryptography: 1.2.0
