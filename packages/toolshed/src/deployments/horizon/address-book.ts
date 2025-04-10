@@ -1,4 +1,5 @@
 import { GraphHorizonArtifactsMap, GraphHorizonContractNameList } from './contracts'
+import { logDebug, logError } from '../../lib/logger'
 import { Provider, Signer } from 'ethers'
 import { AddressBook } from '../address-book'
 import { assertObject } from '../../lib/assert'
@@ -20,7 +21,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
   loadContracts(
     signerOrProvider?: Signer | Provider,
   ): GraphHorizonContracts {
-    console.debug('Loading Graph Horizon contracts...')
+    logDebug('Loading Graph Horizon contracts...')
 
     const contracts = this._loadContracts(
       GraphHorizonArtifactsMap,
@@ -67,8 +68,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     // Assert that all GraphHorizonContracts were loaded
     for (const contractName of GraphHorizonContractNameList) {
       if (!contracts[contractName]) {
-        const errMessage = `Missing GraphHorizon contract: ${contractName}`
-        console.error(errMessage)
+        logError(`Missing GraphHorizon contract: ${contractName}`)
       }
     }
   }

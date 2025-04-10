@@ -59,7 +59,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
           greDeployments.horizon = loadGraphHorizon(addressBookPath, chainId, provider)
           break
         case 'subgraphService':
-          greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
+          // greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
           break
         default:
           break

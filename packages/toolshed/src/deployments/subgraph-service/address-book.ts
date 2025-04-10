@@ -1,3 +1,4 @@
+import { logDebug, logError } from '../../lib/logger'
 import { Provider, Signer } from 'ethers'
 import { SubgraphServiceArtifactsMap, SubgraphServiceContractNameList } from './contracts'
 import { AddressBook } from '../address-book'
@@ -16,7 +17,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
   loadContracts(
     signerOrProvider?: Signer | Provider,
   ): SubgraphServiceContracts {
-    console.debug('Loading Subgraph Service contracts...')
+    logDebug('Loading Subgraph Service contracts...')
 
     const contracts = this._loadContracts(
       SubgraphServiceArtifactsMap,
@@ -42,8 +43,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
     // Assert that all SubgraphServiceContracts were loaded
     for (const contractName of SubgraphServiceContractNameList) {
       if (!contracts[contractName]) {
-        const errMessage = `Missing SubgraphService contract: ${contractName}`
-        console.error(errMessage)
+        logError(`Missing SubgraphService contract: ${contractName}`)
       }
     }
   }
