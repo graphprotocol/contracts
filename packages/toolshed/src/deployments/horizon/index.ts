@@ -26,9 +26,10 @@ export { PaymentTypes, ThawRequestType } from './types'
 
 export function loadGraphHorizon(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)
+  const contracts = addressBook.loadContracts(provider)
   return {
     addressBook: addressBook,
-    contracts: addressBook.loadContracts(provider),
-    actions: loadActions(addressBook.loadContracts(provider)),
+    contracts: contracts,
+    actions: loadActions(contracts),
   }
 }

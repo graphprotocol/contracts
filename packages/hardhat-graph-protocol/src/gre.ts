@@ -40,11 +40,11 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     }
     logDebug(`Chain Id: ${chainId}`)
 
-    const deployments = [
+    const deployments = [...new Set([
       ...Object.keys(opts.deployments ?? {}),
       ...Object.keys(hre.network.config.deployments ?? {}),
       ...Object.keys(hre.config.graph?.deployments ?? {}),
-    ].filter(v => isGraphDeployment(v))
+    ].filter(v => isGraphDeployment(v)))]
     logDebug(`Detected deployments: ${deployments.join(', ')}`)
 
     // Build the Graph Runtime Environment (GRE) for each deployment
@@ -59,7 +59,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
           greDeployments.horizon = loadGraphHorizon(addressBookPath, chainId, provider)
           break
         case 'subgraphService':
-          // greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
+          greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
           break
         default:
           break
