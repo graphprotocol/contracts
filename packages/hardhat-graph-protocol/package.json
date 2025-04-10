@@ -18,10 +18,6 @@
     ".": {
       "types": "./src/types.ts",
       "default": "./src/index.ts"
-    },
-    "./sdk": {
-      "types": "./src/sdk/index.ts",
-      "default": "./src/sdk/index.ts"
     }
   },
   "types": "./dist/src/index.d.ts",

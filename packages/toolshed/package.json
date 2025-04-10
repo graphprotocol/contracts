@@ -4,12 +4,12 @@
   "description": "A collection of tools and utilities for the Graph Protocol Typescript components",
   "author": "Tomás Migone <tomas@edgeandnode.com>",
   "license": "MIT",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/core/index.js",
+  "types": "./dist/core/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/utils/index.ts",
-      "default": "./src/utils/index.ts"
+      "types": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
     },
     "./deployments": {
       "types": "./src/deployments/index.ts",
@@ -19,9 +19,9 @@
       "types": "./src/hardhat/index.ts",
       "default": "./src/hardhat/index.ts"
     },
-    "./*": {
-      "types": "./src/*/index.ts",
-      "default": "./src/*/index.ts"
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "default": "./src/utils/index.ts"
     }
   },
   "scripts": {

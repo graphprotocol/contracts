@@ -1,10 +1,9 @@
 import hre from 'hardhat'
 
+import { ONE_MILLION, PaymentTypes } from '@graphprotocol/toolshed'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
-import { ONE_MILLION } from '@graphprotocol/toolshed'
-import { PaymentTypes } from '@graphprotocol/toolshed/deployments/horizon'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'

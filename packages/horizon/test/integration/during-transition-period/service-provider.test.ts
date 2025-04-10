@@ -7,7 +7,7 @@ import { indexers } from '../../../tasks/test/fixtures/indexers'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
 
 describe('Service Provider', () => {
   let snapshotId: string

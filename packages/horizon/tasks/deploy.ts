@@ -7,6 +7,7 @@ import type { AddressBook } from '@graphprotocol/toolshed/deployments'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 import DeployModule from '../ignition/modules/deploy'
+import { printHorizonBanner } from '@graphprotocol/toolshed/utils'
 
 task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon contracts - no data services deployed')
   .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
@@ -60,7 +61,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     const graph = hre.graph()
     if (!args.hideBanner) {
-      console.log(getHorizonBanner())
+      printHorizonBanner()
     }
 
     // Migration step to run
@@ -162,22 +163,4 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
   }
 
   return patchedConfig
-}
-
-function getHorizonBanner(): string {
-  return `
-  ██╗  ██╗ ██████╗ ██████╗ ██╗███████╗ ██████╗ ███╗   ██╗
-  ██║  ██║██╔═══██╗██╔══██╗██║╚══███╔╝██╔═══██╗████╗  ██║
-  ███████║██║   ██║██████╔╝██║  ███╔╝ ██║   ██║██╔██╗ ██║
-  ██╔══██║██║   ██║██╔══██╗██║ ███╔╝  ██║   ██║██║╚██╗██║
-  ██║  ██║╚██████╔╝██║  ██║██║███████╗╚██████╔╝██║ ╚████║
-  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
-                                                          
-  ██╗   ██╗██████╗  ██████╗ ██████╗  █████╗ ██████╗ ███████╗
-  ██║   ██║██╔══██╗██╔════╝ ██╔══██╗██╔══██╗██╔══██╗██╔════╝
-  ██║   ██║██████╔╝██║  ███╗██████╔╝███████║██║  ██║█████╗  
-  ██║   ██║██╔═══╝ ██║   ██║██╔══██╗██╔══██║██║  ██║██╔══╝  
-  ╚██████╔╝██║     ╚██████╔╝██║  ██║██║  ██║██████╔╝███████╗
-   ╚═════╝ ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝
-  `
 }

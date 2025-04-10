@@ -7,7 +7,7 @@ import { createPOIFromString } from '@graphprotocol/toolshed'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
 
 describe('Permissionless', () => {
   let snapshotId: string

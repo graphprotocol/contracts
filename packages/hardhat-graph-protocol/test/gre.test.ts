@@ -2,7 +2,7 @@ import path from 'path'
 
 import { assert, expect } from 'chai'
 import { loadHardhatContext, useHardhatProject } from './helpers'
-import { GraphHorizonAddressBook } from '@graphprotocol/toolshed/deployments/horizon'
+import { GraphHorizonAddressBook } from '@graphprotocol/toolshed/deployments'
 
 describe('GRE usage', function () {
   describe('Project not using GRE', function () {

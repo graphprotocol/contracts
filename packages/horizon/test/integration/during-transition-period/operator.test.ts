@@ -6,7 +6,7 @@ import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments/horizon'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
 
 describe('Operator', () => {
   let snapshotId: string

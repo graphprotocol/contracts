@@ -1,6 +1,6 @@
 import { task, types } from 'hardhat/config'
 import { ethers } from 'ethers'
-import { printBanner } from 'hardhat-graph-protocol/sdk'
+import { printBanner } from '@graphprotocol/toolshed/utils'
 import { requireLocalNetwork } from '@graphprotocol/toolshed/hardhat'
 
 task('transition:unset-subgraph-service', 'Unsets the subgraph service in HorizonStaking')
