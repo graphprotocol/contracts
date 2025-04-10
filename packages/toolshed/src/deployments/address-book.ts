@@ -1,5 +1,6 @@
 import fs from 'fs'
 
+import { logDebug, logError, logWarn } from '../lib/logger'
 import { assertObject } from '../lib/assert'
 
 import { ContractList, loadContract } from './contract'
@@ -74,13 +75,13 @@ export abstract class AddressBook<
     this.file = _file
     this.chainId = _chainId
 
-    console.debug(`Loading address book from ${this.file}.`)
+    logDebug(`Loading address book from ${this.file}.`)
 
     // Create empty address book if file doesn't exist
     if (!fs.existsSync(this.file)) {
       const emptyAddressBook = { [this.chainId]: {} }
       fs.writeFileSync(this.file, JSON.stringify(emptyAddressBook, null, 2))
-      console.debug(`Created new address book at ${this.file}`)
+      logDebug(`Created new address book at ${this.file}`)
     }
 
     // Load address book and validate its shape
@@ -144,8 +145,8 @@ export abstract class AddressBook<
     try {
       fs.writeFileSync(this.file, JSON.stringify(this.addressBook, null, 2))
     } catch (e: unknown) {
-      if (e instanceof Error) console.error(`Error saving entry: ${e.message}`)
-      else console.error(`Error saving entry`)
+      if (e instanceof Error) logError(`Error saving entry: ${e.message}`)
+      else logError(`Error saving entry`)
     }
   }
 
@@ -165,7 +166,7 @@ export abstract class AddressBook<
     }
 
     if (this.invalidContracts.length > 0) {
-      console.warn(`Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`)
+      logWarn(`Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`)
     }
   }
 
@@ -182,7 +183,7 @@ export abstract class AddressBook<
   ): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     if (this.listEntries().length == 0) {
-      console.error('No valid contracts found in address book')
+      logError('No valid contracts found in address book')
       return contracts
     }
     for (const contractName of this.listEntries()) {
@@ -193,11 +194,11 @@ export abstract class AddressBook<
       if (Array.isArray(artifactPath)
         ? !artifactPath.some(fs.existsSync)
         : !fs.existsSync(artifactPath)) {
-        console.warn(`Could not load contract ${contractName} - artifact not found`)
-        console.warn(artifactPath)
+        logWarn(`Could not load contract ${contractName} - artifact not found`)
+        logWarn(artifactPath)
         continue
       }
-      console.debug(`Loading contract ${contractName}`)
+      logDebug(`Loading contract ${contractName}`)
 
       const contract = loadContract(
         contractName,
