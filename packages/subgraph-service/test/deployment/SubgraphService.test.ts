@@ -7,8 +7,8 @@ import { transparentUpgradeableProxyTests } from '../../../horizon/test/deployme
 const config = loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
 const graph = hre.graph()
 
-const addressBookEntry = graph.subgraphService!.addressBook.getEntry('SubgraphService')
-const SubgraphService = graph.subgraphService!.contracts.SubgraphService
+const addressBookEntry = graph.subgraphService.addressBook.getEntry('SubgraphService')
+const SubgraphService = graph.subgraphService.contracts.SubgraphService
 
 describe('SubgraphService', function () {
   it('should be owned by the governor', async function () {
