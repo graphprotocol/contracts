@@ -3,7 +3,9 @@ import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { ONE_MILLION } from '@graphprotocol/toolshed'
 import { PaymentTypes } from '@graphprotocol/toolshed/deployments/horizon'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
@@ -27,6 +29,7 @@ describe('Service provider', () => {
     before(async () => {
       const signers = await ethers.getSigners()
       serviceProvider = signers[8]
+      await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     })
 
     it('should allow staking tokens and unstake right after', async () => {
@@ -276,7 +279,7 @@ describe('Service provider', () => {
       // Get indexer
       const indexerFixture = indexers[0]
       indexer = await ethers.getSigner(indexerFixture.address)
-
+      await setGRTBalance(graph.provider, graphToken.target, indexer.address, ONE_MILLION)
       // Set tokens
       tokensToUnstake = ethers.parseEther('10000')
     })

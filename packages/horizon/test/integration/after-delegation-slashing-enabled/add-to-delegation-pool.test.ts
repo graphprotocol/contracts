@@ -2,6 +2,8 @@ import hre from 'hardhat'
 
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
+import { ONE_MILLION } from '@graphprotocol/toolshed'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
@@ -30,6 +32,9 @@ describe('Add to delegation pool', () => {
     signer = signers[19]
     verifier = signers[15]
     newVerifier = signers[16]
+    await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
+    await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)
+    await setGRTBalance(graph.provider, graphToken.target, signer.address, ONE_MILLION)
   })
 
   beforeEach(async () => {

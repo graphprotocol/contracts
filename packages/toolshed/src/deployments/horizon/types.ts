@@ -3,16 +3,18 @@ import type {
   HorizonStaking as HorizonStakingMain,
   IEpochManager,
   IGraphToken,
-  IL2Curation,
-  IRewardsManager,
+  IL2CurationToolshed,
+  IRewardsManagerToolshed,
+  IStaking,
 } from '@graphprotocol/horizon'
 
 // These are just type re-declarations to keep naming conventions consistent
 export {
   IGraphToken as L2GraphToken,
   IEpochManager as EpochManager,
-  IRewardsManager as RewardsManager,
-  IL2Curation as L2Curation,
+  IRewardsManagerToolshed as RewardsManager,
+  IL2CurationToolshed as L2Curation,
+  IStaking as LegacyStaking,
 }
 
 export type HorizonStaking = HorizonStakingMain & HorizonStakingExtension
