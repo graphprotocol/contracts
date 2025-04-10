@@ -375,15 +375,6 @@ importers:
 
   packages/hardhat-graph-protocol:
     dependencies:
-      '@graphprotocol/contracts':
-        specifier: workspace:^7.0.0
-        version: link:../contracts
-      '@graphprotocol/horizon':
-        specifier: workspace:^0.0.1
-        version: link:../horizon
-      '@graphprotocol/subgraph-service':
-        specifier: workspace:^0.0.1
-        version: link:../subgraph-service
       '@graphprotocol/toolshed':
         specifier: workspace:^
         version: link:../toolshed
@@ -392,7 +383,7 @@ importers:
         version: 3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))
       debug:
         specifier: ^4.3.7
-        version: 4.4.0(supports-color@9.4.0)
+        version: 4.4.0(supports-color@8.1.1)
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -13226,7 +13217,7 @@ snapshots:
   '@eslint/eslintrc@2.1.4':
     dependencies:
       ajv: 6.12.6
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       espree: 9.6.1
       globals: 13.24.0
       ignore: 5.3.2
@@ -14950,7 +14941,7 @@ snapshots:
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.3
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -15495,7 +15486,7 @@ snapshots:
 
   '@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))':
     dependencies:
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       ethers: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
       lodash.isequal: 4.5.0
@@ -15581,7 +15572,7 @@ snapshots:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/address': 5.8.0
       cbor: 8.1.0
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
       lodash.clonedeep: 4.5.0
       picocolors: 1.1.1
@@ -16958,7 +16949,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -19438,7 +19429,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       doctrine: 3.0.0
       escape-string-regexp: 4.0.0
       eslint-scope: 7.2.2
@@ -20494,7 +20485,7 @@ snapshots:
 
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
 
   for-each@0.3.5:
     dependencies:
@@ -21200,7 +21191,7 @@ snapshots:
   hardhat-secure-accounts@1.0.5(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)))(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)):
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       enquirer: 2.4.1
       ethers: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat: 2.22.19(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
@@ -21468,7 +21459,7 @@ snapshots:
       boxen: 5.1.2
       chokidar: 4.0.3
       ci-info: 2.0.0
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
       enquirer: 2.4.1
       env-paths: 2.2.1
       ethereum-cryptography: 1.2.0
@@ -21680,7 +21671,7 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.0(supports-color@9.4.0)
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
