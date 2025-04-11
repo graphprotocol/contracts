@@ -19,7 +19,6 @@ all_packages=(
     "packages/toolshed"
     "packages/hardhat-graph-protocol"
     "packages/data-edge"
-    "packages/sdk"
     "packages/token-distribution"
 )
 
