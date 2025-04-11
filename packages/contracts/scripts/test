@@ -6,7 +6,7 @@ source $(pwd)/scripts/evm
 ### Setup EVM
 
 # Ensure we compiled sources
-yarn build
+pnpm build
 
 ### Cleanup
 function cleanup() {

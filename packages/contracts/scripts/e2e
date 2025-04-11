@@ -126,7 +126,7 @@ function test_e2e_scenarios_bridge () {
 ### > SCRIPT START < ###
 ## SETUP
 # Compile contracts
-yarn build
+pnpm build
 
 # Start evm
 if [[ "$L1_NETWORK" == "localhost" || "$L2_NETWORK" == "localhost" ]]; then

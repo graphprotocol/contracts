@@ -11,7 +11,7 @@ The DataEdge accepts any function call by using a fallback function that will no
 # Deploying
 
 Setup a `.env` file with the keys you want to use for deployments. You can use `.env.sample` as a guide.
-Deploy a `DataEdge` contract by running `yarn deploy -- --network <network-name>`
+Deploy a `DataEdge` contract by running `pnpm deploy -- --network <network-name>`
 
 # Copyright
 

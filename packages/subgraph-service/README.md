@@ -24,8 +24,8 @@ npx hardhat vars set <variable>
 ## Build
 
 ```bash
-yarn install
-yarn build
+pnpm install
+pnpm build
 ```
 
 ## Deployment
@@ -56,8 +56,8 @@ Horizon Steps 2, 3 and 4, and Subgraph Service Step 2 require patching the confi
 
 ## Testing
 
-- Unit tests can be run with `yarn test`
-- Deployment tests can be run with `yarn test:deployment --network <network>`
+- Unit tests can be run with `pnpm test`
+- Deployment tests can be run with `pnpm test:deployment --network <network>`
    - By default, deployment tests assume a `migrate` deployment type. This can be overridden by setting the `IGNITION_DEPLOYMENT_TYPE` environment variable to `protocol`, however the tests only cover state transitions
    originated by a `migrate` deployment.
 
