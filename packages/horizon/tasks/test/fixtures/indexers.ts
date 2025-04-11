@@ -38,7 +38,7 @@ const INDEXER_TWO_SECOND_ALLOCATION_PRIVATE_KEY = '0xab6cb9dbb3646a856e6cac2c0e2
 
 // Indexer three data
 const INDEXER_THREE_ADDRESS = '0x28a8746e75304c0780E011BEd21C72cD78cd535E' // Hardhat account #6
-
+const INDEXER_THREE_REWARDS_DESTINATION = '0xA3D22DDf431A8745888804F520D4eA51Cb43A458'
 // Subgraph deployment IDs
 const SUBGRAPH_DEPLOYMENT_ID_ONE = '0x02cd85012c1f075fd58fad178fd23ab841d3b5ddcf5cd3377c30118da97cb2a4'
 const SUBGRAPH_DEPLOYMENT_ID_TWO = '0x03ca89485a59894f1acfa34660c69024b6b90ce45171dece7662b0886bc375c7'
@@ -47,7 +47,7 @@ const SUBGRAPH_DEPLOYMENT_ID_THREE = '0x0472e8c46f728adb65a22187c6740532f82c2eba
 export const indexers: Indexer[] = [
   {
     address: INDEXER_ONE_ADDRESS,
-    stake: parseEther('1000000'),
+    stake: parseEther('1100000'),
     tokensToUnstake: parseEther('10000'),
     indexingRewardCut: 900000, // 90%
     queryFeeCut: 900000, // 90%
@@ -74,7 +74,7 @@ export const indexers: Indexer[] = [
   },
   {
     address: INDEXER_TWO_ADDRESS,
-    stake: parseEther('1000000'),
+    stake: parseEther('1100000'),
     tokensToUnstake: parseEther('1000000'),
     indexingRewardCut: 850000, // 85%
     queryFeeCut: 850000, // 85%
@@ -96,9 +96,10 @@ export const indexers: Indexer[] = [
   },
   {
     address: INDEXER_THREE_ADDRESS,
-    stake: parseEther('1000000'),
+    stake: parseEther('1100000'),
     indexingRewardCut: 800000, // 80%
     queryFeeCut: 800000, // 80%
+    rewardsDestination: INDEXER_THREE_REWARDS_DESTINATION,
     allocations: [],
   },
 ]
