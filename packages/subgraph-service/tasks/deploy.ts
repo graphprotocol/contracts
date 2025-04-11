@@ -93,14 +93,19 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deployment')
   .addOptionalParam('step', 'Migration step to run (1, 2)', undefined, types.int)
   .addOptionalParam('subgraphServiceConfig', 'Name of the Subgraph Service configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
+  .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
+  .addFlag('hideBanner', 'Hide the banner display')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     // Task parameters
     const step: number = args.step ?? 0
     const patchConfig: boolean = args.patchConfig ?? false
 
     const graph = hre.graph()
-    printHorizonBanner()
+
+    if (!args.hideBanner) {
+      printHorizonBanner()
+    }
 
     // Migration step to run
     console.log('\n========== 🏗️ Migration steps ==========')
@@ -119,7 +124,7 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
     console.log('\n========== 🔑 Deployer account ==========')
-    const deployer = await graph.accounts.getDeployer(args.deployerIndex)
+    const deployer = await graph.accounts.getDeployer(args.accountIndex)
     console.log('Using deployer account:', deployer.address)
     const balance = await hre.ethers.provider.getBalance(deployer.address)
     console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')

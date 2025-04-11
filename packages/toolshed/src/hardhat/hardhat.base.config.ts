@@ -99,6 +99,7 @@ export const networksUserConfig: BaseNetworksUserConfig = {
   localhost: {
     chainId: 31337,
     url: LOCALHOST_RPC,
+    loggingEnabled: true,
     secureAccounts: {
       enabled: true,
     },

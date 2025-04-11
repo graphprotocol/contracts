@@ -1,0 +1,129 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Set environment variables for this script
+export HARDHAT_FORK=true
+export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
+
+# Function to cleanup resources
+cleanup() {
+    # Kill hardhat node only if we started it
+    if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
+        echo "Cleaning up node process..."
+        kill $NODE_PID 2>/dev/null || true
+    fi
+}
+
+# Set trap to call cleanup function on script exit (normal or error)
+trap cleanup EXIT
+
+# Check if any deployment folders exist
+SUBGRAPH_DEPLOYMENT_EXISTS=false
+HORIZON_DEPLOYMENT_EXISTS=false
+
+if [ -d "ignition/deployments/subgraph-service-localhost" ]; then
+    SUBGRAPH_DEPLOYMENT_EXISTS=true
+fi
+
+if [ -d "../horizon/ignition/deployments/horizon-localhost" ]; then
+    HORIZON_DEPLOYMENT_EXISTS=true
+fi
+
+# If any deployment exists, ask once for confirmation
+if [ "$SUBGRAPH_DEPLOYMENT_EXISTS" = true ] || [ "$HORIZON_DEPLOYMENT_EXISTS" = true ]; then
+    echo "The following deployment files already exist and must be removed for the tests to work properly:"
+    if [ "$SUBGRAPH_DEPLOYMENT_EXISTS" = true ]; then
+        echo "- Subgraph Service: ignition/deployments/subgraph-service-localhost"
+    fi
+    if [ "$HORIZON_DEPLOYMENT_EXISTS" = true ]; then
+        echo "- Horizon: ../horizon/ignition/deployments/horizon-localhost"
+    fi
+
+    read -p "Remove these deployment files? (y/n) [y]: " confirm
+    confirm=${confirm:-y}
+    if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        if [ "$SUBGRAPH_DEPLOYMENT_EXISTS" = true ]; then
+            echo "Removing Subgraph Service deployment files..."
+            rm -rf ignition/deployments/subgraph-service-localhost
+        fi
+        if [ "$HORIZON_DEPLOYMENT_EXISTS" = true ]; then
+            echo "Removing Horizon deployment files..."
+            rm -rf ../horizon/ignition/deployments/horizon-localhost
+        fi
+    else
+        echo "Cannot continue with existing deployment files. Exiting."
+        exit 1
+    fi
+fi
+
+# Check if hardhat node is already running on port 8545
+STARTED_NODE=false
+if lsof -i:8545 > /dev/null 2>&1; then
+    echo "Hardhat node already running on port 8545, using existing node"
+    # Get the PID of the process using port 8545
+    NODE_PID=$(lsof -t -i:8545)
+else
+    # Check required env variables only if we need to start the node
+    if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
+        echo "ARBITRUM_SEPOLIA_RPC environment variable is required to start hardhat node"
+        exit 1
+    fi
+
+    # Start local hardhat node forked from Arbitrum Sepolia
+    echo "Starting local hardhat node..."
+    npx hardhat node --fork $ARBITRUM_SEPOLIA_RPC > node.log 2>&1 &
+    NODE_PID=$!
+    STARTED_NODE=true
+
+    # Wait for node to start
+    sleep 10
+fi
+
+# Run Horizon pre-upgrade steps
+cd ../horizon
+
+# Setup pre horizon migration state needed for the e2e tests
+npx hardhat test:integration:pre-upgrade --network localhost
+
+# Transfer ownership of protocol to hardhat signer 1
+npx hardhat test:integration:transfer-ownership --network localhost
+
+# Run Horizon steps 1 deployment
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --account-index 0 --patch-config
+
+# Run Subgraph Service steps 1 deployment
+cd ../subgraph-service
+npx hardhat deploy:migrate --network localhost --step 1 --subgraph-service-config integration-test --patch-config --account-index 0 --hide-banner
+
+# Run Horizon deployment steps 2 and 3
+cd ../horizon
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 2 --patch-config --account-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 3 --patch-config --account-index 0 --hide-banner
+
+# Run Subgraph Service deployment step 2
+cd ../subgraph-service
+npx hardhat deploy:migrate --network localhost --step 2 --subgraph-service-config integration-test --patch-config --account-index 0 --hide-banner
+
+# Run Horizon deployment steps 4
+cd ../horizon
+npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 4 --patch-config --account-index 1 --hide-banner
+
+# Run Subgraph Service post-upgrade steps
+cd ../subgraph-service
+npx hardhat test:post-upgrade --network localhost
+
+# Run integration tests - During transition period
+npx hardhat test:integration --phase during-transition-period --network localhost
+
+# Clear thawing period
+cd ../horizon
+npx hardhat transition:clear-thawing --network localhost --governor-index 1
+
+# Run integration tests - After transition period
+cd ../subgraph-service
+npx hardhat test:integration --phase after-transition-period --network localhost
+
+echo ""
+echo "🎉 ✨ 🚀 ✅ E2E tests completed successfully! 🎉 ✨ 🚀 ✅"
+echo ""

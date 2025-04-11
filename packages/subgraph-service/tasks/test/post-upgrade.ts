@@ -1,0 +1,117 @@
+import { keccak256, toUtf8Bytes } from 'ethers'
+import { task } from 'hardhat/config'
+
+import { DisputeManager, SubgraphService } from '../../typechain-types'
+import { generateAllocationProof, HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
+import { IHorizonStaking } from '@graphprotocol/horizon'
+
+import { indexers } from './fixtures/indexers'
+
+task('test:post-upgrade', 'Test the post-upgrade state for integration tests')
+  .setAction(async (_, hre) => {
+    // Get contracts
+    const graph = hre.graph()
+    const horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
+    const subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
+    const disputeManager = graph.subgraphService!.contracts.DisputeManager as unknown as DisputeManager
+
+    // Get configs
+    const disputePeriod = await disputeManager.getDisputePeriod()
+    const maxSlashingCut = await disputeManager.maxSlashingCut()
+
+    console.log('\n--- STEP 1: Close all legacy allocations ---')
+
+    for (const indexer of indexers) {
+      // Skip indexers with no allocations
+      if (indexer.legacyAllocations.length === 0) {
+        continue
+      }
+
+      console.log(`Closing allocations for indexer: ${indexer.address}`)
+
+      // Get indexer signer
+      const indexerSigner = await hre.ethers.getSigner(indexer.address)
+
+      // Close all allocations with POI != 0
+      for (const allocation of indexer.legacyAllocations) {
+        console.log(`Closing allocation: ${allocation.allocationID}`)
+
+        // Close allocation
+        const poi = hre.ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+        await horizonStaking.connect(indexerSigner).closeAllocation(
+          allocation.allocationID,
+          poi,
+        )
+
+        const allocationData = await horizonStaking.getAllocation(allocation.allocationID)
+        console.log(`Allocation closed at epoch: ${allocationData.closedAtEpoch}`)
+      }
+    }
+
+    console.log('\n--- STEP 2: Create provisions and register indexers ---')
+
+    for (const indexer of indexers) {
+      console.log(`Creating subgraph service provision for indexer: ${indexer.address}`)
+
+      const indexerSigner = await hre.ethers.getSigner(indexer.address)
+      await HorizonStakingActions.createProvision({
+        horizonStaking,
+        serviceProvider: indexerSigner,
+        verifier: await subgraphService.getAddress(),
+        tokens: indexer.provisionTokens,
+        maxVerifierCut: maxSlashingCut,
+        thawingPeriod: disputePeriod,
+      })
+
+      console.log(`Provision created for indexer with ${indexer.provisionTokens} tokens`)
+
+      const indexerRegistrationData = hre.ethers.AbiCoder.defaultAbiCoder().encode(
+        ['string', 'string', 'address'],
+        [indexer.url, indexer.geoHash, indexer.rewardsDestination || hre.ethers.ZeroAddress],
+      )
+
+      console.log(`Registering indexer: ${indexer.address}`)
+      await subgraphService.connect(indexerSigner).register(indexerSigner.address, indexerRegistrationData)
+
+      const indexerData = await subgraphService.indexers(indexerSigner.address)
+
+      console.log(`Indexer registered at: ${indexerData.registeredAt}`)
+    }
+
+    console.log('\n--- STEP 3: Start allocations ---')
+
+    for (const indexer of indexers) {
+      // Skip indexers with no allocations
+      if (indexer.allocations.length === 0) {
+        continue
+      }
+
+      console.log(`Starting allocations for indexer: ${indexer.address}`)
+
+      const indexerSigner = await hre.ethers.getSigner(indexer.address)
+
+      for (const allocation of indexer.allocations) {
+        console.log(`Starting allocation: ${allocation.allocationID}`)
+
+        // Build allocation proof
+        const signature = await generateAllocationProof(subgraphService, indexer.address, allocation.allocationPrivateKey)
+        const subgraphDeploymentId = allocation.subgraphDeploymentID
+        const allocationTokens = allocation.tokens
+        const allocationId = allocation.allocationID
+
+        // Attempt to create an allocation with the same ID
+        const data = hre.ethers.AbiCoder.defaultAbiCoder().encode(
+          ['bytes32', 'uint256', 'address', 'bytes'],
+          [subgraphDeploymentId, allocationTokens, allocationId, signature],
+        )
+
+        // Start allocation
+        await subgraphService.connect(indexerSigner).startService(
+          indexerSigner.address,
+          data,
+        )
+
+        console.log(`Allocation started with tokens: ${allocationTokens}`)
+      }
+    }
+  })
