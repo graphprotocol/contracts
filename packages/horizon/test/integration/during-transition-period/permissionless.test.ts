@@ -35,7 +35,7 @@ describe('Permissionless', () => {
     before(async () => {
       // Get signers
       indexer = await ethers.getSigner(indexers[0].address)
-      anySigner = (await ethers.getSigners())[19]
+      ;[anySigner] = await graph.accounts.getTestAccounts()
 
       // Get allocation details
       allocationID = indexers[0].allocations[0].allocationID

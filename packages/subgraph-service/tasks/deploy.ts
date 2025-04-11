@@ -32,8 +32,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
     console.log('\n========== 🔑 Deployer account ==========')
-    const signers = await hre.ethers.getSigners()
-    const deployer = signers[0]
+    const deployer = await graph.accounts.getDeployer(args.deployerIndex)
     console.log('Using deployer account:', deployer.address)
     const balance = await hre.ethers.provider.getBalance(deployer.address)
     console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')
@@ -120,8 +119,7 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
     console.log('\n========== 🔑 Deployer account ==========')
-    const signers = await hre.ethers.getSigners()
-    const deployer = signers[0]
+    const deployer = await graph.accounts.getDeployer(args.deployerIndex)
     console.log('Using deployer account:', deployer.address)
     const balance = await hre.ethers.provider.getBalance(deployer.address)
     console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')

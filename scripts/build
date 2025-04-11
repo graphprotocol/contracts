@@ -16,6 +16,7 @@ all_packages=(
     "packages/contracts"
     "packages/horizon"
     "packages/subgraph-service"
+    "packages/toolshed"
     "packages/hardhat-graph-protocol"
     "packages/data-edge"
     "packages/sdk"

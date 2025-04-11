@@ -52,9 +52,11 @@ npx hardhat deploy:migrate --network hardhat --step 4 # Run with governor. Optio
 Steps 2, 3 and 4 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
 
 ## Testing
-
-- Unit tests can be run with `pnpm test`
-- Deployment tests can be run with `pnpm test:deployment --network <network>`
+- **unit**: Unit tests can be run with `pnpm test`
+- **integration**: Integration tests can be run with `pnpm test:integration`
+      - Need to set `BLOCKCHAIN_RPC` for a chain where The Graph is already deployed
+      - If no `BLOCKCHAIN_RPC` is detected it will try using `ARBITRUM_SEPOLIA_RPC`
+- **deployment**: Deployment tests can be run with `pnpm test:deployment --network <network>`
    - By default, deployment tests assume a `migrate` deployment type. This can be overridden by setting the `IGNITION_DEPLOYMENT_TYPE` environment variable to `protocol`, however the tests only cover state transitions
    originated by a `migrate` deployment.
 

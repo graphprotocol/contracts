@@ -10,20 +10,20 @@ task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a n
   .setAction(async (taskArgs, hre) => {
     printBanner('TRANSFER OWNERSHIP')
 
+    const graph = hre.graph()
+
     // this task uses impersonation so we NEED a local network
     requireLocalNetwork(hre)
 
     console.log('\n--- STEP 0: Setup ---')
 
     // Get signers
-    const signers = await hre.ethers.getSigners()
-    const newGovernor = signers[taskArgs.governorIndex]
-    const newSlasher = signers[taskArgs.slasherIndex]
+    const newGovernor = await graph.accounts.getGovernor(taskArgs.governorIndex)
+    const newSlasher = await graph.accounts.getArbitrator(taskArgs.slasherIndex)
 
     console.log(`New governor will be: ${newGovernor.address}`)
 
     // Get contracts
-    const graph = hre.graph()
     const staking = graph.horizon.contracts.LegacyStaking
     const controller = graph.horizon.contracts.Controller
     const graphProxyAdmin = graph.horizon.contracts.GraphProxyAdmin
