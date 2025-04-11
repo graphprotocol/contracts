@@ -1,4 +1,4 @@
-name: CI - packages/horizon
+name: CI - packages/toolshed
 
 env:
   CI: true
@@ -7,11 +7,11 @@ on:
   push:
     branches: "*"
     paths:
-      - packages/horizon/**
+      - packages/toolshed/**
   pull_request:
     branches: "*"
     paths:
-      - packages/horizon/**
+      - packages/toolshed/**
   workflow_dispatch:
 
 jobs:
@@ -49,7 +49,3 @@ jobs:
           pushd packages/hardhat-graph-protocol
           pnpm build
           popd
-      - name: Run tests
-        run: |
-          pushd packages/horizon
-          pnpm test

@@ -41,7 +41,7 @@ describe('Operator', () => {
 
       // Get signers
       indexer = await ethers.getSigner(indexerFixture.address)
-      operator = (await ethers.getSigners())[0]
+      ;[operator] = await graph.accounts.getTestAccounts()
 
       // Get allocation details
       allocationID = allocationFixture.allocationID

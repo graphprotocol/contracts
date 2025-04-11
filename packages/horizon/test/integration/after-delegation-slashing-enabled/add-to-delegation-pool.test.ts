@@ -26,12 +26,8 @@ describe('Add to delegation pool', () => {
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    const signers = await ethers.getSigners()
-    serviceProvider = signers[8]
-    delegator = signers[13]
-    signer = signers[19]
-    verifier = signers[15]
-    newVerifier = signers[16]
+    [serviceProvider, delegator, verifier, newVerifier, signer] = await graph.accounts.getTestAccounts()
+
     await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)
     await setGRTBalance(graph.provider, graphToken.target, signer.address, ONE_MILLION)

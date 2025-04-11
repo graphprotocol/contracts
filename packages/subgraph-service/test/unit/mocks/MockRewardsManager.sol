@@ -94,7 +94,7 @@ contract MockRewardsManager is IRewardsManager {
         return 0;
     }
 
-    function subgraphService() external view override returns (address) {
+    function subgraphService() external pure returns (address) {
         return address(0x00);
     }
 }

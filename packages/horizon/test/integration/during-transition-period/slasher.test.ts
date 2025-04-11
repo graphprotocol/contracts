@@ -19,7 +19,7 @@ describe('Slasher', () => {
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    slasher = (await ethers.getSigners())[2]
+    slasher = await graph.accounts.getArbitrator()
   })
 
   beforeEach(async () => {

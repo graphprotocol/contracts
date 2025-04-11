@@ -27,7 +27,7 @@ describe('Delegator', () => {
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    [serviceProvider, delegator, newServiceProvider] = await ethers.getSigners()
+    [serviceProvider, delegator, newServiceProvider] = await graph.accounts.getTestAccounts()
     verifier = ethers.Wallet.createRandom().address
     newVerifier = ethers.Wallet.createRandom().address
     await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)

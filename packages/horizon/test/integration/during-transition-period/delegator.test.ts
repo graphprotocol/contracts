@@ -94,7 +94,7 @@ describe('Delegator', () => {
         const delegationFixture = delegatorFixture.delegations[0]
 
         // Get signers
-        governor = (await ethers.getSigners())[1]
+        governor = await graph.accounts.getGovernor()
         indexer = await ethers.getSigner(delegationFixture.indexerAddress)
         delegator = await ethers.getSigner(delegatorFixture.address)
 

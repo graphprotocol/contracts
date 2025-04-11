@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs'
 
-import { logDebug } from '../lib/logger'
+import { logTxLogging } from '../lib/logger'
 
 import type {
   Contract,
@@ -103,7 +103,7 @@ function logToConsoleAndFile(msg: string[]) {
   const fileName = `tx-${isoDate.substring(0, 10)}.log`
 
   msg.map((line) => {
-    logDebug(line)
+    logTxLogging(line)
     fs.appendFileSync(fileName, `[${isoDate}] ${line}\n`)
   })
 }

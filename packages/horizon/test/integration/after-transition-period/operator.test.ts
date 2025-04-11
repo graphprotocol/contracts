@@ -23,7 +23,7 @@ describe('Operator', () => {
 
   before(async () => {
     // Get signers
-    [serviceProvider, operator] = await ethers.getSigners()
+    [serviceProvider, operator] = await graph.accounts.getTestAccounts()
     verifier = await ethers.Wallet.createRandom().getAddress()
     await setGRTBalance(graph.provider, graphToken.target, operator.address, ONE_MILLION)
 
