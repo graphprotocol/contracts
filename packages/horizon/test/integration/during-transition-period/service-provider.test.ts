@@ -37,8 +37,7 @@ describe('Service Provider', () => {
     let tokensToStake = ethers.parseEther('1000')
 
     before(async () => {
-      const signers = await ethers.getSigners()
-      serviceProvider = signers[8]
+      [,,serviceProvider] = await graph.accounts.getTestAccounts()
       await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
 
       // Stake tokens to service provider
@@ -118,8 +117,7 @@ describe('Service Provider', () => {
 
       before(async () => {
         // Get governor
-        const signers = await ethers.getSigners()
-        governor = signers[1]
+        governor = await graph.accounts.getGovernor()
 
         // Set tokens
         tokensToStake = ethers.parseEther('100000')
@@ -222,7 +220,7 @@ describe('Service Provider', () => {
           delegationQueryFeeCut = indexerFixture.queryFeeCut
           allocationID = indexerFixture.allocations[0].allocationID
           allocationTokens = indexerFixture.allocations[0].tokens
-          gateway = (await ethers.getSigners())[18]
+          gateway = await graph.accounts.getGateway()
           await setGRTBalance(graph.provider, graphToken.target, gateway.address, ONE_MILLION)
         })
 
@@ -357,7 +355,7 @@ describe('Service Provider', () => {
           delegationQueryFeeCut = indexerFixture.queryFeeCut
           rewardsDestination = indexerFixture.rewardsDestination!
           allocationID = indexerFixture.allocations[0].allocationID
-          gateway = (await ethers.getSigners())[18]
+          gateway = await graph.accounts.getGateway()
           await setGRTBalance(graph.provider, graphToken.target, gateway.address, ONE_MILLION)
         })
 
@@ -439,8 +437,7 @@ describe('Service Provider', () => {
 
       before(async () => {
         // Get governor
-        const signers = await ethers.getSigners()
-        governor = signers[1]
+        governor = await graph.accounts.getGovernor()
 
         // Get indexer
         const indexerFixture = indexers[2]
