@@ -1,11 +1,21 @@
 /* eslint-disable no-case-declarations */
 import path from 'path'
 
-import { assertGraphRuntimeEnvironment, isGraphDeployment } from './types'
+import {
+  getAccounts,
+  getArbitrator,
+  getDeployer,
+  getGateway,
+  getGovernor,
+  getPauseGuardian,
+  getSubgraphAvailabilityOracle,
+  getTestAccounts,
+} from '@graphprotocol/toolshed'
 import { loadGraphHorizon, loadSubgraphService } from '@graphprotocol/toolshed/deployments'
 import { getAddressBookPath } from './config'
 import { GraphPluginError } from './error'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+import { isGraphDeployment } from './types'
 import { lazyFunction } from 'hardhat/plugins'
 import { logDebug } from './logger'
 
@@ -66,13 +76,21 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
       }
     }
 
-    const gre = {
+    logDebug('GRE initialized successfully!')
+    return {
       ...greDeployments,
       provider,
       chainId,
+      accounts: {
+        getAccounts: async () => getAccounts(provider),
+        getDeployer: async (accountIndex?: number) => getDeployer(provider, accountIndex),
+        getGovernor: async (accountIndex?: number) => getGovernor(provider, accountIndex),
+        getArbitrator: async (accountIndex?: number) => getArbitrator(provider, accountIndex),
+        getPauseGuardian: async (accountIndex?: number) => getPauseGuardian(provider, accountIndex),
+        getSubgraphAvailabilityOracle: async (accountIndex?: number) => getSubgraphAvailabilityOracle(provider, accountIndex),
+        getGateway: async (accountIndex?: number) => getGateway(provider, accountIndex),
+        getTestAccounts: async () => getTestAccounts(provider),
+      },
     }
-    assertGraphRuntimeEnvironment(gre)
-    logDebug('GRE initialized successfully!')
-    return gre
   })
 }

@@ -25,8 +25,7 @@ describe('Slasher', () => {
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    // index 2 is registered as slasher so we skip it
-    [serviceProvider, delegator, , verifier] = await ethers.getSigners()
+    [serviceProvider, delegator, verifier] = await graph.accounts.getTestAccounts()
     verifierDestination = ethers.Wallet.createRandom().address
     await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)

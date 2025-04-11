@@ -26,8 +26,7 @@ describe('Service provider', () => {
     const stakeAmount = ethers.parseEther('1000')
 
     before(async () => {
-      const signers = await ethers.getSigners()
-      serviceProvider = signers[8]
+      [serviceProvider] = await graph.accounts.getTestAccounts()
       await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     })
 
