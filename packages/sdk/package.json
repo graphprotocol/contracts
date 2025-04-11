@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/sdk",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "TypeScript based SDK to interact with The Graph protocol contracts",
   "main": "build/index.js",
   "types": "src/index.ts",
