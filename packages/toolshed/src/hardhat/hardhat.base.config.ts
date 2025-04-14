@@ -38,7 +38,6 @@ const ARBITRUM_ONE_RPC = vars.get('ARBITRUM_ONE_RPC', 'https://arb1.arbitrum.io/
 const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-rollup.arbitrum.io/rpc')
 const LOCAL_NETWORK_RPC = vars.get('LOCAL_NETWORK_RPC', 'http://chain:8545')
 const LOCALHOST_RPC = vars.get('LOCALHOST_RPC', 'http://localhost:8545')
-const LOCALHOST_CHAIN_ID = vars.get('LOCALHOST_CHAIN_ID', '31337')
 
 export const solidityUserConfig: SolidityUserConfig = {
   version: '0.8.27',
@@ -95,23 +94,17 @@ export const networksUserConfig: BaseNetworksUserConfig = {
     secureAccounts: {
       enabled: false,
     },
-    ...(vars.has('LOCAL_NETWORK_ACCOUNTS_MNEMONIC') && {
-      accounts: { mnemonic: vars.get('LOCAL_NETWORK_ACCOUNTS_MNEMONIC') },
-    }),
     deployments: {
       horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-local-network.json'),
       subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-local-network.json'),
     },
   },
   localhost: {
-    chainId: parseInt(LOCALHOST_CHAIN_ID),
+    chainId: 31337,
     url: LOCALHOST_RPC,
     secureAccounts: {
       enabled: true,
     },
-    ...(vars.has('LOCALHOST_ACCOUNTS_MNEMONIC') && {
-      accounts: { mnemonic: vars.get('LOCALHOST_ACCOUNTS_MNEMONIC') },
-    }),
     deployments: {
       horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-localhost.json'),
       subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-localhost.json'),
