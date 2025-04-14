@@ -6,6 +6,7 @@ NON_INTERACTIVE=${NON_INTERACTIVE:-false}
 
 # Set environment variables for this script
 export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
+export FORK_FROM_CHAIN_ID=${FORK_FROM_CHAIN_ID:-421614}
 
 # Function to cleanup resources
 cleanup() {
@@ -81,7 +82,7 @@ else
 fi
 
 # Setup horizon address book
-jq '{"31337": ."421614"}' addresses.json > addresses-localhost.json
+jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses.json > addresses-localhost.json
 
 # Setup pre horizon migration state needed for the integration tests
 npx hardhat test:seed --network localhost

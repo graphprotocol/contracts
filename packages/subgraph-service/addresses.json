@@ -1,2 +1,17 @@
 {
+  "421614": {
+    "L2Curation": {
+      "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+      "proxy": "graph",
+      "implementation": "0xd90022aB67920212D0F902F5c427DE82732DE136"
+    },
+    "L2GNS": {
+      "address": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
+      "proxy": "graph",
+      "implementation": "0x00CBF5024d454255577Bf2b0fB6A43328a6828c9"
+    },
+    "SubgraphNFT": {
+      "address": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A"
+    }
+  }
 }
