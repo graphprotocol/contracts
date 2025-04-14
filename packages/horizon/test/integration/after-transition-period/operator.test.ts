@@ -1,16 +1,13 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { ONE_MILLION, PaymentTypes } from '@graphprotocol/toolshed'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Operator', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
   let serviceProvider: HardhatEthersSigner
   let verifier: string
   let operator: HardhatEthersSigner
@@ -19,15 +16,16 @@ describe('Operator', () => {
   const maxVerifierCut = 1000000n // 100%
   const thawingPeriod = 2419200n
 
+  const graph = hre.graph()
+  const { stakeTo } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
+
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
-
     // Get signers
-    [serviceProvider, operator] = await ethers.getSigners()
+    [serviceProvider, operator] = await graph.accounts.getTestAccounts()
     verifier = await ethers.Wallet.createRandom().getAddress()
+    await setGRTBalance(graph.provider, graphToken.target, operator.address, ONE_MILLION)
 
     // Authorize operator for verifier
     await horizonStaking.connect(serviceProvider).setOperator(verifier, operator.address, true)
@@ -42,16 +40,10 @@ describe('Operator', () => {
     const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
     // Operator stakes on behalf of service provider
-    await HorizonStakingActions.stakeTo({
-      horizonStaking,
-      graphToken,
-      signer: operator,
-      serviceProvider,
-      tokens: stakeTokens,
-    })
+    await stakeTo(operator, [serviceProvider.address, stakeTokens])
 
     // Service provider unstakes
-    await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: stakeTokens })
+    await horizonStaking.connect(serviceProvider).unstake(stakeTokens)
 
     // Verify tokens were removed from operator's address
     const operatorBalanceAfter = await graphToken.balanceOf(operator.address)
@@ -64,7 +56,7 @@ describe('Operator', () => {
 
   it('operator sets delegation fee cut', async () => {
     const feeCut = 100000 // 10%
-    const paymentType = HorizonTypes.PaymentTypes.QueryFee
+    const paymentType = PaymentTypes.QueryFee
 
     // Operator sets delegation fee cut
     await horizonStaking.connect(operator).setDelegationFeeCut(
@@ -87,24 +79,10 @@ describe('Operator', () => {
     before(async () => {
       const provisionTokens = ethers.parseEther('10000')
       // Operator stakes tokens to service provider
-      await HorizonStakingActions.stakeTo({
-        horizonStaking,
-        graphToken,
-        signer: operator,
-        serviceProvider,
-        tokens: provisionTokens,
-      })
+      await stakeTo(operator, [serviceProvider.address, provisionTokens])
 
       // Operator creates provision
-      await HorizonStakingActions.createProvision({
-        horizonStaking,
-        serviceProvider,
-        verifier,
-        tokens: provisionTokens,
-        maxVerifierCut,
-        thawingPeriod,
-        signer: operator,
-      })
+      await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, provisionTokens, maxVerifierCut, thawingPeriod)
 
       // Verify provision
       const provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -117,26 +95,14 @@ describe('Operator', () => {
       const provisionTokensBefore = (await horizonStaking.getProvision(serviceProvider.address, verifier)).tokens
 
       // Operator thaws tokens
-      await HorizonStakingActions.thaw({
-        horizonStaking,
-        serviceProvider,
-        verifier,
-        tokens: thawTokens,
-        signer: operator,
-      })
+      await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, verifier, thawTokens)
 
       // Increase time
       await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
 
       // Operator deprovisions
-      await HorizonStakingActions.deprovision({
-        horizonStaking,
-        serviceProvider,
-        verifier,
-        nThawRequests: 1n,
-        signer: operator,
-      })
+      await horizonStaking.connect(serviceProvider).deprovision(serviceProvider.address, verifier, 1n)
 
       // Verify idle stake increased by thawed tokens
       const idleStakeAfter = await horizonStaking.getIdleStake(serviceProvider.address)
@@ -151,13 +117,7 @@ describe('Operator', () => {
       const thawTokens = ethers.parseEther('100')
 
       // Operator thaws tokens
-      await HorizonStakingActions.thaw({
-        horizonStaking,
-        serviceProvider,
-        verifier,
-        tokens: thawTokens,
-        signer: operator,
-      })
+      await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, verifier, thawTokens)
 
       // Increase time
       await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
@@ -168,25 +128,10 @@ describe('Operator', () => {
       await horizonStaking.connect(serviceProvider).setOperator(newVerifier, operator.address, true)
 
       // Operator creates a provision for the new verifier
-      await HorizonStakingActions.createProvision({
-        horizonStaking,
-        serviceProvider,
-        verifier: newVerifier,
-        tokens: thawTokens,
-        maxVerifierCut,
-        thawingPeriod,
-        signer: operator,
-      })
+      await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, newVerifier, thawTokens, maxVerifierCut, thawingPeriod)
 
       // Operator reprovisions
-      await HorizonStakingActions.reprovision({
-        horizonStaking,
-        serviceProvider,
-        verifier,
-        newVerifier,
-        nThawRequests: 1n,
-        signer: operator,
-      })
+      await horizonStaking.connect(serviceProvider).reprovision(serviceProvider.address, verifier, newVerifier, 1n)
     })
 
     it('operator sets provision parameters', async () => {

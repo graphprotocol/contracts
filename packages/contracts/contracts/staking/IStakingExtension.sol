@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity >=0.6.12 <0.8.0;
+pragma solidity >=0.6.12 <0.8.0 || 0.8.27;
 pragma abicoder v2;
 
 import { IStakingData } from "./IStakingData.sol";
-import { Stakes } from "./libs/Stakes.sol";
+import { IStakes } from "./libs/IStakes.sol";
 
 /**
  * @title Interface for the StakingExtension contract
@@ -276,11 +276,11 @@ interface IStakingExtension is IStakingData {
 
     /**
      * @notice Getter for stakes[_indexer]:
-     * gets the stake information for an indexer as a Stakes.Indexer struct.
+     * gets the stake information for an indexer as a IStakes.Indexer struct.
      * @param _indexer Indexer address for which to query the stake information
-     * @return Stake information for the specified indexer, as a Stakes.Indexer struct
+     * @return Stake information for the specified indexer, as a IStakes.Indexer struct
      */
-    function stakes(address _indexer) external view returns (Stakes.Indexer memory);
+    function stakes(address _indexer) external view returns (IStakes.Indexer memory);
 
     /**
      * @notice Getter for allocations[_allocationID]:

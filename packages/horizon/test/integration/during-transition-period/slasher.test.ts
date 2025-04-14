@@ -1,30 +1,25 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+
 describe('Slasher', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
   let snapshotId: string
 
   let indexer: string
-  let slasher: SignerWithAddress
+  let slasher: HardhatEthersSigner
   let tokensToSlash: bigint
 
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
+
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
-
-    slasher = (await ethers.getSigners())[2]
+    slasher = await graph.accounts.getArbitrator()
   })
 
   beforeEach(async () => {
@@ -51,14 +46,7 @@ describe('Slasher', () => {
       const slasherBeforeBalance = await graphToken.balanceOf(slasher.address)
 
       // Slash tokens
-      await HorizonStakingActions.slash({
-        horizonStaking,
-        verifier: slasher,
-        serviceProvider: indexer,
-        tokens: tokensToSlash,
-        tokensVerifier,
-        verifierDestination: slasher.address,
-      })
+      await horizonStaking.connect(slasher).slash(indexer, tokensToSlash, tokensVerifier, slasher.address)
 
       // Indexer's stake should have decreased
       const idleStakeAfterSlash = await horizonStaking.getIdleStake(indexer)
@@ -83,14 +71,7 @@ describe('Slasher', () => {
       const slasherBeforeBalance = await graphToken.balanceOf(slasher.address)
 
       // Slash tokens
-      await HorizonStakingActions.slash({
-        horizonStaking,
-        verifier: slasher,
-        serviceProvider: indexer,
-        tokens: tokensToSlash,
-        tokensVerifier,
-        verifierDestination: slasher.address,
-      })
+      await horizonStaking.connect(slasher).slash(indexer, tokensToSlash, tokensVerifier, slasher.address)
 
       // Indexer's entire stake should have been slashed
       const indexerStakeAfterSlash = await horizonStaking.getServiceProvider(indexer)

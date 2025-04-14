@@ -1,0 +1,58 @@
+{
+  "name": "@graphprotocol/toolshed",
+  "version": "0.0.1",
+  "description": "A collection of tools and utilities for the Graph Protocol Typescript components",
+  "author": "Tomás Migone <tomas@edgeandnode.com>",
+  "license": "MIT",
+  "main": "./dist/core/index.js",
+  "types": "./dist/core/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
+    },
+    "./deployments": {
+      "types": "./src/deployments/index.ts",
+      "default": "./src/deployments/index.ts"
+    },
+    "./hardhat": {
+      "types": "./src/hardhat/index.ts",
+      "default": "./src/hardhat/index.ts"
+    },
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "default": "./src/utils/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint '**/*.{js,ts}' --fix"
+  },
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "hardhat-plugin",
+    "graph",
+    "graph-protocol",
+    "horizon"
+  ],
+  "dependencies": {
+    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/horizon": "workspace:^",
+    "@graphprotocol/subgraph-service": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "debug": "^4.4.0",
+    "ethers": "^6.13.5",
+    "glob": "^11.0.1",
+    "hardhat": "^2.22.16",
+    "json5": "^2.2.3"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/json5": "^2.2.0",
+    "eslint": "^8.56.0",
+    "eslint-graph-config": "workspace:^",
+    "typescript": "^5.0.0"
+  }
+}

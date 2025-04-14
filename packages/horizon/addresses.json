@@ -30,6 +30,11 @@
       },
       "GraphProxyAdmin": {
         "address": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C"
+      },
+      "HorizonStaking": {
+        "address": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
+        "proxy": "graph",
+        "implementation": "0x64Ed77b164d3B22339DA4DB6d56a1C1d8A051c0A"
       }
     }
   }

@@ -1,14 +1,17 @@
 import hre from 'hardhat'
 
-import { AddressBookEntry } from '../../../../hardhat-graph-protocol/src/sdk/address-book'
-import { expect } from 'chai'
+import { assert, expect } from 'chai'
+import { AddressBookEntry } from '@graphprotocol/toolshed/deployments'
 import { zeroPadValue } from 'ethers'
 
 export function graphProxyTests(contractName: string, addressBookEntry: AddressBookEntry, proxyAdmin: string): void {
   describe(`${contractName}: GraphProxy`, function () {
     it('should target the correct implementation', async function () {
       const implementation = await hre.ethers.provider.getStorage(addressBookEntry.address, '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc')
-      expect(implementation).to.equal(zeroPadValue(addressBookEntry.implementation!, 32))
+      if (!addressBookEntry.implementation) {
+        assert.fail('Implementation address is not set')
+      }
+      expect(implementation).to.equal(zeroPadValue(addressBookEntry.implementation, 32))
     })
 
     it('should be owned by the proxy admin', async function () {

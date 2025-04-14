@@ -11,9 +11,9 @@
     "addresses.json"
   ],
   "scripts": {
+    "lint": "pnpm lint:ts && pnpm lint:sol",
     "lint:ts": "eslint '**/*.{js,ts}' --fix --no-warn-ignored",
     "lint:sol": "prettier --write contracts/**/*.sol test/**/*.sol && solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
-    "lint": "pnpm lint:ts && pnpm lint:sol",
     "lint:sol:prettier": "prettier --write contracts/**/*.sol test/**/*.sol",
     "lint:sol:solhint": "solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
@@ -21,11 +21,12 @@
     "build": "hardhat compile",
     "test": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test",
-    "test:integration": "./scripts/test/integration"
+    "test:integration": "./scripts/integration"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
     "@graphprotocol/contracts": "workspace:^7.0.0",
+    "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@nomicfoundation/hardhat-foundry": "^1.1.1",

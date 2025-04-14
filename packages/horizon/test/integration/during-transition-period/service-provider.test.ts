@@ -1,32 +1,26 @@
-import { keccak256, toUtf8Bytes } from 'ethers'
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking, IRewardsManager } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-import { HorizonStakingExtensionActions } from 'hardhat-graph-protocol/sdk'
-
+import { createPOIFromString, ONE_MILLION } from '@graphprotocol/toolshed'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
+
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
 
 describe('Service Provider', () => {
-  let horizonStaking: IHorizonStaking
-  let rewardsManager: IRewardsManager
-  let graphToken: IGraphToken
   let snapshotId: string
+
+  const graph = hre.graph()
+  const { stake, collect } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const horizonStakingExtension = horizonStaking as HorizonStakingExtension
+  const rewardsManager = graph.horizon.contracts.RewardsManager
+  const graphToken = graph.horizon.contracts.L2GraphToken
 
   // Subgraph service address is not set for integration tests
   const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
-
-  before(() => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    rewardsManager = graph.horizon!.contracts.RewardsManager as unknown as IRewardsManager
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
-  })
 
   beforeEach(async () => {
     // Take a snapshot before each test
@@ -39,15 +33,15 @@ describe('Service Provider', () => {
   })
 
   describe(('New Protocol Users'), () => {
-    let serviceProvider: SignerWithAddress
+    let serviceProvider: HardhatEthersSigner
     let tokensToStake = ethers.parseEther('1000')
 
     before(async () => {
-      const signers = await ethers.getSigners()
-      serviceProvider = signers[8]
+      [,,serviceProvider] = await graph.accounts.getTestAccounts()
+      await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
 
       // Stake tokens to service provider
-      await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
+      await stake(serviceProvider, [tokensToStake])
     })
 
     it('should allow service provider to unstake and withdraw after thawing period', async () => {
@@ -55,7 +49,7 @@ describe('Service Provider', () => {
       const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
       // First unstake request
-      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: tokensToUnstake })
+      await horizonStaking.connect(serviceProvider).unstake(tokensToUnstake)
 
       // During transition period, tokens are locked by thawing period
       const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
@@ -66,7 +60,7 @@ describe('Service Provider', () => {
       }
 
       // Now we can withdraw
-      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider })
+      await horizonStaking.connect(serviceProvider).withdraw()
       const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
 
       expect(balanceAfter).to.equal(balanceBefore + tokensToUnstake, 'Tokens were not transferred back to service provider')
@@ -80,7 +74,7 @@ describe('Service Provider', () => {
       const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
       // First unstake request
-      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: request1 })
+      await horizonStaking.connect(serviceProvider).unstake(request1)
 
       // Mine half of thawing period blocks
       const halfThawingPeriod = Number(thawingPeriod) / 2
@@ -89,7 +83,7 @@ describe('Service Provider', () => {
       }
 
       // Second unstake request
-      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: request2 })
+      await horizonStaking.connect(serviceProvider).unstake(request2)
 
       // Mine remaining blocks to complete first unstake thawing period
       for (let i = 0; i < halfThawingPeriod; i++) {
@@ -98,7 +92,7 @@ describe('Service Provider', () => {
 
       // Check that withdraw reverts since thawing period is not complete
       await expect(
-        HorizonStakingActions.withdraw({ horizonStaking, serviceProvider }),
+        horizonStaking.connect(serviceProvider).withdraw(),
       ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingStillThawing')
 
       // Mine remaining blocks to complete thawing period
@@ -110,7 +104,7 @@ describe('Service Provider', () => {
       const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
       // Withdraw all thawed tokens
-      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider })
+      await horizonStaking.connect(serviceProvider).withdraw()
 
       // Verify all tokens are withdrawn and transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
@@ -118,13 +112,12 @@ describe('Service Provider', () => {
     })
 
     describe('Transition period is over', () => {
-      let governor: SignerWithAddress
+      let governor: HardhatEthersSigner
       let tokensToUnstake: bigint
 
       before(async () => {
         // Get governor
-        const signers = await ethers.getSigners()
-        governor = signers[1]
+        governor = await graph.accounts.getGovernor()
 
         // Set tokens
         tokensToStake = ethers.parseEther('100000')
@@ -133,10 +126,10 @@ describe('Service Provider', () => {
 
       it('should be able to withdraw tokens that were unstaked during transition period', async () => {
         // Stake tokens
-        await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
+        await stake(serviceProvider, [tokensToStake])
 
         // Unstake tokens
-        await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: tokensToUnstake })
+        await horizonStaking.connect(serviceProvider).unstake(tokensToUnstake)
 
         // Get balance before withdrawing
         const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
@@ -145,7 +138,7 @@ describe('Service Provider', () => {
         const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
         // Clear thawing period
-        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+        await horizonStaking.connect(governor).clearThawingPeriod()
 
         // Mine blocks to complete thawing period
         for (let i = 0; i < Number(thawingPeriod) + 1; i++) {
@@ -153,7 +146,7 @@ describe('Service Provider', () => {
         }
 
         // Withdraw tokens
-        await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider })
+        await horizonStaking.connect(serviceProvider).withdraw()
 
         // Get balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
@@ -162,16 +155,16 @@ describe('Service Provider', () => {
 
       it('should be able to unstake tokens without a thawing period', async () => {
         // Stake tokens
-        await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
+        await stake(serviceProvider, [tokensToStake])
 
         // Clear thawing period
-        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+        await horizonStaking.connect(governor).clearThawingPeriod()
 
         // Get balance before withdrawing
         const balanceBefore = await graphToken.balanceOf(serviceProvider.address)
 
         // Unstake tokens
-        await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: tokensToUnstake })
+        await horizonStaking.connect(serviceProvider).unstake(tokensToUnstake)
 
         // Get balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(serviceProvider.address)
@@ -181,13 +174,15 @@ describe('Service Provider', () => {
   })
 
   describe('Existing Protocol Users', () => {
-    let indexer: SignerWithAddress
+    let indexer: HardhatEthersSigner
     let tokensUnstaked: bigint
 
     before(async () => {
       const indexerFixture = indexers[0]
       indexer = await ethers.getSigner(indexerFixture.address)
       tokensUnstaked = indexerFixture.tokensToUnstake || 0n
+
+      await setGRTBalance(graph.provider, graphToken.target, indexer.address, ONE_MILLION)
     })
 
     it('should allow service provider to withdraw their locked tokens after thawing period passes', async () => {
@@ -203,7 +198,7 @@ describe('Service Provider', () => {
       }
 
       // Withdraw tokens
-      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider: indexer })
+      await horizonStaking.connect(indexer).withdraw()
 
       // Verify tokens are transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(indexer.address)
@@ -216,7 +211,7 @@ describe('Service Provider', () => {
         let delegationQueryFeeCut: number
         let allocationID: string
         let allocationTokens: bigint
-        let gateway: SignerWithAddress
+        let gateway: HardhatEthersSigner
 
         beforeEach(async () => {
           const indexerFixture = indexers[0]
@@ -225,12 +220,13 @@ describe('Service Provider', () => {
           delegationQueryFeeCut = indexerFixture.queryFeeCut
           allocationID = indexerFixture.allocations[0].allocationID
           allocationTokens = indexerFixture.allocations[0].tokens
-          gateway = (await ethers.getSigners())[18]
+          gateway = await graph.accounts.getGateway()
+          await setGRTBalance(graph.provider, graphToken.target, gateway.address, ONE_MILLION)
         })
 
         it('should be able to close an open legacy allocation and collect rewards', async () => {
           // Use a non-zero POI
-          const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+          const poi = createPOIFromString('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Get delegation pool before closing allocation
@@ -247,7 +243,7 @@ describe('Service Provider', () => {
           const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
           // Close allocation
-          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
 
           // Get rewards
           const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)
@@ -277,7 +273,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await HorizonStakingExtensionActions.collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
+          await collect(gateway, [tokensToCollect, allocationID])
 
           // Get idle stake after collecting
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
@@ -300,7 +296,7 @@ describe('Service Provider', () => {
 
         it('should be able to close an allocation and collect query fees for the closed allocation', async () => {
           // Use a non-zero POI
-          const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+          const poi = createPOIFromString('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Mine blocks to simulate time passing
@@ -310,7 +306,7 @@ describe('Service Provider', () => {
           }
 
           // Close allocation
-          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
 
           // Tokens to collect
           const tokensToCollect = ethers.parseEther('1000')
@@ -323,7 +319,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await HorizonStakingExtensionActions.collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
+          await collect(gateway, [tokensToCollect, allocationID])
 
           // Get idle stake after collecting
           const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
@@ -350,7 +346,7 @@ describe('Service Provider', () => {
         let delegationQueryFeeCut: number
         let rewardsDestination: string
         let allocationID: string
-        let gateway: SignerWithAddress
+        let gateway: HardhatEthersSigner
 
         beforeEach(async () => {
           const indexerFixture = indexers[1]
@@ -359,12 +355,13 @@ describe('Service Provider', () => {
           delegationQueryFeeCut = indexerFixture.queryFeeCut
           rewardsDestination = indexerFixture.rewardsDestination!
           allocationID = indexerFixture.allocations[0].allocationID
-          gateway = (await ethers.getSigners())[18]
+          gateway = await graph.accounts.getGateway()
+          await setGRTBalance(graph.provider, graphToken.target, gateway.address, ONE_MILLION)
         })
 
         it('should be able to close an open allocation and collect rewards', async () => {
           // Use a non-zero POI
-          const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+          const poi = createPOIFromString('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Get delegation tokens before
@@ -381,7 +378,7 @@ describe('Service Provider', () => {
           const balanceBefore = await graphToken.balanceOf(rewardsDestination)
 
           // Close allocation
-          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
 
           // Get rewards
           const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)
@@ -411,7 +408,7 @@ describe('Service Provider', () => {
           const delegationPoolTokensBefore = delegationPoolBefore.tokens
 
           // Collect query fees
-          await HorizonStakingExtensionActions.collect({ horizonStaking, graphToken, gateway, allocationID, tokens: tokensToCollect })
+          await collect(gateway, [tokensToCollect, allocationID])
 
           // Get rewards destination balance after collecting
           const balanceAfter = await graphToken.balanceOf(rewardsDestination)
@@ -435,13 +432,12 @@ describe('Service Provider', () => {
     })
 
     describe('Transition period is over', () => {
-      let governor: SignerWithAddress
+      let governor: HardhatEthersSigner
       let tokensToUnstake: bigint
 
       before(async () => {
         // Get governor
-        const signers = await ethers.getSigners()
-        governor = signers[1]
+        governor = await graph.accounts.getGovernor()
 
         // Get indexer
         const indexerFixture = indexers[2]
@@ -453,13 +449,13 @@ describe('Service Provider', () => {
 
       it('should be able to withdraw tokens that were unstaked during transition period', async () => {
         // Unstake tokens during transition period
-        await HorizonStakingActions.unstake({ horizonStaking, serviceProvider: indexer, tokens: tokensToUnstake })
+        await horizonStaking.connect(indexer).unstake(tokensToUnstake)
 
         // Get thawing period
         const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
         // Clear thawing period
-        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+        await horizonStaking.connect(governor).clearThawingPeriod()
 
         // Mine blocks to complete thawing period
         for (let i = 0; i < Number(thawingPeriod) + 1; i++) {
@@ -470,7 +466,7 @@ describe('Service Provider', () => {
         const balanceBefore = await graphToken.balanceOf(indexer.address)
 
         // Withdraw tokens
-        await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider: indexer })
+        await horizonStaking.connect(indexer).withdraw()
 
         // Get balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(indexer.address)

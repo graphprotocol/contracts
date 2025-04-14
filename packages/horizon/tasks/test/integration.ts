@@ -2,7 +2,7 @@ import { glob } from 'glob'
 import { task } from 'hardhat/config'
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 
-import { printBanner } from 'hardhat-graph-protocol/sdk'
+import { printBanner } from '@graphprotocol/toolshed/utils'
 
 task('test:integration', 'Runs all integration tests')
   .addParam(

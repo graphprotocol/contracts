@@ -1,30 +1,22 @@
+import hre from 'hardhat'
+
+import { createPOIFromString } from '@graphprotocol/toolshed'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import hre from 'hardhat'
-import { keccak256 } from 'ethers'
-import { toUtf8Bytes } from 'ethers'
-
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IHorizonStaking, IRewardsManager } from '../../../typechain-types'
-
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+
 describe('Operator', () => {
-  let horizonStaking: IHorizonStaking
-  let rewardsManager: IRewardsManager
   let snapshotId: string
 
   // Subgraph service address is not set for integration tests
   const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
-  before(() => {
-    const graph = hre.graph()
-
-    // Get contracts
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    rewardsManager = graph.horizon!.contracts.RewardsManager as unknown as IRewardsManager
-  })
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const rewardsManager = graph.horizon.contracts.RewardsManager
 
   beforeEach(async () => {
     // Take a snapshot before each test
@@ -37,8 +29,8 @@ describe('Operator', () => {
   })
 
   describe('Existing Protocol Users', () => {
-    let indexer: SignerWithAddress
-    let operator: SignerWithAddress
+    let indexer: HardhatEthersSigner
+    let operator: HardhatEthersSigner
     let allocationID: string
     let allocationTokens: bigint
     let delegationIndexingCut: number
@@ -49,7 +41,7 @@ describe('Operator', () => {
 
       // Get signers
       indexer = await ethers.getSigner(indexerFixture.address)
-      operator = (await ethers.getSigners())[0]
+      ;[operator] = await graph.accounts.getTestAccounts()
 
       // Get allocation details
       allocationID = allocationFixture.allocationID
@@ -62,7 +54,7 @@ describe('Operator', () => {
 
     it('should allow the operator to close an open legacy allocation and collect rewards', async () => {
       // Use a non-zero POI
-      const poi = ethers.getBytes(keccak256(toUtf8Bytes('poi')))
+      const poi = createPOIFromString('poi')
       const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
       // Get delegation pool before closing allocation
@@ -79,7 +71,7 @@ describe('Operator', () => {
       const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
       // Close allocation
-      await horizonStaking.connect(operator).closeAllocation(allocationID, poi)
+      await (horizonStaking as HorizonStakingExtension).connect(operator).closeAllocation(allocationID, poi)
 
       // Get rewards
       const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)

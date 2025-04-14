@@ -1,17 +1,13 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-
 import { delegators } from '../../../tasks/test/fixtures/delegators'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
+import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
+
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Delegator', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
   let snapshotId: string
 
   const thawingPeriod = 2419200n // 28 days
@@ -19,12 +15,9 @@ describe('Delegator', () => {
   // Subgraph service address is not set for integration tests
   const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
-  before(() => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
-  })
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
 
   beforeEach(async () => {
     // Take a snapshot before each test
@@ -38,8 +31,8 @@ describe('Delegator', () => {
 
   describe('Existing Protocol Users', () => {
     describe('User undelegated before horizon was deployed', () => {
-      let indexer: SignerWithAddress
-      let delegator: SignerWithAddress
+      let indexer: HardhatEthersSigner
+      let delegator: HardhatEthersSigner
       let tokens: bigint
 
       before(async () => {
@@ -70,11 +63,7 @@ describe('Delegator', () => {
         const balanceBefore = await graphToken.balanceOf(delegator.address)
 
         // Withdraw tokens
-        await HorizonStakingActions.withdrawDelegatedLegacy({
-          horizonStaking,
-          delegator,
-          serviceProvider: indexer,
-        })
+        await horizonStaking.connect(delegator)['withdrawDelegated(address,address)'](indexer.address, ZERO_ADDRESS)
 
         // Get delegator balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(delegator.address)
@@ -88,18 +77,16 @@ describe('Delegator', () => {
 
       it('should revert if the thawing period has not passed', async () => {
         // Withdraw tokens
-        await expect(HorizonStakingActions.withdrawDelegatedLegacy({
-          horizonStaking,
-          delegator,
-          serviceProvider: indexer,
-        })).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingNothingToWithdraw')
+        await expect(
+          horizonStaking.connect(delegator)['withdrawDelegated(address,address)'](indexer.address, ZERO_ADDRESS),
+        ).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingNothingToWithdraw')
       })
     })
 
     describe('Transition period is over', () => {
-      let governor: SignerWithAddress
-      let indexer: SignerWithAddress
-      let delegator: SignerWithAddress
+      let governor: HardhatEthersSigner
+      let indexer: HardhatEthersSigner
+      let delegator: HardhatEthersSigner
       let tokens: bigint
 
       before(async () => {
@@ -107,7 +94,7 @@ describe('Delegator', () => {
         const delegationFixture = delegatorFixture.delegations[0]
 
         // Get signers
-        governor = (await ethers.getSigners())[1]
+        governor = await graph.accounts.getGovernor()
         indexer = await ethers.getSigner(delegationFixture.indexerAddress)
         delegator = await ethers.getSigner(delegatorFixture.address)
 
@@ -124,32 +111,20 @@ describe('Delegator', () => {
         )
 
         // Undelegate tokens
-        await HorizonStakingActions.undelegate({
-          horizonStaking,
-          delegator,
-          serviceProvider: indexer,
-          verifier: subgraphServiceAddress,
-          shares: delegation.shares,
-        })
+        await horizonStaking.connect(delegator)['undelegate(address,address,uint256)'](indexer.address, subgraphServiceAddress, delegation.shares)
 
         // Wait for thawing period
         await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod) + 1])
         await ethers.provider.send('evm_mine', [])
 
         // Clear thawing period
-        await HorizonStakingActions.clearThawingPeriod({ horizonStaking, governor })
+        await horizonStaking.connect(governor).clearThawingPeriod()
 
         // Get delegator balance before withdrawing
         const balanceBefore = await graphToken.balanceOf(delegator.address)
 
         // Withdraw tokens
-        await HorizonStakingActions.withdrawDelegated({
-          horizonStaking,
-          delegator,
-          serviceProvider: indexer,
-          verifier: subgraphServiceAddress,
-          nThawRequests: BigInt(1),
-        })
+        await horizonStaking.connect(delegator)['withdrawDelegated(address,address,uint256)'](indexer.address, ZERO_ADDRESS, BigInt(1))
 
         // Get delegator balance after withdrawing
         const balanceAfter = await graphToken.balanceOf(delegator.address)

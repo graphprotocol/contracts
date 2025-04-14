@@ -1,12 +1,14 @@
-import { GraphPluginError } from './sdk/utils/error'
-import { logDebug } from './logger'
-import { normalizePath } from './sdk/utils/path'
+import path from 'path'
 
-import type { GraphDeployment, GraphRuntimeEnvironmentOptions } from './types'
+import { GraphPluginError } from './error'
+import { logDebug } from './logger'
+
+import type { GraphDeploymentName } from '@graphprotocol/toolshed/deployments'
+import type { GraphRuntimeEnvironmentOptions } from './types'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 export function getAddressBookPath(
-  deployment: GraphDeployment,
+  deployment: GraphDeploymentName,
   hre: HardhatRuntimeEnvironment,
   opts: GraphRuntimeEnvironmentOptions,
 ): string {
@@ -28,6 +30,13 @@ export function getAddressBookPath(
   const normalizedAddressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
   logDebug(`Address book path: ${normalizedAddressBookPath}`)
   return normalizedAddressBookPath
+}
+
+function normalizePath(_path: string, graphPath?: string): string {
+  if (!path.isAbsolute(_path) && graphPath !== undefined) {
+    _path = path.join(graphPath, _path)
+  }
+  return _path
 }
 
 function getPath(value: string | {

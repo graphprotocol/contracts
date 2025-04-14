@@ -1,43 +1,39 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IGraphToken, IHorizonStaking } from '../../../typechain-types'
-import { HorizonStakingActions } from 'hardhat-graph-protocol/sdk'
-import { HorizonTypes } from 'hardhat-graph-protocol/sdk'
-
+import { ONE_MILLION, PaymentTypes } from '@graphprotocol/toolshed'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
+
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('Service provider', () => {
-  let horizonStaking: IHorizonStaking
-  let graphToken: IGraphToken
   let verifier: string
   const thawingPeriod = 2419200n
 
+  const graph = hre.graph()
+  const { stake, stakeToProvision, addToProvision } = graph.horizon.actions
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const graphToken = graph.horizon.contracts.L2GraphToken
+
   before(async () => {
-    const graph = hre.graph()
-
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.L2GraphToken as unknown as IGraphToken
-
     verifier = await ethers.Wallet.createRandom().getAddress()
   })
 
   describe('New Protocol Users', () => {
-    let serviceProvider: SignerWithAddress
+    let serviceProvider: HardhatEthersSigner
     const stakeAmount = ethers.parseEther('1000')
 
     before(async () => {
-      const signers = await ethers.getSigners()
-      serviceProvider = signers[8]
+      [serviceProvider] = await graph.accounts.getTestAccounts()
+      await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     })
 
     it('should allow staking tokens and unstake right after', async () => {
       const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
-      await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: stakeAmount })
-      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: stakeAmount })
+      await stake(serviceProvider, [stakeAmount])
+      await horizonStaking.connect(serviceProvider).unstake(stakeAmount)
       const serviceProviderBalanceAfter = await graphToken.balanceOf(serviceProvider.address)
       expect(serviceProviderBalanceAfter).to.equal(serviceProviderBalanceBefore, 'Service provider balance should not change')
     })
@@ -51,15 +47,14 @@ describe('Service provider', () => {
 
     it('should be able to set delegation fee cut for payment type', async () => {
       const delegationFeeCut = 10_000 // 10%
-      const paymentType = HorizonTypes.PaymentTypes.QueryFee
+      const paymentType = PaymentTypes.QueryFee
 
-      const tx = await horizonStaking.connect(serviceProvider).setDelegationFeeCut(
+      await horizonStaking.connect(serviceProvider).setDelegationFeeCut(
         serviceProvider.address,
         verifier,
         paymentType,
         delegationFeeCut,
       )
-      await tx.wait()
 
       // Verify delegation fee cut was set
       const delegationFeeCutAfterSet = await horizonStaking.getDelegationFeeCut(
@@ -96,17 +91,8 @@ describe('Service provider', () => {
         const createProvisionTokens = ethers.parseEther('10000')
 
         // Add idle stake
-        await HorizonStakingActions.stake({ horizonStaking, graphToken, serviceProvider, tokens: tokensToStake })
-
-        // Create provision
-        await HorizonStakingActions.createProvision({
-          horizonStaking,
-          serviceProvider,
-          verifier,
-          tokens: createProvisionTokens,
-          maxVerifierCut,
-          thawingPeriod,
-        })
+        await stake(serviceProvider, [tokensToStake])
+        await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, createProvisionTokens, maxVerifierCut, thawingPeriod)
       })
 
       it('should be able to stake to provision directly', async () => {
@@ -115,13 +101,7 @@ describe('Service provider', () => {
 
         // Add stake and provision on the same transaction
         const stakeToProvisionTokens = ethers.parseEther('100')
-        await HorizonStakingActions.stakeToProvision({
-          horizonStaking,
-          graphToken,
-          serviceProvider,
-          verifier,
-          tokens: stakeToProvisionTokens,
-        })
+        await stakeToProvision(serviceProvider, [serviceProvider.address, verifier, stakeToProvisionTokens])
 
         // Verify provision tokens were updated
         provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -134,7 +114,7 @@ describe('Service provider', () => {
 
         // Add to provision using idle stake
         const addToProvisionTokens = ethers.parseEther('100')
-        await HorizonStakingActions.addToProvision({ horizonStaking, serviceProvider, verifier, tokens: addToProvisionTokens })
+        await addToProvision(serviceProvider, [serviceProvider.address, verifier, addToProvisionTokens])
 
         // Verify provision tokens were updated
         provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -163,17 +143,17 @@ describe('Service provider', () => {
           it('should be able to thaw tokens, wait for thawing period, deprovision and unstake', async () => {
             const serviceProviderBalanceBefore = await graphToken.balanceOf(serviceProvider.address)
             const tokensToThaw = ethers.parseEther('100')
-            await HorizonStakingActions.thaw({ horizonStaking, serviceProvider, verifier, tokens: tokensToThaw })
+            await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, verifier, tokensToThaw)
 
             // Wait for thawing period
             await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
             await ethers.provider.send('evm_mine', [])
 
             // Deprovision the single thaw request
-            await HorizonStakingActions.deprovision({ horizonStaking, serviceProvider, verifier, nThawRequests: 1n })
+            await horizonStaking.connect(serviceProvider).deprovision(serviceProvider.address, verifier, 1n)
 
             // Unstake
-            await HorizonStakingActions.unstake({ horizonStaking, serviceProvider, tokens: tokensToThaw })
+            await horizonStaking.connect(serviceProvider).unstake(tokensToThaw)
 
             // Verify service provider balance increased by the unstake tokens
             const serviceProviderBalanceAfter = await graphToken.balanceOf(serviceProvider.address)
@@ -185,7 +165,7 @@ describe('Service provider', () => {
             const tokensToThaw = ethers.parseEther('100')
             // Create 10 thaw requests for 100 GRT each
             for (let i = 0; i < 10; i++) {
-              await HorizonStakingActions.thaw({ horizonStaking, serviceProvider, verifier, tokens: tokensToThaw })
+              await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, verifier, tokensToThaw)
             }
 
             // Wait for thawing period
@@ -193,7 +173,7 @@ describe('Service provider', () => {
             await ethers.provider.send('evm_mine', [])
 
             // Deprovision all thaw requests
-            await HorizonStakingActions.deprovision({ horizonStaking, serviceProvider, verifier, nThawRequests: 10n })
+            await horizonStaking.connect(serviceProvider).deprovision(serviceProvider.address, verifier, 10n)
 
             // Verify service provider idle stake increased by the deprovisioned tokens
             const serviceProviderIdleStakeAfter = await horizonStaking.getIdleStake(serviceProvider.address)
@@ -205,7 +185,7 @@ describe('Service provider', () => {
             const tokensToThaw = ethers.parseEther('100')
             // Create 3 thaw requests for 100 GRT each
             for (let i = 0; i < 3; i++) {
-              await HorizonStakingActions.thaw({ horizonStaking, serviceProvider, verifier, tokens: tokensToThaw })
+              await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, verifier, tokensToThaw)
             }
 
             // Wait for thawing period
@@ -214,7 +194,7 @@ describe('Service provider', () => {
 
             // Deprovision one by one
             for (let i = 0; i < 3; i++) {
-              await HorizonStakingActions.deprovision({ horizonStaking, serviceProvider, verifier, nThawRequests: 1n })
+              await horizonStaking.connect(serviceProvider).deprovision(serviceProvider.address, verifier, 1n)
             }
 
             // Verify service provider idle stake increased by the deprovisioned tokens
@@ -228,14 +208,7 @@ describe('Service provider', () => {
 
           before(async () => {
             newVerifier = await ethers.Wallet.createRandom().getAddress()
-            await HorizonStakingActions.createProvision({
-              horizonStaking,
-              serviceProvider,
-              verifier: newVerifier,
-              tokens: ethers.parseEther('100'),
-              maxVerifierCut,
-              thawingPeriod,
-            })
+            await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, newVerifier, ethers.parseEther('100'), maxVerifierCut, thawingPeriod)
           })
 
           it('should be able to thaw tokens, wait for thawing period and reprovision', async () => {
@@ -244,20 +217,14 @@ describe('Service provider', () => {
             const tokensToThaw = ethers.parseEther('100')
 
             // Thaw tokens
-            await HorizonStakingActions.thaw({ horizonStaking, serviceProvider, verifier, tokens: tokensToThaw })
+            await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, verifier, tokensToThaw)
 
             // Wait for thawing period
             await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
             await ethers.provider.send('evm_mine', [])
 
             // Reprovision
-            await HorizonStakingActions.reprovision({
-              horizonStaking,
-              serviceProvider,
-              verifier,
-              newVerifier,
-              nThawRequests: 1n,
-            })
+            await horizonStaking.connect(serviceProvider).reprovision(serviceProvider.address, verifier, newVerifier, 1n)
 
             // Verify new provision size increased by the reprovisioned tokens
             const serviceProviderNewProvisionSizeAfter = (await horizonStaking.getProvision(serviceProvider.address, newVerifier)).tokens
@@ -270,15 +237,10 @@ describe('Service provider', () => {
 
           it('should revert if thawing period is not over', async () => {
             const tokensToThaw = ethers.parseEther('100')
-            await HorizonStakingActions.thaw({ horizonStaking, serviceProvider, verifier, tokens: tokensToThaw })
+            await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, verifier, tokensToThaw)
 
-            await expect(HorizonStakingActions.reprovision({
-              horizonStaking,
-              serviceProvider,
-              verifier,
-              newVerifier,
-              nThawRequests: 1n,
-            })).to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingInvalidZeroTokens')
+            await expect(horizonStaking.connect(serviceProvider).reprovision(serviceProvider.address, verifier, newVerifier, 1n))
+              .to.be.revertedWithCustomError(horizonStaking, 'HorizonStakingInvalidZeroTokens')
           })
         })
       })
@@ -306,7 +268,7 @@ describe('Service provider', () => {
   })
 
   describe('Existing Protocol Users', () => {
-    let indexer: SignerWithAddress
+    let indexer: HardhatEthersSigner
     let tokensToUnstake: bigint
     let snapshotId: string
 
@@ -314,7 +276,7 @@ describe('Service provider', () => {
       // Get indexer
       const indexerFixture = indexers[0]
       indexer = await ethers.getSigner(indexerFixture.address)
-
+      await setGRTBalance(graph.provider, graphToken.target, indexer.address, ONE_MILLION)
       // Set tokens
       tokensToUnstake = ethers.parseEther('10000')
     })
@@ -334,7 +296,7 @@ describe('Service provider', () => {
       const balanceBefore = await graphToken.balanceOf(indexer.address)
 
       // Unstake tokens
-      await HorizonStakingActions.unstake({ horizonStaking, serviceProvider: indexer, tokens: tokensToUnstake })
+      await horizonStaking.connect(indexer).unstake(tokensToUnstake)
 
       // Verify tokens are transferred back to service provider
       const balanceAfter = await graphToken.balanceOf(indexer.address)
@@ -353,7 +315,7 @@ describe('Service provider', () => {
       const balanceBefore = await graphToken.balanceOf(indexer.address)
 
       // Withdraw tokens
-      await HorizonStakingActions.withdraw({ horizonStaking, serviceProvider: indexer })
+      await horizonStaking.connect(indexer).withdraw()
 
       // Get balance after withdrawing
       const balanceAfter = await graphToken.balanceOf(indexer.address)

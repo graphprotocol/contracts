@@ -2,14 +2,14 @@ import hre from 'hardhat'
 
 import { expect } from 'chai'
 import { graphProxyTests } from './lib/GraphProxy.test'
-import { IgnitionHelper } from 'hardhat-graph-protocol/sdk'
+import { loadConfig } from '@graphprotocol/toolshed/hardhat'
 
-const config = IgnitionHelper.loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
+const config = loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
 const graph = hre.graph()
 
-const graphProxyAdminAddressBookEntry = graph.horizon!.addressBook.getEntry('GraphProxyAdmin')
-const curationAddressBookEntry = graph.horizon!.addressBook.getEntry('L2Curation')
-const Curation = graph.horizon!.contracts.L2Curation
+const graphProxyAdminAddressBookEntry = graph.horizon.addressBook.getEntry('GraphProxyAdmin')
+const curationAddressBookEntry = graph.horizon.addressBook.getEntry('L2Curation')
+const Curation = graph.horizon.contracts.L2Curation
 
 describe('Curation', function () {
   it('should set the right subgraph service', async function () {

@@ -33,6 +33,7 @@ export default [
     },
     rules: {
       'prefer-const': 'warn',
+      '@typescript-eslint/no-redundant-type-constituents': 'warn',
       '@typescript-eslint/no-inferrable-types': 'warn',
       '@typescript-eslint/no-empty-function': 'warn',
       'no-only-tests/no-only-tests': 'error',

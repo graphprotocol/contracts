@@ -9,6 +9,7 @@ import { IStakingExtension } from "./IStakingExtension.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { IStakes } from "./libs/IStakes.sol";
 import { Stakes } from "./libs/Stakes.sol";
 import { IStakingData } from "./IStakingData.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
@@ -22,7 +23,7 @@ import { MathUtils } from "./libs/MathUtils.sol";
  */
 contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtension {
     using SafeMath for uint256;
-    using Stakes for Stakes.Indexer;
+    using Stakes for IStakes.Indexer;
 
     /// @dev 100% in parts per million
     uint32 private constant MAX_PPM = 1000000;
@@ -147,7 +148,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
         uint256 _reward,
         address _beneficiary
     ) external override onlySlasher notPartialPaused {
-        Stakes.Indexer storage indexerStake = __stakes[_indexer];
+        IStakes.Indexer storage indexerStake = __stakes[_indexer];
 
         // Only able to slash a non-zero number of tokens
         require(_tokens > 0, "!tokens");
@@ -365,11 +366,11 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
 
     /**
      * @notice Getter for stakes[_indexer]:
-     * gets the stake information for an indexer as a Stakes.Indexer struct.
+     * gets the stake information for an indexer as an IStakes.Indexer struct.
      * @param _indexer Indexer address for which to query the stake information
-     * @return Stake information for the specified indexer, as a Stakes.Indexer struct
+     * @return Stake information for the specified indexer, as an IStakes.Indexer struct
      */
-    function stakes(address _indexer) external view override returns (Stakes.Indexer memory) {
+    function stakes(address _indexer) external view override returns (IStakes.Indexer memory) {
         return __stakes[_indexer];
     }
 

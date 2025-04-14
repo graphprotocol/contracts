@@ -18,7 +18,7 @@
     "lint:sol:solhint": "solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
-    "build": "BUILD_RUN=true hardhat compile",
+    "build": "hardhat compile",
     "test": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test"
   },
@@ -26,6 +26,7 @@
     "@defi-wonderland/natspec-smells": "^1.1.6",
     "@graphprotocol/contracts": "workspace:^7.0.0",
     "@graphprotocol/horizon": "workspace:^0.0.1",
+    "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@nomicfoundation/hardhat-foundry": "^1.1.1",

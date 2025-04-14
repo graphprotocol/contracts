@@ -18,10 +18,6 @@
     ".": {
       "types": "./src/types.ts",
       "default": "./src/index.ts"
-    },
-    "./sdk": {
-      "types": "./src/sdk/index.ts",
-      "default": "./src/sdk/index.ts"
     }
   },
   "types": "./dist/src/index.d.ts",
@@ -39,9 +35,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@graphprotocol/contracts": "workspace:^7.0.0",
-    "@graphprotocol/horizon": "workspace:^0.0.1",
-    "@graphprotocol/subgraph-service": "workspace:^0.0.1",
+    "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "debug": "^4.3.7",
     "json5": "^2.2.3"

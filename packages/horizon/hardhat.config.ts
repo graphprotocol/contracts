@@ -1,7 +1,5 @@
-import { existsSync, readdirSync } from 'fs'
-import { hardhatBaseConfig } from 'hardhat-graph-protocol/sdk'
-import { HardhatUserConfig } from 'hardhat/types'
-import { join } from 'path'
+import { hardhatBaseConfig, isProjectBuilt, loadTasks } from '@graphprotocol/toolshed/hardhat'
+import type { HardhatUserConfig } from 'hardhat/types'
 
 // Hardhat plugins
 import '@nomicfoundation/hardhat-foundry'
@@ -10,32 +8,10 @@ import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
 
-// Hardhat tasks
-function loadTasks() {
-  const tasksPath = join(__dirname, 'tasks')
-
-  // Helper function to recursively load tasks from directories
-  function loadTasksFromDir(dir: string) {
-    readdirSync(dir, { withFileTypes: true }).forEach((dirent) => {
-      const fullPath = join(dir, dirent.name)
-
-      if (dirent.isDirectory()) {
-        // Recursively process subdirectories
-        loadTasksFromDir(fullPath)
-      } else if (dirent.isFile() && dirent.name.includes('.ts')) {
-        // Load task file
-        require(fullPath)
-      }
-    })
-  }
-
-  // Start recursive loading from the tasks directory
-  loadTasksFromDir(tasksPath)
-}
-
-if (existsSync(join(__dirname, 'build/contracts'))) {
+// Skip importing hardhat-graph-protocol when building the project, it has circular dependency
+if (isProjectBuilt(__dirname)) {
   require('hardhat-graph-protocol')
-  loadTasks()
+  loadTasks(__dirname)
 }
 
 const config: HardhatUserConfig = {

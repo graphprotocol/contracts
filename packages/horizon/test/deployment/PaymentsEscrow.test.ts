@@ -1,13 +1,14 @@
-import { expect } from 'chai'
 import hre from 'hardhat'
-import { IgnitionHelper } from 'hardhat-graph-protocol/sdk'
+
+import { expect } from 'chai'
+import { loadConfig } from '@graphprotocol/toolshed/hardhat'
 import { transparentUpgradeableProxyTests } from './lib/TransparentUpgradeableProxy.tests'
 
-const config = IgnitionHelper.loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
+const config = loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
 const graph = hre.graph()
 
-const addressBookEntry = graph.horizon!.addressBook.getEntry('PaymentsEscrow')
-const PaymentsEscrow = graph.horizon!.contracts.PaymentsEscrow
+const addressBookEntry = graph.horizon.addressBook.getEntry('PaymentsEscrow')
+const PaymentsEscrow = graph.horizon.contracts.PaymentsEscrow
 
 describe('PaymentsEscrow', function () {
   it('should set the right withdrawEscrowThawingPeriod', async function () {
@@ -16,4 +17,4 @@ describe('PaymentsEscrow', function () {
   })
 })
 
-transparentUpgradeableProxyTests('PaymentsEscrow', addressBookEntry, config.$global.governor)
+transparentUpgradeableProxyTests('PaymentsEscrow', addressBookEntry, config.$global.governor as string)

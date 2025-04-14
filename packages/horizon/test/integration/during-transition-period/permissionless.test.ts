@@ -1,27 +1,20 @@
+import hre from 'hardhat'
+
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import hre from 'hardhat'
-import { keccak256 } from 'ethers'
-import { toUtf8Bytes } from 'ethers'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { IEpochManager, IHorizonStaking } from '../../../typechain-types'
-
+import { createPOIFromString } from '@graphprotocol/toolshed'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+
 describe('Permissionless', () => {
-  let horizonStaking: IHorizonStaking
-  let epochManager: IEpochManager
   let snapshotId: string
 
-  before(() => {
-    const graph = hre.graph()
-
-    // Get contracts
-    horizonStaking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    epochManager = graph.horizon!.contracts.EpochManager as unknown as IEpochManager
-  })
+  const graph = hre.graph()
+  const horizonStaking = graph.horizon.contracts.HorizonStaking
+  const epochManager = graph.horizon.contracts.EpochManager
 
   beforeEach(async () => {
     // Take a snapshot before each test
@@ -34,15 +27,15 @@ describe('Permissionless', () => {
   })
 
   describe('After max allocation epochs', () => {
-    let indexer: SignerWithAddress
-    let anySigner: SignerWithAddress
+    let indexer: HardhatEthersSigner
+    let anySigner: HardhatEthersSigner
     let allocationID: string
     let allocationTokens: bigint
 
     before(async () => {
       // Get signers
       indexer = await ethers.getSigner(indexers[0].address)
-      anySigner = (await ethers.getSigners())[19]
+      ;[anySigner] = await graph.accounts.getTestAccounts()
 
       // Get allocation details
       allocationID = indexers[0].allocations[0].allocationID
@@ -60,7 +53,8 @@ describe('Permissionless', () => {
       }
 
       // Close allocation
-      await horizonStaking.connect(anySigner).closeAllocation(allocationID, ethers.getBytes(keccak256(toUtf8Bytes('poi'))))
+      const poi = createPOIFromString('poi')
+      await (horizonStaking as HorizonStakingExtension).connect(anySigner).closeAllocation(allocationID, poi)
 
       // Get indexer's idle stake after closing allocation
       const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
