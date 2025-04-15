@@ -76,21 +76,25 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
       }
     }
 
+    // Accounts
+    const grtTokenAddress = greDeployments?.horizon?.contracts?.GraphToken?.target
+    const accounts = {
+      getAccounts: async () => getAccounts(provider, grtTokenAddress),
+      getDeployer: async (accountIndex?: number) => getDeployer(provider, accountIndex, grtTokenAddress),
+      getGovernor: async (accountIndex?: number) => getGovernor(provider, accountIndex, grtTokenAddress),
+      getArbitrator: async (accountIndex?: number) => getArbitrator(provider, accountIndex, grtTokenAddress),
+      getPauseGuardian: async (accountIndex?: number) => getPauseGuardian(provider, accountIndex, grtTokenAddress),
+      getSubgraphAvailabilityOracle: async (accountIndex?: number) => getSubgraphAvailabilityOracle(provider, accountIndex, grtTokenAddress),
+      getGateway: async (accountIndex?: number) => getGateway(provider, accountIndex, grtTokenAddress),
+      getTestAccounts: async () => getTestAccounts(provider, grtTokenAddress),
+    }
+
     logDebug('GRE initialized successfully!')
     return {
       ...greDeployments,
       provider,
       chainId,
-      accounts: {
-        getAccounts: async () => getAccounts(provider),
-        getDeployer: async (accountIndex?: number) => getDeployer(provider, accountIndex),
-        getGovernor: async (accountIndex?: number) => getGovernor(provider, accountIndex),
-        getArbitrator: async (accountIndex?: number) => getArbitrator(provider, accountIndex),
-        getPauseGuardian: async (accountIndex?: number) => getPauseGuardian(provider, accountIndex),
-        getSubgraphAvailabilityOracle: async (accountIndex?: number) => getSubgraphAvailabilityOracle(provider, accountIndex),
-        getGateway: async (accountIndex?: number) => getGateway(provider, accountIndex),
-        getTestAccounts: async () => getTestAccounts(provider),
-      },
+      accounts: accounts,
     }
   })
 }

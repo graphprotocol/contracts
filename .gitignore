@@ -48,7 +48,7 @@ tx-*.log
 addresses-fork.json
 addresses-hardhat.json
 addresses-localhost.json
-
+addresses-local-network.json
 # Keys
 .keystore
 
