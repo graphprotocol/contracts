@@ -4,10 +4,11 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IHorizonStaking, SubgraphService } from '../../../../typechain-types'
-import { createAttestationData } from 'hardhat-graph-protocol/sdk'
+import { createAttestationData } from '@graphprotocol/toolshed'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 describe('Query Disputes', () => {
   let disputeManager: DisputeManager
@@ -34,10 +35,10 @@ describe('Query Disputes', () => {
   before(async () => {
     // Get contracts
     const graph = hre.graph()
-    disputeManager = graph.subgraphService!.contracts.DisputeManager as unknown as DisputeManager
-    graphToken = graph.horizon!.contracts.GraphToken as unknown as IGraphToken
-    staking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
+    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
+    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
+    staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get signers
     const signers = await ethers.getSigners()
@@ -57,6 +58,9 @@ describe('Query Disputes', () => {
     disputeDeposit = await disputeManager.disputeDeposit()
     fishermanRewardCut = await disputeManager.fishermanRewardCut()
     disputePeriod = await disputeManager.disputePeriod()
+
+    // Set GRT balance for fisherman
+    await setGRTBalance(graph.provider, graphToken.target, fisherman.address, ethers.parseEther('1000000'))
   })
 
   beforeEach(async () => {
