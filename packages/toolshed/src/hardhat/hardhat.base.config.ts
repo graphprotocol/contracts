@@ -91,8 +91,8 @@ export const networksUserConfig: BaseNetworksUserConfig = {
   localNetwork: {
     chainId: 1337,
     url: LOCAL_NETWORK_RPC,
-    secureAccounts: {
-      enabled: false,
+    accounts: {
+      mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
     },
     deployments: {
       horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-local-network.json'),
