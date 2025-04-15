@@ -2,9 +2,11 @@
 
 set -eo pipefail
 
+NON_INTERACTIVE=${NON_INTERACTIVE:-false}
+
 # Set environment variables for this script
-export HARDHAT_FORK=true
 export SECURE_ACCOUNTS_DISABLE_PROVIDER=true
+export FORK_FROM_CHAIN_ID=${FORK_FROM_CHAIN_ID:-421614}
 
 # Function to cleanup resources
 cleanup() {
@@ -80,14 +82,17 @@ else
     sleep 10
 fi
 
+# Setup subgraph service address book
+jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses.json > addresses-localhost.json
+
 # Run Horizon pre-upgrade steps
 cd ../horizon
 
 # Setup pre horizon migration state needed for the e2e tests
-npx hardhat test:integration:pre-upgrade --network localhost
+npx hardhat test:seed --network localhost
 
 # Transfer ownership of protocol to hardhat signer 1
-npx hardhat test:integration:transfer-ownership --network localhost
+npx hardhat test:transfer-ownership --network localhost
 
 # Run Horizon steps 1 deployment
 npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --account-index 0 --patch-config

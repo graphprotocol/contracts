@@ -4,12 +4,13 @@ import { HDNodeWallet } from 'ethers'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IHorizonStaking, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-import { generateAllocationProof, HorizonStakingActions, HorizonTypes, SubgraphServiceActions } from 'hardhat-graph-protocol/sdk'
-import { getSignedRAVCalldata, getSignerProof } from 'hardhat-graph-protocol/sdk'
+import { getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
 import { GraphTallyCollector } from '@graphprotocol/horizon'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { PaymentTypes } from '@graphprotocol/toolshed'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 describe('Operator', () => {
   let subgraphService: SubgraphService
@@ -26,19 +27,21 @@ describe('Operator', () => {
   let authorizedOperator: HDNodeWallet
   let unauthorizedOperator: HDNodeWallet
   let allocationId: string
-  let allocationPrivateKey: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
 
+  const graph = hre.graph()
+  const { provision } = graph.horizon.actions
+  const { collect, generateAllocationProof } = graph.subgraphService.actions
+
   before(async () => {
     // Get contracts
-    const graph = hre.graph()
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
-    staking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon!.contracts.GraphToken as unknown as IGraphToken
-    escrow = graph.horizon!.contracts.PaymentsEscrow as unknown as IPaymentsEscrow
-    graphTallyCollector = graph.horizon!.contracts.GraphTallyCollector as unknown as GraphTallyCollector
-    disputeManager = graph.subgraphService!.contracts.DisputeManager as unknown as DisputeManager
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
+    staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
+    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
+    escrow = graph.horizon.contracts.PaymentsEscrow as unknown as IPaymentsEscrow
+    graphTallyCollector = graph.horizon.contracts.GraphTallyCollector as unknown as GraphTallyCollector
+    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
 
     // Get signers
     authorizedOperator = ethers.Wallet.createRandom()
@@ -67,25 +70,11 @@ describe('Operator', () => {
       const signers = await ethers.getSigners()
       indexer = await ethers.getSigner(signers[19].address)
 
-      // Add stake
-      await HorizonStakingActions.stake({
-        horizonStaking: staking,
-        graphToken,
-        serviceProvider: indexer,
-        tokens: ethers.parseEther('100000'),
-      })
-
       // Create provision
       const disputePeriod = await disputeManager.getDisputePeriod()
       const maxSlashingCut = await disputeManager.maxSlashingCut()
-      await HorizonStakingActions.createProvision({
-        horizonStaking: staking,
-        serviceProvider: indexer,
-        tokens: ethers.parseEther('100000'),
-        maxVerifierCut: maxSlashingCut,
-        thawingPeriod: disputePeriod,
-        verifier: await subgraphService.getAddress(),
-      })
+      await setGRTBalance(graph.provider, graphToken.target, indexer.address, ethers.parseEther('100000'))
+      await provision(indexer, [indexer.address, await subgraphService.getAddress(), ethers.parseEther('100000'), maxSlashingCut, disputePeriod])
     })
 
     describe('Authorized Operator', () => {
@@ -138,6 +127,8 @@ describe('Operator', () => {
     })
 
     describe('New allocation', () => {
+      let allocationPrivateKey: string
+
       beforeEach(() => {
         // Generate test allocation
         const wallet = ethers.Wallet.createRandom()
@@ -155,7 +146,7 @@ describe('Operator', () => {
 
         it('should be able to create an allocation', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
           // Build allocation data
           const data = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -180,7 +171,7 @@ describe('Operator', () => {
       describe('Unauthorized Operator', () => {
         it('should not be able to create an allocation', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
           // Build allocation data
           const data = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -206,7 +197,6 @@ describe('Operator', () => {
         // Get allocation data
         const allocationFixture = indexers[0].allocations[0]
         allocationId = allocationFixture.allocationID
-        allocationPrivateKey = allocationFixture.allocationPrivateKey
         subgraphDeploymentId = allocationFixture.subgraphDeploymentID
         allocationTokens = allocationFixture.tokens
       })
@@ -261,19 +251,12 @@ describe('Operator', () => {
           )
 
           // Collect rewards
-          const rewards = await SubgraphServiceActions.collect({
-            subgraphService,
-            signer: authorizedOperator,
-            indexer: indexer.address,
-            paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-            data: collectData,
-          })
+          const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.IndexingRewards, collectData])
           expect(rewards).to.not.equal(0n)
         })
 
         it('should be able to collect query fees', async () => {
           // Setup query fees collection
-          const minter = (await ethers.getSigners())[0]
           let payer = ethers.Wallet.createRandom()
           payer = payer.connect(ethers.provider)
           let signer = ethers.Wallet.createRandom()
@@ -281,7 +264,7 @@ describe('Operator', () => {
           const collectTokens = ethers.parseUnits('1000')
 
           // Mint GRT to payer and fund payer and signer with ETH
-          await graphToken.connect(minter).mint(payer.address, ethers.parseEther('1000000'))
+          await setGRTBalance(graph.provider, graphToken.target, payer.address, ethers.parseEther('1000000'))
           await ethers.provider.send('hardhat_setBalance', [payer.address, '0x56BC75E2D63100000'])
           await ethers.provider.send('hardhat_setBalance', [signer.address, '0x56BC75E2D63100000'])
 
@@ -309,13 +292,7 @@ describe('Operator', () => {
           )
 
           // Collect query fees
-          const rewards = await SubgraphServiceActions.collect({
-            subgraphService,
-            signer: authorizedOperator,
-            indexer: indexer.address,
-            paymentType: HorizonTypes.PaymentTypes.QueryFee,
-            data: encodedSignedRAV,
-          })
+          const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
           expect(rewards).to.not.equal(0n)
         })
       })
@@ -364,13 +341,7 @@ describe('Operator', () => {
 
           // Attempt to collect rewards with unauthorized operator
           await expect(
-            SubgraphServiceActions.collect({
-              subgraphService,
-              signer: unauthorizedOperator,
-              indexer: indexer.address,
-              paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-              data: collectData,
-            }),
+            collect(unauthorizedOperator, [indexer.address, PaymentTypes.IndexingRewards, collectData]),
           ).to.be.revertedWithCustomError(
             subgraphService,
             'ProvisionManagerNotAuthorized',
@@ -379,7 +350,6 @@ describe('Operator', () => {
 
         it('should not be able to collect query fees', async () => {
           // Setup query fees collection
-          const minter = (await ethers.getSigners())[0]
           let payer = ethers.Wallet.createRandom()
           payer = payer.connect(ethers.provider)
           let signer = ethers.Wallet.createRandom()
@@ -387,7 +357,7 @@ describe('Operator', () => {
           const collectTokens = ethers.parseUnits('1000')
 
           // Mint GRT to payer and fund payer and signer with ETH
-          await graphToken.connect(minter).mint(payer.address, ethers.parseEther('1000000'))
+          await setGRTBalance(graph.provider, graphToken.target, payer.address, ethers.parseEther('1000000'))
           await ethers.provider.send('hardhat_setBalance', [payer.address, '0x56BC75E2D63100000'])
           await ethers.provider.send('hardhat_setBalance', [signer.address, '0x56BC75E2D63100000'])
 
@@ -416,13 +386,7 @@ describe('Operator', () => {
 
           // Attempt to collect query fees with unauthorized operator
           await expect(
-            SubgraphServiceActions.collect({
-              subgraphService,
-              signer: unauthorizedOperator,
-              indexer: indexer.address,
-              paymentType: HorizonTypes.PaymentTypes.QueryFee,
-              data: encodedSignedRAV,
-            }),
+            collect(unauthorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV]),
           ).to.be.revertedWithCustomError(
             subgraphService,
             'ProvisionManagerNotAuthorized',

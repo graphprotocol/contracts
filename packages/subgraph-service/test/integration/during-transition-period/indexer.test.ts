@@ -4,7 +4,6 @@ import hre from 'hardhat'
 
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
-import { generateAllocationProof } from 'hardhat-graph-protocol/sdk'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 import { ISubgraphService } from '../../../typechain-types'
 
@@ -19,10 +18,12 @@ describe('Indexer', () => {
   let subgraphDeploymentId: string
   let allocationPrivateKey: string
 
+  const graph = hre.graph()
+  const { generateAllocationProof } = graph.subgraphService.actions
+
   before(async () => {
     // Get contracts
-    const graph = hre.graph()
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as ISubgraphService
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as ISubgraphService
 
     // Get governor and non-owner
     const signers = await ethers.getSigners()
@@ -54,7 +55,7 @@ describe('Indexer', () => {
 
     it('should not be able to create an allocation with an AllocationID that already exists in HorizonStaking contract', async () => {
       // Build allocation proof
-      const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+      const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
       // Attempt to create an allocation with the same ID
       const data = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -82,7 +83,7 @@ describe('Indexer', () => {
       )
 
       // Build allocation proof
-      const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+      const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
       // Attempt to create the same allocation
       const data = ethers.AbiCoder.defaultAbiCoder().encode(

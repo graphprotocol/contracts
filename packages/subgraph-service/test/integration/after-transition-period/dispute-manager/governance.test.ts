@@ -17,7 +17,7 @@ describe('DisputeManager Governance', () => {
 
   before(async () => {
     const graph = hre.graph()
-    disputeManager = graph.subgraphService!.contracts.DisputeManager as unknown as DisputeManager
+    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
 
     // Get signers
     const signers = await ethers.getSigners()
