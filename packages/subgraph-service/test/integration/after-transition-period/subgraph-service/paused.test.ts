@@ -2,16 +2,16 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { DisputeManager, IGraphToken, IHorizonStaking, SubgraphService } from '../../../../typechain-types'
-import { generateAllocationProof, HorizonStakingActions, HorizonTypes, SubgraphServiceActions } from 'hardhat-graph-protocol/sdk'
+import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { PaymentTypes } from '@graphprotocol/toolshed'
 
 describe('Paused Protocol', () => {
   let disputeManager: DisputeManager
   let graphToken: IGraphToken
-  let staking: IHorizonStaking
   let subgraphService: SubgraphService
 
   let snapshotId: string
@@ -20,17 +20,18 @@ describe('Paused Protocol', () => {
   let pauseGuardian: SignerWithAddress
   let indexer: SignerWithAddress
   let allocationId: string
-  let allocationPrivateKey: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
 
+  const graph = hre.graph()
+  const { provision } = graph.horizon.actions
+  const { collect, generateAllocationProof } = graph.subgraphService.actions
+
   before(async () => {
     // Get contracts
-    const graph = hre.graph()
-    disputeManager = graph.subgraphService!.contracts.DisputeManager as unknown as DisputeManager
-    graphToken = graph.horizon!.contracts.GraphToken as unknown as IGraphToken
-    staking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
+    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
+    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get signers
     const signers = await ethers.getSigners()
@@ -48,7 +49,6 @@ describe('Paused Protocol', () => {
     // Get allocation
     const wallet = ethers.Wallet.createRandom()
     allocationId = wallet.address
-    allocationPrivateKey = wallet.privateKey
     subgraphDeploymentId = indexers[0].allocations[0].subgraphDeploymentID
     allocationTokens = 1000n
   })
@@ -93,7 +93,6 @@ describe('Paused Protocol', () => {
           // Get allocation
           const allocation = indexers[0].allocations[0]
           allocationId = allocation.allocationID
-          allocationPrivateKey = allocation.allocationPrivateKey
           subgraphDeploymentId = allocation.subgraphDeploymentID
           allocationTokens = allocation.tokens
         })
@@ -119,13 +118,7 @@ describe('Paused Protocol', () => {
           )
 
           await expect(
-            SubgraphServiceActions.collect({
-              subgraphService,
-              signer: indexer,
-              indexer: indexer.address,
-              paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-              data,
-            }),
+            collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data]),
           ).to.be.revertedWithCustomError(
             subgraphService,
             'EnforcedPause',
@@ -141,13 +134,7 @@ describe('Paused Protocol', () => {
           )
 
           await expect(
-            SubgraphServiceActions.collect({
-              subgraphService,
-              signer: indexer,
-              indexer: indexer.address,
-              paymentType: HorizonTypes.PaymentTypes.QueryFee,
-              data,
-            }),
+            collect(indexer, [indexer.address, PaymentTypes.QueryFee, data]),
           ).to.be.revertedWithCustomError(
             subgraphService,
             'EnforcedPause',
@@ -169,6 +156,8 @@ describe('Paused Protocol', () => {
       })
 
       describe('New allocation', () => {
+        let allocationPrivateKey: string
+
         beforeEach(() => {
           // Get allocation
           const wallet = ethers.Wallet.createRandom()
@@ -180,7 +169,7 @@ describe('Paused Protocol', () => {
 
         it('should not allow indexer to start an allocation while paused', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
           // Build allocation data
           const data = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -207,25 +196,11 @@ describe('Paused Protocol', () => {
         const signers = await ethers.getSigners()
         indexer = await ethers.getSigner(signers[19].address)
 
-        // Add stake
-        await HorizonStakingActions.stake({
-          horizonStaking: staking,
-          graphToken,
-          serviceProvider: indexer,
-          tokens: ethers.parseEther('100000'),
-        })
-
         // Create provision
         const disputePeriod = await disputeManager.getDisputePeriod()
         const maxSlashingCut = await disputeManager.maxSlashingCut()
-        await HorizonStakingActions.createProvision({
-          horizonStaking: staking,
-          serviceProvider: indexer,
-          tokens: ethers.parseEther('100000'),
-          maxVerifierCut: maxSlashingCut,
-          thawingPeriod: disputePeriod,
-          verifier: await subgraphService.getAddress(),
-        })
+        await setGRTBalance(graph.provider, graphToken.target, indexer.address, ethers.parseEther('100000'))
+        await provision(indexer, [indexer.address, await subgraphService.getAddress(), ethers.parseEther('100000'), maxSlashingCut, disputePeriod])
       })
 
       it('should not allow indexer to register while paused', async () => {

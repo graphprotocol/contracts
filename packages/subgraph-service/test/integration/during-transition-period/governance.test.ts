@@ -20,7 +20,7 @@ describe('Governance', () => {
   before(() => {
     const graph = hre.graph()
 
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as ISubgraphService
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as ISubgraphService
     // Get proxy admin with SubgraphServiceInterface
   })
 

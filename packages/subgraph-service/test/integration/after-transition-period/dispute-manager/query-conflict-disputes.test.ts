@@ -4,7 +4,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IHorizonStaking, SubgraphService } from '../../../../typechain-types'
-import { createAttestationData } from 'hardhat-graph-protocol/sdk'
+import { createAttestationData } from '@graphprotocol/toolshed'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
@@ -36,10 +36,10 @@ describe('Query Conflict Disputes', () => {
   before(async () => {
     // Get contracts
     const graph = hre.graph()
-    disputeManager = graph.subgraphService!.contracts.DisputeManager as unknown as DisputeManager
-    graphToken = graph.horizon!.contracts.GraphToken as unknown as IGraphToken
-    staking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
+    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
+    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
+    staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get signers
     const signers = await ethers.getSigners()
