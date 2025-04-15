@@ -17,7 +17,7 @@ describe('Subgraph Service Governance', () => {
 
   before(async () => {
     const graph = hre.graph()
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get signers
     const signers = await ethers.getSigners()

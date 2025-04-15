@@ -2,14 +2,16 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { generateAllocationProof, getSignedRAVCalldata, getSignerProof, HorizonStakingActions, HorizonTypes, SubgraphServiceActions } from 'hardhat-graph-protocol/sdk'
+import { getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
 import { GraphPayments, GraphTallyCollector } from '@graphprotocol/horizon'
 import { IGraphToken, IHorizonStaking, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
+import { PaymentTypes } from '@graphprotocol/toolshed'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { Indexer, indexers } from '../../../../tasks/test/fixtures/indexers'
 import { delegators } from '@graphprotocol/horizon/tasks/test/fixtures/delegators'
 import { HDNodeWallet } from 'ethers'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 describe('Indexer', () => {
   let escrow: IPaymentsEscrow
@@ -24,15 +26,17 @@ describe('Indexer', () => {
   // Test addresses
   let indexer: SignerWithAddress
 
+  const graph = hre.graph()
+  const { collect, generateAllocationProof } = graph.subgraphService.actions
+
   before(() => {
     // Get contracts
-    const graph = hre.graph()
-    escrow = graph.horizon!.contracts.PaymentsEscrow as unknown as IPaymentsEscrow
-    graphPayments = graph.horizon!.contracts.GraphPayments as unknown as GraphPayments
-    graphTallyCollector = graph.horizon!.contracts.GraphTallyCollector as unknown as GraphTallyCollector
-    graphToken = graph.horizon!.contracts.GraphToken as unknown as IGraphToken
-    staking = graph.horizon!.contracts.HorizonStaking as unknown as IHorizonStaking
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
+    escrow = graph.horizon.contracts.PaymentsEscrow as unknown as IPaymentsEscrow
+    graphPayments = graph.horizon.contracts.GraphPayments as unknown as GraphPayments
+    graphTallyCollector = graph.horizon.contracts.GraphTallyCollector as unknown as GraphTallyCollector
+    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
+    staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
   })
 
   beforeEach(async () => {
@@ -66,8 +70,8 @@ describe('Indexer', () => {
 
   describe('Allocation Management', () => {
     let allocationId: string
-    let allocationTokens: bigint
     let allocationPrivateKey: string
+    let allocationTokens: bigint
     let subgraphDeploymentId: string
     let indexerFixture: Indexer
 
@@ -97,7 +101,7 @@ describe('Indexer', () => {
         const beforeLockedTokens = await subgraphService.allocationProvisionTracker(indexer.address)
 
         // Build allocation proof
-        const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+        const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
         // Attempt to create an allocation with the same ID
         const data = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -124,7 +128,7 @@ describe('Indexer', () => {
 
       it('should be able to start an allocation with zero tokens', async () => {
         // Build allocation proof
-        const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+        const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
         // Attempt to create an allocation with the same ID
         const data = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -147,7 +151,7 @@ describe('Indexer', () => {
 
       it('should not start an allocation without enough tokens', async () => {
         // Build allocation proof
-        const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+        const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
         // Build allocation data
         const allocationTokens = provisionTokens + ethers.parseEther('10000000')
@@ -175,7 +179,6 @@ describe('Indexer', () => {
         const allocation = indexerFixture.allocations[0]
         allocationId = allocation.allocationID
         allocationTokens = allocation.tokens
-        allocationPrivateKey = allocation.allocationPrivateKey
         subgraphDeploymentId = allocation.subgraphDeploymentID
       })
 
@@ -286,13 +289,7 @@ describe('Indexer', () => {
         )
 
         // Collect rewards
-        const rewards = await SubgraphServiceActions.collect({
-          subgraphService,
-          signer: indexer,
-          indexer: indexer.address,
-          paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-          data,
-        })
+        const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
         expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
         // Verify rewards are added to provision
@@ -321,23 +318,11 @@ describe('Indexer', () => {
         }
 
         // Collect rewards for first allocation
-        let rewards = await SubgraphServiceActions.collect({
-          subgraphService,
-          signer: indexer,
-          indexer: indexer.address,
-          paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-          data: allocationData,
-        })
+        let rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, allocationData])
         expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
         // Collect rewards for second allocation
-        let otherRewards = await SubgraphServiceActions.collect({
-          subgraphService,
-          signer: indexer,
-          indexer: indexer.address,
-          paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-          data: otherAllocationData,
-        })
+        let otherRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, otherAllocationData])
         expect(otherRewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
         // Verify total rewards collected
@@ -350,23 +335,11 @@ describe('Indexer', () => {
         }
 
         // Collect rewards for first allocation
-        rewards = await SubgraphServiceActions.collect({
-          subgraphService,
-          signer: indexer,
-          indexer: indexer.address,
-          paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-          data: allocationData,
-        })
+        rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, allocationData])
         expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
         // Collect rewards for second allocation
-        otherRewards = await SubgraphServiceActions.collect({
-          subgraphService,
-          signer: indexer,
-          indexer: indexer.address,
-          paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-          data: otherAllocationData,
-        })
+        otherRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, otherAllocationData])
         expect(otherRewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
         // Verify total rewards collected
@@ -393,7 +366,7 @@ describe('Indexer', () => {
         // Attempt to collect rewards
         await subgraphService.connect(indexer).collect(
           indexer.address,
-          HorizonTypes.PaymentTypes.IndexingRewards,
+          PaymentTypes.IndexingRewards,
           data,
         )
 
@@ -403,10 +376,9 @@ describe('Indexer', () => {
       })
 
       describe('Over allocated', () => {
-        let allocationPrivateKey: string
         let subgraphDeploymentId: string
         let delegator: SignerWithAddress
-
+        let allocationPrivateKey: string
         beforeEach(async () => {
           // Get delegator
           delegator = await ethers.getSigner(delegators[0].address)
@@ -424,7 +396,7 @@ describe('Indexer', () => {
           allocationPrivateKey = wallet.privateKey
           subgraphDeploymentId = indexers[0].allocations[0].subgraphDeploymentID
           const allocationTokens = availableTokens - lockedTokens
-          const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
           const data = ethers.AbiCoder.defaultAbiCoder().encode(
             ['bytes32', 'uint256', 'address', 'bytes'],
             [subgraphDeploymentId, allocationTokens, allocationId, signature],
@@ -442,13 +414,7 @@ describe('Indexer', () => {
           )
 
           // Undelegate tokens
-          await HorizonStakingActions.undelegate({
-            horizonStaking: staking,
-            delegator,
-            serviceProvider: indexer,
-            verifier: await subgraphService.getAddress(),
-            shares: delegation.shares,
-          })
+          await staking.connect(delegator)['undelegate(address,address,uint256)'](indexer.address, await subgraphService.getAddress(), delegation.shares)
         })
 
         it('should collect rewards while over allocated with fresh POI', async () => {
@@ -468,13 +434,7 @@ describe('Indexer', () => {
           )
 
           // Collect rewards
-          const rewards = await SubgraphServiceActions.collect({
-            subgraphService,
-            signer: indexer,
-            indexer: indexer.address,
-            paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-            data,
-          })
+          const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
           expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
           // Verify rewards are added to provision
@@ -522,13 +482,7 @@ describe('Indexer', () => {
         )
 
         // Collect rewards
-        const rewards = await SubgraphServiceActions.collect({
-          subgraphService,
-          signer: indexer,
-          indexer: indexer.address,
-          paymentType: HorizonTypes.PaymentTypes.IndexingRewards,
-          data,
-        })
+        const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
         expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
         // Verify rewards are transferred to rewards destination
@@ -539,7 +493,6 @@ describe('Indexer', () => {
   })
 
   describe('Query Fees', () => {
-    let minter: SignerWithAddress
     let payer: HDNodeWallet
     let signer: HDNodeWallet
     let allocationId: string
@@ -547,10 +500,6 @@ describe('Indexer', () => {
     let collectTokens: bigint
 
     before(async () => {
-      // Get minter
-      const signers = await ethers.getSigners()
-      minter = signers[0]
-
       // Get payer
       payer = ethers.Wallet.createRandom()
       payer = payer.connect(ethers.provider)
@@ -560,7 +509,7 @@ describe('Indexer', () => {
       signer = signer.connect(ethers.provider)
 
       // Mint GRT to payer and fund payer and signer with ETH
-      await graphToken.connect(minter).mint(payer.address, ethers.parseEther('1000000'))
+      await setGRTBalance(graph.provider, graphToken.target, payer.address, ethers.parseEther('1000000'))
       await ethers.provider.send('hardhat_setBalance', [payer.address, '0x56BC75E2D63100000'])
       await ethers.provider.send('hardhat_setBalance', [signer.address, '0x56BC75E2D63100000'])
 
@@ -605,13 +554,7 @@ describe('Indexer', () => {
       const beforeBalance = await graphToken.balanceOf(indexer.address)
 
       // Collect query fees
-      await SubgraphServiceActions.collect({
-        subgraphService,
-        signer: indexer,
-        indexer: indexer.address,
-        paymentType: HorizonTypes.PaymentTypes.QueryFee,
-        data: encodedSignedRAV,
-      })
+      await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
 
       // Calculate expected rewards
       const rewardsAfterTax = collectTokens - (collectTokens * BigInt(await graphPayments.PROTOCOL_PAYMENT_CUT())) / BigInt(1e6)
@@ -655,22 +598,10 @@ describe('Indexer', () => {
       )
 
       // Collect first set of fees
-      const rewards1 = await SubgraphServiceActions.collect({
-        subgraphService,
-        signer: indexer,
-        indexer: indexer.address,
-        paymentType: HorizonTypes.PaymentTypes.QueryFee,
-        data: encodedSignedRAV1,
-      })
+      const rewards1 = await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV1])
 
       // Collect second set of fees
-      const rewards2 = await SubgraphServiceActions.collect({
-        subgraphService,
-        signer: indexer,
-        indexer: indexer.address,
-        paymentType: HorizonTypes.PaymentTypes.QueryFee,
-        data: encodedSignedRAV2,
-      })
+      const rewards2 = await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV2])
 
       // Verify total rewards collected
       const totalRewards = rewards1 + rewards2
@@ -696,13 +627,7 @@ describe('Indexer', () => {
       )
 
       // Collect new RAV for allocation 1
-      const newRewards1 = await SubgraphServiceActions.collect({
-        subgraphService,
-        signer: indexer,
-        indexer: indexer.address,
-        paymentType: HorizonTypes.PaymentTypes.QueryFee,
-        data: newRAV1,
-      })
+      const newRewards1 = await collect(indexer, [indexer.address, PaymentTypes.QueryFee, newRAV1])
 
       // Verify only the difference was collected
       expect(newRewards1).to.equal(newFees1 - fees1)

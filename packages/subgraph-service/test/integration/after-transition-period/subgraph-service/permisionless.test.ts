@@ -2,7 +2,6 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { generateAllocationProof } from 'hardhat-graph-protocol/sdk'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { SubgraphService } from '../../../../typechain-types'
 
@@ -16,14 +15,15 @@ describe('Permissionless', () => {
   let indexer: SignerWithAddress
   let anyone: SignerWithAddress
   let allocationId: string
-  let allocationPrivateKey: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
 
+  const graph = hre.graph()
+  const { generateAllocationProof } = graph.subgraphService.actions
+
   before(async () => {
     // Get contracts
-    const graph = hre.graph()
-    subgraphService = graph.subgraphService!.contracts.SubgraphService as unknown as SubgraphService
+    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get anyone address
     const signers = await ethers.getSigners()
@@ -49,7 +49,6 @@ describe('Permissionless', () => {
       // Get allocation
       const allocation = indexerFixture.allocations[0]
       allocationId = allocation.allocationID
-      allocationPrivateKey = allocation.allocationPrivateKey
       subgraphDeploymentId = allocation.subgraphDeploymentID
       allocationTokens = allocation.tokens
     })
@@ -77,6 +76,8 @@ describe('Permissionless', () => {
   })
 
   describe('Altruistic allocation', () => {
+    let allocationPrivateKey: string
+
     beforeEach(async () => {
       // Get indexer
       const indexerFixture = indexers[0]
@@ -90,7 +91,7 @@ describe('Permissionless', () => {
       allocationTokens = 0n
 
       // Start allocation
-      const signature = await generateAllocationProof(subgraphService, indexer.address, allocationPrivateKey)
+      const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
       const data = ethers.AbiCoder.defaultAbiCoder().encode(
         ['bytes32', 'uint256', 'address', 'bytes'],
         [subgraphDeploymentId, allocationTokens, allocationId, signature],
