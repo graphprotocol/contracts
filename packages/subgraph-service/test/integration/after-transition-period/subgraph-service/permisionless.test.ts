@@ -26,8 +26,7 @@ describe('Permissionless', () => {
     subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get anyone address
-    const signers = await ethers.getSigners()
-    anyone = signers[3]
+    ;[anyone] = await graph.accounts.getTestAccounts()
   })
 
   beforeEach(async () => {

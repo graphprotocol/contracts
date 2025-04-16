@@ -1,4 +1,4 @@
-import { ethers, HDNodeWallet, Wallet } from "ethers"
+import { ethers, Wallet } from "ethers"
 
 import { IDisputeManager } from "@graphprotocol/subgraph-service"
 
@@ -13,7 +13,7 @@ import { IDisputeManager } from "@graphprotocol/subgraph-service"
  */
 export async function createAttestationData(
   disputeManager: IDisputeManager,
-  signer: Wallet | HDNodeWallet,
+  signer: Wallet,
   requestCID: string,
   responseCID: string,
   subgraphDeploymentId: string

@@ -42,9 +42,8 @@ describe('Query Conflict Disputes', () => {
     subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get signers
-    const signers = await ethers.getSigners()
-    fisherman = signers[0]
-    arbitrator = signers[2]
+    arbitrator = await graph.accounts.getArbitrator()
+    ;[fisherman] = await graph.accounts.getTestAccounts()
 
     // Get indexers
     const indexerFixture = indexers[0]

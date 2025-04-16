@@ -59,6 +59,15 @@ if [ "$SUBGRAPH_DEPLOYMENT_EXISTS" = true ] || [ "$HORIZON_DEPLOYMENT_EXISTS" = 
     fi
 fi
 
+# Check required env variables
+BLOCKCHAIN_RPC=${BLOCKCHAIN_RPC:-$(npx hardhat vars get ARBITRUM_SEPOLIA_RPC)}
+if [ -z "$BLOCKCHAIN_RPC" ]; then
+    echo "BLOCKCHAIN_RPC environment variable is required"
+    exit 1
+fi
+
+echo "Starting integration tests..."
+
 # Check if hardhat node is already running on port 8545
 STARTED_NODE=false
 if lsof -i:8545 > /dev/null 2>&1; then
@@ -66,15 +75,9 @@ if lsof -i:8545 > /dev/null 2>&1; then
     # Get the PID of the process using port 8545
     NODE_PID=$(lsof -t -i:8545)
 else
-    # Check required env variables only if we need to start the node
-    if [ -z "$ARBITRUM_SEPOLIA_RPC" ]; then
-        echo "ARBITRUM_SEPOLIA_RPC environment variable is required to start hardhat node"
-        exit 1
-    fi
-
     # Start local hardhat node forked from Arbitrum Sepolia
     echo "Starting local hardhat node..."
-    npx hardhat node --fork $ARBITRUM_SEPOLIA_RPC > node.log 2>&1 &
+    npx hardhat node --fork $BLOCKCHAIN_RPC > node.log 2>&1 &
     NODE_PID=$!
     STARTED_NODE=true
 
@@ -114,9 +117,9 @@ npx hardhat deploy:migrate --network localhost --step 2 --subgraph-service-confi
 cd ../horizon
 npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 4 --patch-config --account-index 1 --hide-banner
 
-# Run Subgraph Service post-upgrade steps
+# Run Subgraph Service seed steps
 cd ../subgraph-service
-npx hardhat test:post-upgrade --network localhost
+npx hardhat test:seed --network localhost
 
 # Run integration tests - During transition period
 npx hardhat test:integration --phase during-transition-period --network localhost
