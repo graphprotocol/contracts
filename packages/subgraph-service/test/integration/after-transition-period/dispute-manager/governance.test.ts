@@ -20,11 +20,8 @@ describe('DisputeManager Governance', () => {
     disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
 
     // Get signers
-    const signers = await ethers.getSigners()
-    governor = signers[1]
-    nonOwner = signers[2]
-    newArbitrator = signers[3]
-    newSubgraphService = signers[4]
+    governor = await graph.accounts.getGovernor()
+    ;[nonOwner, newArbitrator, newSubgraphService] = await graph.accounts.getTestAccounts()
   })
 
   beforeEach(async () => {

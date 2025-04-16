@@ -34,8 +34,7 @@ describe('Paused Protocol', () => {
     subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get signers
-    const signers = await ethers.getSigners()
-    pauseGuardian = signers[3]
+    pauseGuardian = await graph.accounts.getPauseGuardian()
   })
 
   beforeEach(async () => {
@@ -43,14 +42,7 @@ describe('Paused Protocol', () => {
     snapshotId = await ethers.provider.send('evm_snapshot', [])
 
     // Get indexer
-    const signers = await ethers.getSigners()
-    indexer = signers[18]
-
-    // Get allocation
-    const wallet = ethers.Wallet.createRandom()
-    allocationId = wallet.address
-    subgraphDeploymentId = indexers[0].allocations[0].subgraphDeploymentID
-    allocationTokens = 1000n
+    ;[indexer] = await graph.accounts.getTestAccounts()
   })
 
   afterEach(async () => {
@@ -193,8 +185,7 @@ describe('Paused Protocol', () => {
     describe('New indexer', () => {
       beforeEach(async () => {
         // Get indexer
-        const signers = await ethers.getSigners()
-        indexer = await ethers.getSigner(signers[19].address)
+        [indexer] = await graph.accounts.getTestAccounts()
 
         // Create provision
         const disputePeriod = await disputeManager.getDisputePeriod()
@@ -225,8 +216,7 @@ describe('Paused Protocol', () => {
 
       before(async () => {
         // Get anyone address
-        const signers = await ethers.getSigners()
-        anyone = signers[3]
+        [anyone] = await graph.accounts.getTestAccounts()
       })
 
       it('should not allow anyone to close a stale allocation while paused', async () => {

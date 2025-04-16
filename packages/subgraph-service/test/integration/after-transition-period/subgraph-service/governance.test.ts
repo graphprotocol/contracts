@@ -1,6 +1,5 @@
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { HDNodeWallet } from 'ethers'
 import hre from 'hardhat'
 
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
@@ -12,20 +11,16 @@ describe('Subgraph Service Governance', () => {
 
   // Test addresses
   let governor: SignerWithAddress
-  let nonOwner: HDNodeWallet
-  let pauseGuardian: HDNodeWallet
+  let nonOwner: SignerWithAddress
+  let pauseGuardian: SignerWithAddress
 
   before(async () => {
     const graph = hre.graph()
     subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
 
     // Get signers
-    const signers = await ethers.getSigners()
-    governor = signers[1]
-    nonOwner = ethers.Wallet.createRandom()
-    nonOwner = nonOwner.connect(ethers.provider)
-    pauseGuardian = ethers.Wallet.createRandom()
-    pauseGuardian = pauseGuardian.connect(ethers.provider)
+    governor = await graph.accounts.getGovernor()
+    ;[nonOwner, pauseGuardian] = await graph.accounts.getTestAccounts()
 
     // Set eth balance for non-owner and pause guardian
     await ethers.provider.send('hardhat_setBalance', [nonOwner.address, '0x56BC75E2D63100000'])
