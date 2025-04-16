@@ -6,7 +6,7 @@ import { IHorizonStaking } from '@graphprotocol/horizon'
 
 import { indexers } from './fixtures/indexers'
 
-task('test:post-upgrade', 'Test the post-upgrade state for integration tests')
+task('test:seed', 'Seed the test environment, must be run after deployment')
   .setAction(async (_, hre) => {
     // Get contracts
     const graph = hre.graph()

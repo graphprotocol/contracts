@@ -26,8 +26,7 @@ describe('Indexer', () => {
     subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as ISubgraphService
 
     // Get governor and non-owner
-    const signers = await ethers.getSigners()
-    governor = signers[1]
+    governor = await graph.accounts.getGovernor()
   })
 
   beforeEach(async () => {

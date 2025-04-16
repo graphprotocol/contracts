@@ -1,6 +1,5 @@
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
-import { HDNodeWallet } from 'ethers'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IHorizonStaking, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
@@ -24,8 +23,8 @@ describe('Operator', () => {
 
   // Test addresses
   let indexer: SignerWithAddress
-  let authorizedOperator: HDNodeWallet
-  let unauthorizedOperator: HDNodeWallet
+  let authorizedOperator: SignerWithAddress
+  let unauthorizedOperator: SignerWithAddress
   let allocationId: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
@@ -34,7 +33,7 @@ describe('Operator', () => {
   const { provision } = graph.horizon.actions
   const { collect, generateAllocationProof } = graph.subgraphService.actions
 
-  before(async () => {
+  before(() => {
     // Get contracts
     subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
     staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
@@ -42,16 +41,6 @@ describe('Operator', () => {
     escrow = graph.horizon.contracts.PaymentsEscrow as unknown as IPaymentsEscrow
     graphTallyCollector = graph.horizon.contracts.GraphTallyCollector as unknown as GraphTallyCollector
     disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
-
-    // Get signers
-    authorizedOperator = ethers.Wallet.createRandom()
-    authorizedOperator = authorizedOperator.connect(ethers.provider)
-    unauthorizedOperator = ethers.Wallet.createRandom()
-    unauthorizedOperator = unauthorizedOperator.connect(ethers.provider)
-
-    // Set balances for authorized operator
-    await ethers.provider.send('hardhat_setBalance', [authorizedOperator.address, '0x56BC75E2D63100000'])
-    await ethers.provider.send('hardhat_setBalance', [unauthorizedOperator.address, '0x56BC75E2D63100000'])
   })
 
   beforeEach(async () => {
@@ -67,8 +56,11 @@ describe('Operator', () => {
   describe('New indexer', () => {
     beforeEach(async () => {
       // Get indexer
-      const signers = await ethers.getSigners()
-      indexer = await ethers.getSigner(signers[19].address)
+      [indexer, authorizedOperator, unauthorizedOperator] = await graph.accounts.getTestAccounts()
+
+      // Set balances for operators
+      await ethers.provider.send('hardhat_setBalance', [authorizedOperator.address, '0x56BC75E2D63100000'])
+      await ethers.provider.send('hardhat_setBalance', [unauthorizedOperator.address, '0x56BC75E2D63100000'])
 
       // Create provision
       const disputePeriod = await disputeManager.getDisputePeriod()
@@ -124,6 +116,8 @@ describe('Operator', () => {
       // Get indexer
       const indexerFixture = indexers[0]
       indexer = await ethers.getSigner(indexerFixture.address)
+
+      ;[authorizedOperator, unauthorizedOperator] = await graph.accounts.getTestAccounts()
     })
 
     describe('New allocation', () => {

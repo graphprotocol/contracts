@@ -1,4 +1,4 @@
-import { ethers, HDNodeWallet, Wallet } from 'ethers'
+import { ethers } from 'ethers'
 
 import type { ISubgraphService } from '@graphprotocol/subgraph-service'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
@@ -13,7 +13,7 @@ export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
      *   - `[indexer, paymentType, data]` - The collect parameters
      * @returns The payment collected
      */
-    collect: (signer: HardhatEthersSigner | HDNodeWallet, args: Parameters<ISubgraphService['collect']>): Promise<bigint> => collect(contracts, signer, args),
+    collect: (signer: HardhatEthersSigner, args: Parameters<ISubgraphService['collect']>): Promise<bigint> => collect(contracts, signer, args),
 
     /**
      * Generates an allocation proof for the subgraph services
@@ -29,7 +29,7 @@ export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
 // Collects payment from the subgraph service
 async function collect(
   contracts: { SubgraphService: ISubgraphService },
-  signer: HardhatEthersSigner | HDNodeWallet,
+  signer: HardhatEthersSigner,
   args: Parameters<ISubgraphService['collect']>,
 ): Promise<bigint> {
   const { SubgraphService } = contracts
