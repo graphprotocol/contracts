@@ -17,9 +17,9 @@ describe('Governance', () => {
   let allocationId: string
   let subgraphDeploymentId: string
 
-  before(() => {
-    const graph = hre.graph()
+  const graph = hre.graph()
 
+  before(() => {
     subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as ISubgraphService
     // Get proxy admin with SubgraphServiceInterface
   })
@@ -29,10 +29,8 @@ describe('Governance', () => {
     snapshotId = await ethers.provider.send('evm_snapshot', [])
 
     // Get signers
-    const signers = await ethers.getSigners()
-    governor = signers[1]
-    indexer = signers[2]
-    nonOwner = signers[3]
+    governor = await graph.accounts.getGovernor()
+    ;[indexer, nonOwner] = await graph.accounts.getTestAccounts()
 
     // Generate test addresses
     allocationId = ethers.Wallet.createRandom().address
