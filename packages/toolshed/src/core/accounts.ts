@@ -1,4 +1,5 @@
 import { setGRTBalance } from '../hardhat'
+import { TEN_MILLION } from './constants'
 import { toBeHex } from 'ethers'
 
 import type { Addressable } from 'ethers'
@@ -89,7 +90,7 @@ async function _getAccount(provider: HardhatEthersProvider, accountIndex: number
   const chainId = await provider.send('eth_chainId', []) as string
   const isLocal = [toBeHex(1337), toBeHex(31337)].includes(toBeHex(BigInt(chainId)))
   if (grtTokenAddress && isLocal) {
-    await setGRTBalance(provider, grtTokenAddress, account.address, 10_000_000n)
+    await setGRTBalance(provider, grtTokenAddress, account.address, TEN_MILLION)
   }
 
   return account
