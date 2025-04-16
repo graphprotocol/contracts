@@ -103,7 +103,7 @@ contract SubgraphService is
      *
      * @param indexer The address of the indexer to register
      * @param data Encoded registration data:
-     *  - address `url`: The URL of the indexer
+     *  - string `url`: The URL of the indexer
      *  - string `geohash`: The geohash of the indexer
      *  - address `rewardsDestination`: The address where the indexer wants to receive indexing rewards.
      *    Use zero address for automatic reprovisioning to the subgraph service.
