@@ -17,6 +17,7 @@ node_modules/
 artifacts/
 cache/
 cached/
+cache
 
 # Build artifacts
 dist/
