@@ -86,11 +86,13 @@ export async function getTestAccounts(provider: HardhatEthersProvider, grtTokenA
 async function _getAccount(provider: HardhatEthersProvider, accountIndex: number | string, grtTokenAddress?: string | Addressable) {
   const account = await provider.getSigner(accountIndex)
 
-  // If the chain is local, send 10M GRT to the account
-  const chainId = await provider.send('eth_chainId', []) as string
-  const isLocal = [toBeHex(1337), toBeHex(31337)].includes(toBeHex(BigInt(chainId)))
-  if (grtTokenAddress && isLocal) {
-    await setGRTBalance(provider, grtTokenAddress, account.address, TEN_MILLION)
+  // If the chain is local, set balance to 10M GRT
+  if (grtTokenAddress) {
+    const chainId = await provider.send('eth_chainId', []) as string
+    const isLocal = [toBeHex(1337), toBeHex(31337)].includes(toBeHex(BigInt(chainId)))
+    if (isLocal) {
+      await setGRTBalance(provider, grtTokenAddress, account.address, TEN_MILLION)
+    }
   }
 
   return account
