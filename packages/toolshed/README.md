@@ -21,7 +21,7 @@ The package is organized into several modules that can be imported separately:
 
 ```typescript
 // Import core functionality
-import { encodeAllocationProof } from '@graphprotocol/toolshed';
+import { generateAllocationProof } from '@graphprotocol/toolshed';
 
 // Import deployment
 import { loadGraphHorizon } from '@graphprotocol/toolshed/deployments/horizon';
