@@ -1,8 +1,8 @@
-import { ethers } from 'ethers'
+import { ethers, id } from 'ethers'
 import { randomHexBytes } from '../lib/bytes'
 
-// Generate allocation proof with the indexer's address and the allocation id, signed by the allocation private key
-export async function generateAllocationProof(indexerAddress: string, allocationPrivateKey: string) {
+// For legacy allocations in the staking contract
+export async function encodeLegacyAllocationProof(indexerAddress: string, allocationPrivateKey: string) {
   const wallet = new ethers.Wallet(allocationPrivateKey)
   const messageHash = ethers.solidityPackedKeccak256(
     ['address', 'address'],
@@ -10,6 +10,37 @@ export async function generateAllocationProof(indexerAddress: string, allocation
   )
   const messageHashBytes = ethers.getBytes(messageHash)
   return wallet.signMessage(messageHashBytes)
+}
+
+export const EIP712_ALLOCATION_PROOF_TYPEHASH = id('AllocationIdProof(address indexer,address allocationId)')
+
+export const EIP712_ALLOCATION_ID_PROOF_TYPES = {
+  AllocationIdProof: [
+    { name: 'indexer', type: 'address' },
+    { name: 'allocationId', type: 'address' },
+  ],
+}
+
+// For new allocations in the subgraph service
+export async function encodeAllocationProof(
+  indexerAddress: string,
+  allocationPrivateKey: string,
+  subgraphServiceAddress: string,
+  chainId: number,
+) {
+  const wallet = new ethers.Wallet(allocationPrivateKey)
+
+  const domain = {
+    name: 'SubgraphService',
+    version: '1.0',
+    chainId: chainId,
+    verifyingContract: subgraphServiceAddress,
+  }
+
+  return wallet.signTypedData(domain, EIP712_ALLOCATION_ID_PROOF_TYPES, {
+    indexer: indexerAddress,
+    allocationId: wallet.address,
+  })
 }
 
 export function randomAllocationMetadata() {

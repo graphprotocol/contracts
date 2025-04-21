@@ -1,4 +1,4 @@
-import { generateAllocationProof, randomAllocationMetadata } from '@graphprotocol/toolshed'
+import { encodeLegacyAllocationProof, randomAllocationMetadata } from '@graphprotocol/toolshed'
 import { requireLocalNetwork, setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { delegators } from './fixtures/delegators'
 import { indexers } from './fixtures/indexers'
@@ -73,7 +73,7 @@ task('test:seed', 'Sets up some protocol state for testing')
           allocation.tokens,
           allocation.allocationID,
           randomAllocationMetadata(),
-          await generateAllocationProof(indexer.address, allocation.allocationPrivateKey),
+          await encodeLegacyAllocationProof(indexer.address, allocation.allocationPrivateKey),
         )
       }
     }
