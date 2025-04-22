@@ -1,15 +1,15 @@
-import { EventLog, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
+import { EventLog } from 'ethers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
-import { HorizonStaking } from '@graphprotocol/horizon'
 import { generateAttestationData } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStaking } from '@graphprotocol/horizon'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
-import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 describe('Query Disputes', () => {
   let disputeManager: DisputeManager

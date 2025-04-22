@@ -4,11 +4,11 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
+import { generatePOI } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { HorizonStaking } from '@graphprotocol/horizon'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
-import { generatePOI } from '@graphprotocol/toolshed'
 
 describe('Indexing Disputes', () => {
   let disputeManager: DisputeManager

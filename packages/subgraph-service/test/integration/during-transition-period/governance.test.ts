@@ -3,7 +3,6 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-
 import { ISubgraphService } from '../../../typechain-types'
 
 describe('Governance', () => {

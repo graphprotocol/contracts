@@ -2,11 +2,11 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
+import { encodeStartServiceData, generateAllocationProof } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { ISubgraphService } from '../../../typechain-types'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
-import { ISubgraphService } from '../../../typechain-types'
-import { encodeStartServiceData, generateAllocationProof } from '@graphprotocol/toolshed'
 
 describe('Indexer', () => {
   let subgraphService: ISubgraphService

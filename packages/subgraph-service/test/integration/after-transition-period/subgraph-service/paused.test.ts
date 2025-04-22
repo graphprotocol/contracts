@@ -3,10 +3,10 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
-import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-
 import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
+
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
 
 describe('Paused Protocol', () => {

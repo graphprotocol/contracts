@@ -1,5 +1,5 @@
-import { EventLog, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
+import { EventLog } from 'ethers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
