@@ -1,4 +1,4 @@
-import { ethers, id, keccak256, toUtf8Bytes } from 'ethers'
+import { ethers, id } from 'ethers'
 import { randomHexBytes } from '../lib/bytes'
 
 // For legacy allocations in the staking contract
@@ -45,8 +45,4 @@ export async function generateAllocationProof(
 
 export function randomAllocationMetadata() {
   return randomHexBytes(32)
-}
-
-export function generatePOI() {
-  return ethers.getBytes(keccak256(toUtf8Bytes('poi')))
 }

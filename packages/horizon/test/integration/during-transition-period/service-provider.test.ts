@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 
-import { createPOIFromString, ONE_MILLION } from '@graphprotocol/toolshed'
+import { generatePOI, ONE_MILLION } from '@graphprotocol/toolshed'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
@@ -226,7 +226,7 @@ describe('Service Provider', () => {
 
         it('should be able to close an open legacy allocation and collect rewards', async () => {
           // Use a non-zero POI
-          const poi = createPOIFromString('poi')
+          const poi = generatePOI('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Get delegation pool before closing allocation
@@ -296,7 +296,7 @@ describe('Service Provider', () => {
 
         it('should be able to close an allocation and collect query fees for the closed allocation', async () => {
           // Use a non-zero POI
-          const poi = createPOIFromString('poi')
+          const poi = generatePOI('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Mine blocks to simulate time passing
@@ -361,7 +361,7 @@ describe('Service Provider', () => {
 
         it('should be able to close an open allocation and collect rewards', async () => {
           // Use a non-zero POI
-          const poi = createPOIFromString('poi')
+          const poi = generatePOI('poi')
           const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
           // Get delegation tokens before
