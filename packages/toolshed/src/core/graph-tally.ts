@@ -1,5 +1,6 @@
 import { BytesLike, ethers, id, Signature, Wallet } from 'ethers'
 
+import type { RAV } from './types'
 export const EIP712_RAV_PROOF_TYPEHASH = id('ReceiptAggregateVoucher(bytes32 collectionId,address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)')
 export const EIP712_RAV_PROOF_TYPES = {
   ReceiptAggregateVoucher: [
@@ -14,7 +15,7 @@ export const EIP712_RAV_PROOF_TYPES = {
 }
 
 /**
- * Generates and encodes a signed RAV
+ * Generates a signed RAV
  * @param allocationId The allocation ID
  * @param payer The payer
  * @param serviceProvider The service provider
@@ -27,7 +28,7 @@ export const EIP712_RAV_PROOF_TYPES = {
  * @param chainId The chain ID
  * @returns The encoded signed RAV calldata
  */
-export async function encodeSignedRAVData(
+export async function generateSignedRAV(
   allocationId: string,
   payer: string,
   serviceProvider: string,
@@ -38,7 +39,7 @@ export async function encodeSignedRAVData(
   signerPrivateKey: string,
   graphTallyCollectorAddress: string,
   chainId: number,
-) {
+): Promise<{ rav: RAV, signature: string }> {
   // Create the domain for the EIP712 signature
   const domain = {
     name: 'GraphTallyCollector',
@@ -62,14 +63,8 @@ export async function encodeSignedRAVData(
   const signer = new Wallet(signerPrivateKey)
   const signature = await signer.signTypedData(domain, EIP712_RAV_PROOF_TYPES, ravData)
 
-  // Create the signed RAV
-  const signedRAV = { rav: ravData, signature: signature }
-
-  // Encode the signed RAV
-  return ethers.AbiCoder.defaultAbiCoder().encode(
-    ['tuple(tuple(bytes32 collectionId, address payer, address serviceProvider, address dataService, uint256 timestampNs, uint128 valueAggregate, bytes metadata) rav, bytes signature)'],
-    [signedRAV],
-  )
+  // Return the signed RAV
+  return { rav: ravData, signature: signature }
 }
 
 /**
