@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { HDNodeWallet } from 'ethers'
 import hre from 'hardhat'
 
-import { encodeCollectData, encodeStartServiceData, generateAllocationProof, generatePOI, getSignedRAVCalldata, getSignerProof, PaymentTypes } from '@graphprotocol/toolshed'
+import { encodeCollectData, encodeSignedRAVData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignerProof, PaymentTypes } from '@graphprotocol/toolshed'
 import { GraphPayments, GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
@@ -522,7 +522,7 @@ describe('Indexer', () => {
       // Authorize payer as signer
       // Block timestamp plus 1 year
       const proofDeadline = (await ethers.provider.getBlock('latest'))!.timestamp + 31536000
-      const signerProof = await getSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
+      const signerProof = generateSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
       await graphTallyCollector.connect(payer).authorizeSigner(signer.address, proofDeadline, signerProof)
 
       // Get indexer
@@ -543,7 +543,7 @@ describe('Indexer', () => {
     })
 
     it('should collect query fees with SignedRAV', async () => {
-      const encodedSignedRAV = await getSignedRAVCalldata(
+      const encodedSignedRAV = await encodeSignedRAVData(
         allocationId,
         payer.address,
         indexer.address,
@@ -588,7 +588,7 @@ describe('Indexer', () => {
       const fees2 = collectTokens / 2n
 
       // Get encoded SignedRAVs
-      const encodedSignedRAV1 = await getSignedRAVCalldata(
+      const encodedSignedRAV1 = await encodeSignedRAVData(
         allocationId,
         payer.address,
         indexer.address,
@@ -600,7 +600,7 @@ describe('Indexer', () => {
         graphTallyCollectorAddress,
         chainId,
       )
-      const encodedSignedRAV2 = await getSignedRAVCalldata(
+      const encodedSignedRAV2 = await encodeSignedRAVData(
         otherAllocationId,
         payer.address,
         indexer.address,
@@ -636,7 +636,7 @@ describe('Indexer', () => {
 
       // Collect new RAV for allocation 1
       const newFees1 = fees1 * 2n
-      const newRAV1 = await getSignedRAVCalldata(
+      const newRAV1 = await encodeSignedRAVData(
         allocationId,
         payer.address,
         indexer.address,

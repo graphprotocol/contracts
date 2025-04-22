@@ -1,4 +1,4 @@
-import { BytesLike, ethers, HDNodeWallet, id, Signature, Wallet } from 'ethers'
+import { BytesLike, ethers, id, Signature, Wallet } from 'ethers'
 
 export const EIP712_RAV_PROOF_TYPEHASH = id('ReceiptAggregateVoucher(bytes32 collectionId,address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)')
 export const EIP712_RAV_PROOF_TYPES = {
@@ -14,7 +14,7 @@ export const EIP712_RAV_PROOF_TYPES = {
 }
 
 /**
- * Generates a signed RAV calldata
+ * Generates and encodes a signed RAV
  * @param allocationId The allocation ID
  * @param payer The payer
  * @param serviceProvider The service provider
@@ -27,7 +27,7 @@ export const EIP712_RAV_PROOF_TYPES = {
  * @param chainId The chain ID
  * @returns The encoded signed RAV calldata
  */
-export async function getSignedRAVCalldata(
+export async function encodeSignedRAVData(
   allocationId: string,
   payer: string,
   serviceProvider: string,
@@ -37,14 +37,14 @@ export async function getSignedRAVCalldata(
   metadata: BytesLike,
   signerPrivateKey: string,
   graphTallyCollectorAddress: string,
-  chainId: number
+  chainId: number,
 ) {
   // Create the domain for the EIP712 signature
   const domain = {
     name: 'GraphTallyCollector',
     version: '1',
     chainId,
-    verifyingContract: graphTallyCollectorAddress
+    verifyingContract: graphTallyCollectorAddress,
   }
 
   // Create the RAV data
@@ -55,13 +55,12 @@ export async function getSignedRAVCalldata(
     dataService: dataService,
     timestampNs: timestampNs,
     valueAggregate: valueAggregate,
-    metadata: metadata
+    metadata: metadata,
   }
 
   // Sign the RAV data
   const signer = new Wallet(signerPrivateKey)
   const signature = await signer.signTypedData(domain, EIP712_RAV_PROOF_TYPES, ravData)
-  // const sig = ethers.Signature.from(signature)
 
   // Create the signed RAV
   const signedRAV = { rav: ravData, signature: signature }
@@ -69,7 +68,7 @@ export async function getSignedRAVCalldata(
   // Encode the signed RAV
   return ethers.AbiCoder.defaultAbiCoder().encode(
     ['tuple(tuple(bytes32 collectionId, address payer, address serviceProvider, address dataService, uint256 timestampNs, uint128 valueAggregate, bytes metadata) rav, bytes signature)'],
-    [signedRAV]
+    [signedRAV],
   )
 }
 
@@ -82,13 +81,13 @@ export async function getSignedRAVCalldata(
  * @param signerPrivateKey The private key of the signer
  * @returns The encoded signer proof
  */
-export async function getSignerProof(
+export function generateSignerProof(
   proofDeadline: bigint,
   payer: string,
   signerPrivateKey: string,
   graphTallyCollectorAddress: string,
-  chainId: number
-): Promise<string> {
+  chainId: number,
+): string {
   // Create the message hash
   const messageHash = ethers.keccak256(
     ethers.solidityPacked(
@@ -98,9 +97,9 @@ export async function getSignerProof(
         graphTallyCollectorAddress,
         'authorizeSignerProof',
         proofDeadline,
-        payer
-      ]
-    )
+        payer,
+      ],
+    ),
   )
 
   // Convert to EIP-191 signed message hash (this is the proofToDigest)

@@ -1,8 +1,7 @@
-import { ethers } from 'ethers'
-
-import type { ISubgraphService } from '@graphprotocol/subgraph-service'
-import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { Interface } from 'ethers'
+
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { ISubgraphService } from '@graphprotocol/subgraph-service'
 
 export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
   return {

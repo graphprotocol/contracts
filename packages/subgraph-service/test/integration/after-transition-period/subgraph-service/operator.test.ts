@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
+import { encodeCollectData, encodeRegistrationData, encodeSignedRAVData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignerProof } from '@graphprotocol/toolshed'
 import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { PaymentTypes } from '@graphprotocol/toolshed'
@@ -257,7 +257,7 @@ describe('Operator', () => {
 
           // Authorize payer as signer
           const proofDeadline = (await ethers.provider.getBlock('latest'))!.timestamp + 31536000
-          const signerProof = await getSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
+          const signerProof = generateSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
           await graphTallyCollector.connect(payer).authorizeSigner(signer.address, proofDeadline, signerProof)
 
           // Deposit tokens in escrow
@@ -265,7 +265,7 @@ describe('Operator', () => {
           await escrow.connect(payer).deposit(graphTallyCollector.target, indexer.address, collectTokens)
 
           // Get encoded SignedRAV
-          const encodedSignedRAV = await getSignedRAVCalldata(
+          const encodedSignedRAV = await encodeSignedRAVData(
             allocationId,
             payer.address,
             indexer.address,
@@ -346,7 +346,7 @@ describe('Operator', () => {
 
           // Authorize payer as signer
           const proofDeadline = (await ethers.provider.getBlock('latest'))!.timestamp + 31536000
-          const signerProof = await getSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
+          const signerProof = generateSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
           await graphTallyCollector.connect(payer).authorizeSigner(signer.address, proofDeadline, signerProof)
 
           // Deposit tokens in escrow
@@ -354,7 +354,7 @@ describe('Operator', () => {
           await escrow.connect(payer).deposit(escrow.target, indexer.address, collectTokens)
 
           // Get encoded SignedRAV
-          const encodedSignedRAV = await getSignedRAVCalldata(
+          const encodedSignedRAV = await encodeSignedRAVData(
             allocationId,
             payer.address,
             indexer.address,

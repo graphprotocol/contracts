@@ -11,7 +11,7 @@ export function encodeStartServiceData(
   subgraphDeploymentId: string,
   allocationTokens: bigint,
   allocationId: string,
-  signature: string
+  signature: string,
 ) {
   return ethers.AbiCoder.defaultAbiCoder().encode(
     ['bytes32', 'uint256', 'address', 'bytes'],
