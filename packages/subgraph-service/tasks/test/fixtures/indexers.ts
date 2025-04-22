@@ -12,6 +12,8 @@ export interface Allocation {
 // Indexer interface
 export interface Indexer {
   address: string
+  indexingRewardCut: number
+  queryFeeCut: number
   url: string
   geoHash: string
   rewardsDestination?: string
@@ -90,8 +92,16 @@ export const indexers: Indexer[] = horizonIndexers
     // Move existing allocations to legacyAllocations
     const legacyAllocations = indexer.allocations
 
+    // Previsouly cuts were indexer's share, Horizon cuts are delegator's share. Invert values:
+    // 1_000_000 - oldValue converts from "indexer keeps X%" to "delegators get X%"
+    const maxPpm = 1_000_000
+    const indexingRewardCut = maxPpm - indexer.indexingRewardCut
+    const queryFeeCut = maxPpm - indexer.queryFeeCut
+
     return {
       ...indexer,
+      indexingRewardCut,
+      queryFeeCut,
       url: 'url',
       geoHash: 'geohash',
       provisionTokens: parseEther('1000000'),
