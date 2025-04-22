@@ -254,157 +254,31 @@ describe('Indexer', () => {
 
   describe('Indexing Rewards', () => {
     let allocationId: string
+    let indexingRewardCut: number
 
-    describe('Re-provisioning', () => {
-      let otherAllocationId: string
+    describe('With delegation pool tokens greater than zero', () => {
+      describe('Re-provisioning', () => {
+        let otherAllocationId: string
 
-      beforeEach(async () => {
-        // Get indexer
-        const indexerFixture = indexers[0]
-        indexer = await ethers.getSigner(indexerFixture.address)
-
-        // Get allocations
-        allocationId = indexerFixture.allocations[0].allocationID
-        otherAllocationId = indexerFixture.allocations[1].allocationID
-
-        // Check rewards destination is not set
-        const rewardsDestination = await subgraphService.rewardsDestination(indexer.address)
-        expect(rewardsDestination).to.equal(ethers.ZeroAddress, 'Rewards destination should be zero address')
-      })
-
-      it('should collect indexing rewards with re-provisioning', async () => {
-        // Get before provision tokens
-        const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-
-        // Mine multiple blocks to simulate time passing
-        for (let i = 0; i < 1000; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
-
-        // Build data for collect indexing rewards
-        const poi = generatePOI()
-        const data = encodeCollectData(allocationId, poi)
-
-        // Collect rewards
-        const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
-        expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
-
-        // Verify rewards are added to provision
-        const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-        expect(afterProvisionTokens).to.equal(beforeProvisionTokens + rewards, 'Rewards should be collected')
-      })
-
-      it('should collect rewards continuously for multiple allocations', async () => {
-        // Get before provision tokens
-        const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-
-        // Build data for collect indexing rewards
-        const poi = generatePOI()
-        const allocationData = encodeCollectData(allocationId, poi)
-        const otherAllocationData = encodeCollectData(otherAllocationId, poi)
-
-        // Mine multiple blocks to simulate time passing
-        for (let i = 0; i < 1000; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
-
-        // Collect rewards for first allocation
-        let rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, allocationData])
-        expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
-
-        // Collect rewards for second allocation
-        let otherRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, otherAllocationData])
-        expect(otherRewards).to.not.equal(0n, 'Rewards should be greater than zero')
-
-        // Verify total rewards collected
-        const afterFirstCollectionProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-        expect(afterFirstCollectionProvisionTokens).to.equal(beforeProvisionTokens + rewards + otherRewards, 'Rewards should be collected continuously')
-
-        // Mine multiple blocks to simulate time passing
-        for (let i = 0; i < 500; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
-
-        // Collect rewards for first allocation
-        rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, allocationData])
-        expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
-
-        // Collect rewards for second allocation
-        otherRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, otherAllocationData])
-        expect(otherRewards).to.not.equal(0n, 'Rewards should be greater than zero')
-
-        // Verify total rewards collected
-        const afterSecondCollectionProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-        expect(afterSecondCollectionProvisionTokens).to.equal(afterFirstCollectionProvisionTokens + rewards + otherRewards, 'Rewards should be collected continuously')
-      })
-
-      it('should not collect rewards after POI staleness', async () => {
-        // Get before provision tokens
-        const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-
-        // Wait for POI staleness
-        const maxPOIStaleness = await subgraphService.maxPOIStaleness()
-        await ethers.provider.send('evm_increaseTime', [Number(maxPOIStaleness) + 1])
-        await ethers.provider.send('evm_mine', [])
-
-        // Build data for collect indexing rewards
-        const poi = generatePOI()
-        const data = encodeCollectData(allocationId, poi)
-
-        // Attempt to collect rewards
-        await subgraphService.connect(indexer).collect(
-          indexer.address,
-          PaymentTypes.IndexingRewards,
-          data,
-        )
-
-        // Verify no rewards were collected
-        const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-        expect(afterProvisionTokens).to.equal(beforeProvisionTokens, 'Rewards should not be collected after POI staleness')
-      })
-
-      describe('Over allocated', () => {
-        let subgraphDeploymentId: string
-        let delegator: HardhatEthersSigner
-        let allocationPrivateKey: string
         beforeEach(async () => {
-          // Get delegator
-          delegator = await ethers.getSigner(delegators[0].address)
+          // Get indexer
+          const indexerFixture = indexers[0]
+          indexer = await ethers.getSigner(indexerFixture.address)
+          indexingRewardCut = indexerFixture.indexingRewardCut
 
-          // Get locked tokens
-          const lockedTokens = await subgraphService.allocationProvisionTracker(indexer.address)
+          // Get allocations
+          allocationId = indexerFixture.allocations[0].allocationID
+          otherAllocationId = indexerFixture.allocations[1].allocationID
 
-          // Get delegation ratio
-          const delegationRatio = await subgraphService.getDelegationRatio()
-          const availableTokens = await staking.getTokensAvailable(indexer.address, subgraphService.target, delegationRatio)
-
-          // Create allocation with tokens available
-          const wallet = ethers.Wallet.createRandom()
-          allocationId = wallet.address
-          allocationPrivateKey = wallet.privateKey
-          subgraphDeploymentId = indexers[0].allocations[0].subgraphDeploymentID
-          const allocationTokens = availableTokens - lockedTokens
-          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
-          const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
-          await subgraphService.connect(indexer).startService(
-            indexer.address,
-            data,
-          )
-
-          // Undelegate from indexer so they become over allocated
-          const delegation = await staking.getDelegation(
-            indexer.address,
-            subgraphService.target,
-            delegator.address,
-          )
-
-          // Undelegate tokens
-          await staking.connect(delegator)['undelegate(address,address,uint256)'](indexer.address, subgraphServiceAddress, delegation.shares)
+          // Check rewards destination is not set
+          const rewardsDestination = await subgraphService.rewardsDestination(indexer.address)
+          expect(rewardsDestination).to.equal(ethers.ZeroAddress, 'Rewards destination should be zero address')
         })
 
-        it('should collect rewards while over allocated with fresh POI', async () => {
-          // Get before provision tokens
+        it('should collect indexing rewards with re-provisioning', async () => {
+          // Get before provision and delegation pool tokens
           const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+          const beforeDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
 
           // Mine multiple blocks to simulate time passing
           for (let i = 0; i < 1000; i++) {
@@ -419,54 +293,207 @@ describe('Indexer', () => {
           const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
           expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
-          // Verify rewards are added to provision
-          const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
-          expect(afterProvisionTokens).to.equal(beforeProvisionTokens + rewards, 'Rewards should be collected')
+          // Verify rewards are added to delegation pool
+          const delegationRewards = (rewards * BigInt(indexingRewardCut)) / BigInt(1e6)
+          const afterDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
+          expect(afterDelegationPoolTokens).to.equal(beforeDelegationPoolTokens + delegationRewards, 'Rewards should be added to delegation pool')
 
-          // Verify allocation was closed
-          const allocation = await subgraphService.getAllocation(allocationId)
-          expect(allocation.closedAt).to.not.equal(0)
+          // Verify rewards are added to provision
+          const indexerRewards = rewards - delegationRewards
+          const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+          expect(afterProvisionTokens).to.equal(beforeProvisionTokens + indexerRewards, 'Rewards should be added to provision')
+        })
+
+        it('should collect rewards continuously for multiple allocations', async () => {
+          // Get before provision and delegation pool tokens
+          const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+          const beforeDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
+
+          // Build data for collect indexing rewards
+          const poi = generatePOI()
+          const allocationData = encodeCollectData(allocationId, poi)
+          const otherAllocationData = encodeCollectData(otherAllocationId, poi)
+
+          // Mine multiple blocks to simulate time passing
+          for (let i = 0; i < 1000; i++) {
+            await ethers.provider.send('evm_mine', [])
+          }
+
+          // Collect rewards for first allocation
+          let rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, allocationData])
+          expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
+
+          // Collect rewards for second allocation
+          let otherRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, otherAllocationData])
+          expect(otherRewards).to.not.equal(0n, 'Rewards should be greater than zero')
+
+          // Verify rewards are added to delegation pool
+          const delegationRewards = (rewards * BigInt(indexingRewardCut)) / BigInt(1e6) + (otherRewards * BigInt(indexingRewardCut)) / BigInt(1e6)
+          const afterDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
+          expect(afterDelegationPoolTokens).to.equal(beforeDelegationPoolTokens + delegationRewards, 'Rewards should be continuously added to delegation pool')
+
+          // Verify rewards collected
+          const indexerRewards = rewards + otherRewards - delegationRewards
+          const afterFirstCollectionProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+          expect(afterFirstCollectionProvisionTokens).to.equal(beforeProvisionTokens + indexerRewards, 'Rewards should be continuously added to provision')
+
+          // Mine multiple blocks to simulate time passing
+          for (let i = 0; i < 500; i++) {
+            await ethers.provider.send('evm_mine', [])
+          }
+
+          // Collect rewards for first allocation
+          rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, allocationData])
+          expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
+
+          // Collect rewards for second allocation
+          otherRewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, otherAllocationData])
+          expect(otherRewards).to.not.equal(0n, 'Rewards should be greater than zero')
+
+          // Verify rewards are added to delegation pool
+          const secondCollectionDelegationRewards = (rewards * BigInt(indexingRewardCut)) / BigInt(1e6) + (otherRewards * BigInt(indexingRewardCut)) / BigInt(1e6)
+          const afterSecondCollectionDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
+          expect(afterSecondCollectionDelegationPoolTokens).to.equal(afterDelegationPoolTokens + secondCollectionDelegationRewards, 'Rewards should be continuously added to delegation pool')
+
+          // Verify total rewards collected
+          const secondCollectionIndexerRewards = rewards + otherRewards - secondCollectionDelegationRewards
+          const afterSecondCollectionProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+          expect(afterSecondCollectionProvisionTokens).to.equal(afterFirstCollectionProvisionTokens + secondCollectionIndexerRewards, 'Rewards should be collected continuously')
+        })
+
+        it('should not collect rewards after POI staleness', async () => {
+          // Get before provision tokens
+          const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+
+          // Wait for POI staleness
+          const maxPOIStaleness = await subgraphService.maxPOIStaleness()
+          await ethers.provider.send('evm_increaseTime', [Number(maxPOIStaleness) + 1])
+          await ethers.provider.send('evm_mine', [])
+
+          // Build data for collect indexing rewards
+          const poi = generatePOI()
+          const data = encodeCollectData(allocationId, poi)
+
+          // Attempt to collect rewards
+          await subgraphService.connect(indexer).collect(
+            indexer.address,
+            PaymentTypes.IndexingRewards,
+            data,
+          )
+
+          // Verify no rewards were collected
+          const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+          expect(afterProvisionTokens).to.equal(beforeProvisionTokens, 'Rewards should not be collected after POI staleness')
+        })
+
+        describe('Over allocated', () => {
+          let subgraphDeploymentId: string
+          let delegator: HardhatEthersSigner
+          let allocationPrivateKey: string
+          beforeEach(async () => {
+            // Get delegator
+            delegator = await ethers.getSigner(delegators[0].address)
+
+            // Get locked tokens
+            const lockedTokens = await subgraphService.allocationProvisionTracker(indexer.address)
+
+            // Get delegation ratio
+            const delegationRatio = await subgraphService.getDelegationRatio()
+            const availableTokens = await staking.getTokensAvailable(indexer.address, subgraphService.target, delegationRatio)
+
+            // Create allocation with tokens available
+            const wallet = ethers.Wallet.createRandom()
+            allocationId = wallet.address
+            allocationPrivateKey = wallet.privateKey
+            subgraphDeploymentId = indexers[0].allocations[0].subgraphDeploymentID
+            const allocationTokens = availableTokens - lockedTokens
+            const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
+            const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
+            await subgraphService.connect(indexer).startService(
+              indexer.address,
+              data,
+            )
+
+            // Undelegate from indexer so they become over allocated
+            const delegation = await staking.getDelegation(
+              indexer.address,
+              subgraphService.target,
+              delegator.address,
+            )
+
+            // Undelegate tokens
+            await staking.connect(delegator)['undelegate(address,address,uint256)'](indexer.address, subgraphServiceAddress, delegation.shares)
+          })
+
+          it('should collect rewards while over allocated with fresh POI', async () => {
+            // Get before provision tokens
+            const beforeProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+
+            // Mine multiple blocks to simulate time passing
+            for (let i = 0; i < 1000; i++) {
+              await ethers.provider.send('evm_mine', [])
+            }
+
+            // Build data for collect indexing rewards
+            const poi = generatePOI()
+            const data = encodeCollectData(allocationId, poi)
+
+            // Collect rewards
+            const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
+            expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
+
+            // Verify rewards are added to provision
+            const afterProvisionTokens = (await staking.getProvision(indexer.address, subgraphService.target)).tokens
+            expect(afterProvisionTokens).to.equal(beforeProvisionTokens + rewards, 'Rewards should be collected')
+
+            // Verify allocation was closed
+            const allocation = await subgraphService.getAllocation(allocationId)
+            expect(allocation.closedAt).to.not.equal(0)
+          })
         })
       })
     })
 
-    describe('With rewards destination', () => {
-      let rewardsDestination: string
+    describe('With delegation pool tokens equal to zero', () => {
+      describe('With rewards destination', () => {
+        let rewardsDestination: string
 
-      beforeEach(async () => {
-        // Get indexer
-        const indexerFixture = indexers[1]
-        indexer = await ethers.getSigner(indexerFixture.address)
+        beforeEach(async () => {
+          // Get indexer
+          const indexerFixture = indexers[1]
+          indexer = await ethers.getSigner(indexerFixture.address)
+          indexingRewardCut = indexerFixture.indexingRewardCut
 
-        // Get allocation
-        const allocation = indexerFixture.allocations[0]
-        allocationId = allocation.allocationID
+          // Get allocation
+          const allocation = indexerFixture.allocations[0]
+          allocationId = allocation.allocationID
 
-        // Check rewards destination is set
-        rewardsDestination = await subgraphService.rewardsDestination(indexer.address)
-        expect(rewardsDestination).not.equal(ethers.ZeroAddress, 'Rewards destination should be set')
-      })
+          // Check rewards destination is set
+          rewardsDestination = await subgraphService.rewardsDestination(indexer.address)
+          expect(rewardsDestination).not.equal(ethers.ZeroAddress, 'Rewards destination should be set')
+        })
 
-      it('should collect indexing rewards with rewards destination', async () => {
-        // Get before balance of rewards destination
-        const beforeRewardsDestinationBalance = await graphToken.balanceOf(rewardsDestination)
+        it('should collect indexing rewards with rewards destination', async () => {
+          // Get before balance of rewards destination
+          const beforeRewardsDestinationBalance = await graphToken.balanceOf(rewardsDestination)
 
-        // Mine multiple blocks to simulate time passing
-        for (let i = 0; i < 500; i++) {
-          await ethers.provider.send('evm_mine', [])
-        }
+          // Mine multiple blocks to simulate time passing
+          for (let i = 0; i < 500; i++) {
+            await ethers.provider.send('evm_mine', [])
+          }
 
-        // Build data for collect indexing rewards
-        const poi = generatePOI()
-        const data = encodeCollectData(allocationId, poi)
+          // Build data for collect indexing rewards
+          const poi = generatePOI()
+          const data = encodeCollectData(allocationId, poi)
 
-        // Collect rewards
-        const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
-        expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
+          // Collect rewards
+          const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
+          expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
-        // Verify rewards are transferred to rewards destination
-        const afterRewardsDestinationBalance = await graphToken.balanceOf(rewardsDestination)
-        expect(afterRewardsDestinationBalance).to.equal(beforeRewardsDestinationBalance + rewards, 'Rewards should be transferred to rewards destination')
+          // Verify rewards are transferred to rewards destination
+          const afterRewardsDestinationBalance = await graphToken.balanceOf(rewardsDestination)
+          expect(afterRewardsDestinationBalance).to.equal(beforeRewardsDestinationBalance + rewards, 'Rewards should be transferred to rewards destination')
+        })
       })
     })
   })
@@ -477,6 +504,7 @@ describe('Indexer', () => {
     let allocationId: string
     let otherAllocationId: string
     let collectTokens: bigint
+    let queryFeeCut: number
 
     before(async () => {
       // Get payer
@@ -500,7 +528,7 @@ describe('Indexer', () => {
       // Get indexer
       const indexerFixture = indexers[0]
       indexer = await ethers.getSigner(indexerFixture.address)
-
+      queryFeeCut = indexerFixture.queryFeeCut
       // Get allocation
       allocationId = indexerFixture.allocations[0].allocationID
       otherAllocationId = indexerFixture.allocations[1].allocationID
@@ -528,8 +556,9 @@ describe('Indexer', () => {
         chainId,
       )
 
-      // Get balance before collect
+      // Get balance and delegation pool tokens before collect
       const beforeBalance = await graphToken.balanceOf(indexer.address)
+      const beforeDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
 
       // Collect query fees
       await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
@@ -538,14 +567,21 @@ describe('Indexer', () => {
       const rewardsAfterTax = collectTokens - (collectTokens * BigInt(await graphPayments.PROTOCOL_PAYMENT_CUT())) / BigInt(1e6)
       const rewardsAfterCuration = rewardsAfterTax - (rewardsAfterTax * BigInt(await subgraphService.curationFeesCut())) / BigInt(1e6)
 
+      // Verify tokens where added to delegation pool
+      const delegatorTokens = (rewardsAfterCuration * BigInt(queryFeeCut)) / BigInt(1e6)
+      const afterDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
+      expect(afterDelegationPoolTokens).to.equal(beforeDelegationPoolTokens + delegatorTokens)
+
       // Verify indexer received tokens
+      const indexerTokens = rewardsAfterCuration - delegatorTokens
       const afterBalance = await graphToken.balanceOf(indexer.address)
-      expect(afterBalance).to.equal(beforeBalance + rewardsAfterCuration)
+      expect(afterBalance).to.equal(beforeBalance + indexerTokens)
     })
 
     it('should collect multiple SignedRAVs', async () => {
-      // Get before balance
+      // Get balance and delegation pool tokens before collect
       const beforeBalance = await graphToken.balanceOf(indexer.address)
+      const beforeDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
 
       // Get fees
       const fees1 = collectTokens / 4n
@@ -588,9 +624,15 @@ describe('Indexer', () => {
       const totalRewardsAfterTax = totalRewards - (totalRewards * BigInt(await graphPayments.PROTOCOL_PAYMENT_CUT())) / BigInt(1e6)
       const totalRewardsAfterCuration = totalRewardsAfterTax - (totalRewardsAfterTax * BigInt(await subgraphService.curationFeesCut())) / BigInt(1e6)
 
+      // Verify tokens where added to delegation pool
+      const delegatorTokens = (totalRewardsAfterCuration * BigInt(queryFeeCut)) / BigInt(1e6)
+      const afterDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
+      expect(afterDelegationPoolTokens).to.equal(beforeDelegationPoolTokens + delegatorTokens)
+
       // Verify indexer received tokens
+      const indexerTokens = totalRewardsAfterCuration - delegatorTokens
       const afterBalance = await graphToken.balanceOf(indexer.address)
-      expect(afterBalance).to.equal(beforeBalance + totalRewardsAfterCuration)
+      expect(afterBalance).to.equal(beforeBalance + indexerTokens)
 
       // Collect new RAV for allocation 1
       const newFees1 = fees1 * 2n
