@@ -21,7 +21,7 @@
     "build": "hardhat compile",
     "test": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test",
-    "test:integration": "./scripts/test/integration"
+    "test:integration": "./scripts/integration"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
