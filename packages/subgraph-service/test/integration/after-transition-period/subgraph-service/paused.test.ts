@@ -6,7 +6,7 @@ import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typech
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
-import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
+import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
 
 describe('Paused Protocol', () => {
@@ -15,6 +15,7 @@ describe('Paused Protocol', () => {
   let subgraphService: SubgraphService
 
   let snapshotId: string
+  let chainId: number
 
   // Test addresses
   let pauseGuardian: HardhatEthersSigner
@@ -22,10 +23,11 @@ describe('Paused Protocol', () => {
   let allocationId: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
+  let subgraphServiceAddress: string
 
   const graph = hre.graph()
   const { provision } = graph.horizon.actions
-  const { collect, generateAllocationProof } = graph.subgraphService.actions
+  const { collect } = graph.subgraphService.actions
 
   before(async () => {
     // Get contracts
@@ -35,6 +37,12 @@ describe('Paused Protocol', () => {
 
     // Get signers
     pauseGuardian = await graph.accounts.getPauseGuardian()
+
+    // Get chain id
+    chainId = Number((await hre.ethers.provider.getNetwork()).chainId)
+
+    // Get subgraph service address
+    subgraphServiceAddress = await subgraphService.getAddress()
   })
 
   beforeEach(async () => {
@@ -155,7 +163,7 @@ describe('Paused Protocol', () => {
 
         it('should not allow indexer to start an allocation while paused', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
           // Build allocation data
           const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)

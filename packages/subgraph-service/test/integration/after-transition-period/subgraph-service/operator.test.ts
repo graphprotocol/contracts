@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generatePOI, getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
+import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
 import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
@@ -33,7 +33,7 @@ describe('Operator', () => {
   let subgraphServiceAddress: string
   const graph = hre.graph()
   const { provision } = graph.horizon.actions
-  const { collect, generateAllocationProof } = graph.subgraphService.actions
+  const { collect } = graph.subgraphService.actions
 
   before(async () => {
     // Get contracts
@@ -143,7 +143,7 @@ describe('Operator', () => {
 
         it('should be able to create an allocation', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
           // Build allocation data
           const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
@@ -164,7 +164,7 @@ describe('Operator', () => {
       describe('Unauthorized Operator', () => {
         it('should not be able to create an allocation', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
           // Build allocation data
           const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
