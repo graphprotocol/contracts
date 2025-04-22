@@ -3,7 +3,7 @@ import { task } from 'hardhat/config'
 import { HorizonStakingExtension } from '@graphprotocol/horizon'
 
 import { indexers } from './fixtures/indexers'
-import { encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI } from '@graphprotocol/toolshed'
+import { encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
 
 task('test:seed', 'Seed the test environment, must be run after deployment')
   .setAction(async (_, hre) => {
@@ -53,16 +53,21 @@ task('test:seed', 'Seed the test environment, must be run after deployment')
       }
     }
 
-    console.log('\n--- STEP 2: Create provisions and register indexers ---')
+    console.log('\n--- STEP 2: Create provisions, set delegation cuts and register indexers ---')
 
     for (const indexer of indexers) {
+      // Create provision
       console.log(`Creating subgraph service provision for indexer: ${indexer.address}`)
-
       const indexerSigner = await hre.ethers.getSigner(indexer.address)
       await horizonStaking.connect(indexerSigner).provision(indexer.address, await subgraphService.getAddress(), indexer.provisionTokens, maxSlashingCut, disputePeriod)
-
       console.log(`Provision created for indexer with ${indexer.provisionTokens} tokens`)
 
+      // Set delegation fee cut
+      console.log(`Setting delegation fee cut for indexer: ${indexer.address}`)
+      await horizonStaking.connect(indexerSigner).setDelegationFeeCut(indexer.address, subgraphServiceAddress, PaymentTypes.IndexingRewards, indexer.indexingRewardCut)
+      await horizonStaking.connect(indexerSigner).setDelegationFeeCut(indexer.address, subgraphServiceAddress, PaymentTypes.QueryFee, indexer.queryFeeCut)
+
+      // Register indexer
       console.log(`Registering indexer: ${indexer.address}`)
       const indexerRegistrationData = encodeRegistrationData(indexer.url, indexer.geoHash, indexer.rewardsDestination || hre.ethers.ZeroAddress)
       await subgraphService.connect(indexerSigner).register(indexerSigner.address, indexerRegistrationData)
