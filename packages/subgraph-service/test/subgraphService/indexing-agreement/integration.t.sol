@@ -50,7 +50,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         _setupPayerWithEscrow(fuzzyRCA.payer, signerPrivateKey, params.indexer, expectedTotalTokensCollected);
         uint256 agreementTokensPerSecond = 1;
         // Create the Indexing Agreement
-        fuzzyRCA.acceptDeadline = block.timestamp; // accept now
+        fuzzyRCA.deadline = block.timestamp; // accept now
         fuzzyRCA.duration = type(uint256).max; // no expiration
         fuzzyRCA.maxInitialTokens = 0; // no initial payment
         fuzzyRCA.maxOngoingTokensPerSecond = type(uint32).max; // unlimited tokens per second

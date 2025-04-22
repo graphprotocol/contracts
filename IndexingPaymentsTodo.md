@@ -13,11 +13,14 @@
 * Support a way for gateway to shop an agreement around? Deadline + dedup key? So only one agreement with the dedupe key can be accepted?
 * If an indexer closes an allocation, what should happen to the accepeted agreement?
 * test_SubgraphService_CollectIndexingFee_Integration fails with PaymentsEscrowInconsistentCollection
-* Reduce the number of errors declared and returned
 * Switch `duration` for `endsAt`?
+* Check that UUID-v4 fits in `bytes16`
+* Test `upgrade` paths
+* Test lock stake
 
 # Done
 
+* DONE: ~~Reduce the number of errors declared and returned~~
 * DONE: ~~Support `DisputeManager`~~
 * DONE: ~~Check upgrade conditions. Support indexing agreement upgradability, so that there is a mechanism to adjust the rates without having to cancel and start over.~~
 * DONE: ~~Maybe check that the epoch the indexer is sending is the one the transaction will be run in?~~

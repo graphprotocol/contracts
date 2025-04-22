@@ -49,14 +49,14 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
         require(block.timestamp > 0, "block.timestamp can't be zero");
-        rca.acceptDeadline = bound(rca.acceptDeadline, 0, block.timestamp - 1);
+        rca.deadline = bound(rca.deadline, 0, block.timestamp - 1);
         return rca;
     }
 
     function withOKAcceptDeadline(
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
-        rca.acceptDeadline = boundTimestampMin(rca.acceptDeadline, block.timestamp);
+        rca.deadline = boundTimestampMin(rca.deadline, block.timestamp);
         return rca;
     }
 }

@@ -96,7 +96,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         vm.assume(signedRCA.rca.dataService != address(subgraphService));
         signedRCA.rca.serviceProvider = params.indexer;
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementDataServiceMismatch.selector,
+            ISubgraphService.SubgraphServiceIndexingAgreementWrongDataService.selector,
             signedRCA.rca.dataService
         );
         vm.expectRevert(expectedErr);

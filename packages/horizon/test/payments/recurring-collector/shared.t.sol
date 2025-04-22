@@ -52,7 +52,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         uint256 _signerKey
     ) internal returns (IRecurringCollector.SignedRCA memory) {
         vm.assume(_rca.payer != address(0));
-        _rca.acceptDeadline = boundTimestampMin(_rca.acceptDeadline, block.timestamp + 1);
+        _rca.deadline = boundTimestampMin(_rca.deadline, block.timestamp + 1);
         return _authorizeAndAcceptV2(_rca, _signerKey);
     }
 

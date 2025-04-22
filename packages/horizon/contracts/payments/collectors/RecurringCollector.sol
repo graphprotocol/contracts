@@ -23,13 +23,13 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
     bytes32 public constant EIP712_RCA_TYPEHASH =
         keccak256(
-            "RecurringCollectionAgreement(bytes16 agreementId,uint256 acceptDeadline,uint256 duration,address payer,address dataService,address serviceProvider,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
+            "RecurringCollectionAgreement(bytes16 agreementId,uint256 deadline,uint256 duration,address payer,address dataService,address serviceProvider,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
         );
 
     /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpgrade struct
     bytes32 public constant EIP712_RCAU_TYPEHASH =
         keccak256(
-            "RecurringCollectionAgreementUpgrade(bytes16 agreementId,uint256 upgradeDeadline,uint256 duration,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
+            "RecurringCollectionAgreementUpgrade(bytes16 agreementId,uint256 deadline,uint256 duration,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
         );
 
     /// @notice Sentinel value to indicate an agreement has been canceled
@@ -77,11 +77,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     function accept(SignedRCA calldata signedRCA) external {
         require(
             msg.sender == signedRCA.rca.dataService,
-            RecurringCollectorCallerNotDataService(msg.sender, signedRCA.rca.dataService)
+            RecurringCollectorUnauthorizedCaller(msg.sender, signedRCA.rca.dataService)
         );
         require(
-            signedRCA.rca.acceptDeadline >= block.timestamp,
-            RecurringCollectorAgreementAcceptanceElapsed(signedRCA.rca.acceptDeadline)
+            signedRCA.rca.deadline >= block.timestamp,
+            RecurringCollectorAgreementDeadlineElapsed(signedRCA.rca.deadline)
         );
 
         // check that the voucher is signed by the payer (or proxy)
@@ -101,7 +101,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.maxOngoingTokensPerSecond = signedRCA.rca.maxOngoingTokensPerSecond;
         agreement.minSecondsPerCollection = signedRCA.rca.minSecondsPerCollection;
         agreement.maxSecondsPerCollection = signedRCA.rca.maxSecondsPerCollection;
-        _requireValidAgreement(agreement, signedRCA.rca.agreementId);
+        _requireValidAgreement(agreement);
 
         emit AgreementAccepted(
             agreement.dataService,
@@ -147,8 +147,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      */
     function upgrade(SignedRCAU calldata signedRCAU) external {
         require(
-            signedRCAU.rcau.upgradeDeadline >= block.timestamp,
-            RecurringCollectorAgreementUpgradeElapsed(signedRCAU.rcau.upgradeDeadline)
+            signedRCAU.rcau.deadline >= block.timestamp,
+            RecurringCollectorAgreementDeadlineElapsed(signedRCAU.rcau.deadline)
         );
 
         AgreementData storage agreement = _getForUpdateAgreement(signedRCAU.rcau.agreementId);
@@ -167,7 +167,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.maxOngoingTokensPerSecond = signedRCAU.rcau.maxOngoingTokensPerSecond;
         agreement.minSecondsPerCollection = signedRCAU.rcau.minSecondsPerCollection;
         agreement.maxSecondsPerCollection = signedRCAU.rcau.maxSecondsPerCollection;
-        _requireValidAgreement(agreement, signedRCAU.rcau.agreementId);
+        _requireValidAgreement(agreement);
 
         emit AgreementUpgraded(
             agreement.dataService,
@@ -236,10 +236,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      */
     function _collect(CollectParams memory _params) private returns (uint256) {
         AgreementData storage agreement = _getForUpdateAgreement(_params.agreementId);
-        require(
-            agreement.acceptedAt > 0,
-            RecurringCollectorAgreementInvalid(_params.agreementId, agreement.acceptedAt)
-        );
+        require(agreement.acceptedAt > 0, RecurringCollectorAgreementNeverAccepted(_params.agreementId));
         require(
             msg.sender == agreement.dataService,
             RecurringCollectorDataServiceNotAuthorized(_params.agreementId, msg.sender)
@@ -283,36 +280,33 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         return _params.tokens;
     }
 
-    function _requireValidAgreement(AgreementData memory _agreement, bytes16 _agreementId) private view {
+    function _requireValidAgreement(AgreementData memory _agreement) private view {
         require(
             _agreement.dataService != address(0) &&
                 _agreement.payer != address(0) &&
                 _agreement.serviceProvider != address(0),
-            RecurringCollectorAgreementInvalidParams(_agreementId)
+            RecurringCollectorAgreementInvalidParameters()
         );
 
         // Agreement needs to end in the future
-        require(_agreementEndsAt(_agreement) > block.timestamp, RecurringCollectorAgreementInvalidParams(_agreementId));
+        require(_agreementEndsAt(_agreement) > block.timestamp, RecurringCollectorAgreementInvalidParameters());
 
         // Collection window needs to be at least 2 hours
         require(
             _agreement.maxSecondsPerCollection > _agreement.minSecondsPerCollection &&
                 (_agreement.maxSecondsPerCollection - _agreement.minSecondsPerCollection >= 7200),
-            RecurringCollectorAgreementInvalidParams(_agreementId)
+            RecurringCollectorAgreementInvalidParameters()
         );
 
         // Agreement needs to last at least one min collection window
         require(
             _agreement.duration >= _agreement.minSecondsPerCollection + 7200,
-            RecurringCollectorAgreementInvalidParams(_agreementId)
+            RecurringCollectorAgreementInvalidParameters()
         );
     }
 
     function _requireCollectableAgreement(AgreementData memory _agreement, bytes16 _agreementId) private view {
-        require(
-            _agreement.acceptedAt > 0 && _agreement.acceptedAt != CANCELED,
-            RecurringCollectorAgreementInvalid(_agreementId, _agreement.acceptedAt)
-        );
+        require(_agreement.acceptedAt != CANCELED, RecurringCollectorAgreementCanceled(_agreementId));
 
         uint256 agreementEnd = _agreement.duration < type(uint256).max - _agreement.acceptedAt
             ? _agreement.acceptedAt + _agreement.duration
@@ -367,7 +361,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                     abi.encode(
                         EIP712_RCA_TYPEHASH,
                         _rca.agreementId,
-                        _rca.acceptDeadline,
+                        _rca.deadline,
                         _rca.duration,
                         _rca.payer,
                         _rca.dataService,
@@ -392,7 +386,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                     abi.encode(
                         EIP712_RCAU_TYPEHASH,
                         _rcau.agreementId,
-                        _rcau.upgradeDeadline,
+                        _rcau.deadline,
                         _rcau.duration,
                         _rcau.maxInitialTokens,
                         _rcau.maxOngoingTokensPerSecond,

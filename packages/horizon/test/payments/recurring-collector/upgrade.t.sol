@@ -20,15 +20,15 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _sensibleRCAU(rca);
 
         boundSkipCeil(unboundedUpgradeSkip, type(uint256).max);
-        rcau.upgradeDeadline = bound(rcau.upgradeDeadline, 0, block.timestamp - 1);
+        rcau.deadline = bound(rcau.deadline, 0, block.timestamp - 1);
         IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
             rcau: rcau,
             signature: ""
         });
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementUpgradeElapsed.selector,
-            rcau.upgradeDeadline
+            IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,
+            rcau.deadline
         );
         vm.expectRevert(expectedErr);
         vm.prank(rca.dataService);
@@ -39,7 +39,7 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         rca = _sensibleRCA(rca);
         IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _sensibleRCAU(rca);
 
-        rcau.upgradeDeadline = block.timestamp;
+        rcau.deadline = block.timestamp;
         IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
             rcau: rcau,
             signature: ""
@@ -67,7 +67,7 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         _authorizeAndAccept(rca, signerKey);
 
         boundSkipCeil(unboundedUpgradeSkip, type(uint256).max);
-        rcau.upgradeDeadline = boundTimestampMin(rcau.upgradeDeadline, block.timestamp + 1);
+        rcau.deadline = boundTimestampMin(rcau.deadline, block.timestamp + 1);
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
             rcau,
             signerKey
@@ -98,7 +98,7 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         _authorizeAndAccept(rca, signerKey);
 
         boundSkipCeil(unboundedUpgradeSkip, type(uint256).max);
-        rcau.upgradeDeadline = boundTimestampMin(rcau.upgradeDeadline, block.timestamp + 1);
+        rcau.deadline = boundTimestampMin(rcau.deadline, block.timestamp + 1);
 
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
             rcau,
@@ -121,7 +121,7 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         _authorizeAndAccept(rca, signerKey);
 
         boundSkipCeil(unboundedUpgradeSkip, type(uint256).max);
-        rcau.upgradeDeadline = boundTimestampMin(rcau.upgradeDeadline, block.timestamp + 1);
+        rcau.deadline = boundTimestampMin(rcau.deadline, block.timestamp + 1);
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
             rcau,
             signerKey

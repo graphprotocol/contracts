@@ -26,7 +26,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         // The agreement ID of the RCA
         bytes16 agreementId;
         // The deadline for accepting the RCA
-        uint256 acceptDeadline;
+        uint256 deadline;
         // The duration of the RCA in seconds
         uint256 duration;
         // The address of the payer the RCA was issued by
@@ -61,7 +61,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         // The agreement ID
         bytes16 agreementId;
         // The deadline for upgrading
-        uint256 upgradeDeadline;
+        uint256 deadline;
         // The duration of the agreement in seconds
         uint256 duration;
         // The maximum amount of tokens that can be collected in the first collection
@@ -184,23 +184,17 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     );
 
     /**
-     * Thrown when calling cancel() for an agreement not owned by the calling data service
+     * Thrown when interacting with an agreement not owned by the message sender
      * @param agreementId The agreement ID
-     * @param dataService The address of the data service
+     * @param unauthorizedDataService The address of the unauthorized data service
      */
-    error RecurringCollectorDataServiceNotAuthorized(bytes16 agreementId, address dataService);
+    error RecurringCollectorDataServiceNotAuthorized(bytes16 agreementId, address unauthorizedDataService);
 
     /**
-     * Thrown when calling accept() for an agreement with an elapsed acceptance deadline
-     * @param elapsedAt The timestamp when the acceptance deadline elapsed
+     * Thrown when interacting with an agreement with an elapsed deadline
+     * @param elapsedAt The timestamp when the deadline elapsed
      */
-    error RecurringCollectorAgreementAcceptanceElapsed(uint256 elapsedAt);
-
-    /**
-     * Thrown when calling upgrade() for an agreement with an elapsed upgrade deadline
-     * @param elapsedAt The timestamp when the upgrade deadline elapsed
-     */
-    error RecurringCollectorAgreementUpgradeElapsed(uint256 elapsedAt);
+    error RecurringCollectorAgreementDeadlineElapsed(uint256 elapsedAt);
 
     /**
      * Thrown when the signer is invalid
@@ -209,22 +203,22 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * Thrown when the payment type is not IndexingFee
-     * @param paymentType The provided payment type
+     * @param invalidPaymentType The invalid payment type
      */
-    error RecurringCollectorInvalidPaymentType(IGraphPayments.PaymentTypes paymentType);
+    error RecurringCollectorInvalidPaymentType(IGraphPayments.PaymentTypes invalidPaymentType);
 
     /**
      * Thrown when the caller is not the data service the RCA was issued to
-     * @param caller The address of the caller
+     * @param unauthorizedCaller The address of the caller
      * @param dataService The address of the data service
      */
-    error RecurringCollectorCallerNotDataService(address caller, address dataService);
+    error RecurringCollectorUnauthorizedCaller(address unauthorizedCaller, address dataService);
 
     /**
      * Thrown when calling collect() with invalid data
-     * @param data The invalid data
+     * @param invalidData The invalid data
      */
-    error RecurringCollectorInvalidCollectData(bytes data);
+    error RecurringCollectorInvalidCollectData(bytes invalidData);
 
     /**
      * Thrown when calling accept() for an already accepted agreement
@@ -233,23 +227,21 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorAgreementAlreadyAccepted(bytes16 agreementId);
 
     /**
-     * Thrown when calling cancel() for a never accepted agreement
+     * Thrown when interacting with an agreement that was never accepted
      * @param agreementId The agreement ID
      */
     error RecurringCollectorAgreementNeverAccepted(bytes16 agreementId);
 
     /**
-     * Thrown when calling collect() on an invalid agreement
+     * Thrown when interacting with an agreement that was canceled
      * @param agreementId The agreement ID
-     * @param acceptedAt The agreement accepted timestamp
      */
-    error RecurringCollectorAgreementInvalid(bytes16 agreementId, uint256 acceptedAt);
+    error RecurringCollectorAgreementCanceled(bytes16 agreementId);
 
     /**
-     * Thrown when accepting or upgrading an agreement with invalid params
-     * @param agreementId The agreement ID
+     * Thrown when accepting or upgrading an agreement with invalid parameters
      */
-    error RecurringCollectorAgreementInvalidParams(bytes16 agreementId);
+    error RecurringCollectorAgreementInvalidParameters();
 
     /**
      * Thrown when calling collect() on an elapsed agreement

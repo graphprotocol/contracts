@@ -593,7 +593,7 @@ contract SubgraphService is
     {
         require(
             signedRCA.rca.dataService == address(this),
-            SubgraphServiceIndexingAgreementDataServiceMismatch(signedRCA.rca.dataService)
+            SubgraphServiceIndexingAgreementWrongDataService(signedRCA.rca.dataService)
         );
 
         AcceptIndexingAgreementMetadata memory metadata = _decodeRCAMetadata(signedRCA.rca.metadata);

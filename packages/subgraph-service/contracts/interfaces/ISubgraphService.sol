@@ -367,9 +367,9 @@ interface ISubgraphService is IDataServiceFees {
 
     /**
      * @notice Thrown when an agreement is not for the subgraph data service
-     * @param agreementDataService The agreement data service
+     * @param wrongDataService The wrong data service
      */
-    error SubgraphServiceIndexingAgreementDataServiceMismatch(address agreementDataService);
+    error SubgraphServiceIndexingAgreementWrongDataService(address wrongDataService);
 
     /**
      * @notice Thrown when an agreement and the allocation correspond to different deployment IDs

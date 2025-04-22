@@ -24,8 +24,8 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
         fuzzySignedRCA.rca = _recurringCollectorHelper.withElapsedAcceptDeadline(fuzzySignedRCA.rca);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementAcceptanceElapsed.selector,
-            fuzzySignedRCA.rca.acceptDeadline
+            IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,
+            fuzzySignedRCA.rca.deadline
         );
         vm.expectRevert(expectedErr);
         vm.prank(fuzzySignedRCA.rca.dataService);

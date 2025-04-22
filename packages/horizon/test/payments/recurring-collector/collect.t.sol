@@ -72,9 +72,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(params.collectData);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementInvalid.selector,
-            params.collectData.agreementId,
-            0
+            IRecurringCollector.RecurringCollectorAgreementNeverAccepted.selector,
+            params.collectData.agreementId
         );
         vm.expectRevert(expectedErr);
         vm.prank(params.dataService);
@@ -100,9 +99,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementInvalid.selector,
-            collectParams.agreementId,
-            type(uint256).max
+            IRecurringCollector.RecurringCollectorAgreementCanceled.selector,
+            collectParams.agreementId
         );
         vm.expectRevert(expectedErr);
         vm.prank(rca.dataService);
