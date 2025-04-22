@@ -6,10 +6,10 @@ import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '.
 import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
 import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-
-import { indexers } from '../../../../tasks/test/fixtures/indexers'
 import { PaymentTypes } from '@graphprotocol/toolshed'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
+
+import { indexers } from '../../../../tasks/test/fixtures/indexers'
 
 describe('Operator', () => {
   let subgraphService: SubgraphService

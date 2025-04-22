@@ -1,9 +1,9 @@
 import { task } from 'hardhat/config'
 
+import { encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
 import { HorizonStakingExtension } from '@graphprotocol/horizon'
 
 import { indexers } from './fixtures/indexers'
-import { encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
 
 task('test:seed', 'Seed the test environment, must be run after deployment')
   .setAction(async (_, hre) => {
