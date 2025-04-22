@@ -6,11 +6,12 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 import { ISubgraphService } from '../../../typechain-types'
-import { encodeStartServiceData } from '@graphprotocol/toolshed'
+import { encodeStartServiceData, generateAllocationProof } from '@graphprotocol/toolshed'
 
 describe('Indexer', () => {
   let subgraphService: ISubgraphService
   let snapshotId: string
+  let chainId: number
 
   // Test addresses
   let governor: HardhatEthersSigner
@@ -18,9 +19,9 @@ describe('Indexer', () => {
   let allocationId: string
   let subgraphDeploymentId: string
   let allocationPrivateKey: string
+  let subgraphServiceAddress: string
 
   const graph = hre.graph()
-  const { generateAllocationProof } = graph.subgraphService.actions
 
   before(async () => {
     // Get contracts
@@ -28,6 +29,12 @@ describe('Indexer', () => {
 
     // Get governor and non-owner
     governor = await graph.accounts.getGovernor()
+
+    // Get chain id
+    chainId = Number((await hre.ethers.provider.getNetwork()).chainId)
+
+    // Get subgraph service address
+    subgraphServiceAddress = await subgraphService.getAddress()
   })
 
   beforeEach(async () => {
@@ -55,7 +62,7 @@ describe('Indexer', () => {
 
     it('should not be able to create an allocation with an AllocationID that already exists in HorizonStaking contract', async () => {
       // Build allocation proof
-      const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+      const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
       // Attempt to create an allocation with the same ID
       const data = encodeStartServiceData(subgraphDeploymentId, 1000n, allocationId, signature)
@@ -80,7 +87,7 @@ describe('Indexer', () => {
       )
 
       // Build allocation proof
-      const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+      const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
       // Attempt to create the same allocation
       const data = encodeStartServiceData(subgraphDeploymentId, 1000n, allocationId, signature)
