@@ -2,10 +2,10 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { DisputeManager, IGraphToken, IHorizonStaking, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-import { getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
-import { GraphTallyCollector } from '@graphprotocol/horizon'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
+import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generatePOI, getSignedRAVCalldata, getSignerProof } from '@graphprotocol/toolshed'
+import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
 import { PaymentTypes } from '@graphprotocol/toolshed'
@@ -13,34 +13,43 @@ import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 describe('Operator', () => {
   let subgraphService: SubgraphService
-  let staking: IHorizonStaking
+  let staking: HorizonStaking
   let graphToken: IGraphToken
   let escrow: IPaymentsEscrow
   let disputeManager: DisputeManager
   let graphTallyCollector: GraphTallyCollector
 
   let snapshotId: string
+  let chainId: number
 
   // Test addresses
-  let indexer: SignerWithAddress
-  let authorizedOperator: SignerWithAddress
-  let unauthorizedOperator: SignerWithAddress
+  let indexer: HardhatEthersSigner
+  let authorizedOperator: HardhatEthersSigner
+  let unauthorizedOperator: HardhatEthersSigner
   let allocationId: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
-
+  let graphTallyCollectorAddress: string
+  let subgraphServiceAddress: string
   const graph = hre.graph()
   const { provision } = graph.horizon.actions
   const { collect, generateAllocationProof } = graph.subgraphService.actions
 
-  before(() => {
+  before(async () => {
     // Get contracts
-    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
-    staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
-    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
-    escrow = graph.horizon.contracts.PaymentsEscrow as unknown as IPaymentsEscrow
-    graphTallyCollector = graph.horizon.contracts.GraphTallyCollector as unknown as GraphTallyCollector
-    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
+    subgraphService = graph.subgraphService.contracts.SubgraphService
+    staking = graph.horizon.contracts.HorizonStaking
+    graphToken = graph.horizon.contracts.GraphToken
+    escrow = graph.horizon.contracts.PaymentsEscrow
+    graphTallyCollector = graph.horizon.contracts.GraphTallyCollector
+    disputeManager = graph.subgraphService.contracts.DisputeManager
+
+    // Get contract addresses
+    graphTallyCollectorAddress = await graphTallyCollector.getAddress()
+    subgraphServiceAddress = await subgraphService.getAddress()
+
+    // Get chain ID
+    chainId = Number((await ethers.provider.getNetwork()).chainId)
   })
 
   beforeEach(async () => {
@@ -66,22 +75,19 @@ describe('Operator', () => {
       const disputePeriod = await disputeManager.getDisputePeriod()
       const maxSlashingCut = await disputeManager.maxSlashingCut()
       await setGRTBalance(graph.provider, graphToken.target, indexer.address, ethers.parseEther('100000'))
-      await provision(indexer, [indexer.address, await subgraphService.getAddress(), ethers.parseEther('100000'), maxSlashingCut, disputePeriod])
+      await provision(indexer, [indexer.address, subgraphServiceAddress, ethers.parseEther('100000'), maxSlashingCut, disputePeriod])
     })
 
     describe('Authorized Operator', () => {
       beforeEach(async () => {
         // Authorize operator
-        await staking.connect(indexer).setOperator(await subgraphService.getAddress(), authorizedOperator.address, true)
+        await staking.connect(indexer).setOperator(subgraphServiceAddress, authorizedOperator.address, true)
       })
 
       it('should be able to register the indexer', async () => {
         const indexerUrl = 'https://test-indexer.com'
         const indexerGeoHash = 'test-geo-hash'
-        const indexerRegistrationData = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-          ['string', 'string', 'address'],
-          [indexerUrl, indexerGeoHash, ethers.ZeroAddress],
-        )
+        const indexerRegistrationData = encodeRegistrationData(indexerUrl, indexerGeoHash, ethers.ZeroAddress)
 
         await subgraphService.connect(authorizedOperator).register(indexer.address, indexerRegistrationData)
 
@@ -96,10 +102,7 @@ describe('Operator', () => {
       it('should not be able to register the indexer', async () => {
         const indexerUrl = 'https://test-indexer.com'
         const indexerGeoHash = 'test-geo-hash'
-        const indexerRegistrationData = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-          ['string', 'string', 'address'],
-          [indexerUrl, indexerGeoHash, ethers.ZeroAddress],
-        )
+        const indexerRegistrationData = encodeRegistrationData(indexerUrl, indexerGeoHash, ethers.ZeroAddress)
 
         await expect(
           subgraphService.connect(unauthorizedOperator).register(indexer.address, indexerRegistrationData),
@@ -135,7 +138,7 @@ describe('Operator', () => {
       describe('Authorized Operator', () => {
         beforeEach(async () => {
           // Authorize operator
-          await staking.connect(indexer).setOperator(await subgraphService.getAddress(), authorizedOperator.address, true)
+          await staking.connect(indexer).setOperator(subgraphServiceAddress, authorizedOperator.address, true)
         })
 
         it('should be able to create an allocation', async () => {
@@ -143,11 +146,7 @@ describe('Operator', () => {
           const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
           // Build allocation data
-          const data = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['bytes32', 'uint256', 'address', 'bytes'],
-            [subgraphDeploymentId, allocationTokens, allocationId, signature],
-          )
-
+          const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
           // Start allocation
           await subgraphService.connect(authorizedOperator).startService(
             indexer.address,
@@ -168,10 +167,7 @@ describe('Operator', () => {
           const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
           // Build allocation data
-          const data = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['bytes32', 'uint256', 'address', 'bytes'],
-            [subgraphDeploymentId, allocationTokens, allocationId, signature],
-          )
+          const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
 
           await expect(
             subgraphService.connect(unauthorizedOperator).startService(
@@ -198,7 +194,7 @@ describe('Operator', () => {
       describe('Authorized Operator', () => {
         beforeEach(async () => {
           // Authorize operator
-          await staking.connect(indexer).setOperator(await subgraphService.getAddress(), authorizedOperator.address, true)
+          await staking.connect(indexer).setOperator(subgraphServiceAddress, authorizedOperator.address, true)
         })
 
         it('should be able to resize an allocation', async () => {
@@ -238,11 +234,8 @@ describe('Operator', () => {
           }
 
           // Build data for collect indexing rewards
-          const poi = ethers.keccak256(ethers.toUtf8Bytes('test-poi'))
-          const collectData = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['address', 'bytes32'],
-            [allocationId, poi],
-          )
+          const poi = generatePOI()
+          const collectData = encodeCollectData(allocationId, poi)
 
           // Collect rewards
           const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.IndexingRewards, collectData])
@@ -263,9 +256,8 @@ describe('Operator', () => {
           await ethers.provider.send('hardhat_setBalance', [signer.address, '0x56BC75E2D63100000'])
 
           // Authorize payer as signer
-          const chainId = (await ethers.provider.getNetwork()).chainId
           const proofDeadline = (await ethers.provider.getBlock('latest'))!.timestamp + 31536000
-          const signerProof = await getSignerProof(graphTallyCollector, signer, chainId, BigInt(proofDeadline), payer.address)
+          const signerProof = await getSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
           await graphTallyCollector.connect(payer).authorizeSigner(signer.address, proofDeadline, signerProof)
 
           // Deposit tokens in escrow
@@ -274,17 +266,17 @@ describe('Operator', () => {
 
           // Get encoded SignedRAV
           const encodedSignedRAV = await getSignedRAVCalldata(
-            graphTallyCollector,
-            signer,
             allocationId,
             payer.address,
             indexer.address,
-            await subgraphService.getAddress(),
+            subgraphServiceAddress,
             0,
             collectTokens,
             ethers.toUtf8Bytes(''),
+            signer.privateKey,
+            graphTallyCollectorAddress,
+            chainId,
           )
-
           // Collect query fees
           const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
           expect(rewards).to.not.equal(0n)
@@ -327,11 +319,8 @@ describe('Operator', () => {
           }
 
           // Build data for collect indexing rewards
-          const poi = ethers.keccak256(ethers.toUtf8Bytes('test-poi'))
-          const collectData = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['address', 'bytes32'],
-            [allocationId, poi],
-          )
+          const poi = generatePOI()
+          const collectData = encodeCollectData(allocationId, poi)
 
           // Attempt to collect rewards with unauthorized operator
           await expect(
@@ -356,9 +345,8 @@ describe('Operator', () => {
           await ethers.provider.send('hardhat_setBalance', [signer.address, '0x56BC75E2D63100000'])
 
           // Authorize payer as signer
-          const chainId = (await ethers.provider.getNetwork()).chainId
           const proofDeadline = (await ethers.provider.getBlock('latest'))!.timestamp + 31536000
-          const signerProof = await getSignerProof(graphTallyCollector, signer, chainId, BigInt(proofDeadline), payer.address)
+          const signerProof = await getSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
           await graphTallyCollector.connect(payer).authorizeSigner(signer.address, proofDeadline, signerProof)
 
           // Deposit tokens in escrow
@@ -367,15 +355,16 @@ describe('Operator', () => {
 
           // Get encoded SignedRAV
           const encodedSignedRAV = await getSignedRAVCalldata(
-            graphTallyCollector,
-            signer,
             allocationId,
             payer.address,
             indexer.address,
-            await subgraphService.getAddress(),
+            subgraphServiceAddress,
             0,
             collectTokens,
             ethers.toUtf8Bytes(''),
+            signer.privateKey,
+            graphTallyCollectorAddress,
+            chainId,
           )
 
           // Attempt to collect query fees with unauthorized operator

@@ -3,43 +3,46 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { DisputeManager, IGraphToken, IHorizonStaking, SubgraphService } from '../../../../typechain-types'
-import { createAttestationData } from '@graphprotocol/toolshed'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
+import { generateAttestationData } from '@graphprotocol/toolshed'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStaking } from '@graphprotocol/horizon'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
 
 describe('Query Conflict Disputes', () => {
   let disputeManager: DisputeManager
   let graphToken: IGraphToken
-  let staking: IHorizonStaking
+  let staking: HorizonStaking
   let subgraphService: SubgraphService
 
   let snapshotId: string
+  let chainId: number
 
   // Test addresses
-  let fisherman: SignerWithAddress
-  let arbitrator: SignerWithAddress
-  let indexer: SignerWithAddress
-  let relatedIndexer: SignerWithAddress
+  let fisherman: HardhatEthersSigner
+  let arbitrator: HardhatEthersSigner
+  let indexer: HardhatEthersSigner
+  let relatedIndexer: HardhatEthersSigner
 
   // Allocation variables
-  let allocationSigner: Wallet
-  let relatedAllocationSigner: Wallet
+  let allocationPrivateKey: string
+  let relatedAllocationPrivateKey: string
   let subgraphDeploymentId: string
 
   // Dispute manager variables
   let disputeDeposit: bigint
   let fishermanRewardCut: bigint
   let disputePeriod: bigint
+  let disputeManagerAddress: string
 
   before(async () => {
     // Get contracts
     const graph = hre.graph()
-    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
-    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
-    staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
-    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
+    disputeManager = graph.subgraphService.contracts.DisputeManager
+    graphToken = graph.horizon.contracts.GraphToken
+    staking = graph.horizon.contracts.HorizonStaking
+    subgraphService = graph.subgraphService.contracts.SubgraphService
 
     // Get signers
     arbitrator = await graph.accounts.getArbitrator()
@@ -53,15 +56,19 @@ describe('Query Conflict Disputes', () => {
 
     // Get allocation
     const allocation = indexerFixture.allocations[0]
-    allocationSigner = new Wallet(allocation.allocationPrivateKey)
+    allocationPrivateKey = allocation.allocationPrivateKey
     const relatedAllocation = relatedIndexerFixture.allocations[0]
-    relatedAllocationSigner = new Wallet(relatedAllocation.allocationPrivateKey)
+    relatedAllocationPrivateKey = relatedAllocation.allocationPrivateKey
     subgraphDeploymentId = allocation.subgraphDeploymentID
 
     // Dispute manager variables
     disputeDeposit = await disputeManager.disputeDeposit()
     fishermanRewardCut = await disputeManager.fishermanRewardCut()
     disputePeriod = await disputeManager.disputePeriod()
+    disputeManagerAddress = await disputeManager.getAddress()
+
+    // Get chain ID
+    chainId = Number((await ethers.provider.getNetwork()).chainId)
   })
 
   beforeEach(async () => {
@@ -82,19 +89,21 @@ describe('Query Conflict Disputes', () => {
       const responseHash2 = ethers.keccak256(ethers.toUtf8Bytes('test-response-2'))
 
       // Create attestation data for both responses
-      const attestationData1 = await createAttestationData(
-        disputeManager,
-        allocationSigner,
+      const attestationData1 = await generateAttestationData(
         queryHash,
         responseHash1,
         subgraphDeploymentId,
+        allocationPrivateKey,
+        disputeManagerAddress,
+        chainId,
       )
-      const attestationData2 = await createAttestationData(
-        disputeManager,
-        relatedAllocationSigner,
+      const attestationData2 = await generateAttestationData(
         queryHash,
         responseHash2,
         subgraphDeploymentId,
+        relatedAllocationPrivateKey,
+        disputeManagerAddress,
+        chainId,
       )
 
       // Approve dispute manager for dispute deposit
@@ -133,19 +142,21 @@ describe('Query Conflict Disputes', () => {
       const responseHash2 = ethers.keccak256(ethers.toUtf8Bytes('test-response-2'))
 
       // Create attestation data for both responses
-      const attestationData1 = await createAttestationData(
-        disputeManager,
-        allocationSigner,
+      const attestationData1 = await generateAttestationData(
         queryHash,
         responseHash1,
         subgraphDeploymentId,
+        allocationPrivateKey,
+        disputeManagerAddress,
+        chainId,
       )
-      const attestationData2 = await createAttestationData(
-        disputeManager,
-        relatedAllocationSigner,
+      const attestationData2 = await generateAttestationData(
         queryHash,
         responseHash2,
         subgraphDeploymentId,
+        relatedAllocationPrivateKey,
+        disputeManagerAddress,
+        chainId,
       )
 
       // Approve dispute manager for dispute deposit
@@ -197,19 +208,21 @@ describe('Query Conflict Disputes', () => {
       const responseHash2 = ethers.keccak256(ethers.toUtf8Bytes('test-response-2'))
 
       // Create attestation data for both responses
-      const attestationData1 = await createAttestationData(
-        disputeManager,
-        allocationSigner,
+      const attestationData1 = await generateAttestationData(
         queryHash,
         responseHash1,
         subgraphDeploymentId,
+        allocationPrivateKey,
+        disputeManagerAddress,
+        chainId,
       )
-      const attestationData2 = await createAttestationData(
-        disputeManager,
-        relatedAllocationSigner,
+      const attestationData2 = await generateAttestationData(
         queryHash,
         responseHash2,
         subgraphDeploymentId,
+        relatedAllocationPrivateKey,
+        disputeManagerAddress,
+        chainId,
       )
 
       // Approve dispute manager for dispute deposit
