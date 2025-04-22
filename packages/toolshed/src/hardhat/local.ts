@@ -15,5 +15,7 @@ export async function warp(provider: HardhatEthersProvider, seconds: number) {
 }
 
 export async function mine(provider: HardhatEthersProvider, blocks: number) {
-  await provider.send('evm_mine', [blocks])
+  for (let i = 0; i < blocks; i++) {
+    await provider.send('evm_mine', [])
+  }
 }
