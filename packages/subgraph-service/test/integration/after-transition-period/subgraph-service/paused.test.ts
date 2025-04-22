@@ -4,10 +4,10 @@ import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
+import { encodeCollectData, encodeRegistrationData, encodeStartServiceData, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
-import { PaymentTypes } from '@graphprotocol/toolshed'
 
 describe('Paused Protocol', () => {
   let disputeManager: DisputeManager
@@ -17,8 +17,8 @@ describe('Paused Protocol', () => {
   let snapshotId: string
 
   // Test addresses
-  let pauseGuardian: SignerWithAddress
-  let indexer: SignerWithAddress
+  let pauseGuardian: HardhatEthersSigner
+  let indexer: HardhatEthersSigner
   let allocationId: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
@@ -29,9 +29,9 @@ describe('Paused Protocol', () => {
 
   before(async () => {
     // Get contracts
-    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
-    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
-    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
+    disputeManager = graph.subgraphService.contracts.DisputeManager
+    graphToken = graph.horizon.contracts.GraphToken
+    subgraphService = graph.subgraphService.contracts.SubgraphService
 
     // Get signers
     pauseGuardian = await graph.accounts.getPauseGuardian()
@@ -103,11 +103,8 @@ describe('Paused Protocol', () => {
 
         it('should not allow indexer to collect indexing rewards while paused', async () => {
           // Build data for collect indexing rewards
-          const poi = ethers.keccak256(ethers.toUtf8Bytes('test-poi'))
-          const data = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['address', 'bytes32'],
-            [allocationId, poi],
-          )
+          const poi = generatePOI()
+          const data = encodeCollectData(allocationId, poi)
 
           await expect(
             collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data]),
@@ -119,11 +116,8 @@ describe('Paused Protocol', () => {
 
         it('should not allow indexer to collect query fees while paused', async () => {
           // Build data for collect query fees
-          const poi = ethers.keccak256(ethers.toUtf8Bytes('test-poi'))
-          const data = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['address', 'bytes32'],
-            [allocationId, poi],
-          )
+          const poi = generatePOI()
+          const data = encodeCollectData(allocationId, poi)
 
           await expect(
             collect(indexer, [indexer.address, PaymentTypes.QueryFee, data]),
@@ -164,10 +158,7 @@ describe('Paused Protocol', () => {
           const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
           // Build allocation data
-          const data = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['bytes32', 'uint256', 'address', 'bytes'],
-            [subgraphDeploymentId, allocationTokens, allocationId, signature],
-          )
+          const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
 
           await expect(
             subgraphService.connect(indexer).startService(
@@ -197,10 +188,7 @@ describe('Paused Protocol', () => {
       it('should not allow indexer to register while paused', async () => {
         const indexerUrl = 'https://test-indexer.com'
         const indexerGeoHash = 'test-geo-hash'
-        const indexerRegistrationData = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-          ['string', 'string', 'address'],
-          [indexerUrl, indexerGeoHash, ethers.ZeroAddress],
-        )
+        const indexerRegistrationData = encodeRegistrationData(indexerUrl, indexerGeoHash, ethers.ZeroAddress)
 
         await expect(
           subgraphService.connect(indexer).register(indexer.address, indexerRegistrationData),
@@ -212,7 +200,7 @@ describe('Paused Protocol', () => {
     })
 
     describe('Permissionless', () => {
-      let anyone: SignerWithAddress
+      let anyone: HardhatEthersSigner
 
       before(async () => {
         // Get anyone address

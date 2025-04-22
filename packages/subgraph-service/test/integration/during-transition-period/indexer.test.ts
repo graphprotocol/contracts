@@ -2,18 +2,19 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 import { ISubgraphService } from '../../../typechain-types'
+import { encodeStartServiceData } from '@graphprotocol/toolshed'
 
 describe('Indexer', () => {
   let subgraphService: ISubgraphService
   let snapshotId: string
 
   // Test addresses
-  let governor: SignerWithAddress
-  let indexer: SignerWithAddress
+  let governor: HardhatEthersSigner
+  let indexer: HardhatEthersSigner
   let allocationId: string
   let subgraphDeploymentId: string
   let allocationPrivateKey: string
@@ -23,7 +24,7 @@ describe('Indexer', () => {
 
   before(async () => {
     // Get contracts
-    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as ISubgraphService
+    subgraphService = graph.subgraphService.contracts.SubgraphService
 
     // Get governor and non-owner
     governor = await graph.accounts.getGovernor()
@@ -57,10 +58,7 @@ describe('Indexer', () => {
       const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
       // Attempt to create an allocation with the same ID
-      const data = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['bytes32', 'uint256', 'address', 'bytes'],
-        [subgraphDeploymentId, 1000, allocationId, signature],
-      )
+      const data = encodeStartServiceData(subgraphDeploymentId, 1000n, allocationId, signature)
 
       await expect(
         subgraphService.connect(indexer).startService(
@@ -85,10 +83,7 @@ describe('Indexer', () => {
       const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
 
       // Attempt to create the same allocation
-      const data = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['bytes32', 'uint256', 'address', 'bytes'],
-        [subgraphDeploymentId, 1000, allocationId, signature],
-      )
+      const data = encodeStartServiceData(subgraphDeploymentId, 1000n, allocationId, signature)
 
       await expect(
         subgraphService.connect(indexer).startService(

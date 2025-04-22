@@ -3,23 +3,25 @@ import { EventLog } from 'ethers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { DisputeManager, IGraphToken, IHorizonStaking, SubgraphService } from '../../../../typechain-types'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { HorizonStaking } from '@graphprotocol/horizon'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { generatePOI } from '@graphprotocol/toolshed'
 
 describe('Indexing Disputes', () => {
   let disputeManager: DisputeManager
   let graphToken: IGraphToken
-  let staking: IHorizonStaking
+  let staking: HorizonStaking
   let subgraphService: SubgraphService
 
   let snapshotId: string
 
   // Test addresses
-  let fisherman: SignerWithAddress
-  let arbitrator: SignerWithAddress
-  let indexer: SignerWithAddress
+  let fisherman: HardhatEthersSigner
+  let arbitrator: HardhatEthersSigner
+  let indexer: HardhatEthersSigner
 
   let allocationId: string
 
@@ -31,10 +33,10 @@ describe('Indexing Disputes', () => {
   before(async () => {
     // Get contracts
     const graph = hre.graph()
-    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
-    graphToken = graph.horizon.contracts.GraphToken as unknown as IGraphToken
-    staking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
-    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
+    disputeManager = graph.subgraphService.contracts.DisputeManager
+    graphToken = graph.horizon.contracts.GraphToken
+    staking = graph.horizon.contracts.HorizonStaking
+    subgraphService = graph.subgraphService.contracts.SubgraphService
 
     // Get signers
     arbitrator = await graph.accounts.getArbitrator()
@@ -67,7 +69,7 @@ describe('Indexing Disputes', () => {
   describe('Fisherman', () => {
     it('should allow fisherman to create an indexing dispute', async () => {
       // Create dispute
-      const poi = ethers.keccak256(ethers.toUtf8Bytes('test-poi'))
+      const poi = generatePOI()
 
       // Approve dispute manager for dispute deposit
       await graphToken.connect(fisherman).approve(disputeManager.target, disputeDeposit)
@@ -92,7 +94,7 @@ describe('Indexing Disputes', () => {
 
     it('should allow fisherman to cancel an indexing dispute', async () => {
       // Create dispute
-      const poi = ethers.keccak256(ethers.toUtf8Bytes('test-poi'))
+      const poi = generatePOI()
 
       // Approve dispute manager for dispute deposit
       await graphToken.connect(fisherman).approve(disputeManager.target, disputeDeposit)
@@ -135,7 +137,7 @@ describe('Indexing Disputes', () => {
       await graphToken.connect(fisherman).approve(disputeManager.target, disputeDeposit)
 
       // Create dispute
-      const poi = ethers.keccak256(ethers.toUtf8Bytes('test-poi'))
+      const poi = generatePOI()
       const tx = await disputeManager.connect(fisherman).createIndexingDispute(allocationId, poi)
       const receipt = await tx.wait()
 

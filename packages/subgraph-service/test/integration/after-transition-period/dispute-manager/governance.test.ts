@@ -3,21 +3,21 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager } from '../../../../typechain-types'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('DisputeManager Governance', () => {
   let disputeManager: DisputeManager
   let snapshotId: string
 
   // Test addresses
-  let governor: SignerWithAddress
-  let nonOwner: SignerWithAddress
-  let newArbitrator: SignerWithAddress
-  let newSubgraphService: SignerWithAddress
+  let governor: HardhatEthersSigner
+  let nonOwner: HardhatEthersSigner
+  let newArbitrator: HardhatEthersSigner
+  let newSubgraphService: HardhatEthersSigner
 
   before(async () => {
     const graph = hre.graph()
-    disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
+    disputeManager = graph.subgraphService.contracts.DisputeManager
 
     // Get signers
     governor = await graph.accounts.getGovernor()

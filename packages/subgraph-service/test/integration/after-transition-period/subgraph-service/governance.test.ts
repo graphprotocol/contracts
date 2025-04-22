@@ -2,7 +2,7 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { SubgraphService } from '../../../../typechain-types'
 
 describe('Subgraph Service Governance', () => {
@@ -10,13 +10,13 @@ describe('Subgraph Service Governance', () => {
   let snapshotId: string
 
   // Test addresses
-  let governor: SignerWithAddress
-  let nonOwner: SignerWithAddress
-  let pauseGuardian: SignerWithAddress
+  let governor: HardhatEthersSigner
+  let nonOwner: HardhatEthersSigner
+  let pauseGuardian: HardhatEthersSigner
 
   before(async () => {
     const graph = hre.graph()
-    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
+    subgraphService = graph.subgraphService.contracts.SubgraphService
 
     // Get signers
     governor = await graph.accounts.getGovernor()

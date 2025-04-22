@@ -2,18 +2,19 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { SubgraphService } from '../../../../typechain-types'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { encodeStartServiceData } from '@graphprotocol/toolshed'
 
 describe('Permissionless', () => {
   let subgraphService: SubgraphService
   let snapshotId: string
 
   // Test data
-  let indexer: SignerWithAddress
-  let anyone: SignerWithAddress
+  let indexer: HardhatEthersSigner
+  let anyone: HardhatEthersSigner
   let allocationId: string
   let subgraphDeploymentId: string
   let allocationTokens: bigint
@@ -23,7 +24,7 @@ describe('Permissionless', () => {
 
   before(async () => {
     // Get contracts
-    subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
+    subgraphService = graph.subgraphService.contracts.SubgraphService
 
     // Get anyone address
     ;[anyone] = await graph.accounts.getTestAccounts()
@@ -91,10 +92,7 @@ describe('Permissionless', () => {
 
       // Start allocation
       const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
-      const data = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['bytes32', 'uint256', 'address', 'bytes'],
-        [subgraphDeploymentId, allocationTokens, allocationId, signature],
-      )
+      const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
       await subgraphService.connect(indexer).startService(indexer.address, data)
     })
 
