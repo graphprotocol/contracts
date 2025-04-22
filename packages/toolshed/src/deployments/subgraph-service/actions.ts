@@ -14,15 +14,6 @@ export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
      * @returns The payment collected
      */
     collect: (signer: HardhatEthersSigner, args: Parameters<ISubgraphService['collect']>): Promise<bigint> => collect(contracts, signer, args),
-
-    /**
-     * Generates an allocation proof for the subgraph services
-     * @param signer - The signer that will sign the allocation proof
-     * @param args Parameters:
-     *   - `[indexer, allocationId]` - The encodeAllocationProof parameters
-     * @returns The allocation proof
-     */
-    generateAllocationProof: (allocationPrivateKey: string, args: Parameters<ISubgraphService['encodeAllocationProof']>): Promise<string> => generateAllocationProof(contracts, allocationPrivateKey, args),
   }
 }
 
@@ -44,19 +35,4 @@ async function collect(
   if (!event) throw new Error('ServicePaymentCollected event not found')
 
   return BigInt(event.data)
-}
-
-// Generate allocation proof for the subgraph services
-async function generateAllocationProof(
-  contracts: { SubgraphService: ISubgraphService },
-  allocationPrivateKey: string,
-  args: Parameters<ISubgraphService['encodeAllocationProof']>,
-): Promise<string> {
-  const { SubgraphService } = contracts
-  const [indexer, allocationId] = args
-
-  const wallet = new ethers.Wallet(allocationPrivateKey)
-  const messageHash = await SubgraphService.encodeAllocationProof(indexer, allocationId)
-  const signature = wallet.signingKey.sign(messageHash)
-  return ethers.Signature.from(signature).serialized
 }

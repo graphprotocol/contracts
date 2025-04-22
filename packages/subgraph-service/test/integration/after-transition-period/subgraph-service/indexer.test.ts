@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { HDNodeWallet } from 'ethers'
 import hre from 'hardhat'
 
-import { encodeCollectData, encodeStartServiceData, generatePOI, getSignedRAVCalldata, getSignerProof, PaymentTypes } from '@graphprotocol/toolshed'
+import { encodeCollectData, encodeStartServiceData, generateAllocationProof, generatePOI, getSignedRAVCalldata, getSignerProof, PaymentTypes } from '@graphprotocol/toolshed'
 import { GraphPayments, GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
@@ -29,7 +29,7 @@ describe('Indexer', () => {
   let subgraphServiceAddress: string
 
   const graph = hre.graph()
-  const { collect, generateAllocationProof } = graph.subgraphService.actions
+  const { collect } = graph.subgraphService.actions
 
   before(async () => {
     // Get contracts
@@ -110,7 +110,7 @@ describe('Indexer', () => {
         const beforeLockedTokens = await subgraphService.allocationProvisionTracker(indexer.address)
 
         // Build allocation proof
-        const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+        const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
         // Attempt to create an allocation with the same ID
         const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
@@ -134,7 +134,7 @@ describe('Indexer', () => {
 
       it('should be able to start an allocation with zero tokens', async () => {
         // Build allocation proof
-        const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+        const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
         // Attempt to create an allocation with the same ID
         const data = encodeStartServiceData(subgraphDeploymentId, 0n, allocationId, signature)
@@ -154,7 +154,7 @@ describe('Indexer', () => {
 
       it('should not start an allocation without enough tokens', async () => {
         // Build allocation proof
-        const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+        const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
 
         // Build allocation data
         const allocationTokens = provisionTokens + ethers.parseEther('10000000')
@@ -384,7 +384,7 @@ describe('Indexer', () => {
           allocationPrivateKey = wallet.privateKey
           subgraphDeploymentId = indexers[0].allocations[0].subgraphDeploymentID
           const allocationTokens = availableTokens - lockedTokens
-          const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
           const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
           await subgraphService.connect(indexer).startService(
             indexer.address,
