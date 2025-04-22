@@ -1,8 +1,8 @@
 import hre from 'hardhat'
 
-import { createPOIFromString } from '@graphprotocol/toolshed'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
+import { generatePOI } from '@graphprotocol/toolshed'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
@@ -54,7 +54,7 @@ describe('Operator', () => {
 
     it('should allow the operator to close an open legacy allocation and collect rewards', async () => {
       // Use a non-zero POI
-      const poi = createPOIFromString('poi')
+      const poi = generatePOI('poi')
       const thawingPeriod = await horizonStaking.__DEPRECATED_getThawingPeriod()
 
       // Get delegation pool before closing allocation
