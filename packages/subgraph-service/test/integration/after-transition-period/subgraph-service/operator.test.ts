@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-import { encodeCollectData, encodeRegistrationData, encodeSignedRAVData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignerProof } from '@graphprotocol/toolshed'
+import { encodeCollectIndexingRewardsData, encodeCollectQueryFeesData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignedRAV, generateSignerProof } from '@graphprotocol/toolshed'
 import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { PaymentTypes } from '@graphprotocol/toolshed'
@@ -235,7 +235,7 @@ describe('Operator', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const collectData = encodeCollectData(allocationId, poi)
+          const collectData = encodeCollectIndexingRewardsData(allocationId, poi)
 
           // Collect rewards
           const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.IndexingRewards, collectData])
@@ -265,7 +265,7 @@ describe('Operator', () => {
           await escrow.connect(payer).deposit(graphTallyCollector.target, indexer.address, collectTokens)
 
           // Get encoded SignedRAV
-          const encodedSignedRAV = await encodeSignedRAVData(
+          const { rav, signature } = await generateSignedRAV(
             allocationId,
             payer.address,
             indexer.address,
@@ -277,6 +277,8 @@ describe('Operator', () => {
             graphTallyCollectorAddress,
             chainId,
           )
+          const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature)
+
           // Collect query fees
           const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
           expect(rewards).to.not.equal(0n)
@@ -320,7 +322,7 @@ describe('Operator', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const collectData = encodeCollectData(allocationId, poi)
+          const collectData = encodeCollectIndexingRewardsData(allocationId, poi)
 
           // Attempt to collect rewards with unauthorized operator
           await expect(
@@ -354,7 +356,7 @@ describe('Operator', () => {
           await escrow.connect(payer).deposit(escrow.target, indexer.address, collectTokens)
 
           // Get encoded SignedRAV
-          const encodedSignedRAV = await encodeSignedRAVData(
+          const { rav, signature } = await generateSignedRAV(
             allocationId,
             payer.address,
             indexer.address,
@@ -366,7 +368,7 @@ describe('Operator', () => {
             graphTallyCollectorAddress,
             chainId,
           )
-
+          const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature)
           // Attempt to collect query fees with unauthorized operator
           await expect(
             collect(unauthorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV]),
