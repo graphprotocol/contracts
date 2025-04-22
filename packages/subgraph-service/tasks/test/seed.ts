@@ -1,19 +1,19 @@
-import { keccak256, toUtf8Bytes } from 'ethers'
 import { task } from 'hardhat/config'
 
-import { DisputeManager, SubgraphService } from '../../typechain-types'
-import { IHorizonStaking } from '@graphprotocol/horizon'
+import { HorizonStakingExtension } from '@graphprotocol/horizon'
 
 import { indexers } from './fixtures/indexers'
+import { encodeRegistrationData, encodeStartServiceData, generatePOI } from '@graphprotocol/toolshed'
 
 task('test:seed', 'Seed the test environment, must be run after deployment')
   .setAction(async (_, hre) => {
     // Get contracts
     const graph = hre.graph()
     const { generateAllocationProof } = graph.subgraphService.actions
-    const horizonStaking = graph.horizon.contracts.HorizonStaking as unknown as IHorizonStaking
-    const subgraphService = graph.subgraphService.contracts.SubgraphService as unknown as SubgraphService
-    const disputeManager = graph.subgraphService.contracts.DisputeManager as unknown as DisputeManager
+    const horizonStaking = graph.horizon.contracts.HorizonStaking
+    const horizonStakingExtension = graph.horizon.contracts.HorizonStaking as HorizonStakingExtension
+    const subgraphService = graph.subgraphService.contracts.SubgraphService
+    const disputeManager = graph.subgraphService.contracts.DisputeManager
 
     // Get configs
     const disputePeriod = await disputeManager.getDisputePeriod()
@@ -37,8 +37,8 @@ task('test:seed', 'Seed the test environment, must be run after deployment')
         console.log(`Closing allocation: ${allocation.allocationID}`)
 
         // Close allocation
-        const poi = hre.ethers.getBytes(keccak256(toUtf8Bytes('poi')))
-        await horizonStaking.connect(indexerSigner).closeAllocation(
+        const poi = generatePOI()
+        await horizonStakingExtension.connect(indexerSigner).closeAllocation(
           allocation.allocationID,
           poi,
         )
@@ -58,12 +58,8 @@ task('test:seed', 'Seed the test environment, must be run after deployment')
 
       console.log(`Provision created for indexer with ${indexer.provisionTokens} tokens`)
 
-      const indexerRegistrationData = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-        ['string', 'string', 'address'],
-        [indexer.url, indexer.geoHash, indexer.rewardsDestination || hre.ethers.ZeroAddress],
-      )
-
       console.log(`Registering indexer: ${indexer.address}`)
+      const indexerRegistrationData = encodeRegistrationData(indexer.url, indexer.geoHash, indexer.rewardsDestination || hre.ethers.ZeroAddress)
       await subgraphService.connect(indexerSigner).register(indexerSigner.address, indexerRegistrationData)
 
       const indexerData = await subgraphService.indexers(indexerSigner.address)
@@ -93,10 +89,7 @@ task('test:seed', 'Seed the test environment, must be run after deployment')
         const allocationId = allocation.allocationID
 
         // Attempt to create an allocation with the same ID
-        const data = hre.ethers.AbiCoder.defaultAbiCoder().encode(
-          ['bytes32', 'uint256', 'address', 'bytes'],
-          [subgraphDeploymentId, allocationTokens, allocationId, signature],
-        )
+        const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
 
         // Start allocation
         await subgraphService.connect(indexerSigner).startService(
