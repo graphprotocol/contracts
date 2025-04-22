@@ -6,7 +6,7 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { SubgraphService } from '../../../../typechain-types'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
-import { encodeStartServiceData } from '@graphprotocol/toolshed'
+import { encodeStartServiceData, generateAllocationProof } from '@graphprotocol/toolshed'
 
 describe('Permissionless', () => {
   let subgraphService: SubgraphService
@@ -20,7 +20,6 @@ describe('Permissionless', () => {
   let allocationTokens: bigint
 
   const graph = hre.graph()
-  const { generateAllocationProof } = graph.subgraphService.actions
 
   before(async () => {
     // Get contracts
@@ -91,7 +90,9 @@ describe('Permissionless', () => {
       allocationTokens = 0n
 
       // Start allocation
-      const signature = await generateAllocationProof(allocationPrivateKey, [indexer.address, allocationId])
+      const subgraphServiceAddress = await subgraphService.getAddress()
+      const chainId = Number((await hre.ethers.provider.getNetwork()).chainId)
+      const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
       const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
       await subgraphService.connect(indexer).startService(indexer.address, data)
     })

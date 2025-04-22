@@ -3,17 +3,22 @@ import { task } from 'hardhat/config'
 import { HorizonStakingExtension } from '@graphprotocol/horizon'
 
 import { indexers } from './fixtures/indexers'
-import { encodeRegistrationData, encodeStartServiceData, generatePOI } from '@graphprotocol/toolshed'
+import { encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI } from '@graphprotocol/toolshed'
 
 task('test:seed', 'Seed the test environment, must be run after deployment')
   .setAction(async (_, hre) => {
     // Get contracts
     const graph = hre.graph()
-    const { generateAllocationProof } = graph.subgraphService.actions
     const horizonStaking = graph.horizon.contracts.HorizonStaking
     const horizonStakingExtension = graph.horizon.contracts.HorizonStaking as HorizonStakingExtension
     const subgraphService = graph.subgraphService.contracts.SubgraphService
     const disputeManager = graph.subgraphService.contracts.DisputeManager
+
+    // Get contract addresses
+    const subgraphServiceAddress = await subgraphService.getAddress()
+
+    // Get chain id
+    const chainId = (await hre.ethers.provider.getNetwork()).chainId
 
     // Get configs
     const disputePeriod = await disputeManager.getDisputePeriod()
@@ -83,7 +88,7 @@ task('test:seed', 'Seed the test environment, must be run after deployment')
         console.log(`Starting allocation: ${allocation.allocationID}`)
 
         // Build allocation proof
-        const signature = await generateAllocationProof(allocation.allocationPrivateKey, [indexer.address, allocation.allocationID])
+        const signature = await generateAllocationProof(indexer.address, allocation.allocationPrivateKey, subgraphServiceAddress, Number(chainId))
         const subgraphDeploymentId = allocation.subgraphDeploymentID
         const allocationTokens = allocation.tokens
         const allocationId = allocation.allocationID
