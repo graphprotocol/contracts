@@ -96,9 +96,7 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
 
     function testSlash_RevertWhen_NoProvision(uint256 tokens, uint256 slashTokens) public useIndexer useStake(tokens) {
         vm.assume(slashTokens > 0);
-        bytes memory expectedError = abi.encodeWithSelector(
-            IHorizonStakingMain.HorizonStakingNoTokensToSlash.selector
-        );
+        bytes memory expectedError = abi.encodeWithSelector(IHorizonStakingMain.HorizonStakingNoTokensToSlash.selector);
         vm.expectRevert(expectedError);
         vm.startPrank(subgraphDataServiceAddress);
         staking.slash(users.indexer, slashTokens, 0, subgraphDataServiceAddress);
