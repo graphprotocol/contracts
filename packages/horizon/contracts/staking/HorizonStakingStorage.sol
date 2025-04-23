@@ -137,6 +137,7 @@ abstract contract HorizonStakingV1Storage {
     // -- Horizon Staking --
 
     /// @dev Maximum thawing period, in seconds, for a provision
+    /// Note that to protect delegation from being unfairly locked this should be set to a sufficiently low value
     uint64 internal _maxThawingPeriod;
 
     /// @dev Provisions from each service provider for each data service
