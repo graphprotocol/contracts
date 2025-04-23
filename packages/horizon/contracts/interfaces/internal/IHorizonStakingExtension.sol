@@ -140,6 +140,10 @@ interface IHorizonStakingExtension is IRewardsIssuer {
 
     /**
      * @notice Slash the indexer stake. Delegated tokens are not subject to slashing.
+     * Note that depending on the state of the indexer's stake, the slashed amount might be smaller than the
+     * requested slash amount. This can happen if the indexer has moved a significant part of their stake to
+     * a provision. Any outstanding slashing amount should be settled using Horizon's slash function
+     * {IHorizonStaking.slash}.
      * @dev Can only be called by the slasher role.
      * @param indexer Address of indexer to slash
      * @param tokens Amount of tokens to slash from the indexer stake

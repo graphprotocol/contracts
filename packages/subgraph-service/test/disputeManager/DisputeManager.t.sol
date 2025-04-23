@@ -195,6 +195,81 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         return _disputeID;
     }
 
+    struct Balances {
+        uint256 indexer;
+        uint256 fisherman;
+        uint256 arbitrator;
+        uint256 disputeManager;
+        uint256 staking;
+    }
+
+    function _createLegacyDispute(
+        address _allocationId,
+        address _fisherman,
+        uint256 _tokensSlash,
+        uint256 _tokensRewards
+    ) internal returns (bytes32) {
+        (, address arbitrator, ) = vm.readCallers();
+        address indexer = staking.getAllocation(_allocationId).indexer;
+
+        Balances memory beforeBalances = Balances({
+            indexer: token.balanceOf(indexer),
+            fisherman: token.balanceOf(_fisherman),
+            arbitrator: token.balanceOf(arbitrator),
+            disputeManager: token.balanceOf(address(disputeManager)),
+            staking: token.balanceOf(address(staking))
+        });
+
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.LegacyDisputeCreated(
+            keccak256(abi.encodePacked(_allocationId, "legacy")),
+            indexer,
+            _fisherman,
+            _allocationId,
+            _tokensSlash,
+            _tokensRewards
+        );
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.DisputeAccepted(
+            keccak256(abi.encodePacked(_allocationId, "legacy")),
+            indexer,
+            _fisherman,
+            _tokensRewards
+        );
+        bytes32 _disputeId = disputeManager.createLegacyDispute(
+            _allocationId,
+            _fisherman,
+            _tokensSlash,
+            _tokensRewards
+        );
+
+        Balances memory afterBalances = Balances({
+            indexer: token.balanceOf(indexer),
+            fisherman: token.balanceOf(_fisherman),
+            arbitrator: token.balanceOf(arbitrator),
+            disputeManager: token.balanceOf(address(disputeManager)),
+            staking: token.balanceOf(address(staking))
+        });
+
+        assertEq(afterBalances.indexer, beforeBalances.indexer);
+        assertEq(afterBalances.fisherman, beforeBalances.fisherman + _tokensRewards);
+        assertEq(afterBalances.arbitrator, beforeBalances.arbitrator);
+        assertEq(afterBalances.disputeManager, beforeBalances.disputeManager);
+        assertEq(afterBalances.staking, beforeBalances.staking - _tokensSlash);
+
+        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
+        assertEq(dispute.indexer, indexer);
+        assertEq(dispute.fisherman, _fisherman);
+        assertEq(dispute.deposit, 0);
+        assertEq(dispute.relatedDisputeId, bytes32(0));
+        assertEq(uint8(dispute.disputeType), uint8(IDisputeManager.DisputeType.LegacyDispute));
+        assertEq(uint8(dispute.status), uint8(IDisputeManager.DisputeStatus.Accepted));
+        assertEq(dispute.createdAt, block.timestamp);
+        assertEq(dispute.stakeSnapshot, 0);
+
+        return _disputeId;
+    }
+
     struct BeforeValues_CreateQueryDisputeConflict {
         Attestation.State attestation1;
         Attestation.State attestation2;
