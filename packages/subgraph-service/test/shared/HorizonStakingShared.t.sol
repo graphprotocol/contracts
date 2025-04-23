@@ -14,6 +14,15 @@ abstract contract HorizonStakingSharedTest is SubgraphBaseTest {
      * HELPERS
      */
 
+    function _provision(
+        address _indexer,
+        uint256 _tokens,
+        uint32 _maxSlashingPercentage,
+        uint64 _disputePeriod
+    ) internal {
+        staking.provision(_indexer, address(subgraphService), _tokens, _maxSlashingPercentage, _disputePeriod);
+    }
+
     function _createProvision(
         address _indexer,
         uint256 _tokens,
@@ -129,12 +138,13 @@ abstract contract HorizonStakingSharedTest is SubgraphBaseTest {
         vm.store(address(staking), subgraphAllocationsBaseSlot, bytes32(currentAllocatedTokens + tokens));
     }
 
-    /*
-     * PRIVATE
-     */
-
-    function _stakeTo(address _indexer, uint256 _tokens) private {
+    function _stakeTo(address _indexer, uint256 _tokens) internal {
         token.approve(address(staking), _tokens);
         staking.stakeTo(_indexer, _tokens);
+    }
+
+    function _stake(uint256 _tokens) internal {
+        token.approve(address(staking), _tokens);
+        staking.stake(_tokens);
     }
 }

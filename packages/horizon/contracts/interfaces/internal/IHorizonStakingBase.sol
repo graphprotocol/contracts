@@ -171,8 +171,8 @@ interface IHorizonStakingBase {
     /**
      * @notice Gets the amount of thawed tokens that can be releasedfor a given provision.
      * @dev Note that the value returned by this function does not return the total amount of thawed tokens
-     * but only those that can be released. If thaw requests are created with different thawing periods it's 
-     * possible that an unexpired thaw request temporarily blocks the release of other ones that have already 
+     * but only those that can be released. If thaw requests are created with different thawing periods it's
+     * possible that an unexpired thaw request temporarily blocks the release of other ones that have already
      * expired. This function will stop counting when it encounters the first thaw request that is not yet expired.
      * @param thawRequestType The type of thaw request.
      * @param serviceProvider The address of the service provider.

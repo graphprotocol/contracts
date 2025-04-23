@@ -197,6 +197,45 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
+    function createLegacyDispute(
+        address allocationId,
+        address fisherman,
+        uint256 tokensSlash,
+        uint256 tokensRewards
+    ) external override onlyArbitrator returns (bytes32) {
+        // Create a disputeId
+        bytes32 disputeId = keccak256(abi.encodePacked(allocationId, "legacy"));
+
+        // Get the indexer for the legacy allocation
+        address indexer = _graphStaking().getAllocation(allocationId).indexer;
+        require(indexer != address(0), DisputeManagerIndexerNotFound(allocationId));
+
+        // Store dispute
+        disputes[disputeId] = Dispute(
+            indexer,
+            fisherman,
+            0,
+            0,
+            DisputeType.LegacyDispute,
+            IDisputeManager.DisputeStatus.Accepted,
+            block.timestamp,
+            0
+        );
+
+        // Slash the indexer
+        ISubgraphService subgraphService_ = _getSubgraphService();
+        subgraphService_.slash(indexer, abi.encode(tokensSlash, tokensRewards));
+
+        // Reward the fisherman
+        _graphToken().pushTokens(fisherman, tokensRewards);
+
+        emit LegacyDisputeCreated(disputeId, indexer, fisherman, allocationId, tokensSlash, tokensRewards);
+        emit DisputeAccepted(disputeId, indexer, fisherman, tokensRewards);
+
+        return disputeId;
+    }
+
+    /// @inheritdoc IDisputeManager
     function acceptDispute(
         bytes32 disputeId,
         uint256 tokensSlash
