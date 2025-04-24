@@ -15,55 +15,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
      */
 
     /* solhint-disable graph/func-name-mixedcase */
-    // function test_SubgraphService_UpgradeIndexingAgreement(
-    //     SetupTestIndexerParams calldata fuzzyParams,
-    //     uint256 entities,
-    //     bytes32 poi,
-    //     IRecurringCollector.SignedRCA calldata fuzzySignedRCA,
-    //     uint256 unboundedTokensCollected
-    // ) public {
-    //     TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-    //     IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
-
-    //     resetPrank(params.indexer);
-    //     bytes memory data = abi.encode(
-    //         IRecurringCollector.CollectParams({
-    //             agreementId: signedRCA.rca.agreementId,
-    //             collectionId: bytes32(uint256(uint160(params.allocationId))),
-    //             tokens: 0,
-    //             dataServiceCut: 0
-    //         })
-    //     );
-    //     uint256 tokensCollected = bound(unboundedTokensCollected, 1, params.tokens / stakeToFeesRatio);
-    //     vm.mockCall(
-    //         address(recurringCollector),
-    //         abi.encodeWithSelector(IPaymentsCollector.collect.selector, IGraphPayments.PaymentTypes.IndexingFee, data),
-    //         abi.encode(tokensCollected)
-    //     );
-    //     vm.expectCall(
-    //         address(recurringCollector),
-    //         abi.encodeCall(IPaymentsCollector.collect, (IGraphPayments.PaymentTypes.IndexingFee, data))
-    //     );
-    //     vm.expectEmit(address(subgraphService));
-    //     emit ISubgraphService.IndexingFeesCollectedV1(
-    //         params.indexer,
-    //         signedRCA.rca.payer,
-    //         signedRCA.rca.agreementId,
-    //         params.allocationId,
-    //         params.subgraphDeploymentId,
-    //         epochManager.currentEpoch(),
-    //         tokensCollected,
-    //         entities,
-    //         poi
-    //     );
-    //     subgraphService.collect(
-    //         params.indexer,
-    //         IGraphPayments.PaymentTypes.IndexingFee,
-    //         _encodeCollectDataV1(signedRCA.rca.agreementId, entities, poi)
-    //     );
-    // }
-
-    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenPaused(
+    function test_SubgraphService_UpgradeIndexingAgreementIndexingAgreement_Revert_WhenPaused(
         address operator,
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) public withSafeIndexerOrOperator(operator) {
@@ -75,7 +27,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         subgraphService.upgradeIndexingAgreement(operator, signedRCAU);
     }
 
-    function test_SubgraphService_Upgrade_Revert_WhenNotAuthorized(
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAuthorized(
         address indexer,
         address notAuthorized,
         IRecurringCollector.SignedRCAU calldata signedRCAU
@@ -91,7 +43,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         subgraphService.upgradeIndexingAgreement(indexer, signedRCAU);
     }
 
-    function test_SubgraphService_Upgrade_Revert_WhenInvalidProvision(
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenInvalidProvision(
         address indexer,
         uint256 unboundedTokens,
         IRecurringCollector.SignedRCAU memory signedRCAU
@@ -112,7 +64,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         subgraphService.upgradeIndexingAgreement(indexer, signedRCAU);
     }
 
-    function test_SubgraphService_Upgrade_Revert_WhenIndexerNotRegistered(
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenIndexerNotRegistered(
         address indexer,
         uint256 unboundedTokens,
         IRecurringCollector.SignedRCAU memory signedRCAU
@@ -130,7 +82,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         subgraphService.upgradeIndexingAgreement(indexer, signedRCAU);
     }
 
-    function test_SubgraphService_Upgrade_Revert_WhenNotAccepted(
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAccepted(
         SetupTestIndexerParams calldata fuzzyParams,
         IRecurringCollector.SignedRCAU memory signedRCAU
     ) public {
@@ -145,7 +97,28 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         subgraphService.upgradeIndexingAgreement(params.indexer, signedRCAU);
     }
 
-    function test_SubgraphService_Upgrade_Revert_WhenInvalidMetadata(
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAuthorizedForAgreement(
+        SetupTestIndexerParams calldata fuzzyParams,
+        SetupTestIndexerParams calldata fuzzyOtherParams,
+        IRecurringCollector.SignedRCA memory fuzzySignedRCA,
+        IRecurringCollector.SignedRCAU memory fuzzySignedRCAU
+    ) public {
+        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
+        TestIndexerParams memory otherParams = _setupTestIndexer(fuzzyOtherParams);
+        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
+        fuzzySignedRCAU.rcau.agreementId = signedRCA.rca.agreementId;
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceIndexingAgreementNotAuthorized.selector,
+            fuzzySignedRCAU.rcau.agreementId,
+            otherParams.indexer
+        );
+        vm.expectRevert(expectedErr);
+        resetPrank(otherParams.indexer);
+        subgraphService.upgradeIndexingAgreement(otherParams.indexer, fuzzySignedRCAU);
+    }
+
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenInvalidMetadata(
         SetupTestIndexerParams calldata fuzzyParams,
         IRecurringCollector.SignedRCA memory fuzzySignedRCA,
         IRecurringCollector.SignedRCAU memory fuzzySignedRCAU
@@ -165,49 +138,22 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         subgraphService.upgradeIndexingAgreement(params.indexer, fuzzySignedRCAU);
     }
 
-    // function test_SubgraphService_Upgrade_Revert_WhenInvalidAgreement(
-    //     SetupTestIndexerParams calldata fuzzyParams,
-    //     bytes16 agreementId,
-    //     uint256 entities,
-    //     bytes32 poi
-    // ) public {
-    //     TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-
-    //     bytes memory expectedErr = abi.encodeWithSelector(
-    //         ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-    //         agreementId
-    //     );
-    //     vm.expectRevert(expectedErr);
-    //     resetPrank(params.indexer);
-    //     subgraphService.collect(
-    //         params.indexer,
-    //         IGraphPayments.PaymentTypes.IndexingFee,
-    //         _encodeCollectDataV1(agreementId, entities, poi)
-    //     );
-    // }
-
-    // function test_SubgraphService_Upgrade_Reverts_WhenAllocationClosed(
-    //     SetupTestIndexerParams calldata fuzzyParams,
-    //     uint256 entities,
-    //     bytes32 poi,
-    //     IRecurringCollector.SignedRCA calldata fuzzySignedRCA
-    // ) public {
-    //     TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-    //     _acceptAgreement(params, fuzzySignedRCA);
-
-    //     resetPrank(params.indexer);
-    //     subgraphService.stopService(params.indexer, abi.encode(params.allocationId));
-
-    //     bytes memory expectedErr = abi.encodeWithSelector(
-    //         AllocationManager.AllocationManagerAllocationClosed.selector,
-    //         params.allocationId
-    //     );
-    //     vm.expectRevert(expectedErr);
-    //     subgraphService.collect(
-    //         params.indexer,
-    //         IGraphPayments.PaymentTypes.IndexingFee,
-    //         _encodeCollectDataV1(fuzzySignedRCA.rca.agreementId, entities, poi)
-    //     );
-    // }
+    function test_SubgraphService_UpgradeIndexingAgreement_OK(
+        SetupTestIndexerParams calldata fuzzyParams,
+        IRecurringCollector.SignedRCA memory fuzzySignedRCA,
+        IRecurringCollector.SignedRCAU memory fuzzySignedRCAU,
+        uint256 tokensPerSecond,
+        uint256 tokensPerEntityPerSecond
+    ) public {
+        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
+        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
+        fuzzySignedRCAU.rcau.agreementId = signedRCA.rca.agreementId;
+        fuzzySignedRCAU.rcau.metadata = _encodeRCAUMetadataV1(
+            _createRCAUMetadataV1(tokensPerSecond, tokensPerEntityPerSecond)
+        );
+        _mockCollectorUpgrade(address(recurringCollector), fuzzySignedRCAU);
+        resetPrank(params.indexer);
+        subgraphService.upgradeIndexingAgreement(params.indexer, fuzzySignedRCAU);
+    }
     /* solhint-enable graph/func-name-mixedcase */
 }

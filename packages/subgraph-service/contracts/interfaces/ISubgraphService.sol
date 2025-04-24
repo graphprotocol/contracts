@@ -352,11 +352,9 @@ interface ISubgraphService is IDataServiceFees {
     }
 
     /**
-     * @notice Thrown when collecting on an invalid epoch
-     * @param current The current epoch
-     * @param invalid The invalid epoch
+     * Thrown when accepting an agreement with a zero ID
      */
-    error SubgraphServiceInvalidEpoch(uint256 current, uint256 invalid);
+    error SubgraphServiceIndexingAgreementIdZero();
 
     /**
      * @notice Thrown when the data can't be decoded as expected
@@ -430,6 +428,7 @@ interface ISubgraphService is IDataServiceFees {
      * @param tokensCollected The amount of tokens collected
      * @param entities The number of entities indexed
      * @param poi The proof of indexing
+     * @param poiEpoch The epoch of the proof of indexing
      */
     event IndexingFeesCollectedV1(
         address indexed indexer,
@@ -440,7 +439,8 @@ interface ISubgraphService is IDataServiceFees {
         uint256 currentEpoch,
         uint256 tokensCollected,
         uint256 entities,
-        bytes32 poi
+        bytes32 poi,
+        uint256 poiEpoch
     );
 
     /**
@@ -495,7 +495,7 @@ interface ISubgraphService is IDataServiceFees {
     /**
      * @notice Cancel an indexing agreement by payer / signer.
      */
-    function cancelIndexingAgreementByPayer(address payer, bytes16 agreementId) external;
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
 
     function getIndexingAgreement(bytes16 agreementId) external view returns (IndexingAgreementData memory);
 }

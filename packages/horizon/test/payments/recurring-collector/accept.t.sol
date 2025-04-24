@@ -12,14 +12,15 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
 
     /* solhint-disable graph/func-name-mixedcase */
 
-    function test_Accept(FuzzyAcceptableRCA memory fuzzyAcceptableRCA) public {
-        _fuzzyAuthorizeAndAccept(fuzzyAcceptableRCA);
+    function test_Accept(FuzzyTestAccept calldata fuzzyTestAccept) public {
+        _sensibleAuthorizeAndAccept(fuzzyTestAccept);
     }
 
     function test_Accept_Revert_WhenAcceptanceDeadlineElapsed(
         IRecurringCollector.SignedRCA memory fuzzySignedRCA,
         uint256 unboundedSkip
     ) public {
+        vm.assume(fuzzySignedRCA.rca.agreementId != bytes16(0));
         skip(boundSkipFloor(unboundedSkip, 1));
         fuzzySignedRCA.rca = _recurringCollectorHelper.withElapsedAcceptDeadline(fuzzySignedRCA.rca);
 
@@ -32,16 +33,16 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
         _recurringCollector.accept(fuzzySignedRCA);
     }
 
-    function test_Accept_Revert_WhenAlreadyAccepted(FuzzyAcceptableRCA memory fuzzyAcceptableRCA) public {
-        IRecurringCollector.SignedRCA memory signedRCA = _fuzzyAuthorizeAndAccept(fuzzyAcceptableRCA);
+    function test_Accept_Revert_WhenAlreadyAccepted(FuzzyTestAccept calldata fuzzyTestAccept) public {
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementAlreadyAccepted.selector,
-            signedRCA.rca.agreementId
+            accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
-        vm.prank(signedRCA.rca.dataService);
-        _recurringCollector.accept(signedRCA);
+        vm.prank(accepted.rca.dataService);
+        _recurringCollector.accept(accepted);
     }
 
     /* solhint-enable graph/func-name-mixedcase */

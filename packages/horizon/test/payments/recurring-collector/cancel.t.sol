@@ -12,9 +12,9 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
 
     /* solhint-disable graph/func-name-mixedcase */
 
-    function test_Cancel(FuzzyAcceptableRCA memory fuzzyAcceptableRCA) public {
-        _fuzzyAuthorizeAndAccept(fuzzyAcceptableRCA);
-        _cancel(fuzzyAcceptableRCA.rca);
+    function test_Cancel(FuzzyTestAccept calldata fuzzyTestAccept) public {
+        _sensibleAuthorizeAndAccept(fuzzyTestAccept);
+        _cancel(fuzzyTestAccept.rca);
     }
 
     function test_Cancel_Revert_WhenNotAccepted(
@@ -30,21 +30,21 @@ contract RecurringCollectorCancelTest is RecurringCollectorSharedTest {
     }
 
     function test_Cancel_Revert_WhenNotDataService(
-        FuzzyAcceptableRCA memory fuzzyAcceptableRCA,
+        FuzzyTestAccept calldata fuzzyTestAccept,
         address notDataService
     ) public {
-        vm.assume(fuzzyAcceptableRCA.rca.dataService != notDataService);
+        vm.assume(fuzzyTestAccept.rca.dataService != notDataService);
 
-        _fuzzyAuthorizeAndAccept(fuzzyAcceptableRCA);
+        _sensibleAuthorizeAndAccept(fuzzyTestAccept);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorDataServiceNotAuthorized.selector,
-            fuzzyAcceptableRCA.rca.agreementId,
+            fuzzyTestAccept.rca.agreementId,
             notDataService
         );
         vm.expectRevert(expectedErr);
         vm.prank(notDataService);
-        _recurringCollector.cancel(fuzzyAcceptableRCA.rca.agreementId);
+        _recurringCollector.cancel(fuzzyTestAccept.rca.agreementId);
     }
     /* solhint-enable graph/func-name-mixedcase */
 }

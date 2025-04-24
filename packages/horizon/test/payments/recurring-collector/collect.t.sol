@@ -47,20 +47,20 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
     }
 
     function test_Collect_Revert_WhenCallerNotDataService(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        IRecurringCollector.CollectParams memory params,
-        uint256 unboundedKey,
+        FuzzyTestCollect calldata fuzzy,
         address notDataService
     ) public {
-        vm.assume(rca.dataService != notDataService);
-        rca = _sensibleRCA(rca);
-        params.agreementId = rca.agreementId;
-        bytes memory data = _generateCollectData(params);
+        vm.assume(fuzzy.fuzzyTestAccept.rca.dataService != notDataService);
 
-        _authorizeAndAccept(rca, boundKey(unboundedKey));
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        IRecurringCollector.CollectParams memory collectParams = fuzzy.collectParams;
+
+        collectParams.agreementId = accepted.rca.agreementId;
+        bytes memory data = _generateCollectData(collectParams);
+
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorDataServiceNotAuthorized.selector,
-            params.agreementId,
+            collectParams.agreementId,
             notDataService
         );
         vm.expectRevert(expectedErr);
@@ -68,33 +68,28 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
-    function test_Collect_Revert_WhenUnknownAgreement(TestCollectParams memory params) public {
-        bytes memory data = _generateCollectData(params.collectData);
+    function test_Collect_Revert_WhenUnknownAgreement(FuzzyTestCollect memory fuzzy, address dataService) public {
+        bytes memory data = _generateCollectData(fuzzy.collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementNeverAccepted.selector,
-            params.collectData.agreementId
+            fuzzy.collectParams.agreementId
         );
         vm.expectRevert(expectedErr);
-        vm.prank(params.dataService);
+        vm.prank(dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
-    function test_Collect_Revert_WhenCanceledAgreement(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        TestCollectParams memory testCollectParams,
-        uint256 unboundedKey
-    ) public {
-        rca = _sensibleRCA(rca);
-        _authorizeAndAccept(rca, boundKey(unboundedKey));
-        _cancel(rca);
-        IRecurringCollector.CollectParams memory fuzzyParams = testCollectParams.collectData;
-        fuzzyParams.tokens = bound(fuzzyParams.tokens, 1, type(uint256).max);
+    function test_Collect_Revert_WhenCanceledAgreement(FuzzyTestCollect calldata fuzzy) public {
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        _cancel(accepted.rca);
+        IRecurringCollector.CollectParams memory collectData = fuzzy.collectParams;
+        collectData.tokens = bound(collectData.tokens, 1, type(uint256).max);
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
-            rca,
-            fuzzyParams.collectionId,
-            fuzzyParams.tokens,
-            fuzzyParams.dataServiceCut
+            accepted.rca,
+            collectData.collectionId,
+            collectData.tokens,
+            collectData.dataServiceCut
         );
         bytes memory data = _generateCollectData(collectParams);
 
@@ -103,200 +98,194 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             collectParams.agreementId
         );
         vm.expectRevert(expectedErr);
-        vm.prank(rca.dataService);
+        vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
     function test_Collect_Revert_WhenAgreementElapsed(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        IRecurringCollector.CollectParams memory fuzzyParams,
-        uint256 unboundedKey,
-        uint256 unboundedAcceptAt,
-        uint256 unboundedCollectAt
+        FuzzyTestCollect calldata fuzzy,
+        uint256 unboundedCollectionSeconds
     ) public {
-        rca = _sensibleRCA(rca);
-        // ensure agreement is short lived
-        rca.duration = bound(rca.duration, rca.minSecondsPerCollection + 7200, rca.maxSecondsPerCollection * 100);
-        // skip to sometime in the future when there is still plenty of time after the agreement elapsed
-        skip(boundSkipCeil(unboundedAcceptAt, type(uint256).max - (rca.duration * 10)));
-        uint256 agreementEnd = block.timestamp + rca.duration;
-        _authorizeAndAccept(rca, boundKey(unboundedKey));
-        // skip to sometime after agreement elapsed
-        skip(boundSkip(unboundedCollectAt, rca.duration + 1, orTillEndOfTime(type(uint256).max)));
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
 
-        IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
-            rca,
-            fuzzyParams.collectionId,
-            fuzzyParams.tokens,
-            fuzzyParams.dataServiceCut
-        );
+        // skip to sometime after agreement elapsed
+        skip(boundSkipFloor(unboundedCollectionSeconds, accepted.rca.endsAt - block.timestamp + 1));
+
+        IRecurringCollector.CollectParams memory collectParams = fuzzy.collectParams;
+        collectParams.agreementId = accepted.rca.agreementId;
+
         bytes memory data = _generateCollectData(collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementElapsed.selector,
             collectParams.agreementId,
-            agreementEnd
+            accepted.rca.endsAt
         );
         vm.expectRevert(expectedErr);
-        vm.prank(rca.dataService);
+        vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
     function test_Collect_Revert_WhenCollectingTooSoon(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        IRecurringCollector.CollectParams memory fuzzyParams,
-        uint256 unboundedKey,
-        uint256 unboundedAcceptAt,
-        uint256 unboundedSkip
+        FuzzyTestCollect calldata fuzzy,
+        uint256 unboundedCollectionSeconds
     ) public {
-        rca = _sensibleRCA(rca);
-        // skip to sometime in the future when there are still plenty of collections left
-        skip(boundSkipCeil(unboundedAcceptAt, type(uint256).max - (rca.maxSecondsPerCollection * 10)));
-        _authorizeAndAccept(rca, boundKey(unboundedKey));
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
 
-        skip(rca.minSecondsPerCollection);
+        skip(accepted.rca.minSecondsPerCollection);
         bytes memory data = _generateCollectData(
-            _generateCollectParams(rca, fuzzyParams.collectionId, 1, fuzzyParams.dataServiceCut)
+            _generateCollectParams(
+                accepted.rca,
+                fuzzy.collectParams.collectionId,
+                1,
+                fuzzy.collectParams.dataServiceCut
+            )
         );
-        vm.prank(rca.dataService);
+        vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
 
-        uint256 collectionSeconds = boundSkipCeil(unboundedSkip, rca.minSecondsPerCollection - 1);
+        uint256 collectionSeconds = boundSkipCeil(unboundedCollectionSeconds, accepted.rca.minSecondsPerCollection - 1);
         skip(collectionSeconds);
-        fuzzyParams.tokens = bound(fuzzyParams.tokens, 1, type(uint256).max);
+
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
-            rca,
-            fuzzyParams.collectionId,
-            fuzzyParams.tokens,
-            fuzzyParams.dataServiceCut
+            accepted.rca,
+            fuzzy.collectParams.collectionId,
+            bound(fuzzy.collectParams.tokens, 1, type(uint256).max),
+            fuzzy.collectParams.dataServiceCut
         );
         data = _generateCollectData(collectParams);
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorCollectionTooSoon.selector,
             collectParams.agreementId,
             collectionSeconds,
-            rca.minSecondsPerCollection
+            accepted.rca.minSecondsPerCollection
         );
         vm.expectRevert(expectedErr);
-        vm.prank(rca.dataService);
+        vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
     function test_Collect_Revert_WhenCollectingTooLate(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        IRecurringCollector.CollectParams memory fuzzyParams,
-        uint256 unboundedKey,
-        uint256 unboundedAcceptAt,
-        uint256 unboundedFirstCollectionSkip,
-        uint256 unboundedSkip
+        FuzzyTestCollect calldata fuzzy,
+        uint256 unboundedFirstCollectionSeconds,
+        uint256 unboundedSecondCollectionSeconds
     ) public {
-        rca = _sensibleRCA(rca);
-        // skip to sometime in the future when there are still plenty of collections left
-        skip(boundSkipCeil(unboundedAcceptAt, type(uint256).max - (rca.maxSecondsPerCollection * 10)));
-        uint256 acceptedAt = block.timestamp;
-        _authorizeAndAccept(rca, boundKey(unboundedKey));
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
 
         // skip to collectable time
-        skip(boundSkip(unboundedFirstCollectionSkip, rca.minSecondsPerCollection, rca.maxSecondsPerCollection));
-        bytes memory data = _generateCollectData(
-            _generateCollectParams(rca, fuzzyParams.collectionId, 1, fuzzyParams.dataServiceCut)
+        skip(
+            boundSkip(
+                unboundedFirstCollectionSeconds,
+                accepted.rca.minSecondsPerCollection,
+                accepted.rca.maxSecondsPerCollection
+            )
         );
-        vm.prank(rca.dataService);
+        bytes memory data = _generateCollectData(
+            _generateCollectParams(
+                accepted.rca,
+                fuzzy.collectParams.collectionId,
+                1,
+                fuzzy.collectParams.dataServiceCut
+            )
+        );
+        vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
 
-        uint256 durationLeft = orTillEndOfTime(rca.duration - (block.timestamp - acceptedAt));
-        // skip beyond collectable time but still within the agreement duration
-        uint256 collectionSeconds = boundSkip(unboundedSkip, rca.maxSecondsPerCollection + 1, durationLeft);
+        // skip beyond collectable time but still within the agreement endsAt
+        uint256 collectionSeconds = boundSkip(
+            unboundedSecondCollectionSeconds,
+            accepted.rca.maxSecondsPerCollection + 1,
+            accepted.rca.endsAt - block.timestamp
+        );
         skip(collectionSeconds);
 
-        fuzzyParams.tokens = bound(fuzzyParams.tokens, 1, type(uint256).max);
-        IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
-            rca,
-            fuzzyParams.collectionId,
-            fuzzyParams.tokens,
-            fuzzyParams.dataServiceCut
+        data = _generateCollectData(
+            _generateCollectParams(
+                accepted.rca,
+                fuzzy.collectParams.collectionId,
+                bound(fuzzy.collectParams.tokens, 1, type(uint256).max),
+                fuzzy.collectParams.dataServiceCut
+            )
         );
-        data = _generateCollectData(collectParams);
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorCollectionTooLate.selector,
-            collectParams.agreementId,
+            accepted.rca.agreementId,
             collectionSeconds,
-            rca.maxSecondsPerCollection
+            accepted.rca.maxSecondsPerCollection
         );
         vm.expectRevert(expectedErr);
-        vm.prank(rca.dataService);
+        vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
-    function test_Collect_Revert_WhenCollectingTooMuch(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        IRecurringCollector.CollectParams memory fuzzyParams,
-        uint256 unboundedKey,
-        uint256 unboundedInitialCollectionSkip,
-        uint256 unboundedCollectionSkip,
+    function test_Collect_OK_WhenCollectingTooMuch(
+        FuzzyTestCollect calldata fuzzy,
+        uint256 unboundedInitialCollectionSeconds,
+        uint256 unboundedCollectionSeconds,
         uint256 unboundedTokens,
         bool testInitialCollection
     ) public {
-        rca = _sensibleRCA(rca);
-        _authorizeAndAccept(rca, boundKey(unboundedKey));
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
 
         if (!testInitialCollection) {
             // skip to collectable time
-            skip(boundSkip(unboundedInitialCollectionSkip, rca.minSecondsPerCollection, rca.maxSecondsPerCollection));
-            bytes memory initialData = _generateCollectData(
-                _generateCollectParams(rca, fuzzyParams.collectionId, 1, fuzzyParams.dataServiceCut)
+            skip(
+                boundSkip(
+                    unboundedInitialCollectionSeconds,
+                    accepted.rca.minSecondsPerCollection,
+                    accepted.rca.maxSecondsPerCollection
+                )
             );
-            vm.prank(rca.dataService);
+            bytes memory initialData = _generateCollectData(
+                _generateCollectParams(
+                    accepted.rca,
+                    fuzzy.collectParams.collectionId,
+                    1,
+                    fuzzy.collectParams.dataServiceCut
+                )
+            );
+            vm.prank(accepted.rca.dataService);
             _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, initialData);
         }
 
         // skip to collectable time
         uint256 collectionSeconds = boundSkip(
-            unboundedCollectionSkip,
-            rca.minSecondsPerCollection,
-            rca.maxSecondsPerCollection
+            unboundedCollectionSeconds,
+            accepted.rca.minSecondsPerCollection,
+            accepted.rca.maxSecondsPerCollection
         );
         skip(collectionSeconds);
-        uint256 maxTokens = rca.maxOngoingTokensPerSecond * collectionSeconds;
-        maxTokens += testInitialCollection ? rca.maxInitialTokens : 0;
+        uint256 maxTokens = accepted.rca.maxOngoingTokensPerSecond * collectionSeconds;
+        maxTokens += testInitialCollection ? accepted.rca.maxInitialTokens : 0;
         uint256 tokens = bound(unboundedTokens, maxTokens + 1, type(uint256).max);
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
-            rca,
-            fuzzyParams.collectionId,
+            accepted.rca,
+            fuzzy.collectParams.collectionId,
             tokens,
-            fuzzyParams.dataServiceCut
+            fuzzy.collectParams.dataServiceCut
         );
         bytes memory data = _generateCollectData(collectParams);
-        bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorCollectAmountTooHigh.selector,
-            collectParams.agreementId,
-            tokens,
-            maxTokens
-        );
-        vm.expectRevert(expectedErr);
-        vm.prank(rca.dataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        vm.prank(accepted.rca.dataService);
+        uint256 collected = _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        assertEq(collected, maxTokens);
     }
 
     function test_Collect_OK(
-        IRecurringCollector.RecurringCollectionAgreement memory rca,
-        IRecurringCollector.CollectParams memory fuzzyParams,
-        uint256 unboundedKey,
-        uint256 unboundedCollectionSkip,
+        FuzzyTestCollect calldata fuzzy,
+        uint256 unboundedCollectionSeconds,
         uint256 unboundedTokens
     ) public {
-        rca = _sensibleRCA(rca);
-        _authorizeAndAccept(rca, boundKey(unboundedKey));
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
 
         (bytes memory data, uint256 collectionSeconds, uint256 tokens) = _generateValidCollection(
-            rca,
-            fuzzyParams,
-            unboundedCollectionSkip,
+            accepted.rca,
+            fuzzy.collectParams,
+            unboundedCollectionSeconds,
             unboundedTokens
         );
         skip(collectionSeconds);
-        _expectCollectCallAndEmit(rca, fuzzyParams, tokens);
-        vm.prank(rca.dataService);
+        _expectCollectCallAndEmit(accepted.rca, fuzzy.collectParams, tokens);
+        vm.prank(accepted.rca.dataService);
         uint256 collected = _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
         assertEq(collected, tokens);
     }

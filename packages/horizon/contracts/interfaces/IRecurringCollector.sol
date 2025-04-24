@@ -27,8 +27,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         bytes16 agreementId;
         // The deadline for accepting the RCA
         uint256 deadline;
-        // The duration of the RCA in seconds
-        uint256 duration;
+        // The timestamp when the agreement ends
+        uint256 endsAt;
         // The address of the payer the RCA was issued by
         address payer;
         // The address of the data service the RCA was issued to
@@ -62,8 +62,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         bytes16 agreementId;
         // The deadline for upgrading
         uint256 deadline;
-        // The duration of the agreement in seconds
-        uint256 duration;
+        // The timestamp when the agreement ends
+        uint256 endsAt;
         // The maximum amount of tokens that can be collected in the first collection
         // on top of the amount allowed for subsequent collections
         uint256 maxInitialTokens;
@@ -90,8 +90,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 acceptedAt;
         // The timestamp when the agreement was last collected at
         uint256 lastCollectionAt;
-        // The duration of the agreement in seconds
-        uint256 duration;
+        // The timestamp when the agreement ends
+        uint256 endsAt;
         // The maximum amount of tokens that can be collected in the first collection
         // on top of the amount allowed for subsequent collections
         uint256 maxInitialTokens;
@@ -120,6 +120,13 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param dataService The address of the data service
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
+     * @param agreementId The agreement ID
+     * @param acceptedAt The timestamp when the agreement was accepted
+     * @param endsAt The timestamp when the agreement ends
+     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
      */
     event AgreementAccepted(
         address indexed dataService,
@@ -127,7 +134,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         address indexed serviceProvider,
         bytes16 agreementId,
         uint256 acceptedAt,
-        uint256 duration,
+        uint256 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
         uint32 minSecondsPerCollection,
@@ -153,6 +160,13 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param dataService The address of the data service
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
+     * @param agreementId The agreement ID
+     * @param upgradedAt The timestamp when the agreement was upgraded
+     * @param endsAt The timestamp when the agreement ends
+     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
      */
     event AgreementUpgraded(
         address indexed dataService,
@@ -160,7 +174,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         address indexed serviceProvider,
         bytes16 agreementId,
         uint256 upgradedAt,
-        uint256 duration,
+        uint256 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
         uint32 minSecondsPerCollection,
@@ -182,6 +196,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 tokens,
         uint256 dataServiceCut
     );
+
+    /**
+     * Thrown when accepting an agreement with a zero ID
+     */
+    error RecurringCollectorAgreementIdZero();
 
     /**
      * Thrown when interacting with an agreement not owned by the message sender
@@ -241,14 +260,14 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     /**
      * Thrown when accepting or upgrading an agreement with invalid parameters
      */
-    error RecurringCollectorAgreementInvalidParameters();
+    error RecurringCollectorAgreementInvalidParameters(string message);
 
     /**
      * Thrown when calling collect() on an elapsed agreement
      * @param agreementId The agreement ID
-     * @param agreementEnd The agreement end timestamp
+     * @param endsAt The agreement end timestamp
      */
-    error RecurringCollectorAgreementElapsed(bytes16 agreementId, uint256 agreementEnd);
+    error RecurringCollectorAgreementElapsed(bytes16 agreementId, uint256 endsAt);
 
     /**
      * Thrown when calling collect() too soon
@@ -265,14 +284,6 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxSeconds Maximum seconds between collections
      */
     error RecurringCollectorCollectionTooLate(bytes16 agreementId, uint256 secondsSinceLast, uint256 maxSeconds);
-
-    /**
-     * Thrown when calling collect() too late
-     * @param agreementId The agreement ID
-     * @param tokens The amount of tokens to collect
-     * @param maxTokens The maximum amount of tokens allowed to collect
-     */
-    error RecurringCollectorCollectAmountTooHigh(bytes16 agreementId, uint256 tokens, uint256 maxTokens);
 
     /**
      * @dev Accept an indexing agreement.

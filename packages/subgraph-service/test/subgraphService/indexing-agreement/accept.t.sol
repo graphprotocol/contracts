@@ -209,6 +209,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         SetupTestIndexerParams calldata fuzzyParams,
         IRecurringCollector.SignedRCA memory signedRCA
     ) public {
+        vm.assume(signedRCA.rca.agreementId != bytes16(0));
         TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
         signedRCA.rca.serviceProvider = params.indexer;
         signedRCA.rca.dataService = address(subgraphService);

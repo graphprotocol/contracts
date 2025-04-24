@@ -60,6 +60,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         TestIndexerParams memory _params,
         IRecurringCollector.SignedRCA memory _signedRCA
     ) internal returns (IRecurringCollector.SignedRCA memory) {
+        vm.assume(_signedRCA.rca.agreementId != bytes16(0));
         ISubgraphService.AcceptIndexingAgreementMetadata memory metadata = _createRCAMetadataV1(
             _params.subgraphDeploymentId
         );
@@ -97,7 +98,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         _mockCollectorCancel(address(recurringCollector), _agreementId);
         vm.assume(_isSafeSubgraphServiceCaller(_payer));
         resetPrank(_payer);
-        subgraphService.cancelIndexingAgreementByPayer(_payer, _agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(_agreementId);
     }
 
     function _cancelAgreementByIndexer(address _indexer, bytes16 _agreementId) internal {
@@ -174,6 +175,18 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         vm.expectCall(_recurringCollector, abi.encodeCall(IRecurringCollector.accept, (_signedRCA)));
     }
 
+    function _mockCollectorUpgrade(
+        address _recurringCollector,
+        IRecurringCollector.SignedRCAU memory _signedRCAU
+    ) internal {
+        vm.mockCall(
+            _recurringCollector,
+            abi.encodeWithSelector(IRecurringCollector.upgrade.selector, _signedRCAU),
+            new bytes(0)
+        );
+        vm.expectCall(_recurringCollector, abi.encodeCall(IRecurringCollector.upgrade, (_signedRCAU)));
+    }
+
     function _mockCollectorCollect(address _recurringCollector, bytes memory _data, uint256 _tokensCollected) internal {
         vm.mockCall(
             _recurringCollector,
@@ -206,6 +219,22 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             });
     }
 
+    function _createRCAUMetadataV1(
+        uint256 _tokensPerSecond,
+        uint256 _tokensPerEntityPerSecond
+    ) internal pure returns (ISubgraphService.UpgradeIndexingAgreementMetadata memory) {
+        return
+            ISubgraphService.UpgradeIndexingAgreementMetadata({
+                version: ISubgraphService.IndexingAgreementVersion.V1,
+                terms: abi.encode(
+                    ISubgraphService.IndexingAgreementTermsV1({
+                        tokensPerSecond: _tokensPerSecond,
+                        tokensPerEntityPerSecond: _tokensPerEntityPerSecond
+                    })
+                )
+            });
+    }
+
     function _encodeCollectDataV1(
         bytes16 _agreementId,
         uint256 _entities,
@@ -227,5 +256,11 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
                     terms: abi.encode(_params)
                 })
             );
+    }
+
+    function _encodeRCAUMetadataV1(
+        ISubgraphService.UpgradeIndexingAgreementMetadata memory _t
+    ) internal pure returns (bytes memory) {
+        return abi.encode(_t);
     }
 }

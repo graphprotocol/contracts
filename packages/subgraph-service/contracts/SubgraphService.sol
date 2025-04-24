@@ -235,6 +235,7 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
+        _cancelAllocationIndexingAgreement(allocationId);
         _closeAllocation(allocationId);
         emit ServiceStopped(indexer, data);
     }
@@ -318,6 +319,7 @@ contract SubgraphService is
         Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
+        _cancelAllocationIndexingAgreement(allocationId);
         _closeAllocation(allocationId);
     }
 
@@ -672,9 +674,21 @@ contract SubgraphService is
             agreement.indexer == indexer,
             SubgraphServiceIndexingAgreementNonCancelableBy(agreement.indexer, indexer)
         );
-        _cancelIndexingAgreement(agreementId, agreement);
+        _cancelIndexingAgreement(agreementId, agreement, CancelIndexingAgreementBy.Indexer);
+    }
 
-        emit IndexingAgreementCanceled(indexer, agreement.payer, agreementId, indexer);
+    function _cancelAllocationIndexingAgreement(address _allocationId) internal {
+        bytes16 agreementId = allocationToActiveAgreementId[_allocationId];
+        if (agreementId == bytes16(0)) {
+            return;
+        }
+
+        IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(agreementId);
+        if (!_isActiveAgreement(agreement)) {
+            return;
+        }
+
+        _cancelIndexingAgreement(agreementId, agreement, CancelIndexingAgreementBy.Payer);
     }
 
     /**
@@ -687,19 +701,16 @@ contract SubgraphService is
      *
      * Emits {IndexingAgreementCanceled} event
      *
-     * @param payer The address of the payer
      * @param agreementId The id of the agreement
      */
-    function cancelIndexingAgreementByPayer(address payer, bytes16 agreementId) external whenNotPaused {
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external whenNotPaused {
         IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(agreementId);
         require(_isActiveAgreement(agreement), SubgraphServiceIndexingAgreementNotActive(agreementId));
         require(
-            _recurringCollector().isAuthorized(payer, msg.sender),
-            SubgraphServiceIndexingAgreementNonCancelableBy(payer, msg.sender)
+            _recurringCollector().isAuthorized(agreement.payer, msg.sender),
+            SubgraphServiceIndexingAgreementNonCancelableBy(agreement.payer, msg.sender)
         );
-        _cancelIndexingAgreement(agreementId, agreement);
-
-        emit IndexingAgreementCanceled(agreement.indexer, payer, agreementId, payer);
+        _cancelIndexingAgreement(agreementId, agreement, CancelIndexingAgreementBy.Payer);
     }
 
     function getIndexingAgreement(bytes16 agreementId) external view returns (IndexingAgreementData memory) {
@@ -739,18 +750,11 @@ contract SubgraphService is
             agreement.version == IndexingAgreementVersion.V1,
             SubgraphServiceInvalidIndexingAgreementVersion(agreement.version)
         );
-        (uint256 entities, bytes32 poi, uint256 epoch) = _decodeCollectIndexingFeeDataV1(_data);
-        uint256 currentEpoch = _graphEpochManager().currentEpoch();
-        if (epoch != currentEpoch) {
-            revert SubgraphServiceInvalidEpoch(currentEpoch, epoch);
-        }
+        (uint256 entities, bytes32 poi, uint256 poiEpoch) = _decodeCollectIndexingFeeDataV1(_data);
 
-        uint256 tokensToCollect;
-        if (entities == 0 && poi == bytes32(0)) {
-            tokensToCollect = 0;
-        } else {
-            tokensToCollect = _indexingAgreementTokensToCollect(_agreementId, agreement, entities);
-        }
+        uint256 tokensToCollect = (poi == bytes32(0) && entities == 0)
+            ? 0
+            : _indexingAgreementTokensToCollect(_agreementId, agreement, entities);
         agreement.lastCollectionAt = block.timestamp;
 
         uint256 tokensCollected = _indexingAgreementCollect(
@@ -767,10 +771,11 @@ contract SubgraphService is
             _agreementId,
             agreement.allocationId,
             allocation.subgraphDeploymentId,
-            currentEpoch,
+            _graphEpochManager().currentEpoch(),
             tokensCollected,
             entities,
-            poi
+            poi,
+            poiEpoch
         );
         return tokensCollected;
     }
@@ -793,6 +798,7 @@ contract SubgraphService is
         IndexingAgreementData storage agreement = _getForUpdateIndexingAgreement(_signedRCA.rca.agreementId);
         require(agreement.acceptedAt == 0, SubgraphServiceIndexingAgreementAlreadyAccepted(_signedRCA.rca.agreementId));
 
+        require(_signedRCA.rca.agreementId != bytes16(0), SubgraphServiceIndexingAgreementIdZero());
         require(
             allocationToActiveAgreementId[_allocationId] == bytes16(0),
             SubgraphServiceAllocationAlreadyHasIndexingAgreement(_allocationId)
@@ -849,11 +855,27 @@ contract SubgraphService is
         }
     }
 
-    function _cancelIndexingAgreement(bytes16 _agreementId, IndexingAgreementData storage _agreement) private {
+    enum CancelIndexingAgreementBy {
+        Indexer,
+        Payer
+    }
+
+    function _cancelIndexingAgreement(
+        bytes16 _agreementId,
+        IndexingAgreementData storage _agreement,
+        CancelIndexingAgreementBy _cancelBy
+    ) private {
         _agreement.acceptedAt = CANCELED;
         delete allocationToActiveAgreementId[_agreement.allocationId];
 
         _recurringCollector().cancel(_agreementId);
+
+        emit IndexingAgreementCanceled(
+            _agreement.indexer,
+            _agreement.payer,
+            _agreementId,
+            _cancelBy == CancelIndexingAgreementBy.Indexer ? _agreement.indexer : _agreement.payer
+        );
     }
 
     function _indexingAgreementTokensToCollect(

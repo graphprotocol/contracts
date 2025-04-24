@@ -6,7 +6,6 @@ import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
-import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
@@ -26,6 +25,8 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
     ) public {
         TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
         IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
+
+        assertEq(subgraphService.feesProvisionTracker(params.indexer), 0, "Should be 0 before collect");
 
         resetPrank(params.indexer);
         bytes memory data = abi.encode(
@@ -48,17 +49,20 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
             epochManager.currentEpoch(),
             tokensCollected,
             entities,
-            poi
+            poi,
+            epochManager.currentEpoch()
         );
         subgraphService.collect(
             params.indexer,
             IGraphPayments.PaymentTypes.IndexingFee,
             _encodeCollectDataV1(signedRCA.rca.agreementId, entities, poi, epochManager.currentEpoch())
         );
-    }
 
-    function test_SubgraphService_CollectIndexingFees_LocksStake() public {
-        // TODO: Test
+        assertEq(
+            subgraphService.feesProvisionTracker(params.indexer),
+            tokensCollected * stakeToFeesRatio,
+            "Should be exactly locked tokens"
+        );
     }
 
     function test_SubgraphService_CollectIndexingFees_Revert_WhenPaused(
@@ -177,7 +181,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
     }
 
-    function test_SubgraphService_CollectIndexingFees_Reverts_WhenAllocationClosed(
+    function test_SubgraphService_CollectIndexingFees_Reverts_WhenStopService(
         SetupTestIndexerParams calldata fuzzyParams,
         uint256 entities,
         bytes32 poi,
@@ -186,13 +190,43 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
         _acceptAgreement(params, fuzzySignedRCA);
 
+        _mockCollectorCancel(address(recurringCollector), fuzzySignedRCA.rca.agreementId);
         resetPrank(params.indexer);
         subgraphService.stopService(params.indexer, abi.encode(params.allocationId));
+
         uint256 currentEpoch = epochManager.currentEpoch();
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            AllocationManager.AllocationManagerAllocationClosed.selector,
-            params.allocationId
+            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
+            fuzzySignedRCA.rca.agreementId
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.collect(
+            params.indexer,
+            IGraphPayments.PaymentTypes.IndexingFee,
+            _encodeCollectDataV1(fuzzySignedRCA.rca.agreementId, entities, poi, currentEpoch)
+        );
+    }
+
+    function test_SubgraphService_CollectIndexingFees_Reverts_WhenCloseStaleAllocation(
+        SetupTestIndexerParams calldata fuzzyParams,
+        uint256 entities,
+        bytes32 poi,
+        IRecurringCollector.SignedRCA calldata fuzzySignedRCA
+    ) public {
+        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
+        _acceptAgreement(params, fuzzySignedRCA);
+
+        _mockCollectorCancel(address(recurringCollector), fuzzySignedRCA.rca.agreementId);
+        skip(maxPOIStaleness + 1);
+        resetPrank(params.indexer);
+        subgraphService.closeStaleAllocation(params.allocationId);
+
+        uint256 currentEpoch = epochManager.currentEpoch();
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
+            fuzzySignedRCA.rca.agreementId
         );
         vm.expectRevert(expectedErr);
         subgraphService.collect(

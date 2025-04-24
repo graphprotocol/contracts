@@ -38,6 +38,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         uint256 unboundedSignerPrivateKey,
         uint256 fuzzyTokensCollected
     ) public {
+        vm.assume(fuzzyRCA.agreementId != bytes16(0));
         uint256 expectedTotalTokensCollected = bound(fuzzyTokensCollected, 1000, 1_000_000);
         uint256 expectedTokensLocked = stakeToFeesRatio * expectedTotalTokensCollected;
         uint256 expectedProtocolTokensBurnt = expectedTotalTokensCollected.mulPPMRoundUp(
@@ -51,7 +52,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         uint256 agreementTokensPerSecond = 1;
         // Create the Indexing Agreement
         fuzzyRCA.deadline = block.timestamp; // accept now
-        fuzzyRCA.duration = type(uint256).max; // no expiration
+        fuzzyRCA.endsAt = type(uint256).max; // no expiration
         fuzzyRCA.maxInitialTokens = 0; // no initial payment
         fuzzyRCA.maxOngoingTokensPerSecond = type(uint32).max; // unlimited tokens per second
         fuzzyRCA.minSecondsPerCollection = 1; // 1 second between collections

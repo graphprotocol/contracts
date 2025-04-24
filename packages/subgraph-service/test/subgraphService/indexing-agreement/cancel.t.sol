@@ -17,7 +17,6 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
     /* solhint-disable graph/func-name-mixedcase */
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenPaused(
         address rando,
-        address payer,
         bytes16 agreementId
     ) public withSafeIndexerOrOperator(rando) {
         resetPrank(users.pauseGuardian);
@@ -25,7 +24,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         resetPrank(rando);
-        subgraphService.cancelIndexingAgreementByPayer(payer, agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenNotAuthorized(
@@ -43,12 +42,11 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         );
         vm.expectRevert(expectedErr);
         resetPrank(rando);
-        subgraphService.cancelIndexingAgreementByPayer(signedRCA.rca.payer, signedRCA.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(signedRCA.rca.agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenNotAccepted(
         SetupTestIndexerParams calldata fuzzyParams,
-        address payer,
         bytes16 agreementId
     ) public {
         TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
@@ -59,7 +57,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             agreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.cancelIndexingAgreementByPayer(payer, agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenCanceled(
@@ -77,7 +75,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             signedRCA.rca.agreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.cancelIndexingAgreementByPayer(signedRCA.rca.payer, signedRCA.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(signedRCA.rca.agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer(
