@@ -1,4 +1,5 @@
 import type {
+  IDisputeManager,
   IL2Curation,
   IL2GNS,
 } from '@graphprotocol/subgraph-service'
@@ -7,4 +8,5 @@ import type {
 export {
   IL2Curation as L2Curation,
   IL2GNS as L2GNS,
+  IDisputeManager as LegacyDisputeManager,
 }
