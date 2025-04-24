@@ -88,4 +88,99 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         vm.expectRevert(expectedError);
         disputeManager.acceptDispute(disputeID, tokensSlash);
     }
+
+    function test_Indexing_Accept_Dispute_WithDelegation(
+        uint256 tokens,
+        uint256 tokensDelegated,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) useDelegation(tokensDelegated) {
+        tokensSlash = bound(
+            tokensSlash,
+            1,
+            uint256(maxSlashingPercentage).mulPPM(_calculateStakeSnapshot(tokens, tokensDelegated))
+        );
+
+        // Initial dispute with delegation slashing disabled
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+
+        resetPrank(users.arbitrator);
+        _acceptDispute(disputeID, tokensSlash);
+    }
+
+    function test_Indexing_Accept_RevertWhen_SlashingOverMaxSlashPercentage_WithDelegation(
+        uint256 tokens,
+        uint256 tokensDelegated,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) useDelegation(tokensDelegated) {
+        uint256 maxTokensToSlash = uint256(maxSlashingPercentage).mulPPM(
+            _calculateStakeSnapshot(tokens, tokensDelegated)
+        );
+        tokensSlash = bound(tokensSlash, maxTokensToSlash + 1, type(uint256).max);
+
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"));
+
+        // max slashing percentage is 50%
+        resetPrank(users.arbitrator);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IDisputeManager.DisputeManagerInvalidTokensSlash.selector,
+            tokensSlash,
+            maxTokensToSlash
+        );
+        vm.expectRevert(expectedError);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
+    }
+
+    function test_Indexing_Accept_Dispute_WithDelegation_DelegationSlashing(
+        uint256 tokens,
+        uint256 tokensDelegated,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) useDelegation(tokensDelegated) {
+        // enable delegation slashing
+        resetPrank(users.governor);
+        staking.setDelegationSlashingEnabled();
+
+        tokensSlash = bound(
+            tokensSlash,
+            1,
+            uint256(maxSlashingPercentage).mulPPM(_calculateStakeSnapshot(tokens, tokensDelegated))
+        );
+
+        // Create a new dispute with delegation slashing enabled
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI2"));
+
+        resetPrank(users.arbitrator);
+        _acceptDispute(disputeID, tokensSlash);
+    }
+
+    function test_Indexing_Accept_RevertWhen_SlashingOverMaxSlashPercentage_WithDelegation_DelegationSlashing(
+        uint256 tokens,
+        uint256 tokensDelegated,
+        uint256 tokensSlash
+    ) public useIndexer useAllocation(tokens) useDelegation(tokensDelegated) {
+        // enable delegation slashing
+        resetPrank(users.governor);
+        staking.setDelegationSlashingEnabled();
+
+        uint256 maxTokensToSlash = uint256(maxSlashingPercentage).mulPPM(
+            _calculateStakeSnapshot(tokens, tokensDelegated)
+        );
+        tokensSlash = bound(tokensSlash, maxTokensToSlash + 1, type(uint256).max);
+
+        // Create a new dispute with delegation slashing enabled
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"));
+
+        // max slashing percentage is 50%
+        resetPrank(users.arbitrator);
+        bytes memory expectedError = abi.encodeWithSelector(
+            IDisputeManager.DisputeManagerInvalidTokensSlash.selector,
+            tokensSlash,
+            maxTokensToSlash
+        );
+        vm.expectRevert(expectedError);
+        disputeManager.acceptDispute(disputeID, tokensSlash);
+    }
 }

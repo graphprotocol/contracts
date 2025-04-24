@@ -7,6 +7,7 @@ import { Allocation } from "../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../contracts/utilities/AllocationManager.sol";
 import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ISubgraphService } from "../../contracts/interfaces/ISubgraphService.sol";
+import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 
 import { HorizonStakingSharedTest } from "./HorizonStakingShared.t.sol";
 
@@ -184,6 +185,15 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     function _delegate(uint256 tokens) internal {
         token.approve(address(staking), tokens);
         staking.delegate(users.indexer, address(subgraphService), tokens, 0);
+    }
+
+    function _calculateStakeSnapshot(uint256 _tokens, uint256 _tokensDelegated) internal view returns (uint256) {
+        bool delegationSlashingEnabled = staking.isDelegationSlashingEnabled();
+        if (delegationSlashingEnabled) {
+            return _tokens + MathUtils.min(_tokensDelegated, _tokens * subgraphService.getDelegationRatio());
+        } else {
+            return _tokens;
+        }
     }
 
     /*

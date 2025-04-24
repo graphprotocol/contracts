@@ -8,6 +8,7 @@ import { IDisputeManager } from "../../contracts/interfaces/IDisputeManager.sol"
 import { Attestation } from "../../contracts/libraries/Attestation.sol";
 import { Allocation } from "../../contracts/libraries/Allocation.sol";
 import { IDisputeManager } from "../../contracts/interfaces/IDisputeManager.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
 
@@ -403,9 +404,10 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         address fisherman = dispute.fisherman;
         uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
+        uint256 provisionTokens = staking.getProvision(dispute.indexer, address(subgraphService)).tokens;
         uint256 disputeDeposit = dispute.deposit;
         uint256 fishermanRewardPercentage = disputeManager.fishermanRewardCut();
-        uint256 fishermanReward = _tokensSlash.mulPPM(fishermanRewardPercentage);
+        uint256 fishermanReward = Math.min(_tokensSlash, provisionTokens).mulPPM(fishermanRewardPercentage);
 
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.DisputeAccepted(
