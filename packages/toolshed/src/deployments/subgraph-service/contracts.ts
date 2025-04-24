@@ -7,6 +7,7 @@ import type {
 import type {
   L2Curation,
   L2GNS,
+  LegacyDisputeManager,
 } from './types'
 import type { ContractList } from '../contract'
 export const SubgraphServiceContractNameList = [
@@ -19,6 +20,9 @@ export const SubgraphServiceContractNameList = [
   // @graphprotocol/subgraph-service
   'SubgraphService',
   'DisputeManager',
+
+  // @graphprotocol/contracts - legacy
+  'LegacyDisputeManager',
 ] as const
 
 export const CONTRACTS_ARTIFACTS_PATH = resolveNodeModulesPath('@graphprotocol/contracts/build/contracts')
@@ -34,6 +38,9 @@ export const SubgraphServiceArtifactsMap = {
   // @graphprotocol/subgraph-service
   SubgraphService: SUBGRAPH_SERVICE_ARTIFACTS_PATH,
   DisputeManager: SUBGRAPH_SERVICE_ARTIFACTS_PATH,
+
+  // @graphprotocol/contracts - legacy
+  LegacyDisputeManager: CONTRACTS_ARTIFACTS_PATH,
 } as const
 
 export interface SubgraphServiceContracts extends ContractList<SubgraphServiceContractName> {
@@ -50,6 +57,9 @@ export interface SubgraphServiceContracts extends ContractList<SubgraphServiceCo
   // Aliases
   Curation: L2Curation
   GNS: L2GNS
+
+  // @graphprotocol/contracts - legacy
+  LegacyDisputeManager: LegacyDisputeManager
 }
 
 export type SubgraphServiceContractName = (typeof SubgraphServiceContractNameList)[number]
