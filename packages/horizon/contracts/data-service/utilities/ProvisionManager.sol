@@ -19,6 +19,10 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
  * The parameters are:
  * - Provision parameters (thawing period and verifier cut)
  * - Provision tokens
+ *
+ * Note that default values for all provision parameters provide the most permissive configuration, it's
+ * highly recommended to override them at the data service level.
+ *
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -42,6 +46,9 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
 
     /// @notice The default maximum provision tokens.
     uint256 internal constant DEFAULT_MAX_PROVISION_TOKENS = type(uint256).max;
+
+    /// @notice The default delegation ratio.
+    uint32 internal constant DEFAULT_DELEGATION_RATIO = type(uint32).max;
 
     /**
      * @notice Emitted when the provision tokens range is set.
@@ -138,6 +145,7 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _setProvisionTokensRange(DEFAULT_MIN_PROVISION_TOKENS, DEFAULT_MAX_PROVISION_TOKENS);
         _setVerifierCutRange(DEFAULT_MIN_VERIFIER_CUT, DEFAULT_MAX_VERIFIER_CUT);
         _setThawingPeriodRange(DEFAULT_MIN_THAWING_PERIOD, DEFAULT_MAX_THAWING_PERIOD);
+        _setDelegationRatio(DEFAULT_DELEGATION_RATIO);
     }
 
     /**

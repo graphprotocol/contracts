@@ -20,7 +20,7 @@ contract DataServiceTest is HorizonStakingSharedTest {
     }
 
     function test_Constructor_WhenTheContractIsDeployedWithAValidController() external view {
-        _assert_delegationRatio(type(uint32).min);
+        _assert_delegationRatio(type(uint32).max);
         _assert_provisionTokens_range(type(uint256).min, type(uint256).max);
         _assert_verifierCut_range(type(uint32).min, uint32(PPMMath.MAX_PPM));
         _assert_thawingPeriod_range(type(uint64).min, type(uint64).max);
