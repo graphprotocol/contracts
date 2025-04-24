@@ -14,7 +14,7 @@ contract DataServiceUpgradeableTest is GraphBaseTest {
         // via proxy - ensure that the proxy was initialized correctly
         // these calls validate proxy storage was correctly initialized
         uint32 delegationRatio = dataService.getDelegationRatio();
-        assertEq(delegationRatio, type(uint32).min);
+        assertEq(delegationRatio, type(uint32).max);
 
         (uint256 minTokens, uint256 maxTokens) = dataService.getProvisionTokensRange();
         assertEq(minTokens, type(uint256).min);
