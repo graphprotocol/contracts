@@ -12,7 +12,7 @@
   <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml">
     <img src="https://github.com/graphprotocol/contracts/actions/workflows/ci-contracts.yml/badge.svg" alt="CI-Contracts">
   </a>
-  <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci-horizon.yml/badge.svg">
+  <a href="https://github.com/graphprotocol/contracts/actions/workflows/ci-horizon.yml">
     <img src="https://github.com/graphprotocol/contracts/actions/workflows/ci-horizon.yml/badge.svg" alt="CI-Horizon">
   </a>
 </p>
