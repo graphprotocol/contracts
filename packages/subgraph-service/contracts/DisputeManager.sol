@@ -219,6 +219,7 @@ contract DisputeManager is
             DisputeType.LegacyDispute,
             IDisputeManager.DisputeStatus.Accepted,
             block.timestamp,
+            block.timestamp + disputePeriod,
             0
         );
 
@@ -285,7 +286,7 @@ contract DisputeManager is
         Dispute storage dispute = disputes[disputeId];
 
         // Check if dispute period has finished
-        require(dispute.createdAt + disputePeriod < block.timestamp, DisputeManagerDisputePeriodNotFinished());
+        require(dispute.cancellableAt <= block.timestamp, DisputeManagerDisputePeriodNotFinished());
         _cancelDispute(disputeId, dispute);
 
         if (_isDisputeInConflict(dispute)) {
@@ -417,6 +418,7 @@ contract DisputeManager is
 
         // Store dispute
         uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
+        uint256 cancellableAt = block.timestamp + disputePeriod;
         disputes[disputeId] = Dispute(
             indexer,
             _fisherman,
@@ -425,6 +427,7 @@ contract DisputeManager is
             DisputeType.QueryDispute,
             IDisputeManager.DisputeStatus.Pending,
             block.timestamp,
+            cancellableAt,
             stakeSnapshot
         );
 
@@ -435,6 +438,7 @@ contract DisputeManager is
             _deposit,
             _attestation.subgraphDeploymentId,
             _attestationData,
+            cancellableAt,
             stakeSnapshot
         );
 
@@ -481,6 +485,7 @@ contract DisputeManager is
             DisputeType.IndexingDispute,
             IDisputeManager.DisputeStatus.Pending,
             block.timestamp,
+            block.timestamp + disputePeriod,
             stakeSnapshot
         );
 
