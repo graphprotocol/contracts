@@ -145,6 +145,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 disputeDeposit = disputeManager.disputeDeposit();
         uint256 beforeFishermanBalance = token.balanceOf(fisherman);
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(indexer);
+        uint256 cancellableAt = block.timestamp + disputeManager.disputePeriod();
 
         // Approve the dispute deposit
         token.approve(address(disputeManager), disputeDeposit);
@@ -157,6 +158,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit,
             attestation.subgraphDeploymentId,
             _attestationData,
+            cancellableAt,
             stakeSnapshot
         );
 
@@ -318,6 +320,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             )
         );
 
+        uint256 cancellableAt = block.timestamp + disputeManager.disputePeriod();
+
         // createQueryDisputeConflict
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.QueryDisputeCreated(
@@ -327,6 +331,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit / 2,
             beforeValues.attestation1.subgraphDeploymentId,
             attestationData1,
+            cancellableAt,
             beforeValues.stakeSnapshot1
         );
         vm.expectEmit(address(disputeManager));
@@ -337,6 +342,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit / 2,
             beforeValues.attestation2.subgraphDeploymentId,
             attestationData2,
+            cancellableAt,
             beforeValues.stakeSnapshot2
         );
 
@@ -680,11 +686,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         if (isDisputeInConflict) relatedDispute = _getDispute(dispute.relatedDisputeId);
         address fisherman = dispute.fisherman;
         uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
-        uint256 disputePeriod = disputeManager.disputePeriod();
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
-
-        // skip to end of dispute period
-        skip(disputePeriod + 1);
 
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.DisputeCancelled(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
@@ -792,6 +794,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             IDisputeManager.DisputeType disputeType,
             IDisputeManager.DisputeStatus status,
             uint256 createdAt,
+            uint256 cancellableAt,
             uint256 stakeSnapshot
         ) = disputeManager.disputes(_disputeId);
         return
@@ -803,6 +806,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
                 disputeType: disputeType,
                 status: status,
                 createdAt: createdAt,
+                cancellableAt: cancellableAt,
                 stakeSnapshot: stakeSnapshot
             });
     }

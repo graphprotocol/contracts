@@ -38,6 +38,7 @@ interface IDisputeManager {
      * @param disputeType The type of dispute
      * @param status The status of the dispute
      * @param createdAt The timestamp when the dispute was created
+     * @param cancellableAt The timestamp when the dispute can be cancelled
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute (includes delegation up to the delegation ratio)
      */
     struct Dispute {
@@ -48,6 +49,7 @@ interface IDisputeManager {
         DisputeType disputeType;
         DisputeStatus status;
         uint256 createdAt;
+        uint256 cancellableAt;
         uint256 stakeSnapshot;
     }
 
@@ -97,6 +99,7 @@ interface IDisputeManager {
      * @param tokens The amount of tokens deposited by the fisherman
      * @param subgraphDeploymentId The subgraph deployment id
      * @param attestation The attestation
+     * @param cancellableAt The timestamp when the dispute can be cancelled
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
      */
     event QueryDisputeCreated(
@@ -106,7 +109,8 @@ interface IDisputeManager {
         uint256 tokens,
         bytes32 subgraphDeploymentId,
         bytes attestation,
-        uint256 stakeSnapshot
+        uint256 stakeSnapshot,
+        uint256 cancellableAt
     );
 
     /**
