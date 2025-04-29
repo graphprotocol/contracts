@@ -54,8 +54,7 @@ library LegacyAllocation {
     ) internal {
         require(!self[allocationId].exists(), LegacyAllocationAlreadyExists(allocationId));
 
-        State memory allocation = State({ indexer: indexer, subgraphDeploymentId: subgraphDeploymentId });
-        self[allocationId] = allocation;
+        self[allocationId] = State({ indexer: indexer, subgraphDeploymentId: subgraphDeploymentId });
     }
 
     /**
