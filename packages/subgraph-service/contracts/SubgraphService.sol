@@ -268,12 +268,15 @@ contract SubgraphService is
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(data, (IGraphTallyCollector.SignedRAV));
+            (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+                data,
+                (IGraphTallyCollector.SignedRAV, uint256)
+            );
             require(
                 signedRav.rav.serviceProvider == indexer,
                 SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, indexer)
             );
-            paymentCollected = _collectQueryFees(signedRav);
+            paymentCollected = _collectQueryFees(signedRav, tokensToCollect);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
             require(
@@ -475,9 +478,14 @@ contract SubgraphService is
      * Emits a {QueryFeesCollected} event.
      *
      * @param _signedRav Signed RAV
+     * @param tokensToCollect The amount of tokens to collect. Allows partially collecting a RAV. If 0, the entire RAV will
+     * be collected.
      * @return The amount of fees collected
      */
-    function _collectQueryFees(IGraphTallyCollector.SignedRAV memory _signedRav) private returns (uint256) {
+    function _collectQueryFees(
+        IGraphTallyCollector.SignedRAV memory _signedRav,
+        uint256 tokensToCollect
+    ) private returns (uint256) {
         address indexer = _signedRav.rav.serviceProvider;
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
@@ -502,7 +510,8 @@ contract SubgraphService is
         uint256 curationCut = _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0;
         uint256 tokensCollected = _graphTallyCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
-            abi.encode(_signedRav, curationCut)
+            abi.encode(_signedRav, curationCut),
+            tokensToCollect
         );
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
