@@ -77,7 +77,7 @@ contract SubgraphService is
         address owner,
         uint256 minimumProvisionTokens,
         uint32 maximumDelegationRatio,
-        uint256 stakeToFeesRatio
+        uint256 stakeToFeesRatio_
     ) external initializer {
         __Ownable_init(owner);
         __Multicall_init();
@@ -87,7 +87,7 @@ contract SubgraphService is
 
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
         _setDelegationRatio(maximumDelegationRatio);
-        _setStakeToFeesRatio(stakeToFeesRatio);
+        _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
     /**
@@ -113,7 +113,7 @@ contract SubgraphService is
         address indexer,
         bytes calldata data
     ) external override onlyAuthorizedForProvision(indexer) onlyValidProvision(indexer) whenNotPaused {
-        (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
+        (string memory url, string memory geohash, address rewardsDestination_) = abi.decode(
             data,
             (string, string, address)
         );
@@ -124,8 +124,8 @@ contract SubgraphService is
 
         // Register the indexer
         indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
-        if (rewardsDestination != address(0)) {
-            _setRewardsDestination(indexer, rewardsDestination);
+        if (rewardsDestination_ != address(0)) {
+            _setRewardsDestination(indexer, rewardsDestination_);
         }
 
         emit ServiceProviderRegistered(indexer, data);
@@ -345,8 +345,8 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function setRewardsDestination(address rewardsDestination) external override {
-        _setRewardsDestination(msg.sender, rewardsDestination);
+    function setRewardsDestination(address rewardsDestination_) external override {
+        _setRewardsDestination(msg.sender, rewardsDestination_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -365,8 +365,8 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function setMaxPOIStaleness(uint256 maxPOIStaleness) external override onlyOwner {
-        _setMaxPOIStaleness(maxPOIStaleness);
+    function setMaxPOIStaleness(uint256 maxPOIStaleness_) external override onlyOwner {
+        _setMaxPOIStaleness(maxPOIStaleness_);
     }
 
     /// @inheritdoc ISubgraphService
