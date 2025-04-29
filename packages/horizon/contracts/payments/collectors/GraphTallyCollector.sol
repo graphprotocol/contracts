@@ -88,7 +88,7 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
      * This variant adds the ability to partially collect a RAV by specifying the amount of tokens to collect.
      * @param _paymentType The payment type to collect
      * @param _data Additional data required for the payment collection
-     * @param _tokensToCollect The amount of tokens to collect
+     * @param _tokensToCollect The amount of tokens to collect. If 0, all tokens from the RAV will be collected.
      * @return The amount of tokens collected
      */
     function _collect(

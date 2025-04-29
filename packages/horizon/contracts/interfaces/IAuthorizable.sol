@@ -100,7 +100,7 @@ interface IAuthorizable {
      * - `proof` must be a valid signature from the signer being authorized
      *
      * Emits a {SignerAuthorized} event
-     * @param signer The addres of the signer
+     * @param signer The address of the signer
      * @param proofDeadline The deadline for the proof provided by the signer
      * @param proof The proof provided by the signer to be authorized by the authorizer
      * consists of (chain id, verifying contract address, domain, proof deadline, authorizer address)
@@ -141,7 +141,8 @@ interface IAuthorizable {
     function revokeAuthorizedSigner(address signer) external;
 
     /**
-     * @notice Returns the timestamp at which the thawing period ends for a signer
+     * @notice Returns the timestamp at which the thawing period ends for a signer.
+     * Returns 0 if the signer is not thawing.
      * @param signer The address of the signer
      * @return The timestamp at which the thawing period ends
      */

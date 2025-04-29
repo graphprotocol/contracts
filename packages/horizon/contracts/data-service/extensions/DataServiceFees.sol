@@ -88,7 +88,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @dev This function is used as a callback in the stake claims linked list traversal.
      * @param _claimId The id of the stake claim
      * @param _acc The accumulator for the stake claims being processed
-     * @return Wether the stake claim is still locked, indicating that the traversal should continue or stop.
+     * @return Whether the stake claim is still locked, indicating that the traversal should continue or stop.
      * @return The updated accumulator data
      */
     function _processStakeClaim(bytes32 _claimId, bytes memory _acc) private returns (bool, bytes memory) {

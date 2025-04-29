@@ -24,7 +24,7 @@ interface IHorizonStakingMain {
     /**
      * @notice Emitted when a service provider unstakes tokens during the transition period.
      * @param serviceProvider The address of the service provider
-     * @param tokens The amount of tokens unstaked
+     * @param tokens The amount of tokens now locked (including previously locked tokens)
      * @param until The block number until the stake is locked
      */
     event HorizonStakeLocked(address indexed serviceProvider, uint256 tokens, uint256 until);

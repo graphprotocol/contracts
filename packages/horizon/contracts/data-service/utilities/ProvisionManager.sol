@@ -153,8 +153,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * the {HorizonStaking} contract.
      * @dev Checks the pending provision parameters, not the current ones.
      *
-     * Emits a {ProvisionPendingParametersAccepted} event.
-     *
      * @param _serviceProvider The address of the service provider.
      */
     function _acceptProvisionParameters(address _serviceProvider) internal {
