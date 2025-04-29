@@ -54,10 +54,10 @@ contract DisputeManager is
 
     // -- Constants --
 
-    // Maximum value for fisherman reward cut in PPM
+    /// @notice Maximum value for fisherman reward cut in PPM
     uint32 public constant MAX_FISHERMAN_REWARD_CUT = 500000; // 50%
 
-    // Minimum value for dispute deposit
+    /// @notice Minimum value for dispute deposit
     uint256 public constant MIN_DISPUTE_DEPOSIT = 1e18; // 1 GRT
 
     // -- Modifiers --
