@@ -28,6 +28,10 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         resetPrank(users.fisherman);
         (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
+        // skip to end of dispute period
+        uint256 disputePeriod = disputeManager.disputePeriod();
+        skip(disputePeriod + 1);
+
         _cancelDispute(disputeID1);
     }
 
@@ -66,6 +70,62 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         resetPrank(users.fisherman);
         (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
 
+        resetPrank(users.fisherman);
+        vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerDisputePeriodNotFinished.selector));
+        disputeManager.cancelDispute(disputeID1);
+    }
+
+    function test_Query_Conflict_Cancel_After_DisputePeriodIncreased(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
+        (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
+            requestCID,
+            subgraphDeployment,
+            responseCID1,
+            responseCID2,
+            allocationIDPrivateKey,
+            allocationIDPrivateKey
+        );
+
+        resetPrank(users.fisherman);
+        (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
+
+        // change the dispute period to a higher value
+        uint256 oldDisputePeriod = disputeManager.disputePeriod();
+        resetPrank(users.governor);
+        disputeManager.setDisputePeriod(uint64(oldDisputePeriod * 2));
+
+        // skip to end of old dispute period
+        skip(oldDisputePeriod + 1);
+
+        // should be able to cancel
+        resetPrank(users.fisherman);
+        _cancelDispute(disputeID1);
+    }
+
+    function test_Query_Cancel_After_DisputePeriodDecreased(uint256 tokens) public useIndexer useAllocation(tokens) {
+        (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
+            requestCID,
+            subgraphDeployment,
+            responseCID1,
+            responseCID2,
+            allocationIDPrivateKey,
+            allocationIDPrivateKey
+        );
+
+        resetPrank(users.fisherman);
+        (bytes32 disputeID1, ) = _createQueryDisputeConflict(attestationData1, attestationData2);
+
+        // change the dispute period to a lower value
+        uint256 oldDisputePeriod = disputeManager.disputePeriod();
+        resetPrank(users.governor);
+        disputeManager.setDisputePeriod(uint64(oldDisputePeriod / 2));
+
+        // skip to end of new dispute period
+        skip(oldDisputePeriod / 2 + 1);
+
+        // should not be able to cancel
         resetPrank(users.fisherman);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerDisputePeriodNotFinished.selector));
         disputeManager.cancelDispute(disputeID1);
