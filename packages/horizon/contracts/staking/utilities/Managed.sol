@@ -51,14 +51,6 @@ abstract contract Managed is GraphDirectory {
     }
 
     /**
-     * @dev Revert if the caller is not the Controller
-     */
-    modifier onlyController() {
-        require(msg.sender == address(_graphController()), ManagedOnlyController());
-        _;
-    }
-
-    /**
      * @dev Revert if the caller is not the governor
      */
     modifier onlyGovernor() {

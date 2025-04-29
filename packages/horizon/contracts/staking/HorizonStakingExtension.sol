@@ -279,10 +279,9 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     /**
      * @dev Triggers an update of rewards due to a change in allocations.
      * @param _subgraphDeploymentID Subgraph deployment updated
-     * @return Accumulated rewards per allocated token for the subgraph deployment
      */
-    function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
-        return _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
+    function _updateRewards(bytes32 _subgraphDeploymentID) private {
+        _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
