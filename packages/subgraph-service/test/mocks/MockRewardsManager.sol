@@ -41,6 +41,8 @@ contract MockRewardsManager is IRewardsManager {
 
     function setSubgraphService(address) external {}
 
+    function setServiceQuality(address _serviceQuality) external override {}
+
     // -- Denylist --
 
     function setSubgraphAvailabilityOracle(address) external {}
@@ -52,6 +54,10 @@ contract MockRewardsManager is IRewardsManager {
     function isDenied(bytes32) external view returns (bool) {}
 
     // -- Getters --
+
+    function getRewardsIssuancePerBlock() external pure returns (uint256) {
+        return 0;
+    }
 
     function getNewRewardsPerSignal() external view returns (uint256) {}
 

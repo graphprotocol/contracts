@@ -154,7 +154,10 @@ contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
      */
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
         // Only SubgraphService or Staking contract are authorized as caller
-        require(msg.sender == subgraphService || msg.sender == address(staking()), "Caller must be the subgraph service or staking contract");
+        require(
+            msg.sender == subgraphService || msg.sender == address(staking()),
+            "Caller must be the subgraph service or staking contract"
+        );
 
         // Must be curated to accept tokens
         require(isCurated(_subgraphDeploymentID), "Subgraph deployment must be curated to collect fees");

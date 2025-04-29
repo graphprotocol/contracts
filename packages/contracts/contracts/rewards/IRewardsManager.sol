@@ -21,6 +21,8 @@ interface IRewardsManager {
 
     function setSubgraphService(address _subgraphService) external;
 
+    function setServiceQualityOracle(address _serviceQualityOracle) external;
+
     // -- Denylist --
 
     function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle) external;
@@ -30,6 +32,8 @@ interface IRewardsManager {
     function isDenied(bytes32 _subgraphDeploymentID) external view returns (bool);
 
     // -- Getters --
+
+    function getRewardsIssuancePerBlock() external view returns (uint256);
 
     function getNewRewardsPerSignal() external view returns (uint256);
 
