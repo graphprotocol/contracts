@@ -13,7 +13,7 @@ library MathUtils {
      * @dev Calculates the weighted average of two values pondering each of these
      * values based on configured weights. The contribution of each value N is
      * weightN/(weightA + weightB). The calculation rounds up to ensure the result
-     * is always greater than the smallest of the two values.
+     * is always equal or greater than the smallest of the two values.
      * @param valueA The amount for value A
      * @param weightA The weight to use for value A
      * @param valueB The amount for value B

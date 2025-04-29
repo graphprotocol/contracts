@@ -413,7 +413,7 @@ contract DisputeManager is
             )
         );
 
-        // Only one dispute for a (indexer, subgraphDeploymentId) at a time
+        // Only one dispute at a time
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
 
         // Store dispute
