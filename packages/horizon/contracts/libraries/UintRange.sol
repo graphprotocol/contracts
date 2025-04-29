@@ -8,8 +8,6 @@ pragma solidity 0.8.27;
  * bugs. We may have an active bug bounty program.
  */
 library UintRange {
-    using UintRange for uint256;
-
     /**
      * @notice Checks if a value is in the range [`min`, `max`].
      * @param value The value to check.

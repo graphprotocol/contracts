@@ -200,7 +200,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _tokens The amount of tokens to allocate
      * @param _allocationProof Signed proof of allocation id address ownership
      * @param _delegationRatio The delegation ratio to consider when locking tokens
-     * @return The allocation details
      */
     function _allocate(
         address _indexer,
@@ -209,7 +208,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 _tokens,
         bytes memory _allocationProof,
         uint32 _delegationRatio
-    ) internal returns (Allocation.State memory) {
+    ) internal {
         require(_allocationId != address(0), AllocationManagerInvalidZeroAllocationId());
 
         _verifyAllocationProof(_indexer, _allocationId, _allocationProof);
@@ -238,7 +237,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             allocation.tokens;
 
         emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens, currentEpoch);
-        return allocation;
     }
 
     /**
@@ -361,13 +359,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation to be resized
      * @param _tokens The new amount of tokens to allocate
      * @param _delegationRatio The delegation ratio to consider when locking tokens
-     * @return The allocation details
      */
-    function _resizeAllocation(
-        address _allocationId,
-        uint256 _tokens,
-        uint32 _delegationRatio
-    ) internal returns (Allocation.State memory) {
+    function _resizeAllocation(address _allocationId, uint256 _tokens, uint32 _delegationRatio) internal {
         Allocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
         require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
@@ -404,7 +397,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         }
 
         emit AllocationResized(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, _tokens, oldTokens);
-        return _allocations[_allocationId];
     }
 
     /**
@@ -464,24 +456,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     function _setMaxPOIStaleness(uint256 _maxPOIStaleness) internal {
         maxPOIStaleness = _maxPOIStaleness;
         emit MaxPOIStalenessSet(_maxPOIStaleness);
-    }
-
-    /**
-     * @notice Gets the details of an allocation
-     * @param _allocationId The id of the allocation
-     * @return The allocation details
-     */
-    function _getAllocation(address _allocationId) internal view returns (Allocation.State memory) {
-        return _allocations.get(_allocationId);
-    }
-
-    /**
-     * @notice Gets the details of a legacy allocation
-     * @param _allocationId The id of the legacy allocation
-     * @return The legacy allocation details
-     */
-    function _getLegacyAllocation(address _allocationId) internal view returns (LegacyAllocation.State memory) {
-        return _legacyAllocations.get(_allocationId);
     }
 
     /**
