@@ -149,7 +149,6 @@ contract SubgraphService is
         address indexer,
         bytes calldata
     ) external override onlyAuthorizedForProvision(indexer) whenNotPaused {
-        _checkProvisionTokens(indexer);
         _acceptProvisionParameters(indexer);
         emit ProvisionPendingParametersAccepted(indexer);
     }
