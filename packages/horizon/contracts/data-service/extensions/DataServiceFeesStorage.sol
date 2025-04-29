@@ -11,6 +11,7 @@ import { LinkedList } from "../../libraries/LinkedList.sol";
  * bugs. We may have an active bug bounty program.
  */
 abstract contract DataServiceFeesV1Storage {
+    /// @notice The amount of tokens locked in stake claims for each service provider
     mapping(address serviceProvider => uint256 tokens) public feesProvisionTracker;
 
     /// @notice List of all locked stake claims to be released to service providers
