@@ -39,7 +39,11 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         return abi.encodePacked(r, s, v);
     }
 
-    function _getQueryFeeEncodedData(address indexer, uint128 tokens) private view returns (bytes memory) {
+    function _getQueryFeeEncodedData(
+        address indexer,
+        uint128 tokens,
+        uint256 tokensToCollect
+    ) private view returns (bytes memory) {
         IGraphTallyCollector.ReceiptAggregateVoucher memory rav = _getRAV(
             indexer,
             bytes32(uint256(uint160(allocationID))),
@@ -49,7 +53,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
         IGraphTallyCollector.SignedRAV memory signedRAV = IGraphTallyCollector.SignedRAV(rav, signature);
-        return abi.encode(signedRAV);
+        return abi.encode(signedRAV, tokensToCollect);
     }
 
     function _getRAV(
@@ -109,7 +113,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _authorizeSigner();
 
         resetPrank(users.indexer);
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment));
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
@@ -129,14 +133,14 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         uint256 accTokensPayment = 0;
         for (uint i = 0; i < numPayments; i++) {
             accTokensPayment = accTokensPayment + tokensPayment;
-            bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(accTokensPayment));
+            bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(accTokensPayment), 0);
             _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
         }
     }
 
     function testCollect_RevertWhen_NotAuthorized(uint256 tokens) public useIndexer useAllocation(tokens) {
         IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes.QueryFee;
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens));
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens), 0);
         resetPrank(users.operator);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -157,7 +161,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _createAndStartAllocation(newIndexer, tokens);
 
         // This data is for user.indexer allocationId
-        bytes memory data = _getQueryFeeEncodedData(newIndexer, uint128(tokens));
+        bytes memory data = _getQueryFeeEncodedData(newIndexer, uint128(tokens), 0);
 
         resetPrank(newIndexer);
         vm.expectRevert(
@@ -173,7 +177,7 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         // Setup new indexer
         address newIndexer = makeAddr("newIndexer");
         _createAndStartAllocation(newIndexer, tokens);
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens));
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokens), 0);
         vm.expectRevert(
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerMismatch.selector, users.indexer, newIndexer)
         );
@@ -192,5 +196,67 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
             abi.encodeWithSelector(ISubgraphService.SubgraphServiceInvalidCollectionId.selector, collectionId)
         );
         subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
+    }
+
+    function testCollect_QueryFees_PartialCollect(
+        uint256 tokensAllocated,
+        uint256 tokensPayment
+    ) public useIndexer useAllocation(tokensAllocated) {
+        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
+        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
+            ? type(uint128).max
+            : tokensAllocated / stakeToFeesRatio;
+        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
+
+        resetPrank(users.gateway);
+        _deposit(tokensPayment);
+        _authorizeSigner();
+
+        uint256 beforeGatewayBalance = escrow.getBalance(users.gateway, address(graphTallyCollector), users.indexer);
+        uint256 beforeTokensCollected = graphTallyCollector.tokensCollected(
+            address(subgraphService),
+            bytes32(uint256(uint160(allocationID))),
+            users.indexer,
+            users.gateway
+        );
+
+        // Collect the RAV in two steps
+        resetPrank(users.indexer);
+        uint256 tokensToCollect = tokensPayment / 2;
+        bool oddTokensPayment = tokensPayment % 2 == 1;
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), tokensToCollect);
+        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
+
+        uint256 intermediateGatewayBalance = escrow.getBalance(
+            users.gateway,
+            address(graphTallyCollector),
+            users.indexer
+        );
+        assertEq(intermediateGatewayBalance, beforeGatewayBalance - tokensToCollect);
+        uint256 intermediateTokensCollected = graphTallyCollector.tokensCollected(
+            address(subgraphService),
+            bytes32(uint256(uint160(allocationID))),
+            users.indexer,
+            users.gateway
+        );
+        assertEq(intermediateTokensCollected, beforeTokensCollected + tokensToCollect);
+
+        bytes memory data2 = _getQueryFeeEncodedData(
+            users.indexer,
+            uint128(tokensPayment),
+            oddTokensPayment ? tokensToCollect + 1 : tokensToCollect
+        );
+        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data2);
+
+        // Check the indexer received the correct amount of tokens
+        uint256 afterGatewayBalance = escrow.getBalance(users.gateway, address(graphTallyCollector), users.indexer);
+        assertEq(afterGatewayBalance, beforeGatewayBalance - tokensPayment);
+        uint256 afterTokensCollected = graphTallyCollector.tokensCollected(
+            address(subgraphService),
+            bytes32(uint256(uint160(allocationID))),
+            users.indexer,
+            users.gateway
+        );
+        assertEq(afterTokensCollected, intermediateTokensCollected + tokensToCollect + (oddTokensPayment ? 1 : 0));
     }
 }
