@@ -479,9 +479,18 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      */
     function getAllocationData(
         address _allocationID
-    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
+    ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
         Allocation memory alloc = __allocations[_allocationID];
-        return (alloc.indexer, alloc.subgraphDeploymentID, alloc.tokens, alloc.accRewardsPerAllocatedToken, 0);
+        bool isActive = _getAllocationState(_allocationID) == AllocationState.Active;
+
+        return (
+            isActive,
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            alloc.tokens,
+            alloc.accRewardsPerAllocatedToken,
+            0
+        );
     }
 
     /**
@@ -810,8 +819,6 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             require(isIndexerOrOperator, "!auth");
         }
 
-        // Close the allocation
-        __allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         // -- Rewards Distribution --
 
@@ -835,6 +842,9 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
                 alloc.tokens
             );
         }
+
+        // Close the allocation
+        __allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         emit AllocationClosed(
             alloc.indexer,
