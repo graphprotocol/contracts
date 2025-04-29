@@ -32,8 +32,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     using PPMMath for uint256;
     using TokenUtils for IGraphToken;
 
-    ///@dev EIP712 typehash for allocation proof
-    bytes32 private constant EIP712_ALLOCATION_PROOF_TYPEHASH =
+    ///@dev EIP712 typehash for allocation id proof
+    bytes32 private constant EIP712_ALLOCATION_ID_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
 
     /**
@@ -465,7 +465,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @return The encoded allocation proof
      */
     function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {
-        return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));
+        return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_ID_PROOF_TYPEHASH, _indexer, _allocationId)));
     }
 
     /**

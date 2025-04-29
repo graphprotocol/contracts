@@ -151,13 +151,13 @@ interface IHorizonStakingTypes {
      * ordered by creation timestamp.
      * @param shares Shares that represent the tokens being thawed
      * @param thawingUntil The timestamp when the thawed funds can be removed from the provision
-     * @param next Id of the next thaw request in the linked list
+     * @param nextRequest Id of the next thaw request in the linked list
      * @param thawingNonce Used to invalidate unfulfilled thaw requests
      */
     struct ThawRequest {
         uint256 shares;
         uint64 thawingUntil;
-        bytes32 next;
+        bytes32 nextRequest;
         uint256 thawingNonce;
     }
 
