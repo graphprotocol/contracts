@@ -10,8 +10,8 @@ yarn compile
 tsc
 
 # Copy types and abis to distribution folder
-cp -R build/types/* dist/build/types
-cp -R build/abis/ dist/abis
+cp -R build/types/* dist/contracts/build/types
+cp -R build/abis/ dist/contracts/build/abis
 
 # Move compiled types ts
-mv dist/build/types dist/types
+mv dist/contracts/build/types dist/types
