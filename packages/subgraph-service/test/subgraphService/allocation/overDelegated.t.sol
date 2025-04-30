@@ -30,7 +30,7 @@ contract SubgraphServiceAllocationOverDelegatedTest is SubgraphServiceTest {
 
         // Create provision
         token.approve(address(staking), indexerTokens);
-        _createProvision(users.indexer, indexerTokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, indexerTokens, fishermanRewardPercentage, disputePeriod);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         // Delegate so that indexer is over allocated

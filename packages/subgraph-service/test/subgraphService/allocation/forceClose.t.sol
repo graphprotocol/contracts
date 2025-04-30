@@ -78,7 +78,7 @@ contract SubgraphServiceAllocationForceCloseTest is SubgraphServiceTest {
     function test_SubgraphService_Allocation_ForceClose_RevertIf_Altruistic(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
 
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         bytes memory data = _createSubgraphAllocationData(users.indexer, subgraphDeployment, allocationIDPrivateKey, 0);

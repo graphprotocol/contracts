@@ -38,7 +38,7 @@ contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
         uint256 newAllocationIDKey = uint256(keccak256(abi.encodePacked("newAllocationID")));
         mint(newIndexer, tokens);
         resetPrank(newIndexer);
-        _createProvision(newIndexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(newIndexer, tokens, fishermanRewardPercentage, disputePeriod);
         _register(newIndexer, abi.encode("url", "geoHash", 0x0));
         bytes memory data = _createSubgraphAllocationData(newIndexer, subgraphDeployment, newAllocationIDKey, tokens);
         _startService(newIndexer, data);
