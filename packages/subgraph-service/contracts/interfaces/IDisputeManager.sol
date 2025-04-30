@@ -457,7 +457,7 @@ interface IDisputeManager {
     function createIndexingDispute(address allocationId, bytes32 poi) external returns (bytes32);
 
     /**
-     * @notice Create a legacy dispute.
+     * @notice Creates and auto-accepts a legacy dispute.
      * This disputes can be created to settle outstanding slashing amounts with an indexer that has been
      * "legacy slashed" during or shortly after the transition period. See {HorizonStakingExtension.legacySlash}
      * for more details.
@@ -482,7 +482,7 @@ interface IDisputeManager {
      * @param tokensRewards The amount of tokens to reward the fisherman
      * @return The dispute id
      */
-    function createLegacyDispute(
+    function createAndAcceptLegacyDispute(
         address allocationId,
         address fisherman,
         uint256 tokensSlash,

@@ -38,17 +38,17 @@ contract DisputeManagerLegacyDisputeTest is DisputeManagerTest {
         _provision(users.indexer, tokensProvisioned, maxSlashingPercentage, disputePeriod);
 
         resetPrank(users.arbitrator);
-        _createLegacyDispute(allocationID, users.fisherman, tokensSlash, tokensRewards);
+        _createAndAcceptLegacyDispute(allocationID, users.fisherman, tokensSlash, tokensRewards);
     }
 
     function test_LegacyDispute_RevertIf_NotArbitrator() public useIndexer {
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotArbitrator.selector));
-        disputeManager.createLegacyDispute(allocationID, users.fisherman, 0, 0);
+        disputeManager.createAndAcceptLegacyDispute(allocationID, users.fisherman, 0, 0);
     }
 
     function test_LegacyDispute_RevertIf_AllocationNotFound() public useIndexer {
         resetPrank(users.arbitrator);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerIndexerNotFound.selector, address(0)));
-        disputeManager.createLegacyDispute(address(0), users.fisherman, 0, 0);
+        disputeManager.createAndAcceptLegacyDispute(address(0), users.fisherman, 0, 0);
     }
 }

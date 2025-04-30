@@ -203,7 +203,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 staking;
     }
 
-    function _createLegacyDispute(
+    function _createAndAcceptLegacyDispute(
         address _allocationId,
         address _fisherman,
         uint256 _tokensSlash,
@@ -236,7 +236,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             _fisherman,
             _tokensRewards
         );
-        bytes32 _disputeId = disputeManager.createLegacyDispute(
+        bytes32 _disputeId = disputeManager.createAndAcceptLegacyDispute(
             _allocationId,
             _fisherman,
             _tokensSlash,
