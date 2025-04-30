@@ -187,6 +187,10 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         staking.delegate(users.indexer, address(subgraphService), tokens, 0);
     }
 
+    function _calculateStakeSnapshot(uint256 _tokens, uint256 _tokensDelegated) internal view returns (uint256) {
+        return _tokens + _tokensDelegated;
+    }
+
     /*
      * PRIVATE FUNCTIONS
      */
