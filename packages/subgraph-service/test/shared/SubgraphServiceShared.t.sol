@@ -190,7 +190,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     function _calculateStakeSnapshot(uint256 _tokens, uint256 _tokensDelegated) internal view returns (uint256) {
         bool delegationSlashingEnabled = staking.isDelegationSlashingEnabled();
         if (delegationSlashingEnabled) {
-            return _tokens + MathUtils.min(_tokensDelegated, _tokens * subgraphService.getDelegationRatio());
+            return _tokens + _tokensDelegated;
         } else {
             return _tokens;
         }
