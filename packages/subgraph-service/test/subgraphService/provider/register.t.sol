@@ -14,7 +14,7 @@ contract SubgraphServiceProviderRegisterTest is SubgraphServiceTest {
 
     function test_SubgraphService_Provider_Register(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
         bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
         _register(users.indexer, data);
     }
@@ -52,7 +52,7 @@ contract SubgraphServiceProviderRegisterTest is SubgraphServiceTest {
         uint256 tokens
     ) public useIndexer {
         tokens = bound(tokens, 1, minimumProvisionTokens - 1);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -68,7 +68,7 @@ contract SubgraphServiceProviderRegisterTest is SubgraphServiceTest {
 
     function test_SubgraphService_Provider_Register_RevertIf_EmptyUrl(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
         bytes memory data = abi.encode("", "geoHash", users.rewardsDestination);
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceEmptyUrl.selector));
         subgraphService.register(users.indexer, data);
@@ -76,7 +76,7 @@ contract SubgraphServiceProviderRegisterTest is SubgraphServiceTest {
 
     function test_SubgraphService_Provider_Register_RevertIf_EmptyGeohash(uint256 tokens) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
         bytes memory data = abi.encode("url", "", users.rewardsDestination);
         vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceEmptyGeohash.selector));
         subgraphService.register(users.indexer, data);

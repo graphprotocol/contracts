@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
+import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { Allocation } from "../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../contracts/utilities/AllocationManager.sol";
 import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
@@ -34,7 +35,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     modifier useAllocation(uint256 tokens) {
         vm.assume(tokens >= minimumProvisionTokens);
         vm.assume(tokens < 10_000_000_000 ether);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
             users.indexer,
@@ -193,5 +194,9 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     function _getIndexer(address _indexer) private view returns (ISubgraphService.Indexer memory) {
         (uint256 registeredAt, string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
         return ISubgraphService.Indexer({ registeredAt: registeredAt, url: url, geoHash: geoHash });
+    }
+
+    function _calculateStakeSnapshot(uint256 _tokens, uint256 _tokensDelegated) internal view returns (uint256) {
+        return _tokens + MathUtils.min(_tokensDelegated, _tokens * subgraphService.getDelegationRatio());
     }
 }

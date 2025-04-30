@@ -150,7 +150,7 @@ contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
         mint(differentIndexer, tokensSecondIndexer);
         uint256 differentIndexerAllocationIDPrivateKey = uint256(keccak256(abi.encodePacked(differentIndexer)));
         resetPrank(differentIndexer);
-        _createProvision(differentIndexer, tokensSecondIndexer, maxSlashingPercentage, disputePeriod);
+        _createProvision(differentIndexer, tokensSecondIndexer, fishermanRewardPercentage, disputePeriod);
         _register(differentIndexer, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
             differentIndexer,
