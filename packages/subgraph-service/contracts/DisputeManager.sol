@@ -197,7 +197,7 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function createLegacyDispute(
+    function createAndAcceptLegacyDispute(
         address allocationId,
         address fisherman,
         uint256 tokensSlash,
