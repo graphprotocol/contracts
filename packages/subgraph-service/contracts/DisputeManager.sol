@@ -111,7 +111,7 @@ contract DisputeManager is
         uint32 maxSlashingCut_
     ) external override initializer {
         __Ownable_init(owner);
-        __AttestationManager_init();
+        __AttestationManager_init("DisputeManager", "1.0");
 
         _setArbitrator(arbitrator_);
         _setDisputePeriod(disputePeriod_);

@@ -8,9 +8,6 @@ pragma solidity 0.8.27;
  * bugs. We may have an active bug bounty program.
  */
 abstract contract AttestationManagerV1Storage {
-    /// @dev EIP712 domain separator
-    bytes32 internal _domainSeparator;
-
     /// @dev Gap to allow adding variables in future upgrades
     uint256[50] private __gap;
 }

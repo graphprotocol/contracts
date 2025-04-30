@@ -290,7 +290,9 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         (, address fisherman, ) = vm.readCallers();
 
         BeforeValues_CreateQueryDisputeConflict memory beforeValues;
+        console.logBytes(attestationData1);
         beforeValues.attestation1 = Attestation.parse(attestationData1);
+        console.log("attestation1");
         beforeValues.attestation2 = Attestation.parse(attestationData2);
         beforeValues.indexer1 = disputeManager.getAttestationIndexer(beforeValues.attestation1);
         beforeValues.indexer2 = disputeManager.getAttestationIndexer(beforeValues.attestation2);
@@ -787,8 +789,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
     ) internal view returns (bytes memory attestationData) {
         bytes32 digest = disputeManager.encodeReceipt(receipt);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
-
-        return abi.encodePacked(receipt.requestCID, receipt.responseCID, receipt.subgraphDeploymentId, r, s, v);
+        bytes memory signature = abi.encodePacked(r, s, v);
+        return abi.encode(receipt.requestCID, receipt.responseCID, receipt.subgraphDeploymentId, signature);
     }
 
     /*
@@ -822,6 +824,6 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
     }
 
     function _setStorage_SubgraphService(address _subgraphService) internal {
-        vm.store(address(disputeManager), bytes32(uint256(51)), bytes32(uint256(uint160(_subgraphService))));
+        vm.store(address(disputeManager), bytes32(uint256(50)), bytes32(uint256(uint160(_subgraphService))));
     }
 }
