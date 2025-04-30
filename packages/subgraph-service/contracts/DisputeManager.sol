@@ -687,15 +687,16 @@ contract DisputeManager is
      * - Thawing stake is not excluded from the snapshot.
      * - Delegators stake is capped at the delegation ratio to prevent delegators from inflating the snapshot
      *   to increase the indexer slash amount.
+     *
+     * Note that the snapshot can be inflated by delegators front-running the dispute creation with a delegation
+     * to the indexer. Given the snapshot is a cap, the dispute outcome is uncertain and considering the cost of capital
+     * and slashing risk, this is not a concern.
      * @param _indexer Indexer address
      * @param _indexerStake Indexer's stake
      * @return Total stake snapshot
      */
     function _getStakeSnapshot(address _indexer, uint256 _indexerStake) private view returns (uint256) {
-        ISubgraphService subgraphService_ = _getSubgraphService();
-        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(subgraphService_)).tokens;
-        uint256 delegatorsStakeMax = _indexerStake * uint256(subgraphService_.getDelegationRatio());
-        uint256 stakeSnapshot = _indexerStake + MathUtils.min(delegatorsStake, delegatorsStakeMax);
-        return stakeSnapshot;
+        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(_getSubgraphService())).tokens;
+        return _indexerStake + delegatorsStake;
     }
 }

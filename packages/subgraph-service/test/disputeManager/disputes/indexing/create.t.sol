@@ -16,6 +16,30 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         _createIndexingDispute(allocationID, bytes32("POI1"));
     }
 
+    function test_Indexing_Create_Dispute_WithDelegation(uint256 tokens, uint256 delegationTokens) public useIndexer {
+        vm.assume(tokens >= minimumProvisionTokens);
+        vm.assume(tokens < 100_000_000 ether); // set a low cap to test overdelegation
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        _register(users.indexer, abi.encode("url", "geoHash", address(0)));
+        bytes memory data = _createSubgraphAllocationData(
+            users.indexer,
+            subgraphDeployment,
+            allocationIDPrivateKey,
+            tokens
+        );
+        _startService(users.indexer, data);
+
+        uint256 delegationRatio = subgraphService.getDelegationRatio();
+        delegationTokens = bound(delegationTokens, 1e18, tokens * delegationRatio * 2); // make sure we have overdelegation
+
+        resetPrank(users.delegator);
+        token.approve(address(staking), delegationTokens);
+        staking.delegate(users.indexer, address(subgraphService), delegationTokens, 0);
+
+        resetPrank(users.fisherman);
+        _createIndexingDispute(allocationID, bytes32("POI1"));
+    }
+
     function test_Indexing_Create_Dispute_RevertWhen_SubgraphServiceNotSet(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
