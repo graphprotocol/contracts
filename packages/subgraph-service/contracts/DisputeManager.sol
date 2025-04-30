@@ -569,10 +569,15 @@ contract DisputeManager is
             DisputeManagerInvalidTokensSlash(_tokensSlash, maxTokensSlash)
         );
 
-        // Rewards amount can only be extracted from service provider tokens so
-        // we grab the minimum between the slash amount and indexer's tokens
-        uint256 maxRewardableTokens = Math.min(_tokensSlash, provision.tokens);
-        uint256 tokensRewards = uint256(fishermanRewardCut).mulPPM(maxRewardableTokens);
+        // Rewards calculation:
+        // - Rewards can only be extracted from service provider tokens so we grab the minimum between the slash
+        //   amount and indexer's tokens
+        // - The applied cut is the minimum between the provision's maxVerifierCut and the current fishermanRewardCut. This
+        //   protects the indexer from sudden changes to the fishermanRewardCut while ensuring the slashing does not revert due
+        //   to excessive rewards being requested.
+        uint256 maxRewardableTokens = MathUtils.min(_tokensSlash, provision.tokens);
+        uint256 effectiveCut = MathUtils.min(provision.maxVerifierCut, fishermanRewardCut);
+        uint256 tokensRewards = effectiveCut.mulPPM(maxRewardableTokens);
 
         subgraphService_.slash(_indexer, abi.encode(_tokensSlash, tokensRewards));
         return tokensRewards;

@@ -42,7 +42,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
 
             resetPrank(indexer);
             mint(indexer, tokens);
-            _createProvision(indexer, tokens, maxSlashingPercentage, disputePeriod);
+            _createProvision(indexer, tokens, fishermanRewardPercentage, disputePeriod);
             _register(indexer, abi.encode("url", "geoHash", address(0)));
             uint256 allocationIDPrivateKey = uint256(keccak256(abi.encodePacked(i)));
             bytes memory data = _createSubgraphAllocationData(

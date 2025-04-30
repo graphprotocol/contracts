@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
+import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { IDisputeManager } from "../../contracts/interfaces/IDisputeManager.sol";
 import { Attestation } from "../../contracts/libraries/Attestation.sol";
@@ -412,8 +413,17 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
         uint256 provisionTokens = staking.getProvision(dispute.indexer, address(subgraphService)).tokens;
         uint256 disputeDeposit = dispute.deposit;
-        uint256 fishermanRewardPercentage = disputeManager.fishermanRewardCut();
-        uint256 fishermanReward = Math.min(_tokensSlash, provisionTokens).mulPPM(fishermanRewardPercentage);
+        uint256 fishermanReward;
+        {
+            uint32 provisionMaxVerifierCut = staking
+                .getProvision(dispute.indexer, address(subgraphService))
+                .maxVerifierCut;
+            uint256 fishermanRewardPercentage = MathUtils.min(
+                disputeManager.fishermanRewardCut(),
+                provisionMaxVerifierCut
+            );
+            fishermanReward = Math.min(_tokensSlash, provisionTokens).mulPPM(fishermanRewardPercentage);
+        }
 
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.DisputeAccepted(

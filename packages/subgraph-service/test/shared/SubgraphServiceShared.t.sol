@@ -35,7 +35,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     modifier useAllocation(uint256 tokens) {
         vm.assume(tokens >= minimumProvisionTokens);
         vm.assume(tokens < 10_000_000_000 ether);
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
             users.indexer,

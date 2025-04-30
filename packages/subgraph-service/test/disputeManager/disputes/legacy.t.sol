@@ -29,13 +29,13 @@ contract DisputeManagerLegacyDisputeTest is DisputeManagerTest {
         vm.assume(tokensStaked >= minimumProvisionTokens);
         tokensProvisioned = bound(tokensProvisioned, minimumProvisionTokens, tokensStaked);
         tokensSlash = bound(tokensSlash, 2, tokensProvisioned);
-        tokensRewards = bound(tokensRewards, 1, tokensSlash.mulPPM(maxSlashingPercentage));
+        tokensRewards = bound(tokensRewards, 1, tokensSlash.mulPPM(fishermanRewardPercentage));
 
         // setup indexer state
         resetPrank(users.indexer);
         _stake(tokensStaked);
         _setStorage_allocation_hardcoded(users.indexer, allocationID, tokensStaked - tokensProvisioned);
-        _provision(users.indexer, tokensProvisioned, maxSlashingPercentage, disputePeriod);
+        _provision(users.indexer, tokensProvisioned, fishermanRewardPercentage, disputePeriod);
 
         resetPrank(users.arbitrator);
         _createAndAcceptLegacyDispute(allocationID, users.fisherman, tokensSlash, tokensRewards);
