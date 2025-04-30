@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - /opt/configs/RembrandtK/rem/rs/graph.env
+      - /opt/configs/graphprotocol/contracts.env
     environment:
       # Cache directories
       - FOUNDRY_CACHE_DIR=/cache/foundry

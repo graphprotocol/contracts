@@ -107,4 +107,12 @@ else
   echo "Shell customizations not found in PATH, skipping..."
 fi
 
+# Set up Git SSH signing
+echo "Setting up Git SSH signing..."
+if [ -f "$SCRIPT_DIR/setup-git-signing.sh" ]; then
+  "$SCRIPT_DIR/setup-git-signing.sh"
+else
+  echo "WARNING: setup-git-signing.sh not found, skipping Git SSH signing setup"
+fi
+
 echo "Project-specific setup completed"
