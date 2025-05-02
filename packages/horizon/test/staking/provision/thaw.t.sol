@@ -162,4 +162,76 @@ contract HorizonStakingThawTest is HorizonStakingTest {
         );
         vm.assertEq(thawedTokens, thawAmount * thawSteps);
     }
+
+    function testThaw_GetThawedTokens_AfterProvisionFullySlashed(
+        uint256 amount,
+        uint64 thawingPeriod,
+        uint256 thawAmount
+    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        // thaw some funds so there are some shares thawing and tokens thawing
+        thawAmount = bound(thawAmount, 1, amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+
+        // skip to after the thawing period has passed
+        skip(thawingPeriod + 1);
+
+        // slash all of it
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, amount, 0);
+
+        // get the thawed tokens - should be zero now as the pool was reset
+        uint256 thawedTokens = staking.getThawedTokens(
+            ThawRequestType.Provision,
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.indexer
+        );
+        vm.assertEq(thawedTokens, 0);
+    }
+
+    function testThaw_GetThawedTokens_AfterRecoveringProvision(
+        uint256 amount,
+        uint64 thawingPeriod,
+        uint256 thawAmount
+    ) public useIndexer useProvision(amount, 0, thawingPeriod) {
+        // thaw some funds so there are some shares thawing and tokens thawing
+        thawAmount = bound(thawAmount, 1, amount);
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+
+        // skip to after the thawing period has passed
+        skip(thawingPeriod + 1);
+
+        // slash all of it
+        resetPrank(subgraphDataServiceAddress);
+        _slash(users.indexer, subgraphDataServiceAddress, amount, 0);
+
+        // get the thawed tokens - should be zero now as the pool was reset
+        uint256 thawedTokens = staking.getThawedTokens(
+            ThawRequestType.Provision,
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.indexer
+        );
+        vm.assertEq(thawedTokens, 0);
+
+        // put some funds back in
+        resetPrank(users.indexer);
+        _stake(amount);
+        _addToProvision(users.indexer, subgraphDataServiceAddress, amount);
+
+        // thaw some more funds
+        _thaw(users.indexer, subgraphDataServiceAddress, thawAmount);
+
+        // skip to after the thawing period has passed
+        skip(block.timestamp + thawingPeriod + 1);
+
+        // get the thawed tokens - should be the amount we thawed
+        thawedTokens = staking.getThawedTokens(
+            ThawRequestType.Provision,
+            users.indexer,
+            subgraphDataServiceAddress,
+            users.indexer
+        );
+        vm.assertEq(thawedTokens, thawAmount);
+    }
 }
