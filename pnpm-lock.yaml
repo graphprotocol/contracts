@@ -50,6 +50,9 @@ importers:
       '@graphprotocol/sdk':
         specifier: ^0.5.2
         version: 0.5.2(bufferutil@4.0.9)(encoding@0.1.13)(ts-node@10.9.2(@types/node@20.17.30)(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10)
+      '@nomicfoundation/hardhat-network-helpers':
+        specifier: ^1.0.0
+        version: 1.0.12(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.30)(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))
       '@nomiclabs/hardhat-ethers':
         specifier: ^2.2.3
         version: 2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.30)(typescript@5.8.2))(typescript@5.8.2)(utf-8-validate@5.0.10))

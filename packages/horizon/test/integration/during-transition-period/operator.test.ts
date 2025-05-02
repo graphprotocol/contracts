@@ -7,6 +7,7 @@ import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+import { rewards } from '../../../typechain-types/factories/@graphprotocol/contracts/contracts'
 
 describe('Operator', () => {
   let snapshotId: string
@@ -71,10 +72,14 @@ describe('Operator', () => {
       const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
       // Close allocation
-      await (horizonStaking as HorizonStakingExtension).connect(operator).closeAllocation(allocationID, poi)
+      const tx = await (horizonStaking as HorizonStakingExtension).connect(operator).closeAllocation(allocationID, poi)
+      const receipt = await tx.wait()
+      const abi = [
+        "event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)"
+      ];
+      const iface = new hre.ethers.Interface(abi);
+      const rewards = iface.parseLog(receipt?.logs[1]!)?.args.amount
 
-      // Get rewards
-      const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)
       // Verify rewards are not zero
       expect(rewards).to.not.equal(0, 'Rewards were not transferred to service provider')
 

@@ -10,6 +10,7 @@ import { EpochManager } from '../../../build/types/EpochManager'
 import { GraphToken } from '../../../build/types/GraphToken'
 import { RewardsManager } from '../../../build/types/RewardsManager'
 import { IStaking } from '../../../build/types/IStaking'
+import { impersonateAccount, setBalance } from '@nomicfoundation/hardhat-network-helpers'
 
 import {
   deriveChannelKey,
@@ -21,7 +22,6 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { impersonateAccount, setBalance } from '../../../../sdk/src/helpers'
 
 const MAX_PPM = 1000000
 
@@ -852,7 +852,8 @@ describe('Rewards', () => {
         await helpers.mineEpoch(epochManager, 10)
 
         // Impersonate staking contract
-        const impersonatedStaking = await impersonateAccount(staking.address)
+        await impersonateAccount(staking.address)
+        const impersonatedStaking = await hre.ethers.getSigner(staking.address)
         await setBalance(staking.address, toGRT('1000000'))
 
         // Distribute rewards
