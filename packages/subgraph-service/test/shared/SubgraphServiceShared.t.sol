@@ -199,8 +199,4 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         (uint256 registeredAt, string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
         return ISubgraphService.Indexer({ registeredAt: registeredAt, url: url, geoHash: geoHash });
     }
-
-    function _calculateStakeSnapshot(uint256 _tokens, uint256 _tokensDelegated) internal view returns (uint256) {
-        return _tokens + MathUtils.min(_tokensDelegated, _tokens * subgraphService.getDelegationRatio());
-    }
 }
