@@ -215,6 +215,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         if ((prov.maxVerifierCutPending != newMaxVerifierCut) || (prov.thawingPeriodPending != newThawingPeriod)) {
             prov.maxVerifierCutPending = newMaxVerifierCut;
             prov.thawingPeriodPending = newThawingPeriod;
+            prov.lastParametersStagedAt = block.timestamp;
             emit ProvisionParametersStaged(serviceProvider, verifier, newMaxVerifierCut, newThawingPeriod);
         }
     }
@@ -716,6 +717,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             createdAt: uint64(block.timestamp),
             maxVerifierCutPending: _maxVerifierCut,
             thawingPeriodPending: _thawingPeriod,
+            lastParametersStagedAt: 0,
             thawingNonce: 0
         });
 

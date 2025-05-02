@@ -355,6 +355,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, uint64(block.timestamp));
         assertEq(afterProvision.maxVerifierCutPending, maxVerifierCut);
         assertEq(afterProvision.thawingPeriodPending, thawingPeriod);
+        assertEq(afterProvision.lastParametersStagedAt, 0);
         assertEq(afterProvision.thawingNonce, 0);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
         assertEq(afterServiceProvider.tokensProvisioned, tokens + beforeServiceProvider.tokensProvisioned);
@@ -387,6 +388,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.maxVerifierCut, beforeProvision.maxVerifierCut);
         assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriod);
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.lastParametersStagedAt, beforeProvision.lastParametersStagedAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
         assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
@@ -461,6 +463,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(afterProvision.lastParametersStagedAt, beforeProvision.lastParametersStagedAt);
         assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
         assertEq(thawRequestId, expectedThawRequestId);
         assertEq(afterThawRequest.shares, thawingShares);
@@ -546,6 +549,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeProvision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeProvision.thawingPeriodPending);
+        assertEq(afterProvision.lastParametersStagedAt, beforeProvision.lastParametersStagedAt);
         assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked);
         assertEq(
@@ -672,6 +676,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeValues.provision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, beforeValues.provision.maxVerifierCutPending);
         assertEq(afterProvision.thawingPeriodPending, beforeValues.provision.thawingPeriodPending);
+        assertEq(afterProvision.lastParametersStagedAt, beforeValues.provision.lastParametersStagedAt);
         assertEq(afterProvision.thawingNonce, beforeValues.provision.thawingNonce);
 
         // assert: provision new verifier
@@ -753,7 +758,9 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
 
         // setProvisionParameters
-        if (beforeProvision.maxVerifierCut != maxVerifierCut || beforeProvision.thawingPeriod != thawingPeriod) {
+        bool paramsChanged = beforeProvision.maxVerifierCut != maxVerifierCut ||
+            beforeProvision.thawingPeriod != thawingPeriod;
+        if (paramsChanged) {
             vm.expectEmit();
             emit IHorizonStakingMain.ProvisionParametersStaged(
                 serviceProvider,
@@ -776,6 +783,10 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
         assertEq(afterProvision.maxVerifierCutPending, maxVerifierCut);
         assertEq(afterProvision.thawingPeriodPending, thawingPeriod);
+        assertEq(
+            afterProvision.lastParametersStagedAt,
+            paramsChanged ? block.timestamp : beforeProvision.lastParametersStagedAt
+        );
         assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
     }
 
@@ -812,6 +823,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterProvision.thawingPeriod, beforeProvision.thawingPeriodPending);
         assertEq(afterProvision.thawingPeriod, afterProvision.thawingPeriodPending);
         assertEq(afterProvision.createdAt, beforeProvision.createdAt);
+        assertEq(afterProvision.lastParametersStagedAt, beforeProvision.lastParametersStagedAt);
         assertEq(afterProvision.thawingNonce, beforeProvision.thawingNonce);
     }
 
