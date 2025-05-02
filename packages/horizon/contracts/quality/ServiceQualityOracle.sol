@@ -1,36 +1,32 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.8.27;
+pragma solidity 0.8.27;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
-import "./ServiceQualityOracleStorage.sol";
+import { Governed } from "@graphprotocol/contracts/contracts/governance/Governed.sol";
 import { IServiceQualityOracle } from "@graphprotocol/contracts/contracts/quality/IServiceQualityOracle.sol";
+import { GraphDirectory } from "../utilities/GraphDirectory.sol";
+import { ServiceQualityOracleStorage } from "./ServiceQualityOracleStorage.sol";
 
 /**
  * @title ServiceQualityOracle
  * @notice This contract allows authorized oracles to deny or allow indexers to receive rewards.
  * Indexers are allowed by default.
  */
-contract ServiceQualityOracle is Initializable, GraphUpgradeable, ServiceQualityOracleStorage, IServiceQualityOracle {
+contract ServiceQualityOracle is
+    Initializable,
+    GraphUpgradeable,
+    Governed,
+    GraphDirectory,
+    ServiceQualityOracleStorage,
+    IServiceQualityOracle
+{
     // -- Custom Errors --
 
     error NotAuthorizedOracle();
     error OnlyImplementationCanInitialize();
-    error ControllerMismatch();
-
-    /**
-     * @notice Constructor for the ServiceQualityOracle contract
-     * @dev This contract is upgradeable, but we use the constructor to disable initializers
-     * to prevent the implementation contract from being initialized.
-     * @dev We need to pass a valid controller address to the Managed constructor because
-     * GraphDirectory requires a non-zero controller address. This controller will only be
-     * used for the implementation contract, not for the proxy.
-     * @param _controller Controller contract that manages this contract
-     */
-    constructor(address _controller) Managed(_controller) {
-        _disableInitializers();
-    }
+    error ControllerCannotBeZeroAddress();
 
     // -- Events --
 
@@ -39,16 +35,26 @@ contract ServiceQualityOracle is Initializable, GraphUpgradeable, ServiceQuality
     event IndexerAllowed(address indexed oracle, address indexed indexer, bytes data);
     event IndexerDenied(address indexed oracle, address indexed indexer, bytes data);
 
+    /**
+     * @notice Constructor for the ServiceQualityOracle contract
+     * @dev This contract is upgradeable, but we use the constructor to disable initializers
+     * to prevent the implementation contract from being initialized.
+     */
+    constructor(address _controller) GraphDirectory(_controller) {
+        _disableInitializers();
+    }
+
     // -- Initialization --
 
     /**
      * @notice Initialize the ServiceQualityOracle contract
      * @param _controller Controller contract that manages this contract
      */
-    function initialize(address _controller) external onlyImpl initializer {
-        if (_controller != address(_graphController())) revert ControllerMismatch();
+    function initialize(address _controller) external initializer {
+        if (msg.sender != _implementation()) revert OnlyImplementationCanInitialize();
+        if (_controller == address(0)) revert ControllerCannotBeZeroAddress();
 
-        // No additional initialization needed
+        Governed._initialize(_graphController().getGovernor());
     }
 
     // -- Governance Functions --

@@ -4,9 +4,9 @@ pragma solidity 0.8.27;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
-import "../staking/utilities/Managed.sol";
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import "./DirectAllocationStorage.sol";
+import { Governed } from "@graphprotocol/contracts/contracts/governance/Governed.sol";
+import { GraphDirectory } from "../utilities/GraphDirectory.sol";
+import { DirectAllocationStorage } from "./DirectAllocationStorage.sol";
 
 /**
  * @title DirectAllocation
@@ -16,46 +16,43 @@ import "./DirectAllocationStorage.sol";
  *
  * @dev This contract is designed to be a non-self-minting target in the IssuanceAllocator.
  * The IssuanceAllocator will mint tokens directly to this contract, and the authorized
- * manager can withdraw them as needed.
+ * manager can send them to individual addresses as needed.
  */
-contract DirectAllocation is Initializable, GraphUpgradeable, DirectAllocationStorage {
+contract DirectAllocation is Initializable, GraphUpgradeable, Governed, GraphDirectory, DirectAllocationStorage {
     // -- Custom Errors --
 
+    error OnlyImplementationCanInitialize();
+    error ControllerCannotBeZeroAddress();
     error OnlyManagerCanSendTokens();
     error SendToZeroAddressNotAllowed();
-    error OnlyImplementationCanInitialize();
-    error ControllerMismatch();
-
-    /**
-     * @notice Constructor for the DirectAllocation contract
-     * @dev This contract is upgradeable, but we use the constructor to disable initializers
-     * to prevent the implementation contract from being initialized.
-     * @dev We need to pass a valid controller address to the Managed constructor because
-     * GraphDirectory requires a non-zero controller address. This controller will only be
-     * used for the implementation contract, not for the proxy.
-     * @param _controller Controller contract that manages this contract
-     */
-    constructor(address _controller) Managed(_controller) {
-        _disableInitializers();
-    }
 
     // -- Events --
 
     event ManagerSet(address indexed oldManager, address indexed newManager);
     event TokensSent(address indexed to, uint256 amount);
 
+    /**
+     * @notice Constructor for the DirectAllocation contract
+     * @dev This contract is upgradeable, but we use the constructor to disable initializers
+     * to prevent the implementation contract from being initialized.
+     * @param _controller Controller contract that manages this contract
+     */
+    constructor(address _controller) GraphDirectory(_controller) {
+        _disableInitializers();
+    }
+
     // -- Initialization --
 
     /**
      * @notice Initialize the DirectAllocation contract
      * @param _controller Controller contract that manages this contract
-     * @param _name Name of this allocation for identification
      * @param _manager Address that can withdraw funds
      */
-    function initialize(address _controller, string calldata _name, address _manager) external onlyImpl initializer {
-        if (_controller != address(_graphController())) revert ControllerMismatch();
+    function initialize(address _controller, address _manager) external initializer {
+        if (msg.sender != _implementation()) revert OnlyImplementationCanInitialize();
+        if (_controller == address(0)) revert ControllerCannotBeZeroAddress();
 
-        name = _name;
+        Governed._initialize(_graphController().getGovernor());
         manager = _manager;
     }
 

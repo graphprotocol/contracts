@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.8.27;
-
-import "../staking/utilities/Managed.sol";
+pragma solidity 0.8.27;
 
 /**
  * @title ServiceQualityOracleStorage
  * @notice This contract tracks if indexers are allowed to receive rewards based on oracle votes for quality.
  * Indexers are allowed by default.
  */
-abstract contract ServiceQualityOracleStorage is Managed {
+abstract contract ServiceQualityOracleStorage {
     // -- Structs --
 
     /**
@@ -37,4 +35,9 @@ abstract contract ServiceQualityOracleStorage is Managed {
 
     // Mapping of indexer address to indexer data
     mapping(address => IndexerData) internal indexers;
+
+    // -- Storage Gap --
+
+    // Gap for future storage variables in upgrades
+    uint256[50] private __gap;
 }

@@ -28,14 +28,13 @@ interface IIssuanceAllocator {
     /**
      * @notice Add a new allocation target with zero proportion.
      * @param _target Address of the target contract
-     * @param _name Name of the target
      * @param _isSelfMinter Whether the target is a self-minting contract
      *
      * @dev The _isSelfMinter parameter should typically be set to false for new targets.
      * It should only be set to true for backwards compatibility with existing contracts
      * like the RewardsManager that already have minting capabilities.
      */
-    function addAllocationTarget(address _target, string calldata _name, bool _isSelfMinter) external;
+    function addAllocationTarget(address _target, bool _isSelfMinter) external;
 
     /**
      * @notice Remove an allocation target.

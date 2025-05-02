@@ -2,19 +2,19 @@
 
 pragma solidity 0.8.27;
 
-import "../staking/utilities/Managed.sol";
-
 /**
  * @title DirectAllocationStorage
  * @notice Storage contract for DirectAllocation
  * @dev This contract defines the storage layout for the DirectAllocation contract
  */
-abstract contract DirectAllocationStorage is Managed {
+abstract contract DirectAllocationStorage {
     // -- State --
 
-    // Name of this allocation for identification
-    string public name;
-
-    // Address that can withdraw funds
+    // Address that can send tokens
     address public manager;
+
+    // -- Storage Gap --
+
+    // Gap for future storage variables in upgrades
+    uint256[50] private __gap;
 }

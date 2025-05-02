@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+
 pragma solidity 0.8.27;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
-import { Managed } from "../staking/utilities/Managed.sol";
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { Governed } from "@graphprotocol/contracts/contracts/governance/Governed.sol";
 import { IIssuanceAllocator } from "@graphprotocol/contracts/contracts/issuance/IIssuanceAllocator.sol";
+import { IIssuanceTarget } from "@graphprotocol/contracts/contracts/issuance/IIssuanceTarget.sol";
+import { GraphDirectory } from "../utilities/GraphDirectory.sol";
+import { IssuanceAllocatorStorage } from "./IssuanceAllocatorStorage.sol";
 
 /**
  * @title IssuanceAllocator
@@ -27,67 +30,54 @@ import { IIssuanceAllocator } from "@graphprotocol/contracts/contracts/issuance/
  * over token issuance through the IssuanceAllocator. The self-minting feature is intended only
  * for backwards compatibility with existing contracts.
  */
-contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanceAllocator {
+contract IssuanceAllocator is
+    Initializable,
+    GraphUpgradeable,
+    Governed,
+    GraphDirectory,
+    IssuanceAllocatorStorage,
+    IIssuanceAllocator
+{
     // -- Custom Errors --
 
-    error ZeroTargetAddress();
-    error TargetNotActive();
-    error InsufficientAllocationAvailable();
+    error OnlyImplementationCanInitialize();
+    error ControllerCannotBeZeroAddress();
+    error TargetAddressCannotBeZero();
     error TargetExistsWithDifferentSelfMinterFlag();
-    error ControllerMismatch();
+    error TargetNotRegistered();
+    error InsufficientAllocationAvailable();
 
     // -- Constants --
 
     uint256 private constant PPM = 1_000_000; // 100% = 1,000,000 parts per million
 
-    // -- State --
-
-    struct AllocationTarget {
-        string name;
-        uint256 allocation; // In PPM (parts per million)
-        bool isSelfMinter; // Whether this target is a self-minting contract
-    }
-
-    // No need for a separate graphToken variable - using the inherited graphToken() function from Managed
-
-    // Total issuance per block
-    uint256 public issuancePerBlock;
-
-    // Last block when issuance was distributed
-    uint256 public lastIssuanceBlock;
-
-    // Allocation targets
-    mapping(address => AllocationTarget) public allocationTargets;
-    address[] public targetAddresses;
-
-    // Total active allocation (can be less than PPM but never more)
-    uint256 public totalActiveAllocation;
-
     // -- Events --
 
     event IssuanceDistributed(address indexed target, uint256 amount);
-    event AllocationTargetAdded(address indexed target, string name, uint256 allocation, bool isSelfMinter);
+    event AllocationTargetAdded(address indexed target, bool isSelfMinter);
     event AllocationTargetRemoved(address indexed target);
     event TargetAllocationUpdated(address indexed target, uint256 newAllocation);
     event IssuancePerBlockUpdated(uint256 oldIssuancePerBlock, uint256 newIssuancePerBlock);
 
-    // -- Constructor --
-
     /**
      * @notice Constructor for the IssuanceAllocator contract
+     * @dev This contract is upgradeable, but we use the constructor to disable initializers
+     * to prevent the implementation contract from being initialized.
      * @param _controller Controller contract that manages this contract
      */
-    constructor(address _controller) Managed(_controller) {
+    constructor(address _controller) GraphDirectory(_controller) {
         _disableInitializers();
     }
 
     /**
      * @notice Initialize this contract.
-     * @param _controller Controller contract that manages this contract
      * @param _issuancePerBlock Initial issuance per block
      */
-    function initialize(address _controller, uint256 _issuancePerBlock) external onlyImpl initializer {
-        if (_controller != address(_graphController())) revert ControllerMismatch();
+    function initialize(address _controller, uint256 _issuancePerBlock) external initializer {
+        if (msg.sender != _implementation()) revert OnlyImplementationCanInitialize();
+        if (_controller == address(0)) revert ControllerCannotBeZeroAddress();
+
+        Governed._initialize(_graphController().getGovernor());
 
         issuancePerBlock = _issuancePerBlock;
         lastIssuanceBlock = block.number;
@@ -146,17 +136,15 @@ contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanc
     }
 
     /**
-     * @notice Add a new allocation target with zero allocation.
+     * @notice Add a new allocation target with zero proportion.
      * @dev This function can only be called by the governor.
-     * @dev If the target already exists with the same self-minter flag, this function is a no-op.
-     * @dev If the target already exists with a different self-minter flag, this function reverts.
+     * @dev The target must not already exist with a different self-minter flag.
      * @param _target Address of the target contract
-     * @param _name Name of the target
-     * @param _isSelfMinter Whether the target is a self-minting contract.
+     * @param _isSelfMinter Whether the target is a self-minting contract
      *
-     * @dev The _isSelfMinter parameter should typically be set to false for new targets.
-     * It should only be set to true for backwards compatibility with existing contracts
-     * like the RewardsManager that already have minting capabilities. Self-minting targets
+     * @dev Self-minting targets are a special case for backwards compatibility with
+     * existing contracts like the RewardsManager. The IssuanceAllocator calculates
+     * issuance for these targets but does not mint tokens directly to them. Self-minting targets
      * will not have tokens minted to them by the IssuanceAllocator. Self-minting targets
      * should call getTargetIssuancePerBlock to determine their issuance amount and mint
      * tokens accordingly. For example, the RewardsManager contract is expected to call
@@ -164,58 +152,58 @@ contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanc
      * amount of tokens to mint. Self-minting targets are responsible for adhering to
      * the issuance schedule and should not mint more tokens than allocated.
      */
-    function addAllocationTarget(
-        address _target,
-        string calldata _name,
-        bool _isSelfMinter
-    ) external override onlyGovernor {
-        if (_target == address(0)) revert ZeroTargetAddress();
+    function addAllocationTarget(address _target, bool _isSelfMinter) external override onlyGovernor {
+        if (_target == address(0)) revert TargetAddressCannotBeZero();
 
-        if (bytes(allocationTargets[_target].name).length > 0) {
-            if (allocationTargets[_target].isSelfMinter != _isSelfMinter) {
-                revert TargetExistsWithDifferentSelfMinterFlag();
-            }
-            // Target already exists with the same self-minter flag, so this is a no-op
-            return;
+        AllocationTarget storage targetData = allocationTargets[_target];
+
+        // If the target already exists, make sure it has the same self-minter flag
+        if (targetData.exists) {
+            if (targetData.isSelfMinter != _isSelfMinter) revert TargetExistsWithDifferentSelfMinterFlag();
+            return; // Target already exists, nothing to do
         }
 
-        allocationTargets[_target] = AllocationTarget({ name: _name, allocation: 0, isSelfMinter: _isSelfMinter });
-
+        // Add the target
+        targetData.isSelfMinter = _isSelfMinter;
+        targetData.allocation = 0; // Start with zero allocation
+        targetData.exists = true;
         targetAddresses.push(_target);
 
-        emit AllocationTargetAdded(_target, _name, 0, _isSelfMinter);
+        emit AllocationTargetAdded(_target, _isSelfMinter);
     }
 
     /**
-     * @notice Remove an allocation target completely.
+     * @notice Remove an allocation target.
      * @dev This function can only be called by the governor.
-     * @dev This removes the target from the mapping and from the targetAddresses array using swap and pop.
-     * @dev If the target doesn't exist, this function is a no-op.
+     * @dev If the target has a non-zero allocation, it will be set to zero first.
      * @param _target Address of the target to remove
      */
     function removeAllocationTarget(address _target) external override onlyGovernor {
-        if (bytes(allocationTargets[_target].name).length == 0) {
-            // Target doesn't exist, so this is a no-op
-            return;
+        AllocationTarget storage targetData = allocationTargets[_target];
+        if (!targetData.exists) revert TargetNotRegistered();
+
+        // If the target has a non-zero allocation, set it to zero first
+        if (targetData.allocation > 0) {
+            // Notify the target if it implements IIssuanceTarget
+            if (isContract(_target)) {
+                try IIssuanceTarget(_target).preIssuanceAllocationChange() {} catch {}
+            }
+
+            totalActiveAllocation -= targetData.allocation;
+            targetData.allocation = 0;
         }
 
-        if (allocationTargets[_target].allocation > 0) {
-            totalActiveAllocation = totalActiveAllocation - allocationTargets[_target].allocation;
-        }
-
-        delete allocationTargets[_target];
-
+        // Remove the target from the array
         for (uint256 i = 0; i < targetAddresses.length; i++) {
             if (targetAddresses[i] == _target) {
-                // Swap with the last element (if not already the last)
-                if (i != targetAddresses.length - 1) {
-                    targetAddresses[i] = targetAddresses[targetAddresses.length - 1];
-                }
-
+                targetAddresses[i] = targetAddresses[targetAddresses.length - 1];
                 targetAddresses.pop();
                 break;
             }
         }
+
+        // Delete the target data
+        delete allocationTargets[_target];
 
         emit AllocationTargetRemoved(_target);
     }
@@ -228,19 +216,24 @@ contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanc
      * @param _allocation Allocation for the target (in PPM)
      */
     function setTargetAllocation(address _target, uint256 _allocation) external override onlyGovernor {
-        // Check if target exists in our mapping
-        if (bytes(allocationTargets[_target].name).length == 0) revert TargetNotActive();
+        AllocationTarget storage targetData = allocationTargets[_target];
+        if (!targetData.exists) revert TargetNotRegistered();
 
-        uint256 oldAllocation = allocationTargets[_target].allocation;
+        // If the allocation is the same, do nothing
+        if (targetData.allocation == _allocation) return;
 
-        if (_allocation == oldAllocation) return;
-
-        uint256 newTotalAllocation = totalActiveAllocation - oldAllocation + _allocation;
-
+        // Ensure the new total allocation doesn't exceed PPM
+        uint256 newTotalAllocation = totalActiveAllocation - targetData.allocation + _allocation;
         if (newTotalAllocation > PPM) revert InsufficientAllocationAvailable();
 
-        allocationTargets[_target].allocation = _allocation;
+        // Notify the target if it implements IIssuanceTarget
+        if (isContract(_target)) {
+            try IIssuanceTarget(_target).preIssuanceAllocationChange() {} catch {}
+        }
+
+        // Update the allocation
         totalActiveAllocation = newTotalAllocation;
+        targetData.allocation = _allocation;
 
         emit TargetAllocationUpdated(_target, _allocation);
     }
@@ -251,7 +244,6 @@ contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanc
      * @return Allocation for the target (in PPM), or 0 if the target is not registered
      */
     function getTargetAllocation(address _target) external view override returns (uint256) {
-        // If target doesn't exist, it will return 0 by default
         return allocationTargets[_target].allocation;
     }
 
@@ -260,29 +252,7 @@ contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanc
      * @return Array of registered target addresses
      */
     function getRegisteredTargets() external view override returns (address[] memory) {
-        uint256 registeredCount = 0;
-
-        // Count registered targets (those that exist in the mapping)
-        for (uint256 i = 0; i < targetAddresses.length; i++) {
-            address target = targetAddresses[i];
-            if (bytes(allocationTargets[target].name).length > 0) {
-                registeredCount++;
-            }
-        }
-
-        // Create array of registered target addresses
-        address[] memory registeredTargets = new address[](registeredCount);
-        uint256 index = 0;
-
-        for (uint256 i = 0; i < targetAddresses.length; i++) {
-            address target = targetAddresses[i];
-            if (bytes(allocationTargets[target].name).length > 0) {
-                registeredTargets[index] = target;
-                index++;
-            }
-        }
-
-        return registeredTargets;
+        return targetAddresses;
     }
 
     /**
@@ -291,8 +261,9 @@ contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanc
      * @return Amount of tokens issued per block for the target, or 0 if the target is not registered
      */
     function getTargetIssuancePerBlock(address _target) external view override returns (uint256) {
-        // If target doesn't exist or has 0 allocation, issuance will be 0
-        return (issuancePerBlock * allocationTargets[_target].allocation) / PPM;
+        AllocationTarget storage targetData = allocationTargets[_target];
+
+        return (issuancePerBlock * targetData.allocation) / PPM;
     }
 
     /**
@@ -302,12 +273,22 @@ contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanc
      *
      * @dev Self-minting targets are a special case for backwards compatibility with
      * existing contracts like the RewardsManager. The IssuanceAllocator calculates
-     * issuance for these targets but does not mint tokens directly to them, as they
-     * are expected to handle minting themselves. New targets should typically be
-     * non-self-minting (return false) to ensure centralized control over token issuance.
+     * issuance for these targets but does not mint tokens directly to them.
      */
     function isSelfMinter(address _target) external view override returns (bool) {
-        // If target doesn't exist, it will return false by default
         return allocationTargets[_target].isSelfMinter;
+    }
+
+    /**
+     * @notice Check if an address is a contract
+     * @param _addr Address to check
+     * @return True if the address is a contract, false otherwise
+     */
+    function isContract(address _addr) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(_addr)
+        }
+        return size > 0;
     }
 }
