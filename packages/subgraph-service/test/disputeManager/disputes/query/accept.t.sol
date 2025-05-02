@@ -145,7 +145,6 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         disputeManager.acceptDispute(disputeID, tokensSlash);
     }
 
-
     function test_Query_Accept_RevertWhen_SlashingOverMaxSlashPercentage_WithDelegation_DelegationSlashing(
         uint256 tokens,
         uint256 tokensDelegated,
