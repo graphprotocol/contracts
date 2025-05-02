@@ -34,10 +34,10 @@ contract ServiceQualityOracle is Initializable, GraphUpgradeable, ServiceQuality
 
     // -- Events --
 
-    event QualityOracleAdded(address indexed oracle);
-    event QualityOracleRemoved(address indexed oracle);
-    event IndexerAllowed(address indexed oracle, address indexed indexer);
-    event IndexerDenied(address indexed oracle, address indexed indexer);
+    event QualityOracleAdded(address indexed oracle, bytes data);
+    event QualityOracleRemoved(address indexed oracle, bytes data);
+    event IndexerAllowed(address indexed oracle, address indexed indexer, bytes data);
+    event IndexerDenied(address indexed oracle, address indexed indexer, bytes data);
 
     // -- Initialization --
 
@@ -56,23 +56,27 @@ contract ServiceQualityOracle is Initializable, GraphUpgradeable, ServiceQuality
     /**
      * @notice Add a new quality oracle
      * @param _oracle Address of the oracle to add
+     * @param _data Arbitrary calldata for future extensions
      */
-    function addQualityOracle(address _oracle) external override onlyGovernor {
+    function addQualityOracle(address _oracle, bytes calldata _data) external override onlyGovernor {
         if (!oracles[_oracle].isAuthorized) {
             oracles[_oracle].isAuthorized = true;
-            emit QualityOracleAdded(_oracle);
         }
+
+        emit QualityOracleAdded(_oracle, _data);
     }
 
     /**
      * @notice Remove a quality oracle
      * @param _oracle Address of the oracle to remove
+     * @param _data Arbitrary calldata for future extensions
      */
-    function removeQualityOracle(address _oracle) external override onlyGovernor {
+    function removeQualityOracle(address _oracle, bytes calldata _data) external override onlyGovernor {
         if (oracles[_oracle].isAuthorized) {
             oracles[_oracle].isAuthorized = false;
-            emit QualityOracleRemoved(_oracle);
         }
+
+        emit QualityOracleRemoved(_oracle, _data);
     }
 
     // -- Oracle Functions --
@@ -80,27 +84,31 @@ contract ServiceQualityOracle is Initializable, GraphUpgradeable, ServiceQuality
     /**
      * @notice Allow an indexer to receive rewards by removing them from the deny list
      * @param _indexer Address of the indexer
+     * @param _data Arbitrary calldata for future extensions
      */
-    function allowIndexer(address _indexer) external override {
+    function allowIndexer(address _indexer, bytes calldata _data) external override {
         if (!oracles[msg.sender].isAuthorized) revert NotAuthorizedOracle();
 
         if (indexers[_indexer].isDenied) {
             indexers[_indexer].isDenied = false;
-            emit IndexerAllowed(msg.sender, _indexer);
         }
+
+        emit IndexerAllowed(msg.sender, _indexer, _data);
     }
 
     /**
      * @notice Deny an indexer from receiving rewards by adding them to the deny list
      * @param _indexer Address of the indexer
+     * @param _data Arbitrary calldata for future extensions
      */
-    function denyIndexer(address _indexer) external override {
+    function denyIndexer(address _indexer, bytes calldata _data) external override {
         if (!oracles[msg.sender].isAuthorized) revert NotAuthorizedOracle();
 
         if (!indexers[_indexer].isDenied) {
             indexers[_indexer].isDenied = true;
-            emit IndexerDenied(msg.sender, _indexer);
         }
+
+        emit IndexerDenied(msg.sender, _indexer, _data);
     }
 
     // -- View Functions --

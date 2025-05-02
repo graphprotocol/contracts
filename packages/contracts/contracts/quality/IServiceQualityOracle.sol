@@ -6,26 +6,30 @@ interface IServiceQualityOracle {
     /**
      * @notice Add a new quality oracle
      * @param _oracle Address of the oracle to add
+     * @param _data Arbitrary calldata for future extensions
      */
-    function addQualityOracle(address _oracle) external;
+    function addQualityOracle(address _oracle, bytes calldata _data) external;
 
     /**
      * @notice Remove a quality oracle
      * @param _oracle Address of the oracle to remove
+     * @param _data Arbitrary calldata for future extensions
      */
-    function removeQualityOracle(address _oracle) external;
+    function removeQualityOracle(address _oracle, bytes calldata _data) external;
 
     /**
      * @notice Allow an indexer to receive rewards by removing them from the deny list
      * @param _indexer Address of the indexer
+     * @param _data Arbitrary calldata for future extensions
      */
-    function allowIndexer(address _indexer) external;
+    function allowIndexer(address _indexer, bytes calldata _data) external;
 
     /**
      * @notice Deny an indexer from receiving rewards by adding them to the deny list
      * @param _indexer Address of the indexer
+     * @param _data Arbitrary calldata for future extensions
      */
-    function denyIndexer(address _indexer) external;
+    function denyIndexer(address _indexer, bytes calldata _data) external;
 
     /**
      * @notice Check if an indexer is eligible for rewards
