@@ -104,18 +104,18 @@ contract DisputeManager is
     /// @inheritdoc IDisputeManager
     function initialize(
         address owner,
-        address arbitrator,
-        uint64 disputePeriod,
-        uint256 disputeDeposit,
+        address arbitrator_,
+        uint64 disputePeriod_,
+        uint256 disputeDeposit_,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
     ) external override initializer {
         __Ownable_init(owner);
         __AttestationManager_init();
 
-        _setArbitrator(arbitrator);
-        _setDisputePeriod(disputePeriod);
-        _setDisputeDeposit(disputeDeposit);
+        _setArbitrator(arbitrator_);
+        _setDisputePeriod(disputePeriod_);
+        _setDisputeDeposit(disputeDeposit_);
         _setFishermanRewardCut(fishermanRewardCut_);
         _setMaxSlashingCut(maxSlashingCut_);
     }
@@ -320,8 +320,8 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setSubgraphService(address subgraphService) external override onlyOwner {
-        _setSubgraphService(subgraphService);
+    function setSubgraphService(address subgraphService_) external override onlyOwner {
+        _setSubgraphService(subgraphService_);
     }
 
     /// @inheritdoc IDisputeManager
