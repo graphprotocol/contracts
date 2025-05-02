@@ -184,6 +184,18 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
             }
         }
 
+        // Slashing tokens that are already provisioned would break provision accounting, we need to limit
+        // the slash amount. This can be compensated for, by slashing with the main slash function if needed.
+        uint256 slashableStake = indexerStake.tokensStaked - indexerStake.tokensProvisioned;
+        if (slashableStake == 0) {
+            emit StakeSlashed(indexer, 0, 0, beneficiary);
+            return;
+        }
+        if (tokens > slashableStake) {
+            reward = (reward * slashableStake) / tokens;
+            tokens = slashableStake;
+        }
+
         // Remove tokens to slash from the stake
         indexerStake.tokensStaked = indexerStake.tokensStaked - tokens;
 
