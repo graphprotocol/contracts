@@ -541,10 +541,10 @@ interface IHorizonStakingMain {
      */
     function stakeTo(address serviceProvider, uint256 tokens) external;
 
-    // can be called by anyone if the service provider has provisioned stake to this verifier
     /**
      * @notice Deposit tokens on the service provider stake, on behalf of the service provider,
      * provisioned to a specific verifier.
+     * @dev This function can be called by the service provider, by an authorized operator or by the verifier itself.
      * @dev Requirements:
      * - The `serviceProvider` must have previously provisioned stake to `verifier`.
      * - `_tokens` cannot be zero.
