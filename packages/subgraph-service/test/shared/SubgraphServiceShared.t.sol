@@ -145,7 +145,8 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
             _indexer,
             allocationId,
             allocation.subgraphDeploymentId,
-            allocation.tokens
+            allocation.tokens,
+            false
         );
         emit IDataService.ServiceStopped(_indexer, _data);
 

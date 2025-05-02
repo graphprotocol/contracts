@@ -227,7 +227,7 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
-        _closeAllocation(allocationId);
+        _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
     }
 
@@ -306,7 +306,7 @@ contract SubgraphService is
         Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
-        _closeAllocation(allocationId);
+        _closeAllocation(allocationId, true);
     }
 
     /// @inheritdoc ISubgraphService
@@ -524,7 +524,14 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesCollected(indexer, _signedRav.rav.payer, tokensCollected, tokensCurators);
+        emit QueryFeesCollected(
+            indexer,
+            _signedRav.rav.payer,
+            allocationId,
+            subgraphDeploymentId,
+            tokensCollected,
+            tokensCurators
+        );
         return tokensCollected;
     }
 

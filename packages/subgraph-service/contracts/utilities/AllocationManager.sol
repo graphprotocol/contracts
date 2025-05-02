@@ -96,12 +96,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param allocationId The id of the allocation
      * @param subgraphDeploymentId The id of the subgraph deployment
      * @param tokens The amount of tokens allocated
+     * @param forceClosed Whether the allocation was force closed
      */
     event AllocationClosed(
         address indexed indexer,
         address indexed allocationId,
         bytes32 indexed subgraphDeploymentId,
-        uint256 tokens
+        uint256 tokens,
+        bool forceClosed
     );
 
     /**
@@ -335,9 +337,9 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             currentEpoch
         );
 
-        // Check if the indexer is over-allocated and close the allocation if necessary
+        // Check if the indexer is over-allocated and force close the allocation if necessary
         if (_isOverAllocated(allocation.indexer, _delegationRatio)) {
-            _closeAllocation(_allocationId);
+            _closeAllocation(_allocationId, true);
         }
 
         return tokensRewards;
@@ -415,8 +417,9 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * Emits a {AllocationClosed} event
      *
      * @param _allocationId The id of the allocation to be closed
+     * @param _forceClosed Whether the allocation was force closed
      */
-    function _closeAllocation(address _allocationId) internal {
+    function _closeAllocation(address _allocationId, bool _forceClosed) internal {
         Allocation.State memory allocation = _allocations.get(_allocationId);
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
@@ -433,7 +436,13 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
             allocation.tokens;
 
-        emit AllocationClosed(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, allocation.tokens);
+        emit AllocationClosed(
+            allocation.indexer,
+            _allocationId,
+            allocation.subgraphDeploymentId,
+            allocation.tokens,
+            _forceClosed
+        );
     }
 
     /**
