@@ -63,6 +63,9 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     /**
      * @notice Releases expired stake claims for a service provider.
      * @dev This function can be overriden and/or disabled.
+     * @dev Note that the list is traversed by creation date not by releasableAt date. Traversing will stop
+     * when the first stake claim that is not yet expired is found even if later stake claims have expired. This
+     * could happen if stake claims are genereted with different unlock periods.
      * @dev Emits a {StakeClaimsReleased} event, and a {StakeClaimReleased} event for each claim released.
      * @param _serviceProvider The address of the service provider
      * @param _numClaimsToRelease Amount of stake claims to process. If 0, all stake claims are processed.

@@ -800,7 +800,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice Remove tokens from a provision and move them back to the service provider's idle stake.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfilling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
+     * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
      * @param _serviceProvider The service provider address
      * @param _verifier The verifier address
      * @param _nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
@@ -956,7 +957,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfilling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
+     * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
      * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
      * the thaw requests with an amount equal to zero.
      * @param _requestType The type of thaw request (Provision or Delegation).
@@ -1073,6 +1075,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /**
      * @notice Traverses a thaw request list and fulfills expired thaw requests.
+     * @dev Note that the list is traversed by creation date not by thawing until date. Traversing will stop
+     * when the first thaw request that is not yet expired is found even if later thaw requests have expired. This
+     * could happen for example when the thawing period is shortened.
      * @param _params The parameters for fulfilling thaw requests
      * @return The amount of thawed tokens
      * @return The amount of tokens still thawing
