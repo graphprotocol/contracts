@@ -510,6 +510,11 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingLegacySlashFailed();
 
+    /**
+     * @notice Thrown when there attempting to slash a provision with no tokens to slash.
+     */
+    error HorizonStakingNoTokensToSlash();
+
     // -- Functions --
 
     /**
