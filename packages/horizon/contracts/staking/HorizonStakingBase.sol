@@ -194,7 +194,7 @@ abstract contract HorizonStakingBase is
                 }
             }
 
-            thawRequestId = thawRequest.next;
+            thawRequestId = thawRequest.nextRequest;
         }
         return thawedTokens;
     }
@@ -280,7 +280,7 @@ abstract contract HorizonStakingBase is
      * @return The ID of the next thaw request in the list.
      */
     function _getNextProvisionThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _thawRequests[ThawRequestType.Provision][_thawRequestId].next;
+        return _thawRequests[ThawRequestType.Provision][_thawRequestId].nextRequest;
     }
 
     /**
@@ -289,7 +289,7 @@ abstract contract HorizonStakingBase is
      * @return The ID of the next thaw request in the list.
      */
     function _getNextDelegationThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _thawRequests[ThawRequestType.Delegation][_thawRequestId].next;
+        return _thawRequests[ThawRequestType.Delegation][_thawRequestId].nextRequest;
     }
 
     /**

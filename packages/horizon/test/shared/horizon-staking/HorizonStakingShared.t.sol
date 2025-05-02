@@ -525,7 +525,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(thawRequestId, expectedThawRequestId);
         assertEq(afterThawRequest.shares, thawingShares);
         assertEq(afterThawRequest.thawingUntil, block.timestamp + beforeProvision.thawingPeriod);
-        assertEq(afterThawRequest.next, bytes32(0));
+        assertEq(afterThawRequest.nextRequest, bytes32(0));
         assertEq(
             afterThawRequestList.head,
             beforeThawRequestList.count == 0 ? thawRequestId : beforeThawRequestList.head
@@ -534,7 +534,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterThawRequestList.count, beforeThawRequestList.count + 1);
         assertEq(afterThawRequestList.nonce, beforeThawRequestList.nonce + 1);
         if (beforeThawRequestList.count != 0) {
-            assertEq(afterPreviousTailThawRequest.next, thawRequestId);
+            assertEq(afterPreviousTailThawRequest.nextRequest, thawRequestId);
         }
 
         return thawRequestId;
@@ -626,7 +626,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             );
             assertEq(thawRequest.shares, 0);
             assertEq(thawRequest.thawingUntil, 0);
-            assertEq(thawRequest.next, bytes32(0));
+            assertEq(thawRequest.nextRequest, bytes32(0));
         }
         if (calcValues.thawRequestsFulfilledList.length == 0) {
             assertEq(afterThawRequestList.head, beforeThawRequestList.head);
@@ -635,7 +635,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 afterThawRequestList.head,
                 calcValues.thawRequestsFulfilledList.length == beforeThawRequestList.count
                     ? bytes32(0)
-                    : calcValues.thawRequestsFulfilledList[calcValues.thawRequestsFulfilledList.length - 1].next
+                    : calcValues.thawRequestsFulfilledList[calcValues.thawRequestsFulfilledList.length - 1].nextRequest
             );
         }
         assertEq(
@@ -780,7 +780,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             );
             assertEq(thawRequest.shares, 0);
             assertEq(thawRequest.thawingUntil, 0);
-            assertEq(thawRequest.next, bytes32(0));
+            assertEq(thawRequest.nextRequest, bytes32(0));
         }
         if (calcValues.thawRequestsFulfilledList.length == 0) {
             assertEq(afterThawRequestList.head, beforeValues.thawRequestList.head);
@@ -789,7 +789,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 afterThawRequestList.head,
                 calcValues.thawRequestsFulfilledList.length == beforeValues.thawRequestList.count
                     ? bytes32(0)
-                    : calcValues.thawRequestsFulfilledList[calcValues.thawRequestsFulfilledList.length - 1].next
+                    : calcValues.thawRequestsFulfilledList[calcValues.thawRequestsFulfilledList.length - 1].nextRequest
             );
         }
         assertEq(
@@ -1124,7 +1124,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(beforeValues.delegation.shares - shares, afterDelegation.shares);
         assertEq(afterThawRequest.shares, calcValues.thawingShares);
         assertEq(afterThawRequest.thawingUntil, calcValues.thawingUntil);
-        assertEq(afterThawRequest.next, bytes32(0));
+        assertEq(afterThawRequest.nextRequest, bytes32(0));
         assertEq(calcValues.thawRequestId, afterThawRequestList.tail);
         assertEq(beforeValues.thawRequestList.nonce + 1, afterThawRequestList.nonce);
         assertEq(beforeValues.thawRequestList.count + 1, afterThawRequestList.count);
@@ -1329,7 +1329,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             );
             assertEq(thawRequest.shares, 0);
             assertEq(thawRequest.thawingUntil, 0);
-            assertEq(thawRequest.next, bytes32(0));
+            assertEq(thawRequest.nextRequest, bytes32(0));
         }
         if (calcValues.thawRequestsFulfilledList.length == 0) {
             assertEq(afterValues.thawRequestList.head, beforeValues.thawRequestList.head);
@@ -1338,7 +1338,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 afterValues.thawRequestList.head,
                 calcValues.thawRequestsFulfilledList.length == beforeValues.thawRequestList.count
                     ? bytes32(0)
-                    : calcValues.thawRequestsFulfilledList[calcValues.thawRequestsFulfilledList.length - 1].next
+                    : calcValues.thawRequestsFulfilledList[calcValues.thawRequestsFulfilledList.length - 1].nextRequest
             );
         }
         assertEq(
@@ -2437,7 +2437,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             } else {
                 break;
             }
-            thawRequestId = thawRequest.next;
+            thawRequestId = thawRequest.nextRequest;
         }
 
         // we need to do a second pass because solidity doesnt allow dynamic arrays on memory
@@ -2464,12 +2464,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
                 }
                 thawRequestData.thawRequestsFulfilledListIds[i] = thawRequestId;
                 thawRequestData.thawRequestsFulfilledList[i] = _getThawRequest(params.thawRequestType, thawRequestId);
-                thawRequestId = thawRequestData.thawRequestsFulfilledList[i].next;
+                thawRequestId = thawRequestData.thawRequestsFulfilledList[i].nextRequest;
                 i++;
             } else {
                 break;
             }
-            thawRequestId = thawRequest.next;
+            thawRequestId = thawRequest.nextRequest;
         }
 
         assertEq(thawRequestsFulfilled, thawRequestData.thawRequestsFulfilledList.length);
