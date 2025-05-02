@@ -477,6 +477,7 @@ contract DisputeManager is
 
         // Store dispute
         uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
+        uint256 cancellableAt = block.timestamp + disputePeriod;
         disputes[disputeId] = Dispute(
             alloc.indexer,
             _fisherman,
@@ -485,11 +486,20 @@ contract DisputeManager is
             DisputeType.IndexingDispute,
             IDisputeManager.DisputeStatus.Pending,
             block.timestamp,
-            block.timestamp + disputePeriod,
+            cancellableAt,
             stakeSnapshot
         );
 
-        emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId, _poi, stakeSnapshot);
+        emit IndexingDisputeCreated(
+            disputeId,
+            alloc.indexer,
+            _fisherman,
+            _deposit,
+            _allocationId,
+            _poi,
+            stakeSnapshot,
+            cancellableAt
+        );
 
         return disputeId;
     }

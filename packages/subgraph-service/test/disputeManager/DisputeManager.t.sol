@@ -76,6 +76,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 beforeFishermanBalance = token.balanceOf(fisherman);
         Allocation.State memory alloc = subgraphService.getAllocation(_allocationId);
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(alloc.indexer);
+        uint256 cancellableAt = block.timestamp + disputeManager.disputePeriod();
 
         // Approve the dispute deposit
         token.approve(address(disputeManager), disputeDeposit);
@@ -88,7 +89,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit,
             _allocationId,
             _poi,
-            stakeSnapshot
+            stakeSnapshot,
+            cancellableAt
         );
 
         // Create the indexing dispute
