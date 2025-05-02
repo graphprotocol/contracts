@@ -77,7 +77,7 @@ contract SubgraphService is
         address owner,
         uint256 minimumProvisionTokens,
         uint32 maximumDelegationRatio,
-        uint256 stakeToFeesRatio
+        uint256 stakeToFeesRatio_
     ) external initializer {
         __Ownable_init(owner);
         __Multicall_init();
@@ -87,7 +87,7 @@ contract SubgraphService is
 
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
         _setDelegationRatio(maximumDelegationRatio);
-        _setStakeToFeesRatio(stakeToFeesRatio);
+        _setStakeToFeesRatio(stakeToFeesRatio_);
     }
 
     /**
@@ -113,7 +113,7 @@ contract SubgraphService is
         address indexer,
         bytes calldata data
     ) external override onlyAuthorizedForProvision(indexer) onlyValidProvision(indexer) whenNotPaused {
-        (string memory url, string memory geohash, address rewardsDestination) = abi.decode(
+        (string memory url, string memory geohash, address rewardsDestination_) = abi.decode(
             data,
             (string, string, address)
         );
@@ -124,8 +124,8 @@ contract SubgraphService is
 
         // Register the indexer
         indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
-        if (rewardsDestination != address(0)) {
-            _setRewardsDestination(indexer, rewardsDestination);
+        if (rewardsDestination_ != address(0)) {
+            _setRewardsDestination(indexer, rewardsDestination_);
         }
 
         emit ServiceProviderRegistered(indexer, data);
@@ -148,8 +148,7 @@ contract SubgraphService is
     function acceptProvisionPendingParameters(
         address indexer,
         bytes calldata
-    ) external override onlyAuthorizedForProvision(indexer) onlyRegisteredIndexer(indexer) whenNotPaused {
-        _checkProvisionTokens(indexer);
+    ) external override onlyAuthorizedForProvision(indexer) whenNotPaused {
         _acceptProvisionParameters(indexer);
         emit ProvisionPendingParametersAccepted(indexer);
     }
@@ -227,7 +226,7 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
-        _closeAllocation(allocationId);
+        _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
     }
 
@@ -268,12 +267,15 @@ contract SubgraphService is
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(data, (IGraphTallyCollector.SignedRAV));
+            (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+                data,
+                (IGraphTallyCollector.SignedRAV, uint256)
+            );
             require(
                 signedRav.rav.serviceProvider == indexer,
                 SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, indexer)
             );
-            paymentCollected = _collectQueryFees(signedRav);
+            paymentCollected = _collectQueryFees(signedRav, tokensToCollect);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             (address allocationId, bytes32 poi) = abi.decode(data, (address, bytes32));
             require(
@@ -306,7 +308,7 @@ contract SubgraphService is
         Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
-        _closeAllocation(allocationId);
+        _closeAllocation(allocationId, true);
     }
 
     /// @inheritdoc ISubgraphService
@@ -343,8 +345,8 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function setRewardsDestination(address rewardsDestination) external override {
-        _setRewardsDestination(msg.sender, rewardsDestination);
+    function setRewardsDestination(address rewardsDestination_) external override {
+        _setRewardsDestination(msg.sender, rewardsDestination_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -363,8 +365,8 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function setMaxPOIStaleness(uint256 maxPOIStaleness) external override onlyOwner {
-        _setMaxPOIStaleness(maxPOIStaleness);
+    function setMaxPOIStaleness(uint256 maxPOIStaleness_) external override onlyOwner {
+        _setMaxPOIStaleness(maxPOIStaleness_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -382,9 +384,10 @@ contract SubgraphService is
     /// @inheritdoc IRewardsIssuer
     function getAllocationData(
         address allocationId
-    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
+    ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
         Allocation.State memory allo = _allocations[allocationId];
         return (
+            allo.isOpen(),
             allo.indexer,
             allo.subgraphDeploymentId,
             allo.tokens,
@@ -431,12 +434,14 @@ contract SubgraphService is
     // -- Data service parameter getters --
     /**
      * @notice Getter for the accepted thawing period range for provisions
+     * The accepted range is just the dispute period defined by {DisputeManager-getDisputePeriod}
      * @dev This override ensures {ProvisionManager} uses the thawing period from the {DisputeManager}
-     * @return The minimum thawing period which is defined by {DisputeManager-getDisputePeriod}
-     * @return The maximum is unbounded
+     * @return The minimum thawing period - the dispute period
+     * @return The maximum thawing period - the dispute period
      */
     function _getThawingPeriodRange() internal view override returns (uint64, uint64) {
-        return (_disputeManager().getDisputePeriod(), DEFAULT_MAX_THAWING_PERIOD);
+        uint64 disputePeriod = _disputeManager().getDisputePeriod();
+        return (disputePeriod, disputePeriod);
     }
 
     /**
@@ -472,9 +477,14 @@ contract SubgraphService is
      * Emits a {QueryFeesCollected} event.
      *
      * @param _signedRav Signed RAV
+     * @param tokensToCollect The amount of tokens to collect. Allows partially collecting a RAV. If 0, the entire RAV will
+     * be collected.
      * @return The amount of fees collected
      */
-    function _collectQueryFees(IGraphTallyCollector.SignedRAV memory _signedRav) private returns (uint256) {
+    function _collectQueryFees(
+        IGraphTallyCollector.SignedRAV memory _signedRav,
+        uint256 tokensToCollect
+    ) private returns (uint256) {
         address indexer = _signedRav.rav.serviceProvider;
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
@@ -499,7 +509,8 @@ contract SubgraphService is
         uint256 curationCut = _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0;
         uint256 tokensCollected = _graphTallyCollector().collect(
             IGraphPayments.PaymentTypes.QueryFee,
-            abi.encode(_signedRav, curationCut)
+            abi.encode(_signedRav, curationCut),
+            tokensToCollect
         );
 
         uint256 balanceAfter = _graphToken().balanceOf(address(this));
@@ -522,7 +533,14 @@ contract SubgraphService is
             }
         }
 
-        emit QueryFeesCollected(indexer, _signedRav.rav.payer, tokensCollected, tokensCurators);
+        emit QueryFeesCollected(
+            indexer,
+            _signedRav.rav.payer,
+            allocationId,
+            subgraphDeploymentId,
+            tokensCollected,
+            tokensCurators
+        );
         return tokensCollected;
     }
 

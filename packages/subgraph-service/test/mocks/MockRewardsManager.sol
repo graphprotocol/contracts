@@ -14,7 +14,13 @@ interface IRewardsIssuer {
     )
         external
         view
-        returns (address indexer, bytes32 subgraphDeploymentId, uint256 tokens, uint256 accRewardsPerAllocatedToken);
+        returns (
+            bool isActive,
+            address indexer,
+            bytes32 subgraphDeploymentId,
+            uint256 tokens,
+            uint256 accRewardsPerAllocatedToken
+        );
 }
 
 contract MockRewardsManager is IRewardsManager {
@@ -71,9 +77,12 @@ contract MockRewardsManager is IRewardsManager {
 
     function takeRewards(address _allocationID) external returns (uint256) {
         address rewardsIssuer = msg.sender;
-        (, , uint256 tokens, uint256 accRewardsPerAllocatedToken) = IRewardsIssuer(rewardsIssuer).getAllocationData(
-            _allocationID
-        );
+        (bool isActive, , , uint256 tokens, uint256 accRewardsPerAllocatedToken) = IRewardsIssuer(rewardsIssuer)
+            .getAllocationData(_allocationID);
+
+        if (!isActive) {
+            return 0;
+        }
 
         uint256 accRewardsPerTokens = tokens.mulPPM(rewardsPerSignal);
         uint256 rewards = accRewardsPerTokens - accRewardsPerAllocatedToken;

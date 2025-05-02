@@ -17,14 +17,19 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         uint256 tokens,
         uint32 newVerifierCut,
         uint64 newDisputePeriod
-    ) public useIndexer {
+    ) public {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
         vm.assume(newVerifierCut >= fishermanRewardPercentage);
         vm.assume(newVerifierCut <= MAX_PPM);
-        newDisputePeriod = uint64(bound(newDisputePeriod, disputePeriod, MAX_WAIT_PERIOD));
+        newDisputePeriod = uint64(bound(newDisputePeriod, 1, MAX_WAIT_PERIOD));
+
+        // Set the dispute period to the new value
+        resetPrank(users.governor);
+        disputeManager.setDisputePeriod(newDisputePeriod);
 
         // Setup indexer
-        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
+        resetPrank(users.indexer);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, newDisputePeriod);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
 
         // Update parameters with new values
@@ -34,11 +39,29 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         _acceptProvision(users.indexer, "");
     }
 
-    function test_SubgraphService_Provision_Accept_RevertWhen_NotRegistered() public useIndexer {
-        vm.expectRevert(
-            abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerNotRegistered.selector, users.indexer)
-        );
-        subgraphService.acceptProvisionPendingParameters(users.indexer, "");
+    function test_SubgraphService_Provision_Accept_When_NotRegistered(
+        uint256 tokens,
+        uint32 newVerifierCut,
+        uint64 newDisputePeriod
+    ) public {
+        tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
+        vm.assume(newVerifierCut >= fishermanRewardPercentage);
+        vm.assume(newVerifierCut <= MAX_PPM);
+        newDisputePeriod = uint64(bound(newDisputePeriod, 1, MAX_WAIT_PERIOD));
+
+        // Set the dispute period to the new value
+        resetPrank(users.governor);
+        disputeManager.setDisputePeriod(newDisputePeriod);
+
+        // Setup indexer but dont register
+        resetPrank(users.indexer);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, newDisputePeriod);
+
+        // Update parameters with new values
+        _setProvisionParameters(users.indexer, address(subgraphService), newVerifierCut, newDisputePeriod);
+
+        // Accept provision and check parameters
+        _acceptProvision(users.indexer, "");
     }
 
     function test_SubgraphService_Provision_Accept_RevertWhen_NotAuthorized() public {
@@ -58,7 +81,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
         uint32 newVerifierCut
     ) public useIndexer {
         tokens = bound(tokens, minimumProvisionTokens, MAX_TOKENS);
-        vm.assume(newVerifierCut < maxSlashingPercentage);
+        vm.assume(newVerifierCut < fishermanRewardPercentage);
 
         // Setup indexer
         _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
@@ -101,7 +124,7 @@ contract SubgraphServiceProvisionAcceptTest is SubgraphServiceTest {
                 "thawingPeriod",
                 newDisputePeriod,
                 disputePeriod,
-                type(uint64).max
+                disputePeriod
             )
         );
         subgraphService.acceptProvisionPendingParameters(users.indexer, "");

@@ -160,7 +160,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             allocation.indexer,
             _allocationId,
             allocation.subgraphDeploymentId,
-            allocation.tokens
+            allocation.tokens,
+            true
         );
 
         // close stale allocation
@@ -277,10 +278,14 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         address _indexer,
         bytes memory _data
     ) private returns (uint256 paymentCollected) {
-        IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(_data, (IGraphTallyCollector.SignedRAV));
-        Allocation.State memory allocation = subgraphService.getAllocation(
-            address(uint160(uint256(signedRav.rav.collectionId)))
+        (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+            _data,
+            (IGraphTallyCollector.SignedRAV, uint256)
         );
+        address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
+        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
+
         address payer = graphTallyCollector.isAuthorized(signedRav.rav.payer, _recoverRAVSigner(signedRav))
             ? signedRav.rav.payer
             : address(0);
@@ -291,14 +296,21 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
             _indexer,
             payer
         );
-        paymentCollected = signedRav.rav.valueAggregate - tokensCollected;
+        paymentCollected = tokensToCollect == 0 ? signedRav.rav.valueAggregate - tokensCollected : tokensToCollect;
 
         QueryFeeData memory queryFeeData = _queryFeeData(allocation.subgraphDeploymentId);
         uint256 tokensProtocol = paymentCollected.mulPPMRoundUp(queryFeeData.protocolPaymentCut);
         uint256 tokensCurators = (paymentCollected - tokensProtocol).mulPPMRoundUp(queryFeeData.curationCut);
 
         vm.expectEmit(address(subgraphService));
-        emit ISubgraphService.QueryFeesCollected(_indexer, payer, paymentCollected, tokensCurators);
+        emit ISubgraphService.QueryFeesCollected(
+            _indexer,
+            payer,
+            allocationId,
+            subgraphDeploymentId,
+            paymentCollected,
+            tokensCurators
+        );
 
         return paymentCollected;
     }
@@ -361,7 +373,10 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         CollectPaymentData memory collectPaymentDataBefore,
         CollectPaymentData memory collectPaymentDataAfter
     ) private view {
-        IGraphTallyCollector.SignedRAV memory signedRav = abi.decode(_data, (IGraphTallyCollector.SignedRAV));
+        (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+            _data,
+            (IGraphTallyCollector.SignedRAV, uint256)
+        );
         Allocation.State memory allocation = subgraphService.getAllocation(
             address(uint160(uint256(signedRav.rav.collectionId)))
         );
@@ -466,7 +481,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         resetPrank(_indexer);
         token.approve(address(staking), _tokens);
         staking.stakeTo(_indexer, _tokens);
-        staking.provision(_indexer, address(subgraphService), _tokens, maxSlashingPercentage, disputePeriod);
+        staking.provision(_indexer, address(subgraphService), _tokens, fishermanRewardPercentage, disputePeriod);
         _register(_indexer, abi.encode("url", "geoHash", address(0)));
 
         (address newIndexerAllocationId, uint256 newIndexerAllocationKey) = makeAddrAndKey("newIndexerAllocationId");

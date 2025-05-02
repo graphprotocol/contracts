@@ -368,7 +368,7 @@ interface IStakingBase is IStakingData {
      */
     function getAllocationData(
         address _allocationID
-    ) external view returns (address, bytes32, uint256, uint256, uint256);
+    ) external view returns (bool, address, bytes32, uint256, uint256, uint256);
 
     /**
      * @dev New function to get the allocation active status for the rewards manager

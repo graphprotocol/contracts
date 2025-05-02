@@ -32,8 +32,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     using PPMMath for uint256;
     using TokenUtils for IGraphToken;
 
-    ///@dev EIP712 typehash for allocation proof
-    bytes32 private constant EIP712_ALLOCATION_PROOF_TYPEHASH =
+    ///@dev EIP712 typehash for allocation id proof
+    bytes32 private constant EIP712_ALLOCATION_ID_PROOF_TYPEHASH =
         keccak256("AllocationIdProof(address indexer,address allocationId)");
 
     /**
@@ -96,12 +96,14 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param allocationId The id of the allocation
      * @param subgraphDeploymentId The id of the subgraph deployment
      * @param tokens The amount of tokens allocated
+     * @param forceClosed Whether the allocation was force closed
      */
     event AllocationClosed(
         address indexed indexer,
         address indexed allocationId,
         bytes32 indexed subgraphDeploymentId,
-        uint256 tokens
+        uint256 tokens,
+        bool forceClosed
     );
 
     /**
@@ -198,7 +200,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _tokens The amount of tokens to allocate
      * @param _allocationProof Signed proof of allocation id address ownership
      * @param _delegationRatio The delegation ratio to consider when locking tokens
-     * @return The allocation details
      */
     function _allocate(
         address _indexer,
@@ -207,7 +208,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 _tokens,
         bytes memory _allocationProof,
         uint32 _delegationRatio
-    ) internal returns (Allocation.State memory) {
+    ) internal {
         require(_allocationId != address(0), AllocationManagerInvalidZeroAllocationId());
 
         _verifyAllocationProof(_indexer, _allocationId, _allocationProof);
@@ -236,7 +237,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             allocation.tokens;
 
         emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens, currentEpoch);
-        return allocation;
     }
 
     /**
@@ -335,9 +335,9 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             currentEpoch
         );
 
-        // Check if the indexer is over-allocated and close the allocation if necessary
+        // Check if the indexer is over-allocated and force close the allocation if necessary
         if (_isOverAllocated(allocation.indexer, _delegationRatio)) {
-            _closeAllocation(_allocationId);
+            _closeAllocation(_allocationId, true);
         }
 
         return tokensRewards;
@@ -359,13 +359,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _allocationId The id of the allocation to be resized
      * @param _tokens The new amount of tokens to allocate
      * @param _delegationRatio The delegation ratio to consider when locking tokens
-     * @return The allocation details
      */
-    function _resizeAllocation(
-        address _allocationId,
-        uint256 _tokens,
-        uint32 _delegationRatio
-    ) internal returns (Allocation.State memory) {
+    function _resizeAllocation(address _allocationId, uint256 _tokens, uint32 _delegationRatio) internal {
         Allocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
         require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
@@ -402,7 +397,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         }
 
         emit AllocationResized(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, _tokens, oldTokens);
-        return _allocations[_allocationId];
     }
 
     /**
@@ -415,8 +409,9 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * Emits a {AllocationClosed} event
      *
      * @param _allocationId The id of the allocation to be closed
+     * @param _forceClosed Whether the allocation was force closed
      */
-    function _closeAllocation(address _allocationId) internal {
+    function _closeAllocation(address _allocationId, bool _forceClosed) internal {
         Allocation.State memory allocation = _allocations.get(_allocationId);
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
@@ -433,7 +428,13 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
             allocation.tokens;
 
-        emit AllocationClosed(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, allocation.tokens);
+        emit AllocationClosed(
+            allocation.indexer,
+            _allocationId,
+            allocation.subgraphDeploymentId,
+            allocation.tokens,
+            _forceClosed
+        );
     }
 
     /**
@@ -458,31 +459,13 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     }
 
     /**
-     * @notice Gets the details of an allocation
-     * @param _allocationId The id of the allocation
-     * @return The allocation details
-     */
-    function _getAllocation(address _allocationId) internal view returns (Allocation.State memory) {
-        return _allocations.get(_allocationId);
-    }
-
-    /**
-     * @notice Gets the details of a legacy allocation
-     * @param _allocationId The id of the legacy allocation
-     * @return The legacy allocation details
-     */
-    function _getLegacyAllocation(address _allocationId) internal view returns (LegacyAllocation.State memory) {
-        return _legacyAllocations.get(_allocationId);
-    }
-
-    /**
      * @notice Encodes the allocation proof for EIP712 signing
      * @param _indexer The address of the indexer
      * @param _allocationId The id of the allocation
      * @return The encoded allocation proof
      */
     function _encodeAllocationProof(address _indexer, address _allocationId) internal view returns (bytes32) {
-        return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_PROOF_TYPEHASH, _indexer, _allocationId)));
+        return _hashTypedDataV4(keccak256(abi.encode(EIP712_ALLOCATION_ID_PROOF_TYPEHASH, _indexer, _allocationId)));
     }
 
     /**

@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
+import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { IDisputeManager } from "../../contracts/interfaces/IDisputeManager.sol";
 import { Attestation } from "../../contracts/libraries/Attestation.sol";
@@ -76,6 +77,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 beforeFishermanBalance = token.balanceOf(fisherman);
         Allocation.State memory alloc = subgraphService.getAllocation(_allocationId);
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(alloc.indexer);
+        uint256 cancellableAt = block.timestamp + disputeManager.disputePeriod();
 
         // Approve the dispute deposit
         token.approve(address(disputeManager), disputeDeposit);
@@ -88,7 +90,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit,
             _allocationId,
             _poi,
-            stakeSnapshot
+            stakeSnapshot,
+            cancellableAt
         );
 
         // Create the indexing dispute
@@ -144,6 +147,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 disputeDeposit = disputeManager.disputeDeposit();
         uint256 beforeFishermanBalance = token.balanceOf(fisherman);
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(indexer);
+        uint256 cancellableAt = block.timestamp + disputeManager.disputePeriod();
 
         // Approve the dispute deposit
         token.approve(address(disputeManager), disputeDeposit);
@@ -156,6 +160,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit,
             attestation.subgraphDeploymentId,
             _attestationData,
+            cancellableAt,
             stakeSnapshot
         );
 
@@ -193,6 +198,81 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         );
 
         return _disputeID;
+    }
+
+    struct Balances {
+        uint256 indexer;
+        uint256 fisherman;
+        uint256 arbitrator;
+        uint256 disputeManager;
+        uint256 staking;
+    }
+
+    function _createAndAcceptLegacyDispute(
+        address _allocationId,
+        address _fisherman,
+        uint256 _tokensSlash,
+        uint256 _tokensRewards
+    ) internal returns (bytes32) {
+        (, address arbitrator, ) = vm.readCallers();
+        address indexer = staking.getAllocation(_allocationId).indexer;
+
+        Balances memory beforeBalances = Balances({
+            indexer: token.balanceOf(indexer),
+            fisherman: token.balanceOf(_fisherman),
+            arbitrator: token.balanceOf(arbitrator),
+            disputeManager: token.balanceOf(address(disputeManager)),
+            staking: token.balanceOf(address(staking))
+        });
+
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.LegacyDisputeCreated(
+            keccak256(abi.encodePacked(_allocationId, "legacy")),
+            indexer,
+            _fisherman,
+            _allocationId,
+            _tokensSlash,
+            _tokensRewards
+        );
+        vm.expectEmit(address(disputeManager));
+        emit IDisputeManager.DisputeAccepted(
+            keccak256(abi.encodePacked(_allocationId, "legacy")),
+            indexer,
+            _fisherman,
+            _tokensRewards
+        );
+        bytes32 _disputeId = disputeManager.createAndAcceptLegacyDispute(
+            _allocationId,
+            _fisherman,
+            _tokensSlash,
+            _tokensRewards
+        );
+
+        Balances memory afterBalances = Balances({
+            indexer: token.balanceOf(indexer),
+            fisherman: token.balanceOf(_fisherman),
+            arbitrator: token.balanceOf(arbitrator),
+            disputeManager: token.balanceOf(address(disputeManager)),
+            staking: token.balanceOf(address(staking))
+        });
+
+        assertEq(afterBalances.indexer, beforeBalances.indexer);
+        assertEq(afterBalances.fisherman, beforeBalances.fisherman + _tokensRewards);
+        assertEq(afterBalances.arbitrator, beforeBalances.arbitrator);
+        assertEq(afterBalances.disputeManager, beforeBalances.disputeManager);
+        assertEq(afterBalances.staking, beforeBalances.staking - _tokensSlash);
+
+        IDisputeManager.Dispute memory dispute = _getDispute(_disputeId);
+        assertEq(dispute.indexer, indexer);
+        assertEq(dispute.fisherman, _fisherman);
+        assertEq(dispute.deposit, 0);
+        assertEq(dispute.relatedDisputeId, bytes32(0));
+        assertEq(uint8(dispute.disputeType), uint8(IDisputeManager.DisputeType.LegacyDispute));
+        assertEq(uint8(dispute.status), uint8(IDisputeManager.DisputeStatus.Accepted));
+        assertEq(dispute.createdAt, block.timestamp);
+        assertEq(dispute.stakeSnapshot, 0);
+
+        return _disputeId;
     }
 
     struct BeforeValues_CreateQueryDisputeConflict {
@@ -242,6 +322,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             )
         );
 
+        uint256 cancellableAt = block.timestamp + disputeManager.disputePeriod();
+
         // createQueryDisputeConflict
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.QueryDisputeCreated(
@@ -251,6 +333,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit / 2,
             beforeValues.attestation1.subgraphDeploymentId,
             attestationData1,
+            cancellableAt,
             beforeValues.stakeSnapshot1
         );
         vm.expectEmit(address(disputeManager));
@@ -261,6 +344,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             disputeDeposit / 2,
             beforeValues.attestation2.subgraphDeploymentId,
             attestationData2,
+            cancellableAt,
             beforeValues.stakeSnapshot2
         );
 
@@ -329,8 +413,17 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
         uint256 disputeDeposit = dispute.deposit;
-        uint256 fishermanRewardPercentage = disputeManager.fishermanRewardCut();
-        uint256 fishermanReward = _tokensSlash.mulPPM(fishermanRewardPercentage);
+        uint256 fishermanReward;
+        {
+            uint32 provisionMaxVerifierCut = staking
+                .getProvision(dispute.indexer, address(subgraphService))
+                .maxVerifierCut;
+            uint256 fishermanRewardPercentage = MathUtils.min(
+                disputeManager.fishermanRewardCut(),
+                provisionMaxVerifierCut
+            );
+            fishermanReward = _tokensSlash.mulPPM(fishermanRewardPercentage);
+        }
 
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.DisputeAccepted(
@@ -603,11 +696,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         if (isDisputeInConflict) relatedDispute = _getDispute(dispute.relatedDisputeId);
         address fisherman = dispute.fisherman;
         uint256 fishermanPreviousBalance = token.balanceOf(fisherman);
-        uint256 disputePeriod = disputeManager.disputePeriod();
         uint256 indexerTokensAvailable = staking.getProviderTokensAvailable(dispute.indexer, address(subgraphService));
-
-        // skip to end of dispute period
-        skip(disputePeriod + 1);
 
         vm.expectEmit(address(disputeManager));
         emit IDisputeManager.DisputeCancelled(_disputeId, dispute.indexer, dispute.fisherman, dispute.deposit);
@@ -715,6 +804,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             IDisputeManager.DisputeType disputeType,
             IDisputeManager.DisputeStatus status,
             uint256 createdAt,
+            uint256 cancellableAt,
             uint256 stakeSnapshot
         ) = disputeManager.disputes(_disputeId);
         return
@@ -726,6 +816,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
                 disputeType: disputeType,
                 status: status,
                 createdAt: createdAt,
+                cancellableAt: cancellableAt,
                 stakeSnapshot: stakeSnapshot
             });
     }

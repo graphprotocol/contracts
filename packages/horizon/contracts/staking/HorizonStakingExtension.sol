@@ -184,6 +184,18 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
             }
         }
 
+        // Slashing tokens that are already provisioned would break provision accounting, we need to limit
+        // the slash amount. This can be compensated for, by slashing with the main slash function if needed.
+        uint256 slashableStake = indexerStake.tokensStaked - indexerStake.tokensProvisioned;
+        if (slashableStake == 0) {
+            emit StakeSlashed(indexer, 0, 0, beneficiary);
+            return;
+        }
+        if (tokens > slashableStake) {
+            reward = (reward * slashableStake) / tokens;
+            tokens = slashableStake;
+        }
+
         // Remove tokens to slash from the stake
         indexerStake.tokensStaked = indexerStake.tokensStaked - tokens;
 
@@ -211,9 +223,10 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     /// @inheritdoc IRewardsIssuer
     function getAllocationData(
         address allocationID
-    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
+    ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
         Allocation memory allo = __DEPRECATED_allocations[allocationID];
-        return (allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken, 0);
+        bool isActive = _getAllocationState(allocationID) == AllocationState.Active;
+        return (isActive, allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken, 0);
     }
 
     /// @inheritdoc IHorizonStakingExtension
@@ -266,10 +279,9 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     /**
      * @dev Triggers an update of rewards due to a change in allocations.
      * @param _subgraphDeploymentID Subgraph deployment updated
-     * @return Accumulated rewards per allocated token for the subgraph deployment
      */
-    function _updateRewards(bytes32 _subgraphDeploymentID) private returns (uint256) {
-        return _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
+    function _updateRewards(bytes32 _subgraphDeploymentID) private {
+        _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentID);
     }
 
     /**
@@ -339,9 +351,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
             require(isIndexerOrOperator, "!auth");
         }
 
-        // Close the allocation
-        __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
-
         // -- Rewards Distribution --
 
         // Process non-zero-allocation rewards tracking
@@ -364,6 +373,11 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
                 __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] -
                 alloc.tokens;
         }
+
+        // Close the allocation
+        // Note that this breaks CEI pattern. We update after the rewards distribution logic as it expects the allocation
+        // to still be active. There shouldn't be reentrancy risk here as all internal calls are to trusted contracts.
+        __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         emit AllocationClosed(
             alloc.indexer,

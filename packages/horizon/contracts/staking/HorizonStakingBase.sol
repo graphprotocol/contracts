@@ -182,15 +182,19 @@ abstract contract HorizonStakingBase is
         bytes32 thawRequestId = thawRequestList.head;
         while (thawRequestId != bytes32(0)) {
             ThawRequest storage thawRequest = _getThawRequest(requestType, thawRequestId);
-            if (thawRequest.thawingUntil <= block.timestamp) {
-                uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
-                tokensThawing = tokensThawing - tokens;
-                sharesThawing = sharesThawing - thawRequest.shares;
-                thawedTokens = thawedTokens + tokens;
-            } else {
-                break;
+            if (thawRequest.thawingNonce == prov.thawingNonce) {
+                if (thawRequest.thawingUntil <= block.timestamp) {
+                    // sharesThawing cannot be zero if there is a valid thaw request so the next division is safe
+                    uint256 tokens = (thawRequest.shares * tokensThawing) / sharesThawing;
+                    tokensThawing = tokensThawing - tokens;
+                    sharesThawing = sharesThawing - thawRequest.shares;
+                    thawedTokens = thawedTokens + tokens;
+                } else {
+                    break;
+                }
             }
-            thawRequestId = thawRequest.next;
+
+            thawRequestId = thawRequest.nextRequest;
         }
         return thawedTokens;
     }
@@ -276,7 +280,7 @@ abstract contract HorizonStakingBase is
      * @return The ID of the next thaw request in the list.
      */
     function _getNextProvisionThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _thawRequests[ThawRequestType.Provision][_thawRequestId].next;
+        return _thawRequests[ThawRequestType.Provision][_thawRequestId].nextRequest;
     }
 
     /**
@@ -285,7 +289,7 @@ abstract contract HorizonStakingBase is
      * @return The ID of the next thaw request in the list.
      */
     function _getNextDelegationThawRequest(bytes32 _thawRequestId) internal view returns (bytes32) {
-        return _thawRequests[ThawRequestType.Delegation][_thawRequestId].next;
+        return _thawRequests[ThawRequestType.Delegation][_thawRequestId].nextRequest;
     }
 
     /**

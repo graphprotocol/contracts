@@ -54,10 +54,10 @@ contract DisputeManager is
 
     // -- Constants --
 
-    // Maximum value for fisherman reward cut in PPM
+    /// @notice Maximum value for fisherman reward cut in PPM
     uint32 public constant MAX_FISHERMAN_REWARD_CUT = 500000; // 50%
 
-    // Minimum value for dispute deposit
+    /// @notice Minimum value for dispute deposit
     uint256 public constant MIN_DISPUTE_DEPOSIT = 1e18; // 1 GRT
 
     // -- Modifiers --
@@ -104,18 +104,18 @@ contract DisputeManager is
     /// @inheritdoc IDisputeManager
     function initialize(
         address owner,
-        address arbitrator,
-        uint64 disputePeriod,
-        uint256 disputeDeposit,
+        address arbitrator_,
+        uint64 disputePeriod_,
+        uint256 disputeDeposit_,
         uint32 fishermanRewardCut_,
         uint32 maxSlashingCut_
     ) external override initializer {
         __Ownable_init(owner);
         __AttestationManager_init();
 
-        _setArbitrator(arbitrator);
-        _setDisputePeriod(disputePeriod);
-        _setDisputeDeposit(disputeDeposit);
+        _setArbitrator(arbitrator_);
+        _setDisputePeriod(disputePeriod_);
+        _setDisputeDeposit(disputeDeposit_);
         _setFishermanRewardCut(fishermanRewardCut_);
         _setMaxSlashingCut(maxSlashingCut_);
     }
@@ -197,6 +197,46 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
+    function createAndAcceptLegacyDispute(
+        address allocationId,
+        address fisherman,
+        uint256 tokensSlash,
+        uint256 tokensRewards
+    ) external override onlyArbitrator returns (bytes32) {
+        // Create a disputeId
+        bytes32 disputeId = keccak256(abi.encodePacked(allocationId, "legacy"));
+
+        // Get the indexer for the legacy allocation
+        address indexer = _graphStaking().getAllocation(allocationId).indexer;
+        require(indexer != address(0), DisputeManagerIndexerNotFound(allocationId));
+
+        // Store dispute
+        disputes[disputeId] = Dispute(
+            indexer,
+            fisherman,
+            0,
+            0,
+            DisputeType.LegacyDispute,
+            IDisputeManager.DisputeStatus.Accepted,
+            block.timestamp,
+            block.timestamp + disputePeriod,
+            0
+        );
+
+        // Slash the indexer
+        ISubgraphService subgraphService_ = _getSubgraphService();
+        subgraphService_.slash(indexer, abi.encode(tokensSlash, tokensRewards));
+
+        // Reward the fisherman
+        _graphToken().pushTokens(fisherman, tokensRewards);
+
+        emit LegacyDisputeCreated(disputeId, indexer, fisherman, allocationId, tokensSlash, tokensRewards);
+        emit DisputeAccepted(disputeId, indexer, fisherman, tokensRewards);
+
+        return disputeId;
+    }
+
+    /// @inheritdoc IDisputeManager
     function acceptDispute(
         bytes32 disputeId,
         uint256 tokensSlash
@@ -246,7 +286,7 @@ contract DisputeManager is
         Dispute storage dispute = disputes[disputeId];
 
         // Check if dispute period has finished
-        require(dispute.createdAt + disputePeriod < block.timestamp, DisputeManagerDisputePeriodNotFinished());
+        require(dispute.cancellableAt <= block.timestamp, DisputeManagerDisputePeriodNotFinished());
         _cancelDispute(disputeId, dispute);
 
         if (_isDisputeInConflict(dispute)) {
@@ -280,8 +320,8 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function setSubgraphService(address subgraphService) external override onlyOwner {
-        _setSubgraphService(subgraphService);
+    function setSubgraphService(address subgraphService_) external override onlyOwner {
+        _setSubgraphService(subgraphService_);
     }
 
     /// @inheritdoc IDisputeManager
@@ -373,11 +413,12 @@ contract DisputeManager is
             )
         );
 
-        // Only one dispute for a (indexer, subgraphDeploymentId) at a time
+        // Only one dispute at a time
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
 
         // Store dispute
         uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
+        uint256 cancellableAt = block.timestamp + disputePeriod;
         disputes[disputeId] = Dispute(
             indexer,
             _fisherman,
@@ -386,6 +427,7 @@ contract DisputeManager is
             DisputeType.QueryDispute,
             IDisputeManager.DisputeStatus.Pending,
             block.timestamp,
+            cancellableAt,
             stakeSnapshot
         );
 
@@ -396,6 +438,7 @@ contract DisputeManager is
             _deposit,
             _attestation.subgraphDeploymentId,
             _attestationData,
+            cancellableAt,
             stakeSnapshot
         );
 
@@ -434,6 +477,7 @@ contract DisputeManager is
 
         // Store dispute
         uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
+        uint256 cancellableAt = block.timestamp + disputePeriod;
         disputes[disputeId] = Dispute(
             alloc.indexer,
             _fisherman,
@@ -442,10 +486,20 @@ contract DisputeManager is
             DisputeType.IndexingDispute,
             IDisputeManager.DisputeStatus.Pending,
             block.timestamp,
+            cancellableAt,
             stakeSnapshot
         );
 
-        emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId, _poi, stakeSnapshot);
+        emit IndexingDisputeCreated(
+            disputeId,
+            alloc.indexer,
+            _fisherman,
+            _deposit,
+            _allocationId,
+            _poi,
+            stakeSnapshot,
+            cancellableAt
+        );
 
         return disputeId;
     }
@@ -525,10 +579,15 @@ contract DisputeManager is
             DisputeManagerInvalidTokensSlash(_tokensSlash, maxTokensSlash)
         );
 
-        // Rewards amount can only be extracted from service provider tokens so
-        // we grab the minimum between the slash amount and indexer's tokens
-        uint256 maxRewardableTokens = Math.min(_tokensSlash, provision.tokens);
-        uint256 tokensRewards = uint256(fishermanRewardCut).mulPPM(maxRewardableTokens);
+        // Rewards calculation:
+        // - Rewards can only be extracted from service provider tokens so we grab the minimum between the slash
+        //   amount and indexer's tokens
+        // - The applied cut is the minimum between the provision's maxVerifierCut and the current fishermanRewardCut. This
+        //   protects the indexer from sudden changes to the fishermanRewardCut while ensuring the slashing does not revert due
+        //   to excessive rewards being requested.
+        uint256 maxRewardableTokens = MathUtils.min(_tokensSlash, provision.tokens);
+        uint256 effectiveCut = MathUtils.min(provision.maxVerifierCut, fishermanRewardCut);
+        uint256 tokensRewards = effectiveCut.mulPPM(maxRewardableTokens);
 
         subgraphService_.slash(_indexer, abi.encode(_tokensSlash, tokensRewards));
         return tokensRewards;
@@ -628,15 +687,16 @@ contract DisputeManager is
      * - Thawing stake is not excluded from the snapshot.
      * - Delegators stake is capped at the delegation ratio to prevent delegators from inflating the snapshot
      *   to increase the indexer slash amount.
+     *
+     * Note that the snapshot can be inflated by delegators front-running the dispute creation with a delegation
+     * to the indexer. Given the snapshot is a cap, the dispute outcome is uncertain and considering the cost of capital
+     * and slashing risk, this is not a concern.
      * @param _indexer Indexer address
      * @param _indexerStake Indexer's stake
      * @return Total stake snapshot
      */
     function _getStakeSnapshot(address _indexer, uint256 _indexerStake) private view returns (uint256) {
-        ISubgraphService subgraphService_ = _getSubgraphService();
-        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(subgraphService_)).tokens;
-        uint256 delegatorsStakeMax = _indexerStake * uint256(subgraphService_.getDelegationRatio());
-        uint256 stakeSnapshot = _indexerStake + MathUtils.min(delegatorsStake, delegatorsStakeMax);
-        return stakeSnapshot;
+        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(_getSubgraphService())).tokens;
+        return _indexerStake + delegatorsStake;
     }
 }

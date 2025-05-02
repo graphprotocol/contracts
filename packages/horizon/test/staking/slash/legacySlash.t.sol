@@ -45,34 +45,53 @@ contract HorizonStakingLegacySlashTest is HorizonStakingTest {
         // before
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
         uint256 beforeRewardsDestinationBalance = token.balanceOf(_beneficiary);
+        ServiceProviderInternal memory beforeIndexer = _getStorage_ServiceProviderInternal(_indexer);
+
+        // calculate slashable stake
+        uint256 slashableStake = beforeIndexer.tokensStaked - beforeIndexer.tokensProvisioned;
+        uint256 actualTokens = _tokens;
+        uint256 actualRewards = _rewards;
+        if (slashableStake == 0) {
+            actualTokens = 0;
+            actualRewards = 0;
+        } else if (_tokens > slashableStake) {
+            actualRewards = (_rewards * slashableStake) / _tokens;
+            actualTokens = slashableStake;
+        }
 
         // slash
         vm.expectEmit(address(staking));
-        emit IHorizonStakingExtension.StakeSlashed(_indexer, _tokens, _rewards, _beneficiary);
+        emit IHorizonStakingExtension.StakeSlashed(_indexer, actualTokens, actualRewards, _beneficiary);
         staking.slash(_indexer, _tokens, _rewards, _beneficiary);
 
         // after
         uint256 afterStakingBalance = token.balanceOf(address(staking));
         uint256 afterRewardsDestinationBalance = token.balanceOf(_beneficiary);
+        ServiceProviderInternal memory afterIndexer = _getStorage_ServiceProviderInternal(_indexer);
 
-        assertEq(beforeStakingBalance - _tokens, afterStakingBalance);
-        assertEq(beforeRewardsDestinationBalance, afterRewardsDestinationBalance - _rewards);
+        assertEq(beforeStakingBalance - actualTokens, afterStakingBalance);
+        assertEq(beforeRewardsDestinationBalance, afterRewardsDestinationBalance - actualRewards);
+        assertEq(afterIndexer.tokensStaked, beforeIndexer.tokensStaked - actualTokens);
     }
 
     /*
      * TESTS
      */
-
     function testSlash_Legacy(
-        uint256 tokens,
+        uint256 tokensStaked,
+        uint256 tokensProvisioned,
         uint256 slashTokens,
         uint256 reward
     ) public useIndexer useLegacySlasher(users.legacySlasher) {
-        vm.assume(tokens > 1);
-        slashTokens = bound(slashTokens, 1, tokens);
+        vm.assume(tokensStaked > 0);
+        vm.assume(tokensStaked <= MAX_STAKING_TOKENS);
+        vm.assume(tokensProvisioned > 0);
+        vm.assume(tokensProvisioned <= tokensStaked);
+        slashTokens = bound(slashTokens, 1, tokensStaked);
         reward = bound(reward, 0, slashTokens);
 
-        _createProvision(users.indexer, subgraphDataServiceLegacyAddress, tokens, 0, 0);
+        _stake(tokensStaked);
+        _provision(users.indexer, subgraphDataServiceLegacyAddress, tokensProvisioned, 0, 0);
 
         resetPrank(users.legacySlasher);
         _legacySlash(users.indexer, slashTokens, reward, makeAddr("fisherman"));

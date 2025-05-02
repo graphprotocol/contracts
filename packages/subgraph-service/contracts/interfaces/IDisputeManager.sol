@@ -15,7 +15,8 @@ interface IDisputeManager {
     enum DisputeType {
         Null,
         IndexingDispute,
-        QueryDispute
+        QueryDispute,
+        LegacyDispute
     }
 
     /// @notice Status of a dispute
@@ -37,6 +38,7 @@ interface IDisputeManager {
      * @param disputeType The type of dispute
      * @param status The status of the dispute
      * @param createdAt The timestamp when the dispute was created
+     * @param cancellableAt The timestamp when the dispute can be cancelled
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute (includes delegation up to the delegation ratio)
      */
     struct Dispute {
@@ -47,6 +49,7 @@ interface IDisputeManager {
         DisputeType disputeType;
         DisputeStatus status;
         uint256 createdAt;
+        uint256 cancellableAt;
         uint256 stakeSnapshot;
     }
 
@@ -96,6 +99,7 @@ interface IDisputeManager {
      * @param tokens The amount of tokens deposited by the fisherman
      * @param subgraphDeploymentId The subgraph deployment id
      * @param attestation The attestation
+     * @param cancellableAt The timestamp when the dispute can be cancelled
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
      */
     event QueryDisputeCreated(
@@ -105,7 +109,8 @@ interface IDisputeManager {
         uint256 tokens,
         bytes32 subgraphDeploymentId,
         bytes attestation,
-        uint256 stakeSnapshot
+        uint256 stakeSnapshot,
+        uint256 cancellableAt
     );
 
     /**
@@ -119,6 +124,7 @@ interface IDisputeManager {
      * @param allocationId The allocation id
      * @param poi The POI
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     * @param cancellableAt The timestamp when the dispute can be cancelled
      */
     event IndexingDisputeCreated(
         bytes32 indexed disputeId,
@@ -127,7 +133,27 @@ interface IDisputeManager {
         uint256 tokens,
         address allocationId,
         bytes32 poi,
-        uint256 stakeSnapshot
+        uint256 stakeSnapshot,
+        uint256 cancellableAt
+    );
+
+    /**
+     * @dev Emitted when a legacy dispute is created for `allocationId` and `fisherman`.
+     * The event emits the amount of `tokensSlash` to slash and `tokensRewards` to reward the fisherman.
+     * @param disputeId The dispute id
+     * @param indexer The indexer address
+     * @param fisherman The fisherman address to be credited with the rewards
+     * @param allocationId The allocation id
+     * @param tokensSlash The amount of tokens to slash
+     * @param tokensRewards The amount of tokens to reward the fisherman
+     */
+    event LegacyDisputeCreated(
+        bytes32 indexed disputeId,
+        address indexed indexer,
+        address indexed fisherman,
+        address allocationId,
+        uint256 tokensSlash,
+        uint256 tokensRewards
     );
 
     /**
@@ -435,6 +461,39 @@ interface IDisputeManager {
      * @return The dispute id
      */
     function createIndexingDispute(address allocationId, bytes32 poi) external returns (bytes32);
+
+    /**
+     * @notice Creates and auto-accepts a legacy dispute.
+     * This disputes can be created to settle outstanding slashing amounts with an indexer that has been
+     * "legacy slashed" during or shortly after the transition period. See {HorizonStakingExtension.legacySlash}
+     * for more details.
+     *
+     * Note that this type of dispute:
+     * - can only be created by the arbitrator
+     * - does not require a bond
+     * - is automatically accepted when created
+     *
+     * Additionally, note that this type of disputes allow the arbitrator to directly set the slash and rewards
+     * amounts, bypassing the usual mechanisms that impose restrictions on those. This is done to give arbitrators
+     * maximum flexibility to ensure outstanding slashing amounts are settled fairly. This function needs to be removed
+     * after the transition period.
+     *
+     * Requirements:
+     * - Indexer must have been legacy slashed during or shortly after the transition period
+     * - Indexer must have provisioned funds to the Subgraph Service
+     *
+     * @param allocationId The allocation to dispute
+     * @param fisherman The fisherman address to be credited with the rewards
+     * @param tokensSlash The amount of tokens to slash
+     * @param tokensRewards The amount of tokens to reward the fisherman
+     * @return The dispute id
+     */
+    function createAndAcceptLegacyDispute(
+        address allocationId,
+        address fisherman,
+        uint256 tokensSlash,
+        uint256 tokensRewards
+    ) external returns (bytes32);
 
     // -- Arbitrator --
 

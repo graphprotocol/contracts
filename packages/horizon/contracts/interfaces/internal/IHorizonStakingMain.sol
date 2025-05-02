@@ -24,7 +24,7 @@ interface IHorizonStakingMain {
     /**
      * @notice Emitted when a service provider unstakes tokens during the transition period.
      * @param serviceProvider The address of the service provider
-     * @param tokens The amount of tokens unstaked
+     * @param tokens The amount of tokens now locked (including previously locked tokens)
      * @param until The block number until the stake is locked
      */
     event HorizonStakeLocked(address indexed serviceProvider, uint256 tokens, uint256 until);
@@ -189,12 +189,14 @@ interface IHorizonStakingMain {
      * @param verifier The address of the verifier
      * @param delegator The address of the delegator
      * @param tokens The amount of tokens undelegated
+     * @param shares The amount of shares undelegated
      */
     event TokensUndelegated(
         address indexed serviceProvider,
         address indexed verifier,
         address indexed delegator,
-        uint256 tokens
+        uint256 tokens,
+        uint256 shares
     );
 
     /**
@@ -254,6 +256,7 @@ interface IHorizonStakingMain {
      * @param shares The amount of shares being thawed
      * @param thawingUntil The timestamp until the stake is thawed
      * @param thawRequestId The ID of the thaw request
+     * @param nonce The nonce of the thaw request
      */
     event ThawRequestCreated(
         IHorizonStakingTypes.ThawRequestType indexed requestType,
@@ -262,7 +265,8 @@ interface IHorizonStakingMain {
         address owner,
         uint256 shares,
         uint64 thawingUntil,
-        bytes32 thawRequestId
+        bytes32 thawRequestId,
+        uint256 nonce
     );
 
     /**
@@ -508,6 +512,11 @@ interface IHorizonStakingMain {
      */
     error HorizonStakingLegacySlashFailed();
 
+    /**
+     * @notice Thrown when there attempting to slash a provision with no tokens to slash.
+     */
+    error HorizonStakingNoTokensToSlash();
+
     // -- Functions --
 
     /**
@@ -539,10 +548,10 @@ interface IHorizonStakingMain {
      */
     function stakeTo(address serviceProvider, uint256 tokens) external;
 
-    // can be called by anyone if the service provider has provisioned stake to this verifier
     /**
      * @notice Deposit tokens on the service provider stake, on behalf of the service provider,
      * provisioned to a specific verifier.
+     * @dev This function can be called by the service provider, by an authorized operator or by the verifier itself.
      * @dev Requirements:
      * - The `serviceProvider` must have previously provisioned stake to `verifier`.
      * - `_tokens` cannot be zero.
@@ -657,7 +666,8 @@ interface IHorizonStakingMain {
     /**
      * @notice Remove tokens from a provision and move them back to the service provider's idle stake.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfilling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
+     * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
      *
      * Requirements:
      * - Must have previously initiated a thaw request using {thaw}.
@@ -697,9 +707,14 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Stages a provision parameter update. Note that the change is not effective until the verifier calls
-     * {acceptProvisionParameters}.
+     * {acceptProvisionParameters}. Calling this function is a no-op if the new parameters are the same as the current
+     * ones.
      * @dev This two step update process prevents the service provider from changing the parameters
      * without the verifier's consent.
+     *
+     * Requirements:
+     * - `thawingPeriod` must be less than or equal to `_maxThawingPeriod`. Note that if `_maxThawingPeriod` changes the
+     * function will not revert if called with the same thawing period as the current one.
      *
      * Emits a {ProvisionParametersStaged} event if at least one of the parameters changed.
      *
@@ -781,7 +796,8 @@ interface IHorizonStakingMain {
     /**
      * @notice Withdraw undelegated tokens from a provision after thawing.
      * @dev The parameter `nThawRequests` can be set to a non zero value to fulfill a specific number of thaw
-     * requests in the event that fulfilling all of them results in a gas limit error.
+     * requests in the event that fulfilling all of them results in a gas limit error. Otherwise, the function
+     * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
      * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
      * the thaw requests with an amount equal to zero.
      *
