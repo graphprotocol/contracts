@@ -14,6 +14,7 @@ describe('Permissionless', () => {
   const graph = hre.graph()
   const horizonStaking = graph.horizon.contracts.HorizonStaking
   const epochManager = graph.horizon.contracts.EpochManager
+  const subgraphServiceAddress = '0x0000000000000000000000000000000000000000'
 
   beforeEach(async () => {
     // Take a snapshot before each test
@@ -36,12 +37,15 @@ describe('Permissionless', () => {
       indexer = await ethers.getSigner(indexers[0].address)
       ;[anySigner] = await graph.accounts.getTestAccounts()
 
+      // ensure anySigner is not operator for the indexer
+      await horizonStaking.connect(indexer).setOperator(subgraphServiceAddress, anySigner.address, false)
+
       // Get allocation details
       allocationID = indexers[0].allocations[0].allocationID
       allocationTokens = indexers[0].allocations[0].tokens
     })
 
-    it('should allow any user to close an allocation with zero POI after 28 epochs', async () => {
+    it('should allow any user to close an allocation after 28 epochs', async () => {
       // Get indexer's idle stake before closing allocation
       const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 

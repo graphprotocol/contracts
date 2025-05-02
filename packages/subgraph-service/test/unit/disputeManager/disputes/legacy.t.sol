@@ -3,9 +3,9 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { Attestation } from "../../../contracts/libraries/Attestation.sol";
+import { Attestation } from "../../../../../contracts/libraries/Attestation.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
+import { IDisputeManager } from "../../../../../contracts/interfaces/IDisputeManager.sol";
 import { DisputeManagerTest } from "../DisputeManager.t.sol";
 
 contract DisputeManagerLegacyDisputeTest is DisputeManagerTest {
