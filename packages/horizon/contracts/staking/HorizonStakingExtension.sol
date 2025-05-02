@@ -376,6 +376,8 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         }
 
         // Close the allocation
+        // Note that this breaks CEI pattern. We update after the rewards distribution logic as it expects the allocation
+        // to still be active. There shouldn't be reentrancy risk here as all internal calls are to trusted contracts.
         __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         emit AllocationClosed(
