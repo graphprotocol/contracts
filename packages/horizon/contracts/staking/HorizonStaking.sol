@@ -735,8 +735,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _tokens The amount of tokens to add to the provision
      */
     function _addToProvision(address _serviceProvider, address _verifier, uint256 _tokens) private {
-        Provision storage prov = _provisions[_serviceProvider][_verifier];
         require(_tokens != 0, HorizonStakingInvalidZeroTokens());
+
+        Provision storage prov = _provisions[_serviceProvider][_verifier];
         require(prov.createdAt != 0, HorizonStakingInvalidProvision(_serviceProvider, _verifier));
         uint256 tokensIdle = _getIdleStake(_serviceProvider);
         require(_tokens <= tokensIdle, HorizonStakingInsufficientIdleStake(_tokens, tokensIdle));
