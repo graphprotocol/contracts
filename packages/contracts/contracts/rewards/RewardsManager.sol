@@ -316,6 +316,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     /**
      * @dev Calculate current rewards for a given allocation on demand.
      * The allocation could be a legacy allocation or a new subgraph service allocation.
+     * Returns 0 if the allocation is not active.
      * @param _allocationID Allocation
      * @return Rewards amount for an allocation
      */
@@ -326,12 +327,17 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
         );
 
         (
+            bool isActive,
             ,
             bytes32 subgraphDeploymentId,
             uint256 tokens,
             uint256 alloAccRewardsPerAllocatedToken,
             uint256 accRewardsPending
         ) = IRewardsIssuer(_rewardsIssuer).getAllocationData(_allocationID);
+
+        if (!isActive) {
+            return 0;
+        }
 
         (uint256 accRewardsPerAllocatedToken, ) = getAccRewardsPerAllocatedToken(subgraphDeploymentId);
         return
@@ -372,6 +378,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
      * This function can only be called by an authorized rewards issuer which are
      * the staking contract (for legacy allocations), and the subgraph service (for new allocations).
      * This function will mint the necessary tokens to reward based on the inflation calculation.
+     * Mints 0 tokens if the allocation is not active.
      * @param _allocationID Allocation
      * @return Assigned rewards amount
      */
@@ -383,6 +390,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
         );
 
         (
+            bool isActive,
             address indexer,
             bytes32 subgraphDeploymentID,
             uint256 tokens,
@@ -398,15 +406,18 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        // Calculate rewards accrued by this allocation
-        uint256 rewards = accRewardsPending.add(
-            _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
-        );
-        if (rewards > 0) {
-            // Mint directly to rewards issuer for the reward amount
-            // The rewards issuer contract will do bookkeeping of the reward and
-            // assign in proportion to each stakeholder incentive
-            graphToken().mint(rewardsIssuer, rewards);
+        uint256 rewards = 0;
+        if (isActive) {
+            // Calculate rewards accrued by this allocation
+            rewards = accRewardsPending.add(
+                _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
+            );
+            if (rewards > 0) {
+                // Mint directly to rewards issuer for the reward amount
+                // The rewards issuer contract will do bookkeeping of the reward and
+                // assign in proportion to each stakeholder incentive
+                graphToken().mint(rewardsIssuer, rewards);
+            }
         }
 
         emit HorizonRewardsAssigned(indexer, _allocationID, rewards);

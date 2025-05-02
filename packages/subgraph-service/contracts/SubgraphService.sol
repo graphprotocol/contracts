@@ -382,9 +382,10 @@ contract SubgraphService is
     /// @inheritdoc IRewardsIssuer
     function getAllocationData(
         address allocationId
-    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
+    ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
         Allocation.State memory allo = _allocations[allocationId];
         return (
+            allo.isOpen(),
             allo.indexer,
             allo.subgraphDeploymentId,
             allo.tokens,
