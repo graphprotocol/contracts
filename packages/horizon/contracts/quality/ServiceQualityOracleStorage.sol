@@ -2,14 +2,14 @@
 
 pragma solidity ^0.8.27;
 
-import "../governance/Managed.sol";
+import "../staking/utilities/Managed.sol";
 
 /**
  * @title ServiceQualityOracleStorage
  * @notice This contract tracks if indexers are allowed to receive rewards based on oracle votes for quality.
  * Indexers are allowed by default.
  */
-contract ServiceQualityOracleStorage is Managed {
+abstract contract ServiceQualityOracleStorage is Managed {
     // -- Structs --
 
     /**

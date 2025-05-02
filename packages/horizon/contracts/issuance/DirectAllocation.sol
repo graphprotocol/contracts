@@ -2,9 +2,10 @@
 
 pragma solidity 0.8.27;
 
-import "../upgrades/GraphUpgradeable.sol";
-import "../governance/Managed.sol";
-import "../token/IGraphToken.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+import "../staking/utilities/Managed.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import "./DirectAllocationStorage.sol";
 
 /**
@@ -17,11 +18,26 @@ import "./DirectAllocationStorage.sol";
  * The IssuanceAllocator will mint tokens directly to this contract, and the authorized
  * manager can withdraw them as needed.
  */
-contract DirectAllocation is DirectAllocationStorage, GraphUpgradeable, Managed {
+contract DirectAllocation is Initializable, GraphUpgradeable, DirectAllocationStorage {
     // -- Custom Errors --
 
     error OnlyManagerCanSendTokens();
-    error ZeroAddressNotAllowed();
+    error SendToZeroAddressNotAllowed();
+    error OnlyImplementationCanInitialize();
+    error ControllerMismatch();
+
+    /**
+     * @notice Constructor for the DirectAllocation contract
+     * @dev This contract is upgradeable, but we use the constructor to disable initializers
+     * to prevent the implementation contract from being initialized.
+     * @dev We need to pass a valid controller address to the Managed constructor because
+     * GraphDirectory requires a non-zero controller address. This controller will only be
+     * used for the implementation contract, not for the proxy.
+     * @param _controller Controller contract that manages this contract
+     */
+    constructor(address _controller) Managed(_controller) {
+        _disableInitializers();
+    }
 
     // -- Events --
 
@@ -32,12 +48,12 @@ contract DirectAllocation is DirectAllocationStorage, GraphUpgradeable, Managed 
 
     /**
      * @notice Initialize the DirectAllocation contract
-     * @param _controller Address of the controller contract
+     * @param _controller Controller contract that manages this contract
      * @param _name Name of this allocation for identification
      * @param _manager Address that can withdraw funds
      */
-    function initialize(address _controller, string calldata _name, address _manager) external onlyImpl {
-        Managed._initialize(_controller);
+    function initialize(address _controller, string calldata _name, address _manager) external onlyImpl initializer {
+        if (_controller != address(_graphController())) revert ControllerMismatch();
 
         name = _name;
         manager = _manager;
@@ -69,9 +85,9 @@ contract DirectAllocation is DirectAllocationStorage, GraphUpgradeable, Managed 
      */
     function sendTokens(address _to, uint256 _amount) external {
         if (msg.sender != manager) revert OnlyManagerCanSendTokens();
-        if (_to == address(0)) revert ZeroAddressNotAllowed(); // Zero address doesn't make sense for token transfers
+        if (_to == address(0)) revert SendToZeroAddressNotAllowed(); // Zero address likely to be a mistake
 
-        graphToken().transfer(_to, _amount);
+        _graphToken().transfer(_to, _amount);
         emit TokensSent(_to, _amount);
     }
 
@@ -80,6 +96,6 @@ contract DirectAllocation is DirectAllocationStorage, GraphUpgradeable, Managed 
      * @return Current balance of GRT tokens
      */
     function getBalance() external view returns (uint256) {
-        return graphToken().balanceOf(address(this));
+        return _graphToken().balanceOf(address(this));
     }
 }

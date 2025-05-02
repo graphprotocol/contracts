@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.27;
 
-import "../governance/Managed.sol";
-import "../token/IGraphToken.sol";
-import "./IIssuanceAllocator.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { GraphUpgradeable } from "@graphprotocol/contracts/contracts/upgrades/GraphUpgradeable.sol";
+import { Managed } from "../staking/utilities/Managed.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { IIssuanceAllocator } from "@graphprotocol/contracts/contracts/issuance/IIssuanceAllocator.sol";
 
 /**
  * @title IssuanceAllocator
@@ -25,13 +27,14 @@ import "./IIssuanceAllocator.sol";
  * over token issuance through the IssuanceAllocator. The self-minting feature is intended only
  * for backwards compatibility with existing contracts.
  */
-contract IssuanceAllocator is Managed, IIssuanceAllocator {
+contract IssuanceAllocator is Initializable, GraphUpgradeable, Managed, IIssuanceAllocator {
     // -- Custom Errors --
 
-    error ZeroTargetAddress;
-    error TargetNotActive;
-    error InsufficientAllocationAvailable;
-    error TargetExistsWithDifferentSelfMinterFlag;
+    error ZeroTargetAddress();
+    error TargetNotActive();
+    error InsufficientAllocationAvailable();
+    error TargetExistsWithDifferentSelfMinterFlag();
+    error ControllerMismatch();
 
     // -- Constants --
 
@@ -71,12 +74,20 @@ contract IssuanceAllocator is Managed, IIssuanceAllocator {
     // -- Constructor --
 
     /**
+     * @notice Constructor for the IssuanceAllocator contract
+     * @param _controller Controller contract that manages this contract
+     */
+    constructor(address _controller) Managed(_controller) {
+        _disableInitializers();
+    }
+
+    /**
      * @notice Initialize this contract.
      * @param _controller Controller contract that manages this contract
      * @param _issuancePerBlock Initial issuance per block
      */
-    constructor(address _controller, uint256 _issuancePerBlock) {
-        Managed._initialize(_controller);
+    function initialize(address _controller, uint256 _issuancePerBlock) external onlyImpl initializer {
+        if (_controller != address(_graphController())) revert ControllerMismatch();
 
         issuancePerBlock = _issuancePerBlock;
         lastIssuanceBlock = block.number;
@@ -109,7 +120,7 @@ contract IssuanceAllocator is Managed, IIssuanceAllocator {
             if (targetData.allocation > 0 && !targetData.isSelfMinter) {
                 uint256 targetIssuance = (newIssuance * targetData.allocation) / PPM;
 
-                graphToken().mint(target, targetIssuance);
+                _graphToken().mint(target, targetIssuance);
                 emit IssuanceDistributed(target, targetIssuance);
             }
         }
@@ -248,8 +259,7 @@ contract IssuanceAllocator is Managed, IIssuanceAllocator {
      * @notice Get all registered target addresses (including those with 0 allocation).
      * @return Array of registered target addresses
      */
-    // TODO: Decide if we want to keep this function, prior to release. Unneeded?
-    function getRegisteredTargets() external view returns (address[] memory) {
+    function getRegisteredTargets() external view override returns (address[] memory) {
         uint256 registeredCount = 0;
 
         // Count registered targets (those that exist in the mapping)
