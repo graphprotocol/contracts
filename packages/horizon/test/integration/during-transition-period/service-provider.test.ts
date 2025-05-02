@@ -243,10 +243,14 @@ describe('Service Provider', () => {
           const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
           // Close allocation
-          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
-
-          // Get rewards
-          const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)
+          const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
+          const receipt = await tx.wait()
+          const abi = [
+            "event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)"
+          ];
+          const iface = new hre.ethers.Interface(abi);
+          const rewards = iface.parseLog(receipt?.logs[1]!)?.args.amount
+          
           // Verify rewards are not zero
           expect(rewards).to.not.equal(0, 'Rewards were not transferred to service provider')
 
@@ -378,10 +382,14 @@ describe('Service Provider', () => {
           const balanceBefore = await graphToken.balanceOf(rewardsDestination)
 
           // Close allocation
-          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
+          const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
+          const receipt = await tx.wait()
+          const abi = [
+            "event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)"
+          ];
+          const iface = new hre.ethers.Interface(abi);
+          const rewards = iface.parseLog(receipt?.logs[1]!)?.args.amount
 
-          // Get rewards
-          const rewards = await rewardsManager.getRewards(horizonStaking.target, allocationID)
           // Verify rewards are not zero
           expect(rewards).to.not.equal(0, 'Rewards were not transferred to rewards destination')
 
