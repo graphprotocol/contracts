@@ -819,7 +819,6 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             require(isIndexerOrOperator, "!auth");
         }
 
-
         // -- Rewards Distribution --
 
         // Process non-zero-allocation rewards tracking
@@ -844,6 +843,8 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
         }
 
         // Close the allocation
+        // Note that this breaks CEI pattern. We update after the rewards distribution logic as it expects the allocation
+        // to still be active. There shouldn't be reentrancy risk here as all internal calls are to trusted contracts.
         __allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         emit AllocationClosed(
