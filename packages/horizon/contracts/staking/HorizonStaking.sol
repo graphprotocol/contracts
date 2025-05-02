@@ -295,7 +295,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 shares
     ) external override notPaused returns (bytes32) {
-        return _undelegate(ThawRequestType.Delegation, serviceProvider, verifier, shares, msg.sender);
+        return _undelegate(serviceProvider, verifier, shares);
     }
 
     /// @inheritdoc IHorizonStakingMain
@@ -304,15 +304,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address verifier,
         uint256 nThawRequests
     ) external override notPaused {
-        _withdrawDelegated(
-            ThawRequestType.Delegation,
-            serviceProvider,
-            verifier,
-            address(0),
-            address(0),
-            0,
-            nThawRequests
-        );
+        _withdrawDelegated(serviceProvider, verifier, address(0), address(0), 0, nThawRequests);
     }
 
     /// @inheritdoc IHorizonStakingMain
@@ -327,7 +319,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(newServiceProvider != address(0), HorizonStakingInvalidServiceProviderZeroAddress());
         require(newVerifier != address(0), HorizonStakingInvalidVerifierZeroAddress());
         _withdrawDelegated(
-            ThawRequestType.Delegation,
             oldServiceProvider,
             oldVerifier,
             newServiceProvider,
@@ -358,7 +349,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /// @inheritdoc IHorizonStakingMain
     function undelegate(address serviceProvider, uint256 shares) external override notPaused {
-        _undelegate(ThawRequestType.Delegation, serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares, msg.sender);
+        _undelegate(serviceProvider, SUBGRAPH_DATA_SERVICE_ADDRESS, shares);
     }
 
     /// @inheritdoc IHorizonStakingMain
@@ -913,20 +904,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * invalidated.
      * @dev Note that delegation that is caught thawing when the pool is invalidated will be completely lost! However delegation shares
      * that were not thawing will be preserved.
-     * @param _requestType The type of thaw request (Provision or Delegation).
      * @param _serviceProvider The service provider address
      * @param _verifier The verifier address
      * @param _shares The amount of shares to undelegate
-     * @param _beneficiary The beneficiary address
      * @return The ID of the thaw request
      */
-    function _undelegate(
-        ThawRequestType _requestType,
-        address _serviceProvider,
-        address _verifier,
-        uint256 _shares,
-        address _beneficiary
-    ) private returns (bytes32) {
+    function _undelegate(address _serviceProvider, address _verifier, uint256 _shares) private returns (bytes32) {
         require(_shares > 0, HorizonStakingInvalidZeroShares());
         DelegationPoolInternal storage pool = _getDelegationPool(_serviceProvider, _verifier);
         DelegationInternal storage delegation = pool.delegators[msg.sender];
@@ -958,10 +941,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         }
 
         bytes32 thawRequestId = _createThawRequest(
-            _requestType,
+            ThawRequestType.Delegation,
             _serviceProvider,
             _verifier,
-            _beneficiary,
+            msg.sender,
             thawingShares,
             thawingUntil,
             pool.thawingNonce
@@ -978,7 +961,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * will attempt to fulfill all thaw requests until the first one that is not yet expired is found.
      * @dev If the delegation pool was completely slashed before withdrawing, calling this function will fulfill
      * the thaw requests with an amount equal to zero.
-     * @param _requestType The type of thaw request (Provision or Delegation).
      * @param _serviceProvider The service provider address
      * @param _verifier The verifier address
      * @param _newServiceProvider The new service provider address
@@ -987,7 +969,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @param _nThawRequests The number of thaw requests to fulfill. Set to 0 to fulfill all thaw requests.
      */
     function _withdrawDelegated(
-        ThawRequestType _requestType,
         address _serviceProvider,
         address _verifier,
         address _newServiceProvider,
@@ -1008,7 +989,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensThawing = pool.tokensThawing;
 
         FulfillThawRequestsParams memory params = FulfillThawRequestsParams({
-            requestType: _requestType,
+            requestType: ThawRequestType.Delegation,
             serviceProvider: _serviceProvider,
             verifier: _verifier,
             owner: msg.sender,
