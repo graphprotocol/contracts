@@ -189,7 +189,7 @@ interface IHorizonStakingMain {
      * @param verifier The address of the verifier
      * @param delegator The address of the delegator
      * @param tokens The amount of tokens undelegated
-     * @param tokens The amount of shares undelegated
+     * @param shares The amount of shares undelegated
      */
     event TokensUndelegated(
         address indexed serviceProvider,
