@@ -136,8 +136,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         address indexer = disputeManager.getAttestationIndexer(attestation);
         bytes32 expectedDisputeId = keccak256(
             abi.encodePacked(
-                attestation.requestCID,
-                attestation.responseCID,
+                attestation.requestHash,
+                attestation.responseHash,
                 attestation.subgraphDeploymentId,
                 indexer,
                 fisherman
@@ -306,8 +306,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
 
         bytes32 expectedDisputeId1 = keccak256(
             abi.encodePacked(
-                beforeValues.attestation1.requestCID,
-                beforeValues.attestation1.responseCID,
+                beforeValues.attestation1.requestHash,
+                beforeValues.attestation1.responseHash,
                 beforeValues.attestation1.subgraphDeploymentId,
                 beforeValues.indexer1,
                 fisherman
@@ -315,8 +315,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         );
         bytes32 expectedDisputeId2 = keccak256(
             abi.encodePacked(
-                beforeValues.attestation2.requestCID,
-                beforeValues.attestation2.responseCID,
+                beforeValues.attestation2.requestHash,
+                beforeValues.attestation2.responseHash,
                 beforeValues.attestation2.subgraphDeploymentId,
                 beforeValues.indexer2,
                 fisherman
@@ -755,28 +755,28 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
      */
 
     function _createAttestationReceipt(
-        bytes32 requestCID,
-        bytes32 responseCID,
+        bytes32 requestHash,
+        bytes32 responseHash,
         bytes32 subgraphDeploymentId
     ) internal pure returns (Attestation.Receipt memory receipt) {
         return
             Attestation.Receipt({
-                requestCID: requestCID,
-                responseCID: responseCID,
+                requestHash: requestHash,
+                responseHash: responseHash,
                 subgraphDeploymentId: subgraphDeploymentId
             });
     }
 
     function _createConflictingAttestations(
-        bytes32 requestCID,
+        bytes32 requestHash,
         bytes32 subgraphDeploymentId,
-        bytes32 responseCID1,
-        bytes32 responseCID2,
+        bytes32 responseHash1,
+        bytes32 responseHash2,
         uint256 signer1,
         uint256 signer2
     ) internal view returns (bytes memory attestationData1, bytes memory attestationData2) {
-        Attestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeploymentId);
-        Attestation.Receipt memory receipt2 = _createAttestationReceipt(requestCID, responseCID2, subgraphDeploymentId);
+        Attestation.Receipt memory receipt1 = _createAttestationReceipt(requestHash, responseHash1, subgraphDeploymentId);
+        Attestation.Receipt memory receipt2 = _createAttestationReceipt(requestHash, responseHash2, subgraphDeploymentId);
 
         bytes memory _attestationData1 = _createAtestationData(receipt1, signer1);
         bytes memory _attestationData2 = _createAtestationData(receipt2, signer2);
@@ -790,7 +790,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         bytes32 digest = disputeManager.encodeReceipt(receipt);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
-        return abi.encode(receipt.requestCID, receipt.responseCID, receipt.subgraphDeploymentId, signature);
+        return abi.encode(receipt.requestHash, receipt.responseHash, receipt.subgraphDeploymentId, signature);
     }
 
     /*

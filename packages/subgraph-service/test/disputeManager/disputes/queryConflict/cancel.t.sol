@@ -7,9 +7,9 @@ import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManage
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
-    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
-    bytes32 private responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
-    bytes32 private responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
+    bytes32 private requestHash = keccak256(abi.encodePacked("Request hash"));
+    bytes32 private responseHash1 = keccak256(abi.encodePacked("Response hash 1"));
+    bytes32 private responseHash2 = keccak256(abi.encodePacked("Response hash 2"));
 
     /*
      * TESTS
@@ -17,10 +17,10 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
 
     function test_Query_Conflict_Cancel_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -39,10 +39,10 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -59,10 +59,10 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -80,10 +80,10 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -106,10 +106,10 @@ contract DisputeManagerQueryConflictCancelDisputeTest is DisputeManagerTest {
 
     function test_Query_Cancel_After_DisputePeriodDecreased(uint256 tokens) public useIndexer useAllocation(tokens) {
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );

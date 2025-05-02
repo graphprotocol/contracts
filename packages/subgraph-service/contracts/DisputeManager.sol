@@ -159,11 +159,11 @@ contract DisputeManager is
         require(
             Attestation.areConflicting(attestation1, attestation2),
             DisputeManagerNonConflictingAttestations(
-                attestation1.requestCID,
-                attestation1.responseCID,
+                attestation1.requestHash,
+                attestation1.responseHash,
                 attestation1.subgraphDeploymentId,
-                attestation2.requestCID,
-                attestation2.responseCID,
+                attestation2.requestHash,
+                attestation2.responseHash,
                 attestation2.subgraphDeploymentId
             )
         );
@@ -405,8 +405,8 @@ contract DisputeManager is
         // Create a disputeId
         bytes32 disputeId = keccak256(
             abi.encodePacked(
-                _attestation.requestCID,
-                _attestation.responseCID,
+                _attestation.requestHash,
+                _attestation.responseHash,
                 _attestation.subgraphDeploymentId,
                 indexer,
                 _fisherman

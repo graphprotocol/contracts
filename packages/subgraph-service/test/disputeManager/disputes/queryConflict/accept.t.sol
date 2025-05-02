@@ -10,9 +10,9 @@ import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
     using PPMMath for uint256;
 
-    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
-    bytes32 private responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
-    bytes32 private responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
+    bytes32 private requestHash = keccak256(abi.encodePacked("Request hash"));
+    bytes32 private responseHash1 = keccak256(abi.encodePacked("Response hash 1"));
+    bytes32 private responseHash2 = keccak256(abi.encodePacked("Response hash 2"));
 
     /*
      * TESTS
@@ -25,10 +25,10 @@ contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -57,10 +57,10 @@ contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
         tokensSlashRelatedDispute = bound(tokensSlashRelatedDispute, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -89,10 +89,10 @@ contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -113,10 +113,10 @@ contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, uint256(maxSlashingPercentage).mulPPM(tokens) + 1, type(uint256).max);
 
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -166,10 +166,10 @@ contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
         );
 
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             differentIndexerAllocationIDPrivateKey
         );
@@ -188,10 +188,10 @@ contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );

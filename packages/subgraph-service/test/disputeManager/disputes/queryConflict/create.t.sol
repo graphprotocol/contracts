@@ -8,9 +8,9 @@ import { Attestation } from "../../../../contracts/libraries/Attestation.sol";
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
-    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
-    bytes32 private responseCID1 = keccak256(abi.encodePacked("Response CID 1"));
-    bytes32 private responseCID2 = keccak256(abi.encodePacked("Response CID 2"));
+    bytes32 private requestHash = keccak256(abi.encodePacked("Request hash"));
+    bytes32 private responseHash1 = keccak256(abi.encodePacked("Response hash 1"));
+    bytes32 private responseHash2 = keccak256(abi.encodePacked("Response hash 2"));
 
     /*
      * TESTS
@@ -19,10 +19,10 @@ contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
     function test_Query_Conflict_Create_DisputeAttestation(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
@@ -46,10 +46,10 @@ contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
         // Create query conflict dispute
         resetPrank(users.fisherman);
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID2,
+            responseHash1,
+            responseHash2,
             allocationIDPrivateKey,
             newAllocationIDKey
         );
@@ -59,21 +59,21 @@ contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
 
     function test_Query_Conflict_Create_RevertIf_AttestationsResponsesAreTheSame() public useFisherman {
         (bytes memory attestationData1, bytes memory attestationData2) = _createConflictingAttestations(
-            requestCID,
+            requestHash,
             subgraphDeployment,
-            responseCID1,
-            responseCID1,
+            responseHash1,
+            responseHash1,
             allocationIDPrivateKey,
             allocationIDPrivateKey
         );
 
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerNonConflictingAttestations.selector,
-            requestCID,
-            responseCID1,
+            requestHash,
+            responseHash1,
             subgraphDeployment,
-            requestCID,
-            responseCID1,
+            requestHash,
+            responseHash1,
             subgraphDeployment
         );
         vm.expectRevert(expectedError);
@@ -83,23 +83,23 @@ contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
     function test_Query_Conflict_Create_RevertIf_AttestationsHaveDifferentSubgraph() public useFisherman {
         bytes32 subgraphDeploymentId2 = keccak256(abi.encodePacked("Subgraph Deployment ID 2"));
 
-        Attestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeployment);
+        Attestation.Receipt memory receipt1 = _createAttestationReceipt(requestHash, responseHash1, subgraphDeployment);
         bytes memory attestationData1 = _createAtestationData(receipt1, allocationIDPrivateKey);
 
         Attestation.Receipt memory receipt2 = _createAttestationReceipt(
-            requestCID,
-            responseCID2,
+            requestHash,
+            responseHash2,
             subgraphDeploymentId2
         );
         bytes memory attestationData2 = _createAtestationData(receipt2, allocationIDPrivateKey);
 
         bytes memory expectedError = abi.encodeWithSelector(
             IDisputeManager.DisputeManagerNonConflictingAttestations.selector,
-            requestCID,
-            responseCID1,
+            requestHash,
+            responseHash1,
             subgraphDeployment,
-            requestCID,
-            responseCID2,
+            requestHash,
+            responseHash2,
             subgraphDeploymentId2
         );
         vm.expectRevert(expectedError);

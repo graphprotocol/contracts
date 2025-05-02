@@ -11,8 +11,8 @@ import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
     using PPMMath for uint256;
 
-    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
-    bytes32 private responseCID = keccak256(abi.encodePacked("Response CID"));
+    bytes32 private requestHash = keccak256(abi.encodePacked("Request hash"));
+    bytes32 private responseHash = keccak256(abi.encodePacked("Response hash"));
     bytes32 private subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
     /*
@@ -23,7 +23,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -38,7 +38,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -56,7 +56,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -71,7 +71,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -87,7 +87,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, uint256(maxSlashingPercentage).mulPPM(tokens) + 1, type(uint256).max);
 
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -110,7 +110,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -132,7 +132,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
 
         // Initial dispute with delegation slashing disabled
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -151,7 +151,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, maxTokensToSlash + 1, type(uint256).max);
 
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -183,7 +183,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
 
         // Create a new dispute with delegation slashing enabled
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -208,7 +208,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
 
         // Create a new dispute with delegation slashing enabled
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -251,7 +251,7 @@ contract DisputeManagerQueryAcceptDisputeTest is DisputeManagerTest {
         // Create a dispute with prov.maxVerifierCut == fishermanRewardCut
         uint256 beforeFishermanBalance = token.balanceOf(users.fisherman);
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 

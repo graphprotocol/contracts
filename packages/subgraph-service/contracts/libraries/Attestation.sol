@@ -10,28 +10,26 @@ pragma solidity 0.8.27;
 library Attestation {
     /**
      * @notice Receipt content sent from the service provider in response to request
-     * @param requestCID The request CID
-     * @param responseCID The response CID
+     * @param requestHash The request hash
+     * @param responseHash The response hash
      * @param subgraphDeploymentId The subgraph deployment id
      */
     struct Receipt {
-        bytes32 requestCID;
-        bytes32 responseCID;
+        bytes32 requestHash;
+        bytes32 responseHash;
         bytes32 subgraphDeploymentId;
     }
 
     /**
      * @notice Attestation sent from the service provider in response to a request
-     * @param requestCID The request CID
-     * @param responseCID The response CID
+     * @param requestHash The request hash
+     * @param responseHash The response hash
      * @param subgraphDeploymentId The subgraph deployment id
-     * @param r The r value of the signature
-     * @param s The s value of the signature
-     * @param v The v value of the signature
+     * @param signature The attestation signature
      */
     struct State {
-        bytes32 requestCID;
-        bytes32 responseCID;
+        bytes32 requestHash;
+        bytes32 responseHash;
         bytes32 subgraphDeploymentId;
         bytes signature;
     }
@@ -54,9 +52,9 @@ library Attestation {
         Attestation.State memory _attestation1,
         Attestation.State memory _attestation2
     ) internal pure returns (bool) {
-        return (_attestation1.requestCID == _attestation2.requestCID &&
+        return (_attestation1.requestHash == _attestation2.requestHash &&
             _attestation1.subgraphDeploymentId == _attestation2.subgraphDeploymentId &&
-            _attestation1.responseCID != _attestation2.responseCID);
+            _attestation1.responseHash != _attestation2.responseHash);
     }
 
     /**
@@ -66,11 +64,11 @@ library Attestation {
      */
     function parse(bytes memory _data) internal pure returns (State memory) {
         // Decode receipt
-        (bytes32 requestCID, bytes32 responseCID, bytes32 subgraphDeploymentId, bytes memory signature) = abi.decode(
+        (bytes32 requestHash, bytes32 responseHash, bytes32 subgraphDeploymentId, bytes memory signature) = abi.decode(
             _data,
             (bytes32, bytes32, bytes32, bytes)
         );
 
-        return State(requestCID, responseCID, subgraphDeploymentId, signature);
+        return State(requestHash, responseHash, subgraphDeploymentId, signature);
     }
 }

@@ -9,8 +9,8 @@ import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManage
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryDrawDisputeTest is DisputeManagerTest {
-    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
-    bytes32 private responseCID = keccak256(abi.encodePacked("Response CID"));
+    bytes32 private requestHash = keccak256(abi.encodePacked("Request hash"));
+    bytes32 private responseHash = keccak256(abi.encodePacked("Response hash"));
     bytes32 private subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
     /*
@@ -19,7 +19,7 @@ contract DisputeManagerQueryDrawDisputeTest is DisputeManagerTest {
 
     function test_Query_Draw_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -29,7 +29,7 @@ contract DisputeManagerQueryDrawDisputeTest is DisputeManagerTest {
 
     function test_Query_Draw_RevertIf_CallerIsNotArbitrator(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 

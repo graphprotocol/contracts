@@ -11,8 +11,8 @@ import { DisputeManagerTest } from "../DisputeManager.t.sol";
 contract DisputeManagerLegacyDisputeTest is DisputeManagerTest {
     using PPMMath for uint256;
 
-    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
-    bytes32 private responseCID = keccak256(abi.encodePacked("Response CID"));
+    bytes32 private requestHash = keccak256(abi.encodePacked("Request hash"));
+    bytes32 private responseHash = keccak256(abi.encodePacked("Response hash"));
     bytes32 private subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
     /*

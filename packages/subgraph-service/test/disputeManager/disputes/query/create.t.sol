@@ -8,8 +8,8 @@ import { Attestation } from "../../../../contracts/libraries/Attestation.sol";
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
-    bytes32 private requestCID = keccak256(abi.encodePacked("Request CID"));
-    bytes32 private responseCID = keccak256(abi.encodePacked("Response CID"));
+    bytes32 private requestHash = keccak256(abi.encodePacked("Request hash"));
+    bytes32 private responseHash = keccak256(abi.encodePacked("Response hash"));
     bytes32 private subgraphDeploymentId = keccak256(abi.encodePacked("Subgraph Deployment ID"));
 
     /*
@@ -18,7 +18,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
 
     function test_Query_Create_Dispute_Only(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         _createQueryDispute(attestationData);
     }
@@ -27,7 +27,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
 
         // clear subgraph service address from storage
@@ -44,7 +44,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         _createQueryDispute(attestationData);
 
@@ -53,8 +53,8 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         resetPrank(otherFisherman);
         mint(otherFisherman, MAX_TOKENS);
         Attestation.Receipt memory otherFishermanReceipt = _createAttestationReceipt(
-            requestCID,
-            responseCID,
+            requestHash,
+            responseHash,
             subgraphDeploymentId
         );
         bytes memory otherFishermanAttestationData = _createAtestationData(
@@ -69,7 +69,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
     ) public useIndexer useAllocation(tokens) {
         // Create first dispute for indexer
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         _createQueryDispute(attestationData);
 
@@ -91,13 +91,13 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
 
     function test_Query_Create_RevertIf_Duplicate(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
         Attestation.Receipt memory newReceipt = _createAttestationReceipt(
-            requestCID,
-            responseCID,
+            requestHash,
+            responseHash,
             subgraphDeploymentId
         );
         bytes memory newAttestationData = _createAtestationData(newReceipt, allocationIDPrivateKey);
@@ -110,7 +110,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
 
     function test_Query_Create_RevertIf_DepositUnderMinimum(uint256 tokensDispute) public useFisherman {
         tokensDispute = bound(tokensDispute, 0, disputeDeposit - 1);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
 
         token.approve(address(disputeManager), tokensDispute);
@@ -126,7 +126,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
 
     function test_Query_Create_RevertIf_AllocationDoesNotExist(uint256 tokens) public useFisherman {
         tokens = bound(tokens, disputeDeposit, 10_000_000_000 ether);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         token.approve(address(disputeManager), tokens);
         bytes memory expectedError = abi.encodeWithSelector(
@@ -150,7 +150,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         // Atempt to create dispute
         resetPrank(users.fisherman);
         token.approve(address(disputeManager), tokens);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        Attestation.Receipt memory receipt = _createAttestationReceipt(requestHash, responseHash, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerZeroTokens.selector));
         disputeManager.createQueryDispute(attestationData);

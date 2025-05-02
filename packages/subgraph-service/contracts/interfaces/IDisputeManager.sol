@@ -327,19 +327,19 @@ interface IDisputeManager {
 
     /**
      * @notice Thrown when the attestations are not conflicting
-     * @param requestCID1 The request CID of the first attestation
-     * @param responseCID1 The response CID of the first attestation
+     * @param requestHash1 The request hash of the first attestation
+     * @param responseHash1 The response hash of the first attestation
      * @param subgraphDeploymentId1 The subgraph deployment id of the first attestation
-     * @param requestCID2 The request CID of the second attestation
-     * @param responseCID2 The response CID of the second attestation
+     * @param requestHash2 The request hash of the second attestation
+     * @param responseHash2 The response hash of the second attestation
      * @param subgraphDeploymentId2 The subgraph deployment id of the second attestation
      */
     error DisputeManagerNonConflictingAttestations(
-        bytes32 requestCID1,
-        bytes32 responseCID1,
+        bytes32 requestHash1,
+        bytes32 responseHash1,
         bytes32 subgraphDeploymentId1,
-        bytes32 requestCID2,
-        bytes32 responseCID2,
+        bytes32 requestHash2,
+        bytes32 responseHash2,
         bytes32 subgraphDeploymentId2
     );
 

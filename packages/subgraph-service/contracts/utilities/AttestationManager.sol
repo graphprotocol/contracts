@@ -16,7 +16,7 @@ import { Attestation } from "../libraries/Attestation.sol";
 abstract contract AttestationManager is EIP712Upgradeable, AttestationManagerV1Storage {
     ///@dev EIP712 typehash for allocation id proof
     bytes32 private constant EIP712_RECEIPT_TYPEHASH =
-        keccak256("Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)");
+        keccak256("Receipt(bytes32 requestHash,bytes32 responseHash,bytes32 subgraphDeploymentID)");
 
     /**
      * @dev Initialize the AttestationManager contract and parent contracts
@@ -41,8 +41,8 @@ abstract contract AttestationManager is EIP712Upgradeable, AttestationManagerV1S
     function _recoverSigner(Attestation.State memory _attestation) internal view returns (address) {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
         Attestation.Receipt memory receipt = Attestation.Receipt(
-            _attestation.requestCID,
-            _attestation.responseCID,
+            _attestation.requestHash,
+            _attestation.responseHash,
             _attestation.subgraphDeploymentId
         );
         bytes32 messageHash = _encodeReceipt(receipt);
@@ -63,8 +63,8 @@ abstract contract AttestationManager is EIP712Upgradeable, AttestationManagerV1S
                 keccak256(
                     abi.encode(
                         EIP712_RECEIPT_TYPEHASH,
-                        _receipt.requestCID,
-                        _receipt.responseCID,
+                        _receipt.requestHash,
+                        _receipt.responseHash,
                         _receipt.subgraphDeploymentId
                     )
                 )
