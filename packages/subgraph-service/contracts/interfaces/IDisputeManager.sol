@@ -124,6 +124,7 @@ interface IDisputeManager {
      * @param allocationId The allocation id
      * @param poi The POI
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     * @param cancellableAt The timestamp when the dispute can be cancelled
      */
     event IndexingDisputeCreated(
         bytes32 indexed disputeId,
@@ -132,7 +133,8 @@ interface IDisputeManager {
         uint256 tokens,
         address allocationId,
         bytes32 poi,
-        uint256 stakeSnapshot
+        uint256 stakeSnapshot,
+        uint256 cancellableAt
     );
 
     /**
