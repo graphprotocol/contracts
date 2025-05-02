@@ -138,6 +138,9 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Maximum thawing period, in seconds, for a provision
     /// Note that to protect delegation from being unfairly locked this should be set to a sufficiently low value
+    /// Additionally note that setting this to a high enough value could lead to overflow when calculating thawing until
+    /// dates. For practical purposes this should not be an issue but we recommend using a value like 1e18 to represent
+    /// "infinite thawing" if that is the intent.
     uint64 internal _maxThawingPeriod;
 
     /// @dev Provisions from each service provider for each data service
