@@ -78,11 +78,17 @@ contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
         vm.assume(amount > 0);
         vm.assume(amount <= MAX_STAKING_TOKENS);
         vm.assume(maxVerifierCut <= MAX_PPM);
-        
+
         // create provision with initial parameters
         uint32 initialMaxVerifierCut = 1000;
-        uint64 initialThawingPeriod = 14 days;  // Max thawing period is 28 days
-        _createProvision(users.indexer, subgraphDataServiceAddress, amount, initialMaxVerifierCut, initialThawingPeriod);
+        uint64 initialThawingPeriod = 14 days; // Max thawing period is 28 days
+        _createProvision(
+            users.indexer,
+            subgraphDataServiceAddress,
+            amount,
+            initialMaxVerifierCut,
+            initialThawingPeriod
+        );
 
         // change the max thawing period allowed so that the initial thawing period is not valid anymore
         uint64 newMaxThawingPeriod = 7 days;

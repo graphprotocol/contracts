@@ -1581,9 +1581,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             uint256 tokensSlashed = calcValues.providerTokensSlashed +
                 (isDelegationSlashingEnabled ? calcValues.delegationTokensSlashed : 0);
             uint256 provisionThawingTokens = (before.provision.tokensThawing *
-                (1e18 -
-                    ((calcValues.providerTokensSlashed * 1e18 + before.provision.tokens - 1) /
-                        before.provision.tokens))) / (1e18);
+                (before.provision.tokens - calcValues.providerTokensSlashed)) / before.provision.tokens;
 
             // assert
             assertEq(afterProvision.tokens + calcValues.providerTokensSlashed, before.provision.tokens);
@@ -1604,9 +1602,8 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             );
             if (isDelegationSlashingEnabled) {
                 uint256 poolThawingTokens = (before.pool.tokensThawing *
-                    (1e18 -
-                        ((calcValues.delegationTokensSlashed * 1e18 + before.pool.tokens - 1) / before.pool.tokens))) /
-                    (1e18);
+                    (before.pool.tokens - calcValues.delegationTokensSlashed)) /
+                    before.pool.tokens;
                 assertEq(afterPool.tokens + calcValues.delegationTokensSlashed, before.pool.tokens);
                 assertEq(afterPool.shares, before.pool.shares);
                 assertEq(afterPool.tokensThawing, poolThawingTokens);
