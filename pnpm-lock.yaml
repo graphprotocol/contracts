@@ -48,8 +48,8 @@ importers:
         specifier: ^1.8.3
         version: 1.8.7(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
       '@graphprotocol/sdk':
-        specifier: workspace:^0.5.0
-        version: link:../sdk
+        specifier: 0.5.4
+        version: 0.5.4(bufferutil@4.0.9)(encoding@0.1.13)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)
       '@nomicfoundation/hardhat-network-helpers':
         specifier: ^1.0.0
         version: 1.0.12(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
@@ -570,7 +570,7 @@ importers:
         version: 2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
       debug:
         specifier: ^4.3.4
-        version: 4.4.0(supports-color@8.1.1)
+        version: 4.4.0(supports-color@9.4.0)
       ethers:
         specifier: ^5.7.0
         version: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -2011,6 +2011,9 @@ packages:
   '@graphprotocol/pino-sentry-simple@0.7.1':
     resolution: {integrity: sha512-iccKFdFBjarSp8/liXuK1EtGq8Vwn118tqymbOJBxblecRsi4rOebk63qnL+dK/a0IvxH6h2+RjjWDbRt7UsUA==}
     engines: {node: '>=10'}
+
+  '@graphprotocol/sdk@0.5.4':
+    resolution: {integrity: sha512-iVmzFBT/SjeNrtt+6BUEf9zqrX4ojSlZBY5A4FLbJUbOEMLWvlCIN/psTSeX4sRY7mn1X7G/RX3b/AsEtSBakA==}
 
   '@graphql-codegen/core@3.1.0':
     resolution: {integrity: sha512-DH1/yaR7oJE6/B+c6ZF2Tbdh7LixF1K8L+8BoSubjNyQ8pNwR4a70mvc1sv6H7qgp6y1bPQ9tKE+aazRRshysw==}
@@ -12282,7 +12285,7 @@ snapshots:
   '@eslint/eslintrc@2.1.4':
     dependencies:
       ajv: 6.12.6
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       espree: 9.6.1
       globals: 13.24.0
       ignore: 5.3.2
@@ -13395,6 +13398,36 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@graphprotocol/sdk@0.5.4(bufferutil@4.0.9)(encoding@0.1.13)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)':
+    dependencies:
+      '@arbitrum/sdk': 3.1.13(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@ethersproject/experimental': 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@graphprotocol/common-ts': 2.0.11(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@nomicfoundation/hardhat-network-helpers': 1.0.12(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
+      '@nomiclabs/hardhat-ethers': 2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
+      debug: 4.4.0(supports-color@9.4.0)
+      ethers: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      hardhat: 2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)
+      hardhat-secure-accounts: 0.0.6(@nomiclabs/hardhat-ethers@2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
+      inquirer: 8.0.0
+      lodash: 4.17.21
+      yaml: 1.10.2
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - ibm_db
+      - mariadb
+      - mysql2
+      - oracledb
+      - pg-native
+      - snowflake-sdk
+      - sqlite3
+      - supports-color
+      - tedious
+      - ts-node
+      - typescript
+      - utf-8-validate
+
   '@graphql-codegen/core@3.1.0(graphql@16.11.0)':
     dependencies:
       '@graphql-codegen/plugin-helpers': 4.2.0(graphql@16.11.0)
@@ -14013,7 +14046,7 @@ snapshots:
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.3
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -14140,7 +14173,7 @@ snapshots:
     dependencies:
       '@ledgerhq/cryptoassets': 5.53.0
       '@ledgerhq/errors': 5.50.0
-      '@ledgerhq/hw-transport': 5.26.0
+      '@ledgerhq/hw-transport': 5.51.1
       bignumber.js: 9.1.2
       rlp: 2.2.7
 
@@ -14157,7 +14190,7 @@ snapshots:
     dependencies:
       '@ledgerhq/devices': 5.51.1
       '@ledgerhq/errors': 5.50.0
-      '@ledgerhq/hw-transport': 5.26.0
+      '@ledgerhq/hw-transport': 5.51.1
       '@ledgerhq/hw-transport-node-hid-noevents': 5.51.1
       '@ledgerhq/logs': 5.50.0
       lodash: 4.17.21
@@ -14168,7 +14201,7 @@ snapshots:
   '@ledgerhq/hw-transport-u2f@5.26.0':
     dependencies:
       '@ledgerhq/errors': 5.50.0
-      '@ledgerhq/hw-transport': 5.26.0
+      '@ledgerhq/hw-transport': 5.51.1
       '@ledgerhq/logs': 5.50.0
       u2f-api: 0.2.7
 
@@ -14183,7 +14216,6 @@ snapshots:
       '@ledgerhq/devices': 5.51.1
       '@ledgerhq/errors': 5.50.0
       events: 3.3.0
-    optional: true
 
   '@ledgerhq/logs@5.50.0': {}
 
@@ -14330,7 +14362,7 @@ snapshots:
       '@nomicfoundation/ethereumjs-tx': 5.0.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@nomicfoundation/ethereumjs-util': 9.0.1
       abstract-level: 1.0.4
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       ethereum-cryptography: 0.1.3
       level: 8.0.1
       lru-cache: 5.1.1
@@ -14390,7 +14422,7 @@ snapshots:
       '@nomicfoundation/ethereumjs-common': 4.0.1
       '@nomicfoundation/ethereumjs-tx': 5.0.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@nomicfoundation/ethereumjs-util': 9.0.1
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       ethereum-cryptography: 0.1.3
       mcl-wasm: 0.7.9
       rustbn.js: 0.2.0
@@ -14419,7 +14451,7 @@ snapshots:
     dependencies:
       '@nomicfoundation/ethereumjs-common': 4.0.1
       '@nomicfoundation/ethereumjs-rlp': 5.0.1
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       ethereum-cryptography: 0.1.3
       ethers: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       js-sdsl: 4.4.2
@@ -14505,7 +14537,7 @@ snapshots:
       '@nomicfoundation/ethereumjs-trie': 6.0.1
       '@nomicfoundation/ethereumjs-tx': 5.0.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@nomicfoundation/ethereumjs-util': 9.0.1
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       ethereum-cryptography: 0.1.3
       mcl-wasm: 0.7.9
       rustbn.js: 0.2.0
@@ -15633,7 +15665,7 @@ snapshots:
       '@typescript-eslint/type-utils': 6.21.0(eslint@8.57.1)(typescript@5.8.3)
       '@typescript-eslint/utils': 6.21.0(eslint@8.57.1)(typescript@5.8.3)
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       eslint: 8.57.1
       graphemer: 1.4.0
       ignore: 5.3.2
@@ -15669,7 +15701,7 @@ snapshots:
       '@typescript-eslint/types': 6.21.0
       '@typescript-eslint/typescript-estree': 6.21.0(typescript@5.8.3)
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       eslint: 8.57.1
     optionalDependencies:
       typescript: 5.8.3
@@ -15703,7 +15735,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 6.21.0(typescript@5.8.3)
       '@typescript-eslint/utils': 6.21.0(eslint@8.57.1)(typescript@5.8.3)
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       eslint: 8.57.1
       ts-api-utils: 1.4.3(typescript@5.8.3)
     optionalDependencies:
@@ -15731,7 +15763,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 6.21.0
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -15931,7 +15963,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -18366,7 +18398,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       doctrine: 3.0.0
       escape-string-regexp: 4.0.0
       eslint-scope: 7.2.2
@@ -19410,7 +19442,7 @@ snapshots:
 
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
 
   for-each@0.3.5:
     dependencies:
@@ -20092,7 +20124,7 @@ snapshots:
   hardhat-secure-accounts@0.0.6(@nomiclabs/hardhat-ethers@2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)):
     dependencies:
       '@nomiclabs/hardhat-ethers': 2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       enquirer: 2.4.1
       ethers: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat: 2.14.1(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)
@@ -20221,7 +20253,7 @@ snapshots:
       chalk: 2.4.2
       chokidar: 3.6.0
       ci-info: 2.0.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       enquirer: 2.4.1
       env-paths: 2.2.1
       ethereum-cryptography: 1.2.0
@@ -20590,7 +20622,7 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -24023,7 +24055,7 @@ snapshots:
     dependencies:
       '@types/debug': 4.1.12
       '@types/validator': 13.15.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       dottie: 2.0.6
       inflection: 1.13.4
       lodash: 4.17.21
@@ -26338,7 +26370,7 @@ snapshots:
 
   wide-align@1.1.5:
     dependencies:
-      string-width: 1.0.2
+      string-width: 4.2.3
     optional: true
 
   widest-line@3.1.0:
