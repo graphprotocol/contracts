@@ -28,30 +28,30 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenNotAuthorized(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA,
+        Seed memory seed,
         address rando
     ) public withSafeIndexerOrOperator(rando) {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
+        Context storage ctx = _newCtx(seed);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, _withIndexer(ctx));
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNonCancelableBy.selector,
-            signedRCA.rca.payer,
+            accepted.rca.payer,
             rando
         );
         vm.expectRevert(expectedErr);
         resetPrank(rando);
-        subgraphService.cancelIndexingAgreementByPayer(signedRCA.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(accepted.rca.agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenNotAccepted(
-        SetupTestIndexerParams calldata fuzzyParams,
+        Seed memory seed,
         bytes16 agreementId
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
 
-        resetPrank(params.indexer);
+        resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
             agreementId
@@ -61,31 +61,37 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenCanceled(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA,
+        Seed memory seed,
         bool cancelSource
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
-        _cancelAgreementBy(params.indexer, signedRCA.rca.payer, signedRCA.rca.agreementId, cancelSource);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        IRecurringCollector.CancelAgreementBy by = cancelSource
+            ? IRecurringCollector.CancelAgreementBy.ServiceProvider
+            : IRecurringCollector.CancelAgreementBy.Payer;
+        _cancelAgreement(ctx, accepted.rca.agreementId, indexerState.addr, accepted.rca.payer, by);
 
-        resetPrank(params.indexer);
+        resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            signedRCA.rca.agreementId
+            accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.cancelIndexingAgreementByPayer(signedRCA.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(accepted.rca.agreementId);
     }
 
-    function test_SubgraphService_CancelIndexingAgreementByPayer(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
+    function test_SubgraphService_CancelIndexingAgreementByPayer(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, _withIndexer(ctx));
 
-        _cancelAgreementByPayer(signedRCA.rca.payer, signedRCA.rca.agreementId);
+        _cancelAgreement(
+            ctx,
+            accepted.rca.agreementId,
+            accepted.rca.serviceProvider,
+            accepted.rca.payer,
+            IRecurringCollector.CancelAgreementBy.Payer
+        );
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenPaused(
@@ -156,46 +162,53 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenNotAccepted(
-        SetupTestIndexerParams calldata fuzzyParams,
+        Seed memory seed,
         bytes16 agreementId
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
 
-        resetPrank(params.indexer);
+        resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
             agreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.cancelIndexingAgreement(params.indexer, agreementId);
+        subgraphService.cancelIndexingAgreement(indexerState.addr, agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenCanceled(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA,
+        Seed memory seed,
         bool cancelSource
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
-        _cancelAgreementBy(params.indexer, signedRCA.rca.payer, signedRCA.rca.agreementId, cancelSource);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        IRecurringCollector.CancelAgreementBy by = cancelSource
+            ? IRecurringCollector.CancelAgreementBy.ServiceProvider
+            : IRecurringCollector.CancelAgreementBy.Payer;
+        _cancelAgreement(ctx, accepted.rca.agreementId, accepted.rca.serviceProvider, accepted.rca.payer, by);
 
-        resetPrank(params.indexer);
+        resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            signedRCA.rca.agreementId
+            accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.cancelIndexingAgreement(params.indexer, signedRCA.rca.agreementId);
+        subgraphService.cancelIndexingAgreement(indexerState.addr, accepted.rca.agreementId);
     }
 
-    function test_SubgraphService_CancelIndexingAgreement(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
+    function test_SubgraphService_CancelIndexingAgreement_OK(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, _withIndexer(ctx));
 
-        _cancelAgreementByIndexer(params.indexer, signedRCA.rca.agreementId);
+        _cancelAgreement(
+            ctx,
+            accepted.rca.agreementId,
+            accepted.rca.serviceProvider,
+            accepted.rca.payer,
+            IRecurringCollector.CancelAgreementBy.ServiceProvider
+        );
     }
     /* solhint-enable graph/func-name-mixedcase */
 }

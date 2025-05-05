@@ -14,10 +14,12 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
 
     function test_Upgrade_Revert_WhenUpgradeElapsed(
         IRecurringCollector.RecurringCollectionAgreement memory rca,
+        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau,
         uint256 unboundedUpgradeSkip
     ) public {
-        rca = _sensibleRCA(rca);
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _sensibleRCAU(rca);
+        rca = _recurringCollectorHelper.sensibleRCA(rca);
+        rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
+        rcau.agreementId = rca.agreementId;
 
         boundSkipCeil(unboundedUpgradeSkip, type(uint256).max);
         rcau.deadline = bound(rcau.deadline, 0, block.timestamp - 1);
@@ -35,9 +37,13 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         _recurringCollector.upgrade(signedRCAU);
     }
 
-    function test_Upgrade_Revert_WhenNeverAccepted(IRecurringCollector.RecurringCollectionAgreement memory rca) public {
-        rca = _sensibleRCA(rca);
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _sensibleRCAU(rca);
+    function test_Upgrade_Revert_WhenNeverAccepted(
+        IRecurringCollector.RecurringCollectionAgreement memory rca,
+        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau
+    ) public {
+        rca = _recurringCollectorHelper.sensibleRCA(rca);
+        rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
+        rcau.agreementId = rca.agreementId;
 
         rcau.deadline = block.timestamp;
         IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
@@ -46,8 +52,9 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         });
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementNeverAccepted.selector,
-            rcau.agreementId
+            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+            rcau.agreementId,
+            IRecurringCollector.AgreementState.NotAccepted
         );
         vm.expectRevert(expectedErr);
         vm.prank(rca.dataService);
@@ -55,16 +62,21 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
     }
 
     function test_Upgrade_Revert_WhenDataServiceNotAuthorized(
-        FuzzyTestAccept calldata fuzzyTestAccept,
+        FuzzyTestUpgrade calldata fuzzyTestUpgrade,
         address notDataService
     ) public {
-        vm.assume(fuzzyTestAccept.rca.dataService != notDataService);
+        vm.assume(fuzzyTestUpgrade.fuzzyTestAccept.rca.dataService != notDataService);
         (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestAccept
+            fuzzyTestUpgrade.fuzzyTestAccept
         );
 
+        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            fuzzyTestUpgrade.rcau
+        );
+        rcau.agreementId = accepted.rca.agreementId;
+
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
-            _sensibleRCAU(accepted.rca),
+            rcau,
             signerKey
         );
 
@@ -79,16 +91,20 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
     }
 
     function test_Upgrade_Revert_WhenInvalidSigner(
-        FuzzyTestAccept calldata fuzzyTestAccept,
+        FuzzyTestUpgrade calldata fuzzyTestUpgrade,
         uint256 unboundedInvalidSignerKey
     ) public {
         (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestAccept
+            fuzzyTestUpgrade.fuzzyTestAccept
         );
         uint256 invalidSignerKey = boundKey(unboundedInvalidSignerKey);
         vm.assume(signerKey != invalidSignerKey);
 
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _sensibleRCAU(accepted.rca);
+        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            fuzzyTestUpgrade.rcau
+        );
+        rcau.agreementId = accepted.rca.agreementId;
+
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
             rcau,
             invalidSignerKey
@@ -99,11 +115,14 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         _recurringCollector.upgrade(signedRCAU);
     }
 
-    function test_Upgrade_OK(FuzzyTestAccept calldata fuzzyTestAccept) public {
+    function test_Upgrade_OK(FuzzyTestUpgrade calldata fuzzyTestUpgrade) public {
         (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestAccept
+            fuzzyTestUpgrade.fuzzyTestAccept
         );
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _sensibleRCAU(accepted.rca);
+        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _recurringCollectorHelper.sensibleRCAU(
+            fuzzyTestUpgrade.rcau
+        );
+        rcau.agreementId = accepted.rca.agreementId;
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
             rcau,
             signerKey

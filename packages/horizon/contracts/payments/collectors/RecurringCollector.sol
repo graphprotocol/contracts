@@ -33,9 +33,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             "RecurringCollectionAgreementUpgrade(bytes16 agreementId,uint256 deadline,uint256 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
         );
 
-    /// @notice Sentinel value to indicate an agreement has been canceled
-    uint256 public constant CANCELED = type(uint256).max;
-
     /// @notice Tracks agreements
     mapping(bytes16 agreementId => AgreementData data) public agreements;
 
@@ -91,10 +88,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
         AgreementData storage agreement = _getForUpdateAgreement(signedRCA.rca.agreementId);
         // check that the agreement is not already accepted
-        require(agreement.acceptedAt == 0, RecurringCollectorAgreementAlreadyAccepted(signedRCA.rca.agreementId));
+        require(
+            agreement.state == AgreementState.NotAccepted,
+            RecurringCollectorAgreementIncorrectState(signedRCA.rca.agreementId, agreement.state)
+        );
 
         // accept the agreement
         agreement.acceptedAt = block.timestamp;
+        agreement.state = AgreementState.Accepted;
         agreement.dataService = signedRCA.rca.dataService;
         agreement.payer = signedRCA.rca.payer;
         agreement.serviceProvider = signedRCA.rca.serviceProvider;
@@ -124,21 +125,35 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * See {IRecurringCollector.cancel}.
      * @dev Caller must be the data service for the agreement.
      */
-    function cancel(bytes16 agreementId) external {
+    function cancel(bytes16 agreementId, CancelAgreementBy by) external {
         AgreementData storage agreement = _getForUpdateAgreement(agreementId);
-        require(agreement.acceptedAt > 0, RecurringCollectorAgreementNeverAccepted(agreementId));
+        require(
+            agreement.state == AgreementState.Accepted,
+            RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
+        );
         require(
             agreement.dataService == msg.sender,
             RecurringCollectorDataServiceNotAuthorized(agreementId, msg.sender)
         );
-        agreement.acceptedAt = CANCELED;
+        agreement.canceledAt = block.timestamp;
+        address canceledBy;
+        if (by == CancelAgreementBy.Payer) {
+            agreement.state = AgreementState.CanceledByPayer;
+            canceledBy = agreement.payer;
+        } else if (by == CancelAgreementBy.ServiceProvider) {
+            agreement.state = AgreementState.CanceledByServiceProvider;
+            canceledBy = agreement.serviceProvider;
+        } else {
+            revert("invalid CancelAgreementBy");
+        }
 
         emit AgreementCanceled(
             agreement.dataService,
             agreement.payer,
             agreement.serviceProvider,
             agreementId,
-            block.timestamp
+            block.timestamp,
+            canceledBy
         );
     }
 
@@ -154,7 +169,10 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
 
         AgreementData storage agreement = _getForUpdateAgreement(signedRCAU.rcau.agreementId);
-        require(agreement.acceptedAt > 0, RecurringCollectorAgreementNeverAccepted(signedRCAU.rcau.agreementId));
+        require(
+            agreement.state == AgreementState.Accepted,
+            RecurringCollectorAgreementIncorrectState(signedRCAU.rcau.agreementId, agreement.state)
+        );
         require(
             agreement.dataService == msg.sender,
             RecurringCollectorDataServiceNotAuthorized(signedRCAU.rcau.agreementId, msg.sender)
@@ -238,13 +256,20 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      */
     function _collect(CollectParams memory _params) private returns (uint256) {
         AgreementData storage agreement = _getForUpdateAgreement(_params.agreementId);
-        require(agreement.acceptedAt > 0, RecurringCollectorAgreementNeverAccepted(_params.agreementId));
+        require(
+            agreement.state == AgreementState.Accepted || agreement.state == AgreementState.CanceledByPayer,
+            RecurringCollectorAgreementIncorrectState(_params.agreementId, agreement.state)
+        );
+
         require(
             msg.sender == agreement.dataService,
             RecurringCollectorDataServiceNotAuthorized(_params.agreementId, msg.sender)
         );
 
-        _requireCollectableAgreement(agreement, _params.agreementId);
+        require(
+            agreement.endsAt >= block.timestamp,
+            RecurringCollectorAgreementElapsed(_params.agreementId, agreement.endsAt)
+        );
 
         uint256 tokensToCollect = 0;
         if (_params.tokens != 0) {
@@ -311,15 +336,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
     }
 
-    function _requireCollectableAgreement(AgreementData memory _agreement, bytes16 _agreementId) private view {
-        require(_agreement.acceptedAt != CANCELED, RecurringCollectorAgreementCanceled(_agreementId));
-
-        require(
-            _agreement.endsAt >= block.timestamp,
-            RecurringCollectorAgreementElapsed(_agreementId, _agreement.endsAt)
-        );
-    }
-
     /**
      * @notice Requires that the collection params are valid.
      */
@@ -328,7 +344,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         bytes16 _agreementId,
         uint256 _tokens
     ) private view returns (uint256) {
-        uint256 collectionSeconds = block.timestamp;
+        uint256 collectionSeconds = _agreement.state == AgreementState.CanceledByPayer
+            ? _agreement.canceledAt
+            : block.timestamp;
         collectionSeconds -= _agreementCollectionStartAt(_agreement);
         require(
             collectionSeconds >= _agreement.minSecondsPerCollection,

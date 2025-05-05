@@ -24,6 +24,11 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         uint256 unboundedSignerKey;
     }
 
+    struct FuzzyTestUpgrade {
+        FuzzyTestAccept fuzzyTestAccept;
+        IRecurringCollector.RecurringCollectionAgreementUpgrade rcau;
+    }
+
     RecurringCollector internal _recurringCollector;
     PaymentsEscrowMock internal _paymentsEscrow;
     RecurringCollectorHelper internal _recurringCollectorHelper;
@@ -42,7 +47,9 @@ contract RecurringCollectorSharedTest is Test, Bounder {
     function _sensibleAuthorizeAndAccept(
         FuzzyTestAccept calldata _fuzzyTestAccept
     ) internal returns (IRecurringCollector.SignedRCA memory, uint256 key) {
-        IRecurringCollector.RecurringCollectionAgreement memory rca = _sensibleRCA(_fuzzyTestAccept.rca);
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            _fuzzyTestAccept.rca
+        );
         key = boundKey(_fuzzyTestAccept.unboundedSignerKey);
         return (_authorizeAndAccept(rca, key), key);
     }
@@ -78,17 +85,21 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         _recurringCollector.accept(_signedRCA);
     }
 
-    function _cancel(IRecurringCollector.RecurringCollectionAgreement memory _rca) internal {
+    function _cancel(
+        IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        IRecurringCollector.CancelAgreementBy _by
+    ) internal {
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementCanceled(
             _rca.dataService,
             _rca.payer,
             _rca.serviceProvider,
             _rca.agreementId,
-            block.timestamp
+            block.timestamp,
+            _by == IRecurringCollector.CancelAgreementBy.Payer ? _rca.payer : _rca.serviceProvider
         );
         vm.prank(_rca.dataService);
-        _recurringCollector.cancel(_rca.agreementId);
+        _recurringCollector.cancel(_rca.agreementId, _by);
     }
 
     function _expectCollectCallAndEmit(
@@ -151,84 +162,6 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         return (data, collectionSeconds, tokens);
     }
 
-    function _sensibleRCA(
-        IRecurringCollector.RecurringCollectionAgreement memory _rca
-    ) internal view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
-        vm.assume(_rca.agreementId != bytes16(0));
-        vm.assume(_rca.dataService != address(0));
-        vm.assume(_rca.payer != address(0));
-        vm.assume(_rca.serviceProvider != address(0));
-
-        _rca.minSecondsPerCollection = _sensibleMinSecondsPerCollection(_rca.minSecondsPerCollection);
-        _rca.maxSecondsPerCollection = _sensibleMaxSecondsPerCollection(
-            _rca.maxSecondsPerCollection,
-            _rca.minSecondsPerCollection
-        );
-
-        _rca.deadline = _sensibleDeadline(_rca.deadline);
-        _rca.endsAt = _sensibleEndsAt(_rca.endsAt, _rca.maxSecondsPerCollection);
-
-        _rca.maxInitialTokens = _sensibleMaxInitialTokens(_rca.maxInitialTokens);
-        _rca.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(_rca.maxOngoingTokensPerSecond);
-
-        return _rca;
-    }
-
-    function _sensibleRCAU(
-        IRecurringCollector.RecurringCollectionAgreement memory _rca
-    ) internal view returns (IRecurringCollector.RecurringCollectionAgreementUpgrade memory) {
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau;
-        rcau.agreementId = _rca.agreementId;
-
-        rcau.minSecondsPerCollection = _sensibleMinSecondsPerCollection(_rca.minSecondsPerCollection);
-        rcau.maxSecondsPerCollection = _sensibleMaxSecondsPerCollection(
-            _rca.maxSecondsPerCollection,
-            rcau.minSecondsPerCollection
-        );
-
-        rcau.deadline = _sensibleDeadline(_rca.deadline);
-        rcau.endsAt = _sensibleEndsAt(_rca.endsAt, rcau.maxSecondsPerCollection);
-        rcau.maxInitialTokens = _sensibleMaxInitialTokens(_rca.maxInitialTokens);
-        rcau.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(_rca.maxOngoingTokensPerSecond);
-
-        return rcau;
-    }
-
-    function _sensibleDeadline(uint256 _seed) internal view returns (uint256) {
-        return bound(_seed, block.timestamp + 1, block.timestamp + 7200); // between now and 2h
-    }
-
-    function _sensibleEndsAt(uint256 _seed, uint32 _maxSecondsPerCollection) internal view returns (uint256) {
-        return
-            bound(
-                _seed,
-                block.timestamp + (10 * uint256(_maxSecondsPerCollection)),
-                block.timestamp + (1_000_000 * uint256(_maxSecondsPerCollection))
-            ); // between 10 and 1M max collections
-    }
-
-    function _sensibleMaxInitialTokens(uint256 _seed) internal pure returns (uint256) {
-        return bound(_seed, 0, 1e18 * 100_000_000); // between 0 and 100M tokens
-    }
-
-    function _sensibleMaxOngoingTokensPerSecond(uint256 _seed) internal pure returns (uint256) {
-        return bound(_seed, 1, 1e18); // between 1 and 1e18 tokens per second
-    }
-
-    function _sensibleMinSecondsPerCollection(uint32 _seed) internal pure returns (uint32) {
-        return uint32(bound(_seed, 10 * 60, 24 * 60 * 60)); // between 10 min and 24h
-    }
-
-    function _sensibleMaxSecondsPerCollection(
-        uint32 _seed,
-        uint32 _minSecondsPerCollection
-    ) internal pure returns (uint32) {
-        return
-            uint32(
-                bound(_seed, _minSecondsPerCollection + 7200, 60 * 60 * 24 * 30) // between minSecondsPerCollection + 2h and 30 days
-            );
-    }
-
     // Do I need this?
     function _generateCollectParams(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
@@ -249,5 +182,12 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         IRecurringCollector.CollectParams memory _params
     ) internal pure returns (bytes memory) {
         return abi.encode(_params);
+    }
+
+    function _fuzzyCancelAgreementBy(uint8 _seed) internal pure returns (IRecurringCollector.CancelAgreementBy) {
+        return
+            IRecurringCollector.CancelAgreementBy(
+                bound(_seed, 0, uint256(IRecurringCollector.CancelAgreementBy.Payer))
+            );
     }
 }

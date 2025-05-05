@@ -19,21 +19,13 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         uint256 indexerTokensLocked;
     }
 
-    RecurringCollectorHelper private _recurringCollectorHelper;
-
-    function setUp() public override {
-        super.setUp();
-
-        _recurringCollectorHelper = new RecurringCollectorHelper(recurringCollector);
-    }
-
     /*
      * TESTS
      */
 
     /* solhint-disable graph/func-name-mixedcase */
     function test_SubgraphService_CollectIndexingFee_Integration(
-        SetupTestIndexerParams calldata fuzzyParams,
+        Seed memory seed,
         IRecurringCollector.RecurringCollectionAgreement memory fuzzyRCA,
         uint256 unboundedSignerPrivateKey,
         uint256 fuzzyTokensCollected
@@ -45,10 +37,12 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             graphPayments.PROTOCOL_PAYMENT_CUT()
         );
         uint256 expectedIndexerTokensCollected = expectedTotalTokensCollected - expectedProtocolTokensBurnt;
-        TestIndexerParams memory params = _setupIndexer(fuzzyParams, expectedTokensLocked);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        _addTokens(indexerState, expectedTokensLocked);
         uint256 signerPrivateKey = boundKey(unboundedSignerPrivateKey);
         vm.assume(fuzzyRCA.payer != address(0));
-        _setupPayerWithEscrow(fuzzyRCA.payer, signerPrivateKey, params.indexer, expectedTotalTokensCollected);
+        _setupPayerWithEscrow(fuzzyRCA.payer, signerPrivateKey, indexerState.addr, expectedTotalTokensCollected);
         uint256 agreementTokensPerSecond = 1;
         // Create the Indexing Agreement
         fuzzyRCA.deadline = block.timestamp; // accept now
@@ -57,31 +51,31 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         fuzzyRCA.maxOngoingTokensPerSecond = type(uint32).max; // unlimited tokens per second
         fuzzyRCA.minSecondsPerCollection = 1; // 1 second between collections
         fuzzyRCA.maxSecondsPerCollection = type(uint32).max; // no maximum time between collections
-        fuzzyRCA.serviceProvider = params.indexer; // service provider is the indexer
+        fuzzyRCA.serviceProvider = indexerState.addr; // service provider is the indexer
         fuzzyRCA.dataService = address(subgraphService); // data service is the subgraph service
-        fuzzyRCA.metadata = _encodeRCAMetadataV1(
-            params.subgraphDeploymentId,
+        fuzzyRCA.metadata = _encodeAcceptIndexingAgreementMetadataV1(
+            indexerState.subgraphDeploymentId,
             ISubgraphService.IndexingAgreementTermsV1({
                 tokensPerSecond: agreementTokensPerSecond,
                 tokensPerEntityPerSecond: 0 // no payment for entities
             })
         );
-        resetPrank(params.indexer);
+        resetPrank(indexerState.addr);
         // Accept the Indexing Agreement
         subgraphService.acceptIndexingAgreement(
-            params.allocationId,
+            indexerState.allocationId,
             _recurringCollectorHelper.generateSignedRCA(fuzzyRCA, signerPrivateKey)
         );
         // Skip ahead to collection point
         skip(expectedTotalTokensCollected / agreementTokensPerSecond);
-        TestState memory beforeCollect = _getState(fuzzyRCA.payer, params.indexer);
+        TestState memory beforeCollect = _getState(fuzzyRCA.payer, indexerState.addr);
         bytes16 agreementId = fuzzyRCA.agreementId;
         uint256 tokensCollected = subgraphService.collect(
-            params.indexer,
+            indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
             _encodeCollectDataV1(agreementId, 1, keccak256(abi.encodePacked("poi")), epochManager.currentEpoch())
         );
-        TestState memory afterCollect = _getState(fuzzyRCA.payer, params.indexer);
+        TestState memory afterCollect = _getState(fuzzyRCA.payer, indexerState.addr);
         uint256 indexerTokensCollected = afterCollect.indexerBalance - beforeCollect.indexerBalance;
         uint256 protocolTokensBurnt = tokensCollected - indexerTokensCollected;
         assertEq(
@@ -101,17 +95,11 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
     /* solhint-enable graph/func-name-mixedcase */
 
-    function _setupIndexer(
-        SetupTestIndexerParams calldata _fuzzyParams,
-        uint256 _tokensToAddToProvision
-    ) private returns (TestIndexerParams memory) {
-        TestIndexerParams memory params = _setupTestIndexer(_fuzzyParams);
-        deal({ token: address(token), to: params.indexer, give: _tokensToAddToProvision });
-        vm.startPrank(params.indexer);
-        _addToProvision(params.indexer, _tokensToAddToProvision);
+    function _addTokens(IndexerState memory _indexerState, uint256 _tokensToAddToProvision) private {
+        deal({ token: address(token), to: _indexerState.addr, give: _tokensToAddToProvision });
+        vm.startPrank(_indexerState.addr);
+        _addToProvision(_indexerState.addr, _tokensToAddToProvision);
         vm.stopPrank();
-
-        return params;
     }
 
     function _setupPayerWithEscrow(

@@ -59,4 +59,79 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         rca.deadline = boundTimestampMin(rca.deadline, block.timestamp);
         return rca;
     }
+
+    function sensibleRCA(
+        IRecurringCollector.RecurringCollectionAgreement memory rca
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
+        vm.assume(rca.agreementId != bytes16(0));
+        vm.assume(rca.dataService != address(0));
+        vm.assume(rca.payer != address(0));
+        vm.assume(rca.serviceProvider != address(0));
+
+        rca.minSecondsPerCollection = _sensibleMinSecondsPerCollection(rca.minSecondsPerCollection);
+        rca.maxSecondsPerCollection = _sensibleMaxSecondsPerCollection(
+            rca.maxSecondsPerCollection,
+            rca.minSecondsPerCollection
+        );
+
+        rca.deadline = _sensibleDeadline(rca.deadline);
+        rca.endsAt = _sensibleEndsAt(rca.endsAt, rca.maxSecondsPerCollection);
+
+        rca.maxInitialTokens = _sensibleMaxInitialTokens(rca.maxInitialTokens);
+        rca.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(rca.maxOngoingTokensPerSecond);
+
+        return rca;
+    }
+
+    function sensibleRCAU(
+        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpgrade memory) {
+        rcau.minSecondsPerCollection = _sensibleMinSecondsPerCollection(rcau.minSecondsPerCollection);
+        rcau.maxSecondsPerCollection = _sensibleMaxSecondsPerCollection(
+            rcau.maxSecondsPerCollection,
+            rcau.minSecondsPerCollection
+        );
+
+        rcau.deadline = _sensibleDeadline(rcau.deadline);
+        rcau.endsAt = _sensibleEndsAt(rcau.endsAt, rcau.maxSecondsPerCollection);
+        rcau.maxInitialTokens = _sensibleMaxInitialTokens(rcau.maxInitialTokens);
+        rcau.maxOngoingTokensPerSecond = _sensibleMaxOngoingTokensPerSecond(rcau.maxOngoingTokensPerSecond);
+
+        return rcau;
+    }
+
+    function _sensibleDeadline(uint256 _seed) internal view returns (uint256) {
+        return bound(_seed, block.timestamp + 1, block.timestamp + 7200); // between now and 2h
+    }
+
+    function _sensibleEndsAt(uint256 _seed, uint32 _maxSecondsPerCollection) internal view returns (uint256) {
+        return
+            bound(
+                _seed,
+                block.timestamp + (10 * uint256(_maxSecondsPerCollection)),
+                block.timestamp + (1_000_000 * uint256(_maxSecondsPerCollection))
+            ); // between 10 and 1M max collections
+    }
+
+    function _sensibleMaxInitialTokens(uint256 _seed) internal pure returns (uint256) {
+        return bound(_seed, 0, 1e18 * 100_000_000); // between 0 and 100M tokens
+    }
+
+    function _sensibleMaxOngoingTokensPerSecond(uint256 _seed) internal pure returns (uint256) {
+        return bound(_seed, 1, 1e18); // between 1 and 1e18 tokens per second
+    }
+
+    function _sensibleMinSecondsPerCollection(uint32 _seed) internal pure returns (uint32) {
+        return uint32(bound(_seed, 10 * 60, 24 * 60 * 60)); // between 10 min and 24h
+    }
+
+    function _sensibleMaxSecondsPerCollection(
+        uint32 _seed,
+        uint32 _minSecondsPerCollection
+    ) internal pure returns (uint32) {
+        return
+            uint32(
+                bound(_seed, _minSecondsPerCollection + 7200, 60 * 60 * 24 * 30) // between minSecondsPerCollection + 2h and 30 days
+            );
+    }
 }

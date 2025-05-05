@@ -13,6 +13,18 @@ import { IAuthorizable } from "./IAuthorizable.sol";
  * recurrent payments.
  */
 interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
+    enum AgreementState {
+        NotAccepted,
+        Accepted,
+        CanceledByServiceProvider,
+        CanceledByPayer
+    }
+
+    enum CancelAgreementBy {
+        ServiceProvider,
+        Payer
+    }
+
     /// @notice A representation of a signed Recurring Collection Agreement (RCA)
     struct SignedRCA {
         // The RCA
@@ -102,6 +114,10 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint32 minSecondsPerCollection;
         // The maximum amount of seconds that can pass between collections
         uint32 maxSecondsPerCollection;
+        // The timestamp when the agreement was canceled
+        uint256 canceledAt;
+        // The state of the agreement
+        AgreementState state;
     }
 
     /// @notice The params for collecting an agreement
@@ -152,7 +168,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint256 canceledAt
+        uint256 canceledAt,
+        address canceledBy
     );
 
     /**
@@ -240,22 +257,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorInvalidCollectData(bytes invalidData);
 
     /**
-     * Thrown when calling accept() for an already accepted agreement
+     * Thrown when interacting with an agreement that has an incorrect state
      * @param agreementId The agreement ID
+     * @param incorrectState The incorrect state
      */
-    error RecurringCollectorAgreementAlreadyAccepted(bytes16 agreementId);
-
-    /**
-     * Thrown when interacting with an agreement that was never accepted
-     * @param agreementId The agreement ID
-     */
-    error RecurringCollectorAgreementNeverAccepted(bytes16 agreementId);
-
-    /**
-     * Thrown when interacting with an agreement that was canceled
-     * @param agreementId The agreement ID
-     */
-    error RecurringCollectorAgreementCanceled(bytes16 agreementId);
+    error RecurringCollectorAgreementIncorrectState(bytes16 agreementId, AgreementState incorrectState);
 
     /**
      * Thrown when accepting or upgrading an agreement with invalid parameters
@@ -294,8 +300,9 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     /**
      * @dev Cancel an indexing agreement.
      * @param agreementId The agreement's ID.
+     * @param by The party that is canceling the agreement.
      */
-    function cancel(bytes16 agreementId) external;
+    function cancel(bytes16 agreementId, CancelAgreementBy by) external;
 
     /**
      * @dev Upgrade an indexing agreement.

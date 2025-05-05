@@ -303,19 +303,11 @@ interface ISubgraphService is IDataServiceFees {
 
     /**
      * @notice Indexer Agreement Data
-     * @param indexer The address of the indexer
-     * @param payer The address of the payer
      * @param allocationId The allocation ID
-     * @param acceptedAt The timestamp when the agreement was accepted
-     * @param lastCollectionAt The timestamp when the last collection was made
      * @param version The indexing agreement version
      */
     struct IndexingAgreementData {
-        address indexer;
-        address payer;
         address allocationId;
-        uint256 acceptedAt;
-        uint256 lastCollectionAt;
         IndexingAgreementVersion version;
     }
 
@@ -497,5 +489,7 @@ interface ISubgraphService is IDataServiceFees {
      */
     function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
 
-    function getIndexingAgreement(bytes16 agreementId) external view returns (IndexingAgreementData memory);
+    function getIndexingAgreement(
+        bytes16 agreementId
+    ) external view returns (IndexingAgreementData memory, IRecurringCollector.AgreementData memory);
 }

@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IPaymentsCollector } from "@graphprotocol/horizon/contracts/interfaces/IPaymentsCollector.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
@@ -16,36 +17,44 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
      */
 
     /* solhint-disable graph/func-name-mixedcase */
-    function test_SubgraphService_CollectIndexingFees(
-        SetupTestIndexerParams calldata fuzzyParams,
+    function test_SubgraphService_CollectIndexingFees_OK(
+        Seed memory seed,
         uint256 entities,
         bytes32 poi,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA,
         uint256 unboundedTokensCollected
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
 
-        assertEq(subgraphService.feesProvisionTracker(params.indexer), 0, "Should be 0 before collect");
+        assertEq(subgraphService.feesProvisionTracker(indexerState.addr), 0, "Should be 0 before collect");
 
-        resetPrank(params.indexer);
+        resetPrank(indexerState.addr);
         bytes memory data = abi.encode(
             IRecurringCollector.CollectParams({
-                agreementId: signedRCA.rca.agreementId,
-                collectionId: bytes32(uint256(uint160(params.allocationId))),
+                agreementId: accepted.rca.agreementId,
+                collectionId: bytes32(uint256(uint160(indexerState.allocationId))),
                 tokens: 0,
                 dataServiceCut: 0
             })
         );
-        uint256 tokensCollected = bound(unboundedTokensCollected, 1, params.tokens / stakeToFeesRatio);
-        _mockCollectorCollect(address(recurringCollector), data, tokensCollected);
+        uint256 tokensCollected = bound(unboundedTokensCollected, 1, indexerState.tokens / stakeToFeesRatio);
+        vm.mockCall(
+            address(recurringCollector),
+            abi.encodeWithSelector(IPaymentsCollector.collect.selector, IGraphPayments.PaymentTypes.IndexingFee, data),
+            abi.encode(tokensCollected)
+        );
+        vm.expectCall(
+            address(recurringCollector),
+            abi.encodeCall(IPaymentsCollector.collect, (IGraphPayments.PaymentTypes.IndexingFee, data))
+        );
         vm.expectEmit(address(subgraphService));
         emit ISubgraphService.IndexingFeesCollectedV1(
-            params.indexer,
-            signedRCA.rca.payer,
-            signedRCA.rca.agreementId,
-            params.allocationId,
-            params.subgraphDeploymentId,
+            indexerState.addr,
+            accepted.rca.payer,
+            accepted.rca.agreementId,
+            indexerState.allocationId,
+            indexerState.subgraphDeploymentId,
             epochManager.currentEpoch(),
             tokensCollected,
             entities,
@@ -53,13 +62,13 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
             epochManager.currentEpoch()
         );
         subgraphService.collect(
-            params.indexer,
+            indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
-            _encodeCollectDataV1(signedRCA.rca.agreementId, entities, poi, epochManager.currentEpoch())
+            _encodeCollectDataV1(accepted.rca.agreementId, entities, poi, epochManager.currentEpoch())
         );
 
         assertEq(
-            subgraphService.feesProvisionTracker(params.indexer),
+            subgraphService.feesProvisionTracker(indexerState.addr),
             tokensCollected * stakeToFeesRatio,
             "Should be exactly locked tokens"
         );
@@ -160,12 +169,13 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
     }
 
     function test_SubgraphService_CollectIndexingFees_Revert_WhenInvalidAgreement(
-        SetupTestIndexerParams calldata fuzzyParams,
+        Seed memory seed,
         bytes16 agreementId,
         uint256 entities,
         bytes32 poi
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
         uint256 currentEpoch = epochManager.currentEpoch();
 
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -173,66 +183,64 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
             agreementId
         );
         vm.expectRevert(expectedErr);
-        resetPrank(params.indexer);
+        resetPrank(indexerState.addr);
         subgraphService.collect(
-            params.indexer,
+            indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
             _encodeCollectDataV1(agreementId, entities, poi, currentEpoch)
         );
     }
 
     function test_SubgraphService_CollectIndexingFees_Reverts_WhenStopService(
-        SetupTestIndexerParams calldata fuzzyParams,
+        Seed memory seed,
         uint256 entities,
-        bytes32 poi,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA
+        bytes32 poi
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        _acceptAgreement(params, fuzzySignedRCA);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
 
-        _mockCollectorCancel(address(recurringCollector), fuzzySignedRCA.rca.agreementId);
-        resetPrank(params.indexer);
-        subgraphService.stopService(params.indexer, abi.encode(params.allocationId));
+        resetPrank(indexerState.addr);
+        subgraphService.stopService(indexerState.addr, abi.encode(indexerState.allocationId));
 
         uint256 currentEpoch = epochManager.currentEpoch();
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            fuzzySignedRCA.rca.agreementId
+            accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
         subgraphService.collect(
-            params.indexer,
+            indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
-            _encodeCollectDataV1(fuzzySignedRCA.rca.agreementId, entities, poi, currentEpoch)
+            _encodeCollectDataV1(accepted.rca.agreementId, entities, poi, currentEpoch)
         );
     }
 
     function test_SubgraphService_CollectIndexingFees_Reverts_WhenCloseStaleAllocation(
-        SetupTestIndexerParams calldata fuzzyParams,
+        Seed memory seed,
         uint256 entities,
-        bytes32 poi,
-        IRecurringCollector.SignedRCA calldata fuzzySignedRCA
+        bytes32 poi
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        _acceptAgreement(params, fuzzySignedRCA);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
 
-        _mockCollectorCancel(address(recurringCollector), fuzzySignedRCA.rca.agreementId);
         skip(maxPOIStaleness + 1);
-        resetPrank(params.indexer);
-        subgraphService.closeStaleAllocation(params.allocationId);
+        resetPrank(indexerState.addr);
+        subgraphService.closeStaleAllocation(indexerState.allocationId);
 
         uint256 currentEpoch = epochManager.currentEpoch();
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            fuzzySignedRCA.rca.agreementId
+            accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
         subgraphService.collect(
-            params.indexer,
+            indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
-            _encodeCollectDataV1(fuzzySignedRCA.rca.agreementId, entities, poi, currentEpoch)
+            _encodeCollectDataV1(accepted.rca.agreementId, entities, poi, currentEpoch)
         );
     }
     /* solhint-enable graph/func-name-mixedcase */
