@@ -82,78 +82,72 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         subgraphService.upgradeIndexingAgreement(indexer, signedRCAU);
     }
 
-    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAccepted(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCAU memory signedRCAU
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAccepted(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCAU memory acceptableUpgrade = _generateAcceptableSignedRCAU(
+            ctx,
+            _generateAcceptableRecurringCollectionAgreement(ctx, indexerState.addr)
+        );
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            signedRCAU.rcau.agreementId
+            acceptableUpgrade.rcau.agreementId
         );
         vm.expectRevert(expectedErr);
-        resetPrank(params.indexer);
-        subgraphService.upgradeIndexingAgreement(params.indexer, signedRCAU);
+        resetPrank(indexerState.addr);
+        subgraphService.upgradeIndexingAgreement(indexerState.addr, acceptableUpgrade);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAuthorizedForAgreement(
-        SetupTestIndexerParams calldata fuzzyParams,
-        SetupTestIndexerParams calldata fuzzyOtherParams,
-        IRecurringCollector.SignedRCA memory fuzzySignedRCA,
-        IRecurringCollector.SignedRCAU memory fuzzySignedRCAU
+        Seed memory seed
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        TestIndexerParams memory otherParams = _setupTestIndexer(fuzzyOtherParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
-        fuzzySignedRCAU.rcau.agreementId = signedRCA.rca.agreementId;
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerStateA = _withIndexer(ctx);
+        IndexerState memory indexerStateB = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerStateA);
+        IRecurringCollector.SignedRCAU memory acceptableUpgrade = _generateAcceptableSignedRCAU(ctx, accepted.rca);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementNotAuthorized.selector,
-            fuzzySignedRCAU.rcau.agreementId,
-            otherParams.indexer
+            acceptableUpgrade.rcau.agreementId,
+            indexerStateB.addr
         );
         vm.expectRevert(expectedErr);
-        resetPrank(otherParams.indexer);
-        subgraphService.upgradeIndexingAgreement(otherParams.indexer, fuzzySignedRCAU);
+        resetPrank(indexerStateB.addr);
+        subgraphService.upgradeIndexingAgreement(indexerStateB.addr, acceptableUpgrade);
     }
 
-    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenInvalidMetadata(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA memory fuzzySignedRCA,
-        IRecurringCollector.SignedRCAU memory fuzzySignedRCAU
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
-        fuzzySignedRCAU.rcau.agreementId = signedRCA.rca.agreementId;
-        fuzzySignedRCAU.rcau.metadata = bytes("invalid");
+    function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenInvalidMetadata(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        IRecurringCollector.RecurringCollectionAgreementUpgrade
+            memory acceptableUpgrade = _generateAcceptableRecurringCollectionAgreementUpgrade(ctx, accepted.rca);
+        acceptableUpgrade.metadata = bytes("invalid");
+        IRecurringCollector.SignedRCAU memory unacceptableUpgrade = _recurringCollectorHelper.generateSignedRCAU(
+            acceptableUpgrade,
+            ctx.payer.signerPrivateKey
+        );
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceDecoderInvalidData.selector,
             "_decodeRCAUMetadata",
-            fuzzySignedRCAU.rcau.metadata
+            unacceptableUpgrade.rcau.metadata
         );
         vm.expectRevert(expectedErr);
-        resetPrank(params.indexer);
-        subgraphService.upgradeIndexingAgreement(params.indexer, fuzzySignedRCAU);
+        resetPrank(indexerState.addr);
+        subgraphService.upgradeIndexingAgreement(indexerState.addr, unacceptableUpgrade);
     }
 
-    function test_SubgraphService_UpgradeIndexingAgreement_OK(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA memory fuzzySignedRCA,
-        IRecurringCollector.SignedRCAU memory fuzzySignedRCAU,
-        uint256 tokensPerSecond,
-        uint256 tokensPerEntityPerSecond
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        IRecurringCollector.SignedRCA memory signedRCA = _acceptAgreement(params, fuzzySignedRCA);
-        fuzzySignedRCAU.rcau.agreementId = signedRCA.rca.agreementId;
-        fuzzySignedRCAU.rcau.metadata = _encodeRCAUMetadataV1(
-            _createRCAUMetadataV1(tokensPerSecond, tokensPerEntityPerSecond)
-        );
-        _mockCollectorUpgrade(address(recurringCollector), fuzzySignedRCAU);
-        resetPrank(params.indexer);
-        subgraphService.upgradeIndexingAgreement(params.indexer, fuzzySignedRCAU);
+    function test_SubgraphService_UpgradeIndexingAgreement_OK(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        IRecurringCollector.SignedRCAU memory acceptableUpgrade = _generateAcceptableSignedRCAU(ctx, accepted.rca);
+
+        resetPrank(indexerState.addr);
+        subgraphService.upgradeIndexingAgreement(indexerState.addr, acceptableUpgrade);
     }
     /* solhint-enable graph/func-name-mixedcase */
 }

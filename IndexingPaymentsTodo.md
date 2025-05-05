@@ -1,7 +1,6 @@
 # Still pending
 
 * Arbitration Charter: Update to support disputing IndexingFee.
-* Double check cancelation policy. Who can cancel when? Right now is either party at any time. If gateway cancels allow collection till that point.
 * Expose a function that indexers can use to calculate the tokens to be collected and other collection params?
 * test_SubgraphService_CollectIndexingFee_Integration fails with PaymentsEscrowInconsistentCollection
 * Switch timestamps to uint64.
@@ -15,6 +14,7 @@
 
 # Done
 
+* DONE: ~~Double check cancelation policy. Who can cancel when? Right now is either party at any time. Answer: If gateway cancels allow collection till that point.~~
 * DONE: ~~If an indexer closes an allocation, what should happen to the accepeted agreement? Answer: Look into canceling agreement as part of stop service.~~
 * DONE: ~~Switch `duration` for `endsAt`? Answer: Do it.~~
 * DONE: ~~Support a way for gateway to shop an agreement around? Deadline + dedup key? So only one agreement with the dedupe key can be accepted? Answer: No. Agreements will be "signaled" as approved or rejected on the API call that sends the agreement. We'll trust (and verify) that that's the case.~~

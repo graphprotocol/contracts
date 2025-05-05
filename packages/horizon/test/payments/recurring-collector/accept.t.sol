@@ -37,8 +37,9 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
         (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementAlreadyAccepted.selector,
-            accepted.rca.agreementId
+            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+            accepted.rca.agreementId,
+            IRecurringCollector.AgreementState.Accepted
         );
         vm.expectRevert(expectedErr);
         vm.prank(accepted.rca.dataService);

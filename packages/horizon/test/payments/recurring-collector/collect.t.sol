@@ -72,17 +72,18 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(fuzzy.collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementNeverAccepted.selector,
-            fuzzy.collectParams.agreementId
+            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+            fuzzy.collectParams.agreementId,
+            IRecurringCollector.AgreementState.NotAccepted
         );
         vm.expectRevert(expectedErr);
         vm.prank(dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
     }
 
-    function test_Collect_Revert_WhenCanceledAgreement(FuzzyTestCollect calldata fuzzy) public {
+    function test_Collect_Revert_WhenCanceledAgreementByServiceProvider(FuzzyTestCollect calldata fuzzy) public {
         (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
-        _cancel(accepted.rca);
+        _cancel(accepted.rca, IRecurringCollector.CancelAgreementBy.ServiceProvider);
         IRecurringCollector.CollectParams memory collectData = fuzzy.collectParams;
         collectData.tokens = bound(collectData.tokens, 1, type(uint256).max);
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
@@ -94,8 +95,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementCanceled.selector,
-            collectParams.agreementId
+            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+            collectParams.agreementId,
+            IRecurringCollector.AgreementState.CanceledByServiceProvider
         );
         vm.expectRevert(expectedErr);
         vm.prank(accepted.rca.dataService);

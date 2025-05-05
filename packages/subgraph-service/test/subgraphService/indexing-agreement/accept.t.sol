@@ -89,153 +89,160 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
     }
 
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenNotDataService(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA memory signedRCA
+        Seed memory seed,
+        address incorrectDataService
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        vm.assume(signedRCA.rca.dataService != address(subgraphService));
-        signedRCA.rca.serviceProvider = params.indexer;
+        vm.assume(incorrectDataService != address(subgraphService));
+
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
+        acceptable.rca.dataService = incorrectDataService;
+        IRecurringCollector.SignedRCA memory unacceptable = _recurringCollectorHelper.generateSignedRCA(
+            acceptable.rca,
+            ctx.payer.signerPrivateKey
+        );
+
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementWrongDataService.selector,
-            signedRCA.rca.dataService
+            unacceptable.rca.dataService
         );
         vm.expectRevert(expectedErr);
-        vm.prank(params.indexer);
-        subgraphService.acceptIndexingAgreement(params.allocationId, signedRCA);
+        vm.prank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, unacceptable);
     }
 
-    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenInvalidMetadata(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA memory signedRCA
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        signedRCA.rca.serviceProvider = params.indexer;
-        signedRCA.rca.dataService = address(subgraphService);
-        signedRCA.rca.metadata = bytes("invalid");
+    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenInvalidMetadata(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
+        acceptable.rca.metadata = bytes("invalid");
+        IRecurringCollector.SignedRCA memory unacceptable = _recurringCollectorHelper.generateSignedRCA(
+            acceptable.rca,
+            ctx.payer.signerPrivateKey
+        );
+
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceDecoderInvalidData.selector,
             "_decodeRCAMetadata",
-            signedRCA.rca.metadata
+            unacceptable.rca.metadata
         );
         vm.expectRevert(expectedErr);
-        vm.prank(params.indexer);
-        subgraphService.acceptIndexingAgreement(params.allocationId, signedRCA);
+        vm.prank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, unacceptable);
     }
 
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenInvalidAllocation(
-        SetupTestIndexerParams calldata fuzzyParams,
-        address invalidAllocationId,
-        IRecurringCollector.SignedRCA memory signedRCA
+        Seed memory seed,
+        address invalidAllocationId
     ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        signedRCA.rca.serviceProvider = params.indexer;
-        signedRCA.rca.dataService = address(subgraphService);
-        signedRCA.rca.metadata = abi.encode(_createRCAMetadataV1(params.subgraphDeploymentId));
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             Allocation.AllocationDoesNotExist.selector,
             invalidAllocationId
         );
         vm.expectRevert(expectedErr);
-        vm.prank(params.indexer);
-        subgraphService.acceptIndexingAgreement(invalidAllocationId, signedRCA);
+        vm.prank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(invalidAllocationId, acceptable);
     }
 
-    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAllocationNotAuthorized(
-        SetupTestIndexerParams calldata fuzzyParamsA,
-        SetupTestIndexerParams calldata fuzzyParamsB,
-        IRecurringCollector.SignedRCA memory signedRCA
-    ) public {
-        vm.assume(fuzzyParamsA.indexer != fuzzyParamsB.indexer);
-        vm.assume(fuzzyParamsA.unboundedAllocationPrivateKey != fuzzyParamsB.unboundedAllocationPrivateKey);
-        TestIndexerParams memory paramsA = _setupTestIndexer(fuzzyParamsA);
-        TestIndexerParams memory paramsB = _setupTestIndexer(fuzzyParamsB);
-        signedRCA.rca.serviceProvider = paramsA.indexer;
-        signedRCA.rca.dataService = address(subgraphService);
-        signedRCA.rca.metadata = abi.encode(_createRCAMetadataV1(paramsA.subgraphDeploymentId));
+    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAllocationNotAuthorized(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerStateA = _withIndexer(ctx);
+        IndexerState memory indexerStateB = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory acceptableA = _generateAcceptableSignedRCA(ctx, indexerStateA.addr);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceAllocationNotAuthorized.selector,
-            paramsA.indexer,
-            paramsB.allocationId
+            indexerStateA.addr,
+            indexerStateB.allocationId
         );
         vm.expectRevert(expectedErr);
-        vm.prank(paramsA.indexer);
-        subgraphService.acceptIndexingAgreement(paramsB.allocationId, signedRCA);
+        vm.prank(indexerStateA.addr);
+        subgraphService.acceptIndexingAgreement(indexerStateB.allocationId, acceptableA);
     }
 
-    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAllocationClosed(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA memory signedRCA
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        signedRCA.rca.serviceProvider = params.indexer;
-        signedRCA.rca.dataService = address(subgraphService);
-        signedRCA.rca.metadata = abi.encode(_createRCAMetadataV1(params.subgraphDeploymentId));
+    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAllocationClosed(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
 
-        resetPrank(params.indexer);
-        subgraphService.stopService(params.indexer, abi.encode(params.allocationId));
+        resetPrank(indexerState.addr);
+        subgraphService.stopService(indexerState.addr, abi.encode(indexerState.allocationId));
+
         bytes memory expectedErr = abi.encodeWithSelector(
             AllocationManager.AllocationManagerAllocationClosed.selector,
-            params.allocationId
+            indexerState.allocationId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.acceptIndexingAgreement(params.allocationId, signedRCA);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, acceptable);
     }
 
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenDeploymentIdMismatch(
-        SetupTestIndexerParams calldata fuzzyParams,
-        bytes32 wrongSubgraphDeploymentId,
-        IRecurringCollector.SignedRCA memory signedRCA
+        Seed memory seed,
+        bytes32 wrongSubgraphDeploymentId
     ) public {
-        vm.assume(fuzzyParams.subgraphDeploymentId != wrongSubgraphDeploymentId);
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        signedRCA.rca.serviceProvider = params.indexer;
-        signedRCA.rca.dataService = address(subgraphService);
-        signedRCA.rca.metadata = abi.encode(_createRCAMetadataV1(wrongSubgraphDeploymentId));
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        vm.assume(indexerState.subgraphDeploymentId != wrongSubgraphDeploymentId);
+        IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
+        acceptable.rca.metadata = abi.encode(_newAcceptIndexingAgreementMetadataV1(wrongSubgraphDeploymentId));
+        IRecurringCollector.SignedRCA memory unacceptable = _recurringCollectorHelper.generateSignedRCA(
+            acceptable.rca,
+            ctx.payer.signerPrivateKey
+        );
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementDeploymentIdMismatch.selector,
             wrongSubgraphDeploymentId,
-            params.allocationId,
-            params.subgraphDeploymentId
+            indexerState.allocationId,
+            indexerState.subgraphDeploymentId
         );
         vm.expectRevert(expectedErr);
-        vm.prank(params.indexer);
-        subgraphService.acceptIndexingAgreement(params.allocationId, signedRCA);
+        vm.prank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, unacceptable);
     }
 
-    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAccepted(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA memory signedRCA
-    ) public {
-        vm.assume(signedRCA.rca.agreementId != bytes16(0));
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        signedRCA.rca.serviceProvider = params.indexer;
-        signedRCA.rca.dataService = address(subgraphService);
-        signedRCA.rca.metadata = abi.encode(_createRCAMetadataV1(params.subgraphDeploymentId));
-
-        _mockCollectorAccept(address(recurringCollector), signedRCA);
-
-        resetPrank(params.indexer);
-        subgraphService.acceptIndexingAgreement(params.allocationId, signedRCA);
+    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAccepted(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
 
         bytes memory expectedErr = abi.encodeWithSelector(
             ISubgraphService.SubgraphServiceIndexingAgreementAlreadyAccepted.selector,
-            signedRCA.rca.agreementId
+            accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.acceptIndexingAgreement(params.allocationId, signedRCA);
+        resetPrank(ctx.indexers[0].addr);
+        subgraphService.acceptIndexingAgreement(ctx.indexers[0].allocationId, accepted);
     }
 
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAllocated() public {}
 
-    function test_SubgraphService_AcceptIndexingAgreement(
-        SetupTestIndexerParams calldata fuzzyParams,
-        IRecurringCollector.SignedRCA memory signedRCA
-    ) public {
-        TestIndexerParams memory params = _setupTestIndexer(fuzzyParams);
-        _acceptAgreement(params, signedRCA);
+    function test_SubgraphService_AcceptIndexingAgreement(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
+        ISubgraphService.AcceptIndexingAgreementMetadata memory metadata = abi.decode(
+            acceptable.rca.metadata,
+            (ISubgraphService.AcceptIndexingAgreementMetadata)
+        );
+        vm.expectEmit(address(subgraphService));
+        emit ISubgraphService.IndexingAgreementAccepted(
+            acceptable.rca.serviceProvider,
+            acceptable.rca.payer,
+            acceptable.rca.agreementId,
+            indexerState.allocationId,
+            metadata.subgraphDeploymentId,
+            metadata.version,
+            metadata.terms
+        );
+
+        resetPrank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, acceptable);
     }
     /* solhint-enable graph/func-name-mixedcase */
 }
