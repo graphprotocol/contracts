@@ -1,10 +1,10 @@
 import hre from 'hardhat'
 
 import { generatePOI, ONE_MILLION } from '@graphprotocol/toolshed'
+import { getEventData, setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
-import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
@@ -16,7 +16,6 @@ describe('Service Provider', () => {
   const { stake, collect } = graph.horizon.actions
   const horizonStaking = graph.horizon.contracts.HorizonStaking
   const horizonStakingExtension = horizonStaking as HorizonStakingExtension
-  const rewardsManager = graph.horizon.contracts.RewardsManager
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   // Subgraph service address is not set for integration tests
@@ -244,13 +243,9 @@ describe('Service Provider', () => {
 
           // Close allocation
           const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
-          const receipt = await tx.wait()
-          const abi = [
-            "event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)"
-          ];
-          const iface = new hre.ethers.Interface(abi);
-          const rewards = iface.parseLog(receipt?.logs[1]!)?.args.amount
-          
+          const eventData = await getEventData(tx, 'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)')
+          const rewards = eventData[2]
+
           // Verify rewards are not zero
           expect(rewards).to.not.equal(0, 'Rewards were not transferred to service provider')
 
@@ -383,12 +378,8 @@ describe('Service Provider', () => {
 
           // Close allocation
           const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
-          const receipt = await tx.wait()
-          const abi = [
-            "event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)"
-          ];
-          const iface = new hre.ethers.Interface(abi);
-          const rewards = iface.parseLog(receipt?.logs[1]!)?.args.amount
+          const eventData = await getEventData(tx, 'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)')
+          const rewards = eventData[2]
 
           // Verify rewards are not zero
           expect(rewards).to.not.equal(0, 'Rewards were not transferred to rewards destination')
