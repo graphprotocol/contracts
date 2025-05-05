@@ -230,17 +230,17 @@ describe('L1GNS', () => {
     grt = fixtureContracts.GraphToken as GraphToken
     curation = fixtureContracts.Curation as Curation
     gns = fixtureContracts.GNS as L1GNS
-    controller = fixtureContracts.Controller
-    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway
-    subgraphNFT = fixtureContracts.SubgraphNFT
+    controller = fixtureContracts.Controller as Controller
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
+    subgraphNFT = fixtureContracts.SubgraphNFT as SubgraphNFT
 
     // Deploy L1 arbitrum bridge
     await fixture.loadL1ArbitrumBridge(governor)
 
     // Deploy L2 mock
     l2MockContracts = await fixture.loadMock(true)
-    l2GNSMock = l2MockContracts.L2GNS
-    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway
+    l2GNSMock = l2MockContracts.L2GNS as L2GNS
+    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
 
     // Configure graph bridge
     await fixture.configureL1Bridge(governor, fixtureContracts, l2MockContracts)

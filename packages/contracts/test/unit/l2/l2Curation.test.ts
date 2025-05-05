@@ -60,7 +60,7 @@ describe('L2Curation:Config', () => {
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor, true)
-    curation = contracts.L2Curation
+    curation = contracts.L2Curation as L2Curation
   })
 
   beforeEach(async function () {
@@ -364,7 +364,7 @@ describe('L2Curation', () => {
     contracts = await fixture.load(governor, true)
     curation = contracts.Curation as L2Curation
     grt = contracts.GraphToken as GraphToken
-    controller = contracts.Controller
+    controller = contracts.Controller as Controller
     gns = contracts.GNS as GNS
 
     gnsImpersonator = await helpers.impersonateAccount(gns.address)

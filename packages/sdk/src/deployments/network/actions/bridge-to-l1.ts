@@ -7,7 +7,6 @@ import { getL2ToL1MessageReader, getL2ToL1MessageWriter } from '../../../utils/a
 import type { GraphNetworkAction } from './types'
 import type { GraphNetworkContracts } from '../deployment/contracts/load'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import type { L2GraphToken, L2GraphTokenGateway } from '@graphprotocol/contracts'
 
 const LEGACY_L2_GRT_ADDRESS = '0x23A941036Ae778Ac51Ab04CEa08Ed6e2FE103614'
 const LEGACY_L2_GATEWAY_ADDRESS = '0x09e9222e96e7b4ae2a407b98d48e330053351eee'
@@ -38,7 +37,7 @@ export const startSendToL1: GraphNetworkAction<{
 
   // GRT
   const GraphToken = legacyToken
-    ? (new Contract(LEGACY_L2_GRT_ADDRESS, contracts.GraphToken.interface, signer) as L2GraphToken)
+    ? (new Contract(LEGACY_L2_GRT_ADDRESS, contracts.GraphToken.interface, signer))
     : contracts.GraphToken
   console.info(`Using L2 GRT ${GraphToken.address}`)
 
@@ -47,8 +46,9 @@ export const startSendToL1: GraphNetworkAction<{
     legacyToken
       ? new Contract(LEGACY_L2_GATEWAY_ADDRESS, contracts.GraphTokenGateway.interface, signer)
       : contracts.GraphTokenGateway
-  ) as L2GraphTokenGateway
+  )
   console.info(`Using L2 gateway ${GraphTokenGateway.address}`)
+  // @ts-ignore
   const l1GraphTokenAddress = await GraphTokenGateway.l1Counterpart()
 
   // Check sender balance
@@ -62,6 +62,7 @@ export const startSendToL1: GraphNetworkAction<{
     await GraphToken.connect(signer).approve(GraphTokenGateway.address, amount)
   }
   console.info('Sending outbound transfer transaction')
+  // @ts-ignore
   const tx = await GraphTokenGateway['outboundTransfer(address,address,uint256,bytes)'](
     l1GraphTokenAddress,
     recipient,
@@ -115,7 +116,7 @@ export const finishSendToL1: GraphNetworkAction<{
     legacyToken
       ? new Contract(LEGACY_L2_GATEWAY_ADDRESS, contracts.GraphTokenGateway.interface, signer)
       : contracts.GraphTokenGateway
-  ) as L2GraphTokenGateway
+  )
   console.info(`Using L2 gateway ${GraphTokenGateway.address}`)
 
   if (txHash === undefined) {
@@ -126,6 +127,7 @@ export const finishSendToL1: GraphNetworkAction<{
       l2Provider,
       Math.round(Date.now() / 1000) - FOURTEEN_DAYS_IN_SECONDS,
     )
+    // @ts-ignore
     const filt = GraphTokenGateway.filters.WithdrawalInitiated(null, signer.address)
     const allEvents = await GraphTokenGateway.queryFilter(
       filt,
@@ -138,7 +140,7 @@ export const finishSendToL1: GraphNetworkAction<{
   }
 
   console.info(`Getting receipt from transaction ${txHash}`)
-  const l2ToL1Message = await getL2ToL1MessageWriter(txHash, l1Provider, l2Provider, signer)
+  const l2ToL1Message = await getL2ToL1MessageWriter(txHash!, l1Provider, l2Provider, signer)
 
   if (wait) {
     const retryDelayMs = (retryDelaySeconds ?? 60) * 1000
