@@ -12,6 +12,9 @@
     },
     "SubgraphNFT": {
       "address": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A"
+    },
+    "LegacyDisputeManager": {
+      "address": "0x7C9B82717f9433932507dF6EdA93A9678b258698"
     }
   }
 }
