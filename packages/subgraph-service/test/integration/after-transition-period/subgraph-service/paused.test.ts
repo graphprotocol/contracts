@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
-import { encodeCollectIndexingRewardsData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
+import { encodeCollectIndexingRewardsData, encodePOIMetadata, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, PaymentTypes } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 
@@ -112,7 +112,14 @@ describe('Paused Protocol', () => {
         it('should not allow indexer to collect indexing rewards while paused', async () => {
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const data = encodeCollectIndexingRewardsData(allocationId, poi)
+          const poiMetadata = encodePOIMetadata(
+            0,
+            poi,
+            0,
+            0,
+            0,
+          )
+          const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           await expect(
             collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data]),
@@ -125,7 +132,14 @@ describe('Paused Protocol', () => {
         it('should not allow indexer to collect query fees while paused', async () => {
           // Build data for collect query fees
           const poi = generatePOI()
-          const data = encodeCollectIndexingRewardsData(allocationId, poi)
+          const poiMetadata = encodePOIMetadata(
+            0,
+            poi,
+            0,
+            0,
+            0,
+          )
+          const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           await expect(
             collect(indexer, [indexer.address, PaymentTypes.QueryFee, data]),
