@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { HDNodeWallet } from 'ethers'
 import hre from 'hardhat'
 
-import { encodeCollectIndexingRewardsData, encodeCollectQueryFeesData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignedRAV, generateSignerProof, PaymentTypes } from '@graphprotocol/toolshed'
+import { encodeCollectIndexingRewardsData, encodeCollectQueryFeesData, encodePOIMetadata, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignedRAV, generateSignerProof, PaymentTypes } from '@graphprotocol/toolshed'
 import { GraphPayments, GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
@@ -287,8 +287,14 @@ describe('Indexer', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const data = encodeCollectIndexingRewardsData(allocationId, poi)
-
+          const poiMetadata = encodePOIMetadata(
+            0,
+            poi,
+            0,
+            0,
+            0,
+          )
+          const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
           // Collect rewards
           const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
           expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
@@ -311,8 +317,15 @@ describe('Indexer', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const allocationData = encodeCollectIndexingRewardsData(allocationId, poi)
-          const otherAllocationData = encodeCollectIndexingRewardsData(otherAllocationId, poi)
+          const poiMetadata = encodePOIMetadata(
+            0,
+            poi,
+            0,
+            0,
+            0,
+          )
+          const allocationData = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
+          const otherAllocationData = encodeCollectIndexingRewardsData(otherAllocationId, poi, poiMetadata)
 
           // Mine multiple blocks to simulate time passing
           for (let i = 0; i < 1000; i++) {
@@ -372,7 +385,14 @@ describe('Indexer', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const data = encodeCollectIndexingRewardsData(allocationId, poi)
+          const poiMetadata = encodePOIMetadata(
+            0,
+            poi,
+            0,
+            0,
+            0,
+          )
+          const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           // Attempt to collect rewards
           await subgraphService.connect(indexer).collect(
@@ -436,7 +456,14 @@ describe('Indexer', () => {
 
             // Build data for collect indexing rewards
             const poi = generatePOI()
-            const data = encodeCollectIndexingRewardsData(allocationId, poi)
+            const poiMetadata = encodePOIMetadata(
+              0,
+              poi,
+              0,
+              0,
+              0,
+            )
+            const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
             // Collect rewards
             const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
@@ -484,7 +511,14 @@ describe('Indexer', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const data = encodeCollectIndexingRewardsData(allocationId, poi)
+          const poiMetadata = encodePOIMetadata(
+            0,
+            poi,
+            0,
+            0,
+            0,
+          )
+          const data = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           // Collect rewards
           const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
@@ -555,14 +589,15 @@ describe('Indexer', () => {
         graphTallyCollectorAddress,
         chainId,
       )
-      const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature)
+      const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature, 0n)
 
       // Get balance and delegation pool tokens before collect
       const beforeBalance = await graphToken.balanceOf(indexer.address)
       const beforeDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
 
       // Collect query fees
-      await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
+      const payment = await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
+      console.log('payment', payment)
 
       // Calculate expected rewards
       const rewardsAfterTax = collectTokens - (collectTokens * BigInt(await graphPayments.PROTOCOL_PAYMENT_CUT())) / BigInt(1e6)
@@ -601,7 +636,7 @@ describe('Indexer', () => {
         graphTallyCollectorAddress,
         chainId,
       )
-      const encodedSignedRAV1 = encodeCollectQueryFeesData(rav1, signature1)
+      const encodedSignedRAV1 = encodeCollectQueryFeesData(rav1, signature1, 0n)
 
       const { rav: rav2, signature: signature2 } = await generateSignedRAV(
         otherAllocationId,
@@ -615,7 +650,7 @@ describe('Indexer', () => {
         graphTallyCollectorAddress,
         chainId,
       )
-      const encodedSignedRAV2 = encodeCollectQueryFeesData(rav2, signature2)
+      const encodedSignedRAV2 = encodeCollectQueryFeesData(rav2, signature2, 0n)
 
       // Collect first set of fees
       const rewards1 = await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV1])
@@ -652,7 +687,7 @@ describe('Indexer', () => {
         graphTallyCollectorAddress,
         chainId,
       )
-      const encodedNewRAV1 = encodeCollectQueryFeesData(newRav1, newSignature1)
+      const encodedNewRAV1 = encodeCollectQueryFeesData(newRav1, newSignature1, 0n)
 
       // Collect new RAV for allocation 1
       const newRewards1 = await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedNewRAV1])

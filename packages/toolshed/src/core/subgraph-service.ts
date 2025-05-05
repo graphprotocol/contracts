@@ -20,17 +20,16 @@ export function encodeStartServiceData(
   )
 }
 
-export function encodeCollectIndexingRewardsData(allocationId: string, poi: BytesLike) {
+export function encodeCollectIndexingRewardsData(allocationId: string, poi: BytesLike, poiMetadata: BytesLike) {
   return ethers.AbiCoder.defaultAbiCoder().encode(
-    ['address', 'bytes32'],
-    [allocationId, poi],
+    ['address', 'bytes32', 'bytes'],
+    [allocationId, poi, poiMetadata],
   )
 }
 
-export function encodeCollectQueryFeesData(rav: RAV, signature: string) {
-  // Encode the signed RAV
+export function encodeCollectQueryFeesData(rav: RAV, signature: string, tokensToCollect: bigint) {
   return ethers.AbiCoder.defaultAbiCoder().encode(
-    ['tuple(tuple(bytes32 collectionId, address payer, address serviceProvider, address dataService, uint256 timestampNs, uint128 valueAggregate, bytes metadata) rav, bytes signature)'],
-    [{ rav, signature }],
+    ['tuple(tuple(bytes32 collectionId, address payer, address serviceProvider, address dataService, uint256 timestampNs, uint128 valueAggregate, bytes metadata) rav, bytes signature)', 'uint256'],
+    [{ rav, signature }, tokensToCollect],
   )
 }

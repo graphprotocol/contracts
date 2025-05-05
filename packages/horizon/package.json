@@ -20,7 +20,7 @@
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "hardhat compile",
     "test": "forge test",
-    "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test",
+    "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
     "test:integration": "./scripts/integration"
   },
   "devDependencies": {

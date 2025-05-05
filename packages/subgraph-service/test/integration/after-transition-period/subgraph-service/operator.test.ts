@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-import { encodeCollectIndexingRewardsData, encodeCollectQueryFeesData, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignedRAV, generateSignerProof } from '@graphprotocol/toolshed'
+import { encodeCollectIndexingRewardsData, encodeCollectQueryFeesData, encodePOIMetadata, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignedRAV, generateSignerProof } from '@graphprotocol/toolshed'
 import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { PaymentTypes } from '@graphprotocol/toolshed'
@@ -235,7 +235,15 @@ describe('Operator', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const collectData = encodeCollectIndexingRewardsData(allocationId, poi)
+          const publicPOI = generatePOI('public poi')
+          const poiMetadata = encodePOIMetadata(
+            0,
+            publicPOI,
+            0,
+            0,
+            0,
+          )
+          const collectData = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           // Collect rewards
           const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.IndexingRewards, collectData])
@@ -277,7 +285,7 @@ describe('Operator', () => {
             graphTallyCollectorAddress,
             chainId,
           )
-          const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature)
+          const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature, 0n)
 
           // Collect query fees
           const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
@@ -322,7 +330,14 @@ describe('Operator', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const collectData = encodeCollectIndexingRewardsData(allocationId, poi)
+          const poiMetadata = encodePOIMetadata(
+            0,
+            generatePOI('public poi'),
+            0,
+            0,
+            0,
+          )
+          const collectData = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           // Attempt to collect rewards with unauthorized operator
           await expect(
@@ -368,7 +383,7 @@ describe('Operator', () => {
             graphTallyCollectorAddress,
             chainId,
           )
-          const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature)
+          const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature, 0n)
           // Attempt to collect query fees with unauthorized operator
           await expect(
             collect(unauthorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV]),
