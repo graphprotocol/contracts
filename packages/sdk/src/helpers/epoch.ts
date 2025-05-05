@@ -1,7 +1,11 @@
 import { mine } from './mine'
-import type { EpochManager } from '@graphprotocol/contracts'
 
-export type PartialEpochManager = Pick<EpochManager, 'epochLength' | 'currentEpochBlockSinceStart'>
+interface IEpochManager {
+  epochLength(): Promise<{ sub: (value: any) => any }>
+  currentEpochBlockSinceStart(): Promise<{ sub: (value: any) => any }>
+}
+
+export type PartialEpochManager = Pick<IEpochManager, 'epochLength' | 'currentEpochBlockSinceStart'>
 
 export async function mineEpoch(epochManager: PartialEpochManager, epochs?: number): Promise<void> {
   epochs = epochs ?? 1

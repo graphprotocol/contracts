@@ -2,17 +2,16 @@ import fs from 'fs'
 import { addCustomNetwork } from '@arbitrum/sdk'
 import { applyL1ToL2Alias } from '../utils/arbitrum/'
 import { impersonateAccount } from './impersonate'
-import { Wallet, ethers, providers } from 'ethers'
+import { Contract, Wallet, ethers, providers } from 'ethers'
 
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { DeployType, deploy } from '../deployments'
-import type { BridgeMock, InboxMock, OutboxMock } from '@graphprotocol/contracts'
 import { setCode } from './code'
 
 export interface L1ArbitrumMocks {
-  bridgeMock: BridgeMock
-  inboxMock: InboxMock
-  outboxMock: OutboxMock
+  bridgeMock: Contract
+  inboxMock: Contract
+  outboxMock: Contract
   routerMock: Wallet
 }
 
@@ -27,11 +26,11 @@ export async function deployL1MockBridge(
 ): Promise<L1ArbitrumMocks> {
   // Deploy mock contracts
   const bridgeMock = (await deploy(DeployType.Deploy, deployer, { name: 'BridgeMock' }))
-    .contract as BridgeMock
+    .contract
   const inboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'InboxMock' }))
-    .contract as InboxMock
+    .contract
   const outboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'OutboxMock' }))
-    .contract as OutboxMock
+    .contract
 
   // "deploy" router - set dummy code so that it appears as a contract
   const routerMock = Wallet.createRandom()

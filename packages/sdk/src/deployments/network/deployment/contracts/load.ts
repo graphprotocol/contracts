@@ -16,77 +16,47 @@ import { assertObject } from '../../../../utils/assertions'
 import type { GraphChainId } from '../../../..'
 import type { GraphNetworkContractName } from './list'
 
-import type {
-  EpochManager,
-  DisputeManager,
-  ServiceRegistry,
-  Curation,
-  RewardsManager,
-  GraphProxyAdmin,
-  GraphToken,
-  Controller,
-  BancorFormula,
-  IENS,
-  AllocationExchange,
-  SubgraphNFT,
-  SubgraphNFTDescriptor,
-  GraphCurationToken,
-  L1GraphTokenGateway,
-  L2GraphToken,
-  L2GraphTokenGateway,
-  BridgeEscrow,
-  L1Staking,
-  L2Staking,
-  L1GNS,
-  L2GNS,
-  L2Curation,
-  StakingExtension,
-  SubgraphAvailabilityManager,
-} from '@graphprotocol/contracts'
 import { ContractList } from '../../../lib/types/contract'
 import { loadArtifact } from '../../../lib/deploy/artifacts'
 import { mergeABIs } from '../../../../utils/abi'
 
-export type L1ExtendedStaking = L1Staking & StakingExtension
-export type L2ExtendedStaking = L2Staking & StakingExtension
-
 export interface GraphNetworkContracts extends ContractList<GraphNetworkContractName> {
-  EpochManager: EpochManager
-  DisputeManager: DisputeManager
-  ServiceRegistry: ServiceRegistry
-  RewardsManager: RewardsManager
-  GraphProxyAdmin: GraphProxyAdmin
-  Controller: Controller
-  BancorFormula: BancorFormula
-  AllocationExchange: AllocationExchange
-  SubgraphNFT: SubgraphNFT
-  SubgraphNFTDescriptor: SubgraphNFTDescriptor
-  GraphCurationToken: GraphCurationToken
-  StakingExtension: StakingExtension
-  IENS?: IENS
-  SubgraphAvailabilityManager: SubgraphAvailabilityManager
+  EpochManager: Contract
+  DisputeManager: Contract
+  ServiceRegistry: Contract
+  RewardsManager: Contract
+  GraphProxyAdmin: Contract
+  Controller: Contract
+  BancorFormula: Contract
+  AllocationExchange: Contract
+  SubgraphNFT: Contract
+  SubgraphNFTDescriptor: Contract
+  GraphCurationToken: Contract
+  StakingExtension: Contract
+  IENS?: Contract
+  SubgraphAvailabilityManager: Contract
 
   // Only L1
-  L1GraphToken?: GraphToken
-  L1Staking?: L1Staking
-  L1GNS?: L1GNS
-  L1Curation?: Curation
-  L1GraphTokenGateway?: L1GraphTokenGateway
-  BridgeEscrow?: BridgeEscrow
+  L1GraphToken?: Contract
+  L1Staking?: Contract
+  L1GNS?: Contract
+  L1Curation?: Contract
+  L1GraphTokenGateway?: Contract
+  BridgeEscrow?: Contract
 
   // Only L2
-  L2GraphToken?: L2GraphToken
-  L2Staking?: L2Staking
-  L2GNS?: L2GNS
-  L2Curation?: L2Curation
-  L2GraphTokenGateway?: L2GraphTokenGateway
+  L2GraphToken?: Contract
+  L2Staking?: Contract
+  L2GNS?: Contract
+  L2Curation?: Contract
+  L2GraphTokenGateway?: Contract
 
   // Alias
-  GNS: L1GNS | L2GNS
-  Staking: L1ExtendedStaking | L2ExtendedStaking
-  GraphToken: GraphToken | L2GraphToken
-  Curation: Curation | L2Curation
-  GraphTokenGateway: L1GraphTokenGateway | L2GraphTokenGateway
+  GNS: Contract
+  Staking: Contract
+  GraphToken: Contract
+  Curation: Contract
+  GraphTokenGateway: Contract
 
   // Iterator
   [Symbol.iterator]: () => Generator<Contract, void, void>
@@ -155,10 +125,10 @@ export function loadGraphNetworkContracts(
         ),
         signerOrProvider,
       ),
-    ) as L1ExtendedStaking | L2ExtendedStaking
+    )
     contracts.Staking = stakingOverride
-    if (loadL1) contracts.L1Staking = stakingOverride as L1ExtendedStaking
-    if (!loadL1) contracts.L2Staking = stakingOverride as L2ExtendedStaking
+    if (loadL1) contracts.L1Staking = stakingOverride
+    if (!loadL1) contracts.L2Staking = stakingOverride
   }
 
   // Iterator
