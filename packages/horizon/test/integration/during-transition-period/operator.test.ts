@@ -3,11 +3,11 @@ import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { generatePOI } from '@graphprotocol/toolshed'
+import { getEventData } from '@graphprotocol/toolshed/hardhat'
 import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
-import { rewards } from '../../../typechain-types/factories/@graphprotocol/contracts/contracts'
 
 describe('Operator', () => {
   let snapshotId: string
@@ -17,7 +17,6 @@ describe('Operator', () => {
 
   const graph = hre.graph()
   const horizonStaking = graph.horizon.contracts.HorizonStaking
-  const rewardsManager = graph.horizon.contracts.RewardsManager
 
   beforeEach(async () => {
     // Take a snapshot before each test
@@ -73,12 +72,8 @@ describe('Operator', () => {
 
       // Close allocation
       const tx = await (horizonStaking as HorizonStakingExtension).connect(operator).closeAllocation(allocationID, poi)
-      const receipt = await tx.wait()
-      const abi = [
-        "event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)"
-      ];
-      const iface = new hre.ethers.Interface(abi);
-      const rewards = iface.parseLog(receipt?.logs[1]!)?.args.amount
+      const eventData = await getEventData(tx, 'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)')
+      const rewards = eventData[2]
 
       // Verify rewards are not zero
       expect(rewards).to.not.equal(0, 'Rewards were not transferred to service provider')

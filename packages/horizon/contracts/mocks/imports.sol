@@ -12,7 +12,7 @@ import "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
 import "@graphprotocol/contracts/contracts/l2/curation/IL2Curation.sol";
 import "@graphprotocol/contracts/contracts/staking/IStaking.sol";
 
-// Also for toolshed, solidity version in @graphprotocol/contracts does not support overriding public getters 
+// Also for toolshed, solidity version in @graphprotocol/contracts does not support overriding public getters
 // in interface file, so we need to amend them here.
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
 import { IL2Curation } from "@graphprotocol/contracts/contracts/l2/curation/IL2Curation.sol";
