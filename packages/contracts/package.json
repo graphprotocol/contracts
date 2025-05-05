@@ -22,7 +22,7 @@
     "@ethersproject/experimental": "^5.6.0",
     "@ethersproject/providers": "^5.8.0",
     "@graphprotocol/common-ts": "^1.8.3",
-    "@graphprotocol/sdk": "^0.5.2",
+    "@graphprotocol/sdk": "^0.5.3",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
