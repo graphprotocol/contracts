@@ -142,9 +142,9 @@ describe('Rewards', () => {
     contracts = await fixture.load(governor)
     grt = contracts.GraphToken as GraphToken
     curation = contracts.Curation as Curation
-    epochManager = contracts.EpochManager
+    epochManager = contracts.EpochManager as EpochManager
     staking = contracts.Staking as IStaking
-    rewardsManager = contracts.RewardsManager
+    rewardsManager = contracts.RewardsManager as RewardsManager
 
     // 200 GRT per block
     await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
