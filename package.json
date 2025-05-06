@@ -30,6 +30,7 @@
     "@changesets/cli": "^2.27.1",
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
-    "husky": "^8.0.3"
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0"
   }
 }
