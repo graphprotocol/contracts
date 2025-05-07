@@ -74,7 +74,7 @@ describe('Dispute Manager', () => {
   })
 
   describe('Legacy dispute type', () => {
-    describe('Aribtrator', () => {
+    describe('Arbitrator', () => {
       it('should allow arbitrator to create and accept a legacy dispute on the new dispute manager after slashing on the legacy dispute manager', async () => {
         // Create an indexing dispute on legacy dispute manager
         await graphToken.connect(fisherman).approve(legacyDisputeManager.target, disputeDeposit)
