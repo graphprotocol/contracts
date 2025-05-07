@@ -1,20 +1,28 @@
-FROM rem/dev:latest
+FROM mcr.microsoft.com/devcontainers/base:debian
 
-# Project-specific customizations for graph project
+# Set non-interactive frontend for apt
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Switch to root for installing packages
 USER root
 
-# Install additional dependencies needed for graph development
-RUN apt-get update && apt-get install -y \
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+
+# Install additional dependencies
+RUN apt update && apt install -y \
+    build-essential \
+    nodejs \
     jq \
     python3 \
     python3-pip \
     python3-venv \
     pipx \
-    && apt-get clean \
+    && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js
+RUN npm install -g n && n 20.12.0
+    
 # Install Solidity compiler using pipx (isolated environment)
 RUN pipx install solc-select && \
     pipx ensurepath && \
