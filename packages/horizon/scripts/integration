@@ -12,8 +12,8 @@ export FORK_FROM_CHAIN_ID=${FORK_FROM_CHAIN_ID:-421614}
 cleanup() {
     # Kill hardhat node only if we started it
     if [ ! -z "$NODE_PID" ] && [ "$STARTED_NODE" = true ]; then
-        echo "Cleaning up node process..."
-        kill $NODE_PID 2>/dev/null || true
+        echo "Cleaning up Hardhat node (PID: $NODE_PID)..."
+        kill -TERM -- -$NODE_PID 2>/dev/null || true
     fi
 }
 
@@ -71,7 +71,7 @@ if lsof -i:8545 > /dev/null 2>&1; then
 else
     # Start local hardhat node forked from Arbitrum Sepolia
     echo "Starting local hardhat node..."
-    npx hardhat node --fork $BLOCKCHAIN_RPC > node.log 2>&1 &
+    setsid npx hardhat node --fork $BLOCKCHAIN_RPC > node.log 2>&1 &
     NODE_PID=$!
     STARTED_NODE=true
 
