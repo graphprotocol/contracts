@@ -12,12 +12,12 @@ import {
   getTestAccounts,
 } from '@graphprotocol/toolshed'
 import { loadGraphHorizon, loadSubgraphService } from '@graphprotocol/toolshed/deployments'
+import { logDebug, logError } from './logger'
 import { getAddressBookPath } from './config'
 import { GraphPluginError } from './error'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import { isGraphDeployment } from './types'
 import { lazyFunction } from 'hardhat/plugins'
-import { logDebug } from './logger'
 
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
 import type { GraphDeployments } from '@graphprotocol/toolshed/deployments'
@@ -63,16 +63,29 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
 
     for (const deployment of deployments) {
       logDebug(`== Initializing deployment: ${deployment} ==`)
+
       const addressBookPath = getAddressBookPath(deployment, hre, opts)
-      switch (deployment) {
-        case 'horizon':
-          greDeployments.horizon = loadGraphHorizon(addressBookPath, chainId, provider)
-          break
-        case 'subgraphService':
-          greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
-          break
-        default:
-          break
+      if (addressBookPath === undefined) {
+        logError(`Skipping deployment ${deployment} - Reason: address book path does not exist`)
+        continue
+      }
+
+      try {
+        switch (deployment) {
+          case 'horizon':
+            greDeployments.horizon = loadGraphHorizon(addressBookPath, chainId, provider)
+            break
+          case 'subgraphService':
+            greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
+            break
+          default:
+            logError(`Skipping deployment ${deployment} - Reason: unknown deployment`)
+            break
+        }
+      } catch (error) {
+        logError(`Skipping deployment ${deployment} - Reason: runtime error`)
+        logError(error)
+        continue
       }
     }
 
@@ -90,6 +103,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     }
 
     logDebug('GRE initialized successfully!')
+
     return {
       ...greDeployments,
       provider,

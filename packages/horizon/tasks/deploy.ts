@@ -52,6 +52,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
   .addOptionalParam('step', 'Migration step to run (1, 2, 3 or 4)', undefined, types.int)
   .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
+  .addFlag('standalone', 'Deploy horizon contracts in standalone mode - subgraph service hardcoded as zero address')
   .addFlag('hideBanner', 'Hide the banner display')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     // Task parameters
@@ -96,7 +97,15 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
       MigrationModule,
       {
         displayUi: true,
-        parameters: patchConfig ? _patchStepConfig(step, HorizonMigrateConfig, graph.horizon.addressBook, graph.subgraphService.addressBook) : HorizonMigrateConfig,
+        parameters: patchConfig
+          ? _patchStepConfig(
+            step,
+            HorizonMigrateConfig,
+            graph.horizon.addressBook,
+            graph.subgraphService?.addressBook,
+            args.standalone,
+          )
+          : HorizonMigrateConfig,
         deploymentId: `horizon-${hre.network.name}`,
         defaultSender: deployer.address,
       },
@@ -118,10 +127,25 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: any,
   horizonAddressBook: AddressBook<ChainId, ContractName>,
-  subgraphServiceAddressBook: AddressBook<ChainId, HorizonContractName>,
+  subgraphServiceAddressBook: AddressBook<ChainId, HorizonContractName> | undefined,
+  standalone: boolean,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   let patchedConfig = config
+
+  // Get the subgraph service address
+  // Subgraph service address book might exist if we are running horizon + subgraph service
+  // or it might not exist if we are running horizon standalone
+  function getSubgraphServiceAddress() {
+    if (
+      subgraphServiceAddressBook === undefined
+      || !subgraphServiceAddressBook.entryExists('SubgraphService')
+      || standalone
+    ) {
+      return ZERO_ADDRESS
+    }
+    return subgraphServiceAddressBook.getEntry('SubgraphService').address
+  }
 
   switch (step) {
     case 2:
@@ -137,9 +161,7 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
     case 3:
       patchedConfig = patchConfig(patchedConfig, {
         $global: {
-          subgraphServiceAddress: subgraphServiceAddressBook.entryExists('SubgraphService')
-            ? subgraphServiceAddressBook.getEntry('SubgraphService').address
-            : ZERO_ADDRESS,
+          subgraphServiceAddress: getSubgraphServiceAddress(),
         },
       })
       break
@@ -149,9 +171,7 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
       const RewardsManager = horizonAddressBook.getEntry('RewardsManager')
       patchedConfig = patchConfig(patchedConfig, {
         $global: {
-          subgraphServiceAddress: subgraphServiceAddressBook.entryExists('SubgraphService')
-            ? subgraphServiceAddressBook.getEntry('SubgraphService').address
-            : ZERO_ADDRESS,
+          subgraphServiceAddress: getSubgraphServiceAddress(),
           horizonStakingImplementationAddress: HorizonStaking.implementation ?? ZERO_ADDRESS,
           curationImplementationAddress: L2Curation.implementation ?? ZERO_ADDRESS,
           rewardsManagerImplementationAddress: RewardsManager.implementation ?? ZERO_ADDRESS,
