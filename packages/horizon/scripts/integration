@@ -37,18 +37,16 @@ if [ -d "ignition/deployments/horizon-localhost" ]; then
     fi
 fi
 
-if [ -f "addresses-localhost.json" ] || [ -f "../subgraph-service/addresses-localhost.json" ]; then
+if [ -f "addresses-localhost.json" ]; then
     if [ "$NON_INTERACTIVE" = true ]; then
         confirm=y
     else
-        read -p "Address books for horizon and subgraph service will be deleted. Continue? (y/n) [y]: " confirm
+        read -p "Address book for horizon will be deleted. Continue? (y/n) [y]: " confirm
         confirm=${confirm:-y}
     fi
     if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
         echo "Deleting addresses-localhost.json..."
         rm -f addresses-localhost.json
-        echo "Deleting ../subgraph-service/addresses-localhost.json..."
-        rm -f ../subgraph-service/addresses-localhost.json
     else
         echo "Operation cancelled. Exiting..."
         exit 1
@@ -94,16 +92,13 @@ npx hardhat test:transfer-ownership --network localhost
 npx hardhat deploy:migrate --network localhost --horizon-config integration --step 1
 
 # Step 2 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config integration --step 2 --patch-config --account-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 2 --patch-config --account-index 1 --hide-banner --standalone
 
 # Step 3 - Deployer
-npx hardhat deploy:migrate --network localhost --horizon-config integration --step 3 --patch-config --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 3 --patch-config --hide-banner --standalone
 
 # Step 4 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config integration --step 4 --patch-config --account-index 1 --hide-banner
-
-# Unset subgraph service
-npx hardhat transition:unset-subgraph-service --network localhost
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 4 --patch-config --account-index 1 --hide-banner --standalone
 
 # Run integration tests - During transition period
 npx hardhat test:integration --phase during-transition-period --network localhost
