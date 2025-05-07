@@ -18,6 +18,23 @@ interface IServiceQualityOracle {
     function removeQualityOracle(address _oracle, bytes calldata _data) external;
 
     /**
+     * @notice Oracle starts replacing the denial list
+     * @dev This function is called by the oracle when it begins replacing the denial list.
+     * Stores the block number when the oracle started replacing the denial list.
+     * @param _data Arbitrary calldata for future extensions
+     */
+    function setDenialListReplacementStartBlock(bytes calldata _data) external;
+
+    /**
+     * @notice Oracle finishes replacing the denial list
+     * @dev This function is called by the oracle when it ends replacing the denial list.
+     * Sets the minimum block number for which an indexer is denied to the block number
+     * when the oracle started replacing the denial list.
+     * @param _data Arbitrary calldata for future extensions
+     */
+    function setMinimumDenialBlockToReplacementStartBlock(bytes calldata _data) external;
+
+    /**
      * @notice Allow an indexer to receive rewards by removing them from the deny list
      * @param _indexer Address of the indexer
      * @param _data Arbitrary calldata for future extensions
@@ -25,11 +42,25 @@ interface IServiceQualityOracle {
     function allowIndexer(address _indexer, bytes calldata _data) external;
 
     /**
+     * @notice Allow indexers to receive rewards by removing them from the deny list
+     * @param _indexer Array of addresses of the indexers
+     * @param _data Arbitrary calldata for future extensions
+     */
+    function allowIndexers(address[] calldata _indexer, bytes calldata _data) external;
+
+    /**
      * @notice Deny an indexer from receiving rewards by adding them to the deny list
      * @param _indexer Address of the indexer
      * @param _data Arbitrary calldata for future extensions
      */
     function denyIndexer(address _indexer, bytes calldata _data) external;
+
+    /**
+     * @notice Deny indexers from receiving rewards by adding them to the deny list
+     * @param _indexer Array of addresses of the indexers
+     * @param _data Arbitrary calldata for future extensions
+     */
+    function denyIndexers(address[] calldata _indexer, bytes calldata _data) external;
 
     /**
      * @notice Check if an indexer is eligible for rewards

@@ -12,20 +12,24 @@ abstract contract ServiceQualityOracleStorage {
 
     /**
      * @notice Struct to store data for each oracle
-     * @param isAuthorized Whether the oracle is authorized
+     * @param lastDenialReplacementStartBlock Block number when the oracle last started replacing denial list
      */
     struct OracleData {
-        // Whether the oracle is authorized
-        bool isAuthorized;
+        // Block number when the oracle last started replacing denial list.
+        // Will also be non-zero for an authorized oracle, allowing us to
+        // check if the oracle is currently authorized.
+        uint256 lastDenialReplacementStartBlock;
     }
 
     /**
      * @notice Struct to store data for each indexer
-     * @param isDenied Whether the indexer is denied from receiving rewards
+     * @param lastDeniedBlock Block number when the indexer was last marked as denied
      */
     struct IndexerData {
-        // Whether the indexer is denied from receiving rewards (default: false)
-        bool isDenied;
+        // Block number when the indexer was last marked as denied
+        // Note this has nothing to do with period of denial, it just used to
+        // track which denials are still applicable.
+        uint256 lastDeniedBlock;
     }
 
     // -- State --
@@ -35,6 +39,8 @@ abstract contract ServiceQualityOracleStorage {
 
     // Mapping of indexer address to indexer data
     mapping(address => IndexerData) internal indexers;
+
+    uint256 public minimumDeniedBlock;
 
     // -- Storage Gap --
 

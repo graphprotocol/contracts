@@ -12,7 +12,7 @@ import { ServiceQualityOracleStorage } from "./ServiceQualityOracleStorage.sol";
 /**
  * @title ServiceQualityOracle
  * @notice This contract allows authorized oracles to deny or allow indexers to receive rewards.
- * Indexers are allowed by default.
+ * Indexers are allowed by default until they are explicitly denied.
  */
 contract ServiceQualityOracle is
     Initializable,
@@ -32,6 +32,8 @@ contract ServiceQualityOracle is
 
     event QualityOracleAdded(address indexed oracle, bytes data);
     event QualityOracleRemoved(address indexed oracle, bytes data);
+    event DenialListReplacementStartBlockSet(address indexed oracle, uint256 blockNumber, bytes data);
+    event MinimumDenialBlockSet(address indexed oracle, uint256 blockNumber, bytes data);
     event IndexerAllowed(address indexed oracle, address indexed indexer, bytes data);
     event IndexerDenied(address indexed oracle, address indexed indexer, bytes data);
 
@@ -65,8 +67,9 @@ contract ServiceQualityOracle is
      * @param _data Arbitrary calldata for future extensions
      */
     function addQualityOracle(address _oracle, bytes calldata _data) external override onlyGovernor {
-        if (!oracles[_oracle].isAuthorized) {
-            oracles[_oracle].isAuthorized = true;
+        // Don't overwrite the block if set, doing so could interfere with a running denial replacement
+        if (oracles[_oracle].lastDenialReplacementStartBlock == 0) {
+            oracles[_oracle].lastDenialReplacementStartBlock = block.number;
         }
 
         emit QualityOracleAdded(_oracle, _data);
@@ -78,14 +81,37 @@ contract ServiceQualityOracle is
      * @param _data Arbitrary calldata for future extensions
      */
     function removeQualityOracle(address _oracle, bytes calldata _data) external override onlyGovernor {
-        if (oracles[_oracle].isAuthorized) {
-            oracles[_oracle].isAuthorized = false;
+        if (oracles[_oracle].lastDenialReplacementStartBlock == 0) {
+            return;
         }
+
+        delete oracles[_oracle];
 
         emit QualityOracleRemoved(_oracle, _data);
     }
 
     // -- Oracle Functions --
+
+    function setDenialListReplacementStartBlock(bytes calldata _data) external override {
+        if (!this.isAuthorizedOracle(msg.sender)) revert NotAuthorizedOracle();
+
+        oracles[msg.sender].lastDenialReplacementStartBlock = block.number;
+
+        emit DenialListReplacementStartBlockSet(msg.sender, block.number, _data);
+    }
+
+    function setMinimumDenialBlockToReplacementStartBlock(bytes calldata _data) external override {
+        if (!this.isAuthorizedOracle(msg.sender)) revert NotAuthorizedOracle();
+
+        uint256 lastDenialReplacementStartBlock = oracles[msg.sender].lastDenialReplacementStartBlock;
+        if (minimumDeniedBlock <= lastDenialReplacementStartBlock) {
+            return;
+        }
+
+        minimumDeniedBlock = lastDenialReplacementStartBlock;
+
+        emit MinimumDenialBlockSet(msg.sender, block.number, _data);
+    }
 
     /**
      * @notice Allow an indexer to receive rewards by removing them from the deny list
@@ -93,13 +119,25 @@ contract ServiceQualityOracle is
      * @param _data Arbitrary calldata for future extensions
      */
     function allowIndexer(address _indexer, bytes calldata _data) external override {
-        if (!oracles[msg.sender].isAuthorized) revert NotAuthorizedOracle();
+        if (!this.isAuthorizedOracle(msg.sender)) revert NotAuthorizedOracle();
 
-        if (indexers[_indexer].isDenied) {
-            indexers[_indexer].isDenied = false;
+        if (indexers[_indexer].lastDeniedBlock != 0) {
+            delete indexers[_indexer];
         }
 
         emit IndexerAllowed(msg.sender, _indexer, _data);
+    }
+
+    function allowIndexers(address[] calldata _indexer, bytes calldata _data) external override {
+        for (uint256 i = 0; i < _indexer.length; i++) {
+            this.allowIndexer(_indexer[i], _data);
+        }
+    }
+
+    function denyIndexers(address[] calldata _indexer, bytes calldata _data) external override {
+        for (uint256 i = 0; i < _indexer.length; i++) {
+            this.denyIndexer(_indexer[i], _data);
+        }
     }
 
     /**
@@ -108,10 +146,10 @@ contract ServiceQualityOracle is
      * @param _data Arbitrary calldata for future extensions
      */
     function denyIndexer(address _indexer, bytes calldata _data) external override {
-        if (!oracles[msg.sender].isAuthorized) revert NotAuthorizedOracle();
+        if (!this.isAuthorizedOracle(msg.sender)) revert NotAuthorizedOracle();
 
-        if (!indexers[_indexer].isDenied) {
-            indexers[_indexer].isDenied = true;
+        if (indexers[_indexer].lastDeniedBlock != block.number) {
+            indexers[_indexer].lastDeniedBlock = block.number;
         }
 
         emit IndexerDenied(msg.sender, _indexer, _data);
@@ -125,8 +163,8 @@ contract ServiceQualityOracle is
      * @return True if the indexer is eligible for rewards, false otherwise
      */
     function eligibleForRewards(address _indexer) external view override returns (bool) {
-        // Indexers are allowed by default unless they are explicitly denied
-        return !indexers[_indexer].isDenied;
+        // Indexers are allowed unless they are explicitly denied at or after the minimum denied block
+        return minimumDeniedBlock <= indexers[_indexer].lastDeniedBlock;
     }
 
     /**
@@ -135,6 +173,6 @@ contract ServiceQualityOracle is
      * @return True if the oracle is authorized, false otherwise
      */
     function isAuthorizedOracle(address _oracle) external view override returns (bool) {
-        return oracles[_oracle].isAuthorized;
+        return oracles[_oracle].lastDenialReplacementStartBlock != 0;
     }
 }
