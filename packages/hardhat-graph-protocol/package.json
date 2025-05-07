@@ -1,6 +1,6 @@
 {
   "name": "hardhat-graph-protocol",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A hardhat plugin that extends the runtime environment to inject additional functionality related to the usage of the Graph Protocol.",
   "keywords": [
     "ethereum",
@@ -14,13 +14,13 @@
   "author": "Tomás Migone <tomas@edgeandnode.com>",
   "license": "MIT",
   "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
       "types": "./src/types.ts",
       "default": "./src/index.ts"
     }
   },
-  "types": "./dist/src/index.d.ts",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",

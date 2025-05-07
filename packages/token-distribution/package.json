@@ -1,5 +1,6 @@
 {
   "name": "@graphprotocol/token-distribution",
+  "private": true,
   "version": "1.2.1",
   "description": "Graph Token Distribution",
   "main": "index.js",

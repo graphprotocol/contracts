@@ -105,7 +105,7 @@ Packages are published and distributed via NPM. To publish a package, run the fo
 
 ```bash
 # Publish the package
-$ pnpm npm publish --access public --tag <tag>
+$ pnpm changeset publish
 ```
 
 Alternatively, there is a GitHub action that can be manually triggered to publish a package.
