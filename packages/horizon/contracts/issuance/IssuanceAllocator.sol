@@ -86,8 +86,8 @@ contract IssuanceAllocator is
     // -- External Functions --
 
     /**
-     * @notice Distribute issuance to all active targets.
-     * @dev This function calculates token issuance for all active targets based on their
+     * @notice Distribute issuance, minting tokens for non-self-minting targets.
+     * @dev This function calculates token issuance for all targets based on their
      * configured allocations. For non-self-minting targets, it mints tokens directly to them.
      * For self-minting targets (like the legacy RewardsManager), it only emits events but does
      * not mint tokens directly, as these contracts are expected to handle minting themselves.
