@@ -1,5 +1,6 @@
 {
   "name": "@graphprotocol/data-edge",
+  "private": true,
   "version": "0.2.0",
   "description": "The Graph Data Edge",
   "main": "index.js",

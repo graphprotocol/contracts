@@ -10,7 +10,7 @@ pnpm build
 
 # Refresh distribution folder
 rm -rf dist && mkdir -p dist/types/_src
-cp -R build/abis/ dist/abis
+cp -R build/contracts/contracts/ dist/abis
 cp -R build/types/ dist/types/_src
 
 ### Build Typechain bindings
