@@ -2,7 +2,7 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { generateAttestationData } from '@graphprotocol/toolshed'
+import { generateAttestationData, generateLegacyIndexingDisputeId, generateLegacyQueryDisputeId } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { HorizonStaking } from '@graphprotocol/horizon'
 import { IGraphToken } from '../../../typechain-types'
@@ -75,7 +75,7 @@ describe('Legacy Dispute Manager', () => {
       // Create an indexing dispute
       await graphToken.connect(fisherman).approve(legacyDisputeManager.target, disputeDeposit)
       await legacyDisputeManager.connect(fisherman).createIndexingDispute(allocationId, disputeDeposit)
-      const disputeId = ethers.solidityPackedKeccak256(['address'], [allocationId])
+      const disputeId = generateLegacyIndexingDisputeId(allocationId)
 
       // Verify dispute was created
       const disputeExists = await legacyDisputeManager.isDisputeCreated(disputeId)
@@ -131,9 +131,11 @@ describe('Legacy Dispute Manager', () => {
       // Create a query dispute
       await graphToken.connect(fisherman).approve(legacyDisputeManager.target, disputeDeposit)
       await legacyDisputeManager.connect(fisherman).createQueryDispute(attestationData, disputeDeposit)
-      const disputeId = ethers.solidityPackedKeccak256(
-        ['bytes32', 'bytes32', 'bytes32', 'address', 'address'],
-        [queryHash, responseHash, subgraphDeploymentId, indexer.address, fisherman.address],
+      const disputeId = generateLegacyQueryDisputeId(queryHash,
+        responseHash,
+        subgraphDeploymentId,
+        indexer.address,
+        fisherman.address
       )
 
       // Verify dispute was created
@@ -202,13 +204,19 @@ describe('Legacy Dispute Manager', () => {
       await legacyDisputeManager.connect(fisherman).createQueryDisputeConflict(attestationData1, attestationData2)
 
       // Create dispute IDs
-      const disputeId1 = ethers.solidityPackedKeccak256(
-        ['bytes32', 'bytes32', 'bytes32', 'address', 'address'],
-        [queryHash, responseHash1, subgraphDeploymentId, indexer.address, fisherman.address],
+      const disputeId1 = generateLegacyQueryDisputeId(
+        queryHash,
+        responseHash1,
+        subgraphDeploymentId,
+        indexer.address,
+        fisherman.address
       )
-      const disputeId2 = ethers.solidityPackedKeccak256(
-        ['bytes32', 'bytes32', 'bytes32', 'address', 'address'],
-        [queryHash, responseHash2, subgraphDeploymentId, indexer.address, fisherman.address],
+      const disputeId2 = generateLegacyQueryDisputeId(
+        queryHash,
+        responseHash2,
+        subgraphDeploymentId,
+        indexer.address,
+        fisherman.address
       )
 
       // Verify both disputes were created
