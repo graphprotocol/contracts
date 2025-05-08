@@ -61,14 +61,14 @@ When the container starts, the `project-setup.sh` script will automatically run 
 - Set up symlinks for package cache directories
 - Install project dependencies using yarn
 - Configure Git to use SSH signing with your forwarded SSH key
-- Source shell customizations if available in PATH (currently depends on base image configuration)
+- Source shell customizations if available in PATH
 
 ## Environment Variables
 
 Environment variables are defined in two places:
 
 1. **docker-compose.yml**: Contains most of the environment variables for tools and caching
-2. **Environment File**: Personal settings are stored in `/opt/configs/graphprotocol/contracts.env`
+2. **Environment File**: Personal settings are stored in `/opt/configs/graphprotocol/contracts.env` on the host
 
 ### Git Configuration
 
