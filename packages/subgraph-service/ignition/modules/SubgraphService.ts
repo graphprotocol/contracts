@@ -46,12 +46,13 @@ export default buildModule('SubgraphService', (m) => {
       ],
     })
 
-  const callSetPauseGuardian = m.call(SubgraphService, 'setPauseGuardian', [pauseGuardian, true])
+  const callSetPauseGuardianGovernor = m.call(SubgraphService, 'setPauseGuardian', [governor, true], { id: 'setPauseGuardianGovernor' })
+  const callSetPauseGuardianPauseGuardian = m.call(SubgraphService, 'setPauseGuardian', [pauseGuardian, true], { id: 'setPauseGuardianPauseGuardian' })
   const callSetMaxPOIStaleness = m.call(SubgraphService, 'setMaxPOIStaleness', [maxPOIStaleness])
   const callSetCurationCut = m.call(SubgraphService, 'setCurationCut', [curationCut])
 
-  m.call(SubgraphService, 'transferOwnership', [governor], { after: [callSetPauseGuardian, callSetMaxPOIStaleness, callSetCurationCut] })
-  m.call(SubgraphServiceProxyAdmin, 'transferOwnership', [governor], { after: [callSetPauseGuardian, callSetMaxPOIStaleness, callSetCurationCut] })
+  m.call(SubgraphService, 'transferOwnership', [governor], { after: [callSetPauseGuardianGovernor, callSetPauseGuardianPauseGuardian, callSetMaxPOIStaleness, callSetCurationCut] })
+  m.call(SubgraphServiceProxyAdmin, 'transferOwnership', [governor], { after: [callSetPauseGuardianGovernor, callSetPauseGuardianPauseGuardian, callSetMaxPOIStaleness, callSetCurationCut] })
 
   return {
     SubgraphService,

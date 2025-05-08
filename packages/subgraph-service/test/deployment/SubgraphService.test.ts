@@ -46,7 +46,10 @@ describe('SubgraphService', function () {
     expect(curationAddress).to.equal(config.$global.curationProxyAddress)
   })
 
-  it('should set the right pause guardian')
+  it('should set the right pause guardians', async function () {
+    expect(await SubgraphService.pauseGuardians(config.$global.pauseGuardian as string)).to.equal(true)
+    expect(await SubgraphService.pauseGuardians(config.$global.governor as string)).to.equal(true)
+  })
 
   it('should set the right maxPOIStaleness', async function () {
     const maxPOIStaleness = await SubgraphService.maxPOIStaleness()
