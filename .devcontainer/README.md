@@ -47,13 +47,15 @@ This script creates all required cache directories on the host, including:
 
 The script is idempotent and can be run multiple times without issues.
 
+The container was designed to be used for development with contracts repo at `/git/graphprotocol/contracts` and with `/git` mounted from the host by `docker-compose.yml`.
+
 ### 2. Start the Dev Container
 
 After creating the cache directories, you can start the dev container:
 
 1. Open VS Code
 2. Use the "Remote-Containers: Open Folder in Container" command
-3. Select the repository directory
+3. Select the repository directory (for example `/git/graphprotocol/contracts`)
 
 When the container starts, the `project-setup.sh` script will automatically run and:
 
