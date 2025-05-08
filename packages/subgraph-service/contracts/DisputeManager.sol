@@ -5,6 +5,7 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
@@ -127,6 +128,19 @@ contract DisputeManager is
 
         // Create a dispute
         return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi);
+    }
+
+    /// @inheritdoc IDisputeManager
+    function createIndexingFeeDisputeV1(
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities
+    ) external override returns (bytes32) {
+        // Get funds from fisherman
+        _graphToken().pullTokens(msg.sender, disputeDeposit);
+
+        // Create a dispute
+        return _createIndexingFeeDisputeV1(msg.sender, disputeDeposit, agreementId, poi, entities);
     }
 
     /// @inheritdoc IDisputeManager
@@ -446,6 +460,83 @@ contract DisputeManager is
         );
 
         emit IndexingDisputeCreated(disputeId, alloc.indexer, _fisherman, _deposit, _allocationId, _poi, stakeSnapshot);
+
+        return disputeId;
+    }
+
+    /**
+     * @notice Create indexing fee (version 1) dispute internal function.
+     * @param _fisherman The fisherman creating the dispute
+     * @param _deposit Amount of tokens staked as deposit
+     * @param _agreementId The agreement id being disputed
+     * @param _poi The POI being disputed
+     * @param _entities The number of entities disputed
+     * @return The dispute id
+     */
+    function _createIndexingFeeDisputeV1(
+        address _fisherman,
+        uint256 _deposit,
+        bytes16 _agreementId,
+        bytes32 _poi,
+        uint256 _entities
+    ) private returns (bytes32) {
+        (
+            ISubgraphService.IndexingAgreementData memory indexingAgreement,
+            IRecurringCollector.AgreementData memory agreement
+        ) = _getSubgraphService().getIndexingAgreement(_agreementId);
+
+        // Agreement must have been collected on and be a version 1
+        require(agreement.lastCollectionAt > 0, DisputeManagerIndexingAgreementNotDisputable(_agreementId));
+        require(
+            indexingAgreement.version == ISubgraphService.IndexingAgreementVersion.V1,
+            DisputeManagerIndexingAgreementInvalidVersion(indexingAgreement.version)
+        );
+
+        // Create a disputeId
+        bytes32 disputeId = keccak256(
+            abi.encodePacked(
+                "IndexingFeeDisputeWithAgreement",
+                _agreementId,
+                agreement.serviceProvider,
+                agreement.payer,
+                _poi,
+                _entities
+            )
+        );
+
+        // Only one dispute at a time
+        require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
+
+        // The indexer must be disputable
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(
+            agreement.serviceProvider,
+            address(_getSubgraphService())
+        );
+        require(provision.tokens != 0, DisputeManagerZeroTokens());
+
+        uint256 stakeSnapshot = _getStakeSnapshot(agreement.serviceProvider, provision.tokens);
+        disputes[disputeId] = Dispute(
+            agreement.serviceProvider,
+            _fisherman,
+            _deposit,
+            0, // no related dispute,
+            DisputeType.IndexingFeeDispute,
+            IDisputeManager.DisputeStatus.Pending,
+            block.timestamp,
+            stakeSnapshot
+        );
+
+        emit IndexingFeeDisputeCreated(
+            disputeId,
+            agreement.serviceProvider,
+            _fisherman,
+            _deposit,
+            agreement.payer,
+            _agreementId,
+            _poi,
+            _entities,
+            stakeSnapshot
+        );
 
         return disputeId;
     }
