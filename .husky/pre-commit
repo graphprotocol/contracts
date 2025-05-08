@@ -1,12 +1,2 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-# contracts
-pushd packages/contracts
-npx --no-install lint-staged
-popd
-
-# data-edge
-pushd packages/data-edge
-npx --no-install lint-staged
-popd
+(cd packages/contracts && npx --no-install lint-staged)
+(cd packages/data-edge && npx --no-install lint-staged)
