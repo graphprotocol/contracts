@@ -125,7 +125,8 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 dataServiceCut
+        uint256 dataServiceCut,
+        address receiverDestination
     ) external override notPaused {
         // Check if there are enough funds in the escrow account
         EscrowAccount storage account = escrowAccounts[payer][msg.sender][receiver];
@@ -137,7 +138,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
         uint256 escrowBalanceBefore = _graphToken().balanceOf(address(this));
 
         _graphToken().approve(address(_graphPayments()), tokens);
-        _graphPayments().collect(paymentType, receiver, tokens, dataService, dataServiceCut);
+        _graphPayments().collect(paymentType, receiver, tokens, dataService, dataServiceCut, receiverDestination);
 
         // Verify that the escrow balance is consistent with the collected tokens
         uint256 escrowBalanceAfter = _graphToken().balanceOf(address(this));
@@ -146,7 +147,7 @@ contract PaymentsEscrow is Initializable, MulticallUpgradeable, GraphDirectory, 
             PaymentsEscrowInconsistentCollection(escrowBalanceBefore, escrowBalanceAfter, tokens)
         );
 
-        emit EscrowCollected(paymentType, payer, msg.sender, receiver, tokens);
+        emit EscrowCollected(paymentType, payer, msg.sender, receiver, tokens, receiverDestination);
     }
 
     /// @inheritdoc IPaymentsEscrow

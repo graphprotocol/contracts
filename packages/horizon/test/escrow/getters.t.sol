@@ -57,7 +57,8 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
             users.indexer,
             amountCollected,
             subgraphDataServiceAddress,
-            0
+            0,
+            users.indexer
         );
 
         // balance should always be 0 since thawing funds > available funds
