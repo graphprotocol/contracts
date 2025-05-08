@@ -4,6 +4,7 @@ import hre from 'hardhat'
 import { EventLog } from 'ethers'
 
 import { DisputeManager, IGraphToken, SubgraphService } from '../../../typechain-types'
+import { generateLegacyIndexingDisputeId, generateLegacyTypeDisputeId } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { HorizonStaking } from '@graphprotocol/horizon'
 import { LegacyDisputeManager } from '@graphprotocol/toolshed/deployments'
@@ -79,7 +80,7 @@ describe('Dispute Manager', () => {
         // Create an indexing dispute on legacy dispute manager
         await graphToken.connect(fisherman).approve(legacyDisputeManager.target, disputeDeposit)
         await legacyDisputeManager.connect(fisherman).createIndexingDispute(allocationId, disputeDeposit)
-        const legacyDisputeId = ethers.solidityPackedKeccak256(['address'], [allocationId])
+        const legacyDisputeId = generateLegacyIndexingDisputeId(allocationId)
 
         // Accept the dispute on the legacy dispute manager
         await legacyDisputeManager.connect(arbitrator).acceptDispute(legacyDisputeId)
@@ -101,10 +102,7 @@ describe('Dispute Manager', () => {
         )
 
         // Get dispute ID from event
-        const disputeId = ethers.solidityPackedKeccak256(
-          ['address', 'string'],
-          [allocationId, 'legacy']
-        )
+        const disputeId = generateLegacyTypeDisputeId(allocationId)
 
         // Verify dispute was created and accepted
         const dispute = await disputeManager.disputes(disputeId)
@@ -125,7 +123,7 @@ describe('Dispute Manager', () => {
       it('should not allow creating a legacy dispute for non-existent allocation', async () => {
         const tokensToSlash = ethers.parseEther('1000')
         const tokensToReward = tokensToSlash / 2n
-  
+
         // Attempt to create legacy dispute with non-existent allocation
         await expect(
           disputeManager.connect(arbitrator).createAndAcceptLegacyDispute(
