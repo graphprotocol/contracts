@@ -2,7 +2,6 @@
 
 set -eo pipefail
 
-pnpm run compile
 
 if [ -z "${STUDIO_API_KEY}" ]; then
     echo "Warning: STUDIO_API_KEY is not set. Skipping build steps. Some functionality may be limited."
@@ -10,3 +9,4 @@ if [ -z "${STUDIO_API_KEY}" ]; then
 fi
 
 pnpm graphclient build
+pnpm run compile
