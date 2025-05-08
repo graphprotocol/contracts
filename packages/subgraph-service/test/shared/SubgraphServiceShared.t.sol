@@ -91,7 +91,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         assertEq(indexer.geoHash, geohash);
 
         // Check rewards destination
-        assertEq(subgraphService.rewardsDestination(_indexer), rewardsDestination);
+        assertEq(subgraphService.paymentsDestination(_indexer), rewardsDestination);
     }
 
     function _startService(address _indexer, bytes memory _data) internal {

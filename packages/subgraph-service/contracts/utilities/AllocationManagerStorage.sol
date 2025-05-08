@@ -23,9 +23,6 @@ abstract contract AllocationManagerV1Storage {
     /// @notice Maximum amount of time, in seconds, allowed between presenting POIs to qualify for indexing rewards
     uint256 public maxPOIStaleness;
 
-    /// @notice Destination of accrued indexing rewards
-    mapping(address indexer => address destination) public rewardsDestination;
-
     /// @notice Track total tokens allocated per subgraph deployment
     /// @dev Used to calculate indexing rewards
     mapping(bytes32 subgraphDeploymentId => uint256 tokens) internal _subgraphAllocatedTokens;

@@ -63,13 +63,13 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         (, address indexer, ) = vm.readCallers();
 
         vm.expectEmit(address(subgraphService));
-        emit AllocationManager.RewardsDestinationSet(indexer, _rewardsDestination);
+        emit ISubgraphService.PaymentsDestinationSet(indexer, _rewardsDestination);
 
         // Set rewards destination
-        subgraphService.setRewardsDestination(_rewardsDestination);
+        subgraphService.setPaymentsDestination(_rewardsDestination);
 
         // Check rewards destination
-        assertEq(subgraphService.rewardsDestination(indexer), _rewardsDestination);
+        assertEq(subgraphService.paymentsDestination(indexer), _rewardsDestination);
     }
 
     function _acceptProvision(address _indexer, bytes memory _data) internal {
@@ -197,6 +197,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 indexerBalance;
         uint256 curationBalance;
         uint256 lockedTokens;
+        uint256 indexerStake;
     }
 
     function _collect(address _indexer, IGraphPayments.PaymentTypes _paymentType, bytes memory _data) internal {
@@ -240,9 +241,9 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _collectPaymentDataBefore(address _indexer) private view returns (CollectPaymentData memory) {
-        address rewardsDestination = subgraphService.rewardsDestination(_indexer);
+        address paymentsDestination = subgraphService.paymentsDestination(_indexer);
         CollectPaymentData memory collectPaymentDataBefore;
-        collectPaymentDataBefore.rewardsDestinationBalance = token.balanceOf(rewardsDestination);
+        collectPaymentDataBefore.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
         collectPaymentDataBefore.indexerProvisionBalance = staking.getProviderTokensAvailable(
             _indexer,
             address(subgraphService)
@@ -254,13 +255,14 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         collectPaymentDataBefore.indexerBalance = token.balanceOf(_indexer);
         collectPaymentDataBefore.curationBalance = token.balanceOf(address(curation));
         collectPaymentDataBefore.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
+        collectPaymentDataBefore.indexerStake = staking.getStake(_indexer);
         return collectPaymentDataBefore;
     }
 
     function _collectPaymentDataAfter(address _indexer) private view returns (CollectPaymentData memory) {
         CollectPaymentData memory collectPaymentDataAfter;
-        address rewardsDestination = subgraphService.rewardsDestination(_indexer);
-        collectPaymentDataAfter.rewardsDestinationBalance = token.balanceOf(rewardsDestination);
+        address paymentsDestination = subgraphService.paymentsDestination(_indexer);
+        collectPaymentDataAfter.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
         collectPaymentDataAfter.indexerProvisionBalance = staking.getProviderTokensAvailable(
             _indexer,
             address(subgraphService)
@@ -272,6 +274,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         collectPaymentDataAfter.indexerBalance = token.balanceOf(_indexer);
         collectPaymentDataAfter.curationBalance = token.balanceOf(address(curation));
         collectPaymentDataAfter.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
+        collectPaymentDataAfter.indexerStake = staking.getStake(_indexer);
         return collectPaymentDataAfter;
     }
 
@@ -391,8 +394,24 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 expectedIndexerTokensPayment = _paymentCollected - tokensProtocol - curationTokens;
 
         assertEq(
-            collectPaymentDataAfter.indexerBalance,
-            collectPaymentDataBefore.indexerBalance + expectedIndexerTokensPayment
+            collectPaymentDataAfter.indexerBalance - collectPaymentDataBefore.indexerBalance,
+            subgraphService.paymentsDestination(signedRav.rav.serviceProvider) == address(0)
+                ? 0
+                : expectedIndexerTokensPayment
+        );
+
+        assertEq(
+            collectPaymentDataAfter.rewardsDestinationBalance - collectPaymentDataBefore.rewardsDestinationBalance,
+            subgraphService.paymentsDestination(signedRav.rav.serviceProvider) == address(0)
+                ? 0
+                : expectedIndexerTokensPayment
+        );
+
+        assertEq(
+            collectPaymentDataAfter.indexerStake - collectPaymentDataBefore.indexerStake,
+            subgraphService.paymentsDestination(signedRav.rav.serviceProvider) == address(0)
+                ? expectedIndexerTokensPayment
+                : 0
         );
         assertEq(collectPaymentDataAfter.curationBalance, collectPaymentDataBefore.curationBalance + curationTokens);
 
@@ -429,8 +448,8 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         assertEq(allocation.lastPOIPresentedAt, block.timestamp);
 
         // Check indexer got paid the correct amount
-        address rewardsDestination = subgraphService.rewardsDestination(_indexer);
-        if (rewardsDestination == address(0)) {
+        address paymentsDestination = subgraphService.paymentsDestination(_indexer);
+        if (paymentsDestination == address(0)) {
             // If rewards destination is address zero indexer should get paid to their provision balance
             assertEq(
                 collectPaymentDataAfter.indexerProvisionBalance,

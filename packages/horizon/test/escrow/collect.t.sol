@@ -46,7 +46,8 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             users.indexer,
             tokensToCollect,
             subgraphDataServiceAddress,
-            dataServiceCut
+            dataServiceCut,
+            users.indexer
         );
     }
 
@@ -71,7 +72,8 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             users.indexer,
             tokens,
             subgraphDataServiceAddress,
-            dataServiceCut
+            dataServiceCut,
+            users.indexer
         );
     }
 
@@ -95,7 +97,8 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             users.indexer,
             amount,
             subgraphDataServiceAddress,
-            0
+            0,
+            users.indexer
         );
         vm.stopPrank();
     }
@@ -126,16 +129,8 @@ contract GraphEscrowCollectTest is GraphEscrowTest {
             users.indexer,
             firstCollect,
             subgraphDataServiceAddress,
-            0
+            0,
+            users.indexer
         );
-
-        // _collectEscrow(
-        //     IGraphPayments.PaymentTypes.QueryFee,
-        //     users.gateway,
-        //     users.indexer,
-        //     secondCollect,
-        //     subgraphDataServiceAddress,
-        //     0
-        // );
     }
 }

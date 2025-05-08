@@ -105,15 +105,15 @@ contract SubgraphService is
      * @param data Encoded registration data:
      *  - address `url`: The URL of the indexer
      *  - string `geohash`: The geohash of the indexer
-     *  - address `rewardsDestination`: The address where the indexer wants to receive indexing rewards.
-     *    Use zero address for automatic reprovisioning to the subgraph service.
+     *  - address `paymentsDestination`: The address where the indexer wants to receive payments.
+     *    Use zero address for automatically restaking payments.
      */
     /// @inheritdoc IDataService
     function register(
         address indexer,
         bytes calldata data
     ) external override onlyAuthorizedForProvision(indexer) onlyValidProvision(indexer) whenNotPaused {
-        (string memory url, string memory geohash, address rewardsDestination_) = abi.decode(
+        (string memory url, string memory geohash, address paymentsDestination_) = abi.decode(
             data,
             (string, string, address)
         );
@@ -124,8 +124,8 @@ contract SubgraphService is
 
         // Register the indexer
         indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
-        if (rewardsDestination_ != address(0)) {
-            _setRewardsDestination(indexer, rewardsDestination_);
+        if (paymentsDestination_ != address(0)) {
+            _setPaymentsDestination(indexer, paymentsDestination_);
         }
 
         emit ServiceProviderRegistered(indexer, data);
@@ -274,22 +274,9 @@ contract SubgraphService is
         uint256 paymentCollected = 0;
 
         if (paymentType == IGraphPayments.PaymentTypes.QueryFee) {
-            (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
-                data,
-                (IGraphTallyCollector.SignedRAV, uint256)
-            );
-            require(
-                signedRav.rav.serviceProvider == indexer,
-                SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, indexer)
-            );
-            paymentCollected = _collectQueryFees(signedRav, tokensToCollect);
+            paymentCollected = _collectQueryFees(indexer, data);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
-            (address allocationId, bytes32 poi, bytes memory poiMetadata) = abi.decode(data, (address, bytes32, bytes));
-            require(
-                _allocations.get(allocationId).indexer == indexer,
-                SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
-            );
-            paymentCollected = _collectIndexingRewards(allocationId, poi, poiMetadata, _delegationRatio);
+            paymentCollected = _collectIndexingRewards(indexer, data);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -352,8 +339,8 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function setRewardsDestination(address rewardsDestination_) external override {
-        _setRewardsDestination(msg.sender, rewardsDestination_);
+    function setPaymentsDestination(address paymentsDestination_) external override {
+        _setPaymentsDestination(msg.sender, paymentsDestination_);
     }
 
     /// @inheritdoc ISubgraphService
@@ -483,24 +470,30 @@ contract SubgraphService is
      * Emits a {StakeClaimLocked} event.
      * Emits a {QueryFeesCollected} event.
      *
-     * @param _signedRav Signed RAV
-     * @param _tokensToCollect The amount of tokens to collect. Allows partially collecting a RAV. If 0, the entire RAV will
+     * @param indexer The address of the indexer
+     * @param data Encoded data:
+     *    - IGraphTallyCollector.SignedRAV `signedRav`: The signed RAV
+     *    - uint256 `tokensToCollect`: The amount of tokens to collect. Allows partially collecting a RAV. If 0, the entire RAV will
      * be collected.
      * @return The amount of fees collected
      */
-    function _collectQueryFees(
-        IGraphTallyCollector.SignedRAV memory _signedRav,
-        uint256 _tokensToCollect
-    ) private returns (uint256) {
-        address indexer = _signedRav.rav.serviceProvider;
+    function _collectQueryFees(address indexer, bytes calldata data) private returns (uint256) {
+        (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+            data,
+            (IGraphTallyCollector.SignedRAV, uint256)
+        );
+        require(
+            signedRav.rav.serviceProvider == indexer,
+            SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, indexer)
+        );
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
         // collectionId is expected to be a zero padded address so it's safe to cast to uint160
         require(
-            uint256(_signedRav.rav.collectionId) <= type(uint160).max,
-            SubgraphServiceInvalidCollectionId(_signedRav.rav.collectionId)
+            uint256(signedRav.rav.collectionId) <= type(uint160).max,
+            SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId)
         );
-        address allocationId = address(uint160(uint256(_signedRav.rav.collectionId)));
+        address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
         Allocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer
@@ -511,24 +504,29 @@ contract SubgraphService is
         _releaseStake(indexer, 0);
 
         // Collect from GraphPayments - only curators cut is sent back to the subgraph service
-        uint256 balanceBefore = _graphToken().balanceOf(address(this));
+        uint256 tokensCollected;
+        uint256 tokensCurators;
+        {
+            uint256 balanceBefore = _graphToken().balanceOf(address(this));
 
-        uint256 curationCut = _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0;
-        uint256 tokensCollected = _graphTallyCollector().collect(
-            IGraphPayments.PaymentTypes.QueryFee,
-            abi.encode(_signedRav, curationCut),
-            _tokensToCollect
-        );
+            tokensCollected = _graphTallyCollector().collect(
+                IGraphPayments.PaymentTypes.QueryFee,
+                _encodeGraphTallyData(signedRav, _curation().isCurated(subgraphDeploymentId) ? curationFeesCut : 0),
+                tokensToCollect
+            );
 
-        uint256 balanceAfter = _graphToken().balanceOf(address(this));
-        require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
-        uint256 tokensCurators = balanceAfter - balanceBefore;
+            uint256 balanceAfter = _graphToken().balanceOf(address(this));
+            require(balanceAfter >= balanceBefore, SubgraphServiceInconsistentCollection(balanceBefore, balanceAfter));
+            tokensCurators = balanceAfter - balanceBefore;
+        }
 
         if (tokensCollected > 0) {
             // lock stake as economic security for fees
-            uint256 tokensToLock = tokensCollected * stakeToFeesRatio;
-            uint256 unlockTimestamp = block.timestamp + _disputeManager().getDisputePeriod();
-            _lockStake(indexer, tokensToLock, unlockTimestamp);
+            _lockStake(
+                indexer,
+                tokensCollected * stakeToFeesRatio,
+                block.timestamp + _disputeManager().getDisputePeriod()
+            );
 
             if (tokensCurators > 0) {
                 // curation collection changes subgraph signal so we take rewards snapshot
@@ -542,13 +540,42 @@ contract SubgraphService is
 
         emit QueryFeesCollected(
             indexer,
-            _signedRav.rav.payer,
+            signedRav.rav.payer,
             allocationId,
             subgraphDeploymentId,
             tokensCollected,
             tokensCurators
         );
         return tokensCollected;
+    }
+
+    /**
+     * @notice Collect indexing rewards
+     * @param indexer The address of the indexer
+     * @param data Encoded data:
+     *    - address `allocationId`: The id of the allocation
+     *    - bytes32 `poi`: The POI being presented
+     *    - bytes `poiMetadata`: The metadata associated with the POI. See {AllocationManager-_presentPOI} for more details.
+     * @return The amount of indexing rewards collected
+     */
+    function _collectIndexingRewards(address indexer, bytes calldata data) private returns (uint256) {
+        (address allocationId, bytes32 poi_, bytes memory poiMetadata_) = abi.decode(data, (address, bytes32, bytes));
+        require(
+            _allocations.get(allocationId).indexer == indexer,
+            SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
+        );
+        return _presentPOI(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[indexer]);
+    }
+
+    /**
+     * @notice Sets the payments destination for an indexer to receive payments
+     * @dev Emits a {PaymentsDestinationSet} event
+     * @param _indexer The address of the indexer
+     * @param _paymentsDestination The address where payments should be sent
+     */
+    function _setPaymentsDestination(address _indexer, address _paymentsDestination) internal {
+        paymentsDestination[_indexer] = _paymentsDestination;
+        emit PaymentsDestinationSet(_indexer, _paymentsDestination);
     }
 
     /**
@@ -559,5 +586,19 @@ contract SubgraphService is
         require(_stakeToFeesRatio != 0, SubgraphServiceInvalidZeroStakeToFeesRatio());
         stakeToFeesRatio = _stakeToFeesRatio;
         emit StakeToFeesRatioSet(_stakeToFeesRatio);
+    }
+
+    /**
+     * @notice Encodes the data for the GraphTallyCollector
+     * @dev The purpose of this function is just to avoid stack too deep errors
+     * @param signedRav The signed RAV
+     * @param curationCut The curation cut
+     * @return The encoded data
+     */
+    function _encodeGraphTallyData(
+        IGraphTallyCollector.SignedRAV memory signedRav,
+        uint256 curationCut
+    ) private view returns (bytes memory) {
+        return abi.encode(signedRav, curationCut, paymentsDestination[signedRav.rav.serviceProvider]);
     }
 }
