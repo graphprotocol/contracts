@@ -77,7 +77,7 @@ if lsof -i:8545 > /dev/null 2>&1; then
 else
     # Start local hardhat node forked from Arbitrum Sepolia
     echo "Starting local hardhat node..."
-    setsid npx hardhat node --fork $BLOCKCHAIN_RPC > node.log 2>&1 &
+    npx hardhat node --fork $BLOCKCHAIN_RPC > node.log 2>&1 &
     NODE_PID=$!
     STARTED_NODE=true
 
