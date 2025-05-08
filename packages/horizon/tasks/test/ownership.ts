@@ -7,6 +7,7 @@ import { requireLocalNetwork } from '@graphprotocol/toolshed/hardhat'
 task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a new governor')
   .addOptionalParam('governorIndex', 'Derivation path index for the new governor account', 1, types.int)
   .addOptionalParam('slasherIndex', 'Derivation path index for the new slasher account', 2, types.int)
+  .addOptionalParam('pauseGuardianIndex', 'Derivation path index for the new pause guardian account', 3, types.int)
   .setAction(async (taskArgs, hre) => {
     printBanner('TRANSFER OWNERSHIP')
 
@@ -20,7 +21,7 @@ task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a n
     // Get signers
     const newGovernor = await graph.accounts.getGovernor(taskArgs.governorIndex)
     const newSlasher = await graph.accounts.getArbitrator(taskArgs.slasherIndex)
-
+    const newPauseGuardian = await graph.accounts.getPauseGuardian(taskArgs.pauseGuardianIndex)
     console.log(`New governor will be: ${newGovernor.address}`)
 
     // Get contracts
@@ -67,6 +68,11 @@ task('test:transfer-ownership', 'Transfer ownership of protocol contracts to a n
     console.log('Assigning new slasher...')
     await staking.connect(newGovernor).setSlasher(newSlasher.address, true)
     console.log(`New slasher: ${newSlasher.address}, allowed: ${await staking.slashers(newSlasher.address)}`)
+
+    // Assign new pause guardian
+    console.log('Assigning new pause guardian...')
+    await controller.connect(newGovernor).setPauseGuardian(newPauseGuardian.address)
+    console.log(`New pause guardian: ${newPauseGuardian.address}`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Transfer ownership complete! 🎉 ✨ 🚀 ✅\n')
   })
