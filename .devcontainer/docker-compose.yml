@@ -1,0 +1,62 @@
+services:
+  dev-graph-contracts:
+    container_name: dev-graph-contracts
+    build:
+      context: .
+      dockerfile: Dockerfile
+      x-bake:
+        cache-from:
+          - type=local,src=/cache/docker
+        cache-to:
+          - type=local,dest=/cache/docker,mode=max
+    env_file:
+      - /opt/configs/graphprotocol/contracts.env
+    environment:
+      # Cache directories
+      - FOUNDRY_CACHE_DIR=/cache/foundry
+      - SOLC_CACHE=/cache/solidity
+
+      # GitHub
+      - GH_CONFIG_DIR=/cache/github
+
+      # XDG standard directories
+      - XDG_CACHE_HOME=/home/vscode/.cache
+      - XDG_CONFIG_HOME=/home/vscode/.config
+      - XDG_DATA_HOME=/home/vscode/.local/share
+
+      # Tool-specific settings
+      - HARDHAT_CACHE_DIR=/cache/hardhat
+      - HARDHAT_ANALYTICS=true
+      - HARDHAT_NO_ANALYTICS_PROMPT=true
+
+      # Node.js settings
+      - NPM_CONFIG_CACHE=/cache/npm
+      - YARN_CACHE_FOLDER=/cache/yarn
+      - NODE_OPTIONS=--max-old-space-size=4096
+
+      # Python settings
+      - PIP_CACHE_DIR=/cache/pip
+      - PYTHONPYCACHEPREFIX=/cache/pycache
+      - PYTHONDONTWRITEBYTECODE=1
+    networks:
+      - shared
+    volumes:
+      # Mount cache directory
+      - /cache:/cache
+
+      # System-specific mounts that need specific locations
+      - /cache/apt:/var/cache/apt
+      - /cache/apt-lib:/var/lib/apt
+
+      # Git repo root
+      - /git:/git
+
+      # Local cache directories for XDG standards
+      - /cache/vscode-cache:/home/vscode/.cache
+      - /cache/vscode-config:/home/vscode/.config
+      - /cache/vscode-data:/home/vscode/.local/share
+      - /cache/vscode-bin:/home/vscode/.local/bin
+
+networks:
+  shared:
+    external: true
