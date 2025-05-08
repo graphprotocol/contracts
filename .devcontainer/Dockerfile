@@ -45,6 +45,9 @@ RUN npm install -g hardhat@2.22.16 @nomicfoundation/hardhat-ethers@3.0.8 ethers@
     ln -sf /usr/local/lib/node_modules/hardhat/internal/cli/cli.js /usr/local/bin/hardhat && \
     chmod +x /usr/local/bin/hardhat
 
+# Install cloc for code analysis
+RUN npm install -g cloc
+
 # Install Foundry for Anvil (as root for global installation)
 RUN curl -L https://foundry.paradigm.xyz | bash && \
     /root/.foundry/bin/foundryup && \
@@ -71,6 +74,8 @@ RUN chmod 755 /usr/local/bin/* && \
 
 # Switch back to vscode user
 USER vscode
+
+RUN forge install foundry-rs/forge-std
 
 # Set environment variables
 ENV PATH="/usr/local/bin:/home/vscode/.foundry/bin:/home/vscode/.local/bin:/root/.local/bin:$PATH"

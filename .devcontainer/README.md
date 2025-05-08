@@ -47,13 +47,15 @@ This script creates all required cache directories on the host, including:
 
 The script is idempotent and can be run multiple times without issues.
 
+The container was designed to be used for development with contracts repo at `/git/graphprotocol/contracts` and with `/git` mounted from the host by `docker-compose.yml`.
+
 ### 2. Start the Dev Container
 
 After creating the cache directories, you can start the dev container:
 
 1. Open VS Code
 2. Use the "Remote-Containers: Open Folder in Container" command
-3. Select the repository directory
+3. Select the repository directory (for example `/git/graphprotocol/contracts`)
 
 When the container starts, the `project-setup.sh` script will automatically run and:
 
@@ -61,14 +63,14 @@ When the container starts, the `project-setup.sh` script will automatically run 
 - Set up symlinks for package cache directories
 - Install project dependencies using yarn
 - Configure Git to use SSH signing with your forwarded SSH key
-- Source shell customizations if available in PATH (currently depends on base image configuration)
+- Source shell customizations if available in PATH
 
 ## Environment Variables
 
 Environment variables are defined in two places:
 
 1. **docker-compose.yml**: Contains most of the environment variables for tools and caching
-2. **Environment File**: Personal settings are stored in `/opt/configs/graphprotocol/contracts.env`
+2. **Environment File**: Personal settings are stored in `/opt/configs/graphprotocol/contracts.env` on the host
 
 ### Git Configuration
 

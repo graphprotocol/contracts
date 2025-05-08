@@ -131,7 +131,6 @@ else
 fi
 
 # Set up Git SSH signing
-echo "Setting up Git SSH signing..."
 if [ -f "$SCRIPT_DIR/setup-git-signing.sh" ]; then
   "$SCRIPT_DIR/setup-git-signing.sh"
 else
