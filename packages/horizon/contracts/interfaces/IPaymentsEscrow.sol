@@ -86,13 +86,15 @@ interface IPaymentsEscrow {
      * @param collector The address of the collector
      * @param receiver The address of the receiver
      * @param tokens The amount of tokens collected
+     * @param receiverDestination The address where the receiver's payment should be sent.
      */
     event EscrowCollected(
         IGraphPayments.PaymentTypes indexed paymentType,
         address indexed payer,
         address indexed collector,
         address receiver,
-        uint256 tokens
+        uint256 tokens,
+        address receiverDestination
     );
 
     // -- Errors --
@@ -221,6 +223,7 @@ interface IPaymentsEscrow {
      * @param tokens The amount of tokens to collect
      * @param dataService The address of the data service
      * @param dataServiceCut The data service cut in PPM that {GraphPayments} should send
+     * @param receiverDestination The address where the receiver's payment should be sent.
      */
     function collect(
         IGraphPayments.PaymentTypes paymentType,
@@ -228,7 +231,8 @@ interface IPaymentsEscrow {
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 dataServiceCut
+        uint256 dataServiceCut,
+        address receiverDestination
     ) external;
 
     /**

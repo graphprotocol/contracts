@@ -49,6 +49,13 @@ interface ISubgraphService is IDataServiceFees {
     );
 
     /**
+     * @notice Emitted when an indexer sets a new payments destination
+     * @param indexer The address of the indexer
+     * @param paymentsDestination The address where payments should be sent
+     */
+    event PaymentsDestinationSet(address indexed indexer, address indexed paymentsDestination);
+
+    /**
      * @notice Emitted when the stake to fees ratio is set.
      * @param ratio The stake to fees ratio
      */
@@ -244,11 +251,11 @@ interface ISubgraphService is IDataServiceFees {
     function setCurationCut(uint256 curationCut) external;
 
     /**
-     * @notice Sets the rewards destination for an indexer to receive indexing rewards
-     * @dev Emits a {RewardsDestinationSet} event
-     * @param rewardsDestination The address where indexing rewards should be sent
+     * @notice Sets the payments destination for an indexer to receive payments
+     * @dev Emits a {PaymentsDestinationSet} event
+     * @param paymentsDestination The address where payments should be sent
      */
-    function setRewardsDestination(address rewardsDestination) external;
+    function setPaymentsDestination(address paymentsDestination) external;
 
     /**
      * @notice Gets the details of an allocation

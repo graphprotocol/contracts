@@ -62,6 +62,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param tokensDelegationRewards The amount of tokens collected for delegators
      * @param poi The POI presented
      * @param currentEpoch The current epoch
+     * @param poiMetadata The metadata associated with the POI
      */
     event IndexingRewardsCollected(
         address indexed indexer,
@@ -71,6 +72,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint256 tokensIndexerRewards,
         uint256 tokensDelegationRewards,
         bytes32 poi,
+        bytes poiMetadata,
         uint256 currentEpoch
     );
 
@@ -117,13 +119,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         address indexed allocationId,
         bytes32 indexed subgraphDeploymentId
     );
-
-    /**
-     * @notice Emitted when an indexer sets a new indexing rewards destination
-     * @param indexer The address of the indexer
-     * @param rewardsDestination The address where indexing rewards should be sent
-     */
-    event RewardsDestinationSet(address indexed indexer, address indexed rewardsDestination);
 
     /**
      * @notice Emitted when the maximum POI staleness is updated
@@ -261,23 +256,25 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      *
      * @param _allocationId The id of the allocation to collect rewards for
      * @param _poi The POI being presented
+     * @param _poiMetadata The metadata associated with the POI. The data and encoding format is for off-chain components to define, this function will only emit the value in an event as-is.
      * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @param _paymentsDestination The address where indexing rewards should be sent
      * @return The amount of tokens collected
      */
-    function _collectIndexingRewards(
+    function _presentPOI(
         address _allocationId,
         bytes32 _poi,
-        uint32 _delegationRatio
+        bytes memory _poiMetadata,
+        uint32 _delegationRatio,
+        address _paymentsDestination
     ) internal returns (uint256) {
         Allocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
-        uint256 currentEpoch = _graphEpochManager().currentEpoch();
-
         // Mint indexing rewards if all conditions are met
         uint256 tokensRewards = (!allocation.isStale(maxPOIStaleness) &&
             !allocation.isAltruistic() &&
-            _poi != bytes32(0)) && currentEpoch > allocation.createdAtEpoch
+            _poi != bytes32(0)) && _graphEpochManager().currentEpoch() > allocation.createdAtEpoch
             ? _graphRewardsManager().takeRewards(_allocationId)
             : 0;
 
@@ -314,12 +311,11 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             // Distribute rewards to indexer
             tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
             if (tokensIndexerRewards > 0) {
-                address rewardsDestination = rewardsDestination[allocation.indexer];
-                if (rewardsDestination == address(0)) {
+                if (_paymentsDestination == address(0)) {
                     _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
                     _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
                 } else {
-                    _graphToken().pushTokens(rewardsDestination, tokensIndexerRewards);
+                    _graphToken().pushTokens(_paymentsDestination, tokensIndexerRewards);
                 }
             }
         }
@@ -332,7 +328,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             tokensIndexerRewards,
             tokensDelegationRewards,
             _poi,
-            currentEpoch
+            _poiMetadata,
+            _graphEpochManager().currentEpoch()
         );
 
         // Check if the indexer is over-allocated and force close the allocation if necessary
@@ -435,17 +432,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
             allocation.tokens,
             _forceClosed
         );
-    }
-
-    /**
-     * @notice Sets the rewards destination for an indexer to receive indexing rewards
-     * @dev Emits a {RewardsDestinationSet} event
-     * @param _indexer The address of the indexer
-     * @param _rewardsDestination The address where indexing rewards should be sent
-     */
-    function _setRewardsDestination(address _indexer, address _rewardsDestination) internal {
-        rewardsDestination[_indexer] = _rewardsDestination;
-        emit RewardsDestinationSet(_indexer, _rewardsDestination);
     }
 
     /**

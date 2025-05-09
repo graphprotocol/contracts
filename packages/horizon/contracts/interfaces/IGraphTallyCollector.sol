@@ -107,7 +107,10 @@ interface IGraphTallyCollector is IPaymentsCollector {
      * - The amount of tokens to collect must be less than or equal to the total amount of tokens in the RAV minus
      *   the tokens already collected.
      * @param paymentType The payment type to collect
-     * @param data Additional data required for the payment collection
+     * @param data Additional data required for the payment collection. Encoded as follows:
+     * - SignedRAV `signedRAV`: The signed RAV
+     * - uint256 `dataServiceCut`: The data service cut in PPM
+     * - address `receiverDestination`: The address where the receiver's payment should be sent.
      * @param tokensToCollect The amount of tokens to collect
      * @return The amount of tokens collected
      */

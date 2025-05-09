@@ -58,6 +58,12 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
      * - Signer of the RAV must be authorized to sign for the payer.
      * - Service provider must have an active provision with the data service to collect payments.
      * @notice REVERT: This function may revert if ECDSA.recover fails, check ECDSA library for details.
+     * @param paymentType The payment type to collect
+     * @param data Additional data required for the payment collection. Encoded as follows:
+     * - SignedRAV `signedRAV`: The signed RAV
+     * - uint256 `dataServiceCut`: The data service cut in PPM
+     * - address `receiverDestination`: The address where the receiver's payment should be sent.
+     * @return The amount of tokens collected
      */
     /// @inheritdoc IPaymentsCollector
     function collect(IGraphPayments.PaymentTypes paymentType, bytes calldata data) external override returns (uint256) {
@@ -96,7 +102,7 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
         bytes calldata _data,
         uint256 _tokensToCollect
     ) private returns (uint256) {
-        (SignedRAV memory signedRAV, uint256 dataServiceCut) = abi.decode(_data, (SignedRAV, uint256));
+        (SignedRAV memory signedRAV, uint256 dataServiceCut, address receiverDestination) = abi.decode(_data, (SignedRAV, uint256, address));
 
         // Ensure caller is the RAV data service
         require(
@@ -123,10 +129,9 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
         }
 
         uint256 tokensToCollect = 0;
-        address payer = signedRAV.rav.payer;
         {
             uint256 tokensRAV = signedRAV.rav.valueAggregate;
-            uint256 tokensAlreadyCollected = tokensCollected[dataService][collectionId][receiver][payer];
+            uint256 tokensAlreadyCollected = tokensCollected[dataService][collectionId][receiver][signedRAV.rav.payer];
             require(
                 tokensRAV > tokensAlreadyCollected,
                 GraphTallyCollectorInconsistentRAVTokens(tokensRAV, tokensAlreadyCollected)
@@ -147,16 +152,16 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
         }
 
         if (tokensToCollect > 0) {
-            tokensCollected[dataService][collectionId][receiver][payer] += tokensToCollect;
-            _graphPaymentsEscrow().collect(_paymentType, payer, receiver, tokensToCollect, dataService, dataServiceCut);
+            tokensCollected[dataService][collectionId][receiver][signedRAV.rav.payer] += tokensToCollect;
+            _graphPaymentsEscrow().collect(_paymentType, signedRAV.rav.payer, receiver, tokensToCollect, dataService, dataServiceCut, receiverDestination);
         }
 
-        emit PaymentCollected(_paymentType, collectionId, payer, receiver, dataService, tokensToCollect);
+        emit PaymentCollected(_paymentType, collectionId, signedRAV.rav.payer, receiver, dataService, tokensToCollect);
 
         // This event is emitted to allow reconstructing RAV history with onchain data.
         emit RAVCollected(
             collectionId,
-            payer,
+            signedRAV.rav.payer,
             receiver,
             dataService,
             signedRAV.rav.timestampNs,

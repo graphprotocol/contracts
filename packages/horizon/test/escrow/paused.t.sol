@@ -66,7 +66,8 @@ contract GraphEscrowPausedTest is GraphEscrowTest {
             users.indexer,
             tokens,
             subgraphDataServiceAddress,
-            tokensDataService
+            tokensDataService,
+            users.indexer
         );
     }
 }

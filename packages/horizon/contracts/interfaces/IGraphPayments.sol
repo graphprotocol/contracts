@@ -31,6 +31,7 @@ interface IGraphPayments {
      * @param tokensDataService Amount of tokens for the data service
      * @param tokensDelegationPool Amount of tokens for delegators
      * @param tokensReceiver Amount of tokens for the receiver
+     * @param receiverDestination The address where the receiver's payment cut is sent.
      */
     event GraphPaymentCollected(
         PaymentTypes indexed paymentType,
@@ -41,7 +42,8 @@ interface IGraphPayments {
         uint256 tokensProtocol,
         uint256 tokensDataService,
         uint256 tokensDelegationPool,
-        uint256 tokensReceiver
+        uint256 tokensReceiver,
+        address receiverDestination
     );
 
     /**
@@ -63,19 +65,25 @@ interface IGraphPayments {
 
     /**
      * @notice Collects funds from a payer.
-     * It will pay cuts to all relevant parties and forward the rest to the receiver.
+     * It will pay cuts to all relevant parties and forward the rest to the receiver destination address. If the
+     * destination address is zero the funds are automatically staked to the receiver. Note that the receiver 
+     * destination address can be set to the receiver address to collect funds on the receiver without re-staking.
+     *
      * Note that the collected amount can be zero.
+     *
      * @param paymentType The type of payment as defined in {IGraphPayments}
      * @param receiver The address of the receiver
      * @param tokens The amount of tokens being collected.
      * @param dataService The address of the data service
      * @param dataServiceCut The data service cut in PPM
+     * @param receiverDestination The address where the receiver's payment cut is sent.
      */
     function collect(
         PaymentTypes paymentType,
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 dataServiceCut
+        uint256 dataServiceCut,
+        address receiverDestination
     ) external;
 }
