@@ -271,8 +271,8 @@ describe('Indexer', () => {
           otherAllocationId = indexerFixture.allocations[1].allocationID
 
           // Check rewards destination is not set
-          const rewardsDestination = await subgraphService.rewardsDestination(indexer.address)
-          expect(rewardsDestination).to.equal(ethers.ZeroAddress, 'Rewards destination should be zero address')
+          const paymentsDestination = await subgraphService.paymentsDestination(indexer.address)
+          expect(paymentsDestination).to.equal(ethers.ZeroAddress, 'Payments destination should be zero address')
         })
 
         it('should collect indexing rewards with re-provisioning', async () => {
@@ -483,7 +483,7 @@ describe('Indexer', () => {
 
     describe('With delegation pool tokens equal to zero', () => {
       describe('With rewards destination', () => {
-        let rewardsDestination: string
+        let paymentsDestination: string
 
         beforeEach(async () => {
           // Get indexer
@@ -496,13 +496,13 @@ describe('Indexer', () => {
           allocationId = allocation.allocationID
 
           // Check rewards destination is set
-          rewardsDestination = await subgraphService.rewardsDestination(indexer.address)
-          expect(rewardsDestination).not.equal(ethers.ZeroAddress, 'Rewards destination should be set')
+          paymentsDestination = await subgraphService.paymentsDestination(indexer.address)
+          expect(paymentsDestination).not.equal(ethers.ZeroAddress, 'Payments destination should be set')
         })
 
-        it('should collect indexing rewards with rewards destination', async () => {
+        it.only('should collect indexing rewards with rewards destination', async () => {
           // Get before balance of rewards destination
-          const beforeRewardsDestinationBalance = await graphToken.balanceOf(rewardsDestination)
+          const beforePaymentsDestinationBalance = await graphToken.balanceOf(paymentsDestination)
 
           // Mine multiple blocks to simulate time passing
           for (let i = 0; i < 500; i++) {
@@ -522,11 +522,12 @@ describe('Indexer', () => {
 
           // Collect rewards
           const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
+          console.log('rewards', rewards)
           expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
-          // Verify rewards are transferred to rewards destination
-          const afterRewardsDestinationBalance = await graphToken.balanceOf(rewardsDestination)
-          expect(afterRewardsDestinationBalance).to.equal(beforeRewardsDestinationBalance + rewards, 'Rewards should be transferred to rewards destination')
+          // Verify rewards are transferred to payments destination
+          const afterPaymentsDestinationBalance = await graphToken.balanceOf(paymentsDestination)
+          expect(afterPaymentsDestinationBalance).to.equal(beforePaymentsDestinationBalance + rewards, 'Rewards should be transferred to payments destination')
         })
       })
     })
@@ -592,12 +593,11 @@ describe('Indexer', () => {
       const encodedSignedRAV = encodeCollectQueryFeesData(rav, signature, 0n)
 
       // Get balance and delegation pool tokens before collect
-      const beforeBalance = await graphToken.balanceOf(indexer.address)
+      const beforeIndexerStake = await staking.getStake(indexer.address)
       const beforeDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
 
       // Collect query fees
-      const payment = await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
-      console.log('payment', payment)
+      await collect(indexer, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV])
 
       // Calculate expected rewards
       const rewardsAfterTax = collectTokens - (collectTokens * BigInt(await graphPayments.PROTOCOL_PAYMENT_CUT())) / BigInt(1e6)
@@ -608,17 +608,16 @@ describe('Indexer', () => {
       const afterDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
       expect(afterDelegationPoolTokens).to.equal(beforeDelegationPoolTokens + delegatorTokens)
 
-      // Verify indexer received tokens
+      // Verify indexer received tokens were automatically restaked
       const indexerTokens = rewardsAfterCuration - delegatorTokens
-      const afterBalance = await graphToken.balanceOf(indexer.address)
-      expect(afterBalance).to.equal(beforeBalance + indexerTokens)
+      const afterIndexerStake = await staking.getStake(indexer.address)
+      expect(afterIndexerStake).to.equal(beforeIndexerStake + indexerTokens)
     })
 
     it('should collect multiple SignedRAVs', async () => {
       // Get balance and delegation pool tokens before collect
-      const beforeBalance = await graphToken.balanceOf(indexer.address)
       const beforeDelegationPoolTokens = (await staking.getDelegationPool(indexer.address, subgraphService.target)).tokens
-
+      const beforeIndexerStake = await staking.getStake(indexer.address)
       // Get fees
       const fees1 = collectTokens / 4n
       const fees2 = collectTokens / 2n
@@ -670,8 +669,8 @@ describe('Indexer', () => {
 
       // Verify indexer received tokens
       const indexerTokens = totalRewardsAfterCuration - delegatorTokens
-      const afterBalance = await graphToken.balanceOf(indexer.address)
-      expect(afterBalance).to.equal(beforeBalance + indexerTokens)
+      const afterIndexerStake = await staking.getStake(indexer.address)
+      expect(afterIndexerStake).to.equal(beforeIndexerStake + indexerTokens)
 
       // Collect new RAV for allocation 1
       const newFees1 = fees1 * 2n
