@@ -66,10 +66,10 @@ describe('AllocationExchange', () => {
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    allocationExchange = contracts.AllocationExchange
+    allocationExchange = contracts.AllocationExchange as AllocationExchange
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
-    epochManager = contracts.EpochManager
+    epochManager = contracts.EpochManager as EpochManager
 
     // Give some funds to the indexer and approve staking contract to use funds on indexer behalf
     const indexerTokens = toGRT('100000')

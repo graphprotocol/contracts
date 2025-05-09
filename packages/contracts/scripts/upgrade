@@ -55,7 +55,7 @@ echo "- Upgrade name: $UPGRADE_NAME"
 ## SETUP
 # Compile contracts
 print_separator "Building contracts"
-yarn build
+pnpm build
 
 # Build fork address book with actual contract addresses from the forked chain
 jq "{\"$CHAIN_ID\"} + {"\"1337\"": .\"$CHAIN_ID\"} | del(.\"$CHAIN_ID\")" $ADDRESS_BOOK > addresses-fork.json

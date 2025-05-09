@@ -56,7 +56,7 @@ The contracts are upgradable, following the [Open Zeppelin Proxy Upgrade Pattern
 The [NPM package](https://www.npmjs.com/package/@graphprotocol/contracts) contains contract interfaces and addresses for the testnet and mainnet. It also contains [typechain](https://github.com/ethereum-ts/TypeChain) generated objects to easily interact with the contracts. This allows for anyone to install the package in their repository and interact with the protocol. It is updated and released whenever a change to the contracts occurs.
 
 ```
-yarn add @graphprotocol/contracts
+pnpm add @graphprotocol/contracts
 ```
 
 # Contract Addresses
@@ -68,8 +68,8 @@ The testnet runs on Goerli, while mainnet is on Ethereum Mainnet. The addresses 
 To setup the contracts locally, checkout the `dev` branch, then run:
 
 ```bash
-yarn
-yarn build
+pnpm
+pnpm build
 ```
 
 # Testing

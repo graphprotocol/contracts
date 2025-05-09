@@ -68,18 +68,19 @@ describe('L1GraphTokenGateway', () => {
     // Deploy L1
     fixtureContracts = await fixture.load(governor)
     grt = fixtureContracts.GraphToken as GraphToken
-    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway
-    bridgeEscrow = fixtureContracts.BridgeEscrow
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
+    bridgeEscrow = fixtureContracts.BridgeEscrow as BridgeEscrow
 
     // Deploy L1 arbitrum bridge
+    // @ts-expect-error sdk deprecation
     ;({ bridgeMock, inboxMock, outboxMock, routerMock } = await fixture.loadL1ArbitrumBridge(
       governor,
     ))
 
     // Deploy L2 mock
     l2MockContracts = await fixture.loadMock(true)
-    l2GRTMock = l2MockContracts.L2GraphToken
-    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway
+    l2GRTMock = l2MockContracts.L2GraphToken as L2GraphToken
+    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
 
     // Give some funds to the token sender/router mock
     await grt.connect(governor).mint(tokenSender.address, senderTokens)

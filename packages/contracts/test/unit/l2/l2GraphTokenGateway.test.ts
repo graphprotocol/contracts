@@ -57,8 +57,8 @@ describe('L2GraphTokenGateway', () => {
     // Deploy L2
     fixtureContracts = await fixture.load(governor, true)
     grt = fixtureContracts.GraphToken as L2GraphToken
-    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway
-    rewardsManager = fixtureContracts.RewardsManager
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
+    rewardsManager = fixtureContracts.RewardsManager as RewardsManager
 
     // Deploy L2 arbitrum bridge
     ;({ routerMock } = await fixture.loadL2ArbitrumBridge(governor))
@@ -66,7 +66,7 @@ describe('L2GraphTokenGateway', () => {
     // Deploy L1 mock
     l1MockContracts = await fixture.loadMock(false)
     l1GRTMock = l1MockContracts.GraphToken as GraphToken
-    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
 
     callhookReceiverMock = (
       await deploy(DeployType.Deploy, governor, {

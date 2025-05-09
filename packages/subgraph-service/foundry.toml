@@ -6,4 +6,4 @@ test = 'test'
 cache_path  = 'cache_forge'
 fs_permissions = [{ access = "read", path = "./"}]
 optimizer = true
-optimizer-runs = 100
+optimizer_runs = 100

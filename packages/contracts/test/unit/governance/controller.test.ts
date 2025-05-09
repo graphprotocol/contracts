@@ -31,8 +31,8 @@ describe('Managed', () => {
     // is cleaner and easier for us to test
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    epochManager = contracts.EpochManager
-    controller = contracts.Controller
+    epochManager = contracts.EpochManager as EpochManager
+    controller = contracts.Controller as Controller
   })
 
   beforeEach(async function () {

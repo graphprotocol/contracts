@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: |
           pushd packages/contracts
-          yarn build || yarn build
+          pnpm build || pnpm build
 
       - name: Save build artifacts
         uses: actions/upload-artifact@v3
@@ -55,14 +55,14 @@ jobs:
       - name: Build
         run: |
           pushd packages/contracts
-          yarn build || yarn build
+          pnpm build || pnpm build
       - name: Get build artifacts
         uses: actions/download-artifact@v3
         with:
           name: contract-artifacts
 
       - name: Verify contracts on Defender
-        run: cd packages/contracts && yarn hardhat --network ${{ inputs.network }} verify-defender ${{ inputs.contracts }}
+        run: cd packages/contracts && pnpm hardhat --network ${{ inputs.network }} verify-defender ${{ inputs.contracts }}
         env:
           DEFENDER_API_KEY: "${{ secrets.DEFENDER_API_KEY }}"
           DEFENDER_API_SECRET: "${{ secrets.DEFENDER_API_SECRET }}"

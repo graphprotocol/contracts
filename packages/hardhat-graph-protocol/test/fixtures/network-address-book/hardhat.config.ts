@@ -19,9 +19,7 @@ const config: HardhatUserConfig = {
       chainId: 1,
       url: `https://mainnet.infura.io/v3/123456`,
       deployments: {
-        horizon: {
-          addressBook: 'addresses-network.json',
-        },
+        horizon: 'addresses-network.json',
       },
     },
     'arbitrum-one': {
@@ -47,9 +45,7 @@ const config: HardhatUserConfig = {
   },
   graph: {
     deployments: {
-      horizon: {
-        addressBook: 'addresses-global.json',
-      },
+      horizon: 'addresses-global.json',
     },
   },
 }

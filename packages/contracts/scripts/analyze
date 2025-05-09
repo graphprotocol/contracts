@@ -11,7 +11,7 @@
 mkdir -p reports
 
 pip3 install --user slither-analyzer && \
-yarn build && \
+pnpm build && \
 
 echo "Analyzing contracts..."
 slither . \

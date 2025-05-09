@@ -12,8 +12,6 @@ The following environment variables might be required:
 | `ARBITRUM_ONE_RPC` | Arbitrum One RPC URL - defaults to `https://arb1.arbitrum.io/rpc` |
 | `ARBITRUM_SEPOLIA_RPC` | Arbitrum Sepolia RPC URL - defaults to `https://sepolia-rollup.arbitrum.io/rpc` |
 | `LOCALHOST_RPC` | Localhost RPC URL - defaults to `http://localhost:8545` |
-| `LOCALHOST_CHAIN_ID` | Localhost chain ID - defaults to `31337` |
-| `LOCALHOST_ACCOUNTS_MNEMONIC` | Localhost accounts mnemonic - no default value. Note that setting this will override any secure accounts configuration. |
 
 You can set them using Hardhat:
 
@@ -24,8 +22,8 @@ npx hardhat vars set <variable>
 ## Build
 
 ```bash
-yarn install
-yarn build
+pnpm install
+pnpm build
 ```
 
 ## Deployment
@@ -53,3 +51,19 @@ cd horizon && npx hardhat deploy:migrate --network hardhat --step 4 && cd .. # R
 ```
 
 Horizon Steps 2, 3 and 4, and Subgraph Service Step 2 require patching the configuration file with addresses from previous steps. The files are located in the `ignition/configs` directory and need to be manually edited. You can also pass `--patch-config` flag to the deploy command to automatically patch the configuration reading values from the address book. Note that this will NOT update the configuration file.
+
+## Testing
+
+- Unit tests can be run with `pnpm test`
+- Deployment tests can be run with `pnpm test:deployment --network <network>`
+   - By default, deployment tests assume a `migrate` deployment type. This can be overridden by setting the `IGNITION_DEPLOYMENT_TYPE` environment variable to `protocol`, however the tests only cover state transitions
+   originated by a `migrate` deployment.
+
+## Verification
+
+To verify contracts on a network, run the following commands:
+
+```bash
+./scripts/pre-verify <ignition-deployment-id>
+npx hardhat ignition verify --network <network> --include-unrelated-contracts <ignition-deployment-id>
+```

@@ -34,7 +34,7 @@ describe('Upgrades', () => {
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     staking = contracts.Staking as IStaking
-    proxyAdmin = contracts.GraphProxyAdmin
+    proxyAdmin = contracts.GraphProxyAdmin as GraphProxyAdmin
     curation = contracts.Curation as Curation
     stakingProxy = loadContractAt('GraphProxy', staking.address, undefined, governor) as GraphProxy
 

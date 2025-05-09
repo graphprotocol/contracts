@@ -1,0 +1,51 @@
+name: CI - packages/toolshed
+
+env:
+  CI: true
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - packages/toolshed/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/toolshed/**
+  workflow_dispatch:
+
+jobs:
+  test-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Build contracts
+        run: |
+          pushd packages/contracts
+          pnpm build
+          popd
+      - name: Build horizon
+        run: |
+          pushd packages/horizon
+          pnpm build
+          popd
+      - name: Build subgraph service
+        run: |
+          pushd packages/subgraph-service
+          pnpm build
+          popd
+      - name: Build toolshed
+        run: |
+          pushd packages/toolshed
+          pnpm build
+          popd
+      - name: Build hardhat-graph-protocol
+        run: |
+          pushd packages/hardhat-graph-protocol
+          pnpm build
+          popd

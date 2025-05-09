@@ -126,17 +126,17 @@ describe('L2GNS', () => {
 
     // Deploy L2
     fixtureContracts = await fixture.load(governor, true)
-    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway
-    gns = fixtureContracts.L2GNS
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
+    gns = fixtureContracts.L2GNS as L2GNS
     staking = fixtureContracts.L2Staking as unknown as IL2Staking
-    curation = fixtureContracts.L2Curation
+    curation = fixtureContracts.L2Curation as L2Curation
     grt = fixtureContracts.GraphToken as GraphToken
 
     // Deploy L1 mock
     l1MockContracts = await fixture.loadMock(false)
     l1GRTMock = l1MockContracts.GraphToken as GraphToken
-    l1GNSMock = l1MockContracts.L1GNS
-    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway
+    l1GNSMock = l1MockContracts.L1GNS as L1GNS
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
 
     // Deploy L2 arbitrum bridge
     await fixture.loadL2ArbitrumBridge(governor)

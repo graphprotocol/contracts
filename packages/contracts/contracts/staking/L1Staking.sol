@@ -8,6 +8,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { Staking } from "./Staking.sol";
 import { Stakes } from "./libs/Stakes.sol";
+import { IStakes } from "./libs/IStakes.sol";
 import { IStakingData } from "./IStakingData.sol";
 import { L1StakingV1Storage } from "./L1StakingStorage.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
@@ -22,7 +23,7 @@ import { IL2StakingTypes } from "../l2/staking/IL2StakingTypes.sol";
  * to send an indexer's stake to L2, and to send delegation to L2 as well.
  */
 contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
-    using Stakes for Stakes.Indexer;
+    using Stakes for IStakes.Indexer;
     using SafeMath for uint256;
 
     /**
@@ -231,7 +232,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _maxSubmissionCost,
         uint256 _ethAmount
     ) internal {
-        Stakes.Indexer storage indexerStake = __stakes[_indexer];
+        IStakes.Indexer storage indexerStake = __stakes[_indexer];
         require(indexerStake.tokensStaked != 0, "tokensStaked == 0");
         // Indexers shouldn't be trying to withdraw tokens before transferring to L2.
         // Allowing this would complicate our accounting so we require that they have no

@@ -22,12 +22,10 @@ describe('GRE init functions', function () {
       this.hre = loadHardhatContext('network-address-book', 'mainnet')
       const addressBook = getAddressBookPath('horizon', this.hre, {
         deployments: {
-          horizon: {
-            addressBook: 'addresses-opt.json',
-          },
+          horizon: 'addresses-opt.json',
         },
       })
-      expect(path.basename(addressBook)).to.equal('addresses-opt.json')
+      expect(path.basename(addressBook!)).to.equal('addresses-opt.json')
     })
 
     it('should use opts parameter if available - shortcut syntax', function () {
@@ -37,14 +35,14 @@ describe('GRE init functions', function () {
           horizon: 'addresses-opt.json',
         },
       })
-      expect(path.basename(addressBook)).to.equal('addresses-opt.json')
+      expect(path.basename(addressBook!)).to.equal('addresses-opt.json')
     })
 
     // Address book via network config should be used
     it('should use HH network config', function () {
       this.hre = loadHardhatContext('network-address-book', 'mainnet')
       const addressBook = getAddressBookPath('horizon', this.hre, {})
-      expect(path.basename(addressBook)).to.equal('addresses-network.json')
+      expect(path.basename(addressBook!)).to.equal('addresses-network.json')
     })
 
     it('should use HH network config - shortcut syntax', function () {
@@ -53,14 +51,14 @@ describe('GRE init functions', function () {
         this.hre.network.config.deployments.horizon = 'addresses-network-short.json'
       }
       const addressBook = getAddressBookPath('horizon', this.hre, {})
-      expect(path.basename(addressBook)).to.equal('addresses-network-short.json')
+      expect(path.basename(addressBook!)).to.equal('addresses-network-short.json')
     })
 
     // Address book via global config should be used
     it('should use HH global config', function () {
       this.hre = loadHardhatContext('global-address-book', 'mainnet')
       const addressBook = getAddressBookPath('horizon', this.hre, {})
-      expect(path.basename(addressBook)).to.equal('addresses-global.json')
+      expect(path.basename(addressBook!)).to.equal('addresses-global.json')
     })
 
     it('should use HH global config - shortcut syntax', function () {
@@ -69,7 +67,7 @@ describe('GRE init functions', function () {
         this.hre.config.graph.deployments.horizon = 'addresses-global-short.json'
       }
       const addressBook = getAddressBookPath('horizon', this.hre, {})
-      expect(path.basename(addressBook)).to.equal('addresses-global-short.json')
+      expect(path.basename(addressBook!)).to.equal('addresses-global-short.json')
     })
   })
 })

@@ -17,7 +17,7 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { L1GNS, L1GraphTokenGateway, L1Staking } from '../../../build/types'
+import { EpochManager, L1GNS, L1GraphTokenGateway, L1Staking } from '../../../build/types'
 
 const { AddressZero } = ethers.constants
 
@@ -88,14 +88,14 @@ describe('L2Staking', () => {
     fixtureContracts = await fixture.load(governor, true)
     grt = fixtureContracts.GraphToken as GraphToken
     staking = fixtureContracts.Staking as IL2Staking
-    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway
+    l2GraphTokenGateway = fixtureContracts.L2GraphTokenGateway as L2GraphTokenGateway
 
     // Deploy L1 mock
     l1MockContracts = await fixture.loadMock(false)
     l1GRTMock = l1MockContracts.GraphToken as GraphToken
-    l1StakingMock = l1MockContracts.L1Staking
-    l1GNSMock = l1MockContracts.L1GNS
-    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway
+    l1StakingMock = l1MockContracts.L1Staking as L1Staking
+    l1GNSMock = l1MockContracts.L1GNS as L1GNS
+    l1GRTGatewayMock = l1MockContracts.L1GraphTokenGateway as L1GraphTokenGateway
 
     // Deploy L2 arbitrum bridge
     await fixture.loadL2ArbitrumBridge(governor)
@@ -297,8 +297,8 @@ describe('L2Staking', () => {
       await fixtureContracts.Curation.connect(me).mint(subgraphDeploymentID, tokens10k, 0)
 
       await allocate(tokens100k)
-      await helpers.mineEpoch(fixtureContracts.EpochManager)
-      await helpers.mineEpoch(fixtureContracts.EpochManager)
+      await helpers.mineEpoch(fixtureContracts.EpochManager as EpochManager)
+      await helpers.mineEpoch(fixtureContracts.EpochManager as EpochManager)
       await staking.connect(me).closeAllocation(allocationID, randomHexBytes(32))
       // Now there are some rewards sent to delegation pool, so 1 weiGRT is less than 1 share
 
@@ -341,7 +341,7 @@ describe('L2Staking', () => {
       await fixtureContracts.Curation.connect(me).mint(subgraphDeploymentID, tokens10k, 0)
 
       await allocate(tokens100k)
-      await helpers.mineEpoch(fixtureContracts.EpochManager, 2)
+      await helpers.mineEpoch(fixtureContracts.EpochManager as EpochManager, 2)
       await staking.connect(me).closeAllocation(allocationID, randomHexBytes(32))
       // Now there are some rewards sent to delegation pool, so 1 weiGRT is less than 1 share
 

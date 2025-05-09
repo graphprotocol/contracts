@@ -1,6 +1,6 @@
 {
   "name": "hardhat-graph-protocol",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A hardhat plugin that extends the runtime environment to inject additional functionality related to the usage of the Graph Protocol.",
   "keywords": [
     "ethereum",
@@ -14,17 +14,13 @@
   "author": "Tomás Migone <tomas@edgeandnode.com>",
   "license": "MIT",
   "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
       "types": "./src/types.ts",
       "default": "./src/index.ts"
-    },
-    "./sdk": {
-      "types": "./src/sdk/index.ts",
-      "default": "./src/sdk/index.ts"
     }
   },
-  "types": "./dist/src/index.d.ts",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
@@ -39,9 +35,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@graphprotocol/contracts": "workspace:^7.0.0",
-    "@graphprotocol/horizon": "workspace:^0.0.1",
-    "@graphprotocol/subgraph-service": "workspace:^0.0.1",
+    "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "debug": "^4.3.7",
     "json5": "^2.2.3"

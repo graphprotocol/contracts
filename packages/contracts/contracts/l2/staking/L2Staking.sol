@@ -8,6 +8,7 @@ import { Staking } from "../../staking/Staking.sol";
 import { IL2StakingBase } from "./IL2StakingBase.sol";
 import { IL2Staking } from "./IL2Staking.sol";
 import { Stakes } from "../../staking/libs/Stakes.sol";
+import { IStakes } from "../../staking/libs/IStakes.sol";
 import { IL2StakingTypes } from "./IL2StakingTypes.sol";
 
 /**
@@ -18,7 +19,7 @@ import { IL2StakingTypes } from "./IL2StakingTypes.sol";
  */
 contract L2Staking is Staking, IL2StakingBase {
     using SafeMath for uint256;
-    using Stakes for Stakes.Indexer;
+    using Stakes for IStakes.Indexer;
 
     /// @dev Minimum amount of tokens that can be delegated
     uint256 private constant MINIMUM_DELEGATION = 1e18;

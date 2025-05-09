@@ -37,7 +37,7 @@ fi
 
 mkdir -p reports
 
-yarn run compile
+pnpm run compile
 
 if [ "$RUN_EVM" = true ]; then
   # Run using the standalone evm instance
