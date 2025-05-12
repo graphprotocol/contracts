@@ -104,8 +104,11 @@ __Note__: this step is meant to be run on the main branch.
 Packages are published and distributed via NPM. To publish a package, run the following command from the root of the repository:
 
 ```bash
-# Publish the package
+# Publish the packages
 $ pnpm changeset publish
+
+# Alternatively use 
+$ pnpm publish --recursive
 ```
 
 Alternatively, there is a GitHub action that can be manually triggered to publish a package.
