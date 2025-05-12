@@ -101,24 +101,24 @@ npx hardhat test:seed --network localhost
 npx hardhat test:transfer-ownership --network localhost
 
 # Run Horizon steps 1 deployment
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 1 --patch-config
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 1 --patch-config
 
 # Run Subgraph Service steps 1 deployment
 cd ../subgraph-service
-npx hardhat deploy:migrate --network localhost --step 1 --subgraph-service-config integration-test --patch-config --hide-banner
+npx hardhat deploy:migrate --network localhost --step 1 --subgraph-service-config integration --patch-config --hide-banner
 
 # Run Horizon deployment steps 2 and 3
 cd ../horizon
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 2 --patch-config --account-index 1 --hide-banner
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 3 --patch-config --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 2 --patch-config --account-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 3 --patch-config --hide-banner
 
 # Run Subgraph Service deployment step 2
 cd ../subgraph-service
-npx hardhat deploy:migrate --network localhost --step 2 --subgraph-service-config integration-test --patch-config --hide-banner
+npx hardhat deploy:migrate --network localhost --step 2 --subgraph-service-config integration --patch-config --hide-banner
 
 # Run Horizon deployment steps 4
 cd ../horizon
-npx hardhat deploy:migrate --network localhost --horizon-config e2e-test --step 4 --patch-config --account-index 1 --hide-banner
+npx hardhat deploy:migrate --network localhost --horizon-config integration --step 4 --patch-config --account-index 1 --hide-banner
 
 # Run Subgraph Service seed steps
 cd ../subgraph-service

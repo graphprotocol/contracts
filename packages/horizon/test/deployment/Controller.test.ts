@@ -2,6 +2,7 @@ import hre from 'hardhat'
 
 import { expect } from 'chai'
 import { toUtf8Bytes } from 'ethers'
+import { testIf } from './lib/testIf'
 
 const graph = hre.graph()
 const addressBook = graph.horizon.addressBook
@@ -18,12 +19,12 @@ describe('Controller', function () {
     expect(horizonStaking).to.equal(addressBook.getEntry('HorizonStaking').address)
   })
 
-  it('should have GraphPayments registered', async function () {
+  testIf(2)('should have GraphPayments registered', async function () {
     const graphPayments = await Controller.getContractProxy(hre.ethers.keccak256(toUtf8Bytes('GraphPayments')))
     expect(graphPayments).to.equal(addressBook.getEntry('GraphPayments').address)
   })
 
-  it('should have PaymentsEscrow registered', async function () {
+  testIf(2)('should have PaymentsEscrow registered', async function () {
     const paymentsEscrow = await Controller.getContractProxy(hre.ethers.keccak256(toUtf8Bytes('PaymentsEscrow')))
     expect(paymentsEscrow).to.equal(addressBook.getEntry('PaymentsEscrow').address)
   })
@@ -43,7 +44,7 @@ describe('Controller', function () {
     expect(graphTokenGateway).to.equal(addressBook.getEntry('L2GraphTokenGateway').address)
   })
 
-  it('should have GraphProxyAdmin registered', async function () {
+  testIf(2)('should have GraphProxyAdmin registered', async function () {
     const graphProxyAdmin = await Controller.getContractProxy(hre.ethers.keccak256(toUtf8Bytes('GraphProxyAdmin')))
     expect(graphProxyAdmin).to.equal(addressBook.getEntry('GraphProxyAdmin').address)
   })

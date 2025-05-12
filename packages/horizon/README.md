@@ -54,9 +54,10 @@ Steps 2, 3 and 4 require patching the configuration file with addresses from pre
 - **integration**: Integration tests can be run with `pnpm test:integration`
       - Need to set `BLOCKCHAIN_RPC` for a chain where The Graph is already deployed
       - If no `BLOCKCHAIN_RPC` is detected it will try using `ARBITRUM_SEPOLIA_RPC`
-- **deployment**: Deployment tests can be run with `pnpm test:deployment --network <network>`
-   - By default, deployment tests assume a `migrate` deployment type. This can be overridden by setting the `IGNITION_DEPLOYMENT_TYPE` environment variable to `protocol`, however the tests only cover state transitions
-   originated by a `migrate` deployment.
+- **deployment**: Deployment tests can be run with `pnpm test:deployment --network <network>`, the following environment variables allow customizing the test suite for different scenarios:
+   - `TEST_DEPLOYMENT_STEP` (default: 1) - Specify the latest deployment step that has been executed. Tests for later steps will be skipped.
+   - `TEST_DEPLOYMENT_TYPE` (default: migrate) - The deployment type `protocol/migrate` that is being tested. Test suite has been developed for `migrate` use case but can be run against a `protocol` deployment, likely with some failed tests.
+   - `TEST_DEPLOYMENT_CONFIG` (default: `hre.network.name`) - The Ignition config file name to use for the test suite.
 
 ## Verification
 

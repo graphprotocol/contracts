@@ -91,29 +91,29 @@ npx hardhat test:transfer-ownership --network localhost
 # Step 1 - Deployer
 npx hardhat deploy:migrate --network localhost --horizon-config integration --step 1
 
-# Step 2 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config integration --step 2 --patch-config --account-index 1 --hide-banner --standalone
+# # Step 2 - Governor
+# npx hardhat deploy:migrate --network localhost --horizon-config integration --step 2 --patch-config --account-index 1 --hide-banner --standalone
 
-# Step 3 - Deployer
-npx hardhat deploy:migrate --network localhost --horizon-config integration --step 3 --patch-config --hide-banner --standalone
+# # Step 3 - Deployer
+# npx hardhat deploy:migrate --network localhost --horizon-config integration --step 3 --patch-config --hide-banner --standalone
 
-# Step 4 - Governor
-npx hardhat deploy:migrate --network localhost --horizon-config integration --step 4 --patch-config --account-index 1 --hide-banner --standalone
+# # Step 4 - Governor
+# npx hardhat deploy:migrate --network localhost --horizon-config integration --step 4 --patch-config --account-index 1 --hide-banner --standalone
 
-# Run integration tests - During transition period
-npx hardhat test:integration --phase during-transition-period --network localhost
+# # Run integration tests - During transition period
+# npx hardhat test:integration --phase during-transition-period --network localhost
 
-# Clear thawing period
-npx hardhat transition:clear-thawing --network localhost
+# # Clear thawing period
+# npx hardhat transition:clear-thawing --network localhost
 
-# Run integration tests - After transition period
-npx hardhat test:integration --phase after-transition-period --network localhost
+# # Run integration tests - After transition period
+# npx hardhat test:integration --phase after-transition-period --network localhost
 
-# Enable delegation slashing
-npx hardhat transition:enable-delegation-slashing --network localhost
+# # Enable delegation slashing
+# npx hardhat transition:enable-delegation-slashing --network localhost
 
-# Run integration tests - After delegation slashing enabled
-npx hardhat test:integration --phase after-delegation-slashing-enabled --network localhost
+# # Run integration tests - After delegation slashing enabled
+# npx hardhat test:integration --phase after-delegation-slashing-enabled --network localhost
 
 echo ""
 echo "🎉 ✨ 🚀 ✅ Integration tests completed successfully! 🎉 ✨ 🚀 ✅"

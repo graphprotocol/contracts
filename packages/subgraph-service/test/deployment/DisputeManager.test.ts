@@ -2,49 +2,59 @@ import hre from 'hardhat'
 
 import { expect } from 'chai'
 import { loadConfig } from '@graphprotocol/toolshed/hardhat'
+import { testIf } from '../../../horizon/test/deployment/lib/testIf'
 import { transparentUpgradeableProxyTests } from '../../../horizon/test/deployment/lib/TransparentUpgradeableProxy.tests'
 
-const config = loadConfig('./ignition/configs/', 'migrate', hre.network.name).config
+const config = loadConfig(
+  './ignition/configs/',
+  'migrate',
+  String(process.env.TEST_DEPLOYMENT_CONFIG ?? hre.network.name),
+).config
 const graph = hre.graph()
 
 const addressBookEntry = graph.subgraphService.addressBook.getEntry('DisputeManager')
 const DisputeManager = graph.subgraphService.contracts.DisputeManager
 
 describe('DisputeManager', function () {
-  it('should be owned by the governor', async function () {
+  testIf(2)('should be owned by the governor', async function () {
     const owner = await DisputeManager.owner()
     expect(owner).to.equal(config.$global.governor)
   })
 
-  it('should set the right arbitrator', async function () {
+  testIf(2)('should set the right arbitrator', async function () {
     const arbitrator = await DisputeManager.arbitrator()
     expect(arbitrator).to.equal(config.$global.arbitrator)
   })
 
-  it('should set the right dispute period', async function () {
+  testIf(2)('should set the right dispute period', async function () {
     const disputePeriod = await DisputeManager.disputePeriod()
     expect(disputePeriod).to.equal(config.DisputeManager.disputePeriod)
   })
 
-  it('should set the right dispute deposit', async function () {
+  testIf(2)('should set the right dispute deposit', async function () {
     const disputeDeposit = await DisputeManager.disputeDeposit()
     expect(disputeDeposit).to.equal(config.DisputeManager.disputeDeposit)
   })
 
-  it('should set the right fisherman reward cut', async function () {
+  testIf(2)('should set the right fisherman reward cut', async function () {
     const fishermanRewardCut = await DisputeManager.fishermanRewardCut()
     expect(fishermanRewardCut).to.equal(config.DisputeManager.fishermanRewardCut)
   })
 
-  it('should set the right max slashing cut', async function () {
+  testIf(2)('should set the right max slashing cut', async function () {
     const maxSlashingCut = await DisputeManager.maxSlashingCut()
     expect(maxSlashingCut).to.equal(config.DisputeManager.maxSlashingCut)
   })
 
-  it('should set the right subgraph service address', async function () {
+  testIf(2)('should set the right subgraph service address', async function () {
     const subgraphService = await DisputeManager.subgraphService()
     expect(subgraphService).to.equal(config.$global.subgraphServiceProxyAddress)
   })
 })
 
-transparentUpgradeableProxyTests('DisputeManager', addressBookEntry, config.$global.governor as string)
+transparentUpgradeableProxyTests(
+  'DisputeManager',
+  addressBookEntry,
+  config.$global.governor as string,
+  Number(process.env.TEST_DEPLOYMENT_STEP ?? 1) >= 2,
+)
