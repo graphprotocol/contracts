@@ -52,6 +52,8 @@ addresses-fork.json
 
 # Forge artifacts
 cache_forge
+forge-artifacts/
+packages/issuance/lib/forge-std/
 
 # Graph client
 .graphclient

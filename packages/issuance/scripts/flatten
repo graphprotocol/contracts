@@ -1,0 +1,19 @@
+#!/bin/bash
+
+OUT_DIR="build/flatten"
+
+mkdir -p ${OUT_DIR}
+
+echo "Flattening contracts..."
+
+FILES=(
+    "contracts/Issuance.sol"
+)
+
+for path in ${FILES[@]}; do
+    IFS='/'
+    parts=( $path )
+    name="${parts[-1]}"
+    echo "> Flattening ${path} to ${OUT_DIR}/${name}"
+    npx truffle-flattener ${path} > ${OUT_DIR}/${name}
+done

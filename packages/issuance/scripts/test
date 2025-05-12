@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Run tests
+if [ "$RUN_EVM" = true ]; then
+  # Run with evm
+  npx hardhat test "$@"
+else
+  # Run without evm (faster)
+  TS_NODE_TRANSPILE_ONLY=1 npx mocha \
+    --require ts-node/register \
+    --extension ts \
+    --recursive \
+    --timeout 30000 \
+    --exit \
+    test "$@"
+fi

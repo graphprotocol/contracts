@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity 0.7.6;
 
 import "./IRewardsManager.sol";
 import "../governance/Managed.sol";
+import "../quality/IServiceQualityOracle.sol";
 
 contract RewardsManagerV1Storage is Managed {
     // -- State --
@@ -34,5 +35,6 @@ contract RewardsManagerV3Storage is RewardsManagerV2Storage {
 
 contract RewardsManagerV4Storage is RewardsManagerV3Storage {
     // GRT issued for indexer rewards per block
+    // This is being deprecated in favor of using an IssuanceAllocator
     uint256 public issuancePerBlock;
 }

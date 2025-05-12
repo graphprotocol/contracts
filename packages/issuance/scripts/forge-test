@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Check if .env file exists and load it
+if [ -f .env ]; then
+  source .env
+fi
+
+# Check if ARBITRUM_RPC_URL is set
+if [ -z "$ARBITRUM_RPC_URL" ]; then
+  echo "Error: ARBITRUM_RPC_URL environment variable is not set."
+  echo "Please set it in your .env file or export it before running this script."
+  exit 1
+fi
+
+# Parse arguments
+FORK_FLAG=""
+MATCH_PATH=""
+VERBOSITY="-vvv"
+BLOCK_NUMBER=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --fork)
+      FORK_FLAG="--fork-url $ARBITRUM_RPC_URL"
+      shift
+      ;;
+    --block)
+      BLOCK_NUMBER="--fork-block-number $2"
+      shift 2
+      ;;
+    --match)
+      MATCH_PATH="--match-path $2"
+      shift 2
+      ;;
+    --verbosity)
+      VERBOSITY="-$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Build the command
+CMD="forge test $MATCH_PATH $FORK_FLAG $BLOCK_NUMBER $VERBOSITY"
+
+# Print the command
+echo "Running: $CMD"
+
+# Run the command
+eval $CMD

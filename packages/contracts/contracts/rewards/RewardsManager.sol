@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity 0.7.6;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -10,6 +10,8 @@ import "../staking/libs/MathUtils.sol";
 
 import "./RewardsManagerStorage.sol";
 import "./IRewardsManager.sol";
+import "../allocate/IIssuanceAllocator.sol";
+import "../allocate/IIssuanceTarget.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -28,10 +30,32 @@ import "./IRewardsManager.sol";
  * These functions may overestimate the actual rewards due to changes in the total supply
  * until the actual takeRewards function is called.
  */
-contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager, IIssuanceTarget {
     using SafeMath for uint256;
 
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
+
+    // -- Namespaced Storage --
+
+    /// @custom:storage-location erc7201:graphprotocol.storage.RewardsManager
+    struct RewardsManagerData {
+        // Address of the issuance allocator
+        address issuanceAllocator;
+        // Address of the service quality oracle contract
+        IServiceQualityOracle serviceQualityOracle;
+
+        // Add any new storage variables here
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.RewardsManager")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant RewardsManagerStorageLocation =
+        0x9fdd92e6e31da4e559d6f92dbd1fea63f400785c9e6dcd98c8d0c1fe96c42200;
+
+    function _getRewardsManagerStorage() internal pure returns (RewardsManagerData storage $) {
+        assembly {
+            $.slot := RewardsManagerStorageLocation
+        }
+    }
 
     // -- Events --
 
@@ -46,9 +70,24 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     event RewardsDenied(address indexed indexer, address indexed allocationID, uint256 epoch);
 
     /**
+     * @dev Emitted when rewards are denied to an indexer due to service quality.
+     */
+    event RewardsDeniedDueToServiceQuality(address indexed indexer, address indexed allocationID, uint256 amount);
+
+    /**
      * @dev Emitted when a subgraph is denied for claiming rewards.
      */
     event RewardsDenylistUpdated(bytes32 indexed subgraphDeploymentID, uint256 sinceBlock);
+
+    /**
+     * @dev Emitted when the issuance allocator is set
+     */
+    event IssuanceAllocatorSet(address indexed oldIssuanceAllocator, address indexed newIssuanceAllocator);
+
+    /**
+     * @dev Emitted when the service quality oracle contract is set
+     */
+    event ServiceQualityOracleSet(address indexed oldServiceQualityOracle, address indexed newServiceQualityOracle);
 
     // -- Modifiers --
 
@@ -67,14 +106,15 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Config --
 
     /**
-     * @dev Sets the GRT issuance per block.
+     * @dev Sets the GRT issuance per block directly.
      * The issuance is defined as a fixed amount of rewards per block in GRT.
-     * Whenever this function is called in layer 2, the updateL2MintAllowance function
-     * _must_ be called on the L1GraphTokenGateway in L1, to ensure the bridge can mint the
-     * right amount of tokens.
+     * This function can only be called when no IssuanceAllocator is set.
+     * When using an IssuanceAllocator, issuance is controlled centrally through that contract.
      * @param _issuancePerBlock Issuance expressed in GRT per block (scaled by 1e18)
      */
     function setIssuancePerBlock(uint256 _issuancePerBlock) external override onlyGovernor {
+        // Revert if IssuanceAllocator is set - issuance should be controlled by the allocator
+        require(_getRewardsManagerStorage().issuanceAllocator == address(0), "Use IssuanceAllocator");
         _setIssuancePerBlock(_issuancePerBlock);
     }
 
@@ -115,6 +155,58 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         emit ParameterUpdated("minimumSubgraphSignal");
     }
 
+    /**
+     * @dev Sets the issuance allocator for this target.
+     * @notice Implementation of the IIssuanceTarget interface function
+     * @dev This function facilitates upgrades by providing a standard way for targets
+     * to change their allocator. Only the governor can call this function.
+     * @param _issuanceAllocator Address of the issuance allocator
+     */
+    function setIssuanceAllocator(address _issuanceAllocator) external override onlyGovernor {
+        RewardsManagerData storage $ = _getRewardsManagerStorage();
+        if ($.issuanceAllocator != _issuanceAllocator) {
+            // Update rewards calculation before changing the issuance allocator
+            updateAccRewardsPerSignal();
+
+            address oldIssuanceAllocator = $.issuanceAllocator;
+            $.issuanceAllocator = _issuanceAllocator;
+            emit IssuanceAllocatorSet(oldIssuanceAllocator, _issuanceAllocator);
+        }
+    }
+
+    /**
+     * @notice Called by the IssuanceAllocator before this target's issuance allocation changes
+     * @dev Ensures that all reward calculations are up-to-date with the current block
+     * before any allocation changes take effect.
+     *
+     * This function is part of the IIssuanceTarget interface implemented by contracts that
+     * receive issuance from the IssuanceAllocator. The IssuanceAllocator calls this function
+     * before changing a target's allocation to ensure all issuance is properly accounted for
+     * with the current issuance rate before applying an issuance allocation change.
+     *
+     * Only the IssuanceAllocator can call this function to ensure proper access control
+     * for any future changes that might require this level of restriction.
+     */
+    function preIssuanceAllocationChange() external override {
+        require(msg.sender == _getRewardsManagerStorage().issuanceAllocator, "Caller must be IssuanceAllocator");
+
+        // Update rewards calculation with the current issuance rate
+        updateAccRewardsPerSignal();
+    }
+
+    /**
+     * @dev Sets the service quality oracle contract.
+     * @param _serviceQualityOracle Address of the service quality oracle contract
+     */
+    function setServiceQualityOracle(address _serviceQualityOracle) external override onlyGovernor {
+        RewardsManagerData storage $ = _getRewardsManagerStorage();
+        if (address($.serviceQualityOracle) != _serviceQualityOracle) {
+            address oldServiceQualityOracle = address($.serviceQualityOracle);
+            $.serviceQualityOracle = IServiceQualityOracle(_serviceQualityOracle);
+            emit ServiceQualityOracleSet(oldServiceQualityOracle, _serviceQualityOracle);
+        }
+    }
+
     // -- Denylist --
 
     /**
@@ -150,6 +242,18 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Getters --
 
     /**
+     * @dev Gets the effective issuance per block, taking into account the IssuanceAllocator if set.
+     * @return Effective issuance per block
+     */
+    function getRewardsIssuancePerBlock() public view override returns (uint256) {
+        RewardsManagerData storage $ = _getRewardsManagerStorage();
+        if ($.issuanceAllocator != address(0)) {
+            return IIssuanceAllocator($.issuanceAllocator).getTargetIssuancePerBlock(address(this));
+        }
+        return issuancePerBlock;
+    }
+
+    /**
      * @dev Gets the issuance of rewards per signal since last updated.
      *
      * Linear formula: `x = r * t`
@@ -167,8 +271,10 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         if (t == 0) {
             return 0;
         }
-        // ...or if issuance is zero
-        if (issuancePerBlock == 0) {
+
+        uint256 rewardsIssuancePerBlock = getRewardsIssuancePerBlock();
+
+        if (rewardsIssuancePerBlock == 0) {
             return 0;
         }
 
@@ -179,7 +285,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        uint256 x = issuancePerBlock.mul(t);
+        uint256 x = rewardsIssuancePerBlock.mul(t);
 
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number
@@ -348,6 +454,14 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
 
         // Calculate rewards accrued by this allocation
         uint256 rewards = _calcRewards(alloc.tokens, alloc.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+
+        // Do not reward if indexer is not eligible based on service quality
+        RewardsManagerData storage $ = _getRewardsManagerStorage();
+        if (address($.serviceQualityOracle) != address(0) && !$.serviceQualityOracle.meetsRequirements(alloc.indexer)) {
+            emit RewardsDeniedDueToServiceQuality(alloc.indexer, _allocationID, rewards);
+            return 0;
+        }
+
         if (rewards > 0) {
             // Mint directly to staking contract for the reward amount
             // The staking contract will do bookkeeping of the reward and

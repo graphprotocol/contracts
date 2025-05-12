@@ -10,6 +10,7 @@
     "packages/contracts",
     "packages/data-edge",
     "packages/eslint-graph-config",
+    "packages/issuance",
     "packages/sdk",
     "packages/solhint-graph-config",
     "packages/token-distribution"

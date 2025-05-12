@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Run security checks
+echo "Running security checks..."
+echo "Note: This is a basic check and should not replace a proper security audit."
+
+# Run solhint
+echo "> Running solhint..."
+npx solhint --config node_modules/solhint-graph-config/index.js 'contracts/**/*.sol'
+
+# Run slither if available
+if command -v slither &> /dev/null; then
+    echo "> Running slither..."
+    slither . --filter-paths "node_modules"
+else
+    echo "> Slither not found. Skipping."
+fi
