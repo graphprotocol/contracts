@@ -52,6 +52,7 @@ addresses-fork.json
 
 # Forge artifacts
 cache_forge
+forge-artifacts/
 
 # Graph client
 .graphclient

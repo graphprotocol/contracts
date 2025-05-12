@@ -75,6 +75,8 @@ RUN chmod 755 /usr/local/bin/* && \
 # Switch back to vscode user
 USER vscode
 
+RUN forge install foundry-rs/forge-std
+
 # Set environment variables
 ENV PATH="/usr/local/bin:/home/vscode/.foundry/bin:/home/vscode/.local/bin:/root/.local/bin:$PATH"
 
