@@ -4,9 +4,11 @@ import { assert, expect } from 'chai'
 import { AddressBookEntry } from '@graphprotocol/toolshed/deployments'
 import { zeroPadValue } from 'ethers'
 
-export function transparentUpgradeableProxyTests(contractName: string, addressBookEntry: AddressBookEntry, owner: string): void {
+export function transparentUpgradeableProxyTests(contractName: string, addressBookEntry: AddressBookEntry, owner: string, upgraded: boolean): void {
+  const testIf = () => (upgraded ? it : it.skip)
+
   describe(`${contractName}: implementation`, function () {
-    it('should be locked for initialization', async function () {
+    testIf()('should be locked for initialization', async function () {
       if (!addressBookEntry.implementation) {
         assert.fail('Implementation address is not set')
       }
@@ -16,13 +18,13 @@ export function transparentUpgradeableProxyTests(contractName: string, addressBo
   })
 
   describe(`${contractName}: TransparentUpgradeableProxy`, function () {
-    it('should be initialized', async function () {
+    testIf()('should be initialized', async function () {
       // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/dbb6104ce834628e473d2173bbc9d47f81a9eec3/contracts/proxy/utils/Initializable.sol#L77
       const initialized = await hre.ethers.provider.getStorage(addressBookEntry.address, '0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00')
       expect(initialized).to.equal(zeroPadValue('0x01', 32))
     })
 
-    it('should target the correct implementation', async function () {
+    testIf()('should target the correct implementation', async function () {
       // https:// github.com/OpenZeppelin/openzeppelin-contracts/blob/dbb6104ce834628e473d2173bbc9d47f81a9eec3/contracts/proxy/ERC1967/ERC1967Utils.sol#L37C53-L37C119
       const implementation = await hre.ethers.provider.getStorage(addressBookEntry.address, '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc')
       if (!addressBookEntry.implementation) {
@@ -42,7 +44,7 @@ export function transparentUpgradeableProxyTests(contractName: string, addressBo
   })
 
   describe(`${contractName}: ProxyAdmin`, function () {
-    it('should be owned by the governor', async function () {
+    testIf()('should be owned by the governor', async function () {
       if (process.env.IGNITION_DEPLOYMENT_TYPE === 'protocol') {
         assert.fail('Deployment type "protocol": unknown governor address')
       }
