@@ -515,7 +515,7 @@ importers:
         specifier: ^1.0.8
         version: 1.0.10(bufferutil@4.0.9)(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       hardhat-graph-protocol:
-        specifier: workspace:^0.1.0
+        specifier: workspace:^0.1.1
         version: link:../hardhat-graph-protocol
       hardhat-secure-accounts:
         specifier: ^1.0.5
@@ -577,7 +577,7 @@ importers:
         specifier: workspace:^7.0.0
         version: link:../contracts
       '@graphprotocol/horizon':
-        specifier: workspace:^0.1.0
+        specifier: workspace:^0.1.1
         version: link:../horizon
       '@graphprotocol/toolshed':
         specifier: workspace:^
@@ -655,7 +655,7 @@ importers:
         specifier: ^1.0.8
         version: 1.0.10(bufferutil@4.0.9)(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       hardhat-graph-protocol:
-        specifier: workspace:^0.1.0
+        specifier: workspace:^0.1.1
         version: link:../hardhat-graph-protocol
       hardhat-secure-accounts:
         specifier: ^1.0.5
