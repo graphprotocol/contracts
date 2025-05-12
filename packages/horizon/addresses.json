@@ -11,7 +11,7 @@
     "L2Curation": {
       "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
       "proxy": "graph",
-      "implementation": "0xd90022aB67920212D0F902F5c427DE82732DE136"
+      "implementation": "0xdf27da4db64bf29a8f2a710a0b448474151ff925"
     },
     "RewardsManager": {
       "address": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
