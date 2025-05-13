@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
@@ -50,7 +50,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         rca.dataService = address(subgraphService); // data service is the subgraph service
         rca.metadata = _encodeAcceptIndexingAgreementMetadataV1(
             indexerState.subgraphDeploymentId,
-            ISubgraphService.IndexingAgreementTermsV1({
+            IndexingAgreement.IndexingAgreementTermsV1({
                 tokensPerSecond: agreementTokensPerSecond,
                 tokensPerEntityPerSecond: 0 // no payment for entities
             })

@@ -6,6 +6,7 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
@@ -35,7 +36,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, _withIndexer(ctx));
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNonCancelableBy.selector,
+            IndexingAgreement.IndexingAgreementNonCancelableBy.selector,
             accepted.rca.payer,
             rando
         );
@@ -53,7 +54,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
         resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
+            IndexingAgreement.IndexingAgreementNotActive.selector,
             agreementId
         );
         vm.expectRevert(expectedErr);
@@ -74,7 +75,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
         resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
+            IndexingAgreement.IndexingAgreementNotActive.selector,
             accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
@@ -170,7 +171,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
         resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
+            IndexingAgreement.IndexingAgreementNotActive.selector,
             agreementId
         );
         vm.expectRevert(expectedErr);
@@ -191,7 +192,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
         resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
+            IndexingAgreement.IndexingAgreementNotActive.selector,
             accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);

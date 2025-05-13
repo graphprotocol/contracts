@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
-import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
 
 import { Bounder } from "@graphprotocol/horizon/test/utils/Bounder.t.sol";
 import { RecurringCollectorHelper } from "@graphprotocol/horizon/test/payments/recurring-collector/RecurringCollectorHelper.t.sol";
@@ -41,7 +41,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         IndexerSeed indexer1;
         IRecurringCollector.RecurringCollectionAgreement rca;
         IRecurringCollector.RecurringCollectionAgreementUpgrade rcau;
-        ISubgraphService.IndexingAgreementTermsV1 termsV1;
+        IndexingAgreement.IndexingAgreementTermsV1 termsV1;
         PayerSeed payer;
     }
 
@@ -103,7 +103,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     ) internal {
         bool byIndexer = _by == IRecurringCollector.CancelAgreementBy.ServiceProvider;
         vm.expectEmit(address(subgraphService));
-        emit ISubgraphService.IndexingAgreementCanceled(_indexer, _payer, _agreementId, byIndexer ? _indexer : _payer);
+        emit IndexingAgreement.IndexingAgreementCanceled(_indexer, _payer, _agreementId, byIndexer ? _indexer : _payer);
 
         if (byIndexer) {
             _subgraphServiceSafePrank(_indexer);
@@ -170,7 +170,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     ) internal returns (IRecurringCollector.SignedRCA memory) {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _ctx.ctxInternal.seed.rca;
 
-        ISubgraphService.AcceptIndexingAgreementMetadata memory metadata = _newAcceptIndexingAgreementMetadataV1(
+        IndexingAgreement.AcceptIndexingAgreementMetadata memory metadata = _newAcceptIndexingAgreementMetadataV1(
             _indexerState.subgraphDeploymentId
         );
         rca.serviceProvider = _indexerState.addr;
@@ -186,7 +186,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, _ctx.payer.signerPrivateKey);
 
         vm.expectEmit(address(subgraphService));
-        emit ISubgraphService.IndexingAgreementAccepted(
+        emit IndexingAgreement.IndexingAgreementAccepted(
             rca.serviceProvider,
             rca.payer,
             rca.agreementId,
@@ -238,7 +238,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         address _indexerAddress
     ) internal view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
         IndexerState memory indexer = _requireIndexer(_ctx, _indexerAddress);
-        ISubgraphService.AcceptIndexingAgreementMetadata memory metadata = _newAcceptIndexingAgreementMetadataV1(
+        IndexingAgreement.AcceptIndexingAgreementMetadata memory metadata = _newAcceptIndexingAgreementMetadataV1(
             indexer.subgraphDeploymentId
         );
         IRecurringCollector.RecurringCollectionAgreement memory rca = _ctx.ctxInternal.seed.rca;
@@ -301,13 +301,13 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
     function _newAcceptIndexingAgreementMetadataV1(
         bytes32 _subgraphDeploymentId
-    ) internal pure returns (ISubgraphService.AcceptIndexingAgreementMetadata memory) {
+    ) internal pure returns (IndexingAgreement.AcceptIndexingAgreementMetadata memory) {
         return
-            ISubgraphService.AcceptIndexingAgreementMetadata({
+            IndexingAgreement.AcceptIndexingAgreementMetadata({
                 subgraphDeploymentId: _subgraphDeploymentId,
-                version: ISubgraphService.IndexingAgreementVersion.V1,
+                version: IndexingAgreement.IndexingAgreementVersion.V1,
                 terms: abi.encode(
-                    ISubgraphService.IndexingAgreementTermsV1({ tokensPerSecond: 0, tokensPerEntityPerSecond: 0 })
+                    IndexingAgreement.IndexingAgreementTermsV1({ tokensPerSecond: 0, tokensPerEntityPerSecond: 0 })
                 )
             });
     }
@@ -315,12 +315,12 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function _newUpgradeIndexingAgreementMetadataV1(
         uint256 _tokensPerSecond,
         uint256 _tokensPerEntityPerSecond
-    ) internal pure returns (ISubgraphService.UpgradeIndexingAgreementMetadata memory) {
+    ) internal pure returns (IndexingAgreement.UpgradeIndexingAgreementMetadata memory) {
         return
-            ISubgraphService.UpgradeIndexingAgreementMetadata({
-                version: ISubgraphService.IndexingAgreementVersion.V1,
+            IndexingAgreement.UpgradeIndexingAgreementMetadata({
+                version: IndexingAgreement.IndexingAgreementVersion.V1,
                 terms: abi.encode(
-                    ISubgraphService.IndexingAgreementTermsV1({
+                    IndexingAgreement.IndexingAgreementTermsV1({
                         tokensPerSecond: _tokensPerSecond,
                         tokensPerEntityPerSecond: _tokensPerEntityPerSecond
                     })
@@ -339,20 +339,20 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
     function _encodeAcceptIndexingAgreementMetadataV1(
         bytes32 _subgraphDeploymentId,
-        ISubgraphService.IndexingAgreementTermsV1 memory _terms
+        IndexingAgreement.IndexingAgreementTermsV1 memory _terms
     ) internal pure returns (bytes memory) {
         return
             abi.encode(
-                ISubgraphService.AcceptIndexingAgreementMetadata({
+                IndexingAgreement.AcceptIndexingAgreementMetadata({
                     subgraphDeploymentId: _subgraphDeploymentId,
-                    version: ISubgraphService.IndexingAgreementVersion.V1,
+                    version: IndexingAgreement.IndexingAgreementVersion.V1,
                     terms: abi.encode(_terms)
                 })
             );
     }
 
     function _encodeUpgradeIndexingAgreementMetadataV1(
-        ISubgraphService.UpgradeIndexingAgreementMetadata memory _t
+        IndexingAgreement.UpgradeIndexingAgreementMetadata memory _t
     ) internal pure returns (bytes memory) {
         return abi.encode(_t);
     }

@@ -7,6 +7,7 @@ import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces
 
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
+import { IndexingAgreement } from "../libraries/IndexingAgreement.sol";
 
 /**
  * @title Interface for the {SubgraphService} contract
@@ -296,179 +297,6 @@ interface ISubgraphService is IDataServiceFees {
      */
     function getCuration() external view returns (address);
 
-    /// @notice Versions of Indexing Agreement Metadata
-    enum IndexingAgreementVersion {
-        V1
-    }
-
-    /**
-     * @notice Indexer Agreement Data
-     * @param allocationId The allocation ID
-     * @param version The indexing agreement version
-     */
-    struct IndexingAgreementData {
-        address allocationId;
-        IndexingAgreementVersion version;
-    }
-
-    /**
-     * @notice Accept Indexing Agreement metadata
-     * @param subgraphDeploymentId The subgraph deployment ID
-     * @param version The indexing agreement version
-     * @param terms The indexing agreement terms
-     */
-    struct AcceptIndexingAgreementMetadata {
-        bytes32 subgraphDeploymentId;
-        IndexingAgreementVersion version;
-        bytes terms;
-    }
-
-    /**
-     * @notice Upgrade Indexing Agreement metadata
-     * @param version The indexing agreement version
-     * @param terms The indexing agreement terms
-     */
-    struct UpgradeIndexingAgreementMetadata {
-        IndexingAgreementVersion version;
-        bytes terms;
-    }
-
-    /**
-     * @notice Indexing Agreement Terms (Version 1)
-     * @param tokensPerSecond The amount of tokens per second
-     * @param tokensPerEntityPerSecond The amount of tokens per entity per second
-     */
-    struct IndexingAgreementTermsV1 {
-        uint256 tokensPerSecond;
-        uint256 tokensPerEntityPerSecond;
-    }
-
-    /**
-     * Thrown when accepting an agreement with a zero ID
-     */
-    error SubgraphServiceIndexingAgreementIdZero();
-
-    /**
-     * @notice Thrown when the data can't be decoded as expected
-     * @param t The type of data that was expected
-     * @param data The invalid data
-     */
-    error SubgraphServiceDecoderInvalidData(string t, bytes data);
-
-    /**
-     * @notice Thrown when an agreement is not for the subgraph data service
-     * @param wrongDataService The wrong data service
-     */
-    error SubgraphServiceIndexingAgreementWrongDataService(address wrongDataService);
-
-    /**
-     * @notice Thrown when an agreement and the allocation correspond to different deployment IDs
-     * @param agreementDeploymentId The agreement's deployment ID
-     * @param allocationId The allocation ID
-     * @param allocationDeploymentId The allocation's deployment ID
-     */
-    error SubgraphServiceIndexingAgreementDeploymentIdMismatch(
-        bytes32 agreementDeploymentId,
-        address allocationId,
-        bytes32 allocationDeploymentId
-    );
-
-    /**
-     * @notice Thrown when the agreement is already accepted
-     * @param agreementId The agreement ID
-     */
-    error SubgraphServiceIndexingAgreementAlreadyAccepted(bytes16 agreementId);
-
-    /**
-     * @notice Thrown when an allocation already has an active agreement
-     * @param allocationId The allocation ID
-     */
-    error SubgraphServiceAllocationAlreadyHasIndexingAgreement(address allocationId);
-
-    /**
-     * @notice Thrown when caller or proxy can not cancel an agreement
-     * @param owner The address of the owner of the agreement
-     * @param unauthorized The unauthorized caller
-     */
-    error SubgraphServiceIndexingAgreementNonCancelableBy(address owner, address unauthorized);
-
-    /**
-     * @notice Thrown when the agreement is not active
-     * @param agreementId The agreement ID
-     */
-    error SubgraphServiceIndexingAgreementNotActive(bytes16 agreementId);
-
-    /**
-     * @notice Thrown when trying to interact with an agreement with an invalid version
-     * @param version The invalid version
-     */
-    error SubgraphServiceInvalidIndexingAgreementVersion(IndexingAgreementVersion version);
-
-    /**
-     * @notice Thrown when trying to interact with an agreement not owned by the indexer
-     * @param agreementId The agreement ID
-     * @param unauthorizedIndexer The unauthorized indexer
-     */
-    error SubgraphServiceIndexingAgreementNotAuthorized(bytes16 agreementId, address unauthorizedIndexer);
-
-    /**
-     * @notice Emitted when an indexer collects indexing fees from a V1 agreement
-     * @param indexer The address of the indexer
-     * @param payer The address paying for the indexing fees
-     * @param agreementId The id of the agreement
-     * @param currentEpoch The current epoch
-     * @param tokensCollected The amount of tokens collected
-     * @param entities The number of entities indexed
-     * @param poi The proof of indexing
-     * @param poiEpoch The epoch of the proof of indexing
-     */
-    event IndexingFeesCollectedV1(
-        address indexed indexer,
-        address indexed payer,
-        bytes16 indexed agreementId,
-        address allocationId,
-        bytes32 subgraphDeploymentId,
-        uint256 currentEpoch,
-        uint256 tokensCollected,
-        uint256 entities,
-        bytes32 poi,
-        uint256 poiEpoch
-    );
-
-    /**
-     * @notice Emitted when an indexing agreement is accepted
-     * @param indexer The address of the indexer
-     * @param payer The address of the payer
-     * @param agreementId The id of the agreement
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     * @param version The version of the indexing agreement
-     * @param versionTerms The version data of the indexing agreement
-     */
-    event IndexingAgreementAccepted(
-        address indexed indexer,
-        address indexed payer,
-        bytes16 indexed agreementId,
-        address allocationId,
-        bytes32 subgraphDeploymentId,
-        IndexingAgreementVersion version,
-        bytes versionTerms
-    );
-
-    /**
-     * @notice Emitted when an indexing agreement is canceled
-     * @param indexer The address of the indexer
-     * @param payer The address of the payer
-     * @param agreementId The id of the agreement
-     * @param canceledOnBehalfOf The address of the entity that canceled the agreement
-     */
-    event IndexingAgreementCanceled(
-        address indexed indexer,
-        address indexed payer,
-        bytes16 indexed agreementId,
-        address canceledOnBehalfOf
-    );
-
     /**
      * @notice Accept an indexing agreement.
      */
@@ -491,5 +319,5 @@ interface ISubgraphService is IDataServiceFees {
 
     function getIndexingAgreement(
         bytes16 agreementId
-    ) external view returns (IndexingAgreementData memory, IRecurringCollector.AgreementData memory);
+    ) external view returns (IndexingAgreement.AgreementWrapper memory);
 }
