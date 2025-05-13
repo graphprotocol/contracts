@@ -66,4 +66,5 @@ To verify contracts on a network, run the following commands:
 ```bash
 ./scripts/pre-verify <ignition-deployment-id>
 npx hardhat ignition verify --network <network> --include-unrelated-contracts <ignition-deployment-id>
+./scripts/post-verify
 ```
