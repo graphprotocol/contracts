@@ -21,8 +21,8 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
         rcau.agreementId = rca.agreementId;
 
-        boundSkipCeil(unboundedUpgradeSkip, type(uint256).max);
-        rcau.deadline = bound(rcau.deadline, 0, block.timestamp - 1);
+        boundSkipCeil(unboundedUpgradeSkip, type(uint64).max);
+        rcau.deadline = uint64(bound(rcau.deadline, 0, block.timestamp - 1));
         IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
             rcau: rcau,
             signature: ""
@@ -45,7 +45,7 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
         rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
         rcau.agreementId = rca.agreementId;
 
-        rcau.deadline = block.timestamp;
+        rcau.deadline = uint64(block.timestamp);
         IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
             rcau: rcau,
             signature: ""
@@ -134,7 +134,7 @@ contract RecurringCollectorUpgradeTest is RecurringCollectorSharedTest {
             accepted.rca.payer,
             accepted.rca.serviceProvider,
             rcau.agreementId,
-            block.timestamp,
+            uint64(block.timestamp),
             rcau.endsAt,
             rcau.maxInitialTokens,
             rcau.maxOngoingTokensPerSecond,

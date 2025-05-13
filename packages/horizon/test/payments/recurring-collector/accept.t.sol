@@ -21,7 +21,7 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
         uint256 unboundedSkip
     ) public {
         vm.assume(fuzzySignedRCA.rca.agreementId != bytes16(0));
-        skip(boundSkipFloor(unboundedSkip, 1));
+        skip(boundSkip(unboundedSkip, 1, type(uint64).max - block.timestamp));
         fuzzySignedRCA.rca = _recurringCollectorHelper.withElapsedAcceptDeadline(fuzzySignedRCA.rca);
 
         bytes memory expectedErr = abi.encodeWithSelector(

@@ -49,14 +49,16 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
         require(block.timestamp > 0, "block.timestamp can't be zero");
-        rca.deadline = bound(rca.deadline, 0, block.timestamp - 1);
+        require(block.timestamp <= type(uint64).max, "block.timestamp can't be huge");
+        rca.deadline = uint64(bound(rca.deadline, 0, block.timestamp - 1));
         return rca;
     }
 
     function withOKAcceptDeadline(
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
-        rca.deadline = boundTimestampMin(rca.deadline, block.timestamp);
+        require(block.timestamp <= type(uint64).max, "block.timestamp can't be huge");
+        rca.deadline = uint64(boundTimestampMin(rca.deadline, block.timestamp));
         return rca;
     }
 
@@ -100,16 +102,18 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         return rcau;
     }
 
-    function _sensibleDeadline(uint256 _seed) internal view returns (uint256) {
-        return bound(_seed, block.timestamp + 1, block.timestamp + 7200); // between now and 2h
+    function _sensibleDeadline(uint256 _seed) internal view returns (uint64) {
+        return uint64(bound(_seed, block.timestamp + 1, block.timestamp + 7200)); // between now and 2h
     }
 
-    function _sensibleEndsAt(uint256 _seed, uint32 _maxSecondsPerCollection) internal view returns (uint256) {
+    function _sensibleEndsAt(uint256 _seed, uint32 _maxSecondsPerCollection) internal view returns (uint64) {
         return
-            bound(
-                _seed,
-                block.timestamp + (10 * uint256(_maxSecondsPerCollection)),
-                block.timestamp + (1_000_000 * uint256(_maxSecondsPerCollection))
+            uint64(
+                bound(
+                    _seed,
+                    block.timestamp + (10 * uint256(_maxSecondsPerCollection)),
+                    block.timestamp + (1_000_000 * uint256(_maxSecondsPerCollection))
+                )
             ); // between 10 and 1M max collections
     }
 

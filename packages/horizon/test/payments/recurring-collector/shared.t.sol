@@ -74,7 +74,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _signedRCA.rca.payer,
             _signedRCA.rca.serviceProvider,
             _signedRCA.rca.agreementId,
-            block.timestamp,
+            uint64(block.timestamp),
             _signedRCA.rca.endsAt,
             _signedRCA.rca.maxInitialTokens,
             _signedRCA.rca.maxOngoingTokensPerSecond,
@@ -95,8 +95,8 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.payer,
             _rca.serviceProvider,
             _rca.agreementId,
-            block.timestamp,
-            _by == IRecurringCollector.CancelAgreementBy.Payer ? _rca.payer : _rca.serviceProvider
+            uint64(block.timestamp),
+            _by
         );
         vm.prank(_rca.dataService);
         _recurringCollector.cancel(_rca.agreementId, _by);

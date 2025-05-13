@@ -38,9 +38,9 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         // The agreement ID of the RCA
         bytes16 agreementId;
         // The deadline for accepting the RCA
-        uint256 deadline;
+        uint64 deadline;
         // The timestamp when the agreement ends
-        uint256 endsAt;
+        uint64 endsAt;
         // The address of the payer the RCA was issued by
         address payer;
         // The address of the data service the RCA was issued to
@@ -73,9 +73,9 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         // The agreement ID
         bytes16 agreementId;
         // The deadline for upgrading
-        uint256 deadline;
+        uint64 deadline;
         // The timestamp when the agreement ends
-        uint256 endsAt;
+        uint64 endsAt;
         // The maximum amount of tokens that can be collected in the first collection
         // on top of the amount allowed for subsequent collections
         uint256 maxInitialTokens;
@@ -99,11 +99,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         // The address of the service provider
         address serviceProvider;
         // The timestamp when the agreement was accepted
-        uint256 acceptedAt;
+        uint64 acceptedAt;
         // The timestamp when the agreement was last collected at
-        uint256 lastCollectionAt;
+        uint64 lastCollectionAt;
         // The timestamp when the agreement ends
-        uint256 endsAt;
+        uint64 endsAt;
         // The maximum amount of tokens that can be collected in the first collection
         // on top of the amount allowed for subsequent collections
         uint256 maxInitialTokens;
@@ -115,7 +115,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         // The maximum amount of seconds that can pass between collections
         uint32 maxSecondsPerCollection;
         // The timestamp when the agreement was canceled
-        uint256 canceledAt;
+        uint64 canceledAt;
         // The state of the agreement
         AgreementState state;
     }
@@ -149,8 +149,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint256 acceptedAt,
-        uint256 endsAt,
+        uint64 acceptedAt,
+        uint64 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
         uint32 minSecondsPerCollection,
@@ -162,14 +162,17 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param dataService The address of the data service
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
+     * @param agreementId The agreement ID
+     * @param canceledAt The timestamp when the agreement was canceled
+     * @param canceledBy The party that canceled the agreement
      */
     event AgreementCanceled(
         address indexed dataService,
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint256 canceledAt,
-        address canceledBy
+        uint64 canceledAt,
+        CancelAgreementBy canceledBy
     );
 
     /**
@@ -190,8 +193,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint256 upgradedAt,
-        uint256 endsAt,
+        uint64 upgradedAt,
+        uint64 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
         uint32 minSecondsPerCollection,
@@ -228,9 +231,9 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * Thrown when interacting with an agreement with an elapsed deadline
-     * @param elapsedAt The timestamp when the deadline elapsed
+     * @param deadline The elapsed deadline timestamp
      */
-    error RecurringCollectorAgreementDeadlineElapsed(uint256 elapsedAt);
+    error RecurringCollectorAgreementDeadlineElapsed(uint64 deadline);
 
     /**
      * Thrown when the signer is invalid
@@ -273,7 +276,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param agreementId The agreement ID
      * @param endsAt The agreement end timestamp
      */
-    error RecurringCollectorAgreementElapsed(bytes16 agreementId, uint256 endsAt);
+    error RecurringCollectorAgreementElapsed(bytes16 agreementId, uint64 endsAt);
 
     /**
      * Thrown when calling collect() too soon
@@ -281,7 +284,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param secondsSinceLast Seconds since last collection
      * @param minSeconds Minimum seconds between collections
      */
-    error RecurringCollectorCollectionTooSoon(bytes16 agreementId, uint256 secondsSinceLast, uint256 minSeconds);
+    error RecurringCollectorCollectionTooSoon(bytes16 agreementId, uint32 secondsSinceLast, uint32 minSeconds);
 
     /**
      * Thrown when calling collect() too late
@@ -289,7 +292,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param secondsSinceLast Seconds since last collection
      * @param maxSeconds Maximum seconds between collections
      */
-    error RecurringCollectorCollectionTooLate(bytes16 agreementId, uint256 secondsSinceLast, uint256 maxSeconds);
+    error RecurringCollectorCollectionTooLate(bytes16 agreementId, uint64 secondsSinceLast, uint32 maxSeconds);
 
     /**
      * @dev Accept an indexing agreement.

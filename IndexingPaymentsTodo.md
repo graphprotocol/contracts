@@ -1,19 +1,15 @@
 # Still pending
 
 * Arbitration Charter: Update to support disputing IndexingFee.
-* Expose a function that indexers can use to calculate the tokens to be collected and other collection params?
-* test_SubgraphService_CollectIndexingFee_Integration fails with PaymentsEscrowInconsistentCollection
-* Switch timestamps to uint64.
-* Check that UUID-v4 fits in `bytes16`
 * Check code coverage
 * Check contract size
-* Add upgrade path to v2 collector terms
-* It's more like a collect + cancel since the indexer is expected to stop work then and there. When posting a POI that's < N-1 epoch. Answer: Emit signal that the collection is meant to be final.
 * Don't love cancel agreement on stop service / close stale allocation.
-* Place all agreement terms into one struct
 
 # Done
 
+* DONE: ~~Switch cancel event in recurring collector to use Enum~~
+* DONE: ~~Switch timestamps to uint64~~
+* DONE: ~~Check that UUID-v4 fits in `bytes16`~~
 * DONE: ~~Double check cancelation policy. Who can cancel when? Right now is either party at any time. Answer: If gateway cancels allow collection till that point.~~
 * DONE: ~~If an indexer closes an allocation, what should happen to the accepeted agreement? Answer: Look into canceling agreement as part of stop service.~~
 * DONE: ~~Switch `duration` for `endsAt`? Answer: Do it.~~
@@ -39,3 +35,10 @@
 * DONE: ~~Unify to one error in Decoder.sol~~
 * DONE: ~~Built-in upgrade path to indexing agreements v2~~
 * DONE: ~~Missing events for accept, cancel, upgrade RCAs.~~
+
+# Won't Fix
+
+* Add upgrade path to v2 collector terms
+* Expose a function that indexers can use to calculate the tokens to be collected and other collection params?
+* Place all agreement terms into one struct
+* It's more like a collect + cancel since the indexer is expected to stop work then and there. When posting a POI that's < N-1 epoch. Answer: Emit signal that the collection is meant to be final. Counter: Won't do since collector can't signal back to data service that payment is maxed out. Could emit an event from the collector, but is it really worth it? Right now any collection where epoch POI < current POI is suspect.

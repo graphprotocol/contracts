@@ -94,7 +94,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
 
         // accept the agreement
-        agreement.acceptedAt = block.timestamp;
+        agreement.acceptedAt = uint64(block.timestamp);
         agreement.state = AgreementState.Accepted;
         agreement.dataService = signedRCA.rca.dataService;
         agreement.payer = signedRCA.rca.payer;
@@ -135,25 +135,18 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             agreement.dataService == msg.sender,
             RecurringCollectorDataServiceNotAuthorized(agreementId, msg.sender)
         );
-        agreement.canceledAt = block.timestamp;
-        address canceledBy;
-        if (by == CancelAgreementBy.Payer) {
-            agreement.state = AgreementState.CanceledByPayer;
-            canceledBy = agreement.payer;
-        } else if (by == CancelAgreementBy.ServiceProvider) {
-            agreement.state = AgreementState.CanceledByServiceProvider;
-            canceledBy = agreement.serviceProvider;
-        } else {
-            revert("invalid CancelAgreementBy");
-        }
+        agreement.canceledAt = uint64(block.timestamp);
+        agreement.state = by == CancelAgreementBy.Payer
+            ? AgreementState.CanceledByPayer
+            : AgreementState.CanceledByServiceProvider;
 
         emit AgreementCanceled(
             agreement.dataService,
             agreement.payer,
             agreement.serviceProvider,
             agreementId,
-            block.timestamp,
-            canceledBy
+            agreement.canceledAt,
+            by
         );
     }
 
@@ -194,7 +187,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             agreement.payer,
             agreement.serviceProvider,
             signedRCAU.rcau.agreementId,
-            block.timestamp,
+            uint64(block.timestamp),
             agreement.endsAt,
             agreement.maxInitialTokens,
             agreement.maxOngoingTokensPerSecond,
@@ -284,7 +277,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                 _params.dataServiceCut
             );
         }
-        agreement.lastCollectionAt = block.timestamp;
+        agreement.lastCollectionAt = uint64(block.timestamp);
 
         emit PaymentCollected(
             IGraphPayments.PaymentTypes.IndexingFee,
@@ -350,11 +343,19 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         collectionSeconds -= _agreementCollectionStartAt(_agreement);
         require(
             collectionSeconds >= _agreement.minSecondsPerCollection,
-            RecurringCollectorCollectionTooSoon(_agreementId, collectionSeconds, _agreement.minSecondsPerCollection)
+            RecurringCollectorCollectionTooSoon(
+                _agreementId,
+                uint32(collectionSeconds),
+                _agreement.minSecondsPerCollection
+            )
         );
         require(
             collectionSeconds <= _agreement.maxSecondsPerCollection,
-            RecurringCollectorCollectionTooLate(_agreementId, collectionSeconds, _agreement.maxSecondsPerCollection)
+            RecurringCollectorCollectionTooLate(
+                _agreementId,
+                uint64(collectionSeconds),
+                _agreement.maxSecondsPerCollection
+            )
         );
 
         uint256 maxTokens = _agreement.maxOngoingTokensPerSecond * collectionSeconds;
