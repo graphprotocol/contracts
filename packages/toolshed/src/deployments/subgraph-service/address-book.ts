@@ -39,8 +39,8 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
     } as SubgraphServiceContracts
 
     // Load LegacyDisputeManager manually
-    const entry = this.getEntry('LegacyDisputeManager')
-    if (entry) {
+    if (this.entryExists('LegacyDisputeManager')) {
+      const entry = this.getEntry('LegacyDisputeManager')
       contractsWithAliases.LegacyDisputeManager = wrapTransactionCalls(new Contract(
         entry.address,
         loadArtifact('IDisputeManager', SubgraphServiceArtifactsMap.LegacyDisputeManager).abi,
