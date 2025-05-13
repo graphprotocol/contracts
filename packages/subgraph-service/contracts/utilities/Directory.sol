@@ -26,9 +26,9 @@ abstract contract Directory {
     /// @dev Required to collect payments via Graph Horizon payments protocol
     IGraphTallyCollector private immutable GRAPH_TALLY_COLLECTOR;
 
-    /// @notice The IP Collector contract address
-    /// @dev Required to collect indexing payments via Graph Horizon payments protocol
-    IRecurringCollector private immutable IP_COLLECTOR;
+    /// @notice The Recurring Collector contract address
+    /// @dev Required to collect indexing agreement payments via Graph Horizon payments protocol
+    IRecurringCollector private immutable RECURRING_COLLECTOR;
 
     /// @notice The Curation contract address
     /// @dev Required for curation fees distribution
@@ -72,21 +72,33 @@ abstract contract Directory {
      * @param disputeManager The Dispute Manager contract address
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
+     * @param recurringCollector_ The Recurring Collector contract address
      */
     constructor(
         address subgraphService,
         address disputeManager,
         address graphTallyCollector,
         address curation,
-        address recurringCollector
+        address recurringCollector_
     ) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
         GRAPH_TALLY_COLLECTOR = IGraphTallyCollector(graphTallyCollector);
         CURATION = ICuration(curation);
-        IP_COLLECTOR = IRecurringCollector(recurringCollector);
+        RECURRING_COLLECTOR = IRecurringCollector(recurringCollector_);
 
         emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, graphTallyCollector, curation);
+    }
+
+    /**
+     * @notice Returns the Recurring Collector contract address
+     */
+    function recurringCollector() external view returns (IRecurringCollector) {
+        return RECURRING_COLLECTOR;
+    }
+
+    function _directory() internal view returns (Directory) {
+        return Directory(address(this));
     }
 
     /**
@@ -111,13 +123,6 @@ abstract contract Directory {
      */
     function _graphTallyCollector() internal view returns (IGraphTallyCollector) {
         return GRAPH_TALLY_COLLECTOR;
-    }
-
-    /**
-     * @notice Returns the IP Collector contract address
-     */
-    function _recurringCollector() internal view returns (IRecurringCollector) {
-        return IP_COLLECTOR;
     }
 
     /**

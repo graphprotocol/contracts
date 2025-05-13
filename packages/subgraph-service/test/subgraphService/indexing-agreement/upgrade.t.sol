@@ -6,6 +6,8 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
+import { Decoder } from "../../../contracts/libraries/Decoder.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
@@ -91,7 +93,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
+            IndexingAgreement.IndexingAgreementNotActive.selector,
             acceptableUpgrade.rcau.agreementId
         );
         vm.expectRevert(expectedErr);
@@ -109,7 +111,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         IRecurringCollector.SignedRCAU memory acceptableUpgrade = _generateAcceptableSignedRCAU(ctx, accepted.rca);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotAuthorized.selector,
+            IndexingAgreement.IndexingAgreementNotAuthorized.selector,
             acceptableUpgrade.rcau.agreementId,
             indexerStateB.addr
         );
@@ -131,8 +133,8 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceDecoderInvalidData.selector,
-            "_decodeRCAUMetadata",
+            Decoder.DecoderInvalidData.selector,
+            "decodeRCAUMetadata",
             unacceptableUpgrade.rcau.metadata
         );
         vm.expectRevert(expectedErr);

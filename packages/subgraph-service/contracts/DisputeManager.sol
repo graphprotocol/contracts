@@ -5,7 +5,6 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
@@ -13,6 +12,7 @@ import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol"
 import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { Attestation } from "./libraries/Attestation.sol";
+import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -480,16 +480,16 @@ contract DisputeManager is
         bytes32 _poi,
         uint256 _entities
     ) private returns (bytes32) {
-        (
-            ISubgraphService.IndexingAgreementData memory indexingAgreement,
-            IRecurringCollector.AgreementData memory agreement
-        ) = _getSubgraphService().getIndexingAgreement(_agreementId);
+        IndexingAgreement.AgreementWrapper memory wrapper = _getSubgraphService().getIndexingAgreement(_agreementId);
 
         // Agreement must have been collected on and be a version 1
-        require(agreement.lastCollectionAt > 0, DisputeManagerIndexingAgreementNotDisputable(_agreementId));
         require(
-            indexingAgreement.version == ISubgraphService.IndexingAgreementVersion.V1,
-            DisputeManagerIndexingAgreementInvalidVersion(indexingAgreement.version)
+            wrapper.collectorAgreement.lastCollectionAt > 0,
+            DisputeManagerIndexingAgreementNotDisputable(_agreementId)
+        );
+        require(
+            wrapper.agreement.version == IndexingAgreement.IndexingAgreementVersion.V1,
+            DisputeManagerIndexingAgreementInvalidVersion(wrapper.agreement.version)
         );
 
         // Create a disputeId
@@ -497,8 +497,8 @@ contract DisputeManager is
             abi.encodePacked(
                 "IndexingFeeDisputeWithAgreement",
                 _agreementId,
-                agreement.serviceProvider,
-                agreement.payer,
+                wrapper.collectorAgreement.serviceProvider,
+                wrapper.collectorAgreement.payer,
                 _poi,
                 _entities
             )
@@ -509,14 +509,14 @@ contract DisputeManager is
 
         // The indexer must be disputable
         IHorizonStaking.Provision memory provision = _graphStaking().getProvision(
-            agreement.serviceProvider,
+            wrapper.collectorAgreement.serviceProvider,
             address(_getSubgraphService())
         );
         require(provision.tokens != 0, DisputeManagerZeroTokens());
 
-        uint256 stakeSnapshot = _getStakeSnapshot(agreement.serviceProvider, provision.tokens);
+        uint256 stakeSnapshot = _getStakeSnapshot(wrapper.collectorAgreement.serviceProvider, provision.tokens);
         disputes[disputeId] = Dispute(
-            agreement.serviceProvider,
+            wrapper.collectorAgreement.serviceProvider,
             _fisherman,
             _deposit,
             0, // no related dispute,
@@ -528,10 +528,10 @@ contract DisputeManager is
 
         emit IndexingFeeDisputeCreated(
             disputeId,
-            agreement.serviceProvider,
+            wrapper.collectorAgreement.serviceProvider,
             _fisherman,
             _deposit,
-            agreement.payer,
+            wrapper.collectorAgreement.payer,
             _agreementId,
             _poi,
             _entities,

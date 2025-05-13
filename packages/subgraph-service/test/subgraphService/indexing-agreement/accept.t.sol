@@ -6,6 +6,8 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
+import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
+import { Decoder } from "../../../contracts/libraries/Decoder.sol";
 import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 
@@ -104,7 +106,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementWrongDataService.selector,
+            IndexingAgreement.IndexingAgreementWrongDataService.selector,
             unacceptable.rca.dataService
         );
         vm.expectRevert(expectedErr);
@@ -123,8 +125,8 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceDecoderInvalidData.selector,
-            "_decodeRCAMetadata",
+            Decoder.DecoderInvalidData.selector,
+            "decodeRCAMetadata",
             unacceptable.rca.metadata
         );
         vm.expectRevert(expectedErr);
@@ -196,7 +198,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementDeploymentIdMismatch.selector,
+            IndexingAgreement.IndexingAgreementDeploymentIdMismatch.selector,
             wrongSubgraphDeploymentId,
             indexerState.allocationId,
             indexerState.subgraphDeploymentId
@@ -212,7 +214,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementAlreadyAccepted.selector,
+            IndexingAgreement.IndexingAgreementAlreadyAccepted.selector,
             accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
@@ -226,12 +228,12 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
         IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
-        ISubgraphService.AcceptIndexingAgreementMetadata memory metadata = abi.decode(
+        IndexingAgreement.AcceptIndexingAgreementMetadata memory metadata = abi.decode(
             acceptable.rca.metadata,
-            (ISubgraphService.AcceptIndexingAgreementMetadata)
+            (IndexingAgreement.AcceptIndexingAgreementMetadata)
         );
         vm.expectEmit(address(subgraphService));
-        emit ISubgraphService.IndexingAgreementAccepted(
+        emit IndexingAgreement.IndexingAgreementAccepted(
             acceptable.rca.serviceProvider,
             acceptable.rca.payer,
             acceptable.rca.agreementId,

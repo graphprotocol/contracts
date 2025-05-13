@@ -3,7 +3,7 @@
 pragma solidity 0.8.27;
 
 import { Attestation } from "../libraries/Attestation.sol";
-import { ISubgraphService } from "./ISubgraphService.sol";
+import { IndexingAgreement } from "../libraries/IndexingAgreement.sol";
 
 /**
  * @title IDisputeManager
@@ -361,7 +361,7 @@ interface IDisputeManager {
      * @notice Thrown when the Indexing Agreement is not disputable
      * @param version The indexing agreement version
      */
-    error DisputeManagerIndexingAgreementInvalidVersion(ISubgraphService.IndexingAgreementVersion version);
+    error DisputeManagerIndexingAgreementInvalidVersion(IndexingAgreement.IndexingAgreementVersion version);
 
     /**
      * @notice Initialize this contract.

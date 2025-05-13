@@ -8,6 +8,9 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+import { Allocation } from "../../../contracts/libraries/Allocation.sol";
+import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
+import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
@@ -49,7 +52,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
             abi.encodeCall(IPaymentsCollector.collect, (IGraphPayments.PaymentTypes.IndexingFee, data))
         );
         vm.expectEmit(address(subgraphService));
-        emit ISubgraphService.IndexingFeesCollectedV1(
+        emit IndexingAgreement.IndexingFeesCollectedV1(
             indexerState.addr,
             accepted.rca.payer,
             accepted.rca.agreementId,
@@ -178,10 +181,7 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         IndexerState memory indexerState = _withIndexer(ctx);
         uint256 currentEpoch = epochManager.currentEpoch();
 
-        bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            agreementId
-        );
+        bytes memory expectedErr = abi.encodeWithSelector(Allocation.AllocationDoesNotExist.selector, address(0));
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);
         subgraphService.collect(
@@ -206,8 +206,8 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         uint256 currentEpoch = epochManager.currentEpoch();
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            accepted.rca.agreementId
+            AllocationManager.AllocationManagerAllocationClosed.selector,
+            indexerState.allocationId
         );
         vm.expectRevert(expectedErr);
         subgraphService.collect(
@@ -233,8 +233,8 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         uint256 currentEpoch = epochManager.currentEpoch();
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            ISubgraphService.SubgraphServiceIndexingAgreementNotActive.selector,
-            accepted.rca.agreementId
+            AllocationManager.AllocationManagerAllocationClosed.selector,
+            indexerState.allocationId
         );
         vm.expectRevert(expectedErr);
         subgraphService.collect(

@@ -22,6 +22,7 @@ contract GraphDirectoryImplementation is GraphDirectory {
     function getContractFromController(bytes memory contractName) external view returns (address) {
         return _graphController().getContractProxy(keccak256(contractName));
     }
+
     function graphToken() external view returns (IGraphToken) {
         return _graphToken();
     }
@@ -40,10 +41,6 @@ contract GraphDirectoryImplementation is GraphDirectory {
 
     function graphController() external view returns (IController) {
         return _graphController();
-    }
-
-    function graphEpochManager() external view returns (IEpochManager) {
-        return _graphEpochManager();
     }
 
     function graphRewardsManager() external view returns (IRewardsManager) {

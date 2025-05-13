@@ -4,6 +4,7 @@
 * Check code coverage
 * Check contract size
 * Don't love cancel agreement on stop service / close stale allocation.
+* Missing Upgrade event for subgraph service
 
 # Done
 
