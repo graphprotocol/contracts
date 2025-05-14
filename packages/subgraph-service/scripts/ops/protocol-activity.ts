@@ -298,7 +298,7 @@ async function main() {
         graph.chainId,
       )
       const data = encodeCollectQueryFeesData(rav, signature, 0n)
-      await SubgraphService.connect(signer).collect(signer.address, 0, data, { gasLimit: 500_000 })
+      await SubgraphService.connect(signer).collect(signer.address, 0, data, { gasLimit: 1_000_000 })
     }
   }
 
