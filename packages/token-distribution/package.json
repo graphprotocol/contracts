@@ -7,7 +7,7 @@
   "scripts": {
     "prepublishOnly": "scripts/prepublish",
     "build": "scripts/build",
-    "clean": "rm -rf build/ cache/ dist/ && hardhat clean",
+    "clean": "rm -rf build/ cache/ dist/",
     "compile": "hardhat compile --show-stack-traces",
     "deploy": "pnpm run build && hardhat deploy",
     "test": "scripts/test",
