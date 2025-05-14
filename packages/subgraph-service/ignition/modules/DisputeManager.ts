@@ -26,6 +26,7 @@ export default buildModule('DisputeManager', (m) => {
   const DisputeManagerImplementation = deployImplementation(m, {
     name: 'DisputeManager',
     constructorArgs: [controllerAddress],
+    artifact: DisputeManagerArtifact,
   })
 
   // Upgrade implementation
