@@ -62,3 +62,9 @@ cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.js
 cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/HorizonProxies#TransparentUpgradeableProxy_PaymentsEscrow.dbg.json"
 cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/SubgraphServiceProxies#TransparentUpgradeableProxy_DisputeManager.dbg.json"
 cp "$DBG_DIR_DEST/TransparentUpgradeableProxy#TransparentUpgradeableProxy.dbg.json" "$DBG_DIR_DEST/SubgraphServiceProxies#TransparentUpgradeableProxy_SubgraphService.dbg.json"
+
+# Rename DisputeManager to LegacyDisputeManager - this avoids artifact name collisions
+mkdir -p "build/contracts/contracts/disputes/LegacyDisputeManager.sol"
+mv "build/contracts/contracts/disputes/DisputeManager.sol/DisputeManager.json" "build/contracts/contracts/disputes/LegacyDisputeManager.sol/LegacyDisputeManager.json"
+mv "build/contracts/contracts/disputes/DisputeManager.sol/DisputeManager.dbg.json" "build/contracts/contracts/disputes/LegacyDisputeManager.sol/LegacyDisputeManager.dbg.json"
+rm -rf "build/contracts/contracts/disputes/DisputeManager.sol"
