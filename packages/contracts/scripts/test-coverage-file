@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+# Check if a test file was provided
+if [ $# -eq 0 ]; then
+  echo "Error: You must provide a test file path"
+  echo "Usage: ./scripts/test-coverage-file test/unit/rewards/rewards.test.ts"
+  exit 1
+fi
+
+# Build contracts first to ensure tests run against latest code
+echo "Building contracts before running coverage..."
+yarn build
+
+echo {} > addresses-local.json
+
+echo "Running coverage for test file: $1"
+DISABLE_SECURE_ACCOUNTS=true \
+L1_GRAPH_CONFIG=config/graph.hardhat.yml \
+L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
+ADDRESS_BOOK=addresses-local.json \
+  npx hardhat coverage --testfiles "$1"
