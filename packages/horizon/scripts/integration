@@ -80,7 +80,7 @@ else
 fi
 
 # Setup horizon address book
-jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses.json > addresses-localhost.json
+jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses-integration-tests.json > addresses-localhost.json
 
 # Setup pre horizon migration state needed for the integration tests
 npx hardhat test:seed --network localhost
