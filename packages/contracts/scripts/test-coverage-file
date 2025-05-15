@@ -13,7 +13,7 @@ fi
 echo "Building contracts before running coverage..."
 yarn build
 
-echo {} > addresses-local.json
+echo "{}" > addresses-local.json
 
 echo "Running coverage for test file: $1"
 DISABLE_SECURE_ACCOUNTS=true \
