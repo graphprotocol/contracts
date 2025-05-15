@@ -49,7 +49,7 @@ mkdir -p "$TEMP_DIR/old"
 mkdir -p "$TEMP_DIR/new"
 
 # Extract all changed files
-for file in $FILES; do
+echo "$FILES" | while read -r file; do
   if [ -f "$file" ]; then
     # Create directory structure
     dir=$(dirname "$file")
