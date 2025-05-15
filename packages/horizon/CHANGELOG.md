@@ -1,5 +1,11 @@
 # @graphprotocol/horizon
 
+## 0.2.0
+
+### Minor Changes
+
+- Publish scratch testnet 2 address book
+
 ## 0.1.1
 
 ### Patch Changes
