@@ -19,6 +19,8 @@ const PROVISION_MAX_VERIFIER_CUT = 500_000n
 const PROVISION_THAWING_PERIOD_B = 2419199n
 const PROVISION_MAX_VERIFIER_CUT_B = 900_000n
 
+const GAS_LIMIT = process.env.GAS_LIMIT ? parseInt(process.env.GAS_LIMIT) : 500_000
+
 async function main() {
   const graph = hre.graph()
   const { HorizonStaking, GraphToken, PaymentsEscrow, GraphTallyCollector } = graph.horizon.contracts
@@ -158,7 +160,7 @@ async function main() {
           const subgraphDeploymentId = ethers.keccak256(`0x${i.toString(16).padStart(2, '0')}`)
           const proof = await generateAllocationProof(signer.address, privateKey, SubgraphService.target as string, graph.chainId)
           const data = abi.encode(['bytes32', 'uint256', 'address', 'bytes'], [subgraphDeploymentId, allocationAmount, wallet.address, proof])
-          await SubgraphService.connect(signer).startService(signer.address, data, { gasLimit: 500_000 })
+          await SubgraphService.connect(signer).startService(signer.address, data, { gasLimit: GAS_LIMIT })
           // Curate
           const curate = Math.random() < 0.5
           if (curate) {
@@ -198,7 +200,7 @@ async function main() {
           const resizeAmount = Math.random() > 0.5 ? allocation.tokens * 9n / 10n : allocation.tokens * 11n / 10n
           const freeAmount = await HorizonStaking.getProviderTokensAvailable(signer.address, SubgraphService.target) - await SubgraphService.allocationProvisionTracker(signer.address)
           if (resizeAmount - allocation.tokens < freeAmount) {
-            await SubgraphService.connect(signer).resizeAllocation(signer.address, wallet.address, resizeAmount, { gasLimit: 500_000 })
+            await SubgraphService.connect(signer).resizeAllocation(signer.address, wallet.address, resizeAmount, { gasLimit: GAS_LIMIT })
           }
         }
       }
@@ -259,7 +261,7 @@ async function main() {
         const publicPoi = generatePOI('publicPOI')
         const poiMetadata = encodePOIMetadata(222, publicPoi, 1, 10, 0) // random data, doesnt matter
         const data = abi.encode(['address', 'bytes32', 'bytes'], [wallet.address, poi, poiMetadata])
-        await SubgraphService.connect(signer).collect(signer.address, PaymentTypes.IndexingRewards, data, { gasLimit: 500_000 })
+        await SubgraphService.connect(signer).collect(signer.address, PaymentTypes.IndexingRewards, data, { gasLimit: GAS_LIMIT })
       }
     }
   }
@@ -298,7 +300,7 @@ async function main() {
         graph.chainId,
       )
       const data = encodeCollectQueryFeesData(rav, signature, 0n)
-      await SubgraphService.connect(signer).collect(signer.address, 0, data, { gasLimit: 1_000_000 })
+      await SubgraphService.connect(signer).collect(signer.address, 0, data, { gasLimit: GAS_LIMIT })
     }
   }
 
