@@ -1,5 +1,14 @@
 # @graphprotocol/toolshed
 
+## 0.1.2
+
+### Patch Changes
+
+- 585cf27: Allow loading empty address books for subgraph service
+- Updated dependencies
+  - @graphprotocol/subgraph-service@0.2.0
+  - @graphprotocol/horizon@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
