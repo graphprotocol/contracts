@@ -38,8 +38,6 @@ services:
       - PIP_CACHE_DIR=/cache/pip
       - PYTHONPYCACHEPREFIX=/cache/pycache
       - PYTHONDONTWRITEBYTECODE=1
-    networks:
-      - shared
     volumes:
       # Mount cache directory
       - /cache:/cache
@@ -56,7 +54,3 @@ services:
       - /cache/vscode-config:/home/vscode/.config
       - /cache/vscode-data:/home/vscode/.local/share
       - /cache/vscode-bin:/home/vscode/.local/bin
-
-networks:
-  shared:
-    external: true
