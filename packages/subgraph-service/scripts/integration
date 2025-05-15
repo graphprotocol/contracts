@@ -86,13 +86,13 @@ else
 fi
 
 # Setup subgraph service address book
-jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses.json > addresses-localhost.json
+jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses-integration-tests.json > addresses-localhost.json
 
 # Run Horizon pre-upgrade steps
 cd ../horizon
 
 # Setup horizon address book
-jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses.json > addresses-localhost.json
+jq '{"31337": ."'"$FORK_FROM_CHAIN_ID"'"}' addresses-integration-tests.json > addresses-localhost.json
 
 # Setup pre horizon migration state needed for the e2e tests
 npx hardhat test:seed --network localhost
