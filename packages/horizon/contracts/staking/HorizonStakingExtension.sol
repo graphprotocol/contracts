@@ -223,9 +223,10 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     /// @inheritdoc IRewardsIssuer
     function getAllocationData(
         address allocationID
-    ) external view override returns (address, bytes32, uint256, uint256, uint256) {
+    ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
         Allocation memory allo = __DEPRECATED_allocations[allocationID];
-        return (allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken, 0);
+        bool isActive = _getAllocationState(allocationID) == AllocationState.Active;
+        return (isActive, allo.indexer, allo.subgraphDeploymentID, allo.tokens, allo.accRewardsPerAllocatedToken, 0);
     }
 
     /// @inheritdoc IHorizonStakingExtension
@@ -351,9 +352,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
             require(isIndexerOrOperator, "!auth");
         }
 
-        // Close the allocation
-        __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
-
         // -- Rewards Distribution --
 
         // Process non-zero-allocation rewards tracking
@@ -376,6 +374,11 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
                 __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] -
                 alloc.tokens;
         }
+
+        // Close the allocation
+        // Note that this breaks CEI pattern. We update after the rewards distribution logic as it expects the allocation
+        // to still be active. There shouldn't be reentrancy risk here as all internal calls are to trusted contracts.
+        __DEPRECATED_allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         emit AllocationClosed(
             alloc.indexer,

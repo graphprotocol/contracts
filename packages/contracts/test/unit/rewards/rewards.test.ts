@@ -21,6 +21,7 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { impersonateAccount, setBalance } from '../../../../sdk/src/helpers'
 
 const MAX_PPM = 1000000
 
@@ -837,6 +838,30 @@ describe('Rewards', () => {
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenied')
           .withArgs(indexer1.address, allocationID1)
+      })
+
+      it('should not distribute rewards if allocation is not active', async function () {
+        // Setup
+        await setupIndexerAllocation()
+
+        // Jump and close allocation
+        await helpers.mineEpoch(epochManager)
+        await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+
+        // Jump some more
+        await helpers.mineEpoch(epochManager, 10)
+
+        // Impersonate staking contract
+        const impersonatedStaking = await impersonateAccount(staking.address)
+        await setBalance(staking.address, toGRT('1000000'))
+
+        // Distribute rewards
+        const tx = await rewardsManager.connect(impersonatedStaking).takeRewards(allocationID1)
+        const receipt = await tx.wait()
+        const event = rewardsManager.interface.parseLog(receipt.logs[0]).args
+        expect(event.indexer).eq(indexer1.address)
+        expect(event.allocationID).eq(allocationID1)
+        expect(toRound(event.amount)).eq(toRound(BigNumber.from(0)))
       })
     })
   })
