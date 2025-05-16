@@ -2,6 +2,7 @@ import { GraphHorizonAddressBook } from './address-book'
 import { loadActions } from './actions'
 
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+import { resolveNodeModulesPath } from '../../lib/path'
 
 export type {
   HorizonStaking,
@@ -31,4 +32,12 @@ export function loadGraphHorizon(addressBookPath: string, chainId: number, provi
     contracts: contracts,
     actions: loadActions(contracts),
   }
+}
+
+export function connectGraphHorizon(chainId: number, provider: HardhatEthersProvider, addressBookPath?: string) {
+  const addressBook = new GraphHorizonAddressBook(
+    addressBookPath ?? resolveNodeModulesPath('@graphprotocol/horizon/addresses.json'),
+    chainId,
+  )
+  return addressBook.loadContracts(provider)
 }
