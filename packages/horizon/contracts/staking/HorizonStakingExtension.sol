@@ -171,6 +171,18 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         // Validate beneficiary of slashed tokens
         require(beneficiary != address(0), "!beneficiary");
 
+        // Slashing tokens that are already provisioned would break provision accounting, we need to limit
+        // the slash amount. This can be compensated for, by slashing with the main slash function if needed.
+        uint256 slashableStake = indexerStake.tokensStaked - indexerStake.tokensProvisioned;
+        if (slashableStake == 0) {
+            emit StakeSlashed(indexer, 0, 0, beneficiary);
+            return;
+        }
+        if (tokens > slashableStake) {
+            reward = (reward * slashableStake) / tokens;
+            tokens = slashableStake;
+        }
+
         // Slashing more tokens than freely available (over allocation condition)
         // Unlock locked tokens to avoid the indexer to withdraw them
         uint256 tokensUsed = indexerStake.__DEPRECATED_tokensAllocated + indexerStake.__DEPRECATED_tokensLocked;
@@ -182,18 +194,6 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
             if (indexerStake.__DEPRECATED_tokensLocked == 0) {
                 indexerStake.__DEPRECATED_tokensLockedUntil = 0;
             }
-        }
-
-        // Slashing tokens that are already provisioned would break provision accounting, we need to limit
-        // the slash amount. This can be compensated for, by slashing with the main slash function if needed.
-        uint256 slashableStake = indexerStake.tokensStaked - indexerStake.tokensProvisioned;
-        if (slashableStake == 0) {
-            emit StakeSlashed(indexer, 0, 0, beneficiary);
-            return;
-        }
-        if (tokens > slashableStake) {
-            reward = (reward * slashableStake) / tokens;
-            tokens = slashableStake;
         }
 
         // Remove tokens to slash from the stake
