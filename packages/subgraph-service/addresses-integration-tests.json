@@ -16,6 +16,9 @@
     "LegacyDisputeManager": {
       "address": "0x7C9B82717f9433932507dF6EdA93A9678b258698"
     },
+    "LegacyServiceRegistry": {
+      "address": "0x888541878CbDDEd880Cd58c728f1Af5C47343F86"
+    },
     "SubgraphService": {
       "address": "0x00fe8F95407AB61863d27c07F584A0930ee5F3b0",
       "proxy": "transparent",
