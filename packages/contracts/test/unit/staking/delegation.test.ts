@@ -189,7 +189,7 @@ describe('Staking::Delegation', () => {
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    epochManager = contracts.EpochManager
+    epochManager = contracts.EpochManager as EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
 

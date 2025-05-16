@@ -99,8 +99,8 @@ describe('DisputeManager:POI', () => {
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    disputeManager = contracts.DisputeManager
-    epochManager = contracts.EpochManager
+    disputeManager = contracts.DisputeManager as DisputeManager
+    epochManager = contracts.EpochManager as EpochManager
     grt = contracts.GraphToken as GraphToken
     staking = contracts.Staking as IStaking
 

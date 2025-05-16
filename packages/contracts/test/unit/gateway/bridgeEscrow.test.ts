@@ -31,7 +31,7 @@ describe('BridgeEscrow', () => {
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     grt = contracts.GraphToken as GraphToken
-    bridgeEscrow = contracts.BridgeEscrow
+    bridgeEscrow = contracts.BridgeEscrow as BridgeEscrow
 
     // Give some funds to the Escrow
     await grt.connect(governor).mint(bridgeEscrow.address, nTokens)

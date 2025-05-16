@@ -36,7 +36,7 @@ describe('Pausing', () => {
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
     staking = contracts.Staking as IStaking
-    controller = contracts.Controller
+    controller = contracts.Controller as Controller
   })
 
   beforeEach(async function () {

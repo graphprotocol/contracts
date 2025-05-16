@@ -1,23 +1,27 @@
 {
   "$global": {
+    // Accounts already configured in the original Graph Protocol - Arbitrum Sepolia values
     "governor": "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
-    "arbitrator": "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-    "pauseGuardian": "0xB0aD33a21b98bCA1761729A105e2E34e27153aAE",
+    "arbitrator": "0x1726A5d52e279d02ff4732eCeB2D67BFE5Add328",
+    "pauseGuardian": "0xa0444508232dA3FA6C2f96a5f105f3f0cc0d20D7",
 
-    // Addresses for contracts deployed in the original Graph Protocol
+    // Addresses for contracts deployed in the original Graph Protocol - Arbitrum Sepolia values
     "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
+    "curationProxyAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+    "curationImplementationAddress": "0xd90022aB67920212D0F902F5c427DE82732DE136",
 
     // Must be set for step 2 of the deployment
-    "disputeManagerProxyAddress": ""
+    "disputeManagerProxyAddress": "",
+    "disputeManagerProxyAdminAddress": "",
+    "subgraphServiceProxyAddress": "",
+    "subgraphServiceProxyAdminAddress": "",
+    "graphTallyCollectorAddress": ""
   },
   "DisputeManager": {
     "disputePeriod": 2419200,
     "disputeDeposit": "10000000000000000000000n",
     "fishermanRewardCut": 500000,
     "maxSlashingCut": 1000000,
-
-    // Must be set for step 2 of the deployment
-    "disputeManagerProxyAdminAddress": ""
   },
   "SubgraphService": {
     "minimumProvisionTokens": "100000000000000000000000n",
@@ -25,13 +29,5 @@
     "stakeToFeesRatio": 2,
     "maxPOIStaleness": 2419200, // 28 days = 2419200 seconds
     "curationCut": 100000,
-
-    // Addresses for contracts deployed in the original Graph Protocol
-    "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
-
-    // Must be set for step 2 of the deployment
-    "subgraphServiceProxyAddress": "",
-    "subgraphServiceProxyAdminAddress": "",
-    "graphTallyCollectorAddress": ""
   }
 }

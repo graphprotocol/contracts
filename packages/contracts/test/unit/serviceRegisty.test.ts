@@ -38,7 +38,7 @@ describe('ServiceRegistry', () => {
     ;({ governor } = await graph.getNamedAccounts())
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    serviceRegistry = contracts.ServiceRegistry
+    serviceRegistry = contracts.ServiceRegistry as ServiceRegistry
     staking = contracts.Staking as IStaking
   })
 

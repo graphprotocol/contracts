@@ -7,15 +7,17 @@ import PaymentsEscrowModule, { MigratePaymentsEscrowModule } from './PaymentsEsc
 
 export default buildModule('GraphHorizon_Core', (m) => {
   const { HorizonStaking, HorizonStakingImplementation } = m.useModule(HorizonStakingModule)
-  const { GraphPayments, GraphPaymentsImplementation } = m.useModule(GraphPaymentsModule)
-  const { PaymentsEscrow, PaymentsEscrowImplementation } = m.useModule(PaymentsEscrowModule)
+  const { GraphPaymentsProxyAdmin, GraphPayments, GraphPaymentsImplementation } = m.useModule(GraphPaymentsModule)
+  const { PaymentsEscrowProxyAdmin, PaymentsEscrow, PaymentsEscrowImplementation } = m.useModule(PaymentsEscrowModule)
   const { GraphTallyCollector } = m.useModule(GraphTallyCollectorModule)
 
   return {
     HorizonStaking,
     HorizonStakingImplementation,
+    GraphPaymentsProxyAdmin,
     GraphPayments,
     GraphPaymentsImplementation,
+    PaymentsEscrowProxyAdmin,
     PaymentsEscrow,
     PaymentsEscrowImplementation,
     GraphTallyCollector,

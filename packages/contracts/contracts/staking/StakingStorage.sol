@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 import { Managed } from "../governance/Managed.sol";
 
 import { IStakingData } from "./IStakingData.sol";
-import { Stakes } from "./libs/Stakes.sol";
+import { IStakes } from "./libs/IStakes.sol";
 
 /**
  * @title StakingV1Storage
@@ -46,7 +46,7 @@ contract StakingV1Storage is Managed {
     uint32 internal __alphaDenominator;
 
     /// @dev Indexer stakes : indexer => Stake
-    mapping(address => Stakes.Indexer) internal __stakes;
+    mapping(address => IStakes.Indexer) internal __stakes;
 
     /// @dev Allocations : allocationID => Allocation
     mapping(address => IStakingData.Allocation) internal __allocations;

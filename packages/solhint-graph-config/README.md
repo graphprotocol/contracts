@@ -6,15 +6,12 @@ This repository contains shared linting and formatting rules for Solidity projec
 
 ### Installation
 
-⚠️ Unfortunately there isn't a way to install peer dependencies using Yarn v4, so we need to install them manually.
-
-
 ```bash
 # Install with peer packages
-yarn add --dev solhint solhint-graph-config
+pnpm add --dev solhint solhint-graph-config
 
 # For projects on this monorepo
-yarn add --dev solhint solhint-graph-config@workspace:^x.y.z
+pnpm add --dev solhint solhint-graph-config@workspace:^x.y.z
 ```
 
 To use graph plugin you'll also need to manually add the plugin to your `package.json`:
@@ -42,15 +39,12 @@ Run `solhint` with `node_modules/solhint-graph-config/index.js` as the configura
 
 ### Installation
 
-⚠️ Unfortunately there isn't a way to install peer dependencies using Yarn v4, so we need to install them manually.
-
-
 ```bash
 # Install with peer packages
-yarn add --dev solhint-graph-config prettier prettier-plugin-solidity
+pnpm add --dev solhint-graph-config prettier prettier-plugin-solidity
 
 # For projects on this monorepo
-yarn add --dev solhint-graph-config@workspace:^x.y.z prettier prettier-plugin-solidity
+pnpm add --dev solhint-graph-config@workspace:^x.y.z prettier prettier-plugin-solidity
 ```
 
 

@@ -5,13 +5,13 @@ TYPECHAIN_DIR=dist/types
 set -eo pipefail
 
 # Build contracts
-yarn clean
-yarn compile
+pnpm clean
+pnpm compile
 tsc
 
 # Copy types and abis to distribution folder
-cp -R build/types/* dist/contracts/build/types
-cp -R build/abis/ dist/contracts/build/abis
+cp -R build/types/* dist/build/types
+cp -R build/abis/ dist/build/abis
 
 # Move compiled types ts
-mv dist/contracts/build/types dist/types
+mv dist/build/types dist/types

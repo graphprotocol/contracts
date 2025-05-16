@@ -1,0 +1,42 @@
+{
+  "$global": {
+    // Accounts already configured in the original Graph Protocol - Arbitrum Sepolia values
+    "governor": "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
+
+    // Addresses for contracts deployed in the original Graph Protocol - Arbitrum Sepolia values
+    "graphProxyAdminAddress": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+    "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
+    "horizonStakingAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
+    "epochManagerAddress": "0x88b3C7f37253bAA1A9b95feAd69bD5320585826D",
+    "graphTokenAddress": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
+    "graphTokenGatewayAddress": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
+    "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+    "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+
+    // Must be set for step 2 of the migration
+    "graphPaymentsAddress": "0x1A7Fb71014d4395903eC56662f32dD02344D361C",
+    "paymentsEscrowAddress": "0x00fe8F95407AB61863d27c07F584A0930ee5F3b0",
+
+    // Must be set for step 3 and 4 of the migration
+    "subgraphServiceAddress": "0x8A44C49eD477e7130249d4B8d5248d08B469Bf0d",
+
+    // Must be set for step 4 of the migration
+    "horizonStakingImplementationAddress": "0xf1b9D089f5f6dEd46EC88830051db0e68c58e032",
+    "curationImplementationAddress": "0x9CCD9B656f8A558879974ef2505496eEd7Ef7210",
+    "rewardsManagerImplementationAddress": "0x4dEA2d1Be05909B71F539FD32601F7bd736c28D4",
+
+    // Global parameters
+    "maxThawingPeriod": 2419200
+  },
+  "GraphPayments": {
+    "protocolPaymentCut": 10000
+  },
+  "PaymentsEscrow": {
+    "withdrawEscrowThawingPeriod": 10000
+  },
+  "GraphTallyCollector": {
+    "eip712Name": "GraphTallyCollector",
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 10000
+  }
+}

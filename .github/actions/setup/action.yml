@@ -6,14 +6,17 @@ runs:
   steps:
     - name: Install Foundry
       uses: foundry-rs/foundry-toolchain@v1
-    - name: Enable corepack for modern yarn
+    - name: Enable Corepack
       shell: bash
       run: corepack enable
     - name: Install Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 18
-        cache: 'yarn'
+        cache: 'pnpm'
+    - name: Set up pnpm via Corepack
+      shell: bash
+      run: corepack prepare pnpm@9.0.6 --activate
     - name: Install dependencies
       shell: bash
-      run: yarn --immutable
+      run: pnpm install --frozen-lockfile
