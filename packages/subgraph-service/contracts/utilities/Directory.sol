@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import { IDisputeManager } from "../interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "../interfaces/ISubgraphService.sol";
 import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
+import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 
 /**
@@ -24,6 +25,10 @@ abstract contract Directory {
     /// @notice The Graph Tally Collector contract address
     /// @dev Required to collect payments via Graph Horizon payments protocol
     IGraphTallyCollector private immutable GRAPH_TALLY_COLLECTOR;
+
+    /// @notice The Recurring Collector contract address
+    /// @dev Required to collect indexing agreement payments via Graph Horizon payments protocol
+    IRecurringCollector private immutable RECURRING_COLLECTOR;
 
     /// @notice The Curation contract address
     /// @dev Required for curation fees distribution
@@ -67,14 +72,33 @@ abstract contract Directory {
      * @param disputeManager The Dispute Manager contract address
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
+     * @param _recurringCollector The Recurring Collector contract address
      */
-    constructor(address subgraphService, address disputeManager, address graphTallyCollector, address curation) {
+    constructor(
+        address subgraphService,
+        address disputeManager,
+        address graphTallyCollector,
+        address curation,
+        address _recurringCollector
+    ) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
         GRAPH_TALLY_COLLECTOR = IGraphTallyCollector(graphTallyCollector);
         CURATION = ICuration(curation);
+        RECURRING_COLLECTOR = IRecurringCollector(_recurringCollector);
 
         emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, graphTallyCollector, curation);
+    }
+
+    function _directory() internal view returns (Directory) {
+        return Directory(address(this));
+    }
+
+    /**
+     * @notice Returns the Recurring Collector contract address
+     */
+    function recurringCollector() external view returns (IRecurringCollector) {
+        return RECURRING_COLLECTOR;
     }
 
     /**
