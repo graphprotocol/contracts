@@ -1,5 +1,11 @@
 # @graphprotocol/horizon
 
+## 0.3.0
+
+### Minor Changes
+
+- Publish types for contracts packages
+
 ## 0.2.1
 
 ### Patch Changes

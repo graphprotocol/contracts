@@ -1,5 +1,13 @@
 # @graphprotocol/toolshed
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/subgraph-service@0.3.0
+  - @graphprotocol/horizon@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes
