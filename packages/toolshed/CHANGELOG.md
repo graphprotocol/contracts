@@ -1,5 +1,14 @@
 # @graphprotocol/toolshed
 
+## 0.2.1
+
+### Patch Changes
+
+- Pin ethers version
+- Updated dependencies
+  - @graphprotocol/subgraph-service@0.2.1
+  - @graphprotocol/horizon@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes

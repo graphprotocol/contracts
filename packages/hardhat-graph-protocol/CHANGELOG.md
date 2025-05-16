@@ -1,5 +1,13 @@
 # hardhat-graph-protocol
 
+## 0.1.4
+
+### Patch Changes
+
+- Pin ethers version
+- Updated dependencies
+  - @graphprotocol/toolshed@0.2.1
+
 ## 0.1.3
 
 ### Patch Changes

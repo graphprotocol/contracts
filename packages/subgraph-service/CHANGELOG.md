@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 0.2.1
+
+### Patch Changes
+
+- Pin ethers version
+
 ## 0.2.0
 
 ### Minor Changes
