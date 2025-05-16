@@ -187,6 +187,10 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         staking.delegate(users.indexer, address(subgraphService), tokens, 0);
     }
 
+    function _calculateStakeSnapshot(uint256 _tokens, uint256 _tokensDelegated) internal view returns (uint256) {
+        return _tokens + _tokensDelegated;
+    }
+
     /*
      * PRIVATE FUNCTIONS
      */
@@ -194,9 +198,5 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     function _getIndexer(address _indexer) private view returns (ISubgraphService.Indexer memory) {
         (uint256 registeredAt, string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
         return ISubgraphService.Indexer({ registeredAt: registeredAt, url: url, geoHash: geoHash });
-    }
-
-    function _calculateStakeSnapshot(uint256 _tokens, uint256 _tokensDelegated) internal view returns (uint256) {
-        return _tokens + MathUtils.min(_tokensDelegated, _tokens * subgraphService.getDelegationRatio());
     }
 }
