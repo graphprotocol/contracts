@@ -481,7 +481,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         resetPrank(_indexer);
         token.approve(address(staking), _tokens);
         staking.stakeTo(_indexer, _tokens);
-        staking.provision(_indexer, address(subgraphService), _tokens, maxSlashingPercentage, disputePeriod);
+        staking.provision(_indexer, address(subgraphService), _tokens, fishermanRewardPercentage, disputePeriod);
         _register(_indexer, abi.encode("url", "geoHash", address(0)));
 
         (address newIndexerAllocationId, uint256 newIndexerAllocationKey) = makeAddrAndKey("newIndexerAllocationId");

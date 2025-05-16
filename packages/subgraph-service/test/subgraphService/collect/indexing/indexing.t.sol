@@ -127,7 +127,7 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         tokens = bound(tokens, minimumProvisionTokens * 2, 10_000_000_000 ether);
 
         // setup allocation
-        _createProvision(users.indexer, tokens, maxSlashingPercentage, disputePeriod);
+        _createProvision(users.indexer, tokens, fishermanRewardPercentage, disputePeriod);
         _register(users.indexer, abi.encode("url", "geoHash", address(0)));
         bytes memory data = _createSubgraphAllocationData(
             users.indexer,
