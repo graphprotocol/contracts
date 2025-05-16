@@ -407,12 +407,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             // Forward call to staking extension
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, ) = STAKING_EXTENSION_ADDRESS.delegatecall(
-                abi.encodeWithSelector(
-                    IHorizonStakingExtension.legacySlash.selector,
-                    serviceProvider,
-                    tokens,
-                    tokensVerifier,
-                    verifierDestination
+                abi.encodeCall(
+                    IHorizonStakingExtension.legacySlash,
+                    (serviceProvider, tokens, tokensVerifier, verifierDestination)
                 )
             );
             require(success, HorizonStakingLegacySlashFailed());
