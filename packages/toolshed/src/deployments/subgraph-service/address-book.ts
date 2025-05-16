@@ -8,7 +8,7 @@ import { loadArtifact } from '../artifact'
 import { wrapTransactionCalls } from '../tx-logging'
 
 import type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
-import { LegacyDisputeManager } from './types'
+import { LegacyDisputeManager, LegacyServiceRegistry } from './types'
 
 export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServiceContractName> {
   isContractName(name: unknown): name is SubgraphServiceContractName {
@@ -56,7 +56,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
         entry.address,
         loadArtifact('IServiceRegistry', SubgraphServiceArtifactsMap.LegacyServiceRegistry).abi,
         signerOrProvider,
-      ), 'LegacyServiceRegistry') as unknown as LegacyDisputeManager
+      ), 'LegacyServiceRegistry') as unknown as LegacyServiceRegistry
     }
 
     this._assertSubgraphServiceContracts(contractsWithAliases)
