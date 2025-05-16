@@ -382,7 +382,7 @@ importers:
         specifier: workspace:^
         version: link:../toolshed
       '@nomicfoundation/hardhat-ethers':
-        specifier: ^3.0.8
+        specifier: 3.0.8
         version: 3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@8.10.2(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
       debug:
         specifier: ^4.3.7
@@ -413,7 +413,7 @@ importers:
         specifier: workspace:^0.0.1
         version: link:../eslint-graph-config
       ethers:
-        specifier: ^6.13.4
+        specifier: 6.13.7
         version: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat:
         specifier: ^2.22.16
@@ -446,7 +446,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-ethers':
-        specifier: ^3.0.8
+        specifier: 3.0.8
         version: 3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-foundry':
         specifier: ^1.1.1
@@ -500,7 +500,7 @@ importers:
         specifier: workspace:^0.0.1
         version: link:../eslint-graph-config
       ethers:
-        specifier: ^6.13.4
+        specifier: 6.13.7
         version: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       glob:
         specifier: ^11.0.1
@@ -515,7 +515,7 @@ importers:
         specifier: ^1.0.8
         version: 1.0.10(bufferutil@4.0.9)(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       hardhat-graph-protocol:
-        specifier: workspace:^0.1.2
+        specifier: workspace:^0.1.3
         version: link:../hardhat-graph-protocol
       hardhat-secure-accounts:
         specifier: ^1.0.5
@@ -586,7 +586,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-ethers':
-        specifier: ^3.0.8
+        specifier: 3.0.8
         version: 3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-foundry':
         specifier: ^1.1.1
@@ -640,7 +640,7 @@ importers:
         specifier: workspace:^0.0.1
         version: link:../eslint-graph-config
       ethers:
-        specifier: ^6.13.4
+        specifier: 6.13.7
         version: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       glob:
         specifier: ^11.0.1
@@ -655,7 +655,7 @@ importers:
         specifier: ^1.0.8
         version: 1.0.10(bufferutil@4.0.9)(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.17.32)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       hardhat-graph-protocol:
-        specifier: workspace:^0.1.2
+        specifier: workspace:^0.1.3
         version: link:../hardhat-graph-protocol
       hardhat-secure-accounts:
         specifier: ^1.0.5
@@ -823,13 +823,13 @@ importers:
         specifier: workspace:^
         version: link:../subgraph-service
       '@nomicfoundation/hardhat-ethers':
-        specifier: ^3.0.8
+        specifier: 3.0.8
         version: 3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.23.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
       debug:
         specifier: ^4.4.0
         version: 4.4.0(supports-color@9.4.0)
       ethers:
-        specifier: ^6.13.5
+        specifier: 6.13.7
         version: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       glob:
         specifier: ^11.0.1
