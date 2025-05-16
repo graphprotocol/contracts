@@ -51,7 +51,8 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
         address receiver,
         uint256 tokens,
         address dataService,
-        uint256 dataServiceCut
+        uint256 dataServiceCut,
+        address receiverDestination
     ) external {
         require(PPMMath.isValidPPM(dataServiceCut), GraphPaymentsInvalidCut(dataServiceCut));
 
@@ -88,7 +89,14 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
             _graphStaking().addToDelegationPool(receiver, dataService, tokensDelegationPool);
         }
 
-        _graphToken().pushTokens(receiver, tokensRemaining);
+        if (tokensRemaining > 0) {
+            if (receiverDestination == address(0)) {
+                _graphToken().approve(address(_graphStaking()), tokensRemaining);
+                _graphStaking().stakeTo(receiver, tokensRemaining);
+            } else {
+                _graphToken().pushTokens(receiverDestination, tokensRemaining);
+            }
+        }
 
         emit GraphPaymentCollected(
             paymentType,
@@ -99,7 +107,8 @@ contract GraphPayments is Initializable, MulticallUpgradeable, GraphDirectory, I
             tokensProtocol,
             tokensDataService,
             tokensDelegationPool,
-            tokensRemaining
+            tokensRemaining,
+            receiverDestination
         );
     }
 }

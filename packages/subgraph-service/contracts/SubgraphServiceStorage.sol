@@ -18,4 +18,7 @@ abstract contract SubgraphServiceV1Storage {
 
     /// @notice The cut curators take from query fee payments. In PPM.
     uint256 public curationFeesCut;
+
+    /// @notice Destination of indexer payments
+    mapping(address indexer => address destination) public paymentsDestination;
 }

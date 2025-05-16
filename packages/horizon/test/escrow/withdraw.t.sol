@@ -61,7 +61,8 @@ contract GraphEscrowWithdrawTest is GraphEscrowTest {
             users.indexer,
             amountCollected,
             subgraphDataServiceAddress,
-            0
+            0,
+            users.indexer
         );
 
         // Advance time to simulate the thawing period

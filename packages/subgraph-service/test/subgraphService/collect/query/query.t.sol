@@ -117,6 +117,26 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
         _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
     }
 
+    function testCollect_QueryFees_WithRewardsDestination(
+        uint256 tokensAllocated,
+        uint256 tokensPayment
+    ) public useIndexer useAllocation(tokensAllocated) {
+        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
+        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
+            ? type(uint128).max
+            : tokensAllocated / stakeToFeesRatio;
+        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
+
+        resetPrank(users.gateway);
+        _deposit(tokensPayment);
+        _authorizeSigner();
+
+        resetPrank(users.indexer);
+        subgraphService.setPaymentsDestination(users.indexer);
+        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
+        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
+    }
+
     function testCollect_MultipleQueryFees(
         uint256 tokensAllocated,
         uint8 numPayments

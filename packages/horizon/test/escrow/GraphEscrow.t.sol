@@ -113,13 +113,21 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         uint256 payerEscrowBalance;
     }
 
+    struct CollectTokensData {
+        uint256 tokensProtocol;
+        uint256 tokensDataService;
+        uint256 tokensDelegation;
+        uint256 receiverExpectedPayment;
+    }
+
     function _collectEscrow(
         IGraphPayments.PaymentTypes _paymentType,
         address _payer,
         address _receiver,
         uint256 _tokens,
         address _dataService,
-        uint256 _dataServiceCut
+        uint256 _dataServiceCut,
+        address _paymentsDestination
     ) internal {
         (, address _collector, ) = vm.readCallers();
 
@@ -132,6 +140,12 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
             dataServiceBalance: token.balanceOf(_dataService),
             payerEscrowBalance: 0
         });
+        CollectTokensData memory collectTokensData = CollectTokensData({
+            tokensProtocol: 0,
+            tokensDataService: 0,
+            tokensDelegation: 0,
+            receiverExpectedPayment: 0
+        });
 
         {
             (uint256 payerEscrowBalance, , ) = escrow.escrowAccounts(_payer, _collector, _receiver);
@@ -139,24 +153,36 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         }
 
         vm.expectEmit(address(escrow));
-        emit IPaymentsEscrow.EscrowCollected(_paymentType, _payer, _collector, _receiver, _tokens);
-        escrow.collect(_paymentType, _payer, _receiver, _tokens, _dataService, _dataServiceCut);
+        emit IPaymentsEscrow.EscrowCollected(
+            _paymentType,
+            _payer,
+            _collector,
+            _receiver,
+            _tokens,
+            _paymentsDestination
+        );
+        escrow.collect(_paymentType, _payer, _receiver, _tokens, _dataService, _dataServiceCut, _paymentsDestination);
 
         // Calculate cuts
         // this is nasty but stack is indeed too deep
-        uint256 tokensDataService = (_tokens - _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT())).mulPPMRoundUp(
+        collectTokensData.tokensProtocol = _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT());
+        collectTokensData.tokensDataService = (_tokens - collectTokensData.tokensProtocol).mulPPMRoundUp(
             _dataServiceCut
         );
-        uint256 tokensDelegation = 0;
+
         IHorizonStakingTypes.DelegationPool memory pool = staking.getDelegationPool(_receiver, _dataService);
         if (pool.shares > 0) {
-            tokensDelegation = (_tokens - _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) - tokensDataService)
-                .mulPPMRoundUp(staking.getDelegationFeeCut(_receiver, _dataService, _paymentType));
+            collectTokensData.tokensDelegation = (_tokens -
+                collectTokensData.tokensProtocol -
+                collectTokensData.tokensDataService).mulPPMRoundUp(
+                    staking.getDelegationFeeCut(_receiver, _dataService, _paymentType)
+                );
         }
-        uint256 receiverExpectedPayment = _tokens -
-            _tokens.mulPPMRoundUp(payments.PROTOCOL_PAYMENT_CUT()) -
-            tokensDataService -
-            tokensDelegation;
+        collectTokensData.receiverExpectedPayment =
+            _tokens -
+            collectTokensData.tokensProtocol -
+            collectTokensData.tokensDataService -
+            collectTokensData.tokensDelegation;
 
         // After balances
         CollectPaymentData memory afterBalances = CollectPaymentData({
@@ -173,11 +199,11 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         }
 
         // Check receiver balance after payment
-        assertEq(afterBalances.receiverBalance - previousBalances.receiverBalance, receiverExpectedPayment);
+        assertEq(afterBalances.receiverBalance - previousBalances.receiverBalance, collectTokensData.receiverExpectedPayment);
         assertEq(token.balanceOf(address(payments)), 0);
 
         // Check delegation pool balance after payment
-        assertEq(afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance, tokensDelegation);
+        assertEq(afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance, collectTokensData.tokensDelegation);
 
         // Check that the escrow account has been updated
         assertEq(previousBalances.escrowBalance, afterBalances.escrowBalance + _tokens);
@@ -186,7 +212,7 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         assertEq(previousBalances.paymentsBalance, afterBalances.paymentsBalance);
 
         // Check data service balance after payment
-        assertEq(afterBalances.dataServiceBalance - previousBalances.dataServiceBalance, tokensDataService);
+        assertEq(afterBalances.dataServiceBalance - previousBalances.dataServiceBalance, collectTokensData.tokensDataService);
 
         // Check payers escrow balance after payment
         assertEq(previousBalances.payerEscrowBalance - _tokens, afterBalances.payerEscrowBalance);
