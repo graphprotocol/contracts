@@ -3,6 +3,8 @@ import { loadActions } from './actions'
 import { resolveNodeModulesPath } from '../../lib/path'
 import { SubgraphServiceAddressBook } from './address-book'
 
+import type { Provider, Signer } from 'ethers'
+
 export { SubgraphServiceAddressBook }
 export type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
 export type { LegacyDisputeManager } from './types'
@@ -16,10 +18,10 @@ export function loadSubgraphService(addressBookPath: string, chainId: number, pr
   }
 }
 
-export function connectSubgraphService(chainId: number, provider: HardhatEthersProvider, addressBookPath?: string) {
+export function connectSubgraphService(chainId: number, signerOrProvider: Signer | Provider, addressBookPath?: string) {
   const addressBook = new SubgraphServiceAddressBook(
     addressBookPath ?? resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses.json'),
     chainId,
   )
-  return addressBook.loadContracts(provider)
+  return addressBook.loadContracts(signerOrProvider)
 }
