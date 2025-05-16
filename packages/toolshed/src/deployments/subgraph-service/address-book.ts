@@ -24,7 +24,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
     logDebug('Loading Subgraph Service contracts...')
 
     // Filter out LegacyDisputeManager from the artifacts map
-    const { LegacyDisputeManager: _, ...filteredArtifactsMap } = SubgraphServiceArtifactsMap
+    const { LegacyDisputeManager: _, LegacyServiceRegistry: __, ...filteredArtifactsMap } = SubgraphServiceArtifactsMap
 
     const contracts = this._loadContracts(
       filteredArtifactsMap as typeof SubgraphServiceArtifactsMap,
@@ -36,6 +36,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
       ...contracts,
       Curation: contracts.L2Curation,
       GNS: contracts.L2GNS,
+
     } as SubgraphServiceContracts
 
     // Load LegacyDisputeManager manually
@@ -46,6 +47,16 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
         loadArtifact('IDisputeManager', SubgraphServiceArtifactsMap.LegacyDisputeManager).abi,
         signerOrProvider,
       ), 'LegacyDisputeManager') as unknown as LegacyDisputeManager
+    }
+
+    // Load ServiceRegistry manually
+    if (this.entryExists('LegacyServiceRegistry')) {
+      const entry = this.getEntry('LegacyServiceRegistry')
+      contractsWithAliases.LegacyServiceRegistry = wrapTransactionCalls(new Contract(
+        entry.address,
+        loadArtifact('IServiceRegistry', SubgraphServiceArtifactsMap.LegacyServiceRegistry).abi,
+        signerOrProvider,
+      ), 'LegacyServiceRegistry') as unknown as LegacyDisputeManager
     }
 
     this._assertSubgraphServiceContracts(contractsWithAliases)

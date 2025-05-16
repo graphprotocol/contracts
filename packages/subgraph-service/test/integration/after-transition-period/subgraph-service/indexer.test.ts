@@ -500,7 +500,7 @@ describe('Indexer', () => {
           expect(paymentsDestination).not.equal(ethers.ZeroAddress, 'Payments destination should be set')
         })
 
-        it.only('should collect indexing rewards with rewards destination', async () => {
+        it('should collect indexing rewards with rewards destination', async () => {
           // Get before balance of rewards destination
           const beforePaymentsDestinationBalance = await graphToken.balanceOf(paymentsDestination)
 
@@ -522,7 +522,6 @@ describe('Indexer', () => {
 
           // Collect rewards
           const rewards = await collect(indexer, [indexer.address, PaymentTypes.IndexingRewards, data])
-          console.log('rewards', rewards)
           expect(rewards).to.not.equal(0n, 'Rewards should be greater than zero')
 
           // Verify rewards are transferred to payments destination
