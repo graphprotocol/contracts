@@ -1,5 +1,16 @@
 # @graphprotocol/toolshed
 
+## 0.2.0
+
+### Minor Changes
+
+- Add connectContracts utility functions to deployments
+
+### Patch Changes
+
+- @graphprotocol/horizon@0.2.0
+- @graphprotocol/subgraph-service@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes
