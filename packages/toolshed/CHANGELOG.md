@@ -1,5 +1,16 @@
 # @graphprotocol/toolshed
 
+## 0.3.0
+
+### Minor Changes
+
+- Proper path resolution for contract artifacts
+
+### Patch Changes
+
+- @graphprotocol/horizon@0.3.1
+- @graphprotocol/subgraph-service@0.3.3
+
 ## 0.2.6
 
 ### Patch Changes
