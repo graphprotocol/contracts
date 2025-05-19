@@ -1,4 +1,4 @@
-import { resolveNodeModulesPath } from '../../lib/path'
+import { resolvePackagePath } from '../../lib/path'
 
 import type {
   DisputeManager,
@@ -11,6 +11,7 @@ import type {
   LegacyServiceRegistry,
 } from './types'
 import type { ContractList } from '../contract'
+
 export const SubgraphServiceContractNameList = [
   // @graphprotocol/contracts
   'L2Curation',
@@ -26,8 +27,8 @@ export const SubgraphServiceContractNameList = [
   'LegacyServiceRegistry',
 ] as const
 
-export const CONTRACTS_ARTIFACTS_PATH = resolveNodeModulesPath('@graphprotocol/contracts/build/contracts')
-export const SUBGRAPH_SERVICE_ARTIFACTS_PATH = resolveNodeModulesPath('@graphprotocol/subgraph-service/build/contracts')
+export const CONTRACTS_ARTIFACTS_PATH = resolvePackagePath('@graphprotocol/contracts', 'build/contracts')
+export const SUBGRAPH_SERVICE_ARTIFACTS_PATH = resolvePackagePath('@graphprotocol/subgraph-service', 'build/contracts')
 
 export const SubgraphServiceArtifactsMap = {
   // @graphprotocol/contracts

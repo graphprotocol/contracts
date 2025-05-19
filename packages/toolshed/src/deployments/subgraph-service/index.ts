@@ -1,6 +1,5 @@
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import { loadActions } from './actions'
-import { resolveNodeModulesPath } from '../../lib/path'
 import { SubgraphServiceAddressBook } from './address-book'
 
 import type { Provider, Signer } from 'ethers'
@@ -20,7 +19,7 @@ export function loadSubgraphService(addressBookPath: string, chainId: number, pr
 
 export function connectSubgraphService(chainId: number, signerOrProvider: Signer | Provider, addressBookPath?: string) {
   const addressBook = new SubgraphServiceAddressBook(
-    addressBookPath ?? resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses.json'),
+    addressBookPath ?? require.resolve('@graphprotocol/subgraph-service/addresses.json'),
     chainId,
   )
   return addressBook.loadContracts(signerOrProvider)
