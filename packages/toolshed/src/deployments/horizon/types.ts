@@ -1,7 +1,7 @@
 import type {
   HorizonStakingExtension,
   HorizonStaking as HorizonStakingMain,
-  IEpochManager,
+  IEpochManagerToolshed,
   IGraphToken,
   IL2CurationToolshed,
   IRewardsManagerToolshed,
@@ -11,7 +11,7 @@ import type {
 // These are just type re-declarations to keep naming conventions consistent
 export {
   IGraphToken as L2GraphToken,
-  IEpochManager as EpochManager,
+  IEpochManagerToolshed as EpochManager,
   IRewardsManagerToolshed as RewardsManager,
   IL2CurationToolshed as L2Curation,
   IStaking as LegacyStaking,

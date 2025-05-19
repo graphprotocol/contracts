@@ -8,7 +8,7 @@ import type {
   L2Curation,
   L2GNS,
   LegacyDisputeManager,
-  LegacyServiceRegistry
+  LegacyServiceRegistry,
 } from './types'
 import type { ContractList } from '../contract'
 export const SubgraphServiceContractNameList = [
