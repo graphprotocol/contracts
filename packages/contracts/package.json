@@ -9,7 +9,7 @@
   "types": "build/types/index.d.ts",
   "files": [
     "dist/**/*",
-    "build/contracts/**/*",
+    "build/**/*",
     "README.md",
     "addresses.json"
   ],
