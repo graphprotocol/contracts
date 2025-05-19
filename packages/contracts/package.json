@@ -1,6 +1,9 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "7.1.1",
+  "version": "7.1.2",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Contracts for the Graph Protocol",
   "directories": {
     "test": "test"

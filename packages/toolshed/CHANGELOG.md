@@ -1,5 +1,15 @@
 # @graphprotocol/toolshed
 
+## 0.3.1
+
+### Patch Changes
+
+- chore: fix package visibility
+- Updated dependencies
+  - @graphprotocol/subgraph-service@0.3.4
+  - @graphprotocol/contracts@7.1.2
+  - @graphprotocol/horizon@0.3.2
+
 ## 0.3.0
 
 ### Minor Changes

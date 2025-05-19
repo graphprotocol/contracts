@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 7.1.2
+
+### Patch Changes
+
+- chore: fix package visibility
+
 ## 7.1.1
 
 ### Patch Changes

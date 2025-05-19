@@ -1,5 +1,13 @@
 # hardhat-graph-protocol
 
+## 0.1.11
+
+### Patch Changes
+
+- chore: fix package visibility
+- Updated dependencies
+  - @graphprotocol/toolshed@0.3.1
+
 ## 0.1.10
 
 ### Patch Changes

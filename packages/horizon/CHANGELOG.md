@@ -1,5 +1,11 @@
 # @graphprotocol/horizon
 
+## 0.3.2
+
+### Patch Changes
+
+- chore: fix package visibility
+
 ## 0.3.1
 
 ### Patch Changes
