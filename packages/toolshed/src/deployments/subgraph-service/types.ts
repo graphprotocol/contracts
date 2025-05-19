@@ -2,9 +2,8 @@ import type {
   IDisputeManager,
   IL2CurationToolshed,
   IL2GNS,
+  IServiceRegistry,
 } from '@graphprotocol/subgraph-service'
-
-import type { IServiceRegistry } from '@graphprotocol/contracts'
 
 // These are just type re-declarations to keep naming conventions consistent
 export {
