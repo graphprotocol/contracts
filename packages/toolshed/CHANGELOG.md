@@ -1,5 +1,14 @@
 # @graphprotocol/toolshed
 
+## 0.2.3
+
+### Patch Changes
+
+- Use proper types for Curation contract, add epochLength to EpochManager import in Horizon.
+- Updated dependencies
+  - @graphprotocol/subgraph-service@0.3.1
+  - @graphprotocol/horizon@0.3.1
+
 ## 0.2.2
 
 ### Patch Changes
