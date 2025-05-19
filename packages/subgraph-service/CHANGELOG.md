@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 0.3.3
+
+### Patch Changes
+
+- Fix missing public getter from toolshed interface
+
 ## 0.3.2
 
 ### Patch Changes

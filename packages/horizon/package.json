@@ -52,7 +52,7 @@
     "hardhat": "^2.22.18",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",
-    "hardhat-graph-protocol": "workspace:^0.1.8",
+    "hardhat-graph-protocol": "workspace:^0.1.9",
     "hardhat-secure-accounts": "^1.0.5",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
