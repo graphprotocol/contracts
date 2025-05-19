@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 7.1.0
+
+### Minor Changes
+
+- Publish entire build folder for contracts package
+
 ## 6.3.0
 
 ### Minor Changes
