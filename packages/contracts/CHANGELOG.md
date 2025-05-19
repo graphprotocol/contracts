@@ -1,5 +1,11 @@
 # @graphprotocol/contracts
 
+## 7.1.1
+
+### Patch Changes
+
+- Fix IServiceRegistry import in subgraph service toolshed deployment
+
 ## 7.1.0
 
 ### Minor Changes

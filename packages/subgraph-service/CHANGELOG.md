@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 0.3.2
+
+### Patch Changes
+
+- Fix IServiceRegistry import in subgraph service toolshed deployment
+
 ## 0.3.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "hardhat-graph-protocol",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "A hardhat plugin that extends the runtime environment to inject additional functionality related to the usage of the Graph Protocol.",
   "keywords": [
     "ethereum",

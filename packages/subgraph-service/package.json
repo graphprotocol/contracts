@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/subgraph-service",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "",
   "author": "The Graph core devs",
   "license": "GPL-2.0-or-later",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
-    "@graphprotocol/contracts": "workspace:^7.1.0",
+    "@graphprotocol/contracts": "workspace:^7.1.1",
     "@graphprotocol/horizon": "workspace:^0.3.1",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -53,7 +53,7 @@
     "hardhat": "^2.22.18",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",
-    "hardhat-graph-protocol": "workspace:^0.1.7",
+    "hardhat-graph-protocol": "workspace:^0.1.8",
     "hardhat-secure-accounts": "^1.0.5",
     "json5": "^2.2.3",
     "lint-staged": "^15.2.2",
