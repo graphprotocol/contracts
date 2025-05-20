@@ -19,8 +19,8 @@
       "default": "./dist/deployments/index.js"
     },
     "./hardhat": {
-      "types": "./dist/hardhat/index.d.ts",
-      "default": "./dist/hardhat/index.js"
+      "types": "./src/hardhat/index.ts",
+      "default": "./src/hardhat/index.ts"
     },
     "./utils": {
       "types": "./dist/utils/index.d.ts",
@@ -29,7 +29,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "lint": "eslint '**/*.{js,ts}' --fix"
+    "lint": "eslint '**/*.{js,ts}' --fix",
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "ethereum",
