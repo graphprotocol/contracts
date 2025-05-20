@@ -25,6 +25,6 @@ jobs:
       - name: Build
         run: |
           pushd packages/data-edge
-          yarn build
+          pnpm build
       - name: Run tests
-        run: yarn test
+        run: pnpm test

@@ -8,8 +8,8 @@ on:
         required: true
         type: choice
         options:
-        - contracts
-        - sdk
+          - contracts
+          - sdk
       tag:
         description: 'Tag to publish'
         required: true
@@ -27,10 +27,10 @@ jobs:
           submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Set npm token for publishing
+        run: pnpm config set //registry.npmjs.org/:_authToken ${{ secrets.GRAPHPROTOCOL_NPM_TOKEN }}
       - name: Publish 🚀
         shell: bash
         run: |
           pushd packages/${{ inputs.package }}
-          yarn npm publish --tag ${{ inputs.tag }} --access public
-        env:
-          YARN_NPM_AUTH_TOKEN: ${{ secrets.GRAPHPROTOCOL_NPM_TOKEN }}
+          pnpm publish --tag ${{ inputs.tag }} --access public --no-git-checks

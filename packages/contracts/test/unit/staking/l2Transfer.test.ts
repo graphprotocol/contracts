@@ -88,7 +88,7 @@ describe('L1Staking:L2Transfer', () => {
     fixtureContracts = await fixture.load(governor)
     grt = fixtureContracts.GraphToken as GraphToken
     staking = fixtureContracts.L1Staking as unknown as IL1Staking
-    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway
+    l1GraphTokenGateway = fixtureContracts.L1GraphTokenGateway as L1GraphTokenGateway
     controller = fixtureContracts.Controller as IController
 
     // Deploy L1 arbitrum bridge
@@ -96,8 +96,8 @@ describe('L1Staking:L2Transfer', () => {
 
     // Deploy L2 mock
     l2MockContracts = await fixture.loadMock(true)
-    l2StakingMock = l2MockContracts.L2Staking
-    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway
+    l2StakingMock = l2MockContracts.L2Staking as L2Staking
+    l2GRTGatewayMock = l2MockContracts.L2GraphTokenGateway as L2GraphTokenGateway
 
     // Configure graph bridge
     await fixture.configureL1Bridge(governor, fixtureContracts, l2MockContracts)

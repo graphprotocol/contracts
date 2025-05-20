@@ -1,26 +1,28 @@
 /* eslint-disable no-case-declarations */
+import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
 import { task, types } from 'hardhat/config'
-import { IgnitionHelper } from 'hardhat-graph-protocol/sdk'
+import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
 
-import type { AddressBook } from '../../hardhat-graph-protocol/src/sdk/address-book'
+import type { AddressBook } from '@graphprotocol/toolshed/deployments'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 import DeployModule from '../ignition/modules/deploy'
+import { printHorizonBanner } from '@graphprotocol/toolshed/utils'
 
 task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon contracts - no data services deployed')
   .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
+  .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const graph = hre.graph()
 
     // Load configuration for the deployment
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: HorizonConfig, file } = IgnitionHelper.loadConfig('./ignition/configs/', 'protocol', args.horizonConfig ?? hre.network.name)
+    const { config: HorizonConfig, file } = loadConfig('./ignition/configs/', 'protocol', args.horizonConfig ?? hre.network.name)
     console.log(`Loaded migration configuration from ${file}`)
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
     console.log('\n========== 🔑 Deployer account ==========')
-    const signers = await hre.ethers.getSigners()
-    const deployer = signers[0]
+    const deployer = await graph.accounts.getDeployer(args.accountIndex)
     console.log('Using deployer account:', deployer.address)
     const balance = await hre.ethers.provider.getBalance(deployer.address)
     console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')
@@ -34,12 +36,13 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     const deployment = await hre.ignition.deploy(DeployModule, {
       displayUi: true,
       parameters: HorizonConfig,
+      defaultSender: deployer.address,
     })
 
     // Save the addresses to the address book
     console.log('\n========== 📖 Updating address book ==========')
-    IgnitionHelper.saveToAddressBook(deployment, hre.network.config.chainId, graph.horizon!.addressBook)
-    console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
+    saveToAddressBook(deployment, graph.horizon.addressBook)
+    console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
 
     console.log('\n\n🎉 ✨ 🚀 ✅ Deployment complete! 🎉 ✨ 🚀 ✅')
   })
@@ -47,14 +50,19 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to Horizon - no data services deployed')
   .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
   .addOptionalParam('step', 'Migration step to run (1, 2, 3 or 4)', undefined, types.int)
+  .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
+  .addFlag('standalone', 'Deploy horizon contracts in standalone mode - subgraph service hardcoded as zero address')
+  .addFlag('hideBanner', 'Hide the banner display')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     // Task parameters
     const step: number = args.step ?? 0
     const patchConfig: boolean = args.patchConfig ?? false
 
     const graph = hre.graph()
-    console.log(getHorizonBanner())
+    if (!args.hideBanner) {
+      printHorizonBanner()
+    }
 
     // Migration step to run
     console.log('\n========== 🏗️ Migration steps ==========')
@@ -68,13 +76,12 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     // Load configuration for the migration
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: HorizonMigrateConfig, file } = IgnitionHelper.loadConfig('./ignition/configs/', 'migrate', args.horizonConfig ?? hre.network.name)
+    const { config: HorizonMigrateConfig, file } = loadConfig('./ignition/configs/', 'migrate', args.horizonConfig ?? hre.network.name)
     console.log(`Loaded migration configuration from ${file}`)
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
     console.log('\n========== 🔑 Deployer account ==========')
-    const signers = await hre.ethers.getSigners()
-    const deployer = signers[0]
+    const deployer = await graph.accounts.getDeployer(args.accountIndex)
     console.log('Using deployer account:', deployer.address)
     const balance = await hre.ethers.provider.getBalance(deployer.address)
     console.log('Deployer balance:', hre.ethers.formatEther(balance), 'ETH')
@@ -90,16 +97,26 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
       MigrationModule,
       {
         displayUi: true,
-        parameters: patchConfig ? _patchStepConfig(step, HorizonMigrateConfig, graph.horizon!.addressBook, graph.subgraphService!.addressBook) : HorizonMigrateConfig,
+        parameters: patchConfig
+          ? _patchStepConfig(
+            step,
+            HorizonMigrateConfig,
+            graph.horizon.addressBook,
+            graph.subgraphService?.addressBook,
+            args.standalone,
+          )
+          : HorizonMigrateConfig,
         deploymentId: `horizon-${hre.network.name}`,
-      })
+        defaultSender: deployer.address,
+      },
+    )
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
-    IgnitionHelper.saveToAddressBook(deployment, hre.network.config.chainId, graph.horizon!.addressBook)
-    console.log(`Address book at ${graph.horizon!.addressBook.file} updated!`)
+    saveToAddressBook(deployment, graph.horizon.addressBook)
+    console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
 
-    console.log('\n\n🎉 ✨ 🚀 ✅ Migration complete! 🎉 ✨ 🚀 ✅')
+    console.log(`\n\n🎉 ✨ 🚀 ✅ Migration step ${step} complete! 🎉 ✨ 🚀 ✅\n`)
   })
 
 // This function patches the Ignition configuration object using an address book to fill in the gaps
@@ -110,27 +127,41 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: any,
   horizonAddressBook: AddressBook<ChainId, ContractName>,
-  subgraphServiceAddressBook: AddressBook<ChainId, HorizonContractName>,
+  subgraphServiceAddressBook: AddressBook<ChainId, HorizonContractName> | undefined,
+  standalone: boolean,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   let patchedConfig = config
+
+  // Get the subgraph service address
+  // Subgraph service address book might exist if we are running horizon + subgraph service
+  // or it might not exist if we are running horizon standalone
+  function getSubgraphServiceAddress() {
+    if (
+      subgraphServiceAddressBook === undefined
+      || !subgraphServiceAddressBook.entryExists('SubgraphService')
+      || standalone
+    ) {
+      return ZERO_ADDRESS
+    }
+    return subgraphServiceAddressBook.getEntry('SubgraphService').address
+  }
 
   switch (step) {
     case 2:
       const GraphPayments = horizonAddressBook.getEntry('GraphPayments')
       const PaymentsEscrow = horizonAddressBook.getEntry('PaymentsEscrow')
-      patchedConfig = IgnitionHelper.patchConfig(config, {
-        HorizonProxiesGovernor: {
+      patchedConfig = patchConfig(config, {
+        $global: {
           graphPaymentsAddress: GraphPayments.address,
           paymentsEscrowAddress: PaymentsEscrow.address,
         },
       })
       break
     case 3:
-      const SubgraphService3 = subgraphServiceAddressBook.getEntry('SubgraphService')
-      patchedConfig = IgnitionHelper.patchConfig(patchedConfig, {
+      patchedConfig = patchConfig(patchedConfig, {
         $global: {
-          subgraphServiceAddress: SubgraphService3.address,
+          subgraphServiceAddress: getSubgraphServiceAddress(),
         },
       })
       break
@@ -138,41 +169,16 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
       const HorizonStaking = horizonAddressBook.getEntry('HorizonStaking')
       const L2Curation = horizonAddressBook.getEntry('L2Curation')
       const RewardsManager = horizonAddressBook.getEntry('RewardsManager')
-      const SubgraphService4 = subgraphServiceAddressBook.getEntry('SubgraphService')
-      patchedConfig = IgnitionHelper.patchConfig(patchedConfig, {
+      patchedConfig = patchConfig(patchedConfig, {
         $global: {
-          subgraphServiceAddress: SubgraphService4.address,
-        },
-        HorizonStakingGovernor: {
-          horizonStakingImplementationAddress: HorizonStaking.implementation,
-        },
-        L2CurationGovernor: {
-          curationImplementationAddress: L2Curation.implementation,
-        },
-        RewardsManagerGovernor: {
-          rewardsManagerImplementationAddress: RewardsManager.implementation,
+          subgraphServiceAddress: getSubgraphServiceAddress(),
+          horizonStakingImplementationAddress: HorizonStaking.implementation ?? ZERO_ADDRESS,
+          curationImplementationAddress: L2Curation.implementation ?? ZERO_ADDRESS,
+          rewardsManagerImplementationAddress: RewardsManager.implementation ?? ZERO_ADDRESS,
         },
       })
       break
   }
 
   return patchedConfig
-}
-
-function getHorizonBanner(): string {
-  return `
-  ██╗  ██╗ ██████╗ ██████╗ ██╗███████╗ ██████╗ ███╗   ██╗
-  ██║  ██║██╔═══██╗██╔══██╗██║╚══███╔╝██╔═══██╗████╗  ██║
-  ███████║██║   ██║██████╔╝██║  ███╔╝ ██║   ██║██╔██╗ ██║
-  ██╔══██║██║   ██║██╔══██╗██║ ███╔╝  ██║   ██║██║╚██╗██║
-  ██║  ██║╚██████╔╝██║  ██║██║███████╗╚██████╔╝██║ ╚████║
-  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝
-                                                          
-  ██╗   ██╗██████╗  ██████╗ ██████╗  █████╗ ██████╗ ███████╗
-  ██║   ██║██╔══██╗██╔════╝ ██╔══██╗██╔══██╗██╔══██╗██╔════╝
-  ██║   ██║██████╔╝██║  ███╗██████╔╝███████║██║  ██║█████╗  
-  ██║   ██║██╔═══╝ ██║   ██║██╔══██╗██╔══██║██║  ██║██╔══╝  
-  ╚██████╔╝██║     ╚██████╔╝██║  ██║██║  ██║██████╔╝███████╗
-   ╚═════╝ ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝
-  `
 }
