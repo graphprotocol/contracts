@@ -6,6 +6,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./MathUtils.sol";
+import "./IStakes.sol";
 
 /**
  * @title A collection of data structures and functions to manage the Indexer Stake state.
@@ -14,21 +15,14 @@ import "./MathUtils.sol";
  */
 library Stakes {
     using SafeMath for uint256;
-    using Stakes for Stakes.Indexer;
-
-    struct Indexer {
-        uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
-        uint256 tokensAllocated; // Tokens used in allocations
-        uint256 tokensLocked; // Tokens locked for withdrawal subject to thawing period
-        uint256 tokensLockedUntil; // Block when locked tokens can be withdrawn
-    }
+    using Stakes for IStakes.Indexer;
 
     /**
      * @dev Deposit tokens to the indexer stake.
      * @param stake Stake data
      * @param _tokens Amount of tokens to deposit
      */
-    function deposit(Stakes.Indexer storage stake, uint256 _tokens) internal {
+    function deposit(IStakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensStaked = stake.tokensStaked.add(_tokens);
     }
 
@@ -37,7 +31,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to release
      */
-    function release(Stakes.Indexer storage stake, uint256 _tokens) internal {
+    function release(IStakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensStaked = stake.tokensStaked.sub(_tokens);
     }
 
@@ -46,7 +40,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to allocate
      */
-    function allocate(Stakes.Indexer storage stake, uint256 _tokens) internal {
+    function allocate(IStakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensAllocated = stake.tokensAllocated.add(_tokens);
     }
 
@@ -55,7 +49,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to unallocate
      */
-    function unallocate(Stakes.Indexer storage stake, uint256 _tokens) internal {
+    function unallocate(IStakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensAllocated = stake.tokensAllocated.sub(_tokens);
     }
 
@@ -65,7 +59,7 @@ library Stakes {
      * @param _tokens Amount of tokens to unstake
      * @param _period Period in blocks that need to pass before withdrawal
      */
-    function lockTokens(Stakes.Indexer storage stake, uint256 _tokens, uint256 _period) internal {
+    function lockTokens(IStakes.Indexer storage stake, uint256 _tokens, uint256 _period) internal {
         // Take into account period averaging for multiple unstake requests
         uint256 lockingPeriod = _period;
         if (stake.tokensLocked > 0) {
@@ -87,7 +81,7 @@ library Stakes {
      * @param stake Stake data
      * @param _tokens Amount of tokens to unlock
      */
-    function unlockTokens(Stakes.Indexer storage stake, uint256 _tokens) internal {
+    function unlockTokens(IStakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensLocked = stake.tokensLocked.sub(_tokens);
         if (stake.tokensLocked == 0) {
             stake.tokensLockedUntil = 0;
@@ -99,7 +93,7 @@ library Stakes {
      * @param stake Stake data
      * @return Amount of tokens being withdrawn
      */
-    function withdrawTokens(Stakes.Indexer storage stake) internal returns (uint256) {
+    function withdrawTokens(IStakes.Indexer storage stake) internal returns (uint256) {
         // Calculate tokens that can be released
         uint256 tokensToWithdraw = stake.tokensWithdrawable();
 
@@ -119,7 +113,7 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensUsed(Stakes.Indexer memory stake) internal pure returns (uint256) {
+    function tokensUsed(IStakes.Indexer memory stake) internal pure returns (uint256) {
         return stake.tokensAllocated.add(stake.tokensLocked);
     }
 
@@ -130,7 +124,7 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensSecureStake(Stakes.Indexer memory stake) internal pure returns (uint256) {
+    function tokensSecureStake(IStakes.Indexer memory stake) internal pure returns (uint256) {
         return stake.tokensStaked.sub(stake.tokensLocked);
     }
 
@@ -142,7 +136,7 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensAvailable(Stakes.Indexer memory stake) internal pure returns (uint256) {
+    function tokensAvailable(IStakes.Indexer memory stake) internal pure returns (uint256) {
         return stake.tokensAvailableWithDelegation(0);
     }
 
@@ -155,7 +149,7 @@ library Stakes {
      * @return Token amount
      */
     function tokensAvailableWithDelegation(
-        Stakes.Indexer memory stake,
+        IStakes.Indexer memory stake,
         uint256 _delegatedCapacity
     ) internal pure returns (uint256) {
         uint256 tokensCapacity = stake.tokensStaked.add(_delegatedCapacity);
@@ -181,7 +175,7 @@ library Stakes {
      * @param stake Stake data
      * @return Token amount
      */
-    function tokensWithdrawable(Stakes.Indexer memory stake) internal view returns (uint256) {
+    function tokensWithdrawable(IStakes.Indexer memory stake) internal view returns (uint256) {
         // No tokens to withdraw before locking period
         if (stake.tokensLockedUntil == 0 || block.number < stake.tokensLockedUntil) {
             return 0;
