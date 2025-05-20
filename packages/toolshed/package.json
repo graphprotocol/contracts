@@ -11,20 +11,20 @@
   "types": "./dist/core/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/core/index.ts",
-      "default": "./src/core/index.ts"
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
     },
     "./deployments": {
-      "types": "./src/deployments/index.ts",
-      "default": "./src/deployments/index.ts"
+      "types": "./dist/deployments/index.d.ts",
+      "default": "./dist/deployments/index.js"
     },
     "./hardhat": {
-      "types": "./src/hardhat/index.ts",
-      "default": "./src/hardhat/index.ts"
+      "types": "./dist/hardhat/index.d.ts",
+      "default": "./dist/hardhat/index.js"
     },
     "./utils": {
-      "types": "./src/utils/index.ts",
-      "default": "./src/utils/index.ts"
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
     }
   },
   "scripts": {

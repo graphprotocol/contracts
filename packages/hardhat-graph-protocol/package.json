@@ -21,7 +21,7 @@
   "exports": {
     ".": {
       "types": "./src/types.ts",
-      "default": "./src/index.ts"
+      "default": "./dist/src/index.js"
     }
   },
   "scripts": {
