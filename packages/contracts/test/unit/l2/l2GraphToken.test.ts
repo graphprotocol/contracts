@@ -28,7 +28,7 @@ describe('L2GraphToken', () => {
       ;({ governor } = await graph.getNamedAccounts())
       fixture = new NetworkFixture(graph.provider)
       contracts = await fixture.load(governor, true)
-      grt = contracts.L2GraphToken
+      grt = contracts.L2GraphToken as L2GraphToken
     })
 
     beforeEach(async function () {

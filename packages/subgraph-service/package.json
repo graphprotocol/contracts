@@ -1,32 +1,39 @@
 {
   "name": "@graphprotocol/subgraph-service",
-  "version": "0.0.1",
+  "version": "0.3.4",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "",
   "author": "The Graph core devs",
   "license": "GPL-2.0-or-later",
   "types": "typechain-types/index.ts",
   "files": [
     "build/contracts/**/*",
+    "typechain-types/**/*",
     "README.md",
     "addresses.json"
   ],
   "scripts": {
-    "lint": "yarn lint:ts && yarn lint:sol",
-    "lint:ts": "eslint '**/*.{js,ts}' --fix",
-    "lint:sol": "yarn lint:sol:prettier && yarn lint:sol:solhint",
+    "lint": "pnpm lint:ts && pnpm lint:sol",
+    "lint:ts": "eslint '**/*.{js,ts}' --fix --no-warn-ignored",
+    "lint:sol": "pnpm lint:sol:prettier && pnpm lint:sol:solhint",
     "lint:sol:prettier": "prettier --write contracts/**/*.sol test/**/*.sol",
     "lint:sol:solhint": "solhint --noPrompt --fix contracts/**/*.sol --config node_modules/solhint-graph-config/index.js",
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
-    "build": "BUILD_RUN=true hardhat compile",
-    "test": "forge test && hardhat test"
+    "build": "hardhat compile",
+    "test": "forge test",
+    "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
+    "test:integration": "./scripts/integration"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
-    "@graphprotocol/contracts": "workspace:^7.0.0",
-    "@graphprotocol/horizon": "workspace:^0.0.1",
+    "@graphprotocol/contracts": "workspace:^7.1.2",
+    "@graphprotocol/horizon": "workspace:^0.3.2",
+    "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
-    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-ethers": "3.0.8",
     "@nomicfoundation/hardhat-foundry": "^1.1.1",
     "@nomicfoundation/hardhat-ignition": "^0.15.9",
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.9",
@@ -44,13 +51,13 @@
     "chai": "^4.2.0",
     "eslint": "^8.56.0",
     "eslint-graph-config": "workspace:^0.0.1",
-    "ethers": "^6.13.4",
+    "ethers": "6.13.7",
+    "glob": "^11.0.1",
     "hardhat": "^2.22.18",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",
-    "hardhat-graph-protocol": "workspace:^0.0.1",
+    "hardhat-graph-protocol": "workspace:^0.1.12",
     "hardhat-secure-accounts": "^1.0.5",
-    "hardhat-storage-layout": "^0.1.7",
     "json5": "^2.2.3",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
@@ -66,16 +73,16 @@
   },
   "lint-staged": {
     "contracts/**/*.sol": [
-      "yarn lint:sol"
+      "pnpm lint:sol"
     ],
     "**/*.ts": [
-      "yarn lint:ts"
+      "pnpm lint:ts"
     ],
     "**/*.js": [
-      "yarn lint:ts"
+      "pnpm lint:ts"
     ],
     "**/*.json": [
-      "yarn lint:ts"
+      "pnpm lint:ts"
     ]
   }
 }

@@ -1,5 +1,23 @@
 # @graphprotocol/contracts
 
+## 7.1.2
+
+### Patch Changes
+
+- chore: fix package visibility
+
+## 7.1.1
+
+### Patch Changes
+
+- Fix IServiceRegistry import in subgraph service toolshed deployment
+
+## 7.1.0
+
+### Minor Changes
+
+- Publish entire build folder for contracts package
+
 ## 6.3.0
 
 ### Minor Changes

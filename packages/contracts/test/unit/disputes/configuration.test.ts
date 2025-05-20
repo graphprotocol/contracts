@@ -30,7 +30,7 @@ describe('DisputeManager:Config', () => {
 
     fixture = new NetworkFixture(graph.provider)
     contracts = await fixture.load(governor)
-    disputeManager = contracts.DisputeManager
+    disputeManager = contracts.DisputeManager as DisputeManager
   })
 
   beforeEach(async function () {
