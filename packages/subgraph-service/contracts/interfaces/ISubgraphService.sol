@@ -7,6 +7,8 @@ import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGra
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
+import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+
 /**
  * @title Interface for the {SubgraphService} contract
  * @dev This interface extends {IDataServiceFees} and {IDataService}.
@@ -97,7 +99,7 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter);
 
     /**
-     * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
+     * @notice @notice Thrown when the service provider does not match the expected indexer.
      * @param providedIndexer The address of the provided indexer.
      * @param expectedIndexer The address of the expected indexer.
      */
@@ -294,4 +296,9 @@ interface ISubgraphService is IDataServiceFees {
      * @return The address of the curation contract
      */
     function getCuration() external view returns (address);
+
+    /**
+     * @notice Accept an indexing agreement.
+     */
+    function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
 }

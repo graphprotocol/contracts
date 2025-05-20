@@ -14,12 +14,14 @@ import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHo
 import { IPaymentsEscrow } from "@graphprotocol/horizon/contracts/interfaces/IPaymentsEscrow.sol";
 import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
+import { RecurringCollector } from "@graphprotocol/horizon/contracts/payments/collectors/RecurringCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
 import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 import { Constants } from "./utils/Constants.sol";
 import { DisputeManager } from "../contracts/DisputeManager.sol";
 import { SubgraphService } from "../contracts/SubgraphService.sol";
+import { SubgraphServiceExtension } from "../contracts/SubgraphServiceExtension.sol";
 import { Users } from "./utils/Users.sol";
 import { Utils } from "./utils/Utils.sol";
 
@@ -43,6 +45,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     GraphPayments graphPayments;
     IPaymentsEscrow escrow;
     GraphTallyCollector graphTallyCollector;
+    RecurringCollector recurringCollector;
 
     HorizonStaking private stakingBase;
     HorizonStakingExtension private stakingExtension;
@@ -156,12 +159,21 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             address(controller),
             revokeSignerThawingPeriod
         );
+        recurringCollector = new RecurringCollector(
+            "RecurringCollector",
+            "1",
+            address(controller),
+            revokeSignerThawingPeriod
+        );
+
         address subgraphServiceImplementation = address(
             new SubgraphService(
                 address(controller),
                 address(disputeManager),
                 address(graphTallyCollector),
-                address(curation)
+                address(curation),
+                address(recurringCollector),
+                address(new SubgraphServiceExtension())
             )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(
