@@ -12,16 +12,16 @@ contract SubgraphServiceIndexingAgreementBaseTest is SubgraphServiceIndexingAgre
 
     /* solhint-disable graph/func-name-mixedcase */
     function test_SubgraphService_Revert_WhenUnsafeAddress_WhenProxyAdmin(address indexer, bytes16 agreementId) public {
-        address operator = TRANSPARENT_UPGRADEABLE_PROXY_ADMIN;
+        address operator = _transparentUpgradeableProxyAdmin();
         assertFalse(_isSafeSubgraphServiceCaller(operator));
 
         vm.expectRevert(TransparentUpgradeableProxy.ProxyDeniedAdminAccess.selector);
         resetPrank(address(operator));
-        subgraphService.cancelIndexingAgreement(indexer, agreementId);
+        _getSubgraphServiceExtension().cancelIndexingAgreement(indexer, agreementId);
     }
 
     function test_SubgraphService_Revert_WhenUnsafeAddress_WhenGraphProxyAdmin(uint256 unboundedTokens) public {
-        address indexer = 0x15c603B7eaA8eE1a272a69C4af3462F926de777F; // GraphProxyAdmin
+        address indexer = GRAPH_PROXY_ADMIN_ADDRESS;
         assertFalse(_isSafeSubgraphServiceCaller(indexer));
 
         uint256 tokens = bound(unboundedTokens, minimumProvisionTokens, MAX_TOKENS);

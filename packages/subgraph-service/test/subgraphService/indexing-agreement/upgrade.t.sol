@@ -26,7 +26,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
 
         resetPrank(operator);
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
-        subgraphService.upgradeIndexingAgreement(operator, signedRCAU);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(operator, signedRCAU);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAuthorized(
@@ -42,7 +42,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
             notAuthorized
         );
         vm.expectRevert(expectedErr);
-        subgraphService.upgradeIndexingAgreement(indexer, signedRCAU);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(indexer, signedRCAU);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenInvalidProvision(
@@ -63,7 +63,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
             maximumProvisionTokens
         );
         vm.expectRevert(expectedErr);
-        subgraphService.upgradeIndexingAgreement(indexer, signedRCAU);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(indexer, signedRCAU);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenIndexerNotRegistered(
@@ -81,7 +81,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
             indexer
         );
         vm.expectRevert(expectedErr);
-        subgraphService.upgradeIndexingAgreement(indexer, signedRCAU);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(indexer, signedRCAU);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAccepted(Seed memory seed) public {
@@ -98,7 +98,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         );
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);
-        subgraphService.upgradeIndexingAgreement(indexerState.addr, acceptableUpgrade);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(indexerState.addr, acceptableUpgrade);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenNotAuthorizedForAgreement(
@@ -117,7 +117,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         );
         vm.expectRevert(expectedErr);
         resetPrank(indexerStateB.addr);
-        subgraphService.upgradeIndexingAgreement(indexerStateB.addr, acceptableUpgrade);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(indexerStateB.addr, acceptableUpgrade);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_Revert_WhenInvalidMetadata(Seed memory seed) public {
@@ -139,7 +139,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         );
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);
-        subgraphService.upgradeIndexingAgreement(indexerState.addr, unacceptableUpgrade);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(indexerState.addr, unacceptableUpgrade);
     }
 
     function test_SubgraphService_UpgradeIndexingAgreement_OK(Seed memory seed) public {
@@ -149,7 +149,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         IRecurringCollector.SignedRCAU memory acceptableUpgrade = _generateAcceptableSignedRCAU(ctx, accepted.rca);
 
         resetPrank(indexerState.addr);
-        subgraphService.upgradeIndexingAgreement(indexerState.addr, acceptableUpgrade);
+        _getSubgraphServiceExtension().upgradeIndexingAgreement(indexerState.addr, acceptableUpgrade);
     }
     /* solhint-enable graph/func-name-mixedcase */
 }

@@ -21,6 +21,7 @@ import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import { Constants } from "./utils/Constants.sol";
 import { DisputeManager } from "../contracts/DisputeManager.sol";
 import { SubgraphService } from "../contracts/SubgraphService.sol";
+import { SubgraphServiceExtension } from "../contracts/SubgraphServiceExtension.sol";
 import { Users } from "./utils/Users.sol";
 import { Utils } from "./utils/Utils.sol";
 
@@ -164,13 +165,15 @@ abstract contract SubgraphBaseTest is Utils, Constants {
             address(controller),
             revokeSignerThawingPeriod
         );
+
         address subgraphServiceImplementation = address(
             new SubgraphService(
                 address(controller),
                 address(disputeManager),
                 address(graphTallyCollector),
                 address(curation),
-                address(recurringCollector)
+                address(recurringCollector),
+                address(new SubgraphServiceExtension())
             )
         );
         address subgraphServiceProxy = UnsafeUpgrades.deployTransparentProxy(

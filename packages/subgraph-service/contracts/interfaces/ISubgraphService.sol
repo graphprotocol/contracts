@@ -3,11 +3,11 @@ pragma solidity 0.8.27;
 
 import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
-import { IndexingAgreement } from "../libraries/IndexingAgreement.sol";
+
+import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 
 /**
  * @title Interface for the {SubgraphService} contract
@@ -301,23 +301,4 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Accept an indexing agreement.
      */
     function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
-
-    /**
-     * @notice Upgrade an indexing agreement.
-     */
-    function upgradeIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
-
-    /**
-     * @notice Cancel an indexing agreement by indexer / operator.
-     */
-    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external;
-
-    /**
-     * @notice Cancel an indexing agreement by payer / signer.
-     */
-    function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
-
-    function getIndexingAgreement(
-        bytes16 agreementId
-    ) external view returns (IndexingAgreement.AgreementWrapper memory);
 }

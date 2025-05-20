@@ -5,6 +5,7 @@ import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IndexingAgreement } from "../../../contracts/libraries/IndexingAgreement.sol";
+import { ISubgraphServiceExtension } from "../../../contracts/interfaces/ISubgraphServiceExtension.sol";
 
 import { Bounder } from "@graphprotocol/horizon/test/utils/Bounder.t.sol";
 import { RecurringCollectorHelper } from "@graphprotocol/horizon/test/payments/recurring-collector/RecurringCollectorHelper.t.sol";
@@ -59,7 +60,9 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
     Context internal _context;
 
-    address internal constant TRANSPARENT_UPGRADEABLE_PROXY_ADMIN = 0xE1C5264f10fad5d1912e5Ba2446a26F5EfdB7482;
+    bytes32 internal constant TRANSPARENT_UPGRADEABLE_PROXY_ADMIN_ADDRESS_SLOT =
+        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+    address internal constant GRAPH_PROXY_ADMIN_ADDRESS = 0x15c603B7eaA8eE1a272a69C4af3462F926de777F;
 
     RecurringCollectorHelper internal _recurringCollectorHelper;
 
@@ -107,10 +110,10 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
         if (byIndexer) {
             _subgraphServiceSafePrank(_indexer);
-            subgraphService.cancelIndexingAgreement(_indexer, _agreementId);
+            _getSubgraphServiceExtension().cancelIndexingAgreement(_indexer, _agreementId);
         } else {
             _subgraphServiceSafePrank(_ctx.payer.signer);
-            subgraphService.cancelIndexingAgreementByPayer(_agreementId);
+            _getSubgraphServiceExtension().cancelIndexingAgreementByPayer(_agreementId);
         }
     }
 
@@ -295,8 +298,19 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function _isSafeSubgraphServiceCaller(address _candidate) internal view returns (bool) {
         return
             _candidate != address(0) &&
-            _candidate != address(TRANSPARENT_UPGRADEABLE_PROXY_ADMIN) &&
+            _candidate != address(_transparentUpgradeableProxyAdmin()) &&
             _candidate != address(proxyAdmin);
+    }
+
+    function _transparentUpgradeableProxyAdmin() internal view returns (address) {
+        return
+            address(
+                uint160(uint256(vm.load(address(subgraphService), TRANSPARENT_UPGRADEABLE_PROXY_ADMIN_ADDRESS_SLOT)))
+            );
+    }
+
+    function _getSubgraphServiceExtension() internal view returns (ISubgraphServiceExtension) {
+        return ISubgraphServiceExtension(address(subgraphService));
     }
 
     function _newAcceptIndexingAgreementMetadataV1(

@@ -30,6 +30,8 @@ abstract contract Directory {
     /// @dev Required to collect indexing agreement payments via Graph Horizon payments protocol
     IRecurringCollector private immutable RECURRING_COLLECTOR;
 
+    address private immutable SUBGRAPH_SERVICE_EXTENSION_IMPL;
+
     /// @notice The Curation contract address
     /// @dev Required for curation fees distribution
     ICuration private immutable CURATION;
@@ -45,7 +47,9 @@ abstract contract Directory {
         address subgraphService,
         address disputeManager,
         address graphTallyCollector,
-        address curation
+        address curation,
+        address recurringCollector,
+        address subgraphServiceExtensionImpl
     );
 
     /**
@@ -73,21 +77,31 @@ abstract contract Directory {
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
      * @param recurringCollector_ The Recurring Collector contract address
+     * @param subgraphServiceExtensionImpl_ The Subgraph Service Extension contract address
      */
     constructor(
         address subgraphService,
         address disputeManager,
         address graphTallyCollector,
         address curation,
-        address recurringCollector_
+        address recurringCollector_,
+        address subgraphServiceExtensionImpl_
     ) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
         GRAPH_TALLY_COLLECTOR = IGraphTallyCollector(graphTallyCollector);
         CURATION = ICuration(curation);
         RECURRING_COLLECTOR = IRecurringCollector(recurringCollector_);
+        SUBGRAPH_SERVICE_EXTENSION_IMPL = subgraphServiceExtensionImpl_;
 
-        emit SubgraphServiceDirectoryInitialized(subgraphService, disputeManager, graphTallyCollector, curation);
+        emit SubgraphServiceDirectoryInitialized(
+            subgraphService,
+            disputeManager,
+            graphTallyCollector,
+            curation,
+            recurringCollector_,
+            subgraphServiceExtensionImpl_
+        );
     }
 
     /**
@@ -95,6 +109,13 @@ abstract contract Directory {
      */
     function recurringCollector() external view returns (IRecurringCollector) {
         return RECURRING_COLLECTOR;
+    }
+
+    /**
+     * @notice Returns the Subgraph Service Extension implementation contract address
+     */
+    function _subgraphServiceExtensionImpl() internal view returns (address) {
+        return SUBGRAPH_SERVICE_EXTENSION_IMPL;
     }
 
     function _directory() internal view returns (Directory) {

@@ -74,6 +74,8 @@ library IndexingAgreement {
         uint256 tokensPerEntityPerSecond;
     }
 
+    bytes32 private constant INDEXING_AGREEMENT_MANAGER_STORAGE_V1_SLOT = keccak256("v1.manager.indexing-agreement");
+
     /**
      * @notice Emitted when an indexer collects indexing fees from a V1 agreement
      * @param indexer The address of the indexer
@@ -375,6 +377,15 @@ library IndexingAgreement {
         require(wrapper.collectorAgreement.dataService == address(this), IndexingAgreementNotActive(agreementId));
 
         return wrapper;
+    }
+
+    function _getManager() internal pure returns (Manager storage manager) {
+        bytes32 slot = INDEXING_AGREEMENT_MANAGER_STORAGE_V1_SLOT;
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            manager.slot := slot
+        }
     }
 
     function _setTermsV1(Manager storage _manager, bytes16 _agreementId, bytes memory _data) private {

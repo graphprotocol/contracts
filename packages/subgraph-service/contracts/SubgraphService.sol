@@ -16,7 +16,6 @@ import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataS
 import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
 import { Directory } from "./utilities/Directory.sol";
 import { AllocationManager } from "./utilities/AllocationManager.sol";
-import { IndexingAgreementManagerStorageV1 } from "./utilities/IndexingAgreementManagerStorageV1.sol";
 import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
@@ -44,8 +43,7 @@ contract SubgraphService is
     AllocationManager,
     SubgraphServiceV1Storage,
     IRewardsIssuer,
-    ISubgraphService,
-    IndexingAgreementManagerStorageV1
+    ISubgraphService
 {
     using PPMMath for uint256;
     using Allocation for mapping(address => Allocation.State);
@@ -75,10 +73,11 @@ contract SubgraphService is
         address disputeManager,
         address graphTallyCollector,
         address curation,
-        address recurringCollector
+        address recurringCollector,
+        address extension
     )
         DataService(graphController)
-        Directory(address(this), disputeManager, graphTallyCollector, curation, recurringCollector)
+        Directory(address(this), disputeManager, graphTallyCollector, curation, recurringCollector, extension)
     {
         _disableInitializers();
     }
@@ -553,6 +552,10 @@ contract SubgraphService is
         emit StakeToFeesRatioSet(_stakeToFeesRatio);
     }
 
+    function _cancelAllocationIndexingAgreement(address _allocationId) internal {
+        IndexingAgreement._getManager().cancelForAllocation(_allocationId);
+    }
+
     /**
      * @notice Accept an indexing agreement.
      * See {ISubgraphService.acceptIndexingAgreement}.
@@ -584,75 +587,7 @@ contract SubgraphService is
         onlyValidProvision(signedRCA.rca.serviceProvider)
         onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
     {
-        _indexingAgreementManager.accept(_allocations, allocationId, signedRCA);
-    }
-
-    function upgradeIndexingAgreement(
-        address indexer,
-        IRecurringCollector.SignedRCAU calldata signedRCAU
-    )
-        external
-        whenNotPaused
-        onlyAuthorizedForProvision(indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-    {
-        _indexingAgreementManager.upgrade(indexer, signedRCAU);
-    }
-
-    /**
-     * @notice Cancel an indexing agreement by indexer / operator.
-     * See {ISubgraphService.cancelIndexingAgreement}.
-     *
-     * @dev Can only be canceled on behalf of a valid indexer.
-     *
-     * Requirements:
-     * - The indexer must be registered
-     * - The caller must be authorized by the indexer
-     * - The provision must be valid according to the subgraph service rules
-     * - The agreement must be active
-     *
-     * Emits {IndexingAgreementCanceled} event
-     *
-     * @param agreementId The id of the agreement
-     */
-    function cancelIndexingAgreement(
-        address indexer,
-        bytes16 agreementId
-    )
-        external
-        whenNotPaused
-        onlyAuthorizedForProvision(indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-    {
-        _indexingAgreementManager.cancel(indexer, agreementId);
-    }
-
-    function _cancelAllocationIndexingAgreement(address _allocationId) internal {
-        _indexingAgreementManager.cancelForAllocation(_allocationId);
-    }
-
-    /**
-     * @notice Cancel an indexing agreement by payer / signer.
-     * See {ISubgraphService.cancelIndexingAgreementByPayer}.
-     *
-     * Requirements:
-     * - The caller must be authorized by the payer
-     * - The agreement must be active
-     *
-     * Emits {IndexingAgreementCanceled} event
-     *
-     * @param agreementId The id of the agreement
-     */
-    function cancelIndexingAgreementByPayer(bytes16 agreementId) external whenNotPaused {
-        _indexingAgreementManager.cancelByPayer(agreementId);
-    }
-
-    function getIndexingAgreement(
-        bytes16 agreementId
-    ) external view returns (IndexingAgreement.AgreementWrapper memory) {
-        return _indexingAgreementManager.get(agreementId);
+        IndexingAgreement._getManager().accept(_allocations, allocationId, signedRCA);
     }
 
     /**
@@ -680,7 +615,7 @@ contract SubgraphService is
      * @return The amount of fees collected
      */
     function _collectIndexingFees(bytes16 _agreementId, bytes memory _data) private returns (uint256) {
-        (address indexer, uint256 tokensCollected) = _indexingAgreementManager.collect(
+        (address indexer, uint256 tokensCollected) = IndexingAgreement._getManager().collect(
             _allocations,
             _agreementId,
             _data
@@ -700,6 +635,47 @@ contract SubgraphService is
                 _tokensCollected * stakeToFeesRatio,
                 block.timestamp + _disputeManager().getDisputePeriod()
             );
+        }
+    }
+
+    function modifiersHack(
+        address caller,
+        address indexer
+    )
+        external
+        view
+        whenNotPaused
+        onlyAuthorizedForProvisionHack(caller, indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+    {}
+
+    /**
+     * @notice Delegates the call to the SubgraphServiceExtension implementation.
+     * @dev This function does not return to its internal call site, it will return directly to the
+     * external caller.
+     */
+    // solhint-disable-next-line payable-fallback, no-complex-fallback
+    fallback() external {
+        address extImpl = _subgraphServiceExtensionImpl();
+        require(extImpl != address(0), "only through proxy");
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            // copy function selector and any arguments
+            calldatacopy(0, 0, calldatasize())
+            // execute function call using the extension implementation
+            let result := delegatecall(gas(), extImpl, 0, calldatasize(), 0, 0)
+            // get any return value
+            returndatacopy(0, 0, returndatasize())
+            // return any return value or error back to the caller
+            switch result
+            case 0 {
+                revert(0, returndatasize())
+            }
+            default {
+                return(0, returndatasize())
+            }
         }
     }
 }
