@@ -1,20 +1,18 @@
-import { BigNumber, constants, Wallet } from 'ethers'
-import { deployments, ethers } from 'hardhat'
-import { expect } from 'chai'
-
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
+
+import { Staking__factory } from '@graphprotocol/contracts/build/types/factories/Staking__factory'
+import { expect } from 'chai'
+import { BigNumber, constants, Wallet } from 'ethers'
+import { deployments, ethers } from 'hardhat'
+import { DeployOptions } from 'hardhat-deploy/types'
 
 import { GraphTokenLockManager } from '../build/typechain/contracts/GraphTokenLockManager'
 import { GraphTokenLockWallet } from '../build/typechain/contracts/GraphTokenLockWallet'
 import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 import { StakingMock } from '../build/typechain/contracts/StakingMock'
-
-import { Staking__factory } from '@graphprotocol/contracts/dist/types/factories/Staking__factory'
-
-import { Account, advanceBlocks, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
-import { DeployOptions } from 'hardhat-deploy/types'
+import { Account, advanceBlocks, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
 
 const { AddressZero, MaxUint256 } = constants
 
@@ -112,11 +110,11 @@ describe('GraphTokenLockWallet', () => {
   }
 
   before(async function () {
-    [deployer, beneficiary, hacker] = await getAccounts()
+    ;[deployer, beneficiary, hacker] = await getAccounts()
   })
 
   beforeEach(async () => {
-    ({ grt, tokenLockManager, staking } = await setupTest())
+    ;({ grt, tokenLockManager, staking } = await setupTest())
 
     // Setup authorized functions in Manager
     await authProtocolFunctions(tokenLockManager, staking.address)

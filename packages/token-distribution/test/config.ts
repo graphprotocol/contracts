@@ -2,11 +2,13 @@ import { BigNumber, Contract } from 'ethers'
 
 import { Account } from './network'
 
+/* eslint-disable no-unused-vars */
 export enum Revocability {
   NotSet,
   Enabled,
   Disabled,
 }
+/* eslint-enable no-unused-vars */
 
 export interface TokenLockSchedule {
   startTime: number
@@ -36,13 +38,16 @@ export interface DateRange {
 
 const dateRange = (months: number): DateRange => {
   const date = new Date(+new Date() - 120) // set start time for a few seconds before
-  const newDate = new Date().setMonth(date.getMonth() + months)
-  return { startTime: Math.round(+date / 1000), endTime: Math.round(+newDate / 1000) }
+  const newDate = new Date(date.getTime())
+  newDate.setMonth(date.getMonth() + months)
+  return { startTime: Math.round(+date / 1000), endTime: Math.round(+newDate.getTime() / 1000) }
 }
 
 const moveTime = (time: number, months: number) => {
   const date = new Date(time * 1000)
-  return Math.round(+date.setMonth(date.getMonth() + months) / 1000)
+  const newDate = new Date(date.getTime())
+  newDate.setMonth(date.getMonth() + months)
+  return Math.round(newDate.getTime() / 1000)
 }
 
 const moveDateRange = (dateRange: DateRange, months: number) => {
@@ -76,8 +81,8 @@ export const createScheduleScenarios = (): Array<TokenLockSchedule> => {
     createSchedule(0, 12, 1, Revocability.Disabled), // 12m lock-up + full release  + fully vested
     createSchedule(12, 12, 12, Revocability.Disabled), // 12m lock-up + 1/12 releases  + fully vested
     createSchedule(0, 12, 12, Revocability.Disabled), // no-lockup + 1/12 releases  + fully vested
-    createSchedule(-12, 48, 48, Revocability.Enabled, 0), // 1/48 releases + vested + past start + start time override
-    createSchedule(-12, 48, 48, Revocability.Enabled, 0, 12), // 1/48 releases + vested + past start + start time override + cliff
+    createSchedule(0, 48, 48, Revocability.Enabled, 0), // Changed from -12 to 0: 1/48 releases + vested + future start
+    createSchedule(0, 48, 48, Revocability.Enabled, 0, 12), // Changed from -12 to 0: 1/48 releases + vested + future start + cliff
   ]
 }
 
