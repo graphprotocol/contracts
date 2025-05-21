@@ -22,5 +22,5 @@ export function connectSubgraphService(chainId: number, signerOrProvider: Signer
     addressBookPath ?? require.resolve('@graphprotocol/subgraph-service/addresses.json'),
     chainId,
   )
-  return addressBook.loadContracts(signerOrProvider)
+  return addressBook.loadContracts(signerOrProvider, false)
 }

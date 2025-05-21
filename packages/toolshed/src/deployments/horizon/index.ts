@@ -39,5 +39,5 @@ export function connectGraphHorizon(chainId: number, signerOrProvider: Signer | 
     addressBookPath ?? require.resolve('@graphprotocol/horizon/addresses.json'),
     chainId,
   )
-  return addressBook.loadContracts(signerOrProvider)
+  return addressBook.loadContracts(signerOrProvider, false)
 }

@@ -10,7 +10,7 @@ export type ContractList<T extends string = string> = Partial<Record<T, unknown>
  * @param name Name of the contract
  * @param addressBook Address book to use
  * @param signerOrProvider Signer or provider to use
- * @param enableTxLogging Enable transaction logging to console and output file. Defaults to `true`
+ * @param enableTxLogging Enable transaction logging to console and output file. Defaults to false.
  * @param optional If true, the contract is optional and will not throw if it cannot be loaded
  * @returns the loaded contract
  *
@@ -21,6 +21,7 @@ export function loadContract<ContractName extends string = string>(
   address: string,
   artifactsPath: string | string[],
   signerOrProvider?: Signer | Provider,
+  enableTxLogging?: boolean,
 ): Contract {
   try {
     let contract = new Contract(address, loadArtifact(name, artifactsPath).abi, signerOrProvider)
@@ -29,7 +30,9 @@ export function loadContract<ContractName extends string = string>(
       contract = contract.connect(signerOrProvider) as Contract
     }
 
-    contract = wrapTransactionCalls(contract, name)
+    if (enableTxLogging) {
+      contract = wrapTransactionCalls(contract, name)
+    }
 
     return contract
   } catch (err: unknown) {

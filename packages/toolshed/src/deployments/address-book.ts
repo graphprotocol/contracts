@@ -175,11 +175,13 @@ export abstract class AddressBook<
    *
    * @param addressBook Address book to use
    * @param signerOrProvider Signer or provider to use
+   * @param enableTxLogging Enable transaction logging to console and output file. Defaults to false.
    * @returns the loaded contracts
    */
   _loadContracts(
     artifactsPath: string | string[] | Record<ContractName, string>,
     signerOrProvider?: Signer | Provider,
+    enableTxLogging?: boolean,
   ): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     if (this.listEntries().length == 0) {
@@ -205,6 +207,7 @@ export abstract class AddressBook<
         this.getEntry(contractName).address,
         artifactPath,
         signerOrProvider,
+        enableTxLogging,
       )
       contracts[contractName] = contract
     }
