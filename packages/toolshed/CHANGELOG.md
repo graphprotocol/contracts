@@ -1,5 +1,16 @@
 # @graphprotocol/toolshed
 
+## 0.4.0
+
+### Minor Changes
+
+- Make transaction logging optional, default to false for connect methods
+
+### Patch Changes
+
+- @graphprotocol/horizon@0.3.2
+- @graphprotocol/subgraph-service@0.3.4
+
 ## 0.3.2
 
 ### Patch Changes

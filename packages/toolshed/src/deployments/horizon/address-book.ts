@@ -21,12 +21,14 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
 
   loadContracts(
     signerOrProvider?: Signer | Provider,
+    enableTxLogging?: boolean,
   ): GraphHorizonContracts {
     logDebug('Loading Graph Horizon contracts...')
 
     const contracts = this._loadContracts(
       GraphHorizonArtifactsMap,
       signerOrProvider,
+      enableTxLogging,
     )
 
     // rewire HorizonStaking to include HorizonStakingExtension abi

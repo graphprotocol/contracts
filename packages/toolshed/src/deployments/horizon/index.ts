@@ -26,7 +26,7 @@ export type { GraphHorizonContractName, GraphHorizonContracts } from './contract
 
 export function loadGraphHorizon(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)
-  const contracts = addressBook.loadContracts(provider)
+  const contracts = addressBook.loadContracts(provider, true)
   return {
     addressBook: addressBook,
     contracts: contracts,
@@ -39,5 +39,5 @@ export function connectGraphHorizon(chainId: number, signerOrProvider: Signer | 
     addressBookPath ?? require.resolve('@graphprotocol/horizon/addresses.json'),
     chainId,
   )
-  return addressBook.loadContracts(signerOrProvider)
+  return addressBook.loadContracts(signerOrProvider, false)
 }

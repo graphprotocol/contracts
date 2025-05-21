@@ -20,6 +20,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
 
   loadContracts(
     signerOrProvider?: Signer | Provider,
+    enableTxLogging?: boolean,
   ): SubgraphServiceContracts {
     logDebug('Loading Subgraph Service contracts...')
 
@@ -29,6 +30,7 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
     const contracts = this._loadContracts(
       filteredArtifactsMap as typeof SubgraphServiceArtifactsMap,
       signerOrProvider,
+      enableTxLogging,
     )
 
     // Aliases
