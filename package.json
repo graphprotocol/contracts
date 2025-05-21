@@ -5,27 +5,75 @@
   "license": "GPL-2.0-or-later",
   "repository": "git@github.com:graphprotocol/contracts.git",
   "author": "The Graph team",
-  "packageManager": "yarn@4.0.2",
+  "packageManager": "yarn@4.9.1",
   "workspaces": [
-    "packages/contracts",
-    "packages/data-edge",
-    "packages/eslint-graph-config",
-    "packages/sdk",
-    "packages/solhint-graph-config",
-    "packages/token-distribution"
+    "packages/*"
   ],
   "scripts": {
-    "postinstall": "husky install",
-    "clean": "yarn workspaces foreach --all --parallel --verbose run clean",
-    "clean:all": "yarn clean && rm -rf node_modules packages/*/node_modules",
-    "build": "yarn workspaces foreach --all --verbose run build",
-    "lint": "yarn workspaces foreach --all --parallel --verbose run lint",
-    "test": "yarn workspaces foreach --all --parallel --verbose --interlaced run test"
+    "prepare": "husky",
+    "clean": "yarn workspaces foreach --all --parallel run clean",
+    "build": "yarn workspaces foreach --all --topological --parallel run build",
+    "lint": "yarn lint:ts; yarn lint:sol; yarn lint:md; yarn lint:json; yarn lint:yaml",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'packages/*/contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
+    "lint:md": "markdownlint --fix --ignore-path .gitignore --ignore-path .markdownlintignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml}; prettier -w --cache --log-level warn '**/*.{yml,yaml}'",
+    "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
+    "test": "yarn workspaces foreach --all --parallel --interlaced run test"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
-    "@commitlint/cli": "^18.4.3",
-    "@commitlint/config-conventional": "^18.4.3",
-    "husky": "^9.1.7"
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^8.32.1",
+    "@typescript-eslint/parser": "^8.32.1",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsdoc": "^50.6.17",
+    "eslint-plugin-markdown": "^5.1.0",
+    "eslint-plugin-no-only-tests": "^3.3.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "globals": "^16.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "markdownlint-cli": "^0.45.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-solidity": "^1.0.0",
+    "pretty-quick": "^4.1.1",
+    "solhint": "^5.1.0",
+    "solhint-plugin-prettier": "^0.1.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.1",
+    "yaml-lint": "^1.7.0"
+  },
+  "resolutions": {
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.0.0",
+    "typescript": "^5.8.3",
+    "@types/node": "^22.15.17"
+  },
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,jsx,tsx}": [
+      "eslint --fix --cache",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.sol": [
+      "solhint --fix --noPrompt --noPoster",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.md": [
+      "markdownlint --fix",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.json": "prettier -w --cache --log-level warn",
+    "*.{yml,yaml}": [
+      "npx yaml-lint",
+      "prettier -w --cache --log-level warn"
+    ]
   }
 }

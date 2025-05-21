@@ -1,9 +1,8 @@
-import path from 'path'
-import fs from 'fs'
-import * as dotenv from 'dotenv'
 import { execSync } from 'child_process'
-
+import * as dotenv from 'dotenv'
+import fs from 'fs'
 import { HardhatUserConfig } from 'hardhat/types'
+import path from 'path'
 
 dotenv.config()
 
@@ -31,7 +30,7 @@ function loadTasks() {
   ;['contract', 'bridge', 'deployment', 'migrate', 'verify', 'e2e'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder)
     fs.readdirSync(tasksPath)
-      .filter(pth => pth.includes('.ts'))
+      .filter((pth) => pth.includes('.ts'))
       .forEach((task) => {
         require(`${tasksPath}/${task}`)
       })
@@ -110,11 +109,9 @@ function setupNetworkProviders(hardhatConfig) {
 
 // Config
 
-const DEFAULT_TEST_MNEMONIC
-  = 'myth like bonus scare over problem client lizard pioneer submit female collect'
+const DEFAULT_TEST_MNEMONIC = 'myth like bonus scare over problem client lizard pioneer submit female collect'
 
-const DEFAULT_L2_TEST_MNEMONIC
-  = 'urge never interest human any economy gentle canvas anxiety pave unlock find'
+const DEFAULT_L2_TEST_MNEMONIC = 'urge never interest human any economy gentle canvas anxiety pave unlock find'
 
 const config: HardhatUserConfig = {
   paths: {
@@ -160,8 +157,7 @@ const config: HardhatUserConfig = {
     localhost: {
       chainId: 1337,
       url: 'http://127.0.0.1:8545',
-      accounts:
-        process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
+      accounts: process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
       graphConfig: 'config/graph.localhost.yml',
       addressBook: 'addresses-local.json',
     },

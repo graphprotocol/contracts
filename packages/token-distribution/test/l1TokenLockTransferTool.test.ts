@@ -1,25 +1,23 @@
-import { BigNumber, constants, Signer } from 'ethers'
-import { deployments, ethers, upgrades } from 'hardhat'
-import { expect } from 'chai'
-
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
+import { Staking__factory } from '@graphprotocol/contracts/dist/types/factories/Staking__factory'
+import { expect } from 'chai'
+import { BigNumber, constants, Signer } from 'ethers'
+import { defaultAbiCoder, hexValue, keccak256, parseEther } from 'ethers/lib/utils'
+import { deployments, ethers, upgrades } from 'hardhat'
+import { DeployOptions } from 'hardhat-deploy/types'
+
+import { L1GraphTokenLockTransferTool__factory } from '../build/typechain/contracts/factories/L1GraphTokenLockTransferTool__factory'
 import { GraphTokenLockManager } from '../build/typechain/contracts/GraphTokenLockManager'
 import { GraphTokenLockWallet } from '../build/typechain/contracts/GraphTokenLockWallet'
 import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 import { L1GraphTokenLockTransferTool } from '../build/typechain/contracts/L1GraphTokenLockTransferTool'
 import { L1TokenGatewayMock } from '../build/typechain/contracts/L1TokenGatewayMock'
 import { StakingMock } from '../build/typechain/contracts/StakingMock'
-
-import { L1GraphTokenLockTransferTool__factory } from '../build/typechain/contracts/factories/L1GraphTokenLockTransferTool__factory'
-import { Staking__factory } from '@graphprotocol/contracts/dist/types/factories/Staking__factory'
-
-import { Account, getAccounts, getContract, toBN, toGRT } from './network'
-import { defaultAbiCoder, hexValue, keccak256, parseEther } from 'ethers/lib/utils'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
+import { Account, getAccounts, getContract, toBN, toGRT } from './network'
 import { advanceTimeAndBlock } from './network'
-import { DeployOptions } from 'hardhat-deploy/types'
 
 const { AddressZero } = constants
 
@@ -144,12 +142,12 @@ describe('L1GraphTokenLockTransferTool', () => {
   }
 
   before(async function () {
-    [deployer, beneficiary, hacker, l2ManagerMock, l2LockImplementationMock, l2Owner, l2Beneficiary]
-      = await getAccounts()
+    ;[deployer, beneficiary, hacker, l2ManagerMock, l2LockImplementationMock, l2Owner, l2Beneficiary] =
+      await getAccounts()
   })
 
   beforeEach(async () => {
-    ({ grt, tokenLockManager, staking, gateway, transferTool } = await setupTest())
+    ;({ grt, tokenLockManager, staking, gateway, transferTool } = await setupTest())
 
     // Setup authorized functions in Manager
     await authProtocolFunctions(tokenLockManager, staking.address, transferTool.address)

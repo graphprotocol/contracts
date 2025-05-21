@@ -1,21 +1,20 @@
-import { constants, Wallet } from 'ethers'
-import { deployments, ethers } from 'hardhat'
-import { expect } from 'chai'
-
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
+
+import { Staking } from '@graphprotocol/contracts'
+import { Staking__factory } from '@graphprotocol/contracts/dist/types/factories/Staking__factory'
+import { expect } from 'chai'
+import { constants, Wallet } from 'ethers'
+import { defaultAbiCoder, keccak256 } from 'ethers/lib/utils'
+import { deployments, ethers } from 'hardhat'
+import { DeployOptions } from 'hardhat-deploy/types'
 
 import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 import { L2GraphTokenLockManager } from '../build/typechain/contracts/L2GraphTokenLockManager'
 import { L2GraphTokenLockWallet } from '../build/typechain/contracts/L2GraphTokenLockWallet'
-import { Staking__factory } from '@graphprotocol/contracts/dist/types/factories/Staking__factory'
 import { StakingMock } from '../build/typechain/contracts/StakingMock'
-
-import { Account, advanceTimeAndBlock, getAccounts, getContract, toGRT } from './network'
-import { defaultAbiCoder, keccak256 } from 'ethers/lib/utils'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
-import { DeployOptions } from 'hardhat-deploy/types'
-import { Staking } from '@graphprotocol/contracts'
+import { Account, advanceTimeAndBlock, getAccounts, getContract, toGRT } from './network'
 
 const { AddressZero } = constants
 
@@ -102,11 +101,11 @@ describe('L2GraphTokenLockManager', () => {
   }
 
   before(async function () {
-    [deployer, beneficiary, l1TransferToolMock, gateway, l1TokenLock] = await getAccounts()
+    ;[deployer, beneficiary, l1TransferToolMock, gateway, l1TokenLock] = await getAccounts()
   })
 
   beforeEach(async () => {
-    ({ grt, tokenLockManager, staking, tokenLockImplementation } = await setupTest())
+    ;({ grt, tokenLockManager, staking, tokenLockImplementation } = await setupTest())
 
     // Setup authorized functions in Manager
     await authProtocolFunctions(tokenLockManager, staking.address)

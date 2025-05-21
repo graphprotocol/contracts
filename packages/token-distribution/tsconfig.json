@@ -6,7 +6,9 @@
     "target": "ES2020",
     "outDir": "dist",
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./cache/tsbuildinfo"
   },
   "exclude": ["dist", "node_modules"],
   "include": [
@@ -17,6 +19,7 @@
     "./scripts/**/*.ts",
     "./deploy/**/*.ts",
     "./test/**/*.ts",
+    "./ops/**/*.ts",
     "node_modules/@nomiclabs/hardhat-ethers/src/type-extensions.d.ts",
     "node_modules/@nomiclabs/hardhat-etherscan/src/type-extensions.d.ts",
     "node_modules/@nomiclabs/hardhat-waffle/src/type-extensions.d.ts",
