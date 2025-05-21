@@ -21,6 +21,7 @@ The dev container provides a consistent development environment with caching to 
 The container uses a simple caching system:
 
 1. **Host Cache Directories**: Created on the host and mounted into the container
+
    - `/cache/vscode-cache` → `/home/vscode/.cache`
    - `/cache/vscode-config` → `/home/vscode/.config`
    - `/cache/vscode-data` → `/home/vscode/.local/share`
