@@ -1,5 +1,16 @@
 # @graphprotocol/toolshed
 
+## 0.5.0
+
+### Minor Changes
+
+- Ensure toolshed core components dont import hardhat runtime
+
+### Patch Changes
+
+- @graphprotocol/horizon@0.3.2
+- @graphprotocol/subgraph-service@0.3.4
+
 ## 0.4.2
 
 ### Patch Changes

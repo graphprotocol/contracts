@@ -1,8 +1,3 @@
-import { setGRTBalance } from '../hardhat'
-import { TEN_MILLION } from './constants'
-import { toBeHex } from 'ethers'
-
-import type { Addressable } from 'ethers'
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
@@ -34,43 +29,43 @@ export type GraphAccounts = {
   test: HardhatEthersSigner[]
 }
 
-export async function getAccounts(provider: HardhatEthersProvider, grtTokenAddress?: string | Addressable): Promise<GraphAccounts> {
+export async function getAccounts(provider: HardhatEthersProvider): Promise<GraphAccounts> {
   return {
-    deployer: await getDeployer(provider, GraphAccountIndex.Deployer, grtTokenAddress),
-    governor: await getGovernor(provider, GraphAccountIndex.Governor, grtTokenAddress),
-    arbitrator: await getArbitrator(provider, GraphAccountIndex.Arbitrator, grtTokenAddress),
-    pauseGuardian: await getPauseGuardian(provider, GraphAccountIndex.PauseGuardian, grtTokenAddress),
-    subgraphAvailabilityOracle: await getSubgraphAvailabilityOracle(provider, GraphAccountIndex.SubgraphAvailabilityOracle, grtTokenAddress),
-    gateway: await getGateway(provider, GraphAccountIndex.Gateway, grtTokenAddress),
-    test: await getTestAccounts(provider, grtTokenAddress),
+    deployer: await getDeployer(provider, GraphAccountIndex.Deployer),
+    governor: await getGovernor(provider, GraphAccountIndex.Governor),
+    arbitrator: await getArbitrator(provider, GraphAccountIndex.Arbitrator),
+    pauseGuardian: await getPauseGuardian(provider, GraphAccountIndex.PauseGuardian),
+    subgraphAvailabilityOracle: await getSubgraphAvailabilityOracle(provider, GraphAccountIndex.SubgraphAvailabilityOracle),
+    gateway: await getGateway(provider, GraphAccountIndex.Gateway),
+    test: await getTestAccounts(provider),
   }
 }
 
-export async function getDeployer(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Deployer, grtTokenAddress?: string | Addressable) {
-  return _getAccount(provider, accountIndex, grtTokenAddress)
+export async function getDeployer(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Deployer) {
+  return _getAccount(provider, accountIndex)
 }
 
-export async function getGovernor(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Governor, grtTokenAddress?: string | Addressable) {
-  return _getAccount(provider, accountIndex, grtTokenAddress)
+export async function getGovernor(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Governor) {
+  return _getAccount(provider, accountIndex)
 }
 
-export async function getArbitrator(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Arbitrator, grtTokenAddress?: string | Addressable) {
-  return _getAccount(provider, accountIndex, grtTokenAddress)
+export async function getArbitrator(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Arbitrator) {
+  return _getAccount(provider, accountIndex)
 }
 
-export async function getPauseGuardian(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.PauseGuardian, grtTokenAddress?: string | Addressable) {
-  return _getAccount(provider, accountIndex, grtTokenAddress)
+export async function getPauseGuardian(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.PauseGuardian) {
+  return _getAccount(provider, accountIndex)
 }
 
-export async function getSubgraphAvailabilityOracle(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.SubgraphAvailabilityOracle, grtTokenAddress?: string | Addressable) {
-  return _getAccount(provider, accountIndex, grtTokenAddress)
+export async function getSubgraphAvailabilityOracle(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.SubgraphAvailabilityOracle) {
+  return _getAccount(provider, accountIndex)
 }
 
-export async function getGateway(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Gateway, grtTokenAddress?: string | Addressable) {
-  return _getAccount(provider, accountIndex, grtTokenAddress)
+export async function getGateway(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.Gateway) {
+  return _getAccount(provider, accountIndex)
 }
 
-export async function getTestAccounts(provider: HardhatEthersProvider, grtTokenAddress?: string | Addressable) {
+export async function getTestAccounts(provider: HardhatEthersProvider) {
   const accounts = await provider.send('eth_accounts', []) as string[]
   const numReservedAccounts = Object.values(GraphAccountIndex).filter(v => typeof v === 'number').length
   if (accounts.length < numReservedAccounts) {
@@ -79,21 +74,10 @@ export async function getTestAccounts(provider: HardhatEthersProvider, grtTokenA
   return await Promise.all(
     accounts
       .slice(numReservedAccounts)
-      .map(async account => await _getAccount(provider, account, grtTokenAddress)),
+      .map(async account => await _getAccount(provider, account)),
   )
 }
 
-async function _getAccount(provider: HardhatEthersProvider, accountIndex: number | string, grtTokenAddress?: string | Addressable) {
-  const account = await provider.getSigner(accountIndex)
-
-  // If the chain is local, set balance to 10M GRT
-  if (grtTokenAddress) {
-    const chainId = await provider.send('eth_chainId', []) as string
-    const isLocal = [toBeHex(1337), toBeHex(31337)].includes(toBeHex(BigInt(chainId)))
-    if (isLocal) {
-      await setGRTBalance(provider, grtTokenAddress, account.address, TEN_MILLION)
-    }
-  }
-
-  return account
+async function _getAccount(provider: HardhatEthersProvider, accountIndex: number | string) {
+  return await provider.getSigner(accountIndex)
 }

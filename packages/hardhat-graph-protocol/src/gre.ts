@@ -1,16 +1,6 @@
 /* eslint-disable no-case-declarations */
 import path from 'path'
 
-import {
-  getAccounts,
-  getArbitrator,
-  getDeployer,
-  getGateway,
-  getGovernor,
-  getPauseGuardian,
-  getSubgraphAvailabilityOracle,
-  getTestAccounts,
-} from '@graphprotocol/toolshed'
 import { loadGraphHorizon, loadSubgraphService } from '@graphprotocol/toolshed/deployments'
 import { logDebug, logError } from './logger'
 import { getAddressBookPath } from './config'
@@ -22,6 +12,7 @@ import { lazyFunction } from 'hardhat/plugins'
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
 import type { GraphDeployments } from '@graphprotocol/toolshed/deployments'
 import type { GraphRuntimeEnvironmentOptions } from './types'
+import { getAccounts } from './accounts'
 
 export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
   const userPath = userConfig.paths?.graph
@@ -79,6 +70,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
             greDeployments.subgraphService = loadSubgraphService(addressBookPath, chainId, provider)
             break
           default:
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             logError(`Skipping deployment ${deployment} - Reason: unknown deployment`)
             break
         }
@@ -90,17 +82,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     }
 
     // Accounts
-    const grtTokenAddress = greDeployments?.horizon?.contracts?.GraphToken?.target
-    const accounts = {
-      getAccounts: async () => getAccounts(provider, grtTokenAddress),
-      getDeployer: async (accountIndex?: number) => getDeployer(provider, accountIndex, grtTokenAddress),
-      getGovernor: async (accountIndex?: number) => getGovernor(provider, accountIndex, grtTokenAddress),
-      getArbitrator: async (accountIndex?: number) => getArbitrator(provider, accountIndex, grtTokenAddress),
-      getPauseGuardian: async (accountIndex?: number) => getPauseGuardian(provider, accountIndex, grtTokenAddress),
-      getSubgraphAvailabilityOracle: async (accountIndex?: number) => getSubgraphAvailabilityOracle(provider, accountIndex, grtTokenAddress),
-      getGateway: async (accountIndex?: number) => getGateway(provider, accountIndex, grtTokenAddress),
-      getTestAccounts: async () => getTestAccounts(provider, grtTokenAddress),
-    }
+    const accounts = getAccounts(provider, chainId, greDeployments.horizon?.contracts?.GraphToken?.target)
 
     logDebug('GRE initialized successfully!')
 
@@ -108,7 +90,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
       ...greDeployments,
       provider,
       chainId,
-      accounts: accounts,
+      accounts,
     }
   })
 }
