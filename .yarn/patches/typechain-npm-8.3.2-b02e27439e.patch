@@ -1,8 +1,8 @@
 diff --git a/dist/typechain/io.js b/dist/typechain/io.js
-index 725231a5ab1d8cc5f68a39ba730dddccf6a30f32..0c01337df8766807f20c5dc78560c75830e77550 100644
+index 725231a5ab1d8cc5f68a39ba730dddccf6a30f32..cfe0150aa07d09a32dd01c0670edb48d3c3786ce 100644
 --- a/dist/typechain/io.js
 +++ b/dist/typechain/io.js
-@@ -7,19 +7,24 @@ const path_1 = require("path");
+@@ -7,19 +7,25 @@ const path_1 = require("path");
  const outputTransformers_1 = require("../codegen/outputTransformers");
  const abiParser_1 = require("../parser/abiParser");
  const debug_1 = require("../utils/debug");
@@ -24,6 +24,7 @@ index 725231a5ab1d8cc5f68a39ba730dddccf6a30f32..0c01337df8766807f20c5dc78560c758
 +        if (finalOutput && typeof finalOutput.then === 'function') {
 +            finalOutput = await finalOutput;
 +        }
++
          (0, debug_1.debug)(`Writing file: ${(0, path_1.relative)(cfg.cwd, fd.path)}`);
          fs.writeFileSync(fd.path, finalOutput, 'utf8');
 -    });
@@ -31,3 +32,25 @@ index 725231a5ab1d8cc5f68a39ba730dddccf6a30f32..0c01337df8766807f20c5dc78560c758
      return outputFds.length;
  }
  exports.processOutput = processOutput;
+diff --git a/dist/typechain/runTypeChain.js b/dist/typechain/runTypeChain.js
+index a5adce89148c1edd2bcdafe2d01d9a66ca2b57e4..b731c472b496c7639ffc531ffedd6b479b52d7f5 100644
+--- a/dist/typechain/runTypeChain.js
++++ b/dist/typechain/runTypeChain.js
+@@ -62,14 +62,14 @@ async function runTypeChain(publicConfig) {
+     const target = (0, findTarget_1.findTarget)(config);
+     const fileDescriptions = (0, io_1.loadFileDescriptions)(services, config.filesToProcess);
+     (0, debug_1.debug)('Executing beforeRun()');
+-    filesGenerated += (0, io_1.processOutput)(services, config, await target.beforeRun());
++    filesGenerated += await (0, io_1.processOutput)(services, config, await target.beforeRun());
+     (0, debug_1.debug)('Executing beforeRun()');
+     for (const fd of fileDescriptions) {
+         (0, debug_1.debug)(`Processing ${(0, path_1.relative)(config.cwd, fd.path)}`);
+-        filesGenerated += (0, io_1.processOutput)(services, config, await target.transformFile(fd));
++        filesGenerated += await (0, io_1.processOutput)(services, config, await target.transformFile(fd));
+     }
+     (0, debug_1.debug)('Running afterRun()');
+-    filesGenerated += (0, io_1.processOutput)(services, config, await target.afterRun());
++    filesGenerated += await (0, io_1.processOutput)(services, config, await target.afterRun());
+     return {
+         filesGenerated,
+     };

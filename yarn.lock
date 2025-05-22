@@ -25427,7 +25427,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typechain@npm:8.3.2, typechain@npm:^8.3.0, typechain@npm:^8.3.2":
+"typechain@npm:8.3.2":
   version: 8.3.2
   resolution: "typechain@npm:8.3.2"
   dependencies:
@@ -25451,7 +25451,7 @@ __metadata:
 
 "typechain@patch:typechain@npm%3A8.3.2#~/.yarn/patches/typechain-npm-8.3.2-b02e27439e.patch":
   version: 8.3.2
-  resolution: "typechain@patch:typechain@npm%3A8.3.2#~/.yarn/patches/typechain-npm-8.3.2-b02e27439e.patch::version=8.3.2&hash=f2814f"
+  resolution: "typechain@patch:typechain@npm%3A8.3.2#~/.yarn/patches/typechain-npm-8.3.2-b02e27439e.patch::version=8.3.2&hash=65b684"
   dependencies:
     "@types/prettier": "npm:^2.1.1"
     debug: "npm:^4.3.1"
@@ -25467,7 +25467,7 @@ __metadata:
     typescript: ">=4.3.0"
   bin:
     typechain: dist/cli/cli.js
-  checksum: 10c0/628e32b64788b665473151e765a261126343e015e59c392d9f6c665bbf4f7c7e31351deabf39d13a34d1c2ace59e2dcc14923e459896add96f336b2b2910ea1c
+  checksum: 10c0/7f4913e6a109025aebadd835bd42353caa4963dd0ef108f40dfc4e0db4eb27b07d842e56114d4f85c9209f99035f52e41616f0e84433af46a9fc771391979963
   languageName: node
   linkType: hard
 
