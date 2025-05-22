@@ -1,51 +1,22 @@
-import { execSync } from 'child_process'
-import * as dotenv from 'dotenv'
-import fs from 'fs'
-import { HardhatUserConfig } from 'hardhat/types'
-import path from 'path'
-
-dotenv.config()
-
-// Plugins
+import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-etherscan'
 import '@nomiclabs/hardhat-waffle'
+import '@nomiclabs/hardhat-etherscan'
 import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
-import 'hardhat-tracer'
-import '@tenderly/hardhat-tenderly'
-import '@openzeppelin/hardhat-upgrades'
-import '@openzeppelin/hardhat-defender'
-import '@typechain/hardhat'
-import 'solidity-coverage'
 import 'hardhat-storage-layout'
+import 'dotenv/config'
 
-// Tasks
+import { HardhatUserConfig } from 'hardhat/config'
 
-const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
-
-function loadTasks() {
+// Import Graph Runtime Environment (GRE) conditionally for tests
+// Only load GRE when running tests to avoid build conflicts
+if (process.env.NODE_ENV === 'test' || process.argv.includes('test') || process.argv.includes('coverage')) {
   require('@graphprotocol/sdk/gre')
-  ;['contract', 'bridge', 'deployment', 'migrate', 'verify', 'e2e'].forEach((folder) => {
-    const tasksPath = path.join(__dirname, 'tasks', folder)
-    fs.readdirSync(tasksPath)
-      .filter((pth) => pth.includes('.ts'))
-      .forEach((task) => {
-        require(`${tasksPath}/${task}`)
-      })
-  })
 }
 
-if (fs.existsSync(path.join(__dirname, 'build', 'types'))) {
-  loadTasks()
-} else if (!SKIP_LOAD) {
-  execSync('yarn build', { stdio: 'inherit' })
-  loadTasks()
-}
-
-// Networks
-
+// Network configurations
 interface NetworkConfig {
   network: string
   chainId: number
@@ -57,10 +28,7 @@ interface NetworkConfig {
 
 const networkConfigs: NetworkConfig[] = [
   { network: 'mainnet', chainId: 1, graphConfig: 'config/graph.mainnet.yml' },
-  { network: 'rinkeby', chainId: 4, graphConfig: 'config/graph.rinkeby.yml' },
   { network: 'goerli', chainId: 5, graphConfig: 'config/graph.goerli.yml' },
-  { network: 'kovan', chainId: 42 },
-  { network: 'arbitrum-rinkeby', chainId: 421611, url: 'https://rinkeby.arbitrum.io/rpc' },
   { network: 'sepolia', chainId: 11155111, graphConfig: 'config/graph.sepolia.yml' },
   {
     network: 'arbitrum-one',
@@ -92,32 +60,14 @@ function getDefaultProviderURL(network: string) {
   return `https://${network}.infura.io/v3/${process.env.INFURA_KEY}`
 }
 
-function setupNetworkProviders(hardhatConfig) {
-  for (const netConfig of networkConfigs) {
-    hardhatConfig.networks[netConfig.network] = {
-      chainId: netConfig.chainId,
-      url: netConfig.url ? netConfig.url : getDefaultProviderURL(netConfig.network),
-      gas: netConfig.gas || 'auto',
-      gasPrice: netConfig.gasPrice || 'auto',
-      accounts: getAccountsKeys(),
-    }
-    if (netConfig.graphConfig) {
-      hardhatConfig.networks[netConfig.network].graphConfig = netConfig.graphConfig
-    }
-  }
-}
-
-// Config
-
+// Default mnemonics for testing
 const DEFAULT_TEST_MNEMONIC = 'myth like bonus scare over problem client lizard pioneer submit female collect'
-
 const DEFAULT_L2_TEST_MNEMONIC = 'urge never interest human any economy gentle canvas anxiety pave unlock find'
 
 const config: HardhatUserConfig = {
-  paths: {
-    sources: './contracts',
-    tests: './test/unit',
-    artifacts: './build/contracts',
+  graph: {
+    addressBook: 'addresses.json',
+    disableSecureAccounts: true,
   },
   solidity: {
     compilers: [
@@ -128,17 +78,17 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          metadata: {
-            useLiteralContent: true,
-          },
           outputSelection: {
             '*': {
-              '*': ['storageLayout', 'metadata'],
+              '*': ['storageLayout'],
             },
           },
         },
       },
     ],
+  },
+  paths: {
+    tests: './test/unit',
   },
   defaultNetwork: 'hardhat',
   networks: {
@@ -153,6 +103,8 @@ const config: HardhatUserConfig = {
         mnemonic: DEFAULT_TEST_MNEMONIC,
       },
       hardfork: 'london',
+      graphConfig: 'config/graph.hardhat.yml',
+      addressBook: 'addresses.json',
     },
     localhost: {
       chainId: 1337,
@@ -160,33 +112,26 @@ const config: HardhatUserConfig = {
       accounts: process.env.FORK === 'true' ? getAccountsKeys() : { mnemonic: DEFAULT_TEST_MNEMONIC },
       graphConfig: 'config/graph.localhost.yml',
       addressBook: 'addresses-local.json',
-    },
+    } as any,
     localnitrol1: {
       chainId: 1337,
       url: 'http://127.0.0.1:8545',
       accounts: { mnemonic: DEFAULT_TEST_MNEMONIC },
       graphConfig: 'config/graph.localhost.yml',
-    },
+      addressBook: 'addresses-local.json',
+    } as any,
     localnitrol2: {
       chainId: 412346,
       url: 'http://127.0.0.1:8547',
       accounts: { mnemonic: DEFAULT_L2_TEST_MNEMONIC },
       graphConfig: 'config/graph.arbitrum-localhost.yml',
-    },
-  },
-  graph: {
-    addressBook: process.env.ADDRESS_BOOK ?? 'addresses.json',
-    l1GraphConfig: process.env.L1_GRAPH_CONFIG ?? 'config/graph.mainnet.yml',
-    l2GraphConfig: process.env.L2_GRAPH_CONFIG ?? 'config/graph.arbitrum-one.yml',
-    fork: process.env.FORK === 'true',
-    disableSecureAccounts: process.env.DISABLE_SECURE_ACCOUNTS === 'true',
+      addressBook: 'addresses-local.json',
+    } as any,
   },
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY,
-      rinkeby: process.env.ETHERSCAN_API_KEY,
       goerli: process.env.ETHERSCAN_API_KEY,
-      kovan: process.env.ETHERSCAN_API_KEY,
       sepolia: process.env.ETHERSCAN_API_KEY,
       arbitrumOne: process.env.ARBISCAN_API_KEY,
       arbitrumGoerli: process.env.ARBISCAN_API_KEY,
@@ -209,31 +154,47 @@ const config: HardhatUserConfig = {
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
   },
+  // abiExporter: {
+  //   path: './abis',
+  //   clear: true,
+  //   flat: true,
+  //   runOnCompile: true,
+  // },
   typechain: {
-    outDir: 'build/types',
+    outDir: 'typechain-types',
     target: 'ethers-v5',
   },
-  abiExporter: {
-    path: './build/abis',
-    clear: true,
-    flat: true,
-    runOnCompile: true,
-  },
-  tenderly: {
-    project: 'graph-network',
-    username: 'graphprotocol',
-  },
+  defender:
+    process.env.DEFENDER_API_KEY && process.env.DEFENDER_API_SECRET
+      ? {
+          apiKey: process.env.DEFENDER_API_KEY,
+          apiSecret: process.env.DEFENDER_API_SECRET,
+        }
+      : undefined,
   contractSizer: {
     alphaSort: true,
     runOnCompile: false,
     disambiguatePaths: false,
   },
-  defender: {
-    apiKey: process.env.DEFENDER_API_KEY,
-    apiSecret: process.env.DEFENDER_API_SECRET,
-  },
 }
 
-setupNetworkProviders(config)
+// Setup network providers
+if (config.networks) {
+  for (const netConfig of networkConfigs) {
+    const networkConfig: any = {
+      chainId: netConfig.chainId,
+      url: netConfig.url ? netConfig.url : getDefaultProviderURL(netConfig.network),
+      gas: netConfig.gas || 'auto',
+      gasPrice: netConfig.gasPrice || 'auto',
+      accounts: getAccountsKeys(),
+    }
 
-export default config
+    if (netConfig.graphConfig) {
+      networkConfig.graphConfig = netConfig.graphConfig
+    }
+
+    config.networks[netConfig.network] = networkConfig
+  }
+}
+
+export default config as any

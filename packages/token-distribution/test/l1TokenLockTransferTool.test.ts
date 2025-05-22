@@ -1,20 +1,22 @@
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
-import { Staking__factory } from '@graphprotocol/contracts/build/types/factories/Staking__factory'
+import { Staking__factory } from '@graphprotocol/contracts/typechain-types'
 import { expect } from 'chai'
 import { BigNumber, constants, Signer } from 'ethers'
 import { defaultAbiCoder, hexValue, keccak256, parseEther } from 'ethers/lib/utils'
 import { deployments, ethers, upgrades } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
 
-import { L1GraphTokenLockTransferTool__factory } from '../build/typechain/contracts/factories/L1GraphTokenLockTransferTool__factory'
-import { GraphTokenLockManager } from '../build/typechain/contracts/GraphTokenLockManager'
-import { GraphTokenLockWallet } from '../build/typechain/contracts/GraphTokenLockWallet'
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-import { L1GraphTokenLockTransferTool } from '../build/typechain/contracts/L1GraphTokenLockTransferTool'
-import { L1TokenGatewayMock } from '../build/typechain/contracts/L1TokenGatewayMock'
-import { StakingMock } from '../build/typechain/contracts/StakingMock'
+import {
+  GraphTokenLockManager,
+  GraphTokenLockWallet,
+  GraphTokenMock,
+  L1GraphTokenLockTransferTool,
+  L1GraphTokenLockTransferTool__factory,
+  L1TokenGatewayMock,
+  StakingMock,
+} from '../typechain-types'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
 import { Account, getAccounts, getContract, toBN, toGRT } from './network'
 import { advanceTimeAndBlock } from './network'

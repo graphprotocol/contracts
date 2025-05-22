@@ -26,8 +26,8 @@
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "debug": "^4.3.4",
     "ethers": "^5.7.0",
-    "hardhat": "~2.14.0",
-    "hardhat-secure-accounts": "^0.0.6",
+    "hardhat": "^2.22.0",
+    "hardhat-secure-accounts": "0.0.6",
     "inquirer": "^8.0.0",
     "lodash": "^4.17.21",
     "yaml": "^1.10.2"

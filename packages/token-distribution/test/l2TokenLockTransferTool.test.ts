@@ -7,12 +7,14 @@ import { defaultAbiCoder, keccak256 } from 'ethers/lib/utils'
 import { deployments, ethers, upgrades } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
 
-import { L2GraphTokenLockTransferTool__factory } from '../build/typechain/contracts/factories/L2GraphTokenLockTransferTool__factory'
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-import { L2GraphTokenLockManager } from '../build/typechain/contracts/L2GraphTokenLockManager'
-import { L2GraphTokenLockTransferTool } from '../build/typechain/contracts/L2GraphTokenLockTransferTool'
-import { L2GraphTokenLockWallet } from '../build/typechain/contracts/L2GraphTokenLockWallet'
-import { L2TokenGatewayMock } from '../build/typechain/contracts/L2TokenGatewayMock'
+import {
+  GraphTokenMock,
+  L2GraphTokenLockManager,
+  L2GraphTokenLockTransferTool,
+  L2GraphTokenLockTransferTool__factory,
+  L2GraphTokenLockWallet,
+  L2TokenGatewayMock,
+} from '../typechain-types'
 import { defaultInitArgs, TokenLockParameters } from './config'
 import { Account, getAccounts, getContract, toBN, toGRT } from './network'
 

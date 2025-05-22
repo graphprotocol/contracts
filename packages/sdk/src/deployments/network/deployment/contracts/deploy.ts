@@ -1,35 +1,31 @@
-import {
-  deployContractImplementationAndSave,
-  deployContractWithProxy,
-  deployContractWithProxyAndSave,
-} from './proxy'
-import { deployContract, deployContractAndSave } from '../../../lib/deploy/contract'
-import { DeployType, isDeployType } from '../../../lib/types/deploy'
-import { confirm } from '../../../../utils/prompt'
-import { assertObject } from '../../../../utils/assertions'
-import { type GraphChainId, isGraphL1ChainId, isGraphL2ChainId } from '../../../../chain'
-import {
-  GraphNetworkSharedContractNameList,
-  type GraphNetworkContractName,
-  GraphNetworkL1ContractNameList,
-  GraphNetworkL2ContractNameList,
-  GraphNetworkGovernedContractNameList,
-} from './list'
-import { getContractConfig, loadCallParams, readConfig } from '../../../lib/config'
-import { logDebug } from '../../../logger'
-
-import type { ContractTransaction, Signer, providers } from 'ethers'
-import type { DeployData, DeployResult } from '../../../lib/types/deploy'
-import type { AddressBook } from '../../../lib/address-book'
-import { GraphNetworkAddressBook } from '../address-book'
-import { isContractDeployed } from '../../../lib/deploy/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { Contract, Wallet, ethers } from 'ethers'
+import type { ContractTransaction, providers, Signer } from 'ethers'
+import { Contract, ethers, Wallet } from 'ethers'
+
+import { type GraphChainId, isGraphL1ChainId, isGraphL2ChainId } from '../../../../chain'
+import { setCode } from '../../../../helpers/code'
+import { assertObject } from '../../../../utils/assertions'
+import { confirm } from '../../../../utils/prompt'
+import type { AddressBook } from '../../../lib/address-book'
+import { getContractConfig, loadCallParams, readConfig } from '../../../lib/config'
+import { logContractCall, logContractReceipt } from '../../../lib/contracts/log'
+import { deployContract, deployContractAndSave } from '../../../lib/deploy/contract'
+import { isContractDeployed } from '../../../lib/deploy/deploy'
+import type { DeployData, DeployResult } from '../../../lib/types/deploy'
+import { DeployType, isDeployType } from '../../../lib/types/deploy'
+import { logDebug } from '../../../logger'
 import { acceptOwnership } from '../../actions/governed'
 import { setPausedProtocol } from '../../actions/pause'
+import { GraphNetworkAddressBook } from '../address-book'
+import {
+  type GraphNetworkContractName,
+  GraphNetworkGovernedContractNameList,
+  GraphNetworkL1ContractNameList,
+  GraphNetworkL2ContractNameList,
+  GraphNetworkSharedContractNameList,
+} from './list'
 import { GraphNetworkContracts, loadGraphNetworkContracts } from './load'
-import { setCode } from '../../../../helpers/code'
-import { logContractCall, logContractReceipt } from '../../../lib/contracts/log'
+import { deployContractImplementationAndSave, deployContractWithProxy, deployContractWithProxyAndSave } from './proxy'
 
 export async function deployGraphNetwork(
   addressBookPath: string,
@@ -97,13 +93,7 @@ export async function deployGraphNetwork(
 
     // Check if contract already deployed
     if (!forceDeploy) {
-      const isDeployed = await isContractDeployed(
-        name,
-        'GraphProxy',
-        savedAddress,
-        addressBook,
-        provider,
-      )
+      const isDeployed = await isContractDeployed(name, 'GraphProxy', savedAddress, addressBook, provider)
       if (isDeployed) {
         logDebug(`${name} is up to date, no action required`)
         logDebug(`Address: ${savedAddress}\n`)
@@ -204,7 +194,7 @@ export async function deployGraphNetwork(
     for (const contract of GraphNetworkGovernedContractNameList) {
       const tx = await acceptOwnership(loadedContracts, governor, { contractName: contract })
       if (tx) {
-        txs.push()
+        txs.push(tx)
       }
     }
     await Promise.all(txs.map((tx) => tx.wait()))
@@ -223,11 +213,7 @@ export async function deployGraphNetwork(
 
   const spent = ethers.utils.formatEther(beforeDeployerBalance.sub(afterDeployerBalance))
   const nTx = afterDeployerNonce - beforeDeployerNonce
-  logDebug(
-    `Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${
-      ethers.constants.EtherSymbol
-    } ${spent}`,
-  )
+  logDebug(`Sent ${nTx} transaction${nTx === 1 ? '' : 's'} & spent ${ethers.constants.EtherSymbol} ${spent}`)
 
   return loadedContracts
 }
@@ -284,19 +270,12 @@ export const deploy = async (
       // so we force non-null assertion
       return await deployContractWithProxyAndSave(sender, contractData, addressBook, proxyData!)
     case DeployType.DeployImplementationAndSave:
-      logDebug(
-        `Deploying contract ${contractData.name} implementation and saving to address book...`,
-      )
+      logDebug(`Deploying contract ${contractData.name} implementation and saving to address book...`)
       assertObject(addressBook)
       validateProxyData(proxyData)
       // TODO - for some reason proxyData's type is not being narrowed down to DeployData
       // so we force non-null assertion
-      return await deployContractImplementationAndSave(
-        sender,
-        contractData,
-        addressBook,
-        proxyData!,
-      )
+      return await deployContractImplementationAndSave(sender, contractData, addressBook, proxyData!)
     default:
       throw new Error('Please provide the correct option for deploy type')
   }

@@ -1,0 +1,33 @@
+diff --git a/dist/typechain/io.js b/dist/typechain/io.js
+index 725231a5ab1d8cc5f68a39ba730dddccf6a30f32..0c01337df8766807f20c5dc78560c75830e77550 100644
+--- a/dist/typechain/io.js
++++ b/dist/typechain/io.js
+@@ -7,19 +7,24 @@ const path_1 = require("path");
+ const outputTransformers_1 = require("../codegen/outputTransformers");
+ const abiParser_1 = require("../parser/abiParser");
+ const debug_1 = require("../utils/debug");
+-function processOutput(services, cfg, output) {
++async function processOutput(services, cfg, output) {
+     const { fs, mkdirp } = services;
+     if (!output) {
+         return 0;
+     }
+     const outputFds = (0, lodash_1.isArray)(output) ? output : [output];
+-    outputFds.forEach((fd) => {
++    for (const fd of outputFds) {
+         // ensure directory first
+         mkdirp((0, path_1.dirname)(fd.path));
+-        const finalOutput = outputTransformers_1.outputTransformers.reduce((content, transformer) => transformer(content, services, cfg), fd.contents);
++        let finalOutput = outputTransformers_1.outputTransformers.reduce((content, transformer) => transformer(content, services, cfg), fd.contents);
++
++        // If finalOutput is a Promise, await it
++        if (finalOutput && typeof finalOutput.then === 'function') {
++            finalOutput = await finalOutput;
++        }
+         (0, debug_1.debug)(`Writing file: ${(0, path_1.relative)(cfg.cwd, fd.path)}`);
+         fs.writeFileSync(fd.path, finalOutput, 'utf8');
+-    });
++    }
+     return outputFds.length;
+ }
+ exports.processOutput = processOutput;

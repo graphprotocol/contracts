@@ -4,8 +4,7 @@ import { expect } from 'chai'
 import { deployments } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
 
-import { GraphTokenDistributor } from '../build/typechain/contracts/GraphTokenDistributor'
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
+import { GraphTokenDistributor, GraphTokenMock } from '../typechain-types'
 import { Account, getAccounts, getContract, toGRT } from './network'
 
 // Fixture

@@ -55,7 +55,9 @@
     "prettier": "^3.2.5",
     "prettier-plugin-solidity": "^1.0.0",
     "typescript": "^5.8.3",
-    "@types/node": "^22.15.17"
+    "@types/node": "^20.17.50",
+    "typechain@npm:^8.0.0": "patch:typechain@npm%3A8.3.2#~/.yarn/patches/typechain-npm-8.3.2-b02e27439e.patch",
+    "typechain@npm:^3.0.0": "patch:typechain@npm%3A8.3.2#~/.yarn/patches/typechain-npm-8.3.2-b02e27439e.patch"
   },
   "lint-staged": {
     "*.{js,ts,cjs,mjs,jsx,tsx}": [
@@ -72,7 +74,7 @@
     ],
     "*.json": "prettier -w --cache --log-level warn",
     "*.{yml,yaml}": [
-      "npx yaml-lint",
+      "npx yamllint",
       "prettier -w --cache --log-level warn"
     ]
   }

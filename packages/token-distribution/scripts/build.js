@@ -27,8 +27,7 @@ const graphClientIndex = path.join(graphClientDir, 'index.js')
 
 // Contract paths
 const contractsDir = path.join(rootDir, 'contracts')
-const buildDir = path.join(rootDir, 'build')
-const artifactsDir = path.join(buildDir, 'contracts')
+const artifactsDir = path.join(rootDir, 'artifacts')
 
 // Check if a file exists
 function fileExists(filePath) {
@@ -144,6 +143,13 @@ async function build() {
   // Compile contracts if needed
   if (contractCompilationNeeded) {
     console.log('Compiling contracts...')
+
+    // // Copy working TypeChain modules from contracts package to fix compatibility
+    // console.log('Copying TypeChain modules from contracts package...')
+    // execSync('cp -r ../contracts/node_modules/@typechain ../contracts/node_modules/typechain ./node_modules/', {
+    //   stdio: 'inherit',
+    // })
+
     execSync('yarn run compile', { stdio: 'inherit' })
   } else {
     console.log('Contracts are up to date.')

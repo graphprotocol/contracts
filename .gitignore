@@ -7,10 +7,10 @@ node_modules/
 forge-std/
 
 # Yarn
-.yarn/
+.yarn/*
 !.yarn/patches
-!.yarn/releases
 !.yarn/plugins
+!.yarn/releases
 !.yarn/sdks
 !.yarn/versions
 

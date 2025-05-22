@@ -1,22 +1,12 @@
 {
   "compilerOptions": {
-    "lib": ["ES2020", "dom"],
-    "module": "Node16",
-    "moduleResolution": "node16",
-    "target": "ES2020",
-    "outDir": "dist",
+    "target": "es2020",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true
-  },
-  "include": [
-    ".solcover.js",
-    "truffle.js",
-    "eslint.config.js",
-    "prettier.config.js",
-    "hardhat.config.ts",
-    "index.d.ts",
-    "scripts/**/*.ts",
-    "test/**/*.ts",
-    "tasks/**/*.ts"
-  ]
+    "incremental": true
+  }
 }

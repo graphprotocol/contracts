@@ -5,8 +5,7 @@ import { BigNumber, constants } from 'ethers'
 import { deployments } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
 
-import { GraphTokenLockSimple } from '../build/typechain/contracts/GraphTokenLockSimple'
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
+import { GraphTokenLockSimple, GraphTokenMock } from '../typechain-types'
 import { createScheduleScenarios, defaultInitArgs, Revocability, TokenLockParameters } from './config'
 import { Account, advanceTimeAndBlock, getAccounts, getContract, toBN, toGRT } from './network'
 

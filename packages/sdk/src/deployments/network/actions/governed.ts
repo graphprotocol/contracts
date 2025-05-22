@@ -1,13 +1,13 @@
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, ContractTransaction, ethers } from 'ethers'
 
-import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import type { GraphNetworkContracts } from '../deployment/contracts/load'
 import type { GraphNetworkContractName } from '../deployment/contracts/list'
+import type { GraphNetworkContracts } from '../deployment/contracts/load'
 import type { GraphNetworkAction } from './types'
 
 type GovernedContract = Contract & {
-  pendingGovernor?: (overrides: ethers.CallOverrides) => Promise<string>
-  acceptOwnership?: (overrides: ethers.CallOverrides) => Promise<string>
+  pendingGovernor?: (_overrides: ethers.CallOverrides) => Promise<string>
+  acceptOwnership?: (_overrides: ethers.CallOverrides) => Promise<string>
 }
 
 export const acceptOwnership: GraphNetworkAction<
@@ -27,7 +27,13 @@ export const acceptOwnership: GraphNetworkAction<
     throw new Error(`Contract ${contractName} not found`)
   }
 
-  const pendingGovernor = await (contract as GovernedContract).connect(signer).pendingGovernor()
+  let pendingGovernor: string
+  try {
+    pendingGovernor = await (contract as GovernedContract).connect(signer).pendingGovernor()
+  } catch (error) {
+    console.log(`Contract ${contract.address} does not have pendingGovernor() method or call failed: ${error}`)
+    return
+  }
 
   if (pendingGovernor === ethers.constants.AddressZero) {
     console.log(`No pending governor for ${contract.address}`)
@@ -36,12 +42,15 @@ export const acceptOwnership: GraphNetworkAction<
 
   if (pendingGovernor === signer.address) {
     console.log(`Accepting ownership of ${contract.address}`)
-    const tx = await (contract as GovernedContract).connect(signer).acceptOwnership()
-    await tx.wait()
-    return tx
+    try {
+      const tx = await (contract as GovernedContract).connect(signer).acceptOwnership()
+      await tx.wait()
+      return tx
+    } catch (error) {
+      console.log(`Failed to accept ownership of ${contract.address}: ${error}`)
+      return
+    }
   } else {
-    console.log(
-      `Signer ${signer.address} is not the pending governor of ${contract.address}, it is ${pendingGovernor}`,
-    )
+    console.log(`Signer ${signer.address} is not the pending governor of ${contract.address}, it is ${pendingGovernor}`)
   }
 }

@@ -163,7 +163,7 @@ const config = {
     ],
   },
   typechain: {
-    outDir: 'build/typechain/contracts',
+    outDir: 'typechain-types',
     target: 'ethers-v5',
   },
   abiExporter: {

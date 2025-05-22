@@ -1,6 +1,4 @@
-import * as dotenv from 'dotenv'
-dotenv.config()
-
+import '@typechain/hardhat'
 // Plugins
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-etherscan'
@@ -9,12 +7,14 @@ import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
-import '@typechain/hardhat'
 
 import * as tdly from '@tenderly/hardhat-tenderly'
 import { task } from 'hardhat/config'
 import { HardhatUserConfig } from 'hardhat/types'
 tdly.setup()
+
+import * as dotenv from 'dotenv'
+dotenv.config()
 
 // Tasks
 
@@ -97,7 +97,7 @@ const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
     tests: './test',
-    artifacts: './build/contracts',
+    artifacts: './artifacts',
   },
   solidity: {
     compilers: [
@@ -164,10 +164,10 @@ const config: HardhatUserConfig = {
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
   },
-  typechain: {
-    outDir: 'build/types',
-    target: 'ethers-v5',
-  },
+  // typechain: {
+  //   outDir: 'build/types',
+  //   target: 'ethers-v5',
+  // },
   abiExporter: {
     path: './build/abis',
     clear: false,

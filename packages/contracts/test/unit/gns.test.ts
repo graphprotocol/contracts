@@ -1,26 +1,4 @@
-import hre from 'hardhat'
-import { expect } from 'chai'
-import { BigNumber, ContractTransaction, ethers, Event } from 'ethers'
-import { defaultAbiCoder } from 'ethers/lib/utils'
 import { formatGRT, SubgraphDeploymentID } from '@graphprotocol/common-ts'
-
-import { LegacyGNSMock } from '../../build/types/LegacyGNSMock'
-import { GraphToken } from '../../build/types/GraphToken'
-import { Curation } from '../../build/types/Curation'
-
-import { NetworkFixture } from './lib/fixtures'
-import { Controller } from '../../build/types/Controller'
-import { L1GNS } from '../../build/types/L1GNS'
-import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
-import {
-  AccountDefaultName,
-  burnSignal,
-  createDefaultName,
-  deprecateSubgraph,
-  mintSignal,
-  publishNewSubgraph,
-  publishNewVersion,
-} from './lib/gnsUtils'
 import {
   buildLegacySubgraphId,
   buildSubgraph,
@@ -37,7 +15,28 @@ import {
   toGRT,
 } from '@graphprotocol/sdk'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { BigNumber, ContractTransaction, ethers, Event } from 'ethers'
+import { defaultAbiCoder } from 'ethers/lib/utils'
+import hre from 'hardhat'
+
 import { L2GNS, L2GraphTokenGateway, SubgraphNFT } from '../../build/types'
+import { Controller } from '../../build/types/Controller'
+import { Curation } from '../../build/types/Curation'
+import { GraphToken } from '../../build/types/GraphToken'
+import { L1GNS } from '../../build/types/L1GNS'
+import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
+import { LegacyGNSMock } from '../../build/types/LegacyGNSMock'
+import { NetworkFixture } from './lib/fixtures'
+import {
+  AccountDefaultName,
+  burnSignal,
+  createDefaultName,
+  deprecateSubgraph,
+  mintSignal,
+  publishNewSubgraph,
+  publishNewVersion,
+} from './lib/gnsUtils'
 
 const { AddressZero, HashZero } = ethers.constants
 
@@ -85,12 +84,7 @@ describe('L1GNS', () => {
     const signal = await curation.getCurationPoolSignal(subgraphID)
     const curationTokens = await curation.getCurationPoolTokens(subgraphID)
     const curationReserveRatio = await curation.defaultReserveRatio()
-    const expectedSignal = await calcCurationBondingCurve(
-      signal,
-      curationTokens,
-      curationReserveRatio,
-      depositAmount,
-    )
+    const expectedSignal = await calcCurationBondingCurve(signal, curationTokens, curationReserveRatio, depositAmount)
     const expectedSignalBN = toGRT(String(expectedSignal.toFixed(18)))
 
     // Handle the initialization of the bonding curve
@@ -115,19 +109,12 @@ describe('L1GNS', () => {
         throw new Error('deposit must be above minimum')
       }
       return (
-        (await calcCurationBondingCurve(
-          minSupply,
-          minDeposit,
-          reserveRatio,
-          depositAmount.sub(minDeposit),
-        )) + toFloat(minSupply)
+        (await calcCurationBondingCurve(minSupply, minDeposit, reserveRatio, depositAmount.sub(minDeposit))) +
+        toFloat(minSupply)
       )
     }
     // Calculate bonding curve in the test
-    return (
-      toFloat(supply)
-      * ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (reserveRatio / 1000000) - 1)
-    )
+    return toFloat(supply) * ((1 + toFloat(depositAmount) / toFloat(reserveBalance)) ** (reserveRatio / 1000000) - 1)
   }
 
   const transferSignal = async (
@@ -143,9 +130,7 @@ describe('L1GNS', () => {
     // Transfer
     const tx = gns.connect(owner).transferSignal(subgraphID, recipient.address, amount)
 
-    await expect(tx)
-      .emit(gns, 'SignalTransferred')
-      .withArgs(subgraphID, owner.address, recipient.address, amount)
+    await expect(tx).emit(gns, 'SignalTransferred').withArgs(subgraphID, owner.address, recipient.address, amount)
 
     // After state
     const afterOwnerNSignal = await gns.getCuratorSignal(subgraphID, owner.address)
@@ -158,17 +143,12 @@ describe('L1GNS', () => {
     return tx
   }
 
-  const withdraw = async (
-    account: SignerWithAddress,
-    subgraphID: string,
-  ): Promise<ContractTransaction> => {
+  const withdraw = async (account: SignerWithAddress, subgraphID: string): Promise<ContractTransaction> => {
     // Before state
     const beforeCuratorNSignal = await gns.getCuratorSignal(subgraphID, account.address)
     const beforeSubgraph = await gns.subgraphs(subgraphID)
     const beforeGNSBalance = await grt.balanceOf(gns.address)
-    const tokensEstimate = beforeSubgraph.withdrawableGRT
-      .mul(beforeCuratorNSignal)
-      .div(beforeSubgraph.nSignal)
+    const tokensEstimate = beforeSubgraph.withdrawableGRT.mul(beforeCuratorNSignal).div(beforeSubgraph.nSignal)
 
     // Send tx
     const tx = gns.connect(account).withdraw(subgraphID)
@@ -221,7 +201,7 @@ describe('L1GNS', () => {
   }
 
   before(async function () {
-    [me, other, governor, another] = await graph.getTestAccounts()
+    ;[me, other, governor, another] = await graph.getTestAccounts()
 
     fixture = new NetworkFixture(graph.provider)
 
@@ -334,18 +314,14 @@ describe('L1GNS', () => {
   describe('Publishing names and versions', function () {
     describe('setDefaultName', function () {
       it('setDefaultName emits the event', async function () {
-        const tx = gns
-          .connect(me)
-          .setDefaultName(me.address, 0, defaultName.nameIdentifier, defaultName.name)
+        const tx = gns.connect(me).setDefaultName(me.address, 0, defaultName.nameIdentifier, defaultName.name)
         await expect(tx)
           .emit(gns, 'SetDefaultName')
           .withArgs(me.address, 0, defaultName.nameIdentifier, defaultName.name)
       })
 
       it('setDefaultName fails if not owner', async function () {
-        const tx = gns
-          .connect(other)
-          .setDefaultName(me.address, 0, defaultName.nameIdentifier, defaultName.name)
+        const tx = gns.connect(other).setDefaultName(me.address, 0, defaultName.nameIdentifier, defaultName.name)
         await expect(tx).revertedWith('GNS: Only you can set your name')
       })
     })
@@ -358,18 +334,12 @@ describe('L1GNS', () => {
       })
 
       it('updateSubgraphMetadata emits the event', async function () {
-        const tx = gns
-          .connect(me)
-          .updateSubgraphMetadata(subgraph.id, newSubgraph0.subgraphMetadata)
-        await expect(tx)
-          .emit(gns, 'SubgraphMetadataUpdated')
-          .withArgs(subgraph.id, newSubgraph0.subgraphMetadata)
+        const tx = gns.connect(me).updateSubgraphMetadata(subgraph.id, newSubgraph0.subgraphMetadata)
+        await expect(tx).emit(gns, 'SubgraphMetadataUpdated').withArgs(subgraph.id, newSubgraph0.subgraphMetadata)
       })
 
       it('updateSubgraphMetadata fails if not owner', async function () {
-        const tx = gns
-          .connect(other)
-          .updateSubgraphMetadata(subgraph.id, newSubgraph0.subgraphMetadata)
+        const tx = gns.connect(other).updateSubgraphMetadata(subgraph.id, newSubgraph0.subgraphMetadata)
         await expect(tx).revertedWith('GNS: Must be authorized')
       })
     })
@@ -425,47 +395,28 @@ describe('L1GNS', () => {
       })
 
       it('should publish a new version on an existing subgraph with no current signal', async function () {
-        const emptySignalSubgraph = await publishNewSubgraph(
-          me,
-          buildSubgraph(),
-          gns,
-          graph.chainId,
-        )
+        const emptySignalSubgraph = await publishNewSubgraph(me, buildSubgraph(), gns, graph.chainId)
         await publishNewVersion(me, emptySignalSubgraph.id, newSubgraph1, gns, curation)
       })
 
       it('should reject a new version with the same subgraph deployment ID', async function () {
         const tx = gns
           .connect(me)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph0.subgraphDeploymentID,
-            newSubgraph0.versionMetadata,
-          )
-        await expect(tx).revertedWith(
-          'GNS: Cannot publish a new version with the same subgraph deployment ID',
-        )
+          .publishNewVersion(subgraph.id, newSubgraph0.subgraphDeploymentID, newSubgraph0.versionMetadata)
+        await expect(tx).revertedWith('GNS: Cannot publish a new version with the same subgraph deployment ID')
       })
 
       it('should reject publishing a version to a subgraph that does not exist', async function () {
         const tx = gns
           .connect(me)
-          .publishNewVersion(
-            randomHexBytes(32),
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
+          .publishNewVersion(randomHexBytes(32), newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
         await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
       })
 
       it('reject if not the owner', async function () {
         const tx = gns
           .connect(other)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
+          .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
         await expect(tx).revertedWith('GNS: Must be authorized')
       })
 
@@ -476,25 +427,15 @@ describe('L1GNS', () => {
         // Target a pre-curated subgraph deployment
         const tx = gns
           .connect(me)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
-        await expect(tx).revertedWith(
-          'GNS: Owner cannot point to a subgraphID that has been pre-curated',
-        )
+          .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+        await expect(tx).revertedWith('GNS: Owner cannot point to a subgraphID that has been pre-curated')
       })
 
       it('should upgrade version when there is no signal with no signal migration', async function () {
         await burnSignal(me, subgraph.id, gns, curation)
         const tx = gns
           .connect(me)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
+          .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
         await expect(tx)
           .emit(gns, 'SubgraphVersionUpdated')
           .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
@@ -504,11 +445,7 @@ describe('L1GNS', () => {
         await deprecateSubgraph(me, subgraph.id, gns, curation, grt)
         const tx = gns
           .connect(me)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
+          .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
         // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
         await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
       })
@@ -516,34 +453,21 @@ describe('L1GNS', () => {
     describe('subgraphTokens', function () {
       it('should return the correct number of tokens for a subgraph', async function () {
         const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
-        const taxForMe = (
-          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000)
-        )[1]
+        const taxForMe = (await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000))[1]
         await mintSignal(me, subgraph.id, tokens10000, gns, curation)
-        const taxForOther = (
-          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens1000)
-        )[1]
+        const taxForOther = (await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens1000))[1]
         await mintSignal(other, subgraph.id, tokens1000, gns, curation)
-        expect(await gns.subgraphTokens(subgraph.id)).eq(
-          tokens10000.add(tokens1000).sub(taxForMe).sub(taxForOther),
-        )
+        expect(await gns.subgraphTokens(subgraph.id)).eq(tokens10000.add(tokens1000).sub(taxForMe).sub(taxForOther))
       })
     })
     describe('subgraphSignal', function () {
       it('should return the correct amount of signal for a subgraph', async function () {
         const subgraph = await publishNewSubgraph(me, newSubgraph0, gns, graph.chainId)
-        const vSignalForMe = (
-          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000)
-        )[0]
+        const vSignalForMe = (await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens10000))[0]
         await mintSignal(me, subgraph.id, tokens10000, gns, curation)
-        const vSignalForOther = (
-          await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens1000)
-        )[0]
+        const vSignalForOther = (await curation.tokensToSignal(subgraph.subgraphDeploymentID, tokens1000))[0]
         await mintSignal(other, subgraph.id, tokens1000, gns, curation)
-        const expectedSignal = await gns.vSignalToNSignal(
-          subgraph.id,
-          vSignalForMe.add(vSignalForOther),
-        )
+        const expectedSignal = await gns.vSignalToNSignal(subgraph.id, vSignalForMe.add(vSignalForOther))
         expect(await gns.subgraphSignal(subgraph.id)).eq(expectedSignal)
       })
     })
@@ -563,11 +487,7 @@ describe('L1GNS', () => {
         await deprecateSubgraph(me, subgraph.id, gns, curation, grt)
         const tx = gns
           .connect(me)
-          .publishNewVersion(
-            subgraph.id,
-            newSubgraph1.subgraphDeploymentID,
-            newSubgraph1.versionMetadata,
-          )
+          .publishNewVersion(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
         // NOTE: deprecate burns the Subgraph NFT, when someone wants to publish a new version it won't find it
         await expect(tx).revertedWith('ERC721: owner query for nonexistent token')
       })
@@ -612,7 +532,7 @@ describe('L1GNS', () => {
         // Set slippage to be 1 less than expected result to force reverting
         const { 1: expectedNSignal } = await gns.tokensToNSignal(subgraph.id, tokens1000)
         const tx = gns.connect(me).mintSignal(subgraph.id, tokens1000, expectedNSignal.add(1))
-        await expect(tx).revertedWith('Slippage protection')
+        await expect(tx).revertedWith('GNS: Slippage protection')
       })
     })
 
@@ -672,9 +592,7 @@ describe('L1GNS', () => {
         await transferSignal(subgraph.id, other, another, otherNSignal)
       })
       it('should fail when transferring to zero address', async function () {
-        const tx = gns
-          .connect(other)
-          .transferSignal(subgraph.id, ethers.constants.AddressZero, otherNSignal)
+        const tx = gns.connect(other).transferSignal(subgraph.id, ethers.constants.AddressZero, otherNSignal)
         await expect(tx).revertedWith('GNS: Curator cannot transfer to the zero address')
       })
       it('should fail when name signal is disabled', async function () {
@@ -688,9 +606,7 @@ describe('L1GNS', () => {
         await expect(tx).revertedWith('GNS: Must be active')
       })
       it('should fail when the curator tries to transfer more signal than they have', async function () {
-        const tx = gns
-          .connect(other)
-          .transferSignal(subgraph.id, another.address, otherNSignal.add(otherNSignal))
+        const tx = gns.connect(other).transferSignal(subgraph.id, another.address, otherNSignal.add(otherNSignal))
         await expect(tx).revertedWith('GNS: Curator transfer amount exceeds balance')
       })
     })
@@ -814,11 +730,7 @@ describe('L1GNS', () => {
         newSubgraph0.subgraphMetadata,
       )
       // Curate on the subgraph
-      const subgraphID = await buildSubgraphId(
-        me.address,
-        await gns.nextAccountSeqID(me.address),
-        graph.chainId,
-      )
+      const subgraphID = await buildSubgraphId(me.address, await gns.nextAccountSeqID(me.address), graph.chainId)
       const tx2 = await gns.populateTransaction.mintSignal(subgraphID, toGRT('90000'), 0)
 
       // Batch send transaction
@@ -861,9 +773,7 @@ describe('L1GNS', () => {
       // Craft call a private function
       const hash = ethers.utils.id('_setOwnerTaxPercentage(uint32)')
       const functionHash = hash.slice(0, 10)
-      const calldata = ethers.utils.arrayify(
-        ethers.utils.defaultAbiCoder.encode(['uint32'], ['100']),
-      )
+      const calldata = ethers.utils.arrayify(ethers.utils.defaultAbiCoder.encode(['uint32'], ['100']))
       const bogusPayload = ethers.utils.concat([functionHash, calldata])
 
       // Create a subgraph
@@ -875,7 +785,7 @@ describe('L1GNS', () => {
 
       // Batch send transaction
       const tx = gns.connect(me).multicall([bogusPayload, tx2.data])
-      await expect(tx).revertedWith('')
+      await expect(tx).revertedWith("function selector was not recognized and there's no fallback function")
     })
   })
 
@@ -943,14 +853,10 @@ describe('L1GNS', () => {
     it('migrates a legacy subgraph', async function () {
       const seqID = toBN('2')
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
-      const tx = legacyGNSMock
-        .connect(me)
-        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-      await expect(tx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
+      const tx = legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await expect(tx).emit(legacyGNSMock, 'LegacySubgraphClaimed').withArgs(me.address, seqID)
       const expectedSubgraphID = buildLegacySubgraphId(me.address, seqID)
-      const migratedSubgraphDeploymentID = await legacyGNSMock.getSubgraphDeploymentID(
-        expectedSubgraphID,
-      )
+      const migratedSubgraphDeploymentID = await legacyGNSMock.getSubgraphDeploymentID(expectedSubgraphID)
       const migratedNSignal = await legacyGNSMock.getSubgraphNSignal(expectedSubgraphID)
       expect(migratedSubgraphDeploymentID).eq(newSubgraph0.subgraphDeploymentID)
       expect(migratedNSignal).eq(toBN('1000'))
@@ -965,13 +871,9 @@ describe('L1GNS', () => {
     it('refuses to migrate an already migrated subgraph', async function () {
       const seqID = toBN('2')
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
-      let tx = legacyGNSMock
-        .connect(me)
-        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-      await expect(tx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
-      tx = legacyGNSMock
-        .connect(me)
-        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      let tx = legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await expect(tx).emit(legacyGNSMock, 'LegacySubgraphClaimed').withArgs(me.address, seqID)
+      tx = legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
       await expect(tx).revertedWith('GNS: Subgraph was already claimed')
     })
   })
@@ -980,9 +882,7 @@ describe('L1GNS', () => {
       const seqID = toBN('2')
       const subgraphId = buildLegacySubgraphId(me.address, seqID)
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
-      await legacyGNSMock
-        .connect(me)
-        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
 
       expect(await legacyGNSMock.isLegacySubgraph(subgraphId)).eq(true)
 
@@ -993,9 +893,7 @@ describe('L1GNS', () => {
       const seqID = toBN('2')
       const subgraphId = buildLegacySubgraphId(me.address, seqID)
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
-      await legacyGNSMock
-        .connect(me)
-        .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
+      await legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
       const [account, id] = await legacyGNSMock.getLegacySubgraphKey(subgraphId)
       expect(account).eq(me.address)
       expect(id).eq(seqID)
@@ -1019,7 +917,7 @@ describe('L1GNS', () => {
     }
 
     const publishCurateAndSendSubgraph = async function (
-      beforeTransferCallback?: (subgraphID: string) => Promise<void>,
+      beforeTransferCallback?: (_subgraphID: string) => Promise<void>,
     ): Promise<Subgraph> {
       const subgraph0 = await publishAndCurateOnSubgraph()
 
@@ -1036,15 +934,11 @@ describe('L1GNS', () => {
       const beforeOwnerSignal = await gns.getCuratorSignal(subgraph0.id, me.address)
       const expectedSentToL2 = beforeOwnerSignal.mul(curatedTokens).div(subgraphBefore.nSignal)
 
-      const tx = gns
-        .connect(me)
-        .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-        })
+      const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+        value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+      })
 
-      await expect(tx)
-        .emit(gns, 'SubgraphSentToL2')
-        .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
+      await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
       return subgraph0
     }
     const publishAndCurateOnLegacySubgraph = async function (seqID: BigNumber): Promise<string> {
@@ -1053,9 +947,7 @@ describe('L1GNS', () => {
       const migrateTx = legacyGNSMock
         .connect(me)
         .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-      await expect(migrateTx)
-        .emit(legacyGNSMock, ' LegacySubgraphClaimed')
-        .withArgs(me.address, seqID)
+      await expect(migrateTx).emit(legacyGNSMock, 'LegacySubgraphClaimed').withArgs(me.address, seqID)
       const subgraphID = buildLegacySubgraphId(me.address, seqID)
 
       // Curate on the subgraph
@@ -1182,20 +1074,14 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
-        await expect(tx)
-          .emit(gns, 'SubgraphSentToL2')
-          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
+        const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
-        const tx2 = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
+        const tx2 = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
         await expect(tx2).revertedWith('ALREADY_DONE')
       })
       it('rejects a call for a subgraph that is deprecated', async function () {
@@ -1206,11 +1092,9 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
+        const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
 
         await expect(tx).revertedWith('GNS: Must be active')
       })
@@ -1220,11 +1104,9 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraphId, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
+        const tx = gns.connect(me).sendSubgraphToL2(subgraphId, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
 
         await expect(tx).revertedWith('GNS: Must be active')
       })
@@ -1234,11 +1116,9 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
-          })
+        const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
+        })
         await expect(tx).revertedWith('INVALID_ETH_VALUE')
       })
       it('does not allow curators to burn signal after sending', async function () {
@@ -1252,14 +1132,10 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
-        await expect(tx)
-          .emit(gns, 'SubgraphSentToL2')
-          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
+        const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const tx2 = gns.connect(me).burnSignal(subgraph0.id, toBN(1), toGRT('0'))
         await expect(tx2).revertedWith('GNS: Must be active')
@@ -1277,14 +1153,10 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
-        await expect(tx)
-          .emit(gns, 'SubgraphSentToL2')
-          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
+        const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const tx2 = gns.connect(me).transferSignal(subgraph0.id, other.address, toBN(1))
         await expect(tx2).revertedWith('GNS: Must be active')
@@ -1302,14 +1174,10 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
-        await expect(tx)
-          .emit(gns, 'SubgraphSentToL2')
-          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
+        const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const tx2 = gns.connect(me).withdraw(subgraph0.id)
         await expect(tx2).revertedWith('GNS: No signal to withdraw GRT')
@@ -1326,14 +1194,10 @@ describe('L1GNS', () => {
         const maxSubmissionCost = toBN('100')
         const maxGas = toBN('10')
         const gasPriceBid = toBN('20')
-        const tx = gns
-          .connect(me)
-          .sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
-            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-          })
-        await expect(tx)
-          .emit(gns, 'SubgraphSentToL2')
-          .withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
+        const tx = gns.connect(me).sendSubgraphToL2(subgraph0.id, me.address, maxGas, gasPriceBid, maxSubmissionCost, {
+          value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+        })
+        await expect(tx).emit(gns, 'SubgraphSentToL2').withArgs(subgraph0.id, me.address, me.address, expectedSentToL2)
 
         const remainingTokens = (await gns.subgraphs(subgraph0.id)).withdrawableGRT
         const tx2 = gns.connect(other).withdraw(subgraph0.id)
@@ -1366,16 +1230,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(other)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            another.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, another.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
@@ -1408,16 +1265,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(other)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
@@ -1426,16 +1276,9 @@ describe('L1GNS', () => {
 
         const tx2 = gns
           .connect(other)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
         await expect(tx2).revertedWith('NO_SIGNAL')
       })
       it('sets the curator signal to zero so they cannot withdraw', async function () {
@@ -1452,16 +1295,9 @@ describe('L1GNS', () => {
 
         await gns
           .connect(other)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         const tx = gns.connect(other).withdraw(subgraph0.id)
         await expect(tx).revertedWith('GNS: No signal to withdraw GRT')
@@ -1477,12 +1313,8 @@ describe('L1GNS', () => {
         const afterSubgraph = await gns.subgraphs(subgraph0.id)
 
         // Compute how much is owed to each curator
-        const curator1Tokens = beforeOtherNSignal
-          .mul(afterSubgraph.withdrawableGRT)
-          .div(afterSubgraph.nSignal)
-        const curator2Tokens = beforeAnotherNSignal
-          .mul(afterSubgraph.withdrawableGRT)
-          .div(afterSubgraph.nSignal)
+        const curator1Tokens = beforeOtherNSignal.mul(afterSubgraph.withdrawableGRT).div(afterSubgraph.nSignal)
+        const curator2Tokens = beforeAnotherNSignal.mul(afterSubgraph.withdrawableGRT).div(afterSubgraph.nSignal)
 
         const expectedCallhookData1 = defaultAbiCoder.encode(
           ['uint8', 'uint256', 'address'],
@@ -1506,16 +1338,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(other)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx)
@@ -1534,16 +1359,9 @@ describe('L1GNS', () => {
         )
         const tx2 = gns
           .connect(another)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            another.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, another.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
         // seqNum (third argument in the event) is 3 now
         await expect(tx2)
           .emit(l1GraphTokenGateway, 'TxToL2')
@@ -1558,16 +1376,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(me)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         await expect(tx).revertedWith('!TRANSFERRED')
       })
@@ -1584,16 +1395,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(me)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         await expect(tx).revertedWith('!TRANSFERRED')
       })
@@ -1606,16 +1410,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(me)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         await expect(tx).revertedWith('NO_SUBMISSION_COST')
       })
@@ -1628,16 +1425,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(me)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            other.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, other.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)).add(toBN('1')),
+          })
 
         await expect(tx).revertedWith('INVALID_ETH_VALUE')
       })
@@ -1652,16 +1442,9 @@ describe('L1GNS', () => {
 
         const tx = gns
           .connect(other)
-          .sendCuratorBalanceToBeneficiaryOnL2(
-            subgraph0.id,
-            another.address,
-            maxGas,
-            gasPriceBid,
-            maxSubmissionCost,
-            {
-              value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
-            },
-          )
+          .sendCuratorBalanceToBeneficiaryOnL2(subgraph0.id, another.address, maxGas, gasPriceBid, maxSubmissionCost, {
+            value: maxSubmissionCost.add(maxGas.mul(gasPriceBid)),
+          })
 
         // seqNum (third argument in the event) is 2, because number 1 was when the subgraph was sent to L2
         await expect(tx).revertedWith('NO_SIGNAL')
