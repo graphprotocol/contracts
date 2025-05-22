@@ -3466,7 +3466,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@graphprotocol/contracts@workspace:^6.3.0, @graphprotocol/contracts@workspace:packages/contracts":
+"@graphprotocol/contracts@workspace:^7.0.0, @graphprotocol/contracts@workspace:packages/contracts":
   version: 0.0.0-use.local
   resolution: "@graphprotocol/contracts@workspace:packages/contracts"
   dependencies:
@@ -3478,7 +3478,7 @@ __metadata:
     "@ethersproject/bytes": "npm:^5.8.0"
     "@ethersproject/providers": "npm:^5.8.0"
     "@graphprotocol/common-ts": "npm:^1.8.3"
-    "@graphprotocol/sdk": "workspace:^0.5.0"
+    "@graphprotocol/sdk": "workspace:^0.6.0"
     "@nomicfoundation/hardhat-network-helpers": "npm:^1.0.0"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@nomiclabs/hardhat-etherscan": "npm:^3.1.0"
@@ -3580,7 +3580,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@graphprotocol/sdk@workspace:^0.5.0, @graphprotocol/sdk@workspace:packages/sdk":
+"@graphprotocol/sdk@workspace:^0.6.0, @graphprotocol/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@graphprotocol/sdk@workspace:packages/sdk"
   dependencies:
@@ -3588,7 +3588,7 @@ __metadata:
     "@eslint/js": "npm:^8.56.0"
     "@ethersproject/experimental": "npm:^5.7.0"
     "@graphprotocol/common-ts": "npm:^2.0.7"
-    "@graphprotocol/contracts": "workspace:^6.3.0"
+    "@graphprotocol/contracts": "workspace:^7.0.0"
     "@nomicfoundation/hardhat-network-helpers": "npm:^1.0.9"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@types/chai": "npm:^4.3.9"
@@ -3626,7 +3626,7 @@ __metadata:
     "@ethersproject/hardware-wallets": "npm:^5.7.0"
     "@ethersproject/providers": "npm:^5.7.0"
     "@graphprotocol/client-cli": "npm:^2.2.22"
-    "@graphprotocol/contracts": "workspace:^6.3.0"
+    "@graphprotocol/contracts": "workspace:^7.0.0"
     "@graphql-yoga/plugin-persisted-operations": "npm:^3.13.5"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@nomiclabs/hardhat-etherscan": "npm:^3.1.0"
