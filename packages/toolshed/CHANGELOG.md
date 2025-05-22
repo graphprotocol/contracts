@@ -1,5 +1,21 @@
 # @graphprotocol/toolshed
 
+## 0.4.2
+
+### Patch Changes
+
+- Ensure all contracts are not wrapped when using connect shortcuts
+  - @graphprotocol/horizon@0.3.2
+  - @graphprotocol/subgraph-service@0.3.4
+
+## 0.4.1
+
+### Patch Changes
+
+- Build before publishing
+  - @graphprotocol/horizon@0.3.2
+  - @graphprotocol/subgraph-service@0.3.4
+
 ## 0.4.0
 
 ### Minor Changes

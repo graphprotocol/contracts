@@ -41,7 +41,9 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
         ),
         signerOrProvider,
       )
-      contracts.HorizonStaking = wrapTransactionCalls(stakingOverride, 'HorizonStaking')
+      contracts.HorizonStaking = enableTxLogging
+        ? wrapTransactionCalls(stakingOverride, 'HorizonStaking')
+        : stakingOverride
     }
 
     this._assertGraphHorizonContracts(contracts)
@@ -52,11 +54,16 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     contracts.Curation = contracts.L2Curation
     if (contracts.HorizonStaking) {
       // add LegacyStaking alias using old IL2Staking abi
-      contracts.LegacyStaking = wrapTransactionCalls(new Contract(
+      const contract = new Contract(
         contracts.HorizonStaking.target,
         loadArtifact('IL2Staking', GraphHorizonArtifactsMap.LegacyStaking).abi,
         signerOrProvider,
-      ), 'LegacyStaking') as unknown as LegacyStaking
+      )
+      contracts.LegacyStaking = (
+        enableTxLogging
+          ? wrapTransactionCalls(contract, 'LegacyStaking')
+          : contract
+      ) as unknown as LegacyStaking
     }
 
     return contracts

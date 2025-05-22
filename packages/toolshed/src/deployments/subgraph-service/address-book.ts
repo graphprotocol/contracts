@@ -7,8 +7,8 @@ import { Contract } from 'ethers'
 import { loadArtifact } from '../artifact'
 import { wrapTransactionCalls } from '../tx-logging'
 
+import type { LegacyDisputeManager, LegacyServiceRegistry } from './types'
 import type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
-import { LegacyDisputeManager, LegacyServiceRegistry } from './types'
 
 export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServiceContractName> {
   isContractName(name: unknown): name is SubgraphServiceContractName {
@@ -44,21 +44,31 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
     // Load LegacyDisputeManager manually
     if (this.entryExists('LegacyDisputeManager')) {
       const entry = this.getEntry('LegacyDisputeManager')
-      contractsWithAliases.LegacyDisputeManager = wrapTransactionCalls(new Contract(
+      const contract = new Contract(
         entry.address,
         loadArtifact('IDisputeManager', SubgraphServiceArtifactsMap.LegacyDisputeManager).abi,
         signerOrProvider,
-      ), 'LegacyDisputeManager') as unknown as LegacyDisputeManager
+      )
+      contractsWithAliases.LegacyDisputeManager = (
+        enableTxLogging
+          ? wrapTransactionCalls(contract, 'LegacyDisputeManager')
+          : contract
+      ) as unknown as LegacyDisputeManager
     }
 
     // Load ServiceRegistry manually
     if (this.entryExists('LegacyServiceRegistry')) {
       const entry = this.getEntry('LegacyServiceRegistry')
-      contractsWithAliases.LegacyServiceRegistry = wrapTransactionCalls(new Contract(
+      const contract = new Contract(
         entry.address,
         loadArtifact('IServiceRegistry', SubgraphServiceArtifactsMap.LegacyServiceRegistry).abi,
         signerOrProvider,
-      ), 'LegacyServiceRegistry') as unknown as LegacyServiceRegistry
+      )
+      contractsWithAliases.LegacyServiceRegistry = (
+        enableTxLogging
+          ? wrapTransactionCalls(contract, 'LegacyServiceRegistry')
+          : contract
+      ) as unknown as LegacyServiceRegistry
     }
 
     this._assertSubgraphServiceContracts(contractsWithAliases)

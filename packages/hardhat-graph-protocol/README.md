@@ -145,6 +145,8 @@ An example log output:
 [2025-04-10T20:32:40.946Z]    ✔ Transaction succeeded!
 ```
 
+__Note__ Transaction logging requires using js Proxy which strips down some type definitions from contract methods. This means that when transaction logging is enabled `contract.functionName.estimateGas` for example will not be available.
+
 **Transaction auto-awaiting**
 
 Any transactions made using the `contracts` object will be automatically awaited:
