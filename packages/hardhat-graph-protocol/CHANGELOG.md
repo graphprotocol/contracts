@@ -1,5 +1,11 @@
 # hardhat-graph-protocol
 
+## 0.1.18
+
+### Patch Changes
+
+- Fix target undefined bug
+
 ## 0.1.17
 
 ### Patch Changes

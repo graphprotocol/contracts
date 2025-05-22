@@ -82,7 +82,8 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     }
 
     // Accounts
-    const accounts = getAccounts(provider, chainId, greDeployments.horizon.contracts.GraphToken.target)
+    // We use ? here because we've previously asserted that the deployment exists which might not be true
+    const accounts = getAccounts(provider, chainId, greDeployments.horizon?.contracts?.GraphToken?.target)
 
     logDebug('GRE initialized successfully!')
 
