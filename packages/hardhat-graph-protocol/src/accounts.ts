@@ -22,7 +22,7 @@ type Accounts = {
   getTestAccounts: () => ReturnType<typeof getTestAccounts>
 }
 
-export function getAccounts(provider: HardhatEthersProvider, chainId: number, grtTokenAddress: string | Addressable): Accounts {
+export function getAccounts(provider: HardhatEthersProvider, chainId: number, grtTokenAddress: string | Addressable | undefined): Accounts {
   return {
     getAccounts: async () => {
       const accounts = await getAccountsToolshed(provider)
@@ -77,8 +77,8 @@ export function getAccounts(provider: HardhatEthersProvider, chainId: number, gr
   }
 }
 
-async function setBalanceIfLocal(provider: HardhatEthersProvider, chainId: number, grtTokenAddress: string | Addressable, account: HardhatEthersSigner) {
-  if ([1337, 31337].includes(chainId)) {
+async function setBalanceIfLocal(provider: HardhatEthersProvider, chainId: number, grtTokenAddress: string | Addressable | undefined, account: HardhatEthersSigner) {
+  if (grtTokenAddress && [1337, 31337].includes(chainId)) {
     await setGRTBalance(provider, grtTokenAddress, account.address, TEN_MILLION)
   }
 }

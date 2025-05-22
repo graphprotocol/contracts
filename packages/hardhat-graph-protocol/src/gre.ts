@@ -3,6 +3,7 @@ import path from 'path'
 
 import { loadGraphHorizon, loadSubgraphService } from '@graphprotocol/toolshed/deployments'
 import { logDebug, logError } from './logger'
+import { getAccounts } from './accounts'
 import { getAddressBookPath } from './config'
 import { GraphPluginError } from './error'
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
@@ -12,7 +13,6 @@ import { lazyFunction } from 'hardhat/plugins'
 import type { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
 import type { GraphDeployments } from '@graphprotocol/toolshed/deployments'
 import type { GraphRuntimeEnvironmentOptions } from './types'
-import { getAccounts } from './accounts'
 
 export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
   const userPath = userConfig.paths?.graph
@@ -50,7 +50,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
 
     // Build the Graph Runtime Environment (GRE) for each deployment
     const provider = new HardhatEthersProvider(hre.network.provider, hre.network.name)
-    const greDeployments: GraphDeployments = {} as GraphDeployments
+    const greDeployments = {} as GraphDeployments
 
     for (const deployment of deployments) {
       logDebug(`== Initializing deployment: ${deployment} ==`)
@@ -82,7 +82,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     }
 
     // Accounts
-    const accounts = getAccounts(provider, chainId, greDeployments.horizon?.contracts?.GraphToken?.target)
+    const accounts = getAccounts(provider, chainId, greDeployments.horizon.contracts.GraphToken.target)
 
     logDebug('GRE initialized successfully!')
 
