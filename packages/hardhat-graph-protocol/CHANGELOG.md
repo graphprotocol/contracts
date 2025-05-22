@@ -1,5 +1,11 @@
 # hardhat-graph-protocol
 
+## 0.1.17
+
+### Patch Changes
+
+- Fix auto balance function
+
 ## 0.1.16
 
 ### Patch Changes
