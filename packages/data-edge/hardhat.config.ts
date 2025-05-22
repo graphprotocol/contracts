@@ -7,6 +7,7 @@ import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
+import 'solidity-coverage'
 
 import * as tdly from '@tenderly/hardhat-tenderly'
 import { task } from 'hardhat/config'
@@ -164,10 +165,10 @@ const config: HardhatUserConfig = {
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
   },
-  // typechain: {
-  //   outDir: 'build/types',
-  //   target: 'ethers-v5',
-  // },
+  typechain: {
+    outDir: 'build/types',
+    target: 'ethers-v5',
+  },
   abiExporter: {
     path: './build/abis',
     clear: false,

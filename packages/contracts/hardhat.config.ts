@@ -6,6 +6,7 @@ import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-storage-layout'
+import 'solidity-coverage'
 import 'dotenv/config'
 
 import { HardhatUserConfig } from 'hardhat/config'
