@@ -38,16 +38,13 @@ export interface DateRange {
 
 const dateRange = (months: number): DateRange => {
   const date = new Date(+new Date() - 120) // set start time for a few seconds before
-  const newDate = new Date(date.getTime())
-  newDate.setMonth(date.getMonth() + months)
-  return { startTime: Math.round(+date / 1000), endTime: Math.round(+newDate.getTime() / 1000) }
+  const newDate = new Date().setMonth(date.getMonth() + months)
+  return { startTime: Math.round(+date / 1000), endTime: Math.round(+newDate / 1000) }
 }
 
 const moveTime = (time: number, months: number) => {
   const date = new Date(time * 1000)
-  const newDate = new Date(date.getTime())
-  newDate.setMonth(date.getMonth() + months)
-  return Math.round(newDate.getTime() / 1000)
+  return Math.round(+date.setMonth(date.getMonth() + months) / 1000)
 }
 
 const moveDateRange = (dateRange: DateRange, months: number) => {

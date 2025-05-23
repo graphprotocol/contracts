@@ -566,22 +566,6 @@
       "txHash": "0x20a0c0f2a26258e1c63f33f3a5651580bb74ea4bf0e66076ebbdda4fa41d5955"
     }
   },
-  "1337": {
-    "Controller": {
-      "address": "0xC0dcc73ab4084494bfFAf8a427Fd3f645217BB1C",
-      "constructorArgs": [],
-      "creationCodeHash": "0x1a9b639b11e33783876f36ee77419a9a2a6a2041e51f78fd993ab012ea151c21",
-      "runtimeCodeHash": "0xec5980ddda2719b394f85b230fb95154a4944ac29d64ca66b9ccb04ee7e175e3",
-      "txHash": "0xd90746512994568e5c431c91ac502d28f17a47d827fb584bb0bf1b85b7e73d33"
-    },
-    "GraphProxyAdmin": {
-      "address": "0x25ec220C451593C9af36131Aa886397a21516533",
-      "constructorArgs": [],
-      "creationCodeHash": "0x4536e01a111e4f1b45c44cb2e38bfac56aca4577accf5bbee5f09c111a099ff4",
-      "runtimeCodeHash": "0x370843a171393282a9b7d05ba36f934831867f136e398505e9c38a9d0c3ecf46",
-      "txHash": "0xcf73cf1c75058d59876cb777959cb71757448265fbe3c415a3f6920fb15cb34e"
-    }
-  },
   "42161": {
     "GraphProxyAdmin": {
       "address": "0x2983936aC20202a6555993448E0d5654AC8Ca5fd",

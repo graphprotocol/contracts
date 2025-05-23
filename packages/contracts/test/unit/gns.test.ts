@@ -854,7 +854,7 @@ describe('L1GNS', () => {
       const seqID = toBN('2')
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
       const tx = legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-      await expect(tx).emit(legacyGNSMock, 'LegacySubgraphClaimed').withArgs(me.address, seqID)
+      await expect(tx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
       const expectedSubgraphID = buildLegacySubgraphId(me.address, seqID)
       const migratedSubgraphDeploymentID = await legacyGNSMock.getSubgraphDeploymentID(expectedSubgraphID)
       const migratedNSignal = await legacyGNSMock.getSubgraphNSignal(expectedSubgraphID)
@@ -872,7 +872,7 @@ describe('L1GNS', () => {
       const seqID = toBN('2')
       await legacyGNSMock.connect(me).createLegacySubgraph(seqID, newSubgraph0.subgraphDeploymentID)
       let tx = legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-      await expect(tx).emit(legacyGNSMock, 'LegacySubgraphClaimed').withArgs(me.address, seqID)
+      await expect(tx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
       tx = legacyGNSMock.connect(me).migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
       await expect(tx).revertedWith('GNS: Subgraph was already claimed')
     })
@@ -917,12 +917,12 @@ describe('L1GNS', () => {
     }
 
     const publishCurateAndSendSubgraph = async function (
-      beforeTransferCallback?: (_subgraphID: string) => Promise<void>,
+      beforeTransferCallback?: (/* subgraphID: string */) => Promise<void>,
     ): Promise<Subgraph> {
       const subgraph0 = await publishAndCurateOnSubgraph()
 
       if (beforeTransferCallback != null) {
-        await beforeTransferCallback(subgraph0.id)
+        await beforeTransferCallback()
       }
 
       const maxSubmissionCost = toBN('100')
@@ -947,7 +947,7 @@ describe('L1GNS', () => {
       const migrateTx = legacyGNSMock
         .connect(me)
         .migrateLegacySubgraph(me.address, seqID, newSubgraph0.subgraphMetadata)
-      await expect(migrateTx).emit(legacyGNSMock, 'LegacySubgraphClaimed').withArgs(me.address, seqID)
+      await expect(migrateTx).emit(legacyGNSMock, ' LegacySubgraphClaimed').withArgs(me.address, seqID)
       const subgraphID = buildLegacySubgraphId(me.address, seqID)
 
       // Curate on the subgraph

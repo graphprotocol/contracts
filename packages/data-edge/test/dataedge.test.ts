@@ -2,20 +2,21 @@ import '@nomiclabs/hardhat-ethers'
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
-import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
+
+import { DataEdge, DataEdge__factory } from '../build/types'
 
 const { getContractFactory, getSigners } = ethers
 const { id, hexConcat, randomBytes, hexlify, defaultAbiCoder } = ethers.utils
 
 describe('DataEdge', () => {
-  let edge: Contract
+  let edge: DataEdge
   let me: SignerWithAddress
 
   beforeEach(async () => {
     ;[me] = await getSigners()
 
-    const factory = await getContractFactory('DataEdge', me)
+    const factory = (await getContractFactory('DataEdge', me)) as DataEdge__factory
     edge = await factory.deploy()
     await edge.deployed()
   })

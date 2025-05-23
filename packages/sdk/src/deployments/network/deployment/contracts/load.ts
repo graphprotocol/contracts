@@ -92,7 +92,7 @@ export interface GraphNetworkContracts extends ContractList<GraphNetworkContract
 
 // This ensures that local artifacts are preferred over the ones that ship with the sdk in node_modules
 export function getArtifactsPath() {
-  return [path.resolve('artifacts'), path.resolve('node_modules', '@graphprotocol/contracts/artifacts')]
+  return [path.resolve('build/contracts'), path.resolve('node_modules', '@graphprotocol/contracts/build/contracts')]
 }
 export function loadGraphNetworkContracts(
   addressBookPath: string,

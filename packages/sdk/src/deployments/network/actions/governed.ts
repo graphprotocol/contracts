@@ -27,13 +27,7 @@ export const acceptOwnership: GraphNetworkAction<
     throw new Error(`Contract ${contractName} not found`)
   }
 
-  let pendingGovernor: string
-  try {
-    pendingGovernor = await (contract as GovernedContract).connect(signer).pendingGovernor()
-  } catch (error) {
-    console.log(`Contract ${contract.address} does not have pendingGovernor() method or call failed: ${error}`)
-    return
-  }
+  const pendingGovernor = await (contract as GovernedContract).connect(signer).pendingGovernor()
 
   if (pendingGovernor === ethers.constants.AddressZero) {
     console.log(`No pending governor for ${contract.address}`)
@@ -42,14 +36,9 @@ export const acceptOwnership: GraphNetworkAction<
 
   if (pendingGovernor === signer.address) {
     console.log(`Accepting ownership of ${contract.address}`)
-    try {
-      const tx = await (contract as GovernedContract).connect(signer).acceptOwnership()
-      await tx.wait()
-      return tx
-    } catch (error) {
-      console.log(`Failed to accept ownership of ${contract.address}: ${error}`)
-      return
-    }
+    const tx = await (contract as GovernedContract).connect(signer).acceptOwnership()
+    await tx.wait()
+    return tx
   } else {
     console.log(`Signer ${signer.address} is not the pending governor of ${contract.address}, it is ${pendingGovernor}`)
   }

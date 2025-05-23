@@ -194,7 +194,7 @@ export async function deployGraphNetwork(
     for (const contract of GraphNetworkGovernedContractNameList) {
       const tx = await acceptOwnership(loadedContracts, governor, { contractName: contract })
       if (tx) {
-        txs.push(tx)
+        txs.push()
       }
     }
     await Promise.all(txs.map((tx) => tx.wait()))
@@ -226,14 +226,14 @@ export async function deployMockGraphNetwork(l2Deploy: boolean) {
   contractList.push(...(l2Deploy ? GraphNetworkL2ContractNameList : GraphNetworkL1ContractNameList))
   contractList.push('AllocationExchange')
 
-  const contracts: any = {}
+  const contracts: Partial<Record<GraphNetworkContractName, Contract>> = {}
   for (const name of contractList) {
     const fake = Wallet.createRandom()
     await setCode(fake.address, '0x1234')
     contracts[name] = new Contract(fake.address, [], fake)
   }
 
-  return contracts as GraphNetworkContracts // :eyes:
+  return contracts as GraphNetworkContracts
 }
 
 export const deploy = async (
