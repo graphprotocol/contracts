@@ -19,7 +19,7 @@
     "graphTallyCollectorAddress": ""
   },
   "DisputeManager": {
-    "disputePeriod": 2419200,
+    "disputePeriod": 7200, // 2 hours = 7200 seconds
     "disputeDeposit": "10000000000000000000000n",
     "fishermanRewardCut": 500000,
     "maxSlashingCut": 1000000,
@@ -28,7 +28,7 @@
     "minimumProvisionTokens": "100000000000000000000000n",
     "maximumDelegationRatio": 16,
     "stakeToFeesRatio": 2,
-    "maxPOIStaleness": 2419200, // 28 days = 2419200 seconds
+    "maxPOIStaleness": 7200, // 2 hours = 7200 seconds
     "curationCut": 100000,
   }
 }
