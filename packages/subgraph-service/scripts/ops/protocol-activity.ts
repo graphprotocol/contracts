@@ -14,8 +14,13 @@ import {
 import hre, { ethers } from 'hardhat'
 import { allocationKeys } from './data'
 import { randomBigInt } from '@graphprotocol/toolshed/utils'
+import { Wallet } from 'ethers'
 
-const GAS_LIMIT = process.env.GAS_LIMIT ? parseInt(process.env.GAS_LIMIT) : 500_000
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+
+const GAS_LIMIT = process.env.GAS_LIMIT ? parseInt(process.env.GAS_LIMIT) : 1_000_000
+const LOCAL_NETWORK_INDEXER_PRIVATE_KEY = '0x2ee789a68207020b45607f5adb71933de0946baebbaaab74af7cbd69c8a90573'
+const INDEXER_PRIVATE_KEY = process.env.INDEXER_PRIVATE_KEY ?? LOCAL_NETWORK_INDEXER_PRIVATE_KEY
 
 async function main() {
   const graph = hre.graph()
@@ -24,7 +29,8 @@ async function main() {
 
   const { stake, stakeToProvision, delegate, addToDelegationPool } = graph.horizon.actions
 
-  const signers = await graph.accounts.getTestAccounts()
+  const indexer = new Wallet(INDEXER_PRIVATE_KEY, graph.provider)
+  const signers = [...(await graph.accounts.getTestAccounts()), indexer]
   const deployer = await graph.accounts.getDeployer()
   const gateway = await graph.accounts.getGateway() // note that this wont be the actual gateway address
 
@@ -66,7 +72,7 @@ async function main() {
   for (const signer of signers) {
     const balance = await GraphToken.balanceOf(signer.address)
     const stakeAmount = randomBigInt(0n, balance)
-    await stake(signer, [stakeAmount])
+    await stake(signer as HardhatEthersSigner, [stakeAmount])
   }
 
   // Provision - if not exist, create with random amount between 100k and idle stake, otherwise add random amount
@@ -78,7 +84,7 @@ async function main() {
     if (provisionExists) {
       const balance = await GraphToken.balanceOf(signer.address)
       const addAmount = randomBigInt(0n, balance)
-      await stakeToProvision(signer, [signer.address, SubgraphService.target, addAmount])
+      await stakeToProvision(signer as HardhatEthersSigner, [signer.address, SubgraphService.target, addAmount])
     } else {
       const idleStake = await HorizonStaking.getIdleStake(signer.address)
       const provisionAmount = randomBigInt(ONE_HUNDRED_THOUSAND, idleStake - ONE_HUNDRED_THOUSAND)
@@ -215,7 +221,7 @@ async function main() {
     const balance = await GraphToken.balanceOf(signer.address)
     const delegationAmount = balance / 100n
     const serviceProvider = signers[Math.floor(Math.random() * signers.length)]
-    await delegate(signer, [serviceProvider, SubgraphService.target, delegationAmount, 0n])
+    await delegate(signer as HardhatEthersSigner, [serviceProvider, SubgraphService.target, delegationAmount, 0n])
   }
 
   // Add to delegation pool
@@ -226,7 +232,7 @@ async function main() {
 
     const delegationPool = await HorizonStaking.getDelegationPool(signer.address, SubgraphService.target)
     if (delegationPool.shares > 0) {
-      await addToDelegationPool(signer, [signer.address, SubgraphService.target, delegationAmount])
+      await addToDelegationPool(signer as HardhatEthersSigner, [signer.address, SubgraphService.target, delegationAmount])
     }
   }
 
