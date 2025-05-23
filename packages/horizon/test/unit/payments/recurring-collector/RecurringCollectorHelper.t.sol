@@ -19,7 +19,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         IRecurringCollector.RecurringCollectionAgreement memory rca,
         uint256 signerPrivateKey
     ) public view returns (IRecurringCollector.SignedRCA memory) {
-        bytes32 messageHash = collector.encodeRCA(rca);
+        bytes32 messageHash = collector.hashRCA712(rca);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
         IRecurringCollector.SignedRCA memory signedRCA = IRecurringCollector.SignedRCA({
@@ -34,7 +34,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
         uint256 signerPrivateKey
     ) public view returns (IRecurringCollector.SignedRCAU memory) {
-        bytes32 messageHash = collector.encodeRCAU(rcau);
+        bytes32 messageHash = collector.hashRCAU712(rcau);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
         IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
