@@ -66,7 +66,7 @@ interface IGraphPayments {
     /**
      * @notice Collects funds from a payer.
      * It will pay cuts to all relevant parties and forward the rest to the receiver destination address. If the
-     * destination address is zero the funds are automatically staked to the receiver. Note that the receiver 
+     * destination address is zero the funds are automatically staked to the receiver. Note that the receiver
      * destination address can be set to the receiver address to collect funds on the receiver without re-staking.
      *
      * Note that the collected amount can be zero.

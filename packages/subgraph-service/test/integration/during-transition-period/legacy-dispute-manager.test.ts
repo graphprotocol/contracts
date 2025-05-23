@@ -135,7 +135,7 @@ describe('Legacy Dispute Manager', () => {
         responseHash,
         subgraphDeploymentId,
         indexer.address,
-        fisherman.address
+        fisherman.address,
       )
 
       // Verify dispute was created
@@ -209,14 +209,14 @@ describe('Legacy Dispute Manager', () => {
         responseHash1,
         subgraphDeploymentId,
         indexer.address,
-        fisherman.address
+        fisherman.address,
       )
       const disputeId2 = generateLegacyQueryDisputeId(
         queryHash,
         responseHash2,
         subgraphDeploymentId,
         indexer.address,
-        fisherman.address
+        fisherman.address,
       )
 
       // Verify both disputes were created

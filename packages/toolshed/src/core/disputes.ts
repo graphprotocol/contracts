@@ -22,6 +22,6 @@ export function generateLegacyQueryDisputeId(
 export function generateLegacyTypeDisputeId(allocationId: string) {
   return ethers.solidityPackedKeccak256(
     ['address', 'string'],
-    [allocationId, 'legacy']
+    [allocationId, 'legacy'],
   )
 }

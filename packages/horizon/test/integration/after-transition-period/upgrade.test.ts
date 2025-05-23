@@ -54,7 +54,7 @@ describe('Upgrading contracts', () => {
   it('GraphPayments should be upgradeable by the governor', async () => {
     const entry = graph.horizon.addressBook.getEntry('GraphPayments')
     const proxyAdmin = entry.proxyAdmin!
-    const proxy = entry.address!
+    const proxy = entry.address
 
     // Upgrade the contract to a different implementation
     // the implementation we use is the GraphTallyCollector, this is obviously absurd but we just need an address with code on it
@@ -69,7 +69,7 @@ describe('Upgrading contracts', () => {
   it('PaymentsEscrow should be upgradeable by the governor', async () => {
     const entry = graph.horizon.addressBook.getEntry('PaymentsEscrow')
     const proxyAdmin = entry.proxyAdmin!
-    const proxy = entry.address!
+    const proxy = entry.address
 
     // Upgrade the contract to a different implementation
     // the implementation we use is the GraphTallyCollector, this is obviously absurd but we just need an address with code on it

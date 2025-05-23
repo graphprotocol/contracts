@@ -15,5 +15,5 @@ interface IL2CurationToolshed is IL2Curation {
 }
 
 interface IServiceRegistryToolshed is IServiceRegistry {
-    function services(address _indexer) external view returns (IServiceRegistry.IndexerService memory);
+    function services(address indexer) external view returns (IServiceRegistry.IndexerService memory);
 }

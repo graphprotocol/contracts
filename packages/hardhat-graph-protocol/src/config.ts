@@ -1,8 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 
-import { GraphPluginError } from './error'
 import { logDebug, logError } from './logger'
+import { GraphPluginError } from './error'
 
 import type { GraphDeploymentName } from '@graphprotocol/toolshed/deployments'
 import type { GraphRuntimeEnvironmentOptions } from './types'

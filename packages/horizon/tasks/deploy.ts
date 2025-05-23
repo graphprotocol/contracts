@@ -41,6 +41,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // Save the addresses to the address book
     console.log('\n========== 📖 Updating address book ==========')
+    // @ts-expect-error - @graphprotocol/toolshed/hardhat exports ts files so types mismatch here
     saveToAddressBook(deployment, graph.horizon.addressBook)
     console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
 
@@ -113,6 +114,7 @@ task('deploy:migrate', 'Upgrade an existing version of the Graph Protocol v1 to 
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
+    // @ts-expect-error - @graphprotocol/toolshed/hardhat exports ts files so types mismatch here
     saveToAddressBook(deployment, graph.horizon.addressBook)
     console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
 

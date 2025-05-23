@@ -1,7 +1,6 @@
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { EventLog } from 'ethers'
 
 import { DisputeManager, IGraphToken, SubgraphService } from '../../../typechain-types'
 import { generateLegacyIndexingDisputeId, generateLegacyTypeDisputeId } from '@graphprotocol/toolshed'
@@ -98,7 +97,7 @@ describe('Dispute Manager', () => {
           allocationId,
           fisherman.address,
           tokensToSlash,
-          tokensToReward
+          tokensToReward,
         )
 
         // Get dispute ID from event
@@ -130,8 +129,8 @@ describe('Dispute Manager', () => {
             ethers.Wallet.createRandom().address,
             fisherman.address,
             tokensToSlash,
-            tokensToReward
-          )
+            tokensToReward,
+          ),
         ).to.be.revertedWithCustomError(disputeManager, 'DisputeManagerIndexerNotFound')
       })
     })
@@ -146,8 +145,8 @@ describe('Dispute Manager', () => {
           allocationId,
           fisherman.address,
           tokensToSlash,
-          tokensToReward
-        )
+          tokensToReward,
+        ),
       ).to.be.revertedWithCustomError(disputeManager, 'DisputeManagerNotArbitrator')
     })
   })

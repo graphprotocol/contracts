@@ -54,7 +54,7 @@ describe('Upgrading contracts', () => {
   it('subgraph service should be upgradeable by the governor', async () => {
     const entry = graph.subgraphService.addressBook.getEntry('SubgraphService')
     const proxyAdmin = entry.proxyAdmin!
-    const proxy = entry.address!
+    const proxy = entry.address
 
     // Upgrade the contract to a different implementation
     // the implementation we use is the GraphTallyCollector, this is obviously absurd but we just need an address with code on it
@@ -69,7 +69,7 @@ describe('Upgrading contracts', () => {
   it('dispute manager should be upgradeable by the governor', async () => {
     const entry = graph.subgraphService.addressBook.getEntry('DisputeManager')
     const proxyAdmin = entry.proxyAdmin!
-    const proxy = entry.address!
+    const proxy = entry.address
 
     // Upgrade the contract to a different implementation
     // the implementation we use is the GraphTallyCollector, this is obviously absurd but we just need an address with code on it

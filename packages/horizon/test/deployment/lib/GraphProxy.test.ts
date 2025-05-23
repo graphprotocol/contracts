@@ -4,7 +4,7 @@ import { assert, expect } from 'chai'
 import { AddressBookEntry } from '@graphprotocol/toolshed/deployments'
 import { zeroPadValue } from 'ethers'
 
-export function graphProxyTests(contractName: string, addressBookEntry: AddressBookEntry, proxyAdmin: string, upgraded: boolean = false): void {
+export function graphProxyTests(contractName: string, addressBookEntry: AddressBookEntry, proxyAdmin: string, upgraded = false): void {
   const testIf = () => (upgraded ? it : it.skip)
 
   describe(`${contractName}: GraphProxy`, function () {

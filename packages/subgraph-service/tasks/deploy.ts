@@ -80,8 +80,11 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
     // Save the addresses to the address book
     console.log('\n========== 📖 Updating address book ==========')
+    // @ts-expect-error - @graphprotocol/toolshed/hardhat exports ts files so types mismatch here
     saveToAddressBook(horizonDeployment, graph.horizon.addressBook)
+    // @ts-expect-error - @graphprotocol/toolshed/hardhat exports ts files so types mismatch here
     saveToAddressBook(proxiesDeployment, graph.subgraphService.addressBook)
+    // @ts-expect-error - @graphprotocol/toolshed/hardhat exports ts files so types mismatch here
     saveToAddressBook(subgraphServiceDeployment, graph.subgraphService.addressBook)
     console.log(`Address book at ${graph.horizon.addressBook.file} updated!`)
     console.log(`Address book at ${graph.subgraphService.addressBook.file} updated!`)
@@ -146,6 +149,7 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')
+    // @ts-expect-error - @graphprotocol/toolshed/hardhat exports ts files so types mismatch here
     saveToAddressBook(deployment, graph.subgraphService.addressBook)
     console.log(`Address book at ${graph.subgraphService.addressBook.file} updated!`)
 
