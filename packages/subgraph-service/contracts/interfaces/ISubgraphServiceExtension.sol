@@ -12,9 +12,9 @@ interface ISubgraphServiceExtension {
     // function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
 
     /**
-     * @notice Upgrade an indexing agreement.
+     * @notice Update an indexing agreement.
      */
-    function upgradeIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
+    function updateIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
 
     /**
      * @notice Cancel an indexing agreement by indexer / operator.

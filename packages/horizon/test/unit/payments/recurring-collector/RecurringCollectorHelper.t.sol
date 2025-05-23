@@ -31,7 +31,7 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     }
 
     function generateSignedRCAU(
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau,
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
         uint256 signerPrivateKey
     ) public view returns (IRecurringCollector.SignedRCAU memory) {
         bytes32 messageHash = collector.encodeRCAU(rcau);
@@ -86,8 +86,8 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     }
 
     function sensibleRCAU(
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau
-    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpgrade memory) {
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau
+    ) public view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory) {
         rcau.minSecondsPerCollection = _sensibleMinSecondsPerCollection(rcau.minSecondsPerCollection);
         rcau.maxSecondsPerCollection = _sensibleMaxSecondsPerCollection(
             rcau.maxSecondsPerCollection,

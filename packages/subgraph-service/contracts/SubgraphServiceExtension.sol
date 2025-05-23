@@ -15,11 +15,11 @@ contract SubgraphServiceExtension is PausableUpgradeable {
         _;
     }
 
-    function upgradeIndexingAgreement(
+    function updateIndexingAgreement(
         address indexer,
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) external modifiersHack(indexer) {
-        IndexingAgreement._getManager().upgrade(indexer, signedRCAU);
+        IndexingAgreement._getManager().update(indexer, signedRCAU);
     }
 
     /**

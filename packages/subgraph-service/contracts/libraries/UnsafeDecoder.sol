@@ -25,8 +25,8 @@ library UnsafeDecoder {
      */
     function decodeRCAUMetadata_(
         bytes calldata data
-    ) public pure returns (IndexingAgreement.UpgradeIndexingAgreementMetadata memory) {
-        return abi.decode(data, (IndexingAgreement.UpgradeIndexingAgreementMetadata));
+    ) public pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {
+        return abi.decode(data, (IndexingAgreement.UpdateIndexingAgreementMetadata));
     }
 
     /**

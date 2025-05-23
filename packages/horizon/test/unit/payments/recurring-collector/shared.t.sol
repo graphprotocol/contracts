@@ -24,9 +24,9 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         uint256 unboundedSignerKey;
     }
 
-    struct FuzzyTestUpgrade {
+    struct FuzzyTestUpdate {
         FuzzyTestAccept fuzzyTestAccept;
-        IRecurringCollector.RecurringCollectionAgreementUpgrade rcau;
+        IRecurringCollector.RecurringCollectionAgreementUpdate rcau;
     }
 
     RecurringCollector internal _recurringCollector;
