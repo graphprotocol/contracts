@@ -55,11 +55,11 @@ library IndexingAgreement {
     }
 
     /**
-     * @notice Upgrade Indexing Agreement metadata
+     * @notice Update Indexing Agreement metadata
      * @param version The indexing agreement version
      * @param terms The indexing agreement terms
      */
-    struct UpgradeIndexingAgreementMetadata {
+    struct UpdateIndexingAgreementMetadata {
         IndexingAgreementVersion version;
         bytes terms;
     }
@@ -246,7 +246,7 @@ library IndexingAgreement {
         _directory().recurringCollector().accept(signedRCA);
     }
 
-    function upgrade(
+    function update(
         Manager storage self,
         address indexer,
         IRecurringCollector.SignedRCAU calldata signedRCAU
@@ -258,14 +258,14 @@ library IndexingAgreement {
             IndexingAgreementNotAuthorized(signedRCAU.rcau.agreementId, indexer)
         );
 
-        UpgradeIndexingAgreementMetadata memory metadata = Decoder.decodeRCAUMetadata(signedRCAU.rcau.metadata);
+        UpdateIndexingAgreementMetadata memory metadata = Decoder.decodeRCAUMetadata(signedRCAU.rcau.metadata);
 
         wrapper.agreement.version = metadata.version;
 
         require(metadata.version == IndexingAgreementVersion.V1, InvalidIndexingAgreementVersion(metadata.version));
         _setTermsV1(self, signedRCAU.rcau.agreementId, metadata.terms);
 
-        _directory().recurringCollector().upgrade(signedRCAU);
+        _directory().recurringCollector().update(signedRCAU);
     }
 
     function cancel(Manager storage self, address indexer, bytes16 agreementId) external {

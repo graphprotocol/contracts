@@ -47,14 +47,14 @@ library Decoder {
     /**
      * @notice Decodes the RCAU metadata.
      *
-     * @param data The data to decode. See {IndexingAgreement.UpgradeIndexingAgreementMetadata}
+     * @param data The data to decode. See {IndexingAgreement.UpdateIndexingAgreementMetadata}
      * @return The decoded data
      */
     function decodeRCAUMetadata(
         bytes memory data
-    ) public pure returns (IndexingAgreement.UpgradeIndexingAgreementMetadata memory) {
+    ) public pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {
         try UnsafeDecoder.decodeRCAUMetadata_(data) returns (
-            IndexingAgreement.UpgradeIndexingAgreementMetadata memory metadata
+            IndexingAgreement.UpdateIndexingAgreementMetadata memory metadata
         ) {
             return metadata;
         } catch {

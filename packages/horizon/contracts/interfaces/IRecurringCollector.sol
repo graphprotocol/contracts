@@ -61,15 +61,15 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         bytes metadata;
     }
 
-    /// @notice A representation of a signed Recurring Collection Agreement Upgrade (RCAU)
+    /// @notice A representation of a signed Recurring Collection Agreement Update (RCAU)
     struct SignedRCAU {
         // The RCAU
-        RecurringCollectionAgreementUpgrade rcau;
+        RecurringCollectionAgreementUpdate rcau;
         // Signature - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
         bytes signature;
     }
 
-    struct RecurringCollectionAgreementUpgrade {
+    struct RecurringCollectionAgreementUpdate {
         // The agreement ID
         bytes16 agreementId;
         // The deadline for upgrading
@@ -176,24 +176,24 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     );
 
     /**
-     * @notice Emitted when an agreement is upgraded
+     * @notice Emitted when an agreement is updated
      * @param dataService The address of the data service
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
      * @param agreementId The agreement ID
-     * @param upgradedAt The timestamp when the agreement was upgraded
+     * @param updatedAt The timestamp when the agreement was updated
      * @param endsAt The timestamp when the agreement ends
      * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
      * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
      */
-    event AgreementUpgraded(
+    event AgreementUpdated(
         address indexed dataService,
         address indexed payer,
         address indexed serviceProvider,
         bytes16 agreementId,
-        uint64 upgradedAt,
+        uint64 updatedAt,
         uint64 endsAt,
         uint256 maxInitialTokens,
         uint256 maxOngoingTokensPerSecond,
@@ -308,9 +308,9 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     function cancel(bytes16 agreementId, CancelAgreementBy by) external;
 
     /**
-     * @dev Upgrade an indexing agreement.
+     * @dev Update an indexing agreement.
      */
-    function upgrade(SignedRCAU calldata signedRCAU) external;
+    function update(SignedRCAU calldata signedRCAU) external;
 
     /**
      * @dev Computes the hash of a RecurringCollectionAgreement (RCA).
@@ -320,11 +320,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     function encodeRCA(RecurringCollectionAgreement calldata rca) external view returns (bytes32);
 
     /**
-     * @dev Computes the hash of a RecurringCollectionAgreementUpgrade (RCAU).
+     * @dev Computes the hash of a RecurringCollectionAgreementUpdate (RCAU).
      * @param rcau The RCAU for which to compute the hash.
      * @return The hash of the RCAU.
      */
-    function encodeRCAU(RecurringCollectionAgreementUpgrade calldata rcau) external view returns (bytes32);
+    function encodeRCAU(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32);
 
     /**
      * @dev Recovers the signer address of a signed RecurringCollectionAgreement (RCA).
@@ -334,7 +334,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     function recoverRCASigner(SignedRCA calldata signedRCA) external view returns (address);
 
     /**
-     * @dev Recovers the signer address of a signed RecurringCollectionAgreementUpgrade (RCAU).
+     * @dev Recovers the signer address of a signed RecurringCollectionAgreementUpdate (RCAU).
      * @param signedRCAU The SignedRCAU containing the RCAU and its signature.
      * @return The address of the signer.
      */

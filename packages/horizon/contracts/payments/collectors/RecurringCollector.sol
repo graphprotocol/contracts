@@ -27,10 +27,10 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             "RecurringCollectionAgreement(bytes16 agreementId,uint256 deadline,uint256 endsAt,address payer,address dataService,address serviceProvider,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
         );
 
-    /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpgrade struct
+    /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpdate struct
     bytes32 public constant EIP712_RCAU_TYPEHASH =
         keccak256(
-            "RecurringCollectionAgreementUpgrade(bytes16 agreementId,uint256 deadline,uint256 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
+            "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint256 deadline,uint256 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
         );
 
     /// @notice Tracks agreements
@@ -151,11 +151,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice Upgrade an indexing agreement.
-     * See {IRecurringCollector.upgrade}.
+     * @notice Update an indexing agreement.
+     * See {IRecurringCollector.update}.
      * @dev Caller must be the data service for the agreement.
      */
-    function upgrade(SignedRCAU calldata signedRCAU) external {
+    function update(SignedRCAU calldata signedRCAU) external {
         require(
             signedRCAU.rcau.deadline >= block.timestamp,
             RecurringCollectorAgreementDeadlineElapsed(signedRCAU.rcau.deadline)
@@ -174,7 +174,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCAUSigner(signedRCAU, agreement.payer);
 
-        // upgrade the agreement
+        // update the agreement
         agreement.endsAt = signedRCAU.rcau.endsAt;
         agreement.maxInitialTokens = signedRCAU.rcau.maxInitialTokens;
         agreement.maxOngoingTokensPerSecond = signedRCAU.rcau.maxOngoingTokensPerSecond;
@@ -182,7 +182,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.maxSecondsPerCollection = signedRCAU.rcau.maxSecondsPerCollection;
         _requireValidAgreement(agreement);
 
-        emit AgreementUpgraded(
+        emit AgreementUpdated(
             agreement.dataService,
             agreement.payer,
             agreement.serviceProvider,
@@ -220,7 +220,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /**
      * @notice See {IRecurringCollector.encodeRCAU}
      */
-    function encodeRCAU(RecurringCollectionAgreementUpgrade calldata rcau) external view returns (bytes32) {
+    function encodeRCAU(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32) {
         return _encodeRCAU(rcau);
     }
 
@@ -409,7 +409,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /**
      * @notice See {IRecurringCollector.encodeRCAU}
      */
-    function _encodeRCAU(RecurringCollectionAgreementUpgrade memory _rcau) private view returns (bytes32) {
+    function _encodeRCAU(RecurringCollectionAgreementUpdate memory _rcau) private view returns (bytes32) {
         return
             _hashTypedDataV4(
                 keccak256(

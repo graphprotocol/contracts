@@ -41,7 +41,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         IndexerSeed indexer0;
         IndexerSeed indexer1;
         IRecurringCollector.RecurringCollectionAgreement rca;
-        IRecurringCollector.RecurringCollectionAgreementUpgrade rcau;
+        IRecurringCollector.RecurringCollectionAgreementUpdate rcau;
         IndexingAgreement.IndexingAgreementTermsV1 termsV1;
         PayerSeed payer;
     }
@@ -258,19 +258,19 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     ) internal view returns (IRecurringCollector.SignedRCAU memory) {
         return
             _recurringCollectorHelper.generateSignedRCAU(
-                _generateAcceptableRecurringCollectionAgreementUpgrade(_ctx, _rca),
+                _generateAcceptableRecurringCollectionAgreementUpdate(_ctx, _rca),
                 _ctx.payer.signerPrivateKey
             );
     }
 
-    function _generateAcceptableRecurringCollectionAgreementUpgrade(
+    function _generateAcceptableRecurringCollectionAgreementUpdate(
         Context storage _ctx,
         IRecurringCollector.RecurringCollectionAgreement memory _rca
-    ) internal view returns (IRecurringCollector.RecurringCollectionAgreementUpgrade memory) {
-        IRecurringCollector.RecurringCollectionAgreementUpgrade memory rcau = _ctx.ctxInternal.seed.rcau;
+    ) internal view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory) {
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _ctx.ctxInternal.seed.rcau;
         rcau.agreementId = _rca.agreementId;
-        rcau.metadata = _encodeUpgradeIndexingAgreementMetadataV1(
-            _newUpgradeIndexingAgreementMetadataV1(
+        rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
+            _newUpdateIndexingAgreementMetadataV1(
                 _ctx.ctxInternal.seed.termsV1.tokensPerSecond,
                 _ctx.ctxInternal.seed.termsV1.tokensPerEntityPerSecond
             )
@@ -326,12 +326,12 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             });
     }
 
-    function _newUpgradeIndexingAgreementMetadataV1(
+    function _newUpdateIndexingAgreementMetadataV1(
         uint256 _tokensPerSecond,
         uint256 _tokensPerEntityPerSecond
-    ) internal pure returns (IndexingAgreement.UpgradeIndexingAgreementMetadata memory) {
+    ) internal pure returns (IndexingAgreement.UpdateIndexingAgreementMetadata memory) {
         return
-            IndexingAgreement.UpgradeIndexingAgreementMetadata({
+            IndexingAgreement.UpdateIndexingAgreementMetadata({
                 version: IndexingAgreement.IndexingAgreementVersion.V1,
                 terms: abi.encode(
                     IndexingAgreement.IndexingAgreementTermsV1({
@@ -365,8 +365,8 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             );
     }
 
-    function _encodeUpgradeIndexingAgreementMetadataV1(
-        IndexingAgreement.UpgradeIndexingAgreementMetadata memory _t
+    function _encodeUpdateIndexingAgreementMetadataV1(
+        IndexingAgreement.UpdateIndexingAgreementMetadata memory _t
     ) internal pure returns (bytes memory) {
         return abi.encode(_t);
     }
