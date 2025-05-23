@@ -132,14 +132,6 @@ abstract contract GraphDirectory {
     }
 
     /**
-     * @notice Get the Epoch Manager contract
-     * @return The Epoch Manager contract
-     */
-    function graphEpochManager() external view returns (IEpochManager) {
-        return _graphEpochManager();
-    }
-
-    /**
      * @notice Get the Graph Token contract
      * @return The Graph Token contract
      */

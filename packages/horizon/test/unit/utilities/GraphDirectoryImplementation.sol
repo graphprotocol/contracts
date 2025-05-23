@@ -43,6 +43,10 @@ contract GraphDirectoryImplementation is GraphDirectory {
         return _graphController();
     }
 
+    function graphEpochManager() external view returns (IEpochManager) {
+        return _graphEpochManager();
+    }
+
     function graphRewardsManager() external view returns (IRewardsManager) {
         return _graphRewardsManager();
     }

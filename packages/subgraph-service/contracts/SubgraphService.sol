@@ -682,8 +682,11 @@ contract SubgraphService is
     function _collectIndexingFees(bytes16 _agreementId, bytes memory _data) private returns (uint256) {
         (address indexer, uint256 tokensCollected) = IndexingAgreement._getManager().collect(
             _allocations,
-            _agreementId,
-            _data
+            IndexingAgreement.CollectParams({
+                agreementId: _agreementId,
+                currentEpoch: _graphEpochManager().currentEpoch(),
+                data: _data
+            })
         );
 
         _releaseAndLockStake(indexer, tokensCollected);

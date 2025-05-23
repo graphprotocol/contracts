@@ -74,6 +74,12 @@ library IndexingAgreement {
         uint256 tokensPerEntityPerSecond;
     }
 
+    struct CollectParams {
+        bytes16 agreementId;
+        uint256 currentEpoch;
+        bytes data;
+    }
+
     bytes32 private constant INDEXING_AGREEMENT_MANAGER_STORAGE_V1_SLOT = keccak256("v1.manager.indexing-agreement");
 
     /**
@@ -323,32 +329,31 @@ library IndexingAgreement {
     function collect(
         Manager storage self,
         mapping(address allocationId => Allocation.State allocation) storage allocations,
-        bytes16 agreementId,
-        bytes memory data
+        CollectParams memory params
     ) external returns (address, uint256) {
-        AgreementWrapper memory wrapper = _get(self, agreementId);
+        AgreementWrapper memory wrapper = _get(self, params.agreementId);
         Allocation.State memory allocation = allocations.requireValidAllocation(
             wrapper.agreement.allocationId,
             wrapper.collectorAgreement.serviceProvider
         );
-        require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
+        require(_isActive(wrapper), IndexingAgreementNotActive(params.agreementId));
 
         require(
             wrapper.agreement.version == IndexingAgreementVersion.V1,
             InvalidIndexingAgreementVersion(wrapper.agreement.version)
         );
 
-        (uint256 entities, bytes32 poi, uint256 poiEpoch) = Decoder.decodeCollectIndexingFeeDataV1(data);
+        (uint256 entities, bytes32 poi, uint256 poiEpoch) = Decoder.decodeCollectIndexingFeeDataV1(params.data);
 
         uint256 expectedTokens = (entities == 0 && poi == bytes32(0))
             ? 0
-            : _tokensToCollect(self, agreementId, wrapper.collectorAgreement, entities);
+            : _tokensToCollect(self, params.agreementId, wrapper.collectorAgreement, entities);
 
         uint256 tokensCollected = _directory().recurringCollector().collect(
             IGraphPayments.PaymentTypes.IndexingFee,
             abi.encode(
                 IRecurringCollector.CollectParams({
-                    agreementId: agreementId,
+                    agreementId: params.agreementId,
                     collectionId: bytes32(uint256(uint160(wrapper.agreement.allocationId))),
                     tokens: expectedTokens,
                     dataServiceCut: 0
@@ -359,10 +364,10 @@ library IndexingAgreement {
         emit IndexingFeesCollectedV1(
             wrapper.collectorAgreement.serviceProvider,
             wrapper.collectorAgreement.payer,
-            agreementId,
+            params.agreementId,
             wrapper.agreement.allocationId,
             allocation.subgraphDeploymentId,
-            _graphDirectory().graphEpochManager().currentEpoch(),
+            params.currentEpoch,
             tokensCollected,
             entities,
             poi,
