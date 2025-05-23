@@ -14,23 +14,27 @@ contract AuthorizableImp is Authorizable {
 }
 
 contract AuthorizableTest is Test, Bounder {
-    AuthorizableImp public authorizable;
+    IAuthorizable public authorizable;
     AuthorizableHelper authHelper;
 
     modifier withFuzzyThaw(uint256 _thawPeriod) {
         // Max thaw period is 1 year to allow for thawing tests
         _thawPeriod = bound(_thawPeriod, 1, 60 * 60 * 24 * 365);
-        setupAuthorizable(new AuthorizableImp(_thawPeriod));
+        setupAuthorizable(_thawPeriod);
         _;
     }
 
-    function setUp() public virtual {
-        setupAuthorizable(new AuthorizableImp(0));
+    function setUp() public {
+        setupAuthorizable(0);
     }
 
-    function setupAuthorizable(AuthorizableImp _authorizable) internal {
-        authorizable = _authorizable;
-        authHelper = new AuthorizableHelper(authorizable);
+    function setupAuthorizable(uint256 _thawPeriod) internal {
+        authorizable = newAuthorizable(_thawPeriod);
+        authHelper = new AuthorizableHelper(authorizable, _thawPeriod);
+    }
+
+    function newAuthorizable(uint256 _thawPeriod) public virtual returns (IAuthorizable) {
+        return new AuthorizableImp(_thawPeriod);
     }
 
     function test_AuthorizeSigner(uint256 _unboundedKey, address _authorizer) public {
@@ -303,12 +307,12 @@ contract AuthorizableTest is Test, Bounder {
 
         authHelper.authorizeAndThawSignerWithChecks(_authorizer, signerKey);
 
-        _skip = bound(_skip, 0, authorizable.REVOKE_AUTHORIZATION_THAWING_PERIOD() - 1);
+        _skip = bound(_skip, 0, authHelper.revokeAuthorizationThawingPeriod() - 1);
         skip(_skip);
         bytes memory expectedErr = abi.encodeWithSelector(
             IAuthorizable.AuthorizableSignerStillThawing.selector,
             block.timestamp,
-            block.timestamp - _skip + authorizable.REVOKE_AUTHORIZATION_THAWING_PERIOD()
+            block.timestamp - _skip + authHelper.revokeAuthorizationThawingPeriod()
         );
         vm.expectRevert(expectedErr);
         vm.prank(_authorizer);
@@ -321,17 +325,19 @@ contract AuthorizableTest is Test, Bounder {
 }
 
 contract AuthorizableHelper is Test {
-    AuthorizableImp internal authorizable;
+    IAuthorizable internal authorizable;
+    uint256 public revokeAuthorizationThawingPeriod;
 
-    constructor(AuthorizableImp _authorizable) {
+    constructor(IAuthorizable _authorizable, uint256 _thawPeriod) {
         authorizable = _authorizable;
+        revokeAuthorizationThawingPeriod = _thawPeriod;
     }
 
     function authorizeAndThawSignerWithChecks(address _authorizer, uint256 _signerKey) public {
         address signer = vm.addr(_signerKey);
         authorizeSignerWithChecks(_authorizer, _signerKey);
 
-        uint256 thawEndTimestamp = block.timestamp + authorizable.REVOKE_AUTHORIZATION_THAWING_PERIOD();
+        uint256 thawEndTimestamp = block.timestamp + revokeAuthorizationThawingPeriod;
         vm.expectEmit(address(authorizable));
         emit IAuthorizable.SignerThawing(_authorizer, signer, thawEndTimestamp);
         vm.prank(_authorizer);
@@ -343,7 +349,7 @@ contract AuthorizableHelper is Test {
     function authorizeAndRevokeSignerWithChecks(address _authorizer, uint256 _signerKey) public {
         address signer = vm.addr(_signerKey);
         authorizeAndThawSignerWithChecks(_authorizer, _signerKey);
-        skip(authorizable.REVOKE_AUTHORIZATION_THAWING_PERIOD() + 1);
+        skip(revokeAuthorizationThawingPeriod + 1);
         vm.expectEmit(address(authorizable));
         emit IAuthorizable.SignerRevoked(_authorizer, signer);
         vm.prank(_authorizer);
@@ -356,6 +362,7 @@ contract AuthorizableHelper is Test {
         address signer = vm.addr(_signerKey);
         assertNotAuthorized(_authorizer, signer);
 
+        require(block.timestamp < type(uint256).max, "Test cannot be run at the end of time");
         uint256 proofDeadline = block.timestamp + 1;
         bytes memory proof = generateAuthorizationProof(
             block.chainid,

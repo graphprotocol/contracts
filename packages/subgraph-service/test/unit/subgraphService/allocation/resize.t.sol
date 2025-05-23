@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
+import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
@@ -86,7 +86,7 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         vm.expectRevert(
-            abi.encodeWithSelector(AllocationManager.AllocationManagerAllocationSameSize.selector, allocationID, tokens)
+            abi.encodeWithSelector(AllocationHandler.AllocationHandlerAllocationSameSize.selector, allocationID, tokens)
         );
         subgraphService.resizeAllocation(users.indexer, allocationID, tokens);
     }
@@ -99,7 +99,7 @@ contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);
         vm.expectRevert(
-            abi.encodeWithSelector(AllocationManager.AllocationManagerAllocationClosed.selector, allocationID)
+            abi.encodeWithSelector(AllocationHandler.AllocationHandlerAllocationClosed.selector, allocationID)
         );
         subgraphService.resizeAllocation(users.indexer, allocationID, resizeTokens);
     }

@@ -17,9 +17,10 @@
   "scripts": {
     "lint": "pnpm lint:ts && pnpm lint:sol",
     "lint:ts": "eslint '**/*.{js,ts}' --fix --no-warn-ignored",
-    "lint:sol": "pnpm lint:sol:prettier && pnpm lint:sol:solhint",
+    "lint:sol": "pnpm lint:sol:prettier && pnpm lint:sol:solhint && pnpm lint:sol:solhint:test",
     "lint:sol:prettier": "prettier --write \"contracts/**/*.sol\" \"test/**/*.sol\"",
     "lint:sol:solhint": "solhint --noPrompt --fix \"contracts/**/*.sol\" --config node_modules/solhint-graph-config/index.js",
+    "lint:sol:solhint:test": "solhint --noPrompt --fix \"test/unit/payments/recurring-collector/*\" --config node_modules/solhint-graph-config/index.js",
     "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "hardhat compile",

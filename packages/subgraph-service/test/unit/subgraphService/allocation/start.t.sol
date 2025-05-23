@@ -8,7 +8,7 @@ import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
+import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
 import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
 import { LegacyAllocation } from "../../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
@@ -97,7 +97,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes32 digest = subgraphService.encodeAllocationProof(users.indexer, address(0));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(allocationIDPrivateKey, digest);
         bytes memory data = abi.encode(subgraphDeployment, tokens, address(0), abi.encodePacked(r, s, v));
-        vm.expectRevert(abi.encodeWithSelector(AllocationManager.AllocationManagerInvalidZeroAllocationId.selector));
+        vm.expectRevert(abi.encodeWithSelector(AllocationHandler.AllocationHandlerInvalidZeroAllocationId.selector));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -113,7 +113,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes memory data = abi.encode(subgraphDeployment, tokens, allocationID, abi.encodePacked(r, s, v));
         vm.expectRevert(
             abi.encodeWithSelector(
-                AllocationManager.AllocationManagerInvalidAllocationProof.selector,
+                AllocationHandler.AllocationHandlerInvalidAllocationProof.selector,
                 signer,
                 allocationID
             )

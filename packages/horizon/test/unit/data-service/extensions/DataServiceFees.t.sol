@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { DataServiceImpFees } from "../implementations/DataServiceImpFees.sol";
-import { IDataServiceFees } from "../../../../contracts/data-service/interfaces/IDataServiceFees.sol";
+import { StakeClaims } from "../../../../contracts/data-service/libraries/StakeClaims.sol";
 import { ProvisionTracker } from "../../../../contracts/data-service/libraries/ProvisionTracker.sol";
 import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
 
@@ -13,7 +13,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         useIndexer
         useProvisionDataService(address(dataService), PROVISION_TOKENS, 0, 0)
     {
-        vm.expectRevert(abi.encodeWithSignature("DataServiceFeesZeroTokens()"));
+        vm.expectRevert(abi.encodeWithSignature("StakeClaimsZeroTokens()"));
         dataService.lockStake(users.indexer, 0);
     }
 
@@ -132,6 +132,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         uint256 stakeToLock;
         bytes32 predictedClaimId;
     }
+
     function _assert_lockStake(address serviceProvider, uint256 tokens) private {
         // before state
         (bytes32 beforeHead, , uint256 beforeNonce, uint256 beforeCount) = dataService.claimsLists(serviceProvider);
@@ -146,7 +147,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
 
         // it should emit a an event
         vm.expectEmit();
-        emit IDataServiceFees.StakeClaimLocked(
+        emit StakeClaims.StakeClaimLocked(
             serviceProvider,
             calcValues.predictedClaimId,
             calcValues.stakeToLock,
@@ -185,6 +186,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         uint256 tokensReleased;
         bytes32 head;
     }
+
     function _assert_releaseStake(address serviceProvider, uint256 numClaimsToRelease) private {
         // before state
         (bytes32 beforeHead, bytes32 beforeTail, uint256 beforeNonce, uint256 beforeCount) = dataService.claimsLists(
@@ -208,14 +210,14 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
                 break;
             }
 
-            emit IDataServiceFees.StakeClaimReleased(serviceProvider, calcValues.head, claimTokens, releasableAt);
+            emit StakeClaims.StakeClaimReleased(serviceProvider, calcValues.head, claimTokens, releasableAt);
             calcValues.head = nextClaim;
             calcValues.tokensReleased += claimTokens;
             calcValues.claimsCount++;
         }
 
         // it should emit a an event
-        emit IDataServiceFees.StakeClaimsReleased(serviceProvider, calcValues.claimsCount, calcValues.tokensReleased);
+        emit StakeClaims.StakeClaimsReleased(serviceProvider, calcValues.claimsCount, calcValues.tokensReleased);
         dataService.releaseStake(numClaimsToRelease);
 
         // after state

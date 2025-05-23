@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
-import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
+import { AllocationHandler } from "../../../contracts/libraries/AllocationHandler.sol";
 import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
 
@@ -103,7 +103,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
         vm.expectEmit(address(subgraphService));
         emit IDataService.ServiceStarted(_indexer, _data);
-        emit AllocationManager.AllocationCreated(_indexer, allocationId, subgraphDeploymentId, tokens, currentEpoch);
+        emit AllocationHandler.AllocationCreated(_indexer, allocationId, subgraphDeploymentId, tokens, currentEpoch);
 
         // TODO: improve this
         uint256 accRewardsPerAllocatedToken = 0;
@@ -141,7 +141,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         );
 
         vm.expectEmit(address(subgraphService));
-        emit AllocationManager.AllocationClosed(
+        emit AllocationHandler.AllocationClosed(
             _indexer,
             allocationId,
             allocation.subgraphDeploymentId,

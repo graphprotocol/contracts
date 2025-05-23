@@ -69,7 +69,11 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         assertEq(address(disputeManager.subgraphService()), _subgraphService, "Subgraph service should be set.");
     }
 
-    function _createIndexingDispute(address _allocationId, bytes32 _poi, uint256 _blockNumber) internal returns (bytes32) {
+    function _createIndexingDispute(
+        address _allocationId,
+        bytes32 _poi,
+        uint256 _blockNumber
+    ) internal returns (bytes32) {
         (, address fisherman, ) = vm.readCallers();
         bytes32 expectedDisputeId = keccak256(abi.encodePacked(_allocationId, _poi, _blockNumber));
         uint256 disputeDeposit = disputeManager.disputeDeposit();
@@ -88,7 +92,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             fisherman,
             disputeDeposit,
             _allocationId,
-            _poi,   
+            _poi,
             _blockNumber,
             stakeSnapshot,
             cancellableAt

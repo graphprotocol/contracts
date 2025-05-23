@@ -105,9 +105,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         vm.stopPrank();
     }
 
-    function test_Indexing_Create_DisputesSamePOIAndAllo(
-        uint256 tokens
-    ) public useIndexer useAllocation(tokens) {
+    function test_Indexing_Create_DisputesSamePOIAndAllo(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
@@ -158,7 +156,10 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         disputeManager.createIndexingDispute(allocationID, bytes32("POI1"), block.number);
     }
 
-    function test_Indexing_Create_DontRevertIf_IndexerIsBelowStake_WithDelegation(uint256 tokens, uint256 delegationTokens) public useIndexer useAllocation(tokens) {
+    function test_Indexing_Create_DontRevertIf_IndexerIsBelowStake_WithDelegation(
+        uint256 tokens,
+        uint256 delegationTokens
+    ) public useIndexer useAllocation(tokens) {
         // Close allocation
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);

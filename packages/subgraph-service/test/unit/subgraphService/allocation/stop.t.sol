@@ -8,7 +8,6 @@ import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
 import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
 import { LegacyAllocation } from "../../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
