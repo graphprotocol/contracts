@@ -86,7 +86,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCASigner(signedRCA);
 
-        AgreementData storage agreement = _getForUpdateAgreement(signedRCA.rca.agreementId);
+        AgreementData storage agreement = _getAgreementStorage(signedRCA.rca.agreementId);
         // check that the agreement is not already accepted
         require(
             agreement.state == AgreementState.NotAccepted,
@@ -126,7 +126,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @dev Caller must be the data service for the agreement.
      */
     function cancel(bytes16 agreementId, CancelAgreementBy by) external {
-        AgreementData storage agreement = _getForUpdateAgreement(agreementId);
+        AgreementData storage agreement = _getAgreementStorage(agreementId);
         require(
             agreement.state == AgreementState.Accepted,
             RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
@@ -161,7 +161,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             RecurringCollectorAgreementDeadlineElapsed(signedRCAU.rcau.deadline)
         );
 
-        AgreementData storage agreement = _getForUpdateAgreement(signedRCAU.rcau.agreementId);
+        AgreementData storage agreement = _getAgreementStorage(signedRCAU.rcau.agreementId);
         require(
             agreement.state == AgreementState.Accepted,
             RecurringCollectorAgreementIncorrectState(signedRCAU.rcau.agreementId, agreement.state)
@@ -248,7 +248,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @return The amount of tokens collected
      */
     function _collect(CollectParams memory _params) private returns (uint256) {
-        AgreementData storage agreement = _getForUpdateAgreement(_params.agreementId);
+        AgreementData storage agreement = _getAgreementStorage(_params.agreementId);
         require(
             agreement.state == AgreementState.Accepted || agreement.state == AgreementState.CanceledByPayer,
             RecurringCollectorAgreementIncorrectState(_params.agreementId, agreement.state)
@@ -456,7 +456,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /**
      * @notice Gets an agreement to be updated.
      */
-    function _getForUpdateAgreement(bytes16 _agreementId) private view returns (AgreementData storage) {
+    function _getAgreementStorage(bytes16 _agreementId) private view returns (AgreementData storage) {
         return agreements[_agreementId];
     }
 
