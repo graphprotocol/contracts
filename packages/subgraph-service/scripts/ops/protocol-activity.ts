@@ -14,23 +14,24 @@ import {
 import hre, { ethers } from 'hardhat'
 import { allocationKeys } from './data'
 import { randomBigInt } from '@graphprotocol/toolshed/utils'
-const PROVISION_THAWING_PERIOD = 2419200n
-const PROVISION_MAX_VERIFIER_CUT = 500_000n
-const PROVISION_THAWING_PERIOD_B = 2419199n
-const PROVISION_MAX_VERIFIER_CUT_B = 900_000n
 
 const GAS_LIMIT = process.env.GAS_LIMIT ? parseInt(process.env.GAS_LIMIT) : 500_000
 
 async function main() {
   const graph = hre.graph()
   const { HorizonStaking, GraphToken, PaymentsEscrow, GraphTallyCollector } = graph.horizon.contracts
-  const { SubgraphService, Curation } = graph.subgraphService.contracts
+  const { SubgraphService, Curation, DisputeManager } = graph.subgraphService.contracts
 
   const { stake, stakeToProvision, delegate, addToDelegationPool } = graph.horizon.actions
 
   const signers = await graph.accounts.getTestAccounts()
   const deployer = await graph.accounts.getDeployer()
   const gateway = await graph.accounts.getGateway() // note that this wont be the actual gateway address
+
+  const PROVISION_THAWING_PERIOD = await DisputeManager.disputePeriod()
+  const PROVISION_MAX_VERIFIER_CUT = await DisputeManager.fishermanRewardCut()
+  const PROVISION_THAWING_PERIOD_B = PROVISION_THAWING_PERIOD - 1n
+  const PROVISION_MAX_VERIFIER_CUT_B = PROVISION_MAX_VERIFIER_CUT + 1000n
 
   const abi = new ethers.AbiCoder()
 
