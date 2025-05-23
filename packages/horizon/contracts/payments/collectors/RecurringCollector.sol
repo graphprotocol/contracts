@@ -136,9 +136,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             RecurringCollectorDataServiceNotAuthorized(agreementId, msg.sender)
         );
         agreement.canceledAt = uint64(block.timestamp);
-        agreement.state = by == CancelAgreementBy.Payer
-            ? AgreementState.CanceledByPayer
-            : AgreementState.CanceledByServiceProvider;
+        if (by == CancelAgreementBy.Payer) {
+            agreement.state = AgreementState.CanceledByPayer;
+        } else {
+            agreement.state = AgreementState.CanceledByServiceProvider;
+        }
 
         emit AgreementCanceled(
             agreement.dataService,
