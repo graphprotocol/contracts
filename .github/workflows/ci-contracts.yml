@@ -24,8 +24,11 @@ jobs:
         uses: ./.github/actions/setup
       - name: Build dependencies
         run: |
-          yarn workspace @graphprotocol/sdk run build
-          yarn workspace @graphprotocol/contracts run build
+          pushd packages/contracts
+          yarn build
+          popd
+          pushd packages/sdk
+          yarn build
       - name: Run tests
         run: |
           pushd packages/contracts
