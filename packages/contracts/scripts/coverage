@@ -5,7 +5,6 @@ set -eo pipefail
 yarn build
 
 DISABLE_SECURE_ACCOUNTS=true \
-ADDRESS_BOOK=addresses.json \
 L1_GRAPH_CONFIG=config/graph.hardhat.yml \
 L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
   npx hardhat coverage $@
