@@ -5,11 +5,11 @@ env:
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/contracts/**
   pull_request:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/contracts/**
   workflow_dispatch:
@@ -22,10 +22,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up environment
         uses: ./.github/actions/setup
-      - name: Build
-        run: |
-          pushd packages/contracts
-          yarn build || yarn build
+      - name: Build all packages
+        run: yarn build
       - name: Run tests
         run: |
           pushd packages/contracts
