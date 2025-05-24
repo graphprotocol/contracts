@@ -22,7 +22,7 @@ RUN apt update && apt install -y \
 
 # Install Node.js
 RUN npm install -g n && n 20.12.0
-    
+
 # Install Solidity compiler using pipx (isolated environment)
 RUN pipx install solc-select && \
     pipx ensurepath && \
@@ -40,10 +40,10 @@ RUN pipx install solc-select && \
     cp -r /root/.solc-select/* /home/vscode/.solc-select/ && \
     chown -R vscode:vscode /home/vscode/.solc-select
 
-# Install Hardhat and related tools as root
-RUN npm install -g hardhat@2.22.16 @nomicfoundation/hardhat-ethers@3.0.8 ethers@6.13.4 && \
-    ln -sf /usr/local/lib/node_modules/hardhat/internal/cli/cli.js /usr/local/bin/hardhat && \
-    chmod +x /usr/local/bin/hardhat
+RUN npm install -g ethers@6.13.4
+
+# Install cloc for code analysis
+RUN npm install -g cloc
 
 # Install Foundry for Anvil (as root for global installation)
 RUN curl -L https://foundry.paradigm.xyz | bash && \
