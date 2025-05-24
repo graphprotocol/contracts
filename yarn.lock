@@ -3513,7 +3513,7 @@ __metadata:
     prettier: "npm:^3.2.5"
     prettier-plugin-solidity: "npm:^1.3.1"
     solhint: "npm:^4.1.1"
-    solidity-coverage: "npm:^0.8.0"
+    solidity-coverage: "npm:^0.8.16"
     ts-node: "npm:^10.9.2"
     typechain: "npm:^8.3.2"
     typescript: "npm:>=4.5.0"
@@ -3560,7 +3560,7 @@ __metadata:
     prettier: "npm:^2.1.1"
     prettier-plugin-solidity: "npm:^1.0.0-alpha.56"
     solhint: "npm:^5.1.0"
-    solidity-coverage: "npm:^0.8.0"
+    solidity-coverage: "npm:^0.8.16"
     truffle-flattener: "npm:^1.4.4"
     ts-node: "npm:>=8.0.0"
     typechain: "npm:^8.3.0"
@@ -3661,7 +3661,7 @@ __metadata:
     prettier-plugin-solidity: "npm:^2.0.0"
     solhint: "npm:^5.1.0"
     solhint-plugin-prettier: "npm:^0.1.0"
-    solidity-coverage: "npm:^0.8.0"
+    solidity-coverage: "npm:^0.8.16"
     ts-node: "npm:^10.9.2"
     typechain: "npm:^8.3.0"
     typescript: "npm:^5.6.3"
@@ -23703,7 +23703,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solidity-coverage@npm:^0.8.0":
+"solidity-coverage@npm:^0.8.16":
   version: 0.8.16
   resolution: "solidity-coverage@npm:0.8.16"
   dependencies:

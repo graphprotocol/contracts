@@ -67,7 +67,7 @@
     "prettier": "^2.1.1",
     "prettier-plugin-solidity": "^1.0.0-alpha.56",
     "solhint": "^5.1.0",
-    "solidity-coverage": "^0.8.0",
+    "solidity-coverage": "^0.8.16",
     "truffle-flattener": "^1.4.4",
     "ts-node": ">=8.0.0",
     "typechain": "^8.3.0",
