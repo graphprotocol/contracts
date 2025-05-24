@@ -44,7 +44,7 @@ const { AddressZero, HashZero } = ethers.constants
 const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: number) => n.toFixed(12)
 
-describe('L1GNS', () => {
+describe('L1GNS @skip-on-coverage', () => {
   const graph = hre.graph()
 
   let me: SignerWithAddress
