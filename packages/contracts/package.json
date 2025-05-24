@@ -26,7 +26,7 @@
     "test": "hardhat test",
     "test:e2e": "scripts/e2e",
     "test:gas": "REPORT_GAS=true hardhat test",
-    "test:coverage": "DISABLE_SECURE_ACCOUNTS=true ADDRESS_BOOK=addresses.json L1_GRAPH_CONFIG=config/graph.hardhat.yml L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml hardhat coverage",
+    "test:coverage": "scripts/coverage",
     "test:upgrade": "scripts/upgrade",
     "lint": "yarn lint:ts; yarn lint:sol; yarn lint:md; yarn lint:json",
     "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
