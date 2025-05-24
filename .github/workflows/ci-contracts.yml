@@ -22,8 +22,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up environment
         uses: ./.github/actions/setup
-      - name: Build all packages
-        run: yarn build
+      - name: Build dependencies
+        run: |
+          yarn workspace @graphprotocol/sdk run build
+          yarn workspace @graphprotocol/contracts run build
       - name: Run tests
         run: |
           pushd packages/contracts
