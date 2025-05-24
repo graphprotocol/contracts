@@ -4,6 +4,11 @@ runs:
   using: composite
 
   steps:
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev libusb-1.0-0-dev
     - name: Enable corepack for modern yarn
       shell: bash
       run: corepack enable

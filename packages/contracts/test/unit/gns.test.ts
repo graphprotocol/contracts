@@ -45,7 +45,7 @@ const toFloat = (n: BigNumber) => parseFloat(formatGRT(n))
 const toRound = (n: number) => n.toFixed(12)
 
 describe('L1GNS', () => {
-  const graph = hre.graph({ addressBook: 'addresses-local.json' })
+  const graph = hre.graph()
 
   let me: SignerWithAddress
   let other: SignerWithAddress

@@ -6,11 +6,11 @@ env:
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/token-distribution/**
   pull_request:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/token-distribution/**
   workflow_dispatch:
@@ -28,4 +28,6 @@ jobs:
           pushd packages/token-distribution
           yarn build
       - name: Run tests
-        run: yarn test
+        run: |
+          pushd packages/token-distribution
+          yarn test
