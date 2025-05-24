@@ -12,6 +12,9 @@ services:
       # Clean development environment
       - PYTHONDONTWRITEBYTECODE=1
 
+      # Disable interactive prompts
+      - COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+
       # Standard user directories
       - XDG_CACHE_HOME=/home/vscode/.cache
       - XDG_CONFIG_HOME=/home/vscode/.config
