@@ -1,0 +1,37 @@
+#!/bin/bash
+# set-json-key-value <section> <key> <value> -- <package.json> [<package.json> ...]
+
+set -e
+
+if [ "$#" -lt 5 ]; then
+  echo "Usage: $0 <section> <key> <value> -- <package.json> [<package.json> ...]"
+  exit 1
+fi
+
+SECTION="$1"
+KEY="$2"
+VALUE="$3"
+
+# Find the position of '--'
+shift 3
+while [[ "$1" != "--" && "$#" -gt 0 ]]; do
+  shift
+done
+
+if [ "$1" != "--" ]; then
+  echo "Error: Missing '--' before file list"
+  exit 1
+fi
+shift # Remove '--'
+
+for FILE in "$@"; do
+  if [ ! -f "$FILE" ]; then
+    echo "File not found: $FILE"
+    continue
+  fi
+
+  jq --arg section "$SECTION" --arg key "$KEY" --arg value "$VALUE" \
+    '.[$section][$key] = $value' \
+    "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+  echo "Updated [$SECTION][$KEY] in $FILE"
+done

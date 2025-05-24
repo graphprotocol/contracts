@@ -1,11 +1,10 @@
-import { BigNumber, Contract, providers, Signer, utils } from 'ethers'
-import { deployments, ethers, network, waffle } from 'hardhat'
-
 // Plugins
-
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-deploy'
+
+import { BigNumber, Contract, providers, Signer, utils } from 'ethers'
+import { deployments, ethers, network, waffle } from 'hardhat'
 
 const { hexlify, parseUnits, formatUnits, randomBytes } = utils
 
@@ -48,12 +47,12 @@ export const getChainID = (): Promise<number> => {
   }
   return provider()
     .getNetwork()
-    .then(r => r.chainId)
+    .then((r) => r.chainId)
 }
 
 export const latestBlockNum = (): Promise<BigNumber> => provider().getBlockNumber().then(toBN)
 export const latestBlock = async (): Promise<providers.Block> => provider().getBlock(await provider().getBlockNumber())
-export const latestBlockTime = async (): Promise<number> => latestBlock().then(block => block.timestamp)
+export const latestBlockTime = async (): Promise<number> => latestBlock().then((block) => block.timestamp)
 
 export const advanceBlock = (): Promise<void> => {
   return provider().send('evm_mine', []) as Promise<void>
@@ -64,11 +63,12 @@ export const advanceBlockTo = async (blockNumber: string | number | BigNumber): 
   const currentBlock = await latestBlockNum()
   const start = Date.now()
   let notified: boolean
-  if (target.lt(currentBlock)) throw Error(`Target block #(${target.toString()}) is lower than current block #(${currentBlock.toString()})`)
+  if (target.lt(currentBlock))
+    throw Error(`Target block #(${target.toString()}) is lower than current block #(${currentBlock.toString()})`)
   while ((await latestBlockNum()).lt(target)) {
     if (!notified && Date.now() - start >= 5000) {
       notified = true
-      console.log(`advanceBlockTo: Advancing too ` + 'many blocks is causing this test to be slow.')
+      console.log('advanceBlockTo: Advancing too ' + 'many blocks is causing this test to be slow.')
     }
     await advanceBlock()
   }

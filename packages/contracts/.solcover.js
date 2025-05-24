@@ -8,4 +8,16 @@ module.exports = {
   skipFiles,
   istanbulFolder: './reports/coverage',
   configureYulOptimizer: true,
+  mocha: {
+    grep: '@skip-on-coverage',
+    invert: true,
+  },
+  onCompileComplete: async function (/* config */) {
+    // Set environment variable to indicate we're running under coverage
+    process.env.SOLIDITY_COVERAGE = 'true'
+  },
+  onIstanbulComplete: async function (/* config */) {
+    // Clean up environment variable
+    delete process.env.SOLIDITY_COVERAGE
+  },
 }

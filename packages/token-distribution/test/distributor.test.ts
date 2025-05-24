@@ -1,11 +1,11 @@
 import 'hardhat-deploy'
-import { deployments } from 'hardhat'
-import { expect } from 'chai'
-import { GraphTokenDistributor } from '../build/typechain/contracts/GraphTokenDistributor'
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
 
-import { Account, getAccounts, getContract, toGRT } from './network'
+import { expect } from 'chai'
+import { deployments } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
+
+import { GraphTokenDistributor, GraphTokenMock } from '../typechain-types'
+import { Account, getAccounts, getContract, toGRT } from './network'
 
 // Fixture
 const setupTest = deployments.createFixture(async ({ deployments }) => {
@@ -44,11 +44,11 @@ describe('GraphTokenDistributor', () => {
   let distributor: GraphTokenDistributor
 
   before(async function () {
-    [deployer, beneficiary1, beneficiary2] = await getAccounts()
+    ;[deployer, beneficiary1, beneficiary2] = await getAccounts()
   })
 
   beforeEach(async () => {
-    ({ grt, distributor } = await setupTest())
+    ;({ grt, distributor } = await setupTest())
   })
 
   describe('init', function () {

@@ -1,6 +1,5 @@
 services:
   dev-graph-contracts:
-    container_name: dev-graph-contracts
     build:
       context: .
       dockerfile: Dockerfile
