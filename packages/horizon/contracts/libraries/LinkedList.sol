@@ -72,7 +72,7 @@ library LinkedList {
      * @param self The list metadata
      * @param id The id of the item to add
      */
-    function addTail(List storage self, bytes32 id) internal {
+    function addTail(List storage self, bytes32 id) external {
         require(self.count < MAX_ITEMS, LinkedListMaxElementsExceeded());
         require(id != bytes32(0), LinkedListInvalidZeroId());
         self.tail = id;
