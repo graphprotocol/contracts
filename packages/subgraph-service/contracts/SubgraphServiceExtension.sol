@@ -3,6 +3,8 @@ pragma solidity 0.8.27;
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
+import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
+import { ProvisionManagerLib } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionManagerLib.sol";
 
 import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
 import { SubgraphService } from "./SubgraphService.sol";
@@ -10,15 +12,22 @@ import { SubgraphService } from "./SubgraphService.sol";
 contract SubgraphServiceExtension is PausableUpgradeable {
     using IndexingAgreement for IndexingAgreement.Manager;
 
-    modifier modifiersHack(address indexer) {
-        SubgraphService(address(this)).modifiersHack(msg.sender, indexer);
+    modifier onlyValid(address indexer) {
+        ProvisionManagerLib.requireAuthorizedForProvision(
+            IHorizonStaking(_getBase().getGraphStaking()),
+            indexer,
+            address(this),
+            msg.sender
+        );
+        _getBase().requireValidProvision(indexer);
+        _getBase().requireRegisteredIndexer(indexer);
         _;
     }
 
     function updateIndexingAgreement(
         address indexer,
         IRecurringCollector.SignedRCAU calldata signedRCAU
-    ) external modifiersHack(indexer) {
+    ) external whenNotPaused onlyValid(indexer) {
         IndexingAgreement._getManager().update(indexer, signedRCAU);
     }
 
@@ -38,7 +47,7 @@ contract SubgraphServiceExtension is PausableUpgradeable {
      *
      * @param agreementId The id of the agreement
      */
-    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external modifiersHack(indexer) {
+    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external whenNotPaused onlyValid(indexer) {
         IndexingAgreement._getManager().cancel(indexer, agreementId);
     }
 
@@ -66,5 +75,9 @@ contract SubgraphServiceExtension is PausableUpgradeable {
 
     function _cancelAllocationIndexingAgreement(address _allocationId) internal {
         IndexingAgreement._getManager().cancelForAllocation(_allocationId);
+    }
+
+    function _getBase() internal view returns (SubgraphService) {
+        return SubgraphService(address(this));
     }
 }
