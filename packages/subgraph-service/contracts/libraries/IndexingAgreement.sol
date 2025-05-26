@@ -431,7 +431,6 @@ library IndexingAgreement {
         uint256 collectionSeconds = block.timestamp;
         collectionSeconds -= _agreement.lastCollectionAt > 0 ? _agreement.lastCollectionAt : _agreement.acceptedAt;
 
-        // FIX-ME: this is bad because it encourages indexers to collect at max seconds allowed to maximize collection.
         return collectionSeconds * (termsV1.tokensPerSecond + termsV1.tokensPerEntityPerSecond * _entities);
     }
 
