@@ -247,7 +247,7 @@ contract SubgraphService is
 
     /**
      * @notice Collects payment for the service provided by the indexer
-     * Allows collecting different types of payments such as query fees and indexing rewards.
+     * Allows collecting different types of payments such as query fees, indexing rewards and indexining fees.
      * It uses Graph Horizon payments protocol to process payments.
      * Reverts if the payment type is not supported.
      * @dev This function is the equivalent of the `collect` function for query fees and the `closeAllocation` function
@@ -261,6 +261,7 @@ contract SubgraphService is
      *
      * For query fees, see {SubgraphService-_collectQueryFees} for more details.
      * For indexing rewards, see {AllocationManager-_collectIndexingRewards} for more details.
+     * For indexing fees, see {SubgraphService-_collectIndexingFees} for more details.
      *
      * @param indexer The address of the indexer
      * @param paymentType The type of payment to collect as defined in {IGraphPayments}
@@ -271,6 +272,9 @@ contract SubgraphService is
      *      - address `allocationId`: The id of the allocation
      *      - bytes32 `poi`: The POI being presented
      *      - bytes `poiMetadata`: The metadata associated with the POI. See {AllocationManager-_collectIndexingRewards} for more details.
+     *    - For indexing fees:
+     *      - bytes16 `agreementId`: The id of the indexing agreement
+     *      - bytes `agreementCollectionMetadata`: The metadata required by the indexing agreement version.
      */
     /// @inheritdoc IDataService
     function collect(
