@@ -317,14 +317,14 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param rca The RCA for which to compute the hash.
      * @return The hash of the RCA.
      */
-    function hashRCA712(RecurringCollectionAgreement calldata rca) external view returns (bytes32);
+    function hashRCA(RecurringCollectionAgreement calldata rca) external view returns (bytes32);
 
     /**
      * @dev Computes the hash of a RecurringCollectionAgreementUpdate (RCAU).
      * @param rcau The RCAU for which to compute the hash.
      * @return The hash of the RCAU.
      */
-    function hashRCAU712(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32);
+    function hashRCAU(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32);
 
     /**
      * @dev Recovers the signer address of a signed RecurringCollectionAgreement (RCA).
