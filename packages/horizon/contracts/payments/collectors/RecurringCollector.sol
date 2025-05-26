@@ -21,6 +21,8 @@ import { MathUtils } from "../../libraries/MathUtils.sol";
 contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringCollector {
     using PPMMath for uint256;
 
+    uint32 public constant MIN_SECONDS_COLLECTION_WINDOW = 600;
+
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
     bytes32 public constant EIP712_RCA_TYPEHASH =
         keccak256(
@@ -318,16 +320,17 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             RecurringCollectorAgreementInvalidParameters("endsAt not in future")
         );
 
-        // Collection window needs to be at least 2 hours
+        // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
         require(
             _agreement.maxSecondsPerCollection > _agreement.minSecondsPerCollection &&
-                (_agreement.maxSecondsPerCollection - _agreement.minSecondsPerCollection >= 7200),
+                (_agreement.maxSecondsPerCollection - _agreement.minSecondsPerCollection >=
+                    MIN_SECONDS_COLLECTION_WINDOW),
             RecurringCollectorAgreementInvalidParameters("too small collection window")
         );
 
         // Agreement needs to last at least one min collection window
         require(
-            _agreement.endsAt - block.timestamp >= _agreement.minSecondsPerCollection + 7200,
+            _agreement.endsAt - block.timestamp >= _agreement.minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
             RecurringCollectorAgreementInvalidParameters("too small agreement window")
         );
     }
