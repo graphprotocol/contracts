@@ -340,10 +340,13 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         bytes16 _agreementId,
         uint256 _tokens
     ) private view returns (uint256) {
-        uint256 collectionSeconds = _agreement.state == AgreementState.CanceledByPayer
+        // if canceled by the payer allow collection up to the cancelation time
+        uint256 collectionEnd = _agreement.state == AgreementState.CanceledByPayer
             ? _agreement.canceledAt
             : block.timestamp;
-        collectionSeconds -= _agreementCollectionStartAt(_agreement);
+        uint256 collectionStart = _agreementCollectionStartAt(_agreement);
+        require(collectionEnd > collectionStart, RecurringCollectorFinalCollectionDone(_agreementId, collectionStart));
+        uint256 collectionSeconds = collectionEnd - collectionStart;
         require(
             collectionSeconds >= _agreement.minSecondsPerCollection,
             RecurringCollectorCollectionTooSoon(

@@ -260,6 +260,14 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorInvalidCollectData(bytes invalidData);
 
     /**
+     * Thrown when calling collect() on a payer canceled agreement
+     * where the final collection has already been done
+     * @param agreementId The agreement ID
+     * @param finalCollectionAt The timestamp when the final collection was done
+     */
+    error RecurringCollectorFinalCollectionDone(bytes16 agreementId, uint256 finalCollectionAt);
+
+    /**
      * Thrown when interacting with an agreement that has an incorrect state
      * @param agreementId The agreement ID
      * @param incorrectState The incorrect state
