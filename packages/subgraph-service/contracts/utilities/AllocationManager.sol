@@ -15,6 +15,7 @@ import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
+import { AllocationManagerLib } from "../libraries/AllocationManagerLib.sol";
 
 /**
  * @title AllocationManager contract
@@ -204,34 +205,53 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         bytes memory _allocationProof,
         uint32 _delegationRatio
     ) internal {
-        require(_allocationId != address(0), AllocationManagerInvalidZeroAllocationId());
+        // require(_allocationId != address(0), AllocationManagerInvalidZeroAllocationId());
 
-        _verifyAllocationProof(_indexer, _allocationId, _allocationProof);
+        // _verifyAllocationProof(_indexer, _allocationId, _allocationProof);
 
-        // Ensure allocation id is not reused
-        // need to check both subgraph service (on allocations.create()) and legacy allocations
-        _legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
+        // // Ensure allocation id is not reused
+        // // need to check both subgraph service (on allocations.create()) and legacy allocations
+        // _legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
 
-        uint256 currentEpoch = _graphEpochManager().currentEpoch();
-        Allocation.State memory allocation = _allocations.create(
-            _indexer,
-            _allocationId,
-            _subgraphDeploymentId,
-            _tokens,
-            _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentId),
-            currentEpoch
+        // uint256 currentEpoch = _graphEpochManager().currentEpoch();
+        // Allocation.State memory allocation = _allocations.create(
+        //     _indexer,
+        //     _allocationId,
+        //     _subgraphDeploymentId,
+        //     _tokens,
+        //     _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentId),
+        //     currentEpoch
+        // );
+
+        // // Check that the indexer has enough tokens available
+        // // Note that the delegation ratio ensures overdelegation cannot be used
+        // allocationProvisionTracker.lock(_graphStaking(), _indexer, _tokens, _delegationRatio);
+
+        // // Update total allocated tokens for the subgraph deployment
+        // _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
+        //     _subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
+        //     allocation.tokens;
+
+        // emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens, currentEpoch);
+
+        AllocationManagerLib.allocate(
+            _allocations,
+            _legacyAllocations,
+            allocationProvisionTracker,
+            _subgraphAllocatedTokens,
+            AllocationManagerLib.AllocateParams({
+                _allocationId: _allocationId,
+                _allocationProof: _allocationProof,
+                _encodeAllocationProof: _encodeAllocationProof(_indexer, _allocationId),
+                _delegationRatio: _delegationRatio,
+                _indexer: _indexer,
+                _subgraphDeploymentId: _subgraphDeploymentId,
+                _tokens: _tokens,
+                currentEpoch: _graphEpochManager().currentEpoch(),
+                graphRewardsManager: _graphRewardsManager(),
+                graphStaking: _graphStaking()
+            })
         );
-
-        // Check that the indexer has enough tokens available
-        // Note that the delegation ratio ensures overdelegation cannot be used
-        allocationProvisionTracker.lock(_graphStaking(), _indexer, _tokens, _delegationRatio);
-
-        // Update total allocated tokens for the subgraph deployment
-        _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
-            allocation.tokens;
-
-        emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens, currentEpoch);
     }
 
     /**
