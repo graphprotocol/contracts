@@ -142,7 +142,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
 
-        uint256 collectionSeconds = boundSkipCeil(unboundedCollectionSeconds, accepted.rca.minSecondsPerCollection - 1);
+        uint256 collectionSeconds = boundSkip(unboundedCollectionSeconds, 1, accepted.rca.minSecondsPerCollection - 1);
         skip(collectionSeconds);
 
         IRecurringCollector.CollectParams memory collectParams = _generateCollectParams(
