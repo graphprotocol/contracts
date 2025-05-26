@@ -213,17 +213,17 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice See {IRecurringCollector.hashRCA712}
+     * @notice See {IRecurringCollector.hashRCA}
      */
-    function hashRCA712(RecurringCollectionAgreement calldata rca) external view returns (bytes32) {
-        return _hashRCA712(rca);
+    function hashRCA(RecurringCollectionAgreement calldata rca) external view returns (bytes32) {
+        return _hashRCA(rca);
     }
 
     /**
-     * @notice See {IRecurringCollector.hashRCAU712}
+     * @notice See {IRecurringCollector.hashRCAU}
      */
-    function hashRCAU712(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32) {
-        return _hashRCAU712(rcau);
+    function hashRCAU(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32) {
+        return _hashRCAU(rcau);
     }
 
     /**
@@ -371,7 +371,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @notice See {IRecurringCollector.recoverRCASigner}
      */
     function _recoverRCASigner(SignedRCA memory _signedRCA) private view returns (address) {
-        bytes32 messageHash = _hashRCA712(_signedRCA.rca);
+        bytes32 messageHash = _hashRCA(_signedRCA.rca);
         return ECDSA.recover(messageHash, _signedRCA.signature);
     }
 
@@ -379,14 +379,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @notice See {IRecurringCollector.recoverRCAUSigner}
      */
     function _recoverRCAUSigner(SignedRCAU memory _signedRCAU) private view returns (address) {
-        bytes32 messageHash = _hashRCAU712(_signedRCAU.rcau);
+        bytes32 messageHash = _hashRCAU(_signedRCAU.rcau);
         return ECDSA.recover(messageHash, _signedRCAU.signature);
     }
 
     /**
-     * @notice See {IRecurringCollector.hashRCA712}
+     * @notice See {IRecurringCollector.hashRCA}
      */
-    function _hashRCA712(RecurringCollectionAgreement memory _rca) private view returns (bytes32) {
+    function _hashRCA(RecurringCollectionAgreement memory _rca) private view returns (bytes32) {
         return
             _hashTypedDataV4(
                 keccak256(
@@ -409,9 +409,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice See {IRecurringCollector.hashRCAU712}
+     * @notice See {IRecurringCollector.hashRCAU}
      */
-    function _hashRCAU712(RecurringCollectionAgreementUpdate memory _rcau) private view returns (bytes32) {
+    function _hashRCAU(RecurringCollectionAgreementUpdate memory _rcau) private view returns (bytes32) {
         return
             _hashTypedDataV4(
                 keccak256(
