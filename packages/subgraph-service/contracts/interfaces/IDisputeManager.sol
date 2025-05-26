@@ -547,9 +547,15 @@ interface IDisputeManager {
      * @param agreementId The indexing agreement to dispute
      * @param poi The Proof of Indexing (POI) being disputed
      * @param entities The number of entities disputed
+     * @param blockNumber The block number at which the indexing fee was collected
      * @return The dispute id
      */
-    function createIndexingFeeDisputeV1(bytes16 agreementId, bytes32 poi, uint256 entities) external returns (bytes32);
+    function createIndexingFeeDisputeV1(
+        bytes16 agreementId,
+        bytes32 poi,
+        uint256 entities,
+        uint256 blockNumber
+    ) external returns (bytes32);
 
     // -- Arbitrator --
 
