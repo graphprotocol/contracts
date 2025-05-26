@@ -21,12 +21,6 @@ library IndexingAgreement {
         V1
     }
 
-    struct Manager {
-        mapping(bytes16 => State) agreements;
-        mapping(bytes16 agreementId => IndexingAgreementTermsV1 data) termsV1;
-        mapping(address allocationId => bytes16 agreementId) allocationToActiveAgreementId;
-    }
-
     /**
      * @notice Indexer Agreement Data
      * @param allocationId The allocation ID
@@ -80,7 +74,16 @@ library IndexingAgreement {
         bytes data;
     }
 
-    bytes32 private constant INDEXING_AGREEMENT_MANAGER_STORAGE_V1_SLOT = keccak256("v1.manager.indexing-agreement");
+    /// @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.Manager.IndexingAgreement
+    struct Manager {
+        mapping(bytes16 => State) agreements;
+        mapping(bytes16 agreementId => IndexingAgreementTermsV1 data) termsV1;
+        mapping(address allocationId => bytes16 agreementId) allocationToActiveAgreementId;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("graphprotocol.subgraph-service.storage.Manager.IndexingAgreement")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant INDEXING_AGREEMENT_MANAGER_STORAGE_LOCATION =
+        0xfdb6fb5d1a390e01387ce73642e517880d8e0fedd0e7e26ac9194788a7a85200;
 
     /**
      * @notice Emitted when an indexer collects indexing fees from a V1 agreement
@@ -384,12 +387,10 @@ library IndexingAgreement {
         return wrapper;
     }
 
-    function _getManager() internal pure returns (Manager storage manager) {
-        bytes32 slot = INDEXING_AGREEMENT_MANAGER_STORAGE_V1_SLOT;
-
+    function _getManager() internal pure returns (Manager storage $) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            manager.slot := slot
+            $.slot := INDEXING_AGREEMENT_MANAGER_STORAGE_LOCATION
         }
     }
 
