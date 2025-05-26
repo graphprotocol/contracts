@@ -134,13 +134,14 @@ contract DisputeManager is
     function createIndexingFeeDisputeV1(
         bytes16 agreementId,
         bytes32 poi,
-        uint256 entities
+        uint256 entities,
+        uint256 blockNumber
     ) external override returns (bytes32) {
         // Get funds from fisherman
         _graphToken().pullTokens(msg.sender, disputeDeposit);
 
         // Create a dispute
-        return _createIndexingFeeDisputeV1(msg.sender, disputeDeposit, agreementId, poi, entities);
+        return _createIndexingFeeDisputeV1(msg.sender, disputeDeposit, agreementId, poi, entities, blockNumber);
     }
 
     /// @inheritdoc IDisputeManager
@@ -532,7 +533,8 @@ contract DisputeManager is
         uint256 _deposit,
         bytes16 _agreementId,
         bytes32 _poi,
-        uint256 _entities
+        uint256 _entities,
+        uint256 _blockNumber
     ) private returns (bytes32) {
         IndexingAgreement.AgreementWrapper memory wrapper = _getSubgraphServiceExtension().getIndexingAgreement(
             _agreementId
@@ -556,7 +558,8 @@ contract DisputeManager is
                 wrapper.collectorAgreement.serviceProvider,
                 wrapper.collectorAgreement.payer,
                 _poi,
-                _entities
+                _entities,
+                _blockNumber
             )
         );
 
