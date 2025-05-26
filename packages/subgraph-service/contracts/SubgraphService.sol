@@ -56,8 +56,12 @@ contract SubgraphService is
      * @param indexer The address of the indexer
      */
     modifier onlyRegisteredIndexer(address indexer) {
-        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
+        this.requireRegisteredIndexer(indexer);
         _;
+    }
+
+    function requireRegisteredIndexer(address indexer) external view {
+        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
     }
 
     /**
@@ -706,17 +710,9 @@ contract SubgraphService is
         }
     }
 
-    function modifiersHack(
-        address caller,
-        address indexer
-    )
-        external
-        view
-        whenNotPaused
-        onlyAuthorizedForProvisionHack(caller, indexer)
-        onlyValidProvision(indexer)
-        onlyRegisteredIndexer(indexer)
-    {}
+    function getGraphStaking() external view returns (address) {
+        return address(_graphStaking());
+    }
 
     /**
      * @notice Delegates the call to the SubgraphServiceExtension implementation.
