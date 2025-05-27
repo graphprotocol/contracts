@@ -14,6 +14,9 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
     EpochManager,
     L2GraphToken,
     L2GraphTokenGateway,
+    L2GNS,
+    L2GNSImplementation,
+    SubgraphNFT,
   } = m.useModule(MigratePeripheryModule)
 
   const {
@@ -29,6 +32,9 @@ export default buildModule('GraphHorizon_Migrate_3', (m) => {
   return {
     Graph_Proxy_L2Curation: L2Curation,
     Implementation_L2Curation: L2CurationImplementation,
+    Graph_Proxy_L2GNS: L2GNS,
+    Implementation_L2GNS: L2GNSImplementation,
+    SubgraphNFT,
     Graph_Proxy_RewardsManager: RewardsManager,
     Implementation_RewardsManager: RewardsManagerImplementation,
     Graph_Proxy_HorizonStaking: HorizonStaking,

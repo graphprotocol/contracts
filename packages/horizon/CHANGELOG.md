@@ -1,5 +1,11 @@
 # @graphprotocol/horizon
 
+## 0.3.3
+
+### Patch Changes
+
+- Add GNS to deployments
+
 ## 0.3.2
 
 ### Patch Changes

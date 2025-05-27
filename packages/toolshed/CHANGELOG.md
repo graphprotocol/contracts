@@ -1,5 +1,14 @@
 # @graphprotocol/toolshed
 
+## 0.5.1
+
+### Patch Changes
+
+- Add GNS to deployments
+- Updated dependencies
+  - @graphprotocol/subgraph-service@0.3.5
+  - @graphprotocol/horizon@0.3.3
+
 ## 0.5.0
 
 ### Minor Changes

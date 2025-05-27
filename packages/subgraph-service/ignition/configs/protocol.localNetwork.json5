@@ -1,4 +1,3 @@
-
 {
   "$global": {
     // Accounts for new deployment - derived from local network mnemonic
@@ -10,6 +9,9 @@
     "controllerAddress": "",
     "curationProxyAddress": "",
     "curationImplementationAddress": "",
+    "gnsProxyAddress": "",
+    "gnsImplementationAddress": "",
+    "subgraphNFTAddress": "",
 
     // Must be set for step 2 of the deployment
     "disputeManagerProxyAddress": "",

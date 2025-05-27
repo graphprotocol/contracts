@@ -4,8 +4,8 @@ import CurationArtifact from '@graphprotocol/contracts/build/contracts/contracts
 
 // Note that this module is a no-op, we only run it to get curation addresses into the address book.
 // Curation deployment should be managed by ignition scripts in subgraph-service package however
-// due to tight coupling with HorizonStakingExtension contract it's easier to do it on the horizon package.
-// Once the transition period is over we can migrate it.
+// due to tight coupling with Controller contract it's easier to do it on the horizon package.
+
 export default buildModule('L2Curation', (m) => {
   const curationProxyAddress = m.getParameter('curationProxyAddress')
   const curationImplementationAddress = m.getParameter('curationImplementationAddress')

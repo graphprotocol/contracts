@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 0.3.5
+
+### Patch Changes
+
+- Add GNS to deployments
+
 ## 0.3.4
 
 ### Patch Changes

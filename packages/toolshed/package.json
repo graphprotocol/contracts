@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/toolshed",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publishConfig": {
     "access": "public"
   },
@@ -29,6 +29,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "watch": "tsc --watch",
     "prepublishOnly": "tsc",
     "lint": "eslint '**/*.{js,ts}' --fix",
     "clean": "rm -rf dist"

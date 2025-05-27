@@ -10,6 +10,9 @@ import GraphCurationTokenArtifact from '@graphprotocol/contracts/build/contracts
 import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
+// Curation deployment should be managed by ignition scripts in subgraph-service package however
+// due to tight coupling with Controller it's easier to do it on the horizon package.
+
 export default buildModule('L2Curation', (m) => {
   const { Controller } = m.useModule(ControllerModule)
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)

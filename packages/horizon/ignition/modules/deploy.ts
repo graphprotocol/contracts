@@ -17,6 +17,9 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     RewardsManagerImplementation,
     L2Curation,
     L2CurationImplementation,
+    L2GNS,
+    L2GNSImplementation,
+    SubgraphNFT,
   } = m.useModule(GraphPeripheryModule)
   const {
     HorizonStaking,
@@ -46,6 +49,9 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
     Implementation_EpochManager: EpochManagerImplementation,
     Graph_Proxy_L2Curation: L2Curation,
     Implementation_L2Curation: L2CurationImplementation,
+    Graph_Proxy_L2GNS: L2GNS,
+    Implementation_L2GNS: L2GNSImplementation,
+    SubgraphNFT,
     Graph_Proxy_RewardsManager: RewardsManager,
     Implementation_RewardsManager: RewardsManagerImplementation,
     Graph_Proxy_L2GraphTokenGateway: L2GraphTokenGateway,

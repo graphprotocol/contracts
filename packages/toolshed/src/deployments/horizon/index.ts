@@ -9,8 +9,9 @@ export type {
   EpochManager,
   L2GraphToken,
   L2Curation,
-  // L2GraphTokenGateway,
   RewardsManager,
+  L2GNS,
+  SubgraphNFT,
 } from './types'
 export type {
   Controller,

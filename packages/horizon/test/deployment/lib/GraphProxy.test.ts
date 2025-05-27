@@ -4,11 +4,9 @@ import { assert, expect } from 'chai'
 import { AddressBookEntry } from '@graphprotocol/toolshed/deployments'
 import { zeroPadValue } from 'ethers'
 
-export function graphProxyTests(contractName: string, addressBookEntry: AddressBookEntry, proxyAdmin: string, upgraded = false): void {
-  const testIf = () => (upgraded ? it : it.skip)
-
+export function graphProxyTests(contractName: string, addressBookEntry: AddressBookEntry, proxyAdmin: string): void {
   describe(`${contractName}: GraphProxy`, function () {
-    testIf()('should target the correct implementation', async function () {
+    it('should target the correct implementation', async function () {
       const implementation = await hre.ethers.provider.getStorage(addressBookEntry.address, '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc')
       if (!addressBookEntry.implementation) {
         assert.fail('Implementation address is not set')

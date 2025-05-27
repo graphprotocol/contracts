@@ -50,8 +50,10 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
 
     // Aliases
     contracts.GraphToken = contracts.L2GraphToken
-    // contracts.GraphTokenGateway = contracts.L2GraphTokenGateway
     contracts.Curation = contracts.L2Curation
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    contracts.GNS = contracts.L2GNS
+
     if (contracts.HorizonStaking) {
       // add LegacyStaking alias using old IL2Staking abi
       const contract = new Contract(

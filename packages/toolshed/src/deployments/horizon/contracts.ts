@@ -12,9 +12,11 @@ import type {
 import type {
   EpochManager,
   L2Curation,
+  L2GNS,
   L2GraphToken,
   LegacyStaking,
   RewardsManager,
+  SubgraphNFT,
 } from './types'
 import type { ContractList } from '../contract'
 
@@ -26,7 +28,11 @@ export const GraphHorizonContractNameList = [
   'RewardsManager',
   'L2GraphToken',
   'L2GraphTokenGateway',
+
+  // @graphprotocol/contracts - subgraph-service compatibility
   'L2Curation',
+  'L2GNS',
+  'SubgraphNFT',
 
   // @graphprotocol/horizon
   'HorizonStaking',
@@ -46,7 +52,11 @@ export const GraphHorizonArtifactsMap = {
   RewardsManager: CONTRACTS_ARTIFACTS_PATH,
   L2GraphToken: CONTRACTS_ARTIFACTS_PATH,
   L2GraphTokenGateway: CONTRACTS_ARTIFACTS_PATH,
+
+  // @graphprotocol/contracts - subgraph-service compatibility
   L2Curation: CONTRACTS_ARTIFACTS_PATH,
+  L2GNS: CONTRACTS_ARTIFACTS_PATH,
+  SubgraphNFT: CONTRACTS_ARTIFACTS_PATH,
 
   // @graphprotocol/contracts - legacy
   LegacyStaking: CONTRACTS_ARTIFACTS_PATH,
@@ -65,8 +75,11 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   GraphProxyAdmin: GraphProxyAdmin
   Controller: Controller
   L2GraphToken: L2GraphToken
-  // L2GraphTokenGateway: L2GraphTokenGateway
-  L2Curation: L2Curation // Actually a subgraph service contract
+
+  // @graphprotocol/contracts - subgraph-service compatibility
+  L2Curation: L2Curation
+  L2GNS: L2GNS
+  SubgraphNFT: SubgraphNFT
 
   // @graphprotocol/horizon
   HorizonStaking: HorizonStaking & HorizonStakingExtension
@@ -76,8 +89,8 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
 
   // Aliases
   GraphToken: L2GraphToken
-  // GraphTokenGateway: L2GraphTokenGateway
   Curation: L2Curation
+  GNS: L2GNS
   LegacyStaking: LegacyStaking
 }
 
