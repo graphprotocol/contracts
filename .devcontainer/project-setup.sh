@@ -11,73 +11,15 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 echo "Script directory: $SCRIPT_DIR"
 echo "Repository root: $REPO_ROOT"
 
-# Check if cache directories exist
-echo "Checking if cache directories exist..."
+# Set up local user directories with proper permissions
+echo "Setting up local user directories..."
 
-# Required cache directories
-REQUIRED_DIRS=(
-  "/cache/hardhat"
-  "/cache/npm"
-  "/cache/yarn"
-)
+# Ensure all user directories exist and have proper ownership
+sudo mkdir -p /home/vscode/.cache /home/vscode/.config /home/vscode/.local/share /home/vscode/.local/bin
+sudo chown -R vscode:vscode /home/vscode/.cache /home/vscode/.config /home/vscode/.local
+sudo chmod -R 755 /home/vscode/.cache /home/vscode/.config /home/vscode/.local
 
-# Check if required directories exist
-missing_dirs=()
-for dir in "${REQUIRED_DIRS[@]}"; do
-  if [ ! -d "$dir" ]; then
-    missing_dirs+=("$dir")
-  fi
-done
-
-# If any required directories are missing, show a warning
-# Note: With set -u, we need to ensure missing_dirs is always initialized
-if [ "${#missing_dirs[@]}" -gt 0 ]; then
-  echo "WARNING: The following required cache directories are missing:"
-  for dir in "${missing_dirs[@]}"; do
-    echo "  - $dir"
-  done
-  echo "Please run the host setup script before starting the container:"
-  echo "  sudo .devcontainer/host-setup.sh"
-  echo "Continuing anyway, but you may encounter issues..."
-fi
-
-# Set up cache symlinks
-echo "Setting up cache symlinks..."
-
-# Function to create symlinks for package cache directories
-setup_cache_symlink() {
-  # With set -u, we need to ensure all parameters are provided
-  if [ "$#" -ne 1 ]; then
-    echo "Error: setup_cache_symlink requires exactly 1 argument (package_name)"
-    return 1
-  fi
-
-  local package_name=$1
-  local cache_path="$REPO_ROOT/packages/${package_name}/cache"
-  local cache_dest="/cache/hardhat/${package_name}"
-
-  # Skip if the package directory doesn't exist
-  if [ ! -d "$REPO_ROOT/packages/${package_name}" ]; then
-    return
-  fi
-
-  # Create the package-specific cache directory if it doesn't exist
-  if [ ! -d "$cache_dest" ]; then
-    echo "Creating package-specific cache directory: $cache_dest"
-    mkdir -p "$cache_dest"
-    chmod -R 777 "$cache_dest"
-  fi
-
-  # Create the symlink (will replace existing symlink if it exists)
-  ln -sf "$cache_dest" "$cache_path"
-  echo "Created symlink for ${package_name} cache"
-}
-
-# Set up cache symlinks for main packages
-setup_cache_symlink "contracts"
-setup_cache_symlink "horizon"
-setup_cache_symlink "subgraph-service"
-setup_cache_symlink "data-edge"
+echo "User directories set up with proper permissions"
 
 # Install project dependencies
 echo "Installing project dependencies..."
@@ -131,7 +73,6 @@ else
 fi
 
 # Set up Git SSH signing
-echo "Setting up Git SSH signing..."
 if [ -f "$SCRIPT_DIR/setup-git-signing.sh" ]; then
   "$SCRIPT_DIR/setup-git-signing.sh"
 else

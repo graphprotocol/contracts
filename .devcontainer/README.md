@@ -18,57 +18,47 @@ The dev container provides a consistent development environment with caching to 
 
 ## Cache System
 
-The container uses a simple caching system:
+The container uses a conservative caching approach to prevent cache corruption issues:
 
-1. **Host Cache Directories**: Created on the host and mounted into the container
-   - `/cache/vscode-cache` → `/home/vscode/.cache`
-   - `/cache/vscode-config` → `/home/vscode/.config`
-   - `/cache/vscode-data` → `/home/vscode/.local/share`
-   - `/cache/vscode-bin` → `/home/vscode/.local/bin`
-   - `/cache/*` → Tool-specific cache directories
+1. **Local Cache Directories**: Each container instance maintains its own cache directories
 
-2. **Package Cache Symlinks**: Created inside the container by project-setup.sh
-   - Each package's cache directory is symlinked to a subdirectory in `/cache/hardhat`
+   - `vscode-cache` → `/home/vscode/.cache` (VS Code cache)
+   - `vscode-config` → `/home/vscode/.config` (VS Code configuration)
+   - `vscode-data` → `/home/vscode/.local/share` (VS Code data)
+   - `vscode-bin` → `/home/vscode/.local/bin` (User binaries)
+
+2. **Safe Caches Only**: Only caches that won't cause cross-branch issues are configured
+
+   - GitHub CLI: `/home/vscode/.cache/github`
+   - Python packages: `/home/vscode/.cache/pip`
+
+3. **Intentionally Not Cached**: These tools use their default cache locations to avoid contamination
+   - NPM, Yarn (different dependency versions per branch)
+   - Foundry, Solidity (different compilation artifacts per branch)
+   - Hardhat (different build artifacts per branch)
 
 ## Setup Instructions
 
-### 1. Host Setup (One-time)
+### Start the Dev Container
 
-Before starting the dev container for the first time, run the included host setup script to create the necessary cache directories on the host:
-
-```bash
-sudo /git/graphprotocol/contracts/.devcontainer/host-setup.sh
-```
-
-This script creates all required cache directories on the host, including:
-
-- Standard VS Code directories (for .cache, .config, etc.)
-- Tool-specific cache directories (for npm, yarn, cargo, etc.)
-
-The script is idempotent and can be run multiple times without issues.
-
-### 2. Start the Dev Container
-
-After creating the cache directories, you can start the dev container:
+To start the dev container:
 
 1. Open VS Code
 2. Use the "Remote-Containers: Open Folder in Container" command
-3. Select the repository directory
+3. Select the repository directory (for example `/git/graphprotocol/contracts`)
 
 When the container starts, the `project-setup.sh` script will automatically run and:
 
-- Create package-specific cache directories
-- Set up symlinks for package cache directories
 - Install project dependencies using yarn
 - Configure Git to use SSH signing with your forwarded SSH key
-- Source shell customizations if available in PATH (currently depends on base image configuration)
+- Source shell customizations if available in PATH
 
 ## Environment Variables
 
 Environment variables are defined in two places:
 
 1. **docker-compose.yml**: Contains most of the environment variables for tools and caching
-2. **Environment File**: Personal settings are stored in `/opt/configs/graphprotocol/contracts.env`
+2. **Environment File**: Personal settings are stored in `/opt/configs/graphprotocol/contracts.env` on the host
 
 ### Git Configuration
 
@@ -84,11 +74,13 @@ These environment variables are needed for Git commit signing to work properly. 
 
 ## Troubleshooting
 
-If you encounter permission denied errors when trying to access directories, make sure you've run the `host-setup.sh` script on the host before starting the container:
+### Cache Issues
 
-```bash
-sudo .devcontainer/host-setup.sh
-```
+If you encounter build or compilation issues that seem related to cached artifacts:
+
+1. **Rebuild the container**: This will start with fresh local caches
+2. **Clean project caches**: Run `yarn clean` to clear project-specific build artifacts
+3. **Clear node modules**: Delete `node_modules` and run `yarn install` again
 
 ### Git SSH Signing Issues
 
