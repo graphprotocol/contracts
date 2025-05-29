@@ -18,7 +18,7 @@ A releaseStartTime parameter is included to override the default release schedul
 
 ### GraphTokenLockWallet
 
-This contract is built on top of the base **GraphTokenLock** functionality. It allows the use of locked funds only when authorized function calls are issued to the contract. 
+This contract is built on top of the base **GraphTokenLock** functionality. It allows the use of locked funds only when authorized function calls are issued to the contract.
 It works by "forwarding" authorized function calls to predefined target contracts in the Graph Network.
 
 The idea is that supporters with locked tokens can participate in the protocol but disallow any release before the vesting/lock schedule.
@@ -30,7 +30,7 @@ Some users can profit by participating in the protocol through their locked toke
 
 The following functions signatures will be authorized for use:
 
-```
+```text
 ### Target
 
 - Staking contract address
@@ -87,14 +87,15 @@ For detailed instructions about deploying the manager or the transfer tools, che
 
 ### Deploying new vesting locks
 
-**1) Check configuration**
+#### 1) Check configuration
 
 Ensure the .env file contains the MNEMONIC you are going to use for the deployment. Please refer to the `.env.sample` file for reference.
 
-**2) Create the deployment file**
+#### 2) Create the deployment file
 
 The file must be have CSV format in placed in the `/ops` folder with the following header:
-```
+
+```text
 beneficiary,managedAmount,startTime,endTime,periods,revocable,releaseStartTime,vestingCliffTime
 ... line 1
 ... line 2
@@ -114,11 +115,11 @@ You can define one line per contract. Keep the header in the file.
 
 In addition to that, create an empty file in the `/ops` folder to store the results of the deployed contracts.
 
-**2) Deposit funds in the Manager**
+#### 3) Deposit funds in the Manager
 
 You need to deposit enough funds in the Manager to be able to use for the deployments. When you run the `create-token-locks` command it will always check that the Manager has enough tokens to cover for the sum of vesting amount.
 
-```
+```bash
 npx hardhat manager-deposit --amount <amount> --network <network>
 ```
 
@@ -126,9 +127,9 @@ npx hardhat manager-deposit --amount <amount> --network <network>
 
 - **network** depends on the `hardhat.config` but most of the times will be sepolia or mainnet.
 
-**3) Deploy the contracts**
+#### 4) Deploy the contracts
 
-```
+```bash
 npx hardhat create-token-locks --network sepolia \
     --deploy-file <deploy-file> \
     --result-file <result-file> \
@@ -151,6 +152,30 @@ npx hardhat create-token-locks --network sepolia \
 - **tx-builder** Output transaction batch in JSON format, compatible with Gnosis Safe transaction builder. Does not deploy contracts.
 
 - **tx-builder-template** File to use as a template for the transaction builder.
+
+## Testing
+
+Run tests:
+
+```bash
+yarn test
+```
+
+Run tests with coverage:
+
+```bash
+yarn test:coverage
+```
+
+### Coverage Limitations
+
+**Note**: The token-distribution package has architectural incompatibilities with Solidity Coverage due to:
+
+- **Immutable variables** in transfer tool contracts
+- **Complex proxy patterns** with upgradeable contracts
+- **Constructor + initializer patterns** that conflict with coverage instrumentation.
+
+For coverage analysis of these contracts, consider using Foundry's `forge coverage` which handles these patterns better.
 
 ## Copyright
 

@@ -4,12 +4,13 @@ yarn-error.log*
 
 # Dependency directories
 node_modules/
+forge-std/
 
 # Yarn
-.yarn/
+.yarn/*
 !.yarn/patches
-!.yarn/releases
 !.yarn/plugins
+!.yarn/releases
 !.yarn/sdks
 !.yarn/versions
 
@@ -18,6 +19,10 @@ artifacts/
 cache/
 cached/
 cache
+
+# ESLint cache
+.eslintcache
+packages/*/.eslintcache
 
 # Build artifacts
 dist/
@@ -53,6 +58,7 @@ addresses-fork.json
 # Forge artifacts
 cache_forge
 forge-artifacts/
+packages/issuance/lib/forge-std/
 
 # Graph client
 .graphclient

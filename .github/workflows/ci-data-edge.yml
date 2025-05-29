@@ -5,11 +5,11 @@ env:
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/data-edge/**
   pull_request:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/data-edge/**
   workflow_dispatch:
@@ -27,4 +27,6 @@ jobs:
           pushd packages/data-edge
           yarn build
       - name: Run tests
-        run: yarn test
+        run: |
+          pushd packages/data-edge
+          yarn test

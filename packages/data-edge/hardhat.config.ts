@@ -1,11 +1,5 @@
-import * as dotenv from 'dotenv'
-dotenv.config()
-
-import { HardhatUserConfig } from 'hardhat/types'
-import { task } from 'hardhat/config'
-
+import '@typechain/hardhat'
 // Plugins
-
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-etherscan'
 import '@nomiclabs/hardhat-waffle'
@@ -13,10 +7,15 @@ import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
-import '@typechain/hardhat'
+import 'solidity-coverage'
 
-import * as tdly from "@tenderly/hardhat-tenderly";
-tdly.setup();
+import * as tdly from '@tenderly/hardhat-tenderly'
+import { task } from 'hardhat/config'
+import { HardhatUserConfig } from 'hardhat/types'
+tdly.setup()
+
+import * as dotenv from 'dotenv'
+dotenv.config()
 
 // Tasks
 
@@ -99,7 +98,7 @@ const config: HardhatUserConfig = {
   paths: {
     sources: './contracts',
     tests: './test',
-    artifacts: './build/contracts',
+    artifacts: './artifacts',
   },
   solidity: {
     compilers: [

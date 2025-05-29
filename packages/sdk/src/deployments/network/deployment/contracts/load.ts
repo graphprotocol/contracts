@@ -1,6 +1,42 @@
+import type {
+  AllocationExchange,
+  BancorFormula,
+  BridgeEscrow,
+  Controller,
+  Curation,
+  DisputeManager,
+  EpochManager,
+  GraphCurationToken,
+  GraphProxyAdmin,
+  GraphToken,
+  IENS,
+  L1GNS,
+  L1GraphTokenGateway,
+  L1Staking,
+  L2Curation,
+  L2GNS,
+  L2GraphToken,
+  L2GraphTokenGateway,
+  L2Staking,
+  RewardsManager,
+  ServiceRegistry,
+  StakingExtension,
+  SubgraphAvailabilityManager,
+  SubgraphNFT,
+  SubgraphNFTDescriptor,
+} from '@graphprotocol/contracts'
 import { Contract, providers, Signer } from 'ethers'
 import path from 'path'
 
+import type { GraphChainId } from '../../../..'
+import { isGraphChainId, isGraphL1ChainId } from '../../../..'
+import { mergeABIs } from '../../../../utils/abi'
+import { assertObject } from '../../../../utils/assertions'
+import { loadContract, loadContracts } from '../../../lib/contracts/load'
+import { loadArtifact } from '../../../lib/deploy/artifacts'
+import { ContractList } from '../../../lib/types/contract'
+import { GraphNetworkAddressBook } from '../address-book'
+import type { GraphNetworkContractName } from './list'
 import {
   GraphNetworkL1ContractNameList,
   GraphNetworkL2ContractNameList,
@@ -8,44 +44,6 @@ import {
   GraphNetworkSharedContractNameList,
   isGraphNetworkContractName,
 } from './list'
-import { GraphNetworkAddressBook } from '../address-book'
-import { loadContract, loadContracts } from '../../../lib/contracts/load'
-import { isGraphChainId, isGraphL1ChainId, isGraphL2ChainId } from '../../../..'
-import { assertObject } from '../../../../utils/assertions'
-
-import type { GraphChainId } from '../../../..'
-import type { GraphNetworkContractName } from './list'
-
-import type {
-  EpochManager,
-  DisputeManager,
-  ServiceRegistry,
-  Curation,
-  RewardsManager,
-  GraphProxyAdmin,
-  GraphToken,
-  Controller,
-  BancorFormula,
-  IENS,
-  AllocationExchange,
-  SubgraphNFT,
-  SubgraphNFTDescriptor,
-  GraphCurationToken,
-  L1GraphTokenGateway,
-  L2GraphToken,
-  L2GraphTokenGateway,
-  BridgeEscrow,
-  L1Staking,
-  L2Staking,
-  L1GNS,
-  L2GNS,
-  L2Curation,
-  StakingExtension,
-  SubgraphAvailabilityManager,
-} from '@graphprotocol/contracts'
-import { ContractList } from '../../../lib/types/contract'
-import { loadArtifact } from '../../../lib/deploy/artifacts'
-import { mergeABIs } from '../../../../utils/abi'
 
 export type L1ExtendedStaking = L1Staking & StakingExtension
 export type L2ExtendedStaking = L2Staking & StakingExtension
@@ -94,10 +92,7 @@ export interface GraphNetworkContracts extends ContractList<GraphNetworkContract
 
 // This ensures that local artifacts are preferred over the ones that ship with the sdk in node_modules
 export function getArtifactsPath() {
-  return [
-    path.resolve('build/contracts'),
-    path.resolve('node_modules', '@graphprotocol/contracts/build/contracts'),
-  ]
+  return [path.resolve('artifacts'), path.resolve('node_modules', '@graphprotocol/contracts/artifacts')]
 }
 export function loadGraphNetworkContracts(
   addressBookPath: string,
@@ -131,9 +126,7 @@ export function loadGraphNetworkContracts(
   contracts.GraphToken = loadL1 ? contracts.GraphToken! : contracts.L2GraphToken!
   contracts.GNS = loadL1 ? contracts.L1GNS! : contracts.L2GNS!
   contracts.Curation = loadL1 ? contracts.Curation! : contracts.L2Curation!
-  contracts.GraphTokenGateway = loadL1
-    ? contracts.L1GraphTokenGateway!
-    : contracts.L2GraphTokenGateway!
+  contracts.GraphTokenGateway = loadL1 ? contracts.L1GraphTokenGateway! : contracts.L2GraphTokenGateway!
 
   // Staking is a special snowflake!
   // Since staking contract is a proxy for StakingExtension we need to manually
@@ -149,10 +142,7 @@ export function loadGraphNetworkContracts(
       opts?.enableTxLogging ?? true,
       new Contract(
         staking.address,
-        mergeABIs(
-          loadArtifact(stakingName, artifactsPath).abi,
-          loadArtifact('StakingExtension', artifactsPath).abi,
-        ),
+        mergeABIs(loadArtifact(stakingName, artifactsPath).abi, loadArtifact('StakingExtension', artifactsPath).abi),
         signerOrProvider,
       ),
     ) as L1ExtendedStaking | L2ExtendedStaking
@@ -181,11 +171,7 @@ function assertGraphNetworkContracts(
   // Allow loading contracts not defined in GraphNetworkContractNameList but raise a warning
   const contractNames = Object.keys(contracts)
   if (!contractNames.every((c) => isGraphNetworkContractName(c))) {
-    console.warn(
-      `Loaded invalid GraphNetworkContract: ${contractNames.filter(
-        (c) => !isGraphNetworkContractName(c),
-      )}`,
-    )
+    console.warn(`Loaded invalid GraphNetworkContract: ${contractNames.filter((c) => !isGraphNetworkContractName(c))}`)
   }
 
   // Assert that all shared GraphNetworkContracts were loaded

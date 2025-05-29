@@ -6,11 +6,11 @@ env:
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/token-distribution/**
   pull_request:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/token-distribution/**
   workflow_dispatch:
@@ -23,9 +23,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Build contracts (dependency)
+        run: |
+          pushd packages/contracts
+          yarn build
       - name: Build
         run: |
           pushd packages/token-distribution
           yarn build
       - name: Run tests
-        run: yarn test
+        run: |
+          pushd packages/token-distribution
+          yarn test
