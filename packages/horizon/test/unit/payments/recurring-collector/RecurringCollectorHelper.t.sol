@@ -120,18 +120,6 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
             ); // between 10 and 1M max collections
     }
 
-    function _sensibleMaxInitialTokens(uint256 _seed) internal pure returns (uint256) {
-        return bound(_seed, 0, 1e18 * 100_000_000); // between 0 and 100M tokens
-    }
-
-    function _sensibleMaxOngoingTokensPerSecond(uint256 _seed) internal pure returns (uint256) {
-        return bound(_seed, 1, 1e18); // between 1 and 1e18 tokens per second
-    }
-
-    function _sensibleMinSecondsPerCollection(uint32 _seed) internal pure returns (uint32) {
-        return uint32(bound(_seed, 10 * 60, 24 * 60 * 60)); // between 10 min and 24h
-    }
-
     function _sensibleMaxSecondsPerCollection(
         uint32 _seed,
         uint32 _minSecondsPerCollection
@@ -144,5 +132,17 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
                     60 * 60 * 24 * 30
                 ) // between minSecondsPerCollection + 2h and 30 days
             );
+    }
+
+    function _sensibleMaxInitialTokens(uint256 _seed) internal pure returns (uint256) {
+        return bound(_seed, 0, 1e18 * 100_000_000); // between 0 and 100M tokens
+    }
+
+    function _sensibleMaxOngoingTokensPerSecond(uint256 _seed) internal pure returns (uint256) {
+        return bound(_seed, 1, 1e18); // between 1 and 1e18 tokens per second
+    }
+
+    function _sensibleMinSecondsPerCollection(uint32 _seed) internal pure returns (uint32) {
+        return uint32(bound(_seed, 10 * 60, 24 * 60 * 60)); // between 10 min and 24h
     }
 }
