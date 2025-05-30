@@ -33,3 +33,10 @@ export function encodeCollectQueryFeesData(rav: RAV, signature: string, tokensTo
     [{ rav, signature }, tokensToCollect],
   )
 }
+
+export function encodeStopServiceData(allocationId: string) {
+  return ethers.AbiCoder.defaultAbiCoder().encode(
+    ['address'],
+    [allocationId],
+  )
+}
