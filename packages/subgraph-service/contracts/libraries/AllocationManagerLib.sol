@@ -2,9 +2,15 @@
 pragma solidity 0.8.27;
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
+import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
+import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
+import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
+import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
+import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
@@ -13,11 +19,10 @@ import { AllocationManager } from "../utilities/AllocationManager.sol";
 library AllocationManagerLib {
     using ProvisionTracker for mapping(address => uint256);
     using Allocation for mapping(address => Allocation.State);
+    using Allocation for Allocation.State;
     using LegacyAllocation for mapping(address => LegacyAllocation.State);
-
-    ///@dev EIP712 typehash for allocation id proof
-    bytes32 private constant EIP712_ALLOCATION_ID_PROOF_TYPEHASH =
-        keccak256("AllocationIdProof(address indexer,address allocationId)");
+    using PPMMath for uint256;
+    using TokenUtils for IGraphToken;
 
     struct AllocateParams {
         uint256 currentEpoch;
@@ -31,6 +36,23 @@ library AllocationManagerLib {
         bytes _allocationProof;
         uint32 _delegationRatio;
     }
+
+    struct PresentParams {
+        uint256 maxPOIStaleness;
+        IEpochManager graphEpochManager;
+        IHorizonStaking graphStaking;
+        IRewardsManager graphRewardsManager;
+        IGraphToken graphToken;
+        address _allocationId;
+        bytes32 _poi;
+        bytes _poiMetadata;
+        uint32 _delegationRatio;
+        address _paymentsDestination;
+    }
+
+    ///@dev EIP712 typehash for allocation id proof
+    bytes32 private constant EIP712_ALLOCATION_ID_PROOF_TYPEHASH =
+        keccak256("AllocationIdProof(address indexer,address allocationId)");
 
     /**
      * @notice Create an allocation
@@ -83,6 +105,173 @@ library AllocationManagerLib {
             allocation.tokens,
             params.currentEpoch
         );
+    }
+
+    function presentPOI(
+        mapping(address allocationId => Allocation.State allocation) storage _allocations,
+        mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
+        mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
+        PresentParams memory params
+    ) external returns (uint256) {
+        Allocation.State memory allocation = _allocations.get(params._allocationId);
+        require(allocation.isOpen(), AllocationManager.AllocationManagerAllocationClosed(params._allocationId));
+
+        // Mint indexing rewards if all conditions are met
+        uint256 tokensRewards = (!allocation.isStale(params.maxPOIStaleness) &&
+            !allocation.isAltruistic() &&
+            params._poi != bytes32(0)) && params.graphEpochManager.currentEpoch() > allocation.createdAtEpoch
+            ? params.graphRewardsManager.takeRewards(params._allocationId)
+            : 0;
+
+        // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
+        _allocations.snapshotRewards(
+            params._allocationId,
+            params.graphRewardsManager.onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
+        );
+        _allocations.presentPOI(params._allocationId);
+
+        // Any pending rewards should have been collected now
+        _allocations.clearPendingRewards(params._allocationId);
+
+        uint256 tokensIndexerRewards = 0;
+        uint256 tokensDelegationRewards = 0;
+        if (tokensRewards != 0) {
+            // Distribute rewards to delegators
+            uint256 delegatorCut = params.graphStaking.getDelegationFeeCut(
+                allocation.indexer,
+                address(this),
+                IGraphPayments.PaymentTypes.IndexingRewards
+            );
+            IHorizonStakingTypes.DelegationPool memory delegationPool = params.graphStaking.getDelegationPool(
+                allocation.indexer,
+                address(this)
+            );
+            // If delegation pool has no shares then we don't need to distribute rewards to delegators
+            tokensDelegationRewards = delegationPool.shares > 0 ? tokensRewards.mulPPM(delegatorCut) : 0;
+            if (tokensDelegationRewards > 0) {
+                params.graphToken.approve(address(params.graphStaking), tokensDelegationRewards);
+                params.graphStaking.addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
+            }
+
+            // Distribute rewards to indexer
+            tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
+            if (tokensIndexerRewards > 0) {
+                if (params._paymentsDestination == address(0)) {
+                    params.graphToken.approve(address(params.graphStaking), tokensIndexerRewards);
+                    params.graphStaking.stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
+                } else {
+                    params.graphToken.pushTokens(params._paymentsDestination, tokensIndexerRewards);
+                }
+            }
+        }
+
+        emit AllocationManager.IndexingRewardsCollected(
+            allocation.indexer,
+            params._allocationId,
+            allocation.subgraphDeploymentId,
+            tokensRewards,
+            tokensIndexerRewards,
+            tokensDelegationRewards,
+            params._poi,
+            params._poiMetadata,
+            params.graphEpochManager.currentEpoch()
+        );
+
+        // Check if the indexer is over-allocated and force close the allocation if necessary
+        if (
+            _isOverAllocated(
+                allocationProvisionTracker,
+                params.graphStaking,
+                allocation.indexer,
+                params._delegationRatio
+            )
+        ) {
+            _closeAllocation(
+                _allocations,
+                allocationProvisionTracker,
+                _subgraphAllocatedTokens,
+                params.graphRewardsManager,
+                params._allocationId,
+                true
+            );
+        }
+
+        return tokensRewards;
+    }
+
+    function closeAllocation(
+        mapping(address allocationId => Allocation.State allocation) storage _allocations,
+        mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
+        mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
+        IRewardsManager graphRewardsManager,
+        address _allocationId,
+        bool _forceClosed
+    ) external {
+        _closeAllocation(
+            _allocations,
+            allocationProvisionTracker,
+            _subgraphAllocatedTokens,
+            graphRewardsManager,
+            _allocationId,
+            _forceClosed
+        );
+    }
+
+    /**
+     * @notice Checks if an allocation is over-allocated
+     * @param _indexer The address of the indexer
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @return True if the allocation is over-allocated, false otherwise
+     */
+    function isOverAllocated(
+        mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
+        IHorizonStaking graphStaking,
+        address _indexer,
+        uint32 _delegationRatio
+    ) external view returns (bool) {
+        return _isOverAllocated(allocationProvisionTracker, graphStaking, _indexer, _delegationRatio);
+    }
+
+    function _closeAllocation(
+        mapping(address allocationId => Allocation.State allocation) storage _allocations,
+        mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
+        mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
+        IRewardsManager graphRewardsManager,
+        address _allocationId,
+        bool _forceClosed
+    ) private {
+        Allocation.State memory allocation = _allocations.get(_allocationId);
+
+        // Take rewards snapshot to prevent other allos from counting tokens from this allo
+        _allocations.snapshotRewards(
+            _allocationId,
+            graphRewardsManager.onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
+        );
+
+        _allocations.close(_allocationId);
+        allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
+
+        // Update total allocated tokens for the subgraph deployment
+        _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
+            allocation.tokens;
+
+        emit AllocationManager.AllocationClosed(
+            allocation.indexer,
+            _allocationId,
+            allocation.subgraphDeploymentId,
+            allocation.tokens,
+            _forceClosed
+        );
+    }
+
+    function _isOverAllocated(
+        mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
+        IHorizonStaking graphStaking,
+        address _indexer,
+        uint32 _delegationRatio
+    ) private view returns (bool) {
+        return !allocationProvisionTracker.check(graphStaking, _indexer, _delegationRatio);
     }
 
     /**
