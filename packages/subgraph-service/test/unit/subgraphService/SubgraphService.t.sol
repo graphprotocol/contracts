@@ -205,7 +205,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         uint256 paymentCollected = 0;
         address allocationId;
         IndexingRewardsData memory indexingRewardsData;
-        CollectPaymentData memory collectPaymentDataBefore = _collectPaymentDataBefore(_indexer);
+        CollectPaymentData memory collectPaymentDataBefore = _collectPaymentData(_indexer);
 
         if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
             paymentCollected = _handleQueryFeeCollection(_indexer, _data);
@@ -219,7 +219,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         // collect rewards
         subgraphService.collect(_indexer, _paymentType, _data);
 
-        CollectPaymentData memory collectPaymentDataAfter = _collectPaymentDataAfter(_indexer);
+        CollectPaymentData memory collectPaymentDataAfter = _collectPaymentData(_indexer);
 
         if (_paymentType == IGraphPayments.PaymentTypes.QueryFee) {
             _verifyQueryFeeCollection(
@@ -240,42 +240,24 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         }
     }
 
-    function _collectPaymentDataBefore(address _indexer) private view returns (CollectPaymentData memory) {
+    function _collectPaymentData(
+        address _indexer
+    ) internal view returns (CollectPaymentData memory collectPaymentData) {
         address paymentsDestination = subgraphService.paymentsDestination(_indexer);
-        CollectPaymentData memory collectPaymentDataBefore;
-        collectPaymentDataBefore.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
-        collectPaymentDataBefore.indexerProvisionBalance = staking.getProviderTokensAvailable(
+        collectPaymentData.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
+        collectPaymentData.indexerProvisionBalance = staking.getProviderTokensAvailable(
             _indexer,
             address(subgraphService)
         );
-        collectPaymentDataBefore.delegationPoolBalance = staking.getDelegatedTokensAvailable(
+        collectPaymentData.delegationPoolBalance = staking.getDelegatedTokensAvailable(
             _indexer,
             address(subgraphService)
         );
-        collectPaymentDataBefore.indexerBalance = token.balanceOf(_indexer);
-        collectPaymentDataBefore.curationBalance = token.balanceOf(address(curation));
-        collectPaymentDataBefore.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
-        collectPaymentDataBefore.indexerStake = staking.getStake(_indexer);
-        return collectPaymentDataBefore;
-    }
-
-    function _collectPaymentDataAfter(address _indexer) private view returns (CollectPaymentData memory) {
-        CollectPaymentData memory collectPaymentDataAfter;
-        address paymentsDestination = subgraphService.paymentsDestination(_indexer);
-        collectPaymentDataAfter.rewardsDestinationBalance = token.balanceOf(paymentsDestination);
-        collectPaymentDataAfter.indexerProvisionBalance = staking.getProviderTokensAvailable(
-            _indexer,
-            address(subgraphService)
-        );
-        collectPaymentDataAfter.delegationPoolBalance = staking.getDelegatedTokensAvailable(
-            _indexer,
-            address(subgraphService)
-        );
-        collectPaymentDataAfter.indexerBalance = token.balanceOf(_indexer);
-        collectPaymentDataAfter.curationBalance = token.balanceOf(address(curation));
-        collectPaymentDataAfter.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
-        collectPaymentDataAfter.indexerStake = staking.getStake(_indexer);
-        return collectPaymentDataAfter;
+        collectPaymentData.indexerBalance = token.balanceOf(_indexer);
+        collectPaymentData.curationBalance = token.balanceOf(address(curation));
+        collectPaymentData.lockedTokens = subgraphService.feesProvisionTracker(_indexer);
+        collectPaymentData.indexerStake = staking.getStake(_indexer);
+        return collectPaymentData;
     }
 
     function _handleQueryFeeCollection(
@@ -381,7 +363,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         CollectPaymentData memory collectPaymentDataBefore,
         CollectPaymentData memory collectPaymentDataAfter
     ) private view {
-        (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+        (IGraphTallyCollector.SignedRAV memory signedRav, ) = abi.decode(
             _data,
             (IGraphTallyCollector.SignedRAV, uint256)
         );

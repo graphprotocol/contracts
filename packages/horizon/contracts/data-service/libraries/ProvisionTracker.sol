@@ -73,7 +73,7 @@ library ProvisionTracker {
         IHorizonStaking graphStaking,
         address serviceProvider,
         uint32 delegationRatio
-    ) internal view returns (bool) {
+    ) external view returns (bool) {
         uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
         return self[serviceProvider] <= tokensAvailable;
     }
