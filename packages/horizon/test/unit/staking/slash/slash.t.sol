@@ -162,11 +162,18 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         );
     }
 
-    function testSlash_RoundDown_TokensThawing_Delegation(
-        uint256 tokens,
-        uint256 delegationTokensToSlash,
-        uint256 delegationTokensToUndelegate
-    ) public useIndexer useProvision(tokens, MAX_PPM, 0) useDelegationSlashing {
+    function testSlash_RoundDown_TokensThawing_Delegation()
+        public
+        // uint256 tokens,
+        // uint256 delegationTokensToSlash,
+        // uint256 delegationTokensToUndelegate
+        useIndexer
+        useProvision(48262, MAX_PPM, 0)
+        useDelegationSlashing
+    {
+        uint256 tokens = 48262;
+        uint256 delegationTokensToSlash = 1569042458641;
+        uint256 delegationTokensToUndelegate = 9952826524324002450;
         uint256 delegationTokens = 10 ether;
 
         vm.assume(delegationTokensToSlash <= delegationTokens);
