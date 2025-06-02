@@ -1,5 +1,13 @@
 # @graphprotocol/toolshed
 
+## 0.5.3
+
+### Patch Changes
+
+- Add encodeStopServiceData helper
+  - @graphprotocol/horizon@0.3.3
+  - @graphprotocol/subgraph-service@0.3.5
+
 ## 0.5.1
 
 ### Patch Changes

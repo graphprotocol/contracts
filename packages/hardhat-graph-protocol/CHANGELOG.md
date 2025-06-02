@@ -1,5 +1,12 @@
 # hardhat-graph-protocol
 
+## 0.1.20
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/toolshed@0.5.3
+
 ## 0.1.19
 
 ### Patch Changes
