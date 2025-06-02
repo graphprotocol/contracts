@@ -9,6 +9,7 @@ import type {
   L2GNS,
   LegacyDisputeManager,
   LegacyServiceRegistry,
+  SubgraphNFT,
 } from './types'
 import type { ContractList } from '../contract'
 
@@ -49,7 +50,7 @@ export interface SubgraphServiceContracts extends ContractList<SubgraphServiceCo
   // @graphprotocol/contracts
   L2Curation: L2Curation
   L2GNS: L2GNS
-  // SubgraphNFT: SubgraphNFT
+  SubgraphNFT: SubgraphNFT
 
   // @graphprotocol/subgraph-service
   SubgraphService: SubgraphService

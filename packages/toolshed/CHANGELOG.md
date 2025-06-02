@@ -1,5 +1,13 @@
 # @graphprotocol/toolshed
 
+## 0.5.5
+
+### Patch Changes
+
+- Properly address type issues
+  - @graphprotocol/horizon@0.3.3
+  - @graphprotocol/subgraph-service@0.3.5
+
 ## 0.5.4
 
 ### Patch Changes
