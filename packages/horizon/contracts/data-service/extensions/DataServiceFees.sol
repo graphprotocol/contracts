@@ -42,24 +42,6 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _unlockTimestamp The timestamp when the tokens can be released
      */
     function _lockStake(address _serviceProvider, uint256 _tokens, uint256 _unlockTimestamp) internal {
-        // require(_tokens != 0, DataServiceFeesZeroTokens());
-        // feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, _delegationRatio);
-
-        // LinkedList.List storage claimsList = claimsLists[_serviceProvider];
-
-        // // Save item and add to list
-        // bytes32 claimId = _buildStakeClaimId(_serviceProvider, claimsList.nonce);
-        // claims[claimId] = StakeClaim({
-        //     tokens: _tokens,
-        //     createdAt: block.timestamp,
-        //     releasableAt: _unlockTimestamp,
-        //     nextClaim: bytes32(0)
-        // });
-        // if (claimsList.count != 0) claims[claimsList.tail].nextClaim = claimId;
-        // claimsList.addTail(claimId);
-
-        // emit StakeClaimLocked(_serviceProvider, claimId, _tokens, _unlockTimestamp);
-
         DataServiceFeesLib.lockStake(
             _delegationRatio,
             feesProvisionTracker,
@@ -104,24 +86,6 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @return The updated accumulator data
      */
     function _processStakeClaim(bytes32 _claimId, bytes memory _acc) private returns (bool, bytes memory) {
-        // StakeClaim memory claim = _getStakeClaim(_claimId);
-
-        // // early exit
-        // if (claim.releasableAt > block.timestamp) {
-        //     return (true, LinkedList.NULL_BYTES);
-        // }
-
-        // // decode
-        // (uint256 tokensClaimed, address serviceProvider) = abi.decode(_acc, (uint256, address));
-
-        // // process
-        // feesProvisionTracker.release(serviceProvider, claim.tokens);
-        // emit StakeClaimReleased(serviceProvider, _claimId, claim.tokens, claim.releasableAt);
-
-        // // encode
-        // _acc = abi.encode(tokensClaimed + claim.tokens, serviceProvider);
-        // return (false, _acc);
-
         return DataServiceFeesLib.processStakeClaim(feesProvisionTracker, claims, _claimId, _acc);
     }
 
@@ -134,17 +98,6 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         delete claims[_claimId];
     }
 
-    // /**
-    //  * @notice Gets the details of a stake claim
-    //  * @param _claimId The ID of the stake claim
-    //  * @return The stake claim details
-    //  */
-    // function _getStakeClaim(bytes32 _claimId) private view returns (StakeClaim memory) {
-    //     StakeClaim memory claim = claims[_claimId];
-    //     require(claim.createdAt != 0, DataServiceFeesClaimNotFound(_claimId));
-    //     return claim;
-    // }
-
     /**
      * @notice Gets the next stake claim in the linked list
      * @dev This function is used as a callback in the stake claims linked list traversal.
@@ -154,8 +107,4 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
     function _getNextStakeClaim(bytes32 _claimId) private view returns (bytes32) {
         return claims[_claimId].nextClaim;
     }
-
-    // function _buildStakeClaimId(address serviceProvider, uint256 nonce) private view returns (bytes32) {
-    //     return keccak256(abi.encodePacked(address(this), serviceProvider, nonce));
-    // }
 }

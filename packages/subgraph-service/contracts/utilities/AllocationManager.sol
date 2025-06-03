@@ -203,35 +203,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         bytes memory _allocationProof,
         uint32 _delegationRatio
     ) internal {
-        // require(_allocationId != address(0), AllocationManagerInvalidZeroAllocationId());
-
-        // _verifyAllocationProof(_indexer, _allocationId, _allocationProof);
-
-        // // Ensure allocation id is not reused
-        // // need to check both subgraph service (on allocations.create()) and legacy allocations
-        // _legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
-
-        // uint256 currentEpoch = _graphEpochManager().currentEpoch();
-        // Allocation.State memory allocation = _allocations.create(
-        //     _indexer,
-        //     _allocationId,
-        //     _subgraphDeploymentId,
-        //     _tokens,
-        //     _graphRewardsManager().onSubgraphAllocationUpdate(_subgraphDeploymentId),
-        //     currentEpoch
-        // );
-
-        // // Check that the indexer has enough tokens available
-        // // Note that the delegation ratio ensures overdelegation cannot be used
-        // allocationProvisionTracker.lock(_graphStaking(), _indexer, _tokens, _delegationRatio);
-
-        // // Update total allocated tokens for the subgraph deployment
-        // _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-        //     _subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
-        //     allocation.tokens;
-
-        // emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens, currentEpoch);
-
         AllocationManagerLib.allocate(
             _allocations,
             _legacyAllocations,
@@ -286,77 +257,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint32 _delegationRatio,
         address _paymentsDestination
     ) internal returns (uint256) {
-        // Allocation.State memory allocation = _allocations.get(_allocationId);
-        // require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
-
-        // // Mint indexing rewards if all conditions are met
-        // uint256 tokensRewards = (!allocation.isStale(maxPOIStaleness) &&
-        //     !allocation.isAltruistic() &&
-        //     _poi != bytes32(0)) && _graphEpochManager().currentEpoch() > allocation.createdAtEpoch
-        //     ? _graphRewardsManager().takeRewards(_allocationId)
-        //     : 0;
-
-        // // ... but we still take a snapshot to ensure the rewards are not accumulated for the next valid POI
-        // _allocations.snapshotRewards(
-        //     _allocationId,
-        //     _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
-        // );
-        // _allocations.presentPOI(_allocationId);
-
-        // // Any pending rewards should have been collected now
-        // _allocations.clearPendingRewards(_allocationId);
-
-        // uint256 tokensIndexerRewards = 0;
-        // uint256 tokensDelegationRewards = 0;
-        // if (tokensRewards != 0) {
-        //     // Distribute rewards to delegators
-        //     uint256 delegatorCut = _graphStaking().getDelegationFeeCut(
-        //         allocation.indexer,
-        //         address(this),
-        //         IGraphPayments.PaymentTypes.IndexingRewards
-        //     );
-        //     IHorizonStakingTypes.DelegationPool memory delegationPool = _graphStaking().getDelegationPool(
-        //         allocation.indexer,
-        //         address(this)
-        //     );
-        //     // If delegation pool has no shares then we don't need to distribute rewards to delegators
-        //     tokensDelegationRewards = delegationPool.shares > 0 ? tokensRewards.mulPPM(delegatorCut) : 0;
-        //     if (tokensDelegationRewards > 0) {
-        //         _graphToken().approve(address(_graphStaking()), tokensDelegationRewards);
-        //         _graphStaking().addToDelegationPool(allocation.indexer, address(this), tokensDelegationRewards);
-        //     }
-
-        //     // Distribute rewards to indexer
-        //     tokensIndexerRewards = tokensRewards - tokensDelegationRewards;
-        //     if (tokensIndexerRewards > 0) {
-        //         if (_paymentsDestination == address(0)) {
-        //             _graphToken().approve(address(_graphStaking()), tokensIndexerRewards);
-        //             _graphStaking().stakeToProvision(allocation.indexer, address(this), tokensIndexerRewards);
-        //         } else {
-        //             _graphToken().pushTokens(_paymentsDestination, tokensIndexerRewards);
-        //         }
-        //     }
-        // }
-
-        // emit IndexingRewardsCollected(
-        //     allocation.indexer,
-        //     _allocationId,
-        //     allocation.subgraphDeploymentId,
-        //     tokensRewards,
-        //     tokensIndexerRewards,
-        //     tokensDelegationRewards,
-        //     _poi,
-        //     _poiMetadata,
-        //     _graphEpochManager().currentEpoch()
-        // );
-
-        // // Check if the indexer is over-allocated and force close the allocation if necessary
-        // if (_isOverAllocated(allocation.indexer, _delegationRatio)) {
-        //     _closeAllocation(_allocationId, true);
-        // }
-
-        // return tokensRewards;
-
         return
             AllocationManagerLib.presentPOI(
                 _allocations,
@@ -446,30 +346,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _forceClosed Whether the allocation was force closed
      */
     function _closeAllocation(address _allocationId, bool _forceClosed) internal {
-        // Allocation.State memory allocation = _allocations.get(_allocationId);
-
-        // // Take rewards snapshot to prevent other allos from counting tokens from this allo
-        // _allocations.snapshotRewards(
-        //     _allocationId,
-        //     _graphRewardsManager().onSubgraphAllocationUpdate(allocation.subgraphDeploymentId)
-        // );
-
-        // _allocations.close(_allocationId);
-        // allocationProvisionTracker.release(allocation.indexer, allocation.tokens);
-
-        // // Update total allocated tokens for the subgraph deployment
-        // _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-        //     _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
-        //     allocation.tokens;
-
-        // emit AllocationClosed(
-        //     allocation.indexer,
-        //     _allocationId,
-        //     allocation.subgraphDeploymentId,
-        //     allocation.tokens,
-        //     _forceClosed
-        // );
-
         AllocationManagerLib.closeAllocation(
             _allocations,
             allocationProvisionTracker,
