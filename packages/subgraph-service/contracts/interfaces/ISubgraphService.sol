@@ -260,6 +260,14 @@ interface ISubgraphService is IDataServiceFees {
     function setPaymentsDestination(address paymentsDestination) external;
 
     /**
+     * @notice Accept an indexing agreement.
+     * @dev Emits a {IndexingAgreement.IndexingAgreementAccepted} event
+     * @param allocationId The id of the allocation
+     * @param signedRCA The signed recurring collector agreement (RCA) that the indexer accepts
+     */
+    function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
+
+    /**
      * @notice Gets the details of an allocation
      * For legacy allocations use {getLegacyAllocation}
      * @param allocationId The id of the allocation
@@ -307,9 +315,4 @@ interface ISubgraphService is IDataServiceFees {
      * @return The address of the curation contract
      */
     function getCuration() external view returns (address);
-
-    /**
-     * @notice Accept an indexing agreement.
-     */
-    function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
 }

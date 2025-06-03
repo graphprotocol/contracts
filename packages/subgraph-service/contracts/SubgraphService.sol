@@ -60,10 +60,6 @@ contract SubgraphService is
         _;
     }
 
-    function requireRegisteredIndexer(address indexer) external view {
-        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
-    }
-
     /**
      * @notice Constructor for the SubgraphService contract
      * @dev DataService and Directory constructors set a bunch of immutable variables
@@ -102,6 +98,35 @@ contract SubgraphService is
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
         _setDelegationRatio(maximumDelegationRatio);
         _setStakeToFeesRatio(stakeToFeesRatio_);
+    }
+
+    /**
+     * @notice Delegates the call to the SubgraphServiceExtension implementation.
+     * @dev This function does not return to its internal call site, it will return directly to the
+     * external caller.
+     */
+    // solhint-disable-next-line payable-fallback, no-complex-fallback
+    fallback() external {
+        address extImpl = _subgraphServiceExtensionImpl();
+        require(extImpl != address(0), "only through proxy");
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            // copy function selector and any arguments
+            calldatacopy(0, 0, calldatasize())
+            // execute function call using the extension implementation
+            let result := delegatecall(gas(), extImpl, 0, calldatasize(), 0, 0)
+            // get any return value
+            returndatacopy(0, 0, returndatasize())
+            // return any return value or error back to the caller
+            switch result
+            case 0 {
+                revert(0, returndatasize())
+            }
+            default {
+                return(0, returndatasize())
+            }
+        }
     }
 
     /**
@@ -393,6 +418,44 @@ contract SubgraphService is
         emit CurationCutSet(curationCut);
     }
 
+    /**
+     * @notice Accept an indexing agreement.
+     * See {ISubgraphService.acceptIndexingAgreement}.
+     *
+     * Requirements:
+     * - The agreement's indexer must be registered
+     * - The caller must be authorized by the agreement's indexer
+     * - The provision must be valid according to the subgraph service rules
+     * - Allocation must belong to the indexer and be open
+     * - Agreement must be for this data service
+     * - Agreement's subgraph deployment must match the allocation's subgraph deployment
+     * - Agreement must not have been accepted before
+     * - Allocation must not have an agreement already
+     *
+     * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
+     *
+     * Emits {IndexingAgreementAccepted} event
+     *
+     * @param allocationId The id of the allocation
+     * @param signedRCA The signed Recurring Collection Agreement
+     */
+    function acceptIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.SignedRCA calldata signedRCA
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(signedRCA.rca.serviceProvider)
+        onlyValidProvision(signedRCA.rca.serviceProvider)
+        onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
+    {
+        IndexingAgreement._getManager().accept(_allocations, allocationId, signedRCA);
+    }
+
+    function requireRegisteredIndexer(address indexer) external view {
+        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
+    }
+
     /// @inheritdoc ISubgraphService
     function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
         return _allocations[allocationId];
@@ -446,6 +509,14 @@ contract SubgraphService is
     /// @inheritdoc ISubgraphService
     function isOverAllocated(address indexer) external view override returns (bool) {
         return _isOverAllocated(indexer, _delegationRatio);
+    }
+
+    function getGraphStaking() external view returns (address) {
+        return address(_graphStaking());
+    }
+
+    function _cancelAllocationIndexingAgreement(address _allocationId) internal {
+        IndexingAgreement._getManager().cancelForAllocation(_allocationId);
     }
 
     /**
@@ -602,68 +673,6 @@ contract SubgraphService is
     }
 
     /**
-     * @notice Set the stake to fees ratio.
-     * @param _stakeToFeesRatio The stake to fees ratio
-     */
-    function _setStakeToFeesRatio(uint256 _stakeToFeesRatio) private {
-        require(_stakeToFeesRatio != 0, SubgraphServiceInvalidZeroStakeToFeesRatio());
-        stakeToFeesRatio = _stakeToFeesRatio;
-        emit StakeToFeesRatioSet(_stakeToFeesRatio);
-    }
-
-    /**
-     * @notice Encodes the data for the GraphTallyCollector
-     * @dev The purpose of this function is just to avoid stack too deep errors
-     * @param _signedRav The signed RAV
-     * @param _curationCut The curation cut
-     * @return The encoded data
-     */
-    function _encodeGraphTallyData(
-        IGraphTallyCollector.SignedRAV memory _signedRav,
-        uint256 _curationCut
-    ) private view returns (bytes memory) {
-        return abi.encode(_signedRav, _curationCut, paymentsDestination[_signedRav.rav.serviceProvider]);
-    }
-
-    function _cancelAllocationIndexingAgreement(address _allocationId) internal {
-        IndexingAgreement._getManager().cancelForAllocation(_allocationId);
-    }
-
-    /**
-     * @notice Accept an indexing agreement.
-     * See {ISubgraphService.acceptIndexingAgreement}.
-     *
-     * Requirements:
-     * - The agreement's indexer must be registered
-     * - The caller must be authorized by the agreement's indexer
-     * - The provision must be valid according to the subgraph service rules
-     * - Allocation must belong to the indexer and be open
-     * - Agreement must be for this data service
-     * - Agreement's subgraph deployment must match the allocation's subgraph deployment
-     * - Agreement must not have been accepted before
-     * - Allocation must not have an agreement already
-     *
-     * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
-     *
-     * Emits {IndexingAgreementAccepted} event
-     *
-     * @param allocationId The id of the allocation
-     * @param signedRCA The signed Recurring Collection Agreement
-     */
-    function acceptIndexingAgreement(
-        address allocationId,
-        IRecurringCollector.SignedRCA calldata signedRCA
-    )
-        external
-        whenNotPaused
-        onlyAuthorizedForProvision(signedRCA.rca.serviceProvider)
-        onlyValidProvision(signedRCA.rca.serviceProvider)
-        onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
-    {
-        IndexingAgreement._getManager().accept(_allocations, allocationId, signedRCA);
-    }
-
-    /**
      * @notice Collect Indexing fees
      * Stake equal to the amount being collected times the `stakeToFeesRatio` is locked into a stake claim.
      * This claim can be released at a later stage once expired.
@@ -702,6 +711,16 @@ contract SubgraphService is
         return tokensCollected;
     }
 
+    /**
+     * @notice Set the stake to fees ratio.
+     * @param _stakeToFeesRatio The stake to fees ratio
+     */
+    function _setStakeToFeesRatio(uint256 _stakeToFeesRatio) private {
+        require(_stakeToFeesRatio != 0, SubgraphServiceInvalidZeroStakeToFeesRatio());
+        stakeToFeesRatio = _stakeToFeesRatio;
+        emit StakeToFeesRatioSet(_stakeToFeesRatio);
+    }
+
     function _releaseAndLockStake(address _indexer, uint256 _tokensCollected) private {
         _releaseStake(_indexer, 0);
         if (_tokensCollected > 0) {
@@ -714,36 +733,17 @@ contract SubgraphService is
         }
     }
 
-    function getGraphStaking() external view returns (address) {
-        return address(_graphStaking());
-    }
-
     /**
-     * @notice Delegates the call to the SubgraphServiceExtension implementation.
-     * @dev This function does not return to its internal call site, it will return directly to the
-     * external caller.
+     * @notice Encodes the data for the GraphTallyCollector
+     * @dev The purpose of this function is just to avoid stack too deep errors
+     * @param _signedRav The signed RAV
+     * @param _curationCut The curation cut
+     * @return The encoded data
      */
-    // solhint-disable-next-line payable-fallback, no-complex-fallback
-    fallback() external {
-        address extImpl = _subgraphServiceExtensionImpl();
-        require(extImpl != address(0), "only through proxy");
-
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            // copy function selector and any arguments
-            calldatacopy(0, 0, calldatasize())
-            // execute function call using the extension implementation
-            let result := delegatecall(gas(), extImpl, 0, calldatasize(), 0, 0)
-            // get any return value
-            returndatacopy(0, 0, returndatasize())
-            // return any return value or error back to the caller
-            switch result
-            case 0 {
-                revert(0, returndatasize())
-            }
-            default {
-                return(0, returndatasize())
-            }
-        }
+    function _encodeGraphTallyData(
+        IGraphTallyCollector.SignedRAV memory _signedRav,
+        uint256 _curationCut
+    ) private view returns (bytes memory) {
+        return abi.encode(_signedRav, _curationCut, paymentsDestination[_signedRav.rav.serviceProvider]);
     }
 }

@@ -1,6 +1,5 @@
 # Still pending
 
-* Remove linter warnings
 * Remove extension if I can fit everything in one service?
 * `require(provision.tokens != 0, DisputeManagerZeroTokens());` - Document or fix?
 * Check code coverage

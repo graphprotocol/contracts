@@ -10,20 +10,12 @@ library DataServiceFeesLib {
     using ProvisionTracker for mapping(address => uint256);
     using LinkedList for LinkedList.List;
 
-    /**
-     * @notice Builds a stake claim ID
-     * @param serviceProvider The address of the service provider
-     * @param nonce A nonce of the stake claim
-     * @return The stake claim ID
-     */
-    function _buildStakeClaimId(address serviceProvider, uint256 nonce) internal view returns (bytes32) {
-        return keccak256(abi.encodePacked(address(this), serviceProvider, nonce));
-    }
-
+    // @notice Storage structure for the data service fees library
     struct Storage {
         ProvisionManagerStorage provisionManagerStorage;
     }
 
+    // @notice Storage structure for the provision manager
     struct ProvisionManagerStorage {
         uint256 _minimumProvisionTokens;
         uint256 _maximumProvisionTokens;
@@ -75,6 +67,12 @@ library DataServiceFeesLib {
         emit IDataServiceFees.StakeClaimLocked(_serviceProvider, claimId, _tokens, _unlockTimestamp);
     }
 
+    /**
+     * @notice Processes a stake claim, releasing the tokens if the claim has expired.
+     * @dev This function is used as a callback in the stake claims linked list traversal.
+     * @return Whether the stake claim is still locked, indicating that the traversal should continue or stop.
+     * @return The updated accumulator data
+     */
     function processStakeClaim(
         mapping(address serviceProvider => uint256 tokens) storage feesProvisionTracker,
         mapping(bytes32 claimId => IDataServiceFees.StakeClaim claim) storage claims,
@@ -99,5 +97,15 @@ library DataServiceFeesLib {
         // encode
         _acc = abi.encode(tokensClaimed + claim.tokens, serviceProvider);
         return (false, _acc);
+    }
+
+    /**
+     * @notice Builds a stake claim ID
+     * @param serviceProvider The address of the service provider
+     * @param nonce A nonce of the stake claim
+     * @return The stake claim ID
+     */
+    function _buildStakeClaimId(address serviceProvider, uint256 nonce) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(address(this), serviceProvider, nonce));
     }
 }

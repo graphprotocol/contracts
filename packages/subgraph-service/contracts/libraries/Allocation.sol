@@ -111,24 +111,6 @@ library Allocation {
     }
 
     /**
-     * @notice Update the accumulated rewards per allocated token for an allocation
-     * @dev Requirements:
-     * - The allocation must be open
-     * @param self The allocation list mapping
-     * @param allocationId The allocation id
-     * @param accRewardsPerAllocatedToken The new accumulated rewards per allocated token
-     */
-    function snapshotRewards(
-        mapping(address => State) storage self,
-        address allocationId,
-        uint256 accRewardsPerAllocatedToken
-    ) internal {
-        State storage allocation = _get(self, allocationId);
-        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
-        allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-    }
-
-    /**
      * @notice Update the accumulated rewards pending to be claimed for an allocation
      * @dev Requirements:
      * - The allocation must be open
@@ -152,6 +134,24 @@ library Allocation {
         State storage allocation = _get(self, allocationId);
         require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.closedAt = block.timestamp;
+    }
+
+    /**
+     * @notice Update the accumulated rewards per allocated token for an allocation
+     * @dev Requirements:
+     * - The allocation must be open
+     * @param self The allocation list mapping
+     * @param allocationId The allocation id
+     * @param accRewardsPerAllocatedToken The new accumulated rewards per allocated token
+     */
+    function snapshotRewards(
+        mapping(address => State) storage self,
+        address allocationId,
+        uint256 accRewardsPerAllocatedToken
+    ) internal {
+        State storage allocation = _get(self, allocationId);
+        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
+        allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
     }
 
     /**
