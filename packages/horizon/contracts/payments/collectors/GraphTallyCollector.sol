@@ -102,7 +102,10 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
         bytes calldata _data,
         uint256 _tokensToCollect
     ) private returns (uint256) {
-        (SignedRAV memory signedRAV, uint256 dataServiceCut, address receiverDestination) = abi.decode(_data, (SignedRAV, uint256, address));
+        (SignedRAV memory signedRAV, uint256 dataServiceCut, address receiverDestination) = abi.decode(
+            _data,
+            (SignedRAV, uint256, address)
+        );
 
         // Ensure caller is the RAV data service
         require(
@@ -153,7 +156,15 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
 
         if (tokensToCollect > 0) {
             tokensCollected[dataService][collectionId][receiver][signedRAV.rav.payer] += tokensToCollect;
-            _graphPaymentsEscrow().collect(_paymentType, signedRAV.rav.payer, receiver, tokensToCollect, dataService, dataServiceCut, receiverDestination);
+            _graphPaymentsEscrow().collect(
+                _paymentType,
+                signedRAV.rav.payer,
+                receiver,
+                tokensToCollect,
+                dataService,
+                dataServiceCut,
+                receiverDestination
+            );
         }
 
         emit PaymentCollected(_paymentType, collectionId, signedRAV.rav.payer, receiver, dataService, tokensToCollect);

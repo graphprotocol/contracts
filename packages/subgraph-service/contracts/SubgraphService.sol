@@ -425,6 +425,17 @@ contract SubgraphService is
         return _isOverAllocated(indexer, _delegationRatio);
     }
 
+    /**
+     * @notice Sets the payments destination for an indexer to receive payments
+     * @dev Emits a {PaymentsDestinationSet} event
+     * @param _indexer The address of the indexer
+     * @param _paymentsDestination The address where payments should be sent
+     */
+    function _setPaymentsDestination(address _indexer, address _paymentsDestination) internal {
+        paymentsDestination[_indexer] = _paymentsDestination;
+        emit PaymentsDestinationSet(_indexer, _paymentsDestination);
+    }
+
     // -- Data service parameter getters --
     /**
      * @notice Getter for the accepted thawing period range for provisions
@@ -470,21 +481,21 @@ contract SubgraphService is
      * Emits a {StakeClaimLocked} event.
      * Emits a {QueryFeesCollected} event.
      *
-     * @param indexer The address of the indexer
-     * @param data Encoded data:
+     * @param _indexer The address of the indexer
+     * @param _data Encoded data:
      *    - IGraphTallyCollector.SignedRAV `signedRav`: The signed RAV
      *    - uint256 `tokensToCollect`: The amount of tokens to collect. Allows partially collecting a RAV. If 0, the entire RAV will
      * be collected.
      * @return The amount of fees collected
      */
-    function _collectQueryFees(address indexer, bytes calldata data) private returns (uint256) {
+    function _collectQueryFees(address _indexer, bytes calldata _data) private returns (uint256) {
         (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
-            data,
+            _data,
             (IGraphTallyCollector.SignedRAV, uint256)
         );
         require(
-            signedRav.rav.serviceProvider == indexer,
-            SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, indexer)
+            signedRav.rav.serviceProvider == _indexer,
+            SubgraphServiceIndexerMismatch(signedRav.rav.serviceProvider, _indexer)
         );
 
         // Check that collectionId (256 bits) is a valid address (160 bits)
@@ -497,11 +508,11 @@ contract SubgraphService is
         Allocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer
-        require(allocation.indexer == indexer, SubgraphServiceInvalidRAV(indexer, allocation.indexer));
+        require(allocation.indexer == _indexer, SubgraphServiceInvalidRAV(_indexer, allocation.indexer));
         bytes32 subgraphDeploymentId = allocation.subgraphDeploymentId;
 
         // release expired stake claims
-        _releaseStake(indexer, 0);
+        _releaseStake(_indexer, 0);
 
         // Collect from GraphPayments - only curators cut is sent back to the subgraph service
         uint256 tokensCollected;
@@ -523,7 +534,7 @@ contract SubgraphService is
         if (tokensCollected > 0) {
             // lock stake as economic security for fees
             _lockStake(
-                indexer,
+                _indexer,
                 tokensCollected * stakeToFeesRatio,
                 block.timestamp + _disputeManager().getDisputePeriod()
             );
@@ -539,7 +550,7 @@ contract SubgraphService is
         }
 
         emit QueryFeesCollected(
-            indexer,
+            _indexer,
             signedRav.rav.payer,
             allocationId,
             subgraphDeploymentId,
@@ -551,31 +562,20 @@ contract SubgraphService is
 
     /**
      * @notice Collect indexing rewards
-     * @param indexer The address of the indexer
-     * @param data Encoded data:
+     * @param _indexer The address of the indexer
+     * @param _data Encoded data:
      *    - address `allocationId`: The id of the allocation
      *    - bytes32 `poi`: The POI being presented
      *    - bytes `poiMetadata`: The metadata associated with the POI. See {AllocationManager-_presentPOI} for more details.
      * @return The amount of indexing rewards collected
      */
-    function _collectIndexingRewards(address indexer, bytes calldata data) private returns (uint256) {
-        (address allocationId, bytes32 poi_, bytes memory poiMetadata_) = abi.decode(data, (address, bytes32, bytes));
+    function _collectIndexingRewards(address _indexer, bytes calldata _data) private returns (uint256) {
+        (address allocationId, bytes32 poi_, bytes memory poiMetadata_) = abi.decode(_data, (address, bytes32, bytes));
         require(
-            _allocations.get(allocationId).indexer == indexer,
-            SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
+            _allocations.get(allocationId).indexer == _indexer,
+            SubgraphServiceAllocationNotAuthorized(_indexer, allocationId)
         );
-        return _presentPOI(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[indexer]);
-    }
-
-    /**
-     * @notice Sets the payments destination for an indexer to receive payments
-     * @dev Emits a {PaymentsDestinationSet} event
-     * @param _indexer The address of the indexer
-     * @param _paymentsDestination The address where payments should be sent
-     */
-    function _setPaymentsDestination(address _indexer, address _paymentsDestination) internal {
-        paymentsDestination[_indexer] = _paymentsDestination;
-        emit PaymentsDestinationSet(_indexer, _paymentsDestination);
+        return _presentPOI(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[_indexer]);
     }
 
     /**
@@ -591,14 +591,14 @@ contract SubgraphService is
     /**
      * @notice Encodes the data for the GraphTallyCollector
      * @dev The purpose of this function is just to avoid stack too deep errors
-     * @param signedRav The signed RAV
-     * @param curationCut The curation cut
+     * @param _signedRav The signed RAV
+     * @param _curationCut The curation cut
      * @return The encoded data
      */
     function _encodeGraphTallyData(
-        IGraphTallyCollector.SignedRAV memory signedRav,
-        uint256 curationCut
+        IGraphTallyCollector.SignedRAV memory _signedRav,
+        uint256 _curationCut
     ) private view returns (bytes memory) {
-        return abi.encode(signedRav, curationCut, paymentsDestination[signedRav.rav.serviceProvider]);
+        return abi.encode(_signedRav, _curationCut, paymentsDestination[_signedRav.rav.serviceProvider]);
     }
 }

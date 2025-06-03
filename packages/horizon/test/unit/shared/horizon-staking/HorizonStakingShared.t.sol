@@ -54,21 +54,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         _;
     }
 
-    modifier useProvision(
-        uint256 tokens,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
-    ) virtual {
+    modifier useProvision(uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) virtual {
         _useProvision(subgraphDataServiceAddress, tokens, maxVerifierCut, thawingPeriod);
         _;
     }
 
-    modifier useProvisionDataService(
-        address dataService,
-        uint256 tokens,
-        uint32 maxVerifierCut,
-        uint64 thawingPeriod
-    ) {
+    modifier useProvisionDataService(address dataService, uint256 tokens, uint32 maxVerifierCut, uint64 thawingPeriod) {
         _useProvision(dataService, tokens, maxVerifierCut, thawingPeriod);
         _;
     }
