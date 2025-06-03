@@ -17,7 +17,7 @@ contract SubgraphServiceIndexingAgreementBaseTest is SubgraphServiceIndexingAgre
 
         vm.expectRevert(TransparentUpgradeableProxy.ProxyDeniedAdminAccess.selector);
         resetPrank(address(operator));
-        _getSubgraphServiceExtension().cancelIndexingAgreement(indexer, agreementId);
+        _getSubgraphServiceExtended().cancelIndexingAgreement(indexer, agreementId);
     }
 
     function test_SubgraphService_Revert_WhenUnsafeAddress_WhenGraphProxyAdmin(uint256 unboundedTokens) public {

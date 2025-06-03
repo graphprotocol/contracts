@@ -5,7 +5,7 @@ import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
-import { ISubgraphServiceExtension } from "../../../../contracts/interfaces/ISubgraphServiceExtension.sol";
+import { ISubgraphServiceExtended } from "../../../../contracts/interfaces/ISubgraphServiceExtended.sol";
 
 import { Bounder } from "@graphprotocol/horizon/test/unit/utils/Bounder.t.sol";
 import { RecurringCollectorHelper } from "@graphprotocol/horizon/test/unit/payments/recurring-collector/RecurringCollectorHelper.t.sol";
@@ -110,10 +110,10 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
 
         if (byIndexer) {
             _subgraphServiceSafePrank(_indexer);
-            _getSubgraphServiceExtension().cancelIndexingAgreement(_indexer, _agreementId);
+            _getSubgraphServiceExtended().cancelIndexingAgreement(_indexer, _agreementId);
         } else {
             _subgraphServiceSafePrank(_ctx.payer.signer);
-            _getSubgraphServiceExtension().cancelIndexingAgreementByPayer(_agreementId);
+            _getSubgraphServiceExtended().cancelIndexingAgreementByPayer(_agreementId);
         }
     }
 
@@ -309,8 +309,8 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
             );
     }
 
-    function _getSubgraphServiceExtension() internal view returns (ISubgraphServiceExtension) {
-        return ISubgraphServiceExtension(address(subgraphService));
+    function _getSubgraphServiceExtended() internal view returns (ISubgraphServiceExtended) {
+        return ISubgraphServiceExtended(address(subgraphService));
     }
 
     function _newAcceptIndexingAgreementMetadataV1(

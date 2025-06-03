@@ -8,8 +8,9 @@ import { ProvisionManagerLib } from "@graphprotocol/horizon/contracts/data-servi
 
 import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
 import { SubgraphService } from "./SubgraphService.sol";
+import { ISubgraphServiceExtension } from "./interfaces/ISubgraphServiceExtension.sol";
 
-contract SubgraphServiceExtension is PausableUpgradeable {
+contract SubgraphServiceExtension is PausableUpgradeable, ISubgraphServiceExtension {
     using IndexingAgreement for IndexingAgreement.Manager;
 
     modifier onlyValid(address indexer) {
