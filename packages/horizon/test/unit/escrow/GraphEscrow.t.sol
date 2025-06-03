@@ -199,11 +199,17 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         }
 
         // Check receiver balance after payment
-        assertEq(afterBalances.receiverBalance - previousBalances.receiverBalance, collectTokensData.receiverExpectedPayment);
+        assertEq(
+            afterBalances.receiverBalance - previousBalances.receiverBalance,
+            collectTokensData.receiverExpectedPayment
+        );
         assertEq(token.balanceOf(address(payments)), 0);
 
         // Check delegation pool balance after payment
-        assertEq(afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance, collectTokensData.tokensDelegation);
+        assertEq(
+            afterBalances.delegationPoolBalance - previousBalances.delegationPoolBalance,
+            collectTokensData.tokensDelegation
+        );
 
         // Check that the escrow account has been updated
         assertEq(previousBalances.escrowBalance, afterBalances.escrowBalance + _tokens);
@@ -212,7 +218,10 @@ contract GraphEscrowTest is HorizonStakingSharedTest, PaymentsEscrowSharedTest {
         assertEq(previousBalances.paymentsBalance, afterBalances.paymentsBalance);
 
         // Check data service balance after payment
-        assertEq(afterBalances.dataServiceBalance - previousBalances.dataServiceBalance, collectTokensData.tokensDataService);
+        assertEq(
+            afterBalances.dataServiceBalance - previousBalances.dataServiceBalance,
+            collectTokensData.tokensDataService
+        );
 
         // Check payers escrow balance after payment
         assertEq(previousBalances.payerEscrowBalance - _tokens, afterBalances.payerEscrowBalance);
