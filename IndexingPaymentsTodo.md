@@ -1,13 +1,16 @@
 # Still pending
 
-* Arbitration Charter: Update to support disputing IndexingFee.
+* Remove extension if I can fit everything in one service?
+* One Interface for all subgraph
+* `require(provision.tokens != 0, DisputeManagerZeroTokens());` - Document or fix?
 * Check code coverage
-* Check contract size
 * Don't love cancel agreement on stop service / close stale allocation.
-* Missing Upgrade event for subgraph service
+* Arbitration Charter: Update to support disputing IndexingFee.
 
 # Done
 
+* DONE: ~~* Missing Upgrade event for subgraph service~~
+* DONE: ~~* Check contract size~~
 * DONE: ~~Switch cancel event in recurring collector to use Enum~~
 * DONE: ~~Switch timestamps to uint64~~
 * DONE: ~~Check that UUID-v4 fits in `bytes16`~~
