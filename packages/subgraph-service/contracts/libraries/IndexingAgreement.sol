@@ -144,6 +144,24 @@ library IndexingAgreement {
     );
 
     /**
+     * @notice Emitted when an indexing agreement is updated
+     * @param indexer The address of the indexer
+     * @param payer The address of the payer
+     * @param agreementId The id of the agreement
+     * @param allocationId The id of the allocation
+     * @param version The version of the indexing agreement
+     * @param versionTerms The version data of the indexing agreement
+     */
+    event IndexingAgreementUpdated(
+        address indexed indexer,
+        address indexed payer,
+        bytes16 indexed agreementId,
+        address allocationId,
+        IndexingAgreementVersion version,
+        bytes versionTerms
+    );
+
+    /**
      * @notice Thrown when trying to interact with an agreement with an invalid version
      * @param version The invalid version
      */
@@ -273,6 +291,15 @@ library IndexingAgreement {
 
         require(metadata.version == IndexingAgreementVersion.V1, InvalidIndexingAgreementVersion(metadata.version));
         _setTermsV1(self, signedRCAU.rcau.agreementId, metadata.terms);
+
+        emit IndexingAgreementUpdated({
+            indexer: wrapper.collectorAgreement.serviceProvider,
+            payer: wrapper.collectorAgreement.payer,
+            agreementId: signedRCAU.rcau.agreementId,
+            allocationId: wrapper.agreement.allocationId,
+            version: metadata.version,
+            versionTerms: metadata.terms
+        });
 
         _directory().recurringCollector().update(signedRCAU);
     }

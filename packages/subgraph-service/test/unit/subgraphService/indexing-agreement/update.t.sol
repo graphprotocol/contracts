@@ -148,6 +148,21 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
         IRecurringCollector.SignedRCAU memory acceptableUpdate = _generateAcceptableSignedRCAU(ctx, accepted.rca);
 
+        IndexingAgreement.UpdateIndexingAgreementMetadata memory metadata = abi.decode(
+            acceptableUpdate.rcau.metadata,
+            (IndexingAgreement.UpdateIndexingAgreementMetadata)
+        );
+
+        vm.expectEmit(address(subgraphService));
+        emit IndexingAgreement.IndexingAgreementUpdated(
+            accepted.rca.serviceProvider,
+            accepted.rca.payer,
+            acceptableUpdate.rcau.agreementId,
+            indexerState.allocationId,
+            metadata.version,
+            metadata.terms
+        );
+
         resetPrank(indexerState.addr);
         _getSubgraphServiceExtension().updateIndexingAgreement(indexerState.addr, acceptableUpdate);
     }
