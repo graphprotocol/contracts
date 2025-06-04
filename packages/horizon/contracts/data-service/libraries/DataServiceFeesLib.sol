@@ -10,11 +10,6 @@ library DataServiceFeesLib {
     using ProvisionTracker for mapping(address => uint256);
     using LinkedList for LinkedList.List;
 
-    // @notice Storage structure for the data service fees library
-    struct Storage {
-        ProvisionManagerStorage provisionManagerStorage;
-    }
-
     // @notice Storage structure for the provision manager
     struct ProvisionManagerStorage {
         uint256 _minimumProvisionTokens;
