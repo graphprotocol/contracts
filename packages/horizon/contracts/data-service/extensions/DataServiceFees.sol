@@ -43,11 +43,11 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      */
     function _lockStake(address _serviceProvider, uint256 _tokens, uint256 _unlockTimestamp) internal {
         DataServiceFeesLib.lockStake(
-            _delegationRatio,
             feesProvisionTracker,
             claims,
             claimsLists,
             _graphStaking(),
+            _delegationRatio,
             _serviceProvider,
             _tokens,
             _unlockTimestamp

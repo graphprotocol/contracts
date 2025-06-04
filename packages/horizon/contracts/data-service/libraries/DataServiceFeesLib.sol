@@ -34,11 +34,11 @@ library DataServiceFeesLib {
      * @param _unlockTimestamp The timestamp when the tokens can be released
      */
     function lockStake(
-        uint32 _delegationRatio,
         mapping(address => uint256) storage feesProvisionTracker,
         mapping(bytes32 => IDataServiceFees.StakeClaim) storage claims,
         mapping(address serviceProvider => LinkedList.List list) storage claimsLists,
         IHorizonStaking graphStaking,
+        uint32 _delegationRatio,
         address _serviceProvider,
         uint256 _tokens,
         uint256 _unlockTimestamp
