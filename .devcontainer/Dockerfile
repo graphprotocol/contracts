@@ -6,12 +6,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Switch to root for installing packages
 USER root
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-
 # Install additional dependencies
 RUN apt update && apt install -y \
     build-essential \
-    nodejs \
+    curl \
     jq \
     python3 \
     python3-pip \
@@ -20,8 +18,12 @@ RUN apt update && apt install -y \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js
-RUN npm install -g n && n 20.12.0
+# Install Node.js 20.x using NodeSource
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt update && \
+    apt install -y nodejs && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Solidity compiler using pipx (isolated environment)
 RUN pipx install solc-select && \
