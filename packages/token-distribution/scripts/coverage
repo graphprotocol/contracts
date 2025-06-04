@@ -3,4 +3,4 @@
 set -eo pipefail
 
 yarn run compile
-npx hardhat coverage $@
+COVERAGE=true npx hardhat coverage $@

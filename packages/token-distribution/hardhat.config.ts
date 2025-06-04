@@ -13,9 +13,8 @@ import 'hardhat-abi-exporter'
 import '@typechain/hardhat'
 import 'hardhat-gas-reporter'
 import '@openzeppelin/hardhat-upgrades'
-
+import 'solidity-coverage'
 // Tasks
-
 import './ops/create'
 import './ops/delete'
 import './ops/info'
@@ -80,7 +79,6 @@ function setupNetworkConfig(config) {
 
 // Env
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 extendEnvironment(async (hre) => {
   const accounts = await hre.ethers.getSigners()
   try {
@@ -91,14 +89,14 @@ extendEnvironment(async (hre) => {
     hre['c'] = {
       GraphTokenLockManager: contract.connect(accounts[0]),
     }
-  } catch (err) {
+  } catch {
     // do not load the contract
   }
 })
 
 // Tasks
 
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
+task('accounts', 'Prints the list of accounts', async (_taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners()
   for (const account of accounts) {
     console.log(await account.getAddress())
@@ -138,9 +136,10 @@ const config = {
     hardhat: {
       chainId: 1337,
       loggingEnabled: false,
-      gas: 12000000,
+      gas: process.env.COVERAGE ? 0xfffffffffff : 12000000,
       gasPrice: 'auto',
-      blockGasLimit: 12000000,
+      blockGasLimit: process.env.COVERAGE ? 0xfffffffffff : 12000000,
+      allowUnlimitedContractSize: true,
     },
     ganache: {
       chainId: 1337,
@@ -166,7 +165,7 @@ const config = {
     ],
   },
   typechain: {
-    outDir: 'build/typechain/contracts',
+    outDir: 'typechain-types',
     target: 'ethers-v5',
   },
   abiExporter: {
@@ -184,6 +183,15 @@ const config = {
     showTimeSpent: true,
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
+  },
+  mocha: {
+    timeout: 60000,
+  },
+  solidity_coverage: {
+    configureYulOptimizer: true,
+    solcOptimizerDetails: {
+      yul: false,
+    },
   },
 }
 

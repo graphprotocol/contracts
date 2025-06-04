@@ -1,13 +1,13 @@
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, ContractTransaction, ethers } from 'ethers'
 
-import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import type { GraphNetworkContracts } from '../deployment/contracts/load'
 import type { GraphNetworkContractName } from '../deployment/contracts/list'
+import type { GraphNetworkContracts } from '../deployment/contracts/load'
 import type { GraphNetworkAction } from './types'
 
 type GovernedContract = Contract & {
-  pendingGovernor?: (overrides: ethers.CallOverrides) => Promise<string>
-  acceptOwnership?: (overrides: ethers.CallOverrides) => Promise<string>
+  pendingGovernor?: (_overrides: ethers.CallOverrides) => Promise<string>
+  acceptOwnership?: (_overrides: ethers.CallOverrides) => Promise<string>
 }
 
 export const acceptOwnership: GraphNetworkAction<
@@ -40,8 +40,6 @@ export const acceptOwnership: GraphNetworkAction<
     await tx.wait()
     return tx
   } else {
-    console.log(
-      `Signer ${signer.address} is not the pending governor of ${contract.address}, it is ${pendingGovernor}`,
-    )
+    console.log(`Signer ${signer.address} is not the pending governor of ${contract.address}, it is ${pendingGovernor}`)
   }
 }

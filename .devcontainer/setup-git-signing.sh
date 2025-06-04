@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 # Automatically configure Git to use SSH signing with forwarded SSH keys
 set -euo pipefail
 

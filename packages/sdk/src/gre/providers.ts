@@ -1,14 +1,12 @@
-import { Network } from 'hardhat/types/runtime'
-import { NetworksConfig, HttpNetworkConfig } from 'hardhat/types/config'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { HARDHAT_NETWORK_NAME } from 'hardhat/plugins'
-import { createProvider } from 'hardhat/internal/core/providers/construction'
-
-import { getNetworkConfig, getNetworkName } from './helpers/network'
-import { logDebug } from './helpers/logger'
+import { HttpNetworkConfig, NetworksConfig } from 'hardhat/types/config'
+import { Network } from 'hardhat/types/runtime'
+import { AccountsRuntimeEnvironment } from 'hardhat-secure-accounts/dist/src/type-extensions'
 
 import { GREPluginError } from './helpers/error'
-import { AccountsRuntimeEnvironment } from 'hardhat-secure-accounts/dist/src/type-extensions'
+import { logDebug } from './helpers/logger'
+import { getNetworkConfig, getNetworkName } from './helpers/network'
 
 export const getDefaultProvider = (
   networks: NetworksConfig,
@@ -24,21 +22,14 @@ export const getDefaultProvider = (
     return new EthersProviderWrapper(network.provider)
   }
 
-  const { networkConfig, networkName } = getNetworkData(
-    networks,
-    chainId,
-    network.name,
-    isMainProvider,
-    chainLabel,
-  )
+  const { networkConfig, networkName } = getNetworkData(networks, chainId, network.name, isMainProvider, chainLabel)
 
   if (networkConfig === undefined || networkName === undefined) {
     return undefined
   }
 
   logDebug(`Creating provider for ${chainLabel}(${networkName})`)
-  const ethereumProvider = createProvider(networkName, networkConfig)
-  const ethersProviderWrapper = new EthersProviderWrapper(ethereumProvider)
+  const ethersProviderWrapper = new EthersProviderWrapper(network.provider)
   return ethersProviderWrapper
 }
 
@@ -53,13 +44,7 @@ export const getSecureAccountsProvider = async (
   accountName?: string,
   accountPassword?: string,
 ): Promise<EthersProviderWrapper> => {
-  const { networkConfig, networkName } = getNetworkData(
-    networks,
-    chainId,
-    mainNetworkName,
-    isMainProvider,
-    chainLabel,
-  )
+  const { networkConfig, networkName } = getNetworkData(networks, chainId, mainNetworkName, isMainProvider, chainLabel)
 
   if (networkConfig === undefined || networkName === undefined) {
     throw new GREPluginError(

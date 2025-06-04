@@ -1,14 +1,13 @@
 import 'hardhat-deploy'
+
+import { expect } from 'chai'
 import { BigNumber, constants } from 'ethers'
 import { deployments } from 'hardhat'
-import { expect } from 'chai'
-
-import { GraphTokenLockSimple } from '../build/typechain/contracts/GraphTokenLockSimple'
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-
-import { Account, advanceTimeAndBlock, getAccounts, getContract, toBN, toGRT } from './network'
-import { createScheduleScenarios, defaultInitArgs, Revocability, TokenLockParameters } from './config'
 import { DeployOptions } from 'hardhat-deploy/types'
+
+import { GraphTokenLockSimple, GraphTokenMock } from '../typechain-types'
+import { createScheduleScenarios, defaultInitArgs, Revocability, TokenLockParameters } from './config'
+import { Account, advanceTimeAndBlock, getAccounts, getContract, toBN, toGRT } from './network'
 
 const { AddressZero } = constants
 
@@ -49,7 +48,21 @@ const advancePeriods = async (tokenLock: GraphTokenLockSimple, n = 1) => {
 
 const moveToTime = async (tokenLock: GraphTokenLockSimple, target: BigNumber, buffer: number) => {
   const ts = await tokenLock.currentTime()
-  const delta = target.sub(ts).add(buffer)
+  let delta = target.sub(ts).add(buffer)
+
+  // Ensure we don't try to advance to a negative timestamp
+  if (delta.lt(0)) {
+    console.log('Warning: Attempted to move to a negative time delta. Setting to 0 instead.')
+    delta = BigNumber.from(0)
+  }
+
+  // Ensure we don't exceed the maximum allowed timestamp (2^64 - 1)
+  const MAX_TIMESTAMP = BigNumber.from(2).pow(64).sub(1)
+  if (delta.gt(MAX_TIMESTAMP)) {
+    console.log('Warning: Timestamp exceeds maximum allowed value. Setting to max instead.')
+    delta = MAX_TIMESTAMP
+  }
+
   return advanceTimeAndBlock(delta.toNumber())
 }
 
@@ -62,7 +75,7 @@ const advanceToReleasable = async (tokenLock: GraphTokenLockSimple) => {
     tokenLock.vestingCliffTime(),
     tokenLock.releaseStartTime(),
     tokenLock.startTime(),
-  ]).then(values => values.map(e => e.toNumber()))
+  ]).then((values) => values.map((e) => e.toNumber()))
   const time = Math.max(...values)
   await moveToTime(tokenLock, BigNumber.from(time), 60)
 }
@@ -126,12 +139,12 @@ describe('GraphTokenLockSimple', () => {
   }
 
   before(async function () {
-    [deployer, beneficiary1, beneficiary2] = await getAccounts()
+    ;[deployer, beneficiary1, beneficiary2] = await getAccounts()
   })
 
   describe('Init', function () {
     it('Reject initialize with non-set revocability option', async function () {
-      ({ grt, tokenLock } = await setupTest())
+      ;({ grt, tokenLock } = await setupTest())
 
       const args = defaultInitArgs(deployer, beneficiary1, grt, toGRT('1000'))
       const tx = tokenLock
@@ -155,7 +168,7 @@ describe('GraphTokenLockSimple', () => {
   createScheduleScenarios().forEach(function (schedule) {
     describe('> Test scenario', function () {
       beforeEach(async function () {
-        ({ grt, tokenLock } = await setupTest())
+        ;({ grt, tokenLock } = await setupTest())
 
         const staticArgs = {
           owner: deployer.address,

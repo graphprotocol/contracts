@@ -1,21 +1,22 @@
-import { deployments, ethers, upgrades } from 'hardhat'
-import { constants } from 'ethers'
-import { expect } from 'chai'
-
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
-import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-import { L2GraphTokenLockManager } from '../build/typechain/contracts/L2GraphTokenLockManager'
-import { L2GraphTokenLockTransferTool } from '../build/typechain/contracts/L2GraphTokenLockTransferTool'
-import { L2GraphTokenLockTransferTool__factory } from '../build/typechain/contracts/factories/L2GraphTokenLockTransferTool__factory'
-import { L2GraphTokenLockWallet } from '../build/typechain/contracts/L2GraphTokenLockWallet'
-import { L2TokenGatewayMock } from '../build/typechain/contracts/L2TokenGatewayMock'
-
-import { Account, getAccounts, getContract, toBN, toGRT } from './network'
+import { expect } from 'chai'
+import { constants } from 'ethers'
 import { defaultAbiCoder, keccak256 } from 'ethers/lib/utils'
-import { defaultInitArgs, TokenLockParameters } from './config'
+import { deployments, ethers, upgrades } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
+
+import {
+  GraphTokenMock,
+  L2GraphTokenLockManager,
+  L2GraphTokenLockTransferTool,
+  L2GraphTokenLockTransferTool__factory,
+  L2GraphTokenLockWallet,
+  L2TokenGatewayMock,
+} from '../typechain-types'
+import { defaultInitArgs, TokenLockParameters } from './config'
+import { Account, getAccounts, getContract, toBN, toGRT } from './network'
 
 const { AddressZero } = constants
 
@@ -154,11 +155,11 @@ describe('L2GraphTokenLockTransferTool', () => {
   }
 
   before(async function () {
-    [deployer, beneficiary, l1TransferToolMock, l1GRTMock, l1TokenLock] = await getAccounts()
+    ;[deployer, beneficiary, l1TransferToolMock, l1GRTMock, l1TokenLock] = await getAccounts()
   })
 
   beforeEach(async () => {
-    ({ grt, gateway, tokenLockTransferTool, tokenLockImplementation, tokenLockManager } = await setupTest())
+    ;({ grt, gateway, tokenLockTransferTool, tokenLockImplementation, tokenLockManager } = await setupTest())
 
     // Setup authorized functions in Manager
     await authProtocolFunctions(tokenLockManager, tokenLockTransferTool.address)
