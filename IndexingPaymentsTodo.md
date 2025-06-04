@@ -1,6 +1,5 @@
 # Still pending
 
-* Remove extension if I can fit everything in one service?
 * `require(provision.tokens != 0, DisputeManagerZeroTokens());` - Document or fix?
 * Check code coverage
 * Don't love cancel agreement on stop service / close stale allocation.
@@ -8,6 +7,7 @@
 
 # Done
 
+* DONE: ~~* Remove extension if I can fit everything in one service?~~
 * DONE: ~~* One Interface for all subgraph~~
 * DONE: ~~* Missing Upgrade event for subgraph service~~
 * DONE: ~~* Check contract size~~
