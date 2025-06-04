@@ -36,8 +36,14 @@ services:
       - vscode-data:/home/vscode/.local/share
       - vscode-bin:/home/vscode/.local/bin
 
+      # Shared pnpm cache (safe due to content-addressable storage)
+      - pnpm-store:/home/vscode/.local/share/pnpm
+      - pnpm-cache:/home/vscode/.cache/pnpm
+
 volumes:
   vscode-cache:
   vscode-config:
   vscode-data:
   vscode-bin:
+  pnpm-store:
+  pnpm-cache:
