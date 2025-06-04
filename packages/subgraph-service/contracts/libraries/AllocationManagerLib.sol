@@ -50,10 +50,6 @@ library AllocationManagerLib {
         address _paymentsDestination;
     }
 
-    ///@dev EIP712 typehash for allocation id proof
-    bytes32 private constant EIP712_ALLOCATION_ID_PROOF_TYPEHASH =
-        keccak256("AllocationIdProof(address indexer,address allocationId)");
-
     /**
      * @notice Create an allocation
      * @dev The `_allocationProof` is a 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationId)`
