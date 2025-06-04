@@ -22,24 +22,6 @@ library ProvisionTracker {
     error ProvisionTrackerInsufficientTokens(uint256 tokensAvailable, uint256 tokensRequired);
 
     /**
-     * @notice Checks if a service provider has enough tokens available to lock
-     * @param self The provision tracker mapping
-     * @param graphStaking The HorizonStaking contract
-     * @param serviceProvider The service provider address
-     * @param delegationRatio A delegation ratio to limit the amount of delegation that's usable
-     * @return true if the service provider has enough tokens available to lock, false otherwise
-     */
-    function check(
-        mapping(address => uint256) storage self,
-        IHorizonStaking graphStaking,
-        address serviceProvider,
-        uint32 delegationRatio
-    ) external view returns (bool) {
-        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
-        return self[serviceProvider] <= tokensAvailable;
-    }
-
-    /**
      * @notice Locks tokens for a service provider
      * @dev Requirements:
      * - `tokens` must be less than or equal to the amount of tokens available, as reported by the HorizonStaking contract
@@ -55,7 +37,7 @@ library ProvisionTracker {
         address serviceProvider,
         uint256 tokens,
         uint32 delegationRatio
-    ) internal {
+    ) external {
         if (tokens == 0) return;
 
         uint256 tokensRequired = self[serviceProvider] + tokens;
@@ -72,9 +54,27 @@ library ProvisionTracker {
      * @param serviceProvider The service provider address
      * @param tokens The amount of tokens to release
      */
-    function release(mapping(address => uint256) storage self, address serviceProvider, uint256 tokens) internal {
+    function release(mapping(address => uint256) storage self, address serviceProvider, uint256 tokens) external {
         if (tokens == 0) return;
         require(self[serviceProvider] >= tokens, ProvisionTrackerInsufficientTokens(self[serviceProvider], tokens));
         self[serviceProvider] -= tokens;
+    }
+
+    /**
+     * @notice Checks if a service provider has enough tokens available to lock
+     * @param self The provision tracker mapping
+     * @param graphStaking The HorizonStaking contract
+     * @param serviceProvider The service provider address
+     * @param delegationRatio A delegation ratio to limit the amount of delegation that's usable
+     * @return true if the service provider has enough tokens available to lock, false otherwise
+     */
+    function check(
+        mapping(address => uint256) storage self,
+        IHorizonStaking graphStaking,
+        address serviceProvider,
+        uint32 delegationRatio
+    ) external view returns (bool) {
+        uint256 tokensAvailable = graphStaking.getTokensAvailable(serviceProvider, address(this), delegationRatio);
+        return self[serviceProvider] <= tokensAvailable;
     }
 }
