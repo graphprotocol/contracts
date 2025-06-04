@@ -56,7 +56,7 @@ contract SubgraphService is
      * @param indexer The address of the indexer
      */
     modifier onlyRegisteredIndexer(address indexer) {
-        this.requireRegisteredIndexer(indexer);
+        _requireRegisteredIndexer(indexer);
         _;
     }
 
@@ -453,7 +453,7 @@ contract SubgraphService is
     }
 
     function requireRegisteredIndexer(address indexer) external view {
-        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
+        _requireRegisteredIndexer(indexer);
     }
 
     /// @inheritdoc ISubgraphService
@@ -513,6 +513,10 @@ contract SubgraphService is
 
     function getGraphStaking() external view returns (address) {
         return address(_graphStaking());
+    }
+
+    function _requireRegisteredIndexer(address indexer) internal view {
+        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
     }
 
     function _cancelAllocationIndexingAgreement(address _allocationId) internal {
