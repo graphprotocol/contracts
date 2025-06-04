@@ -122,11 +122,15 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param serviceProvider The address of the service provider.
      */
     modifier onlyValidProvision(address serviceProvider) virtual {
-        this.requireValidProvision(serviceProvider);
+        _requireValidProvision(serviceProvider);
         _;
     }
 
     function requireValidProvision(address serviceProvider) external view {
+        _requireValidProvision(serviceProvider);
+    }
+
+    function _requireValidProvision(address serviceProvider) internal view {
         IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
         _checkProvisionTokens(provision);
         _checkProvisionParameters(provision, false);
