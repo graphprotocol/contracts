@@ -7,7 +7,6 @@ import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/Graph
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
@@ -390,18 +389,5 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
                 _indexer,
                 _delegationRatio
             );
-    }
-
-    /**
-     * @notice Verifies ownership of an allocation id by verifying an EIP712 allocation proof
-     * @dev Requirements:
-     * - Signer must be the allocation id address
-     * @param _indexer The address of the indexer
-     * @param _allocationId The id of the allocation
-     * @param _proof The EIP712 proof, an EIP712 signed message of (indexer,allocationId)
-     */
-    function _verifyAllocationProof(address _indexer, address _allocationId, bytes memory _proof) private view {
-        address signer = ECDSA.recover(_encodeAllocationProof(_indexer, _allocationId), _proof);
-        require(signer == _allocationId, AllocationManagerInvalidAllocationProof(signer, _allocationId));
     }
 }

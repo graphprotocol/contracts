@@ -278,6 +278,7 @@ library AllocationManagerLib {
      * @notice Verifies ownership of an allocation id by verifying an EIP712 allocation proof
      * @dev Requirements:
      * - Signer must be the allocation id address
+     * @param _encodeAllocationProof The EIP712 encoded allocation proof
      * @param _allocationId The id of the allocation
      * @param _proof The EIP712 proof, an EIP712 signed message of (indexer,allocationId)
      */
