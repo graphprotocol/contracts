@@ -4,11 +4,12 @@ pragma solidity 0.8.27;
 import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
+
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
-contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAgreementSharedTest {
+contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndexingAgreementSharedTest {
     using PPMMath for uint256;
 
     struct TestState {
