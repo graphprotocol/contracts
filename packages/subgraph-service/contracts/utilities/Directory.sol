@@ -48,8 +48,7 @@ abstract contract Directory {
         address disputeManager,
         address graphTallyCollector,
         address curation,
-        address recurringCollector,
-        address subgraphServiceExtensionImpl
+        address recurringCollector
     );
 
     /**
@@ -77,30 +76,26 @@ abstract contract Directory {
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
      * @param recurringCollector_ The Recurring Collector contract address
-     * @param subgraphServiceExtensionImpl The Subgraph Service Extension contract address
      */
     constructor(
         address subgraphService,
         address disputeManager,
         address graphTallyCollector,
         address curation,
-        address recurringCollector_,
-        address subgraphServiceExtensionImpl
+        address recurringCollector_
     ) {
         SUBGRAPH_SERVICE = ISubgraphService(subgraphService);
         DISPUTE_MANAGER = IDisputeManager(disputeManager);
         GRAPH_TALLY_COLLECTOR = IGraphTallyCollector(graphTallyCollector);
         CURATION = ICuration(curation);
         RECURRING_COLLECTOR = IRecurringCollector(recurringCollector_);
-        SUBGRAPH_SERVICE_EXTENSION_IMPL = subgraphServiceExtensionImpl;
 
         emit SubgraphServiceDirectoryInitialized(
             subgraphService,
             disputeManager,
             graphTallyCollector,
             curation,
-            recurringCollector_,
-            subgraphServiceExtensionImpl
+            recurringCollector_
         );
     }
 

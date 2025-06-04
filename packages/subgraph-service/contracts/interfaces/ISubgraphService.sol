@@ -4,6 +4,7 @@ pragma solidity 0.8.27;
 import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 
+import { IndexingAgreement } from "../libraries/IndexingAgreement.sol";
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
@@ -265,6 +266,34 @@ interface ISubgraphService is IDataServiceFees {
      * @param signedRCA The signed recurring collector agreement (RCA) that the indexer accepts
      */
     function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
+
+    /**
+     * @notice Update an indexing agreement.
+     * @param indexer The address of the indexer
+     * @param signedRCAU The signed recurring collector agreement update (RCAU) that the indexer accepts
+     */
+    function updateIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
+
+    /**
+     * @notice Cancel an indexing agreement by indexer / operator.
+     * @param indexer The address of the indexer
+     * @param agreementId The id of the indexing agreement
+     */
+    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external;
+
+    /**
+     * @notice Cancel an indexing agreement by payer / signer.
+     * @param agreementId The id of the indexing agreement
+     */
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
+
+    /**
+     * @notice Get the indexing agreement for a given agreement ID.
+     * @param agreementId The id of the indexing agreement
+     */
+    function getIndexingAgreement(
+        bytes16 agreementId
+    ) external view returns (IndexingAgreement.AgreementWrapper memory);
 
     /**
      * @notice Gets the details of an allocation

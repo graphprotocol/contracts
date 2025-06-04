@@ -5,7 +5,6 @@ import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToke
 import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
 import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
-import { ISubgraphServiceExtended } from "./interfaces/ISubgraphServiceExtended.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
@@ -536,9 +535,7 @@ contract DisputeManager is
         uint256 _entities,
         uint256 _blockNumber
     ) private returns (bytes32) {
-        IndexingAgreement.AgreementWrapper memory wrapper = _getSubgraphServiceExtended().getIndexingAgreement(
-            _agreementId
-        );
+        IndexingAgreement.AgreementWrapper memory wrapper = _getSubgraphService().getIndexingAgreement(_agreementId);
 
         // Agreement must have been collected on and be a version 1
         require(
@@ -766,16 +763,6 @@ contract DisputeManager is
     function _getSubgraphService() private view returns (ISubgraphService) {
         require(address(subgraphService) != address(0), DisputeManagerSubgraphServiceNotSet());
         return subgraphService;
-    }
-
-    /**
-     * @notice Get the address of the extended subgraph service
-     * @dev Will revert if the subgraph service is not set
-     * @return The extended subgraph service address
-     */
-    function _getSubgraphServiceExtended() private view returns (ISubgraphServiceExtended) {
-        require(address(subgraphService) != address(0), DisputeManagerSubgraphServiceNotSet());
-        return ISubgraphServiceExtended(address(subgraphService));
     }
 
     /**

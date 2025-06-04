@@ -9,7 +9,6 @@ import { PPMMath } from "../../libraries/PPMMath.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
-import { ProvisionManagerLib } from "../libraries/ProvisionManagerLib.sol";
 
 /**
  * @title ProvisionManager contract
@@ -112,7 +111,10 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
      * @param serviceProvider The address of the service provider.
      */
     modifier onlyAuthorizedForProvision(address serviceProvider) {
-        ProvisionManagerLib.requireAuthorizedForProvision(_graphStaking(), serviceProvider, address(this), msg.sender);
+        require(
+            _graphStaking().isAuthorized(serviceProvider, address(this), msg.sender),
+            ProvisionManagerNotAuthorized(serviceProvider, msg.sender)
+        );
         _;
     }
 
@@ -124,10 +126,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
     modifier onlyValidProvision(address serviceProvider) virtual {
         _requireValidProvision(serviceProvider);
         _;
-    }
-
-    function requireValidProvision(address serviceProvider) external view {
-        _requireValidProvision(serviceProvider);
     }
 
     /**

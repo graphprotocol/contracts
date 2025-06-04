@@ -73,11 +73,10 @@ contract SubgraphService is
         address disputeManager,
         address graphTallyCollector,
         address curation,
-        address recurringCollector,
-        address extension
+        address recurringCollector
     )
         DataService(graphController)
-        Directory(address(this), disputeManager, graphTallyCollector, curation, recurringCollector, extension)
+        Directory(address(this), disputeManager, graphTallyCollector, curation, recurringCollector)
     {
         _disableInitializers();
     }
@@ -98,35 +97,6 @@ contract SubgraphService is
         _setProvisionTokensRange(minimumProvisionTokens, type(uint256).max);
         _setDelegationRatio(maximumDelegationRatio);
         _setStakeToFeesRatio(stakeToFeesRatio_);
-    }
-
-    /**
-     * @notice Delegates the call to the SubgraphServiceExtension implementation.
-     * @dev This function does not return to its internal call site, it will return directly to the
-     * external caller.
-     */
-    // solhint-disable-next-line payable-fallback, no-complex-fallback
-    fallback() external {
-        address extImpl = _subgraphServiceExtensionImpl();
-        require(extImpl != address(0), "only through proxy");
-
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            // copy function selector and any arguments
-            calldatacopy(0, 0, calldatasize())
-            // execute function call using the extension implementation
-            let result := delegatecall(gas(), extImpl, 0, calldatasize(), 0, 0)
-            // get any return value
-            returndatacopy(0, 0, returndatasize())
-            // return any return value or error back to the caller
-            switch result
-            case 0 {
-                revert(0, returndatasize())
-            }
-            default {
-                return(0, returndatasize())
-            }
-        }
     }
 
     /**
@@ -420,7 +390,7 @@ contract SubgraphService is
 
     /**
      * @notice Accept an indexing agreement.
-     * See {ISubgraphServiceExtended.acceptIndexingAgreement}.
+     * See {ISubgraphService.acceptIndexingAgreement}.
      *
      * Requirements:
      * - The agreement's indexer must be registered
@@ -452,8 +422,76 @@ contract SubgraphService is
         IndexingAgreement._getManager().accept(_allocations, allocationId, signedRCA);
     }
 
-    function requireRegisteredIndexer(address indexer) external view {
-        _requireRegisteredIndexer(indexer);
+    /**
+     * @notice Update an indexing agreement.
+     * See {IndexingAgreement.update}.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be valid
+     *
+     * @param indexer The indexer address
+     * @param signedRCAU The signed Recurring Collection Agreement Update
+     */
+    function updateIndexingAgreement(
+        address indexer,
+        IRecurringCollector.SignedRCAU calldata signedRCAU
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+    {
+        IndexingAgreement._getManager().update(indexer, signedRCAU);
+    }
+
+    /**
+     * @notice Cancel an indexing agreement by indexer / operator.
+     * See {IndexingAgreement.cancel}.
+     *
+     * @dev Can only be canceled on behalf of a valid indexer.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be valid
+     *
+     * @param indexer The indexer address
+     * @param agreementId The id of the agreement
+     */
+    function cancelIndexingAgreement(
+        address indexer,
+        bytes16 agreementId
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+    {
+        IndexingAgreement._getManager().cancel(indexer, agreementId);
+    }
+
+    /**
+     * @notice Cancel an indexing agreement by payer / signer.
+     * See {ISubgraphService.cancelIndexingAgreementByPayer}.
+     *
+     * Requirements:
+     * - The caller must be authorized by the payer
+     * - The agreement must be active
+     *
+     * Emits {IndexingAgreementCanceled} event
+     *
+     * @param agreementId The id of the agreement
+     */
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external whenNotPaused {
+        IndexingAgreement._getManager().cancelByPayer(agreementId);
+    }
+
+    function getIndexingAgreement(
+        bytes16 agreementId
+    ) external view returns (IndexingAgreement.AgreementWrapper memory) {
+        return IndexingAgreement._getManager().get(agreementId);
     }
 
     /// @inheritdoc ISubgraphService

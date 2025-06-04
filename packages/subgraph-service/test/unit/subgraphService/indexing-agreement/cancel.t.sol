@@ -25,7 +25,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         resetPrank(rando);
-        _getSubgraphServiceExtended().cancelIndexingAgreementByPayer(agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenNotAuthorized(
@@ -42,7 +42,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         );
         vm.expectRevert(expectedErr);
         resetPrank(rando);
-        _getSubgraphServiceExtended().cancelIndexingAgreementByPayer(accepted.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(accepted.rca.agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenNotAccepted(
@@ -58,7 +58,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             agreementId
         );
         vm.expectRevert(expectedErr);
-        _getSubgraphServiceExtended().cancelIndexingAgreementByPayer(agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenCanceled(
@@ -79,7 +79,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
-        _getSubgraphServiceExtended().cancelIndexingAgreementByPayer(accepted.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(accepted.rca.agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer(Seed memory seed) public {
@@ -105,7 +105,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
 
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         resetPrank(operator);
-        _getSubgraphServiceExtended().cancelIndexingAgreement(indexer, agreementId);
+        subgraphService.cancelIndexingAgreement(indexer, agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenNotAuthorized(
@@ -121,7 +121,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             operator
         );
         vm.expectRevert(expectedErr);
-        _getSubgraphServiceExtended().cancelIndexingAgreement(indexer, agreementId);
+        subgraphService.cancelIndexingAgreement(indexer, agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenInvalidProvision(
@@ -142,7 +142,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             maximumProvisionTokens
         );
         vm.expectRevert(expectedErr);
-        _getSubgraphServiceExtended().cancelIndexingAgreement(indexer, agreementId);
+        subgraphService.cancelIndexingAgreement(indexer, agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenIndexerNotRegistered(
@@ -159,7 +159,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             indexer
         );
         vm.expectRevert(expectedErr);
-        _getSubgraphServiceExtended().cancelIndexingAgreement(indexer, agreementId);
+        subgraphService.cancelIndexingAgreement(indexer, agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenNotAccepted(
@@ -175,7 +175,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             agreementId
         );
         vm.expectRevert(expectedErr);
-        _getSubgraphServiceExtended().cancelIndexingAgreement(indexerState.addr, agreementId);
+        subgraphService.cancelIndexingAgreement(indexerState.addr, agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_Revert_WhenCanceled(
@@ -196,7 +196,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
             accepted.rca.agreementId
         );
         vm.expectRevert(expectedErr);
-        _getSubgraphServiceExtended().cancelIndexingAgreement(indexerState.addr, accepted.rca.agreementId);
+        subgraphService.cancelIndexingAgreement(indexerState.addr, accepted.rca.agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_OK(Seed memory seed) public {
