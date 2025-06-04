@@ -7,11 +7,6 @@ import { IndexingAgreement } from "../libraries/IndexingAgreement.sol";
 
 interface ISubgraphServiceExtension {
     /**
-     * @notice Accept an indexing agreement.
-     */
-    // function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
-
-    /**
      * @notice Update an indexing agreement.
      */
     function updateIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
@@ -26,6 +21,9 @@ interface ISubgraphServiceExtension {
      */
     function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
 
+    /**
+     * @notice Get the indexing agreement for a given agreement ID.
+     */
     function getIndexingAgreement(
         bytes16 agreementId
     ) external view returns (IndexingAgreement.AgreementWrapper memory);

@@ -420,7 +420,7 @@ contract SubgraphService is
 
     /**
      * @notice Accept an indexing agreement.
-     * See {ISubgraphService.acceptIndexingAgreement}.
+     * See {ISubgraphServiceExtended.acceptIndexingAgreement}.
      *
      * Requirements:
      * - The agreement's indexer must be registered

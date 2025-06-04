@@ -13,6 +13,7 @@ import { IAuthorizable } from "./IAuthorizable.sol";
  * recurrent payments.
  */
 interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
+    // @notice The state of an agreement
     enum AgreementState {
         NotAccepted,
         Accepted,
@@ -20,6 +21,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         CanceledByPayer
     }
 
+    // @notice The party that can cancel an agreement
     enum CancelAgreementBy {
         ServiceProvider,
         Payer
@@ -69,6 +71,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         bytes signature;
     }
 
+    /// @notice The Recurring Collection Agreement Update (RCAU)
     struct RecurringCollectionAgreementUpdate {
         // The agreement ID
         bytes16 agreementId;
@@ -206,6 +209,10 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param dataService The address of the data service
      * @param payer The address of the payer
      * @param serviceProvider The address of the service provider
+     * @param agreementId The agreement ID
+     * @param collectionId The collection ID
+     * @param tokens The amount of tokens collected
+     * @param dataServiceCut The tokens cut for the data service
      */
     event RCACollected(
         address indexed dataService,
@@ -276,6 +283,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * Thrown when accepting or upgrading an agreement with invalid parameters
+     * @param message A descriptive error message
      */
     error RecurringCollectorAgreementInvalidParameters(string message);
 
@@ -317,6 +325,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * @dev Update an indexing agreement.
+     * @param signedRCAU The signed Recurring Collection Agreement Update which is to be applied.
      */
     function update(SignedRCAU calldata signedRCAU) external;
 
@@ -350,6 +359,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * @notice Gets an agreement.
+     * @param agreementId The ID of the agreement to retrieve.
+     * @return The AgreementData struct containing the agreement's data.
      */
     function getAgreement(bytes16 agreementId) external view returns (AgreementData memory);
 }

@@ -13,6 +13,16 @@ import { ISubgraphServiceExtension } from "./interfaces/ISubgraphServiceExtensio
 contract SubgraphServiceExtension is PausableUpgradeable, ISubgraphServiceExtension {
     using IndexingAgreement for IndexingAgreement.Manager;
 
+    /**
+     * @notice Checks that an indexer is valid
+     * @param indexer The address of the indexer
+     *
+     * Requirements:
+     * - The caller must be authorized by the indexer
+     * - The provision must be valid according to the subgraph service rules
+     * - The indexer must be registered
+     *
+     */
     modifier onlyValid(address indexer) {
         ProvisionManagerLib.requireAuthorizedForProvision(
             IHorizonStaking(_getBase().getGraphStaking()),
@@ -25,6 +35,17 @@ contract SubgraphServiceExtension is PausableUpgradeable, ISubgraphServiceExtens
         _;
     }
 
+    /**
+     * @notice Update an indexing agreement.
+     * See {IndexingAgreement.update}.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be valid
+     *
+     * @param indexer The indexer address
+     * @param signedRCAU The signed Recurring Collection Agreement Update
+     */
     function updateIndexingAgreement(
         address indexer,
         IRecurringCollector.SignedRCAU calldata signedRCAU
@@ -34,18 +55,15 @@ contract SubgraphServiceExtension is PausableUpgradeable, ISubgraphServiceExtens
 
     /**
      * @notice Cancel an indexing agreement by indexer / operator.
-     * See {ISubgraphService.cancelIndexingAgreement}.
+     * See {IndexingAgreement.cancel}.
      *
      * @dev Can only be canceled on behalf of a valid indexer.
      *
      * Requirements:
-     * - The indexer must be registered
-     * - The caller must be authorized by the indexer
-     * - The provision must be valid according to the subgraph service rules
-     * - The agreement must be active
+     * - The contract must not be paused
+     * - The indexer must be valid
      *
-     * Emits {IndexingAgreementCanceled} event
-     *
+     * @param indexer The indexer address
      * @param agreementId The id of the agreement
      */
     function cancelIndexingAgreement(address indexer, bytes16 agreementId) external whenNotPaused onlyValid(indexer) {

@@ -273,6 +273,21 @@ library IndexingAgreement {
         _directory().recurringCollector().accept(signedRCA);
     }
 
+    /**
+     * @notice Update an indexing agreement.
+     *
+     * Requirements:
+     * - Agreement must be active
+     * - The indexer must be the service provider of the agreement
+     *
+     * @dev signedRCA.rcau.metadata is an encoding of {IndexingAgreement.UpdateIndexingAgreementMetadata}
+     *
+     * Emits {IndexingAgreementUpdated} event
+     *
+     * @param self The indexing agreement manager storage
+     * @param indexer The indexer address
+     * @param signedRCAU The signed Recurring Collection Agreement Update
+     */
     function update(
         Manager storage self,
         address indexer,
@@ -304,6 +319,19 @@ library IndexingAgreement {
         _directory().recurringCollector().update(signedRCAU);
     }
 
+    /**
+     * @notice Cancel an indexing agreement.
+     *
+     * Requirements:
+     * - Agreement must be active
+     * - The indexer must be the service provider of the agreement
+     *
+     * Emits {IndexingAgreementCanceled} event
+     *
+     * @param self The indexing agreement manager storage
+     * @param indexer The indexer address
+     * @param agreementId The id of the agreement to cancel
+     */
     function cancel(Manager storage self, address indexer, bytes16 agreementId) external {
         AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));

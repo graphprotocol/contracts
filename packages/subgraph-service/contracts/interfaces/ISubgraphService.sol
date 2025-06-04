@@ -261,7 +261,6 @@ interface ISubgraphService is IDataServiceFees {
 
     /**
      * @notice Accept an indexing agreement.
-     * @dev Emits a {IndexingAgreement.IndexingAgreementAccepted} event
      * @param allocationId The id of the allocation
      * @param signedRCA The signed recurring collector agreement (RCA) that the indexer accepts
      */
