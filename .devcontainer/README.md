@@ -33,7 +33,7 @@ The container uses a conservative caching approach to prevent cache corruption i
    - Python packages: `/home/vscode/.cache/pip`
 
 3. **Intentionally Not Cached**: These tools use their default cache locations to avoid contamination
-   - NPM, Yarn (different dependency versions per branch)
+   - NPM (different dependency versions per branch)
    - Foundry, Solidity (different compilation artifacts per branch)
    - Hardhat (different build artifacts per branch)
 
@@ -49,7 +49,7 @@ To start the dev container:
 
 When the container starts, the `project-setup.sh` script will automatically run and:
 
-- Install project dependencies using yarn
+- Install project dependencies using pnpm
 - Configure Git to use SSH signing with your forwarded SSH key
 - Source shell customizations if available in PATH
 
@@ -79,8 +79,8 @@ These environment variables are needed for Git commit signing to work properly. 
 If you encounter build or compilation issues that seem related to cached artifacts:
 
 1. **Rebuild the container**: This will start with fresh local caches
-2. **Clean project caches**: Run `yarn clean` to clear project-specific build artifacts
-3. **Clear node modules**: Delete `node_modules` and run `yarn install` again
+2. **Clean project caches**: Run `pnpm clean` to clear project-specific build artifacts
+3. **Clear node modules**: Delete `node_modules` and run `pnpm install` again
 
 ### Git SSH Signing Issues
 
