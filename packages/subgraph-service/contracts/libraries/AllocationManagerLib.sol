@@ -214,6 +214,80 @@ library AllocationManagerLib {
     }
 
     /**
+     * @notice Resize an allocation
+     * @dev Will lock or release tokens in the provision tracker depending on the new allocation size.
+     * Rewards accrued but not issued before the resize will be accounted for as pending rewards.
+     * These will be paid out when the indexer presents a POI.
+     *
+     * Requirements:
+     * - `_indexer` must be the owner of the allocation
+     * - Allocation must be open
+     * - `_tokens` must be different from the current allocation size
+     *
+     * Emits a {AllocationResized} event.
+     *
+     * @param _allocationId The id of the allocation to be resized
+     * @param _tokens The new amount of tokens to allocate
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     */
+    function resizeAllocation(
+        mapping(address allocationId => Allocation.State allocation) storage _allocations,
+        mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
+        mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
+        IHorizonStaking graphStaking,
+        IRewardsManager graphRewardsManager,
+        address _allocationId,
+        uint256 _tokens,
+        uint32 _delegationRatio
+    ) external {
+        Allocation.State memory allocation = _allocations.get(_allocationId);
+        require(allocation.isOpen(), AllocationManager.AllocationManagerAllocationClosed(_allocationId));
+        require(
+            _tokens != allocation.tokens,
+            AllocationManager.AllocationManagerAllocationSameSize(_allocationId, _tokens)
+        );
+
+        // Update provision tracker
+        uint256 oldTokens = allocation.tokens;
+        if (_tokens > oldTokens) {
+            allocationProvisionTracker.lock(graphStaking, allocation.indexer, _tokens - oldTokens, _delegationRatio);
+        } else {
+            allocationProvisionTracker.release(allocation.indexer, oldTokens - _tokens);
+        }
+
+        // Calculate rewards that have been accrued since the last snapshot but not yet issued
+        uint256 accRewardsPerAllocatedToken = graphRewardsManager.onSubgraphAllocationUpdate(
+            allocation.subgraphDeploymentId
+        );
+        uint256 accRewardsPerAllocatedTokenPending = !allocation.isAltruistic()
+            ? accRewardsPerAllocatedToken - allocation.accRewardsPerAllocatedToken
+            : 0;
+
+        // Update the allocation
+        _allocations[_allocationId].tokens = _tokens;
+        _allocations[_allocationId].accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
+        _allocations[_allocationId].accRewardsPending += graphRewardsManager.calcRewards(
+            oldTokens,
+            accRewardsPerAllocatedTokenPending
+        );
+
+        // Update total allocated tokens for the subgraph deployment
+        if (_tokens > oldTokens) {
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
+        } else {
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -= (oldTokens - _tokens);
+        }
+
+        emit AllocationManager.AllocationResized(
+            allocation.indexer,
+            _allocationId,
+            allocation.subgraphDeploymentId,
+            _tokens,
+            oldTokens
+        );
+    }
+
+    /**
      * @notice Checks if an allocation is over-allocated
      * @param _indexer The address of the indexer
      * @param _delegationRatio The delegation ratio to consider when locking tokens

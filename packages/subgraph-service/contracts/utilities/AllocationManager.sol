@@ -294,42 +294,16 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      */
     function _resizeAllocation(address _allocationId, uint256 _tokens, uint32 _delegationRatio) internal {
-        Allocation.State memory allocation = _allocations.get(_allocationId);
-        require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
-        require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
-
-        // Update provision tracker
-        uint256 oldTokens = allocation.tokens;
-        if (_tokens > oldTokens) {
-            allocationProvisionTracker.lock(_graphStaking(), allocation.indexer, _tokens - oldTokens, _delegationRatio);
-        } else {
-            allocationProvisionTracker.release(allocation.indexer, oldTokens - _tokens);
-        }
-
-        // Calculate rewards that have been accrued since the last snapshot but not yet issued
-        uint256 accRewardsPerAllocatedToken = _graphRewardsManager().onSubgraphAllocationUpdate(
-            allocation.subgraphDeploymentId
+        AllocationManagerLib.resizeAllocation(
+            _allocations,
+            allocationProvisionTracker,
+            _subgraphAllocatedTokens,
+            _graphStaking(),
+            _graphRewardsManager(),
+            _allocationId,
+            _tokens,
+            _delegationRatio
         );
-        uint256 accRewardsPerAllocatedTokenPending = !allocation.isAltruistic()
-            ? accRewardsPerAllocatedToken - allocation.accRewardsPerAllocatedToken
-            : 0;
-
-        // Update the allocation
-        _allocations[_allocationId].tokens = _tokens;
-        _allocations[_allocationId].accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-        _allocations[_allocationId].accRewardsPending += _graphRewardsManager().calcRewards(
-            oldTokens,
-            accRewardsPerAllocatedTokenPending
-        );
-
-        // Update total allocated tokens for the subgraph deployment
-        if (_tokens > oldTokens) {
-            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] += (_tokens - oldTokens);
-        } else {
-            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -= (oldTokens - _tokens);
-        }
-
-        emit AllocationResized(allocation.indexer, _allocationId, allocation.subgraphDeploymentId, _tokens, oldTokens);
     }
 
     /**
