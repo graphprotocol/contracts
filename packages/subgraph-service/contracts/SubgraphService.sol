@@ -515,10 +515,6 @@ contract SubgraphService is
         return address(_graphStaking());
     }
 
-    function _requireRegisteredIndexer(address indexer) internal view {
-        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
-    }
-
     function _cancelAllocationIndexingAgreement(address _allocationId) internal {
         IndexingAgreement._getManager().cancelForAllocation(_allocationId);
     }
@@ -532,6 +528,10 @@ contract SubgraphService is
     function _setPaymentsDestination(address _indexer, address _paymentsDestination) internal {
         paymentsDestination[_indexer] = _paymentsDestination;
         emit PaymentsDestinationSet(_indexer, _paymentsDestination);
+    }
+
+    function _requireRegisteredIndexer(address _indexer) internal view {
+        require(indexers[_indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(_indexer));
     }
 
     // -- Data service parameter getters --

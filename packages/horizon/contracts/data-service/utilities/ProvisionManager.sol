@@ -130,12 +130,6 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _requireValidProvision(serviceProvider);
     }
 
-    function _requireValidProvision(address serviceProvider) internal view {
-        IHorizonStaking.Provision memory provision = _getProvision(serviceProvider);
-        _checkProvisionTokens(provision);
-        _checkProvisionParameters(provision, false);
-    }
-
     /**
      * @notice Initializes the contract and any parent contracts.
      */
@@ -211,6 +205,12 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         _minimumThawingPeriod = _min;
         _maximumThawingPeriod = _max;
         emit ThawingPeriodRangeSet(_min, _max);
+    }
+
+    function _requireValidProvision(address _serviceProvider) internal view {
+        IHorizonStaking.Provision memory provision = _getProvision(_serviceProvider);
+        _checkProvisionTokens(provision);
+        _checkProvisionParameters(provision, false);
     }
 
     // -- checks --
