@@ -123,6 +123,7 @@ interface IDisputeManager {
      * @param tokens The amount of tokens deposited by the fisherman
      * @param allocationId The allocation id
      * @param poi The POI
+     * @param blockNumber The block number for which the POI was calculated
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
      * @param cancellableAt The timestamp when the dispute can be cancelled
      */
@@ -133,6 +134,7 @@ interface IDisputeManager {
         uint256 tokens,
         address allocationId,
         bytes32 poi,
+        uint256 blockNumber,
         uint256 stakeSnapshot,
         uint256 cancellableAt
     );
@@ -458,9 +460,10 @@ interface IDisputeManager {
      *
      * @param allocationId The allocation to dispute
      * @param poi The Proof of Indexing (POI) being disputed
+     * @param blockNumber The block number for which the POI was calculated
      * @return The dispute id
      */
-    function createIndexingDispute(address allocationId, bytes32 poi) external returns (bytes32);
+    function createIndexingDispute(address allocationId, bytes32 poi, uint256 blockNumber) external returns (bytes32);
 
     /**
      * @notice Creates and auto-accepts a legacy dispute.

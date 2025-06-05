@@ -102,6 +102,8 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
         bytes calldata _data,
         uint256 _tokensToCollect
     ) private returns (uint256) {
+        require(_paymentType == IGraphPayments.PaymentTypes.QueryFee, GraphTallyCollectorInvalidPaymentType(_paymentType));
+
         (SignedRAV memory signedRAV, uint256 dataServiceCut, address receiverDestination) = abi.decode(
             _data,
             (SignedRAV, uint256, address)

@@ -13,7 +13,7 @@ contract DisputeManagerIndexingRejectDisputeTest is DisputeManagerTest {
 
     function test_Indexing_Reject_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         resetPrank(users.arbitrator);
         _rejectDispute(disputeID);
@@ -23,7 +23,7 @@ contract DisputeManagerIndexingRejectDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         // attempt to accept dispute as fisherman
         resetPrank(users.fisherman);
