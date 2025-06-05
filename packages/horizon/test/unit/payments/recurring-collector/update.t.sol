@@ -30,6 +30,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementDeadlineElapsed.selector,
+            block.timestamp,
             rcau.deadline
         );
         vm.expectRevert(expectedErr);

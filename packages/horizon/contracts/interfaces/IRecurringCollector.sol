@@ -238,9 +238,10 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * Thrown when interacting with an agreement with an elapsed deadline
+     * @param currentTimestamp The current timestamp
      * @param deadline The elapsed deadline timestamp
      */
-    error RecurringCollectorAgreementDeadlineElapsed(uint64 deadline);
+    error RecurringCollectorAgreementDeadlineElapsed(uint256 currentTimestamp, uint64 deadline);
 
     /**
      * Thrown when the signer is invalid

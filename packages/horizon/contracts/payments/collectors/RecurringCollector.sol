@@ -83,7 +83,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
         require(
             signedRCA.rca.deadline >= block.timestamp,
-            RecurringCollectorAgreementDeadlineElapsed(signedRCA.rca.deadline)
+            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, signedRCA.rca.deadline)
         );
 
         // check that the voucher is signed by the payer (or proxy)
@@ -175,7 +175,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     function update(SignedRCAU calldata signedRCAU) external {
         require(
             signedRCAU.rcau.deadline >= block.timestamp,
-            RecurringCollectorAgreementDeadlineElapsed(signedRCAU.rcau.deadline)
+            RecurringCollectorAgreementDeadlineElapsed(block.timestamp, signedRCAU.rcau.deadline)
         );
 
         AgreementData storage agreement = _getAgreementStorage(signedRCAU.rcau.agreementId);
