@@ -249,6 +249,7 @@ library IndexingAgreement {
             )
         );
 
+        // Ensure that an allocation can only have one active indexing agreement
         require(
             self.allocationToActiveAgreementId[allocationId] == bytes16(0),
             AllocationAlreadyHasIndexingAgreement(allocationId)
