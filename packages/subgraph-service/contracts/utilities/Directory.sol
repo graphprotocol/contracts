@@ -30,8 +30,6 @@ abstract contract Directory {
     /// @dev Required to collect indexing agreement payments via Graph Horizon payments protocol
     IRecurringCollector private immutable RECURRING_COLLECTOR;
 
-    address private immutable SUBGRAPH_SERVICE_EXTENSION_IMPL;
-
     /// @notice The Curation contract address
     /// @dev Required for curation fees distribution
     ICuration private immutable CURATION;
@@ -104,17 +102,6 @@ abstract contract Directory {
      */
     function recurringCollector() external view returns (IRecurringCollector) {
         return RECURRING_COLLECTOR;
-    }
-
-    /**
-     * @notice Returns the Subgraph Service Extension implementation contract address
-     */
-    function _subgraphServiceExtensionImpl() internal view returns (address) {
-        return SUBGRAPH_SERVICE_EXTENSION_IMPL;
-    }
-
-    function _directory() internal view returns (Directory) {
-        return Directory(address(this));
     }
 
     /**
