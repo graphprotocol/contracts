@@ -282,10 +282,35 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorAgreementIncorrectState(bytes16 agreementId, AgreementState incorrectState);
 
     /**
-     * Thrown when accepting or upgrading an agreement with invalid parameters
-     * @param message A descriptive error message
+     * Thrown when accepting an agreement with an address that is not set
      */
-    error RecurringCollectorAgreementInvalidParameters(string message);
+    error RecurringCollectorAgreementAddressNotSet();
+
+    /**
+     * Thrown when accepting or upgrading an agreement with an elapsed endsAt
+     * @param currentTimestamp The current timestamp
+     * @param endsAt The agreement end timestamp
+     */
+    error RecurringCollectorAgreementElapsedEndsAt(uint256 currentTimestamp, uint64 endsAt);
+
+    /**
+     * Thrown when accepting or upgrading an agreement with an elapsed endsAt
+     * @param allowedMinCollectionWindow The allowed minimum collection window
+     * @param minSecondsPerCollection The minimum seconds per collection
+     * @param maxSecondsPerCollection The maximum seconds per collection
+     */
+    error RecurringCollectorAgreementInvalidCollectionWindow(
+        uint32 allowedMinCollectionWindow,
+        uint32 minSecondsPerCollection,
+        uint32 maxSecondsPerCollection
+    );
+
+    /**
+     * Thrown when accepting or upgrading an agreement with an invalid duration
+     * @param requiredMinDuration The required minimum duration
+     * @param invalidDuration The invalid duration
+     */
+    error RecurringCollectorAgreementInvalidDuration(uint32 requiredMinDuration, uint256 invalidDuration);
 
     /**
      * Thrown when calling collect() on an elapsed agreement

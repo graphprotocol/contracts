@@ -311,13 +311,13 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             _agreement.dataService != address(0) &&
                 _agreement.payer != address(0) &&
                 _agreement.serviceProvider != address(0),
-            RecurringCollectorAgreementInvalidParameters("zero address")
+            RecurringCollectorAgreementAddressNotSet()
         );
 
         // Agreement needs to end in the future
         require(
             _agreement.endsAt > block.timestamp,
-            RecurringCollectorAgreementInvalidParameters("endsAt not in future")
+            RecurringCollectorAgreementElapsedEndsAt(block.timestamp, _agreement.endsAt)
         );
 
         // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
@@ -325,13 +325,20 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             _agreement.maxSecondsPerCollection > _agreement.minSecondsPerCollection &&
                 (_agreement.maxSecondsPerCollection - _agreement.minSecondsPerCollection >=
                     MIN_SECONDS_COLLECTION_WINDOW),
-            RecurringCollectorAgreementInvalidParameters("too small collection window")
+            RecurringCollectorAgreementInvalidCollectionWindow(
+                MIN_SECONDS_COLLECTION_WINDOW,
+                _agreement.minSecondsPerCollection,
+                _agreement.maxSecondsPerCollection
+            )
         );
 
         // Agreement needs to last at least one min collection window
         require(
             _agreement.endsAt - block.timestamp >= _agreement.minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
-            RecurringCollectorAgreementInvalidParameters("too small agreement window")
+            RecurringCollectorAgreementInvalidDuration(
+                _agreement.minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
+                _agreement.endsAt - block.timestamp
+            )
         );
     }
 
