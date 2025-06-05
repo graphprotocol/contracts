@@ -169,9 +169,10 @@ library IndexingAgreement {
 
     /**
      * @notice Thrown when an agreement is not for the subgraph data service
-     * @param wrongDataService The wrong data service
+     * @param expectedDataService The expected data service address
+     * @param wrongDataService The wrong data service address
      */
-    error IndexingAgreementWrongDataService(address wrongDataService);
+    error IndexingAgreementWrongDataService(address expectedDataService, address wrongDataService);
 
     /**
      * @notice Thrown when an agreement and the allocation correspond to different deployment IDs
@@ -230,7 +231,7 @@ library IndexingAgreement {
 
         require(
             signedRCA.rca.dataService == address(this),
-            IndexingAgreementWrongDataService(signedRCA.rca.dataService)
+            IndexingAgreementWrongDataService(address(this), signedRCA.rca.dataService)
         );
 
         AcceptIndexingAgreementMetadata memory metadata = Decoder.decodeRCAMetadata(signedRCA.rca.metadata);

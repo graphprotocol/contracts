@@ -107,6 +107,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreement.IndexingAgreementWrongDataService.selector,
+            address(subgraphService),
             unacceptable.rca.dataService
         );
         vm.expectRevert(expectedErr);
