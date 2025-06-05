@@ -483,4 +483,31 @@ contract GraphTallyCollectTest is GraphTallyTest {
         bytes memory allocation0Data = _getQueryFeeEncodedData(signerPrivateKey, collectTestParams[0]);
         _collect(IGraphPayments.PaymentTypes.QueryFee, allocation0Data);
     }
+
+    function testGraphTally_Collect_RevertWhen_IncorrectPaymentType(
+        uint256 tokens
+    ) public useIndexer useProvisionDataService(users.verifier, 100, 0, 0) useGateway useSigner {
+        tokens = bound(tokens, 1, type(uint128).max);
+
+        _depositTokens(address(graphTallyCollector), users.indexer, tokens);
+
+        CollectTestParams memory params = CollectTestParams({
+            tokens: tokens,
+            allocationId: _allocationId,
+            payer: users.gateway,
+            indexer: users.indexer,
+            collector: users.verifier
+        });
+
+        bytes memory data = _getQueryFeeEncodedData(signerPrivateKey, params);
+
+        resetPrank(users.verifier);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IGraphTallyCollector.GraphTallyCollectorInvalidPaymentType.selector,
+                IGraphPayments.PaymentTypes.IndexingRewards
+            )
+        );
+        graphTallyCollector.collect(IGraphPayments.PaymentTypes.IndexingRewards, data);
+    }
 }
