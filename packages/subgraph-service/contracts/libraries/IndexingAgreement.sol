@@ -12,7 +12,7 @@ import { SubgraphServiceLib } from "./SubgraphServiceLib.sol";
 import { Decoder } from "./Decoder.sol";
 
 library IndexingAgreement {
-    using IndexingAgreement for Manager;
+    using IndexingAgreement for StorageManager;
     using Allocation for mapping(address => Allocation.State);
     using SubgraphServiceLib for mapping(address => Allocation.State);
 
@@ -74,16 +74,16 @@ library IndexingAgreement {
         bytes data;
     }
 
-    /// @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.Manager.IndexingAgreement
-    struct Manager {
+    /// @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement
+    struct StorageManager {
         mapping(bytes16 => State) agreements;
         mapping(bytes16 agreementId => IndexingAgreementTermsV1 data) termsV1;
         mapping(address allocationId => bytes16 agreementId) allocationToActiveAgreementId;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("graphprotocol.subgraph-service.storage.Manager.IndexingAgreement")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant INDEXING_AGREEMENT_MANAGER_STORAGE_LOCATION =
-        0xfdb6fb5d1a390e01387ce73642e517880d8e0fedd0e7e26ac9194788a7a85200;
+    // keccak256(abi.encode(uint256(keccak256("graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 public constant INDEXING_AGREEMENT_STORAGE_MANAGER_LOCATION =
+        0xb59b65b7215c7fb95ac34d2ad5aed7c775c8bc77ad936b1b43e17b95efc8e400;
 
     /**
      * @notice Emitted when an indexer collects indexing fees from a V1 agreement
@@ -218,7 +218,7 @@ library IndexingAgreement {
     error IndexingAgreementNotAuthorized(bytes16 agreementId, address unauthorizedIndexer);
 
     function accept(
-        Manager storage self,
+        StorageManager storage self,
         mapping(address allocationId => Allocation.State allocation) storage allocations,
         address allocationId,
         IRecurringCollector.SignedRCA calldata signedRCA
@@ -289,7 +289,7 @@ library IndexingAgreement {
      * @param signedRCAU The signed Recurring Collection Agreement Update
      */
     function update(
-        Manager storage self,
+        StorageManager storage self,
         address indexer,
         IRecurringCollector.SignedRCAU calldata signedRCAU
     ) external {
@@ -332,7 +332,7 @@ library IndexingAgreement {
      * @param indexer The indexer address
      * @param agreementId The id of the agreement to cancel
      */
-    function cancel(Manager storage self, address indexer, bytes16 agreementId) external {
+    function cancel(StorageManager storage self, address indexer, bytes16 agreementId) external {
         AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
         require(
@@ -348,7 +348,7 @@ library IndexingAgreement {
         );
     }
 
-    function cancelForAllocation(Manager storage self, address _allocationId) external {
+    function cancelForAllocation(StorageManager storage self, address _allocationId) external {
         bytes16 agreementId = self.allocationToActiveAgreementId[_allocationId];
         if (agreementId == bytes16(0)) {
             return;
@@ -368,7 +368,7 @@ library IndexingAgreement {
         );
     }
 
-    function cancelByPayer(Manager storage self, bytes16 agreementId) external {
+    function cancelByPayer(StorageManager storage self, bytes16 agreementId) external {
         AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
         require(
@@ -385,7 +385,7 @@ library IndexingAgreement {
     }
 
     function collect(
-        Manager storage self,
+        StorageManager storage self,
         mapping(address allocationId => Allocation.State allocation) storage allocations,
         CollectParams memory params
     ) external returns (address, uint256) {
@@ -435,28 +435,28 @@ library IndexingAgreement {
         return (wrapper.collectorAgreement.serviceProvider, tokensCollected);
     }
 
-    function get(Manager storage self, bytes16 agreementId) external view returns (AgreementWrapper memory) {
+    function get(StorageManager storage self, bytes16 agreementId) external view returns (AgreementWrapper memory) {
         AgreementWrapper memory wrapper = _get(self, agreementId);
         require(wrapper.collectorAgreement.dataService == address(this), IndexingAgreementNotActive(agreementId));
 
         return wrapper;
     }
 
-    function _getManager() internal pure returns (Manager storage $) {
+    function _getStorageManager() internal pure returns (StorageManager storage $) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            $.slot := INDEXING_AGREEMENT_MANAGER_STORAGE_LOCATION
+            $.slot := INDEXING_AGREEMENT_STORAGE_MANAGER_LOCATION
         }
     }
 
-    function _setTermsV1(Manager storage _manager, bytes16 _agreementId, bytes memory _data) private {
+    function _setTermsV1(StorageManager storage _manager, bytes16 _agreementId, bytes memory _data) private {
         IndexingAgreementTermsV1 memory newTerms = Decoder.decodeIndexingAgreementTermsV1(_data);
         _manager.termsV1[_agreementId].tokensPerSecond = newTerms.tokensPerSecond;
         _manager.termsV1[_agreementId].tokensPerEntityPerSecond = newTerms.tokensPerEntityPerSecond;
     }
 
     function _cancel(
-        Manager storage _manager,
+        StorageManager storage _manager,
         bytes16 _agreementId,
         State memory _agreement,
         IRecurringCollector.AgreementData memory _collectorAgreement,
@@ -477,7 +477,7 @@ library IndexingAgreement {
     }
 
     function _tokensToCollect(
-        Manager storage _manager,
+        StorageManager storage _manager,
         bytes16 _agreementId,
         IRecurringCollector.AgreementData memory _agreement,
         uint256 _entities
@@ -509,7 +509,7 @@ library IndexingAgreement {
         return SubgraphService(address(this));
     }
 
-    function _get(Manager storage self, bytes16 agreementId) private view returns (AgreementWrapper memory) {
+    function _get(StorageManager storage self, bytes16 agreementId) private view returns (AgreementWrapper memory) {
         return
             AgreementWrapper({
                 agreement: self.agreements[agreementId],

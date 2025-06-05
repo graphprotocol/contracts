@@ -49,7 +49,7 @@ contract SubgraphService is
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
     using TokenUtils for IGraphToken;
-    using IndexingAgreement for IndexingAgreement.Manager;
+    using IndexingAgreement for IndexingAgreement.StorageManager;
 
     /**
      * @notice Checks that an indexer is registered
@@ -419,7 +419,7 @@ contract SubgraphService is
         onlyValidProvision(signedRCA.rca.serviceProvider)
         onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
     {
-        IndexingAgreement._getManager().accept(_allocations, allocationId, signedRCA);
+        IndexingAgreement._getStorageManager().accept(_allocations, allocationId, signedRCA);
     }
 
     /**
@@ -443,7 +443,7 @@ contract SubgraphService is
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
     {
-        IndexingAgreement._getManager().update(indexer, signedRCAU);
+        IndexingAgreement._getStorageManager().update(indexer, signedRCAU);
     }
 
     /**
@@ -469,7 +469,7 @@ contract SubgraphService is
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
     {
-        IndexingAgreement._getManager().cancel(indexer, agreementId);
+        IndexingAgreement._getStorageManager().cancel(indexer, agreementId);
     }
 
     /**
@@ -485,13 +485,13 @@ contract SubgraphService is
      * @param agreementId The id of the agreement
      */
     function cancelIndexingAgreementByPayer(bytes16 agreementId) external whenNotPaused {
-        IndexingAgreement._getManager().cancelByPayer(agreementId);
+        IndexingAgreement._getStorageManager().cancelByPayer(agreementId);
     }
 
     function getIndexingAgreement(
         bytes16 agreementId
     ) external view returns (IndexingAgreement.AgreementWrapper memory) {
-        return IndexingAgreement._getManager().get(agreementId);
+        return IndexingAgreement._getStorageManager().get(agreementId);
     }
 
     /// @inheritdoc ISubgraphService
@@ -554,7 +554,7 @@ contract SubgraphService is
     }
 
     function _cancelAllocationIndexingAgreement(address _allocationId) internal {
-        IndexingAgreement._getManager().cancelForAllocation(_allocationId);
+        IndexingAgreement._getStorageManager().cancelForAllocation(_allocationId);
     }
 
     /**
@@ -739,7 +739,7 @@ contract SubgraphService is
      * @return The amount of fees collected
      */
     function _collectIndexingFees(bytes16 _agreementId, bytes memory _data) private returns (uint256) {
-        (address indexer, uint256 tokensCollected) = IndexingAgreement._getManager().collect(
+        (address indexer, uint256 tokensCollected) = IndexingAgreement._getStorageManager().collect(
             _allocations,
             IndexingAgreement.CollectParams({
                 agreementId: _agreementId,
