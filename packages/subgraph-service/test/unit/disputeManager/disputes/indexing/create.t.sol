@@ -157,4 +157,24 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerZeroTokens.selector));
         disputeManager.createIndexingDispute(allocationID, bytes32("POI1"), block.number);
     }
+
+    function test_Indexing_Create_DontRevertIf_IndexerIsBelowStake_WithDelegation(uint256 tokens, uint256 delegationTokens) public useIndexer useAllocation(tokens) {
+        // Close allocation
+        bytes memory data = abi.encode(allocationID);
+        _stopService(users.indexer, data);
+        // Thaw, deprovision and unstake
+        address subgraphDataServiceAddress = address(subgraphService);
+        _thawDeprovisionAndUnstake(users.indexer, subgraphDataServiceAddress, tokens);
+
+        delegationTokens = bound(delegationTokens, 1 ether, 100_000_000 ether);
+
+        resetPrank(users.delegator);
+        token.approve(address(staking), delegationTokens);
+        staking.delegate(users.indexer, address(subgraphService), delegationTokens, 0);
+
+        // create dispute
+        resetPrank(users.fisherman);
+        token.approve(address(disputeManager), tokens);
+        _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
+    }
 }
