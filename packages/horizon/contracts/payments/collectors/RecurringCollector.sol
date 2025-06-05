@@ -21,6 +21,7 @@ import { MathUtils } from "../../libraries/MathUtils.sol";
 contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringCollector {
     using PPMMath for uint256;
 
+    /// @notice The minimum number of seconds that must be between two collections
     uint32 public constant MIN_SECONDS_COLLECTION_WINDOW = 600;
 
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
