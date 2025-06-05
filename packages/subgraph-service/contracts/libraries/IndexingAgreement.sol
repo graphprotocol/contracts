@@ -492,6 +492,13 @@ library IndexingAgreement {
         return collectionSeconds * (termsV1.tokensPerSecond + termsV1.tokensPerEntityPerSecond * _entities);
     }
 
+    /**
+     * @notice Checks if the agreement is active
+     * Requirements:
+     * - The underlying collector agreement has been accepted
+     * - The underlying collector agreement's data service is this contract
+     * - The indexing agreement has been accepted and has a valid allocation ID
+     **/
     function _isActive(AgreementWrapper memory wrapper) private view returns (bool) {
         return
             wrapper.collectorAgreement.dataService == address(this) &&
