@@ -88,6 +88,19 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCASigner(signedRCA);
 
+        require(
+            signedRCA.rca.dataService != address(0) &&
+                signedRCA.rca.payer != address(0) &&
+                signedRCA.rca.serviceProvider != address(0),
+            RecurringCollectorAgreementAddressNotSet()
+        );
+
+        _requireValidCollectionWindowParams(
+            signedRCA.rca.endsAt,
+            signedRCA.rca.minSecondsPerCollection,
+            signedRCA.rca.maxSecondsPerCollection
+        );
+
         AgreementData storage agreement = _getAgreementStorage(signedRCA.rca.agreementId);
         // check that the agreement is not already accepted
         require(
@@ -106,7 +119,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.maxOngoingTokensPerSecond = signedRCA.rca.maxOngoingTokensPerSecond;
         agreement.minSecondsPerCollection = signedRCA.rca.minSecondsPerCollection;
         agreement.maxSecondsPerCollection = signedRCA.rca.maxSecondsPerCollection;
-        _requireValidAgreement(agreement);
 
         emit AgreementAccepted(
             agreement.dataService,
@@ -178,13 +190,18 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCAUSigner(signedRCAU, agreement.payer);
 
+        _requireValidCollectionWindowParams(
+            signedRCAU.rcau.endsAt,
+            signedRCAU.rcau.minSecondsPerCollection,
+            signedRCAU.rcau.maxSecondsPerCollection
+        );
+
         // update the agreement
         agreement.endsAt = signedRCAU.rcau.endsAt;
         agreement.maxInitialTokens = signedRCAU.rcau.maxInitialTokens;
         agreement.maxOngoingTokensPerSecond = signedRCAU.rcau.maxOngoingTokensPerSecond;
         agreement.minSecondsPerCollection = signedRCAU.rcau.minSecondsPerCollection;
         agreement.maxSecondsPerCollection = signedRCAU.rcau.maxSecondsPerCollection;
-        _requireValidAgreement(agreement);
 
         emit AgreementUpdated(
             agreement.dataService,
@@ -306,38 +323,31 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         return tokensToCollect;
     }
 
-    function _requireValidAgreement(AgreementData memory _agreement) private view {
-        require(
-            _agreement.dataService != address(0) &&
-                _agreement.payer != address(0) &&
-                _agreement.serviceProvider != address(0),
-            RecurringCollectorAgreementAddressNotSet()
-        );
-
+    function _requireValidCollectionWindowParams(
+        uint64 _endsAt,
+        uint32 _minSecondsPerCollection,
+        uint32 _maxSecondsPerCollection
+    ) private view {
         // Agreement needs to end in the future
-        require(
-            _agreement.endsAt > block.timestamp,
-            RecurringCollectorAgreementElapsedEndsAt(block.timestamp, _agreement.endsAt)
-        );
+        require(_endsAt > block.timestamp, RecurringCollectorAgreementElapsedEndsAt(block.timestamp, _endsAt));
 
         // Collection window needs to be at least MIN_SECONDS_COLLECTION_WINDOW
         require(
-            _agreement.maxSecondsPerCollection > _agreement.minSecondsPerCollection &&
-                (_agreement.maxSecondsPerCollection - _agreement.minSecondsPerCollection >=
-                    MIN_SECONDS_COLLECTION_WINDOW),
+            _maxSecondsPerCollection > _minSecondsPerCollection &&
+                (_maxSecondsPerCollection - _minSecondsPerCollection >= MIN_SECONDS_COLLECTION_WINDOW),
             RecurringCollectorAgreementInvalidCollectionWindow(
                 MIN_SECONDS_COLLECTION_WINDOW,
-                _agreement.minSecondsPerCollection,
-                _agreement.maxSecondsPerCollection
+                _minSecondsPerCollection,
+                _maxSecondsPerCollection
             )
         );
 
         // Agreement needs to last at least one min collection window
         require(
-            _agreement.endsAt - block.timestamp >= _agreement.minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
+            _endsAt - block.timestamp >= _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
             RecurringCollectorAgreementInvalidDuration(
-                _agreement.minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
-                _agreement.endsAt - block.timestamp
+                _minSecondsPerCollection + MIN_SECONDS_COLLECTION_WINDOW,
+                _endsAt - block.timestamp
             )
         );
     }
