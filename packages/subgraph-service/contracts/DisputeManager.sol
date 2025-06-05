@@ -120,12 +120,16 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function createIndexingDispute(address allocationId, bytes32 poi) external override returns (bytes32) {
+    function createIndexingDispute(
+        address allocationId,
+        bytes32 poi,
+        uint256 blockNumber
+    ) external override returns (bytes32) {
         // Get funds from fisherman
         _graphToken().pullTokens(msg.sender, disputeDeposit);
 
         // Create a dispute
-        return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi);
+        return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi, blockNumber);
     }
 
     /// @inheritdoc IDisputeManager
@@ -450,16 +454,18 @@ contract DisputeManager is
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationId Allocation disputed
      * @param _poi The POI being disputed
+     * @param _blockNumber The block number for which the POI was calculated
      * @return The dispute id
      */
     function _createIndexingDisputeWithAllocation(
         address _fisherman,
         uint256 _deposit,
         address _allocationId,
-        bytes32 _poi
+        bytes32 _poi,
+        uint256 _blockNumber
     ) private returns (bytes32) {
         // Create a disputeId
-        bytes32 disputeId = keccak256(abi.encodePacked(_allocationId, _poi));
+        bytes32 disputeId = keccak256(abi.encodePacked(_allocationId, _poi, _blockNumber));
 
         // Only one dispute for an allocationId at a time
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
@@ -496,6 +502,7 @@ contract DisputeManager is
             _deposit,
             _allocationId,
             _poi,
+            _blockNumber,
             stakeSnapshot,
             cancellableAt
         );

@@ -13,7 +13,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
 
     function test_Indexing_Create_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        _createIndexingDispute(allocationID, bytes32("POI1"));
+        _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
     }
 
     function test_Indexing_Create_Dispute_WithDelegation(uint256 tokens, uint256 delegationTokens) public useIndexer {
@@ -37,7 +37,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         staking.delegate(users.indexer, address(subgraphService), delegationTokens, 0);
 
         resetPrank(users.fisherman);
-        _createIndexingDispute(allocationID, bytes32("POI1"));
+        _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
     }
 
     function test_Indexing_Create_Dispute_RevertWhen_SubgraphServiceNotSet(
@@ -52,7 +52,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         token.approve(address(disputeManager), disputeDeposit);
 
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerSubgraphServiceNotSet.selector));
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI2"));
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI2"), block.number);
     }
 
     function test_Indexing_Create_MultipleDisputes() public {
@@ -81,7 +81,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
 
         resetPrank(users.fisherman);
         for (uint i = 0; i < allocationIDPrivateKeys.length; i++) {
-            _createIndexingDispute(vm.addr(allocationIDPrivateKeys[i]), bytes32("POI1"));
+            _createIndexingDispute(vm.addr(allocationIDPrivateKeys[i]), bytes32("POI1"), block.number);
         }
     }
 
@@ -89,7 +89,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         // Create another dispute with different fisherman
         address otherFisherman = makeAddr("otherFisherman");
@@ -101,8 +101,20 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
             disputeID
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"));
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"), block.number);
         vm.stopPrank();
+    }
+
+    function test_Indexing_Create_DisputesSamePOIAndAllo(
+        uint256 tokens
+    ) public useIndexer useAllocation(tokens) {
+        resetPrank(users.fisherman);
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
+
+        resetPrank(users.arbitrator);
+        disputeManager.acceptDispute(disputeID, 100);
+
+        _createIndexingDispute(allocationID, bytes32("POI1"), block.number + 1);
     }
 
     function test_Indexing_Create_RevertIf_DepositUnderMinimum(uint256 tokensDeposit) public useFisherman {
@@ -115,7 +127,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
             disputeDeposit
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI3"));
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI3"), block.number);
         vm.stopPrank();
     }
 
@@ -127,7 +139,7 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
             allocationID
         );
         vm.expectRevert(expectedError);
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI4"));
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI4"), block.number);
         vm.stopPrank();
     }
 
@@ -143,6 +155,6 @@ contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {
         resetPrank(users.fisherman);
         token.approve(address(disputeManager), tokens);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerZeroTokens.selector));
-        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"));
+        disputeManager.createIndexingDispute(allocationID, bytes32("POI1"), block.number);
     }
 }
