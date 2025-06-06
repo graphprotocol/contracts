@@ -95,7 +95,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _claimId The ID of the stake claim to delete
      */
     function _deleteStakeClaim(bytes32 _claimId) private {
-        delete claims[_claimId];
+        DataServiceFeesLib.deleteStakeClaim(claims, _claimId);
     }
 
     /**
@@ -105,6 +105,6 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @return The next stake claim ID
      */
     function _getNextStakeClaim(bytes32 _claimId) private view returns (bytes32) {
-        return claims[_claimId].nextClaim;
+        return DataServiceFeesLib.getNextStakeClaim(claims, _claimId);
     }
 }

@@ -93,6 +93,33 @@ library DataServiceFeesLib {
     }
 
     /**
+     * @notice Deletes a stake claim.
+     * @dev This function is used as a callback in the stake claims linked list traversal.
+     * @param claims The mapping that stores stake claims by their ID
+     * @param claimId The ID of the stake claim to delete
+     */
+    function deleteStakeClaim(
+        mapping(bytes32 claimId => IDataServiceFees.StakeClaim claim) storage claims,
+        bytes32 claimId
+    ) external {
+        delete claims[claimId];
+    }
+
+    /**
+     * @notice Gets the next stake claim in the linked list
+     * @dev This function is used as a callback in the stake claims linked list traversal.
+     * @param claims The mapping that stores stake claims by their ID
+     * @param claimId The ID of the stake claim
+     * @return The next stake claim ID
+     */
+    function getNextStakeClaim(
+        mapping(bytes32 claimId => IDataServiceFees.StakeClaim claim) storage claims,
+        bytes32 claimId
+    ) external view returns (bytes32) {
+        return claims[claimId].nextClaim;
+    }
+
+    /**
      * @notice Builds a stake claim ID
      * @param serviceProvider The address of the service provider
      * @param nonce A nonce of the stake claim
