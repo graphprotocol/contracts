@@ -31,6 +31,12 @@ library IndexingAgreement {
         IndexingAgreementVersion version;
     }
 
+    /**
+     * @notice Wrapper for Indexing Agreement and Collector Agreement Data
+     * @dev This struct is used to encapsulate the state of an indexing agreement
+     * @param agreement The indexing agreement state
+     * @param collectorAgreement The collector agreement data
+     */
     struct AgreementWrapper {
         State agreement;
         IRecurringCollector.AgreementData collectorAgreement;
@@ -84,6 +90,9 @@ library IndexingAgreement {
      * @notice Storage manager for indexing agreements
      * @dev This struct holds the state of indexing agreements and their terms.
      * It is used to manage the lifecycle of indexing agreements in the subgraph service.
+     * @param agreements Mapping of agreement IDs to their states
+     * @param termsV1 Mapping of agreement IDs to their terms for version 1 agreements
+     * @param allocationToActiveAgreementId Mapping of allocation IDs to their active agreement IDs
      * @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement
      */
     struct StorageManager {
