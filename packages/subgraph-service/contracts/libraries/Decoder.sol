@@ -16,7 +16,8 @@ library Decoder {
      * @notice Decodes the data for collecting indexing fees.
      *
      * @param data The data to decode.
-     * @return The decoded data
+     * @return agreementId The agreement ID
+     * @return nestedData The nested encoded data
      */
     function decodeCollectIndexingFeeData(bytes memory data) public pure returns (bytes16, bytes memory) {
         try UnsafeDecoder.decodeCollectIndexingFeeData_(data) returns (bytes16 agreementId, bytes memory nestedData) {
@@ -66,6 +67,9 @@ library Decoder {
      * @notice Decodes the collect data for indexing fees V1.
      *
      * @param data The data to decode.
+     * @return entities The number of entities
+     * @return poi The proof of indexing (POI)
+     * @return epoch The epoch of the POI
      */
     function decodeCollectIndexingFeeDataV1(bytes memory data) public pure returns (uint256, bytes32, uint256) {
         try UnsafeDecoder.decodeCollectIndexingFeeDataV1_(data) returns (uint256 entities, bytes32 poi, uint256 epoch) {
