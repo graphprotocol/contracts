@@ -9,6 +9,18 @@ library SubgraphServiceLib {
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
 
+    /**
+     * @notice Requires that the allocation is valid and owned by the indexer.
+     *
+     * Requirements:
+     * - Allocation must belong to the indexer
+     * - Allocation must be open
+     *
+     * @param self The allocation storage manager
+     * @param allocationId The id of the allocation
+     * @param indexer The address of the indexer
+     * @return The allocation state
+     */
     function requireValidAllocation(
         mapping(address => Allocation.State) storage self,
         address allocationId,

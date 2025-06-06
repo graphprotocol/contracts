@@ -235,6 +235,7 @@ library IndexingAgreement {
      * Emits {IndexingAgreementAccepted} event
      *
      * @param self The indexing agreement storage manager
+     * @param allocations The mapping of allocation IDs to their states
      * @param allocationId The id of the allocation
      * @param signedRCA The signed Recurring Collection Agreement
      */
