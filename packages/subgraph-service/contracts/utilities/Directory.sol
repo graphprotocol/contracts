@@ -40,6 +40,7 @@ abstract contract Directory {
      * @param disputeManager The Dispute Manager contract address
      * @param graphTallyCollector The Graph Tally Collector contract address
      * @param curation The Curation contract address
+     * @param recurringCollector The Recurring Collector contract address
      */
     event SubgraphServiceDirectoryInitialized(
         address subgraphService,
@@ -99,6 +100,7 @@ abstract contract Directory {
 
     /**
      * @notice Returns the Recurring Collector contract address
+     * @return The Recurring Collector contract
      */
     function recurringCollector() external view returns (IRecurringCollector) {
         return RECURRING_COLLECTOR;
