@@ -205,6 +205,11 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         emit ThawingPeriodRangeSet(_min, _max);
     }
 
+    /**
+     * @notice Checks if a provision of a service provider is valid according
+     * to the parameter ranges established.
+     * @param _serviceProvider The address of the service provider.
+     */
     function _requireValidProvision(address _serviceProvider) internal view {
         IHorizonStaking.Provision memory provision = _getProvision(_serviceProvider);
         _checkProvisionTokens(provision);
@@ -323,7 +328,12 @@ abstract contract ProvisionManager is Initializable, GraphDirectory, ProvisionMa
         require(_value.isInRange(_min, _max), ProvisionManagerInvalidValue(_revertMessage, _value, _min, _max));
     }
 
-    function _requireLTE(uint256 _min, uint256 _max) private pure {
-        require(_min <= _max, ProvisionManagerInvalidRange(_min, _max));
+    /**
+     * @notice Requires that a value is less than or equal to another value.
+     * @param _a The value to check.
+     * @param _b The value to compare against.
+     */
+    function _requireLTE(uint256 _a, uint256 _b) private pure {
+        require(_a <= _b, ProvisionManagerInvalidRange(_a, _b));
     }
 }

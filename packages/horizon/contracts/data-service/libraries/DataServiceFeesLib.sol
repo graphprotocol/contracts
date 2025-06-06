@@ -10,17 +10,6 @@ library DataServiceFeesLib {
     using ProvisionTracker for mapping(address => uint256);
     using LinkedList for LinkedList.List;
 
-    // @notice Storage structure for the provision manager
-    struct ProvisionManagerStorage {
-        uint256 _minimumProvisionTokens;
-        uint256 _maximumProvisionTokens;
-        uint64 _minimumThawingPeriod;
-        uint64 _maximumThawingPeriod;
-        uint32 _minimumVerifierCut;
-        uint32 _maximumVerifierCut;
-        uint32 _delegationRatio;
-    }
-
     /**
      * @notice Locks stake for a service provider to back a payment.
      * Creates a stake claim, which is stored in a linked list by service provider.
@@ -29,6 +18,11 @@ library DataServiceFeesLib {
      *
      * Emits a {StakeClaimLocked} event.
      *
+     * @param feesProvisionTracker The mapping that tracks the provision tokens for each service provider
+     * @param claims The mapping that stores stake claims by their ID
+     * @param claimsLists The mapping that stores linked lists of stake claims by service provider
+     * @param graphStaking The Horizon staking contract used to lock the tokens
+     * @param _delegationRatio The delegation ratio to use for the stake claim
      * @param _serviceProvider The address of the service provider
      * @param _tokens The amount of tokens to lock in the claim
      * @param _unlockTimestamp The timestamp when the tokens can be released
@@ -65,6 +59,10 @@ library DataServiceFeesLib {
     /**
      * @notice Processes a stake claim, releasing the tokens if the claim has expired.
      * @dev This function is used as a callback in the stake claims linked list traversal.
+     * @param feesProvisionTracker The mapping that tracks the provision tokens for each service provider.
+     * @param claims The mapping that stores stake claims by their ID.
+     * @param _claimId The ID of the stake claim to process.
+     * @param _acc The accumulator data, which contains the total tokens claimed and the service provider address.
      * @return Whether the stake claim is still locked, indicating that the traversal should continue or stop.
      * @return The updated accumulator data
      */

@@ -6,6 +6,8 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import { Authorizable } from "../../utilities/Authorizable.sol";
 import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
+// solhint-disable-next-line no-unused-import
+import { IPaymentsCollector } from "../../interfaces/IPaymentsCollector.sol"; // for @inheritdoc
 import { IRecurringCollector } from "../../interfaces/IRecurringCollector.sol";
 import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
 import { PPMMath } from "../../libraries/PPMMath.sol";
@@ -54,8 +56,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     ) EIP712(eip712Name, eip712Version) GraphDirectory(controller) Authorizable(revokeSignerThawingPeriod) {}
 
     /**
+     * @inheritdoc IPaymentsCollector
      * @notice Initiate a payment collection through the payments protocol.
-     * See {IGraphPayments.collect}.
+     * See {IPaymentsCollector.collect}.
      * @dev Caller must be the data service the RCA was issued to.
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes calldata data) external returns (uint256) {
@@ -71,6 +74,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
+     * @inheritdoc IRecurringCollector
      * @notice Accept an indexing agreement.
      * See {IRecurringCollector.accept}.
      * @dev Caller must be the data service the RCA was issued to.
@@ -136,6 +140,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
+     * @inheritdoc IRecurringCollector
      * @notice Cancel an indexing agreement.
      * See {IRecurringCollector.cancel}.
      * @dev Caller must be the data service for the agreement.
@@ -168,6 +173,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
+     * @inheritdoc IRecurringCollector
      * @notice Update an indexing agreement.
      * See {IRecurringCollector.update}.
      * @dev Caller must be the data service for the agreement.
@@ -218,43 +224,35 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         );
     }
 
-    /**
-     * @notice See {IRecurringCollector.recoverRCASigner}
-     */
+    /// @inheritdoc IRecurringCollector
     function recoverRCASigner(SignedRCA calldata signedRCA) external view returns (address) {
         return _recoverRCASigner(signedRCA);
     }
 
-    /**
-     * @notice See {IRecurringCollector.recoverRCAUSigner}
-     */
+    /// @inheritdoc IRecurringCollector
     function recoverRCAUSigner(SignedRCAU calldata signedRCAU) external view returns (address) {
         return _recoverRCAUSigner(signedRCAU);
     }
 
-    /**
-     * @notice See {IRecurringCollector.hashRCA}
-     */
+    /// @inheritdoc IRecurringCollector
     function hashRCA(RecurringCollectionAgreement calldata rca) external view returns (bytes32) {
         return _hashRCA(rca);
     }
 
-    /**
-     * @notice See {IRecurringCollector.hashRCAU}
-     */
+    /// @inheritdoc IRecurringCollector
     function hashRCAU(RecurringCollectionAgreementUpdate calldata rcau) external view returns (bytes32) {
         return _hashRCAU(rcau);
     }
 
-    /**
-     * @notice See {IRecurringCollector.getAgreement}
-     */
+    /// @inheritdoc IRecurringCollector
     function getAgreement(bytes16 agreementId) external view returns (AgreementData memory) {
         return _getAgreement(agreementId);
     }
 
     /**
      * @notice Decodes the collect data.
+     * @param data The encoded collect parameters.
+     * @return The decoded collect parameters.
      */
     function decodeCollectData(bytes calldata data) public pure returns (CollectParams memory) {
         return abi.decode(data, (CollectParams));
@@ -355,6 +353,10 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /**
      * @notice Requires that the collection params are valid.
+     * @param _agreement The agreement data
+     * @param _agreementId The ID of the agreement
+     * @param _tokens The number of tokens to collect
+     * @return The number of tokens that can be collected
      */
     function _requireValidCollect(
         AgreementData memory _agreement,
@@ -457,6 +459,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /**
      * @notice Requires that the signer for the RCA is authorized
      * by the payer of the RCA.
+     * @param _signedRCA The signed RCA to verify
+     * @return The address of the authorized signer
      */
     function _requireAuthorizedRCASigner(SignedRCA memory _signedRCA) private view returns (address) {
         address signer = _recoverRCASigner(_signedRCA);
@@ -481,6 +485,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /**
      * @notice Gets an agreement to be updated.
+     * @param _agreementId The ID of the agreement to get
+     * @return The storage reference to the agreement data
      */
     function _getAgreementStorage(bytes16 _agreementId) private view returns (AgreementData storage) {
         return agreements[_agreementId];
@@ -488,6 +494,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /**
      * @notice See {IRecurringCollector.getAgreement}
+     * @param _agreementId The ID of the agreement to get
+     * @return The agreement data
      */
     function _getAgreement(bytes16 _agreementId) private view returns (AgreementData memory) {
         return agreements[_agreementId];

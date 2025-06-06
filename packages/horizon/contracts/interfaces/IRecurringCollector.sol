@@ -13,7 +13,7 @@ import { IAuthorizable } from "./IAuthorizable.sol";
  * recurrent payments.
  */
 interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
-    // @notice The state of an agreement
+    /// @notice The state of an agreement
     enum AgreementState {
         NotAccepted,
         Accepted,
@@ -21,80 +21,106 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         CanceledByPayer
     }
 
-    // @notice The party that can cancel an agreement
+    /// @notice The party that can cancel an agreement
     enum CancelAgreementBy {
         ServiceProvider,
         Payer,
         ThirdParty
     }
 
-    /// @notice A representation of a signed Recurring Collection Agreement (RCA)
+    /**
+     * @notice A representation of a signed Recurring Collection Agreement (RCA)
+     * @param rca The Recurring Collection Agreement to be signed
+     * @param signature The signature of the RCA - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
+     */
     struct SignedRCA {
-        // The RCA
         RecurringCollectionAgreement rca;
-        // Signature - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
         bytes signature;
     }
 
-    /// @notice The Recurring Collection Agreement (RCA)
+    /**
+     * @notice The Recurring Collection Agreement (RCA)
+     * @param agreementId The agreement ID of the RCA
+     * @param deadline The deadline for accepting the RCA
+     * @param endsAt The timestamp when the agreement ends
+     * @param payer The address of the payer the RCA was issued by
+     * @param dataService The address of the data service the RCA was issued to
+     * @param serviceProvider The address of the service provider the RCA was issued to
+     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * on top of the amount allowed for subsequent collections
+     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * except for the first collection
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
+     *
+     */
     struct RecurringCollectionAgreement {
-        // The agreement ID of the RCA
         bytes16 agreementId;
-        // The deadline for accepting the RCA
         uint64 deadline;
-        // The timestamp when the agreement ends
         uint64 endsAt;
-        // The address of the payer the RCA was issued by
         address payer;
-        // The address of the data service the RCA was issued to
         address dataService;
-        // The address of the service provider the RCA was issued to
         address serviceProvider;
-        // The maximum amount of tokens that can be collected in the first collection
-        // on top of the amount allowed for subsequent collections
         uint256 maxInitialTokens;
-        // The maximum amount of tokens that can be collected per second
-        // except for the first collection
         uint256 maxOngoingTokensPerSecond;
-        // The minimum amount of seconds that must pass between collections
         uint32 minSecondsPerCollection;
-        // The maximum amount of seconds that can pass between collections
         uint32 maxSecondsPerCollection;
-        // Arbitrary metadata to extend functionality if a data service requires it
         bytes metadata;
     }
 
-    /// @notice A representation of a signed Recurring Collection Agreement Update (RCAU)
+    /**
+     * @notice A representation of a signed Recurring Collection Agreement Update (RCAU)
+     * @param rcau The Recurring Collection Agreement Update to be signed
+     * @param signature The signature of the RCAU - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
+     */
     struct SignedRCAU {
-        // The RCAU
         RecurringCollectionAgreementUpdate rcau;
-        // Signature - 65 bytes: r (32 Bytes) || s (32 Bytes) || v (1 Byte)
         bytes signature;
     }
 
-    /// @notice The Recurring Collection Agreement Update (RCAU)
+    /**
+     * @notice The Recurring Collection Agreement Update (RCAU)
+     * @param agreementId The agreement ID of the RCAU
+     * @param deadline The deadline for upgrading the RCA
+     * @param endsAt The timestamp when the agreement ends
+     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * on top of the amount allowed for subsequent collections
+     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * except for the first collection
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param metadata Arbitrary metadata to extend functionality if a data service requires it
+     */
     struct RecurringCollectionAgreementUpdate {
-        // The agreement ID
         bytes16 agreementId;
-        // The deadline for upgrading
         uint64 deadline;
-        // The timestamp when the agreement ends
         uint64 endsAt;
-        // The maximum amount of tokens that can be collected in the first collection
-        // on top of the amount allowed for subsequent collections
         uint256 maxInitialTokens;
-        // The maximum amount of tokens that can be collected per second
-        // except for the first collection
         uint256 maxOngoingTokensPerSecond;
-        // The minimum amount of seconds that must pass between collections
         uint32 minSecondsPerCollection;
-        // The maximum amount of seconds that can pass between collections
         uint32 maxSecondsPerCollection;
-        // Arbitrary metadata to extend functionality if a data service requires it
         bytes metadata;
     }
 
-    /// @notice The data for an agreement
+    /**
+     * @notice The data for an agreement
+     * @dev This struct is used to store the data of an agreement in the contract
+     * @param dataService The address of the data service
+     * @param payer The address of the payer
+     * @param serviceProvider The address of the service provider
+     * @param acceptedAt The timestamp when the agreement was accepted
+     * @param lastCollectionAt The timestamp when the agreement was last collected at
+     * @param endsAt The timestamp when the agreement ends
+     * @param maxInitialTokens The maximum amount of tokens that can be collected in the first collection
+     * on top of the amount allowed for subsequent collections
+     * @param maxOngoingTokensPerSecond The maximum amount of tokens that can be collected per second
+     * except for the first collection
+     * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
+     * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param canceledAt The timestamp when the agreement was canceled
+     * @param state The state of the agreement
+     */
     struct AgreementData {
         // The address of the data service
         address dataService;
@@ -124,14 +150,17 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         AgreementState state;
     }
 
-    /// @notice The params for collecting an agreement
+    /**
+     * @notice The params for collecting an agreement
+     * @param agreementId The agreement ID of the RCA
+     * @param collectionId The collection ID of the RCA
+     * @param tokens The amount of tokens to collect
+     * @param dataServiceCut The data service cut in parts per million
+     */
     struct CollectParams {
         bytes16 agreementId;
-        // The collection ID
         bytes32 collectionId;
-        // The amount of tokens to collect
         uint256 tokens;
-        // The data service cut in PPM
         uint256 dataServiceCut;
     }
 
@@ -226,50 +255,50 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     );
 
     /**
-     * Thrown when accepting an agreement with a zero ID
+     * @notice Thrown when accepting an agreement with a zero ID
      */
     error RecurringCollectorAgreementIdZero();
 
     /**
-     * Thrown when interacting with an agreement not owned by the message sender
+     * @notice Thrown when interacting with an agreement not owned by the message sender
      * @param agreementId The agreement ID
      * @param unauthorizedDataService The address of the unauthorized data service
      */
     error RecurringCollectorDataServiceNotAuthorized(bytes16 agreementId, address unauthorizedDataService);
 
     /**
-     * Thrown when interacting with an agreement with an elapsed deadline
+     * @notice Thrown when interacting with an agreement with an elapsed deadline
      * @param currentTimestamp The current timestamp
      * @param deadline The elapsed deadline timestamp
      */
     error RecurringCollectorAgreementDeadlineElapsed(uint256 currentTimestamp, uint64 deadline);
 
     /**
-     * Thrown when the signer is invalid
+     * @notice Thrown when the signer is invalid
      */
     error RecurringCollectorInvalidSigner();
 
     /**
-     * Thrown when the payment type is not IndexingFee
+     * @notice Thrown when the payment type is not IndexingFee
      * @param invalidPaymentType The invalid payment type
      */
     error RecurringCollectorInvalidPaymentType(IGraphPayments.PaymentTypes invalidPaymentType);
 
     /**
-     * Thrown when the caller is not the data service the RCA was issued to
+     * @notice Thrown when the caller is not the data service the RCA was issued to
      * @param unauthorizedCaller The address of the caller
      * @param dataService The address of the data service
      */
     error RecurringCollectorUnauthorizedCaller(address unauthorizedCaller, address dataService);
 
     /**
-     * Thrown when calling collect() with invalid data
+     * @notice Thrown when calling collect() with invalid data
      * @param invalidData The invalid data
      */
     error RecurringCollectorInvalidCollectData(bytes invalidData);
 
     /**
-     * Thrown when calling collect() on a payer canceled agreement
+     * @notice Thrown when calling collect() on a payer canceled agreement
      * where the final collection has already been done
      * @param agreementId The agreement ID
      * @param finalCollectionAt The timestamp when the final collection was done
@@ -277,26 +306,26 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorFinalCollectionDone(bytes16 agreementId, uint256 finalCollectionAt);
 
     /**
-     * Thrown when interacting with an agreement that has an incorrect state
+     * @notice Thrown when interacting with an agreement that has an incorrect state
      * @param agreementId The agreement ID
      * @param incorrectState The incorrect state
      */
     error RecurringCollectorAgreementIncorrectState(bytes16 agreementId, AgreementState incorrectState);
 
     /**
-     * Thrown when accepting an agreement with an address that is not set
+     * @notice Thrown when accepting an agreement with an address that is not set
      */
     error RecurringCollectorAgreementAddressNotSet();
 
     /**
-     * Thrown when accepting or upgrading an agreement with an elapsed endsAt
+     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
      * @param currentTimestamp The current timestamp
      * @param endsAt The agreement end timestamp
      */
     error RecurringCollectorAgreementElapsedEndsAt(uint256 currentTimestamp, uint64 endsAt);
 
     /**
-     * Thrown when accepting or upgrading an agreement with an elapsed endsAt
+     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
      * @param allowedMinCollectionWindow The allowed minimum collection window
      * @param minSecondsPerCollection The minimum seconds per collection
      * @param maxSecondsPerCollection The maximum seconds per collection
@@ -308,21 +337,21 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     );
 
     /**
-     * Thrown when accepting or upgrading an agreement with an invalid duration
+     * @notice Thrown when accepting or upgrading an agreement with an invalid duration
      * @param requiredMinDuration The required minimum duration
      * @param invalidDuration The invalid duration
      */
     error RecurringCollectorAgreementInvalidDuration(uint32 requiredMinDuration, uint256 invalidDuration);
 
     /**
-     * Thrown when calling collect() on an elapsed agreement
+     * @notice Thrown when calling collect() on an elapsed agreement
      * @param agreementId The agreement ID
      * @param endsAt The agreement end timestamp
      */
     error RecurringCollectorAgreementElapsed(bytes16 agreementId, uint64 endsAt);
 
     /**
-     * Thrown when calling collect() too soon
+     * @notice Thrown when calling collect() too soon
      * @param agreementId The agreement ID
      * @param secondsSinceLast Seconds since last collection
      * @param minSeconds Minimum seconds between collections
@@ -330,7 +359,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorCollectionTooSoon(bytes16 agreementId, uint32 secondsSinceLast, uint32 minSeconds);
 
     /**
-     * Thrown when calling collect() too late
+     * @notice Thrown when calling collect() too late
      * @param agreementId The agreement ID
      * @param secondsSinceLast Seconds since last collection
      * @param maxSeconds Maximum seconds between collections
