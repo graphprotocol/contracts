@@ -235,7 +235,7 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
-        _cancelAllocationIndexingAgreement(allocationId);
+        _cancelAllocationIndexingAgreement(allocationId, IRecurringCollector.CancelAgreementBy.ServiceProvider);
         _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
     }
@@ -319,7 +319,7 @@ contract SubgraphService is
         Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
-        _cancelAllocationIndexingAgreement(allocationId);
+        _cancelAllocationIndexingAgreement(allocationId, IRecurringCollector.CancelAgreementBy.ThirdParty);
         _closeAllocation(allocationId, true);
     }
 
@@ -553,8 +553,11 @@ contract SubgraphService is
         return address(_graphStaking());
     }
 
-    function _cancelAllocationIndexingAgreement(address _allocationId) internal {
-        IndexingAgreement._getStorageManager().cancelForAllocation(_allocationId);
+    function _cancelAllocationIndexingAgreement(
+        address _allocationId,
+        IRecurringCollector.CancelAgreementBy _by
+    ) internal {
+        IndexingAgreement._getStorageManager().cancelForAllocation(_allocationId, _by);
     }
 
     /**

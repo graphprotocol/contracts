@@ -350,7 +350,11 @@ library IndexingAgreement {
         );
     }
 
-    function cancelForAllocation(StorageManager storage self, address _allocationId) external {
+    function cancelForAllocation(
+        StorageManager storage self,
+        address _allocationId,
+        IRecurringCollector.CancelAgreementBy by
+    ) external {
         bytes16 agreementId = self.allocationToActiveAgreementId[_allocationId];
         if (agreementId == bytes16(0)) {
             return;
@@ -361,13 +365,7 @@ library IndexingAgreement {
             return;
         }
 
-        _cancel(
-            self,
-            agreementId,
-            wrapper.agreement,
-            wrapper.collectorAgreement,
-            IRecurringCollector.CancelAgreementBy.ServiceProvider
-        );
+        _cancel(self, agreementId, wrapper.agreement, wrapper.collectorAgreement, by);
     }
 
     function cancelByPayer(StorageManager storage self, bytes16 agreementId) external {

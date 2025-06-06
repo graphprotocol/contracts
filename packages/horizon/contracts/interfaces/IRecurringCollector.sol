@@ -24,7 +24,8 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     // @notice The party that can cancel an agreement
     enum CancelAgreementBy {
         ServiceProvider,
-        Payer
+        Payer,
+        ThirdParty
     }
 
     /// @notice A representation of a signed Recurring Collection Agreement (RCA)
