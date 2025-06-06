@@ -68,20 +68,34 @@ library IndexingAgreement {
         uint256 tokensPerEntityPerSecond;
     }
 
+    /**
+     * @notice Parameters for collecting indexing fees
+     * @param agreementId The ID of the indexing agreement
+     * @param currentEpoch The current epoch
+     * @param data The encoded data containing the number of entities indexed, proof of indexing, and epoch
+     */
     struct CollectParams {
         bytes16 agreementId;
         uint256 currentEpoch;
         bytes data;
     }
 
-    /// @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement
+    /**
+     * @notice Storage manager for indexing agreements
+     * @dev This struct holds the state of indexing agreements and their terms.
+     * It is used to manage the lifecycle of indexing agreements in the subgraph service.
+     * @custom:storage-location erc7201:graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement
+     */
     struct StorageManager {
         mapping(bytes16 => State) agreements;
         mapping(bytes16 agreementId => IndexingAgreementTermsV1 data) termsV1;
         mapping(address allocationId => bytes16 agreementId) allocationToActiveAgreementId;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement")) - 1)) & ~bytes32(uint256(0xff))
+    /**
+     * @notice Storage location for the indexing agreement storage manager
+     * @dev Equals keccak256(abi.encode(uint256(keccak256("graphprotocol.subgraph-service.storage.StorageManager.IndexingAgreement")) - 1)) & ~bytes32(uint256(0xff))
+     */
     bytes32 public constant INDEXING_AGREEMENT_STORAGE_MANAGER_LOCATION =
         0xb59b65b7215c7fb95ac34d2ad5aed7c775c8bc77ad936b1b43e17b95efc8e400;
 
@@ -528,12 +542,12 @@ library IndexingAgreement {
     /**
      * @notice Get the storage manager for indexing agreements.
      * @dev This function retrieves the storage manager for indexing agreements.
-     * @return $ The storage manager for indexing agreements
+     * @return m The storage manager for indexing agreements
      */
-    function _getStorageManager() internal pure returns (StorageManager storage $) {
+    function _getStorageManager() internal pure returns (StorageManager storage m) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            $.slot := INDEXING_AGREEMENT_STORAGE_MANAGER_LOCATION
+            m.slot := INDEXING_AGREEMENT_STORAGE_MANAGER_LOCATION
         }
     }
 
@@ -615,6 +629,8 @@ library IndexingAgreement {
      * - The underlying collector agreement has been accepted
      * - The underlying collector agreement's data service is this contract
      * - The indexing agreement has been accepted and has a valid allocation ID
+     * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
+     * @return True if the agreement is active, false otherwise
      **/
     function _isActive(AgreementWrapper memory wrapper) private view returns (bool) {
         return
