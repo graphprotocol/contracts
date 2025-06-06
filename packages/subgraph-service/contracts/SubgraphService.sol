@@ -554,10 +554,6 @@ contract SubgraphService is
         return _isOverAllocated(indexer, _delegationRatio);
     }
 
-    function getGraphStaking() external view returns (address) {
-        return address(_graphStaking());
-    }
-
     function _onCloseAllocation(address _allocationId, bool _stale) internal {
         IndexingAgreement._getStorageManager().onCloseAllocation(_allocationId, _stale);
     }
