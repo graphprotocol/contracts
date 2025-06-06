@@ -290,6 +290,7 @@ interface ISubgraphService is IDataServiceFees {
     /**
      * @notice Get the indexing agreement for a given agreement ID.
      * @param agreementId The id of the indexing agreement
+     * @return The indexing agreement details
      */
     function getIndexingAgreement(
         bytes16 agreementId

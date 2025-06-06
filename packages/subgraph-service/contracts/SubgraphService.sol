@@ -67,6 +67,7 @@ contract SubgraphService is
      * @param disputeManager The address of the DisputeManager contract
      * @param graphTallyCollector The address of the GraphTallyCollector contract
      * @param curation The address of the Curation contract
+     * @param recurringCollector The address of the RecurringCollector contract
      */
     constructor(
         address graphController,
@@ -394,7 +395,9 @@ contract SubgraphService is
     }
 
     /**
+     * @inheritdoc ISubgraphService
      * @notice Accept an indexing agreement.
+     *
      * See {ISubgraphService.acceptIndexingAgreement}.
      *
      * Requirements:
@@ -428,7 +431,9 @@ contract SubgraphService is
     }
 
     /**
+     * @inheritdoc ISubgraphService
      * @notice Update an indexing agreement.
+     *
      * See {IndexingAgreement.update}.
      *
      * Requirements:
@@ -452,7 +457,9 @@ contract SubgraphService is
     }
 
     /**
+     * @inheritdoc ISubgraphService
      * @notice Cancel an indexing agreement by indexer / operator.
+     *
      * See {IndexingAgreement.cancel}.
      *
      * @dev Can only be canceled on behalf of a valid indexer.
@@ -478,7 +485,9 @@ contract SubgraphService is
     }
 
     /**
+     * @inheritdoc ISubgraphService
      * @notice Cancel an indexing agreement by payer / signer.
+     *
      * See {ISubgraphService.cancelIndexingAgreementByPayer}.
      *
      * Requirements:
@@ -493,6 +502,7 @@ contract SubgraphService is
         IndexingAgreement._getStorageManager().cancelByPayer(agreementId);
     }
 
+    /// @inheritdoc ISubgraphService
     function getIndexingAgreement(
         bytes16 agreementId
     ) external view returns (IndexingAgreement.AgreementWrapper memory) {
@@ -554,6 +564,12 @@ contract SubgraphService is
         return _isOverAllocated(indexer, _delegationRatio);
     }
 
+    /**
+     * @notice Internal function to handle closing an allocation
+     * @dev This function is called when an allocation is closed, either by the indexer or by a third party
+     * @param _allocationId The id of the allocation being closed
+     * @param _stale Whether the allocation is stale or not
+     */
     function _onCloseAllocation(address _allocationId, bool _stale) internal {
         IndexingAgreement._getStorageManager().onCloseAllocation(_allocationId, _stale);
     }
@@ -569,6 +585,10 @@ contract SubgraphService is
         emit PaymentsDestinationSet(_indexer, _paymentsDestination);
     }
 
+    /**
+     * @notice Requires that the indexer is registered
+     * @param _indexer The address of the indexer
+     */
     function _requireRegisteredIndexer(address _indexer) internal view {
         require(indexers[_indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(_indexer));
     }
@@ -764,6 +784,13 @@ contract SubgraphService is
         emit StakeToFeesRatioSet(_stakeToFeesRatio);
     }
 
+    /**
+     * @notice Release stake claims and lock new stake as economic security for fees
+     * @dev This function releases all expired stake claims and locks new stake as economic security for fees.
+     * It is called after collecting query fees or indexing fees.
+     * @param _indexer The address of the indexer
+     * @param _tokensCollected The amount of tokens collected from fees
+     */
     function _releaseAndLockStake(address _indexer, uint256 _tokensCollected) private {
         _releaseStake(_indexer, 0);
         if (_tokensCollected > 0) {

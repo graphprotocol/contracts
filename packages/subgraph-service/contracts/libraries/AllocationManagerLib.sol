@@ -60,6 +60,10 @@ library AllocationManagerLib {
      * Emits a {AllocationCreated} event
      *
      * @param _allocations The mapping of allocation ids to allocation states
+     * @param _legacyAllocations The mapping of legacy allocation ids to legacy allocation states
+     * @param allocationProvisionTracker The mapping of indexers to their locked tokens
+     * @param _subgraphAllocatedTokens The mapping of subgraph deployment ids to their allocated tokens
+     * @param params The parameters for the allocation
      */
     function allocate(
         mapping(address allocationId => Allocation.State allocation) storage _allocations,
@@ -103,6 +107,32 @@ library AllocationManagerLib {
         );
     }
 
+    /**
+     * @notice Present a POI to collect indexing rewards for an allocation
+     * This function will mint indexing rewards using the {RewardsManager} and distribute them to the indexer and delegators.
+     *
+     * Conditions to qualify for indexing rewards:
+     * - POI must be non-zero
+     * - POI must not be stale, i.e: older than `maxPOIStaleness`
+     * - allocation must not be altruistic (allocated tokens = 0)
+     * - allocation must be open for at least one epoch
+     *
+     * Note that indexers are required to periodically (at most every `maxPOIStaleness`) present POIs to collect rewards.
+     * Rewards will not be issued to stale POIs, which means that indexers are advised to present a zero POI if they are
+     * unable to present a valid one to prevent being locked out of future rewards.
+     *
+     * Note on allocation duration restriction: this is required to ensure that non protocol chains have a valid block number for
+     * which to calculate POIs. EBO posts once per epoch typically at each epoch change, so we restrict rewards to allocations
+     * that have gone through at least one epoch change.
+     *
+     * Emits a {IndexingRewardsCollected} event.
+     *
+     * @param _allocations The mapping of allocation ids to allocation states
+     * @param allocationProvisionTracker The mapping of indexers to their locked tokens
+     * @param _subgraphAllocatedTokens The mapping of subgraph deployment ids to their allocated tokens
+     * @param params The parameters for the POI presentation
+     * @return The amount of tokens collected
+     */
     function presentPOI(
         mapping(address allocationId => Allocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
@@ -195,6 +225,22 @@ library AllocationManagerLib {
         return tokensRewards;
     }
 
+    /**
+     * @notice Close an allocation
+     * Does not require presenting a POI, use {_collectIndexingRewards} to present a POI and collect rewards
+     * @dev Note that allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
+     * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
+     * tokens for other purposes.
+     *
+     * Emits a {AllocationClosed} event
+     *
+     * @param _allocations The mapping of allocation ids to allocation states
+     * @param allocationProvisionTracker The mapping of indexers to their locked tokens
+     * @param _subgraphAllocatedTokens The mapping of subgraph deployment ids to their allocated tokens
+     * @param graphRewardsManager The rewards manager to handle rewards distribution
+     * @param _allocationId The id of the allocation to be closed
+     * @param _forceClosed Whether the allocation was force closed
+     */
     function closeAllocation(
         mapping(address allocationId => Allocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
@@ -302,6 +348,22 @@ library AllocationManagerLib {
         return _isOverAllocated(allocationProvisionTracker, graphStaking, _indexer, _delegationRatio);
     }
 
+    /**
+     * @notice Close an allocation
+     * Does not require presenting a POI, use {_collectIndexingRewards} to present a POI and collect rewards
+     * @dev Note that allocations are nowlong lived. All service payments, including indexing rewards, should be collected periodically
+     * without the need of closing the allocation. Allocations should only be closed when indexers want to reclaim the allocated
+     * tokens for other purposes.
+     *
+     * Emits a {AllocationClosed} event
+     *
+     * @param _allocations The mapping of allocation ids to allocation states
+     * @param allocationProvisionTracker The mapping of indexers to their locked tokens
+     * @param _subgraphAllocatedTokens The mapping of subgraph deployment ids to their allocated tokens
+     * @param graphRewardsManager The rewards manager to handle rewards distribution
+     * @param _allocationId The id of the allocation to be closed
+     * @param _forceClosed Whether the allocation was force closed
+     */
     function _closeAllocation(
         mapping(address allocationId => Allocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
@@ -335,6 +397,14 @@ library AllocationManagerLib {
         );
     }
 
+    /**
+     * @notice Checks if an allocation is over-allocated
+     * @param allocationProvisionTracker The mapping of indexers to their locked tokens
+     * @param graphStaking The Horizon staking contract to check delegation ratios
+     * @param _indexer The address of the indexer
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @return True if the allocation is over-allocated, false otherwise
+     */
     function _isOverAllocated(
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
         IHorizonStaking graphStaking,

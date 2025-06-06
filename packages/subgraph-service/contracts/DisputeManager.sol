@@ -525,6 +525,7 @@ contract DisputeManager is
      * @param _agreementId The agreement id being disputed
      * @param _poi The POI being disputed
      * @param _entities The number of entities disputed
+     * @param _blockNumber The block number of the disputed POI
      * @return The dispute id
      */
     function _createIndexingFeeDisputeV1(

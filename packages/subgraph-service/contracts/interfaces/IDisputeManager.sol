@@ -123,6 +123,7 @@ interface IDisputeManager {
      * @param indexer The indexer address
      * @param fisherman The fisherman address
      * @param tokens The amount of tokens deposited by the fisherman
+     * @param payer The address of the payer of the indexing fee
      * @param agreementId The agreement id
      * @param poi The POI disputed
      * @param entities The entities disputed
