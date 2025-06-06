@@ -525,6 +525,11 @@ library IndexingAgreement {
         return wrapper;
     }
 
+    /**
+     * @notice Get the storage manager for indexing agreements.
+     * @dev This function retrieves the storage manager for indexing agreements.
+     * @return $ The storage manager for indexing agreements
+     */
     function _getStorageManager() internal pure returns (StorageManager storage $) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -532,6 +537,13 @@ library IndexingAgreement {
         }
     }
 
+    /**
+     * @notice Set the terms for an indexing agreement of version V1.
+     * @dev This function updates the terms of an indexing agreement in the storage manager.
+     * @param _manager The indexing agreement storage manager
+     * @param _agreementId The id of the agreement to update
+     * @param _data The encoded terms data
+     */
     function _setTermsV1(StorageManager storage _manager, bytes16 _agreementId, bytes memory _data) private {
         IndexingAgreementTermsV1 memory newTerms = Decoder.decodeIndexingAgreementTermsV1(_data);
         _manager.termsV1[_agreementId].tokensPerSecond = newTerms.tokensPerSecond;
@@ -572,6 +584,17 @@ library IndexingAgreement {
         _directory().recurringCollector().cancel(_agreementId, _cancelBy);
     }
 
+    /**
+     * @notice Calculate the number of tokens to collect for an indexing agreement.
+     *
+     * @dev This function calculates the number of tokens to collect based on the agreement terms and the collection time.
+     *
+     * @param _manager The indexing agreement storage manager
+     * @param _agreementId The id of the agreement
+     * @param _agreement The collector agreement data
+     * @param _entities The number of entities indexed
+     * @return The number of tokens to collect
+     */
     function _tokensToCollect(
         StorageManager storage _manager,
         bytes16 _agreementId,
@@ -600,18 +623,37 @@ library IndexingAgreement {
             wrapper.agreement.allocationId != address(0);
     }
 
+    /**
+     * @notice Gets the Directory
+     * @return The Directory contract
+     */
     function _directory() private view returns (Directory) {
         return Directory(address(this));
     }
 
+    /**
+     * @notice Gets the Graph Directory
+     * @return The Graph Directory contract
+     */
     function _graphDirectory() private view returns (GraphDirectory) {
         return GraphDirectory(address(this));
     }
 
+    /**
+     * @notice Gets the Subgraph Service
+     * @return The Subgraph Service contract
+     */
     function _subgraphService() private view returns (SubgraphService) {
         return SubgraphService(address(this));
     }
 
+    /**
+     * @notice Gets the indexing agreement wrapper for a given agreement ID.
+     * @dev This function retrieves the indexing agreement wrapper containing the agreement state and collector agreement data.
+     * @param self The indexing agreement storage manager
+     * @param agreementId The id of the indexing agreement
+     * @return The indexing agreement wrapper containing the agreement state and collector agreement data
+     */
     function _get(StorageManager storage self, bytes16 agreementId) private view returns (AgreementWrapper memory) {
         return
             AgreementWrapper({
