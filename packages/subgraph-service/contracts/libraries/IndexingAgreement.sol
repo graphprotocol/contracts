@@ -286,7 +286,7 @@ library IndexingAgreement {
      *
      * Emits {IndexingAgreementUpdated} event
      *
-     * @param self The indexing agreement manager storage
+     * @param self The indexing agreement storage manager
      * @param indexer The indexer address
      * @param signedRCAU The signed Recurring Collection Agreement Update
      */
@@ -324,13 +324,15 @@ library IndexingAgreement {
     /**
      * @notice Cancel an indexing agreement.
      *
+     * @dev This function allows the indexer to cancel an indexing agreement.
+     *
      * Requirements:
      * - Agreement must be active
      * - The indexer must be the service provider of the agreement
      *
      * Emits {IndexingAgreementCanceled} event
      *
-     * @param self The indexing agreement manager storage
+     * @param self The indexing agreement storage manager
      * @param indexer The indexer address
      * @param agreementId The id of the agreement to cancel
      */
@@ -350,11 +352,23 @@ library IndexingAgreement {
         );
     }
 
-    function cancelForAllocation(
-        StorageManager storage self,
-        address _allocationId,
-        IRecurringCollector.CancelAgreementBy by
-    ) external {
+    /**
+     * @notice Cancel an allocation's indexing agreement if it exists.
+     *
+     * @dev This function is to be called by the data service when an allocation is closed.
+     *
+     * Requirements:
+     * - The allocation must have an active agreement
+     * - Agreement must be active
+     *
+     * Emits {IndexingAgreementCanceled} event
+     *
+     * @param self The indexing agreement storage manager
+     * @param _allocationId The allocation ID
+     * @param stale Whether the allocation is stale or not
+     *
+     */
+    function onCloseAllocation(StorageManager storage self, address _allocationId, bool stale) external {
         bytes16 agreementId = self.allocationToActiveAgreementId[_allocationId];
         if (agreementId == bytes16(0)) {
             return;
@@ -365,9 +379,31 @@ library IndexingAgreement {
             return;
         }
 
-        _cancel(self, agreementId, wrapper.agreement, wrapper.collectorAgreement, by);
+        _cancel(
+            self,
+            agreementId,
+            wrapper.agreement,
+            wrapper.collectorAgreement,
+            stale
+                ? IRecurringCollector.CancelAgreementBy.ThirdParty
+                : IRecurringCollector.CancelAgreementBy.ServiceProvider
+        );
     }
 
+    /**
+     * @notice Cancel an indexing agreement by the payer.
+     *
+     * @dev This function allows the payer to cancel an indexing agreement.
+     *
+     * Requirements:
+     * - Agreement must be active
+     * - The caller must be authorized to cancel the agreement in the collector on the payer's behalf
+     *
+     * Emits {IndexingAgreementCanceled} event
+     *
+     * @param self The indexing agreement storage manager
+     * @param agreementId The id of the agreement to cancel
+     */
     function cancelByPayer(StorageManager storage self, bytes16 agreementId) external {
         AgreementWrapper memory wrapper = _get(self, agreementId);
         require(_isActive(wrapper), IndexingAgreementNotActive(agreementId));
@@ -455,6 +491,19 @@ library IndexingAgreement {
         _manager.termsV1[_agreementId].tokensPerEntityPerSecond = newTerms.tokensPerEntityPerSecond;
     }
 
+    /**
+     * @notice Cancel an indexing agreement.
+     *
+     * @dev This function does the actual agreement cancelation.
+     *
+     * Emits {IndexingAgreementCanceled} event
+     *
+     * @param _manager The indexing agreement storage manager
+     * @param _agreementId The id of the agreement to cancel
+     * @param _agreement The indexing agreement state
+     * @param _collectorAgreement The collector agreement data
+     * @param _cancelBy The entity that is canceling the agreement
+     */
     function _cancel(
         StorageManager storage _manager,
         bytes16 _agreementId,
