@@ -24,6 +24,19 @@ library AllocationManagerLib {
     using PPMMath for uint256;
     using TokenUtils for IGraphToken;
 
+    /**
+     * @notice Parameters for the allocation creation
+     * @param currentEpoch The current epoch at the time of allocation creation
+     * @param graphStaking The Horizon staking contract to handle token locking
+     * @param graphRewardsManager The rewards manager to handle rewards distribution
+     * @param _encodeAllocationProof The EIP712 encoded allocation proof
+     * @param _indexer The address of the indexer creating the allocation
+     * @param _allocationId The id of the allocation to be created
+     * @param _subgraphDeploymentId The id of the subgraph deployment for which the allocation is created
+     * @param _tokens The amount of tokens to allocate
+     * @param _allocationProof The EIP712 proof, an EIP712 signed message of (indexer,allocationId)
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     */
     struct AllocateParams {
         uint256 currentEpoch;
         IHorizonStaking graphStaking;
@@ -37,6 +50,19 @@ library AllocationManagerLib {
         uint32 _delegationRatio;
     }
 
+    /**
+     * @notice Parameters for the POI presentation
+     * @param maxPOIStaleness The maximum staleness of the POI in epochs
+     * @param graphEpochManager The epoch manager to get the current epoch
+     * @param graphStaking The Horizon staking contract to handle token locking
+     * @param graphRewardsManager The rewards manager to handle rewards distribution
+     * @param graphToken The Graph token contract to handle token transfers
+     * @param _allocationId The id of the allocation for which the POI is presented
+     * @param _poi The proof of indexing (POI) to be presented
+     * @param _poiMetadata The metadata associated with the POI
+     * @param _delegationRatio The delegation ratio to consider when locking tokens
+     * @param _paymentsDestination The address to which the indexing rewards should be sent
+     */
     struct PresentParams {
         uint256 maxPOIStaleness;
         IEpochManager graphEpochManager;
@@ -272,6 +298,11 @@ library AllocationManagerLib {
      *
      * Emits a {AllocationResized} event.
      *
+     * @param _allocations The mapping of allocation ids to allocation states
+     * @param allocationProvisionTracker The mapping of indexers to their locked tokens
+     * @param _subgraphAllocatedTokens The mapping of subgraph deployment ids to their allocated tokens
+     * @param graphStaking The Horizon staking contract to handle token locking
+     * @param graphRewardsManager The rewards manager to handle rewards distribution
      * @param _allocationId The id of the allocation to be resized
      * @param _tokens The new amount of tokens to allocate
      * @param _delegationRatio The delegation ratio to consider when locking tokens
@@ -335,6 +366,8 @@ library AllocationManagerLib {
 
     /**
      * @notice Checks if an allocation is over-allocated
+     * @param allocationProvisionTracker The mapping of indexers to their locked tokens
+     * @param graphStaking The Horizon staking contract to check delegation ratios
      * @param _indexer The address of the indexer
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @return True if the allocation is over-allocated, false otherwise
