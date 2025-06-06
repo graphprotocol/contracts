@@ -76,7 +76,7 @@ library Allocation {
         uint256 tokens,
         uint256 accRewardsPerAllocatedToken,
         uint256 createdAtEpoch
-    ) internal returns (State memory) {
+    ) external returns (State memory) {
         require(!self[allocationId].exists(), AllocationAlreadyExists(allocationId));
 
         State memory allocation = State({
@@ -104,10 +104,36 @@ library Allocation {
      * @param self The allocation list mapping
      * @param allocationId The allocation id
      */
-    function presentPOI(mapping(address => State) storage self, address allocationId) internal {
+    function presentPOI(mapping(address => State) storage self, address allocationId) external {
         State storage allocation = _get(self, allocationId);
         require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.lastPOIPresentedAt = block.timestamp;
+    }
+
+    /**
+     * @notice Update the accumulated rewards pending to be claimed for an allocation
+     * @dev Requirements:
+     * - The allocation must be open
+     * @param self The allocation list mapping
+     * @param allocationId The allocation id
+     */
+    function clearPendingRewards(mapping(address => State) storage self, address allocationId) external {
+        State storage allocation = _get(self, allocationId);
+        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
+        allocation.accRewardsPending = 0;
+    }
+
+    /**
+     * @notice Close an allocation
+     * @dev Requirements:
+     * - The allocation must be open
+     * @param self The allocation list mapping
+     * @param allocationId The allocation id
+     */
+    function close(mapping(address => State) storage self, address allocationId) external {
+        State storage allocation = _get(self, allocationId);
+        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
+        allocation.closedAt = block.timestamp;
     }
 
     /**
@@ -126,32 +152,6 @@ library Allocation {
         State storage allocation = _get(self, allocationId);
         require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
         allocation.accRewardsPerAllocatedToken = accRewardsPerAllocatedToken;
-    }
-
-    /**
-     * @notice Update the accumulated rewards pending to be claimed for an allocation
-     * @dev Requirements:
-     * - The allocation must be open
-     * @param self The allocation list mapping
-     * @param allocationId The allocation id
-     */
-    function clearPendingRewards(mapping(address => State) storage self, address allocationId) internal {
-        State storage allocation = _get(self, allocationId);
-        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
-        allocation.accRewardsPending = 0;
-    }
-
-    /**
-     * @notice Close an allocation
-     * @dev Requirements:
-     * - The allocation must be open
-     * @param self The allocation list mapping
-     * @param allocationId The allocation id
-     */
-    function close(mapping(address => State) storage self, address allocationId) internal {
-        State storage allocation = _get(self, allocationId);
-        require(allocation.isOpen(), AllocationClosed(allocationId, allocation.closedAt));
-        allocation.closedAt = block.timestamp;
     }
 
     /**
