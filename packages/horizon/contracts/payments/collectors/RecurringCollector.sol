@@ -322,6 +322,13 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         return tokensToCollect;
     }
 
+    /**
+     * @notice Requires that the collection window parameters are valid.
+     *
+     * @param _endsAt The end time of the agreement
+     * @param _minSecondsPerCollection The minimum seconds per collection
+     * @param _maxSecondsPerCollection The maximum seconds per collection
+     */
     function _requireValidCollectionWindowParams(
         uint64 _endsAt,
         uint32 _minSecondsPerCollection,
@@ -394,7 +401,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice See {IRecurringCollector.recoverRCASigner}
+     * @notice See {recoverRCASigner}
+     * @param _signedRCA The signed RCA to recover the signer from
+     * @return The address of the signer
      */
     function _recoverRCASigner(SignedRCA memory _signedRCA) private view returns (address) {
         bytes32 messageHash = _hashRCA(_signedRCA.rca);
@@ -402,7 +411,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice See {IRecurringCollector.recoverRCAUSigner}
+     * @notice See {recoverRCAUSigner}
+     * @param _signedRCAU The signed RCAU to recover the signer from
+     * @return The address of the signer
      */
     function _recoverRCAUSigner(SignedRCAU memory _signedRCAU) private view returns (address) {
         bytes32 messageHash = _hashRCAU(_signedRCAU.rcau);
@@ -410,7 +421,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice See {IRecurringCollector.hashRCA}
+     * @notice See {hashRCA}
+     * @param _rca The RCA to hash
+     * @return The EIP712 hash of the RCA
      */
     function _hashRCA(RecurringCollectionAgreement memory _rca) private view returns (bytes32) {
         return
@@ -435,7 +448,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice See {IRecurringCollector.hashRCAU}
+     * @notice See {hashRCAU}
+     * @param _rcau The RCAU to hash
+     * @return The EIP712 hash of the RCAU
      */
     function _hashRCAU(RecurringCollectionAgreementUpdate memory _rcau) private view returns (bytes32) {
         return
@@ -472,6 +487,9 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /**
      * @notice Requires that the signer for the RCAU is authorized
      * by the payer.
+     * @param _signedRCAU The signed RCAU to verify
+     * @param _payer The address of the payer
+     * @return The address of the authorized signer
      */
     function _requireAuthorizedRCAUSigner(
         SignedRCAU memory _signedRCAU,
@@ -493,7 +511,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
-     * @notice See {IRecurringCollector.getAgreement}
+     * @notice See {getAgreement}
      * @param _agreementId The ID of the agreement to get
      * @return The agreement data
      */
@@ -501,6 +519,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         return agreements[_agreementId];
     }
 
+    /**
+     * @notice Gets the start time for the collection of an agreement.
+     * @param _agreement The agreement data
+     * @return The start time for the collection of the agreement
+     */
     function _agreementCollectionStartAt(AgreementData memory _agreement) private pure returns (uint256) {
         return _agreement.lastCollectionAt > 0 ? _agreement.lastCollectionAt : _agreement.acceptedAt;
     }
