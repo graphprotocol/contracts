@@ -90,6 +90,8 @@ library IndexingAgreement {
      * @param indexer The address of the indexer
      * @param payer The address paying for the indexing fees
      * @param agreementId The id of the agreement
+     * @param allocationId The id of the allocation
+     * @param subgraphDeploymentId The id of the subgraph deployment
      * @param currentEpoch The current epoch
      * @param tokensCollected The amount of tokens collected
      * @param entities The number of entities indexed
@@ -218,6 +220,24 @@ library IndexingAgreement {
      */
     error IndexingAgreementNotAuthorized(bytes16 agreementId, address unauthorizedIndexer);
 
+    /**
+     * @notice Accept an indexing agreement.
+     *
+     * Requirements:
+     * - Allocation must belong to the indexer and be open
+     * - Agreement must be for this data service
+     * - Agreement's subgraph deployment must match the allocation's subgraph deployment
+     * - Agreement must not have been accepted before
+     * - Allocation must not have an agreement already
+     *
+     * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
+     *
+     * Emits {IndexingAgreementAccepted} event
+     *
+     * @param self The indexing agreement storage manager
+     * @param allocationId The id of the allocation
+     * @param signedRCA The signed Recurring Collection Agreement
+     */
     function accept(
         StorageManager storage self,
         mapping(address allocationId => Allocation.State allocation) storage allocations,
@@ -420,6 +440,25 @@ library IndexingAgreement {
         );
     }
 
+    /**
+     * @notice Collect Indexing fees
+     * @dev Uses the {RecurringCollector} to collect payment from Graph Horizon payments protocol.
+     * Fees are distributed to service provider and delegators by {GraphPayments}
+     *
+     * Requirements:
+     * - Allocation must be open
+     * - Agreement must be active
+     * - Agreement must be of version V1
+     * - The data must be encoded as per {Decoder.decodeCollectIndexingFeeDataV1}
+     *
+     * Emits a {IndexingFeesCollectedV1} event.
+     *
+     * @param self The indexing agreement storage manager
+     * @param allocations The mapping of allocation IDs to their states
+     * @param params The parameters for collecting indexing fees
+     * @return The address of the service provider that collected the fees
+     * @return The amount of fees collected
+     */
     function collect(
         StorageManager storage self,
         mapping(address allocationId => Allocation.State allocation) storage allocations,
@@ -471,6 +510,13 @@ library IndexingAgreement {
         return (wrapper.collectorAgreement.serviceProvider, tokensCollected);
     }
 
+    /**
+     * @notice Get the indexing agreement for a given agreement ID.
+     *
+     * @param self The indexing agreement storage manager
+     * @param agreementId The id of the indexing agreement
+     * @return The indexing agreement wrapper containing the agreement state and collector agreement data
+     */
     function get(StorageManager storage self, bytes16 agreementId) external view returns (AgreementWrapper memory) {
         AgreementWrapper memory wrapper = _get(self, agreementId);
         require(wrapper.collectorAgreement.dataService == address(this), IndexingAgreementNotActive(agreementId));

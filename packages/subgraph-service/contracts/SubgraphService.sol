@@ -412,7 +412,7 @@ contract SubgraphService is
      *
      * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
      *
-     * Emits {IndexingAgreementAccepted} event
+     * Emits {IndexingAgreement.IndexingAgreementAccepted} event
      *
      * @param allocationId The id of the allocation
      * @param signedRCA The signed Recurring Collection Agreement
