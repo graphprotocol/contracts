@@ -258,6 +258,11 @@ contract SubgraphService is
      * For indexing rewards, see {AllocationManager-_collectIndexingRewards} for more details.
      * For indexing fees, see {SubgraphService-_collectIndexingFees} for more details.
      *
+     * Note that collecting any type of payment will require locking provisioned stake as collateral for a period of time.
+     * All types of payment share the same pool of provisioned stake however they each have separate accounting:
+     * - Indexing rewards can make full use of the available stake
+     * - Query and indexing fees share the pool, combined they can also make full use of the available stake
+     *
      * @param indexer The address of the indexer
      * @param paymentType The type of payment to collect as defined in {IGraphPayments}
      * @param data Encoded data:
