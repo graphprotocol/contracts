@@ -31,11 +31,20 @@ jobs:
       - name: Test with coverage
         run: pnpm -r --sequential run test:coverage
 
+      - name: Find coverage files
+        id: coverage_files
+        run: |
+          # Find all coverage-final.json files
+          COVERAGE_FILES=$(find ./packages -name "coverage-final.json" -path "*/reports/coverage/*" | tr '\n' ',' | sed 's/,$//')
+          echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
+          echo "Found coverage files: $COVERAGE_FILES"
+
       - name: Upload coverage reports
+        if: steps.coverage_files.outputs.files != ''
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./packages/*/test/reports/coverage/coverage-final.json
+          files: ${{ steps.coverage_files.outputs.files }}
           flags: unittests
           name: graphprotocol-contracts
           fail_ci_if_error: true
