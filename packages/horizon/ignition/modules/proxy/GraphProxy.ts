@@ -9,7 +9,7 @@ import {
 import { deployImplementation, type ImplementationMetadata } from './implementation'
 import { loadProxyWithABI } from './utils'
 
-import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
+import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
 export function deployGraphProxy(
   m: IgnitionModuleBuilder,

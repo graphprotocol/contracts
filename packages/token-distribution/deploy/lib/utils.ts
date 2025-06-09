@@ -1,8 +1,8 @@
-import { Consola } from 'consola'
-import inquirer from 'inquirer'
-import { utils } from 'ethers'
-
 import '@nomiclabs/hardhat-ethers'
+
+import { Consola } from 'consola'
+import { utils } from 'ethers'
+import inquirer from 'inquirer'
 
 const { getAddress } = utils
 
@@ -12,7 +12,7 @@ export const askConfirm = async (message: string) => {
     type: 'confirm',
     message,
   })
-  return res.confirm ? res.confirm as boolean : false
+  return res.confirm ? (res.confirm as boolean) : false
 }
 
 export const promptContractAddress = async (name: string, logger: Consola): Promise<string | null> => {

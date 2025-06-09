@@ -2,5 +2,5 @@
 
 set -eo pipefail
 
-pnpm run compile
-npx hardhat coverage $@
+pnpm compile
+COVERAGE=true npx hardhat coverage $@

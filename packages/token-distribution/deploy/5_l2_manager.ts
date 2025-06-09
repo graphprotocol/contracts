@@ -1,13 +1,13 @@
+import '@nomiclabs/hardhat-ethers'
+
 import consola from 'consola'
 import { utils } from 'ethers'
-
-import '@nomiclabs/hardhat-ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction, DeployOptions } from 'hardhat-deploy/types'
 
 import { GraphTokenMock } from '../build/typechain/contracts/GraphTokenMock'
-import { askConfirm, getDeploymentName, promptContractAddress } from './lib/utils'
 import { L2GraphTokenLockManager } from '../build/typechain/contracts/L2GraphTokenLockManager'
+import { askConfirm, getDeploymentName, promptContractAddress } from './lib/utils'
 
 const { parseEther, formatEther } = utils
 

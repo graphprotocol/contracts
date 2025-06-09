@@ -5,11 +5,11 @@ env:
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/horizon/**
   pull_request:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/horizon/**
   workflow_dispatch:

@@ -46,7 +46,7 @@ contract L1TokenGatewayMock is Ownable {
      * would send to L2.
      * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
      * @param _to Recipient address on L2
-     * @param _amount Amount of tokens to tranfer
+     * @param _amount Amount of tokens to transfer
      * @param _maxGas Gas limit for L2 execution of the ticket
      * @param _gasPriceBid Price per gas on L2
      * @param _data Encoded maxSubmissionCost and sender address along with additional calldata

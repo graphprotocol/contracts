@@ -5,9 +5,9 @@ import { deployImplementation } from '../proxy/implementation'
 import ControllerModule from './Controller'
 import GraphProxyAdminModule from './GraphProxyAdmin'
 
-import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
-import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
-import RewardsManagerArtifact from '@graphprotocol/contracts/build/contracts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
+import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
+import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
+import RewardsManagerArtifact from '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
 
 export default buildModule('RewardsManager', (m) => {
   const { Controller } = m.useModule(ControllerModule)

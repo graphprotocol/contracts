@@ -1,4 +1,4 @@
-
+# Deployment
 
 ## Deploy a TokenManager (L1)
 
@@ -8,7 +8,7 @@ The following instructions are for testnet (goerli), use `--network mainnet` to 
 
 During this process the master copy of the GraphTokenLockWallet will be deployed and used in the Manager.
 
-```
+```bash
 npx hardhat deploy --tags manager --network goerli
 ```
 
@@ -16,7 +16,7 @@ npx hardhat deploy --tags manager --network goerli
 
 The task will convert the amount passed in GRT to wei before calling the contracts.
 
-```
+```bash
 npx hardhat manager-deposit --amount <amount-in-grt> --network goerli
 ```
 
@@ -24,13 +24,13 @@ npx hardhat manager-deposit --amount <amount-in-grt> --network goerli
 
 The process to set up the CSV file is described in the [README](./README.md).
 
-```
+```bash
 npx hardhat create-token-locks --deploy-file <deploy-file.csv> --result-file <result-file.csv> --owner-address <owner-address> --network goerli
 ```
 
 ### 4. Setup the Token Manager to allow default protocol functions
 
-```
+```bash
 npx hardhat manager-setup-auth --target-address <staking-address> --network goerli
 ```
 
@@ -44,7 +44,7 @@ The following instructions are for testnet (goerli and Arbitrum goerli), use `--
 
 Keep in mind you might want to use a different mnemonic in `.env` for the L2 deployer. Note that each transfer tool in L1 will only support a single wallet implementation in L2, so if you deploy several L2 managers, make sure all of them use the same wallet master copy in L2.
 
-```
+```bash
 npx hardhat deploy --tags l2-wallet --network arbitrum-goerli
 ```
 
@@ -54,7 +54,7 @@ You will be prompted for a few relevant addresses, including the Staking contrac
 
 Note the transfer tool is upgradeable (uses an OZ transparent proxy).
 
-```
+```bash
 npx hardhat deploy --tags l1-transfer-tool --network goerli
 ```
 
@@ -64,7 +64,7 @@ Note this will not ask you for the L1 manager address, it is set separately in t
 
 You can optionally fund the L2 manager if you'd like to also create L2-native vesting contracts with it.
 
-```
+```bash
 npx hardhat deploy --tags l2-manager --network arbitrum-goerli
 ```
 
@@ -72,7 +72,7 @@ npx hardhat deploy --tags l2-manager --network arbitrum-goerli
 
 Note the transfer tool is upgradeable (uses an OZ transparent proxy).
 
-```
+```bash
 npx hardhat deploy --tags l2-transfer-tool --network arbitrum-goerli
 ```
 
@@ -129,7 +129,7 @@ Keep in mind that existing lock wallets that had already called `approveProtocol
 
 The L2 managers will also need to authorize the functions to interact with the protocol. This is similar to step 4 when setting up the manager in L1, but here we must specify the manager name used when deploying the L2 manager
 
-```
+```bash
 npx hardhat manager-setup-auth --target-address <l2-staking-address> --manager-name <l2-manager-deployment-name> --network arbitrum-goerli
 ```
 

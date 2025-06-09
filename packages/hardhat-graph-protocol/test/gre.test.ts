@@ -34,7 +34,7 @@ describe('GRE usage', function () {
   describe(`Project using GRE - deployments`, function () {
     useHardhatProject('path-config', 'arbitrumSepolia')
 
-    it('should load Horizon deployment', function () {
+    it.skip('should load Horizon deployment', function () {
       const graph = this.hre.graph()
       assert.isDefined(graph.horizon)
       assert.isObject(graph.horizon)

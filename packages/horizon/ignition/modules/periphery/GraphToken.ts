@@ -5,7 +5,7 @@ import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
 import GraphTokenGatewayModule from '../periphery/GraphTokenGateway'
 import RewardsManagerModule from '../periphery/RewardsManager'
 
-import GraphTokenArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json'
+import GraphTokenArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/token/L2GraphToken.sol/L2GraphToken.json'
 
 export default buildModule('L2GraphToken', (m) => {
   const { GraphProxyAdmin } = m.useModule(GraphProxyAdminModule)

@@ -5,10 +5,10 @@ import { deployImplementation } from '../proxy/implementation'
 import ControllerModule from './Controller'
 import GraphProxyAdminModule from './GraphProxyAdmin'
 
-import CurationArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
-import GraphCurationTokenArtifact from '@graphprotocol/contracts/build/contracts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json'
-import GraphProxyAdminArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
-import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
+import CurationArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/curation/L2Curation.sol/L2Curation.json'
+import GraphCurationTokenArtifact from '@graphprotocol/contracts/artifacts/contracts/curation/GraphCurationToken.sol/GraphCurationToken.json'
+import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
+import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
 // Curation deployment should be managed by ignition scripts in subgraph-service package however
 // due to tight coupling with Controller it's easier to do it on the horizon package.

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eo pipefail
+
+pnpm --filter @graphprotocol/contracts --filter @graphprotocol/sdk build
+
+echo {} > addresses-local.json
+
+DISABLE_SECURE_ACCOUNTS=true \
+SOLIDITY_COVERAGE=true \
+L1_GRAPH_CONFIG=config/graph.hardhat.yml \
+L2_GRAPH_CONFIG=config/graph.arbitrum-hardhat.yml \
+ADDRESS_BOOK=addresses-local.json \
+  npx hardhat coverage $@

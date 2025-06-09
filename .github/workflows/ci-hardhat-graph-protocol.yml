@@ -5,11 +5,11 @@ env:
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/toolshed/**
   pull_request:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/toolshed/**
   workflow_dispatch:

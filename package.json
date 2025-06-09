@@ -6,16 +6,82 @@
   "repository": "git@github.com:graphprotocol/contracts.git",
   "author": "The Graph team",
   "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879",
+  "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879",
   "scripts": {
-    "postinstall": "husky install",
-    "clean": "pnpm -r --parallel --reporter=append-only run clean",
+    "postinstall": "husky",
+    "clean": "pnpm -r run clean",
     "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules",
-    "build": "chmod +x ./scripts/build && ./scripts/build"
+    "build": "chmod +x ./scripts/build && ./scripts/build",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'packages/*/contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
+    "lint:natspec": "node scripts/filter-natspec.js",
+    "lint:md": "markdownlint --fix '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn '**/*.{yml,yaml}'",
+    "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
+    "test": "pnpm -r run test",
+    "test:coverage": "pnpm -r run test:coverage"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
-    "@commitlint/cli": "^18.4.3",
-    "@commitlint/config-conventional": "^18.4.3",
-    "husky": "^8.0.3"
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
+    "@defi-wonderland/natspec-smells": "^1.1.6",
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.28.0",
+    "@openzeppelin/contracts": "^5.3.0",
+    "@openzeppelin/contracts-upgradeable": "^5.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.33.1",
+    "@typescript-eslint/parser": "^8.33.1",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsdoc": "^50.6.17",
+    "eslint-plugin-markdown": "^5.1.0",
+    "eslint-plugin-no-only-tests": "^3.3.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "globals": "^16.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "markdownlint-cli": "^0.45.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-solidity": "^1.0.0",
+    "pretty-quick": "^4.1.1",
+    "solhint": "^5.1.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.33.1",
+    "yaml-lint": "^1.7.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "prettier": "^3.5.3",
+      "prettier-plugin-solidity": "^2.0.0",
+      "typescript": "^5.8.3",
+      "@types/node": "^20.17.50"
+    },
+    "patchedDependencies": {
+      "typechain@8.3.2": "patches/typechain@8.3.2.patch"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,jsx,tsx}": [
+      "eslint --fix --cache",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.sol": [
+      "solhint --fix --noPrompt --noPoster",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.md": [
+      "markdownlint --fix",
+      "prettier -w --cache --log-level warn"
+    ],
+    "*.json": "prettier -w --cache --log-level warn",
+    "*.{yml,yaml}": [
+      "npx yamllint",
+      "prettier -w --cache --log-level warn"
+    ]
   }
 }

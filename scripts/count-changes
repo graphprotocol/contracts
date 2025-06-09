@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Count changes in Solidity files between two branches, categorizing by code, comments, and blank lines
+set -euo pipefail
+
+# Check if cloc is installed
+if ! command -v cloc &> /dev/null; then
+  echo "Error: cloc is not installed. Install with: sudo npm install -g cloc"
+  exit 1
+fi
+
+# Define the branches to compare
+BASE_BRANCH="${1:-main}"  # Default to 'main' if no argument provided
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+echo "Comparing Solidity changes between $BASE_BRANCH and $CURRENT_BRANCH..."
+echo
+
+# Get all modified Solidity contract files
+ALL_FILES=$(git diff --name-only "$BASE_BRANCH" -- 'packages/*/contracts/**/*.sol')
+
+# Get excluded files (mock and test files)
+EXCLUDED_FILES=$(echo "$ALL_FILES" | grep -E '(/mocks?/|/tests?/|Mock[A-Z].*\.sol$|.*Test\.sol$|Test[A-Z].*\.sol$)' || true)
+
+# Get included files (non-mock, non-test files)
+FILES=$(echo "$ALL_FILES" | grep -v -E '(/mocks?/|/tests?/|Mock[A-Z].*\.sol$|.*Test\.sol$|Test[A-Z].*\.sol$)' || true)
+
+# Check if there are any files to process
+if [ -z "$FILES" ]; then
+  echo "No Solidity files changed between $BASE_BRANCH and $CURRENT_BRANCH."
+  exit 0
+fi
+
+echo "Found changed Solidity files (excluding mocks and tests):"
+echo "$FILES" | sed 's/^/- /'
+echo
+
+# Display excluded files if any
+if [ -n "$EXCLUDED_FILES" ]; then
+  echo "Excluded mock and test files:"
+  echo "$EXCLUDED_FILES" | sed 's/^/- /'
+  echo
+fi
+
+# Create directories for diff analysis
+TEMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TEMP_DIR"' EXIT
+mkdir -p "$TEMP_DIR/old"
+mkdir -p "$TEMP_DIR/new"
+
+# Extract all changed files
+echo "$FILES" | while IFS= read -r file; do
+  if [ -f "$file" ]; then
+    # Create directory structure
+    dir=$(dirname "$file")
+    mkdir -p "$TEMP_DIR/new/$dir"
+    mkdir -p "$TEMP_DIR/old/$dir"
+
+    # Copy current version
+    cp "$file" "$TEMP_DIR/new/$file"
+
+    # Get old version if it exists
+    if git show "$BASE_BRANCH:$file" &>/dev/null; then
+      git show "$BASE_BRANCH:$file" > "$TEMP_DIR/old/$file"
+    fi
+  fi
+done
+
+# Run cloc diff on all files
+echo "Summary of changes (excluding mock and test files):"
+echo "================================================"
+cloc --diff "$TEMP_DIR/old" "$TEMP_DIR/new" --include-lang=Solidity --quiet
+
+echo
+echo "Note: This analysis only counts changes in Solidity files, excluding mock and test contracts."
+echo "The 'same' category shows lines that were unchanged in modified files."
