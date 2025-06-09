@@ -6,7 +6,6 @@
   "repository": "git@github.com:graphprotocol/contracts.git",
   "author": "The Graph team",
   "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879",
-  "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879",
   "scripts": {
     "postinstall": "husky",
     "clean": "pnpm -r run clean",
