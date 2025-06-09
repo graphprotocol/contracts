@@ -1,7 +1,7 @@
-import { Contract, Signer, providers } from 'ethers'
+import { Contract, providers, Signer } from 'ethers'
+
 import { AddressBook } from '../address-book'
 import { loadArtifact } from '../deploy/artifacts'
-
 import type { ContractList } from '../types/contract'
 import { getWrappedConnect, wrapCalls } from './wrap'
 
@@ -74,10 +74,7 @@ export function loadContract<ChainId extends number = number, ContractName exten
  * @param enableTxLogging Enable transaction logging to console and output file. Defaults to `true`
  * @returns the loaded contracts
  */
-export const loadContracts = <
-  ChainId extends number = number,
-  ContractName extends string = string,
->(
+export const loadContracts = <ChainId extends number = number, ContractName extends string = string>(
   addressBook: AddressBook<ChainId, ContractName>,
   artifactsPath: string | string[],
   signerOrProvider?: Signer | providers.Provider,
@@ -87,13 +84,7 @@ export const loadContracts = <
   const contracts = {} as ContractList<ContractName>
   for (const contractName of addressBook.listEntries()) {
     try {
-      const contract = loadContract(
-        contractName,
-        addressBook,
-        artifactsPath,
-        signerOrProvider,
-        enableTXLogging,
-      )
+      const contract = loadContract(contractName, addressBook, artifactsPath, signerOrProvider, enableTXLogging)
       contracts[contractName] = contract
     } catch (error) {
       if (optionalContractNames?.includes(contractName)) {

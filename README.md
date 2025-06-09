@@ -1,5 +1,7 @@
+<!-- markdownlint-disable MD041 -->
+
 <p align="center">
-  <a href="https://thegraph.com/"><img src="https://storage.thegraph.com/logos/grt.png" alt="The Graph" width="200"></a> 
+  <a href="https://thegraph.com/"><img src="https://storage.thegraph.com/logos/grt.png" alt="The Graph" width="200"></a>
 </p>
 
 <h3 align="center">The Graph Protocol</h3>
@@ -29,28 +31,29 @@
 
 ## Packages
 
-This repository is a Yarn workspaces monorepo containing the following packages:
+This repository is a pnpm workspaces monorepo containing the following packages:
 
-| Package | Latest version | Description |
-| --- | --- | --- |
-| [contracts](./packages/contracts) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts) | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
-| [eslint-graph-config](./packages/eslint-graph-config) | - | Shared linting and formatting rules for TypeScript projects. |
-| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants |
-| [sdk](./packages/sdk) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk) | TypeScript based SDK to interact with the protocol contracts |
-| [solhint-graph-config](./packages/solhint-graph-config) | - | Shared linting and formatting rules for Solidity projects. |
-
+| Package                                             | Latest version                                                                                                                                   | Description                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [contracts](./packages/contracts)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts)                   | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
+| [horizon](./packages/horizon)                       | -                                                                                                                                                | Contracts for Graph Horizon, the next iteration of The Graph protocol.                            |
+| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants                                           |
+| [sdk](./packages/sdk)                               | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk)                               | TypeScript based SDK to interact with the protocol contracts                                      |
+| [issuance](./packages/issuance)                     | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fissuance.svg)](https://badge.fury.io/js/@graphprotocol%2Fissuance)                     | Smart contracts for The Graph's token issuance functionality                                      |
+| [data-edge](./packages/data-edge)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fdata-edge.svg)](https://badge.fury.io/js/@graphprotocol%2Fdata-edge)                   | Data edge testing and utilities for The Graph protocol                                            |
+| [common](./packages/common)                         | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcommon.svg)](https://badge.fury.io/js/@graphprotocol%2Fcommon)                         | Common utilities and configuration for Graph Protocol packages                                    |
 
 ## Development
 
 ### Setup
-To set up this project you'll need [git](https://git-scm.com) and [yarn](https://yarnpkg.com/) installed. Note that Yarn v4 is required to install the dependencies and build the project. 
+
+To set up this project you'll need [git](https://git-scm.com) and [pnpm](https://pnpm.io/) installed.
 
 From your command line:
 
 ```bash
-# Enable Yarn v4
 corepack enable
-yarn set version stable
+pnpm set version stable
 
 # Clone this repository
 $ git clone https://github.com/graphprotocol/contracts
@@ -59,10 +62,10 @@ $ git clone https://github.com/graphprotocol/contracts
 $ cd contracts
 
 # Install dependencies
-$ yarn
+$ pnpm install
 
 # Build projects
-$ yarn build
+$ pnpm build
 ```
 
 ### Versioning and publishing packages
@@ -74,7 +77,7 @@ We use [changesets](https://github.com/changesets/changesets) to manage package 
 A changeset is a file that describes the changes that have been made to the packages in the repository. To create a changeset, run the following command from the root of the repository:
 
 ```bash
-$ yarn changeset
+pnpm changeset
 ```
 
 Changeset files are stored in the `.changeset` directory until they are packaged into a release. You can commit these files and even merge them into your main branch without publishing a release.
@@ -84,29 +87,32 @@ Changeset files are stored in the `.changeset` directory until they are packaged
 When you are ready to create a new package release, run the following command to package all changesets, this will also bump package versions and dependencies:
 
 ```bash
-$ yarn changeset version
+pnpm changeset version
 ```
 
 ### Step 3: Tagging the release
 
-__Note__: this step is meant to be run on the main branch.
+**Note**: this step is meant to be run on the main branch.
 
 After creating a package release, you will need to tag the release commit with the version number. To do this, run the following command from the root of the repository:
 
 ```bash
-$ yarn changeset tag
-$ git push --follow-tags
+pnpm changeset tag
+git push --follow-tags
 ```
 
 #### Step 4: Publishing a package release
 
-__Note__: this step is meant to be run on the main branch.
+**Note**: this step is meant to be run on the main branch.
 
 Packages are published and distributed via NPM. To publish a package, run the following command from the root of the repository:
 
 ```bash
-# Publish the package
-$ yarn npm publish --access public --tag <tag>
+# Publish the packages
+pnpm changeset publish
+
+# Alternatively use
+pnpm publish --recursive
 ```
 
 Alternatively, there is a GitHub action that can be manually triggered to publish a package.

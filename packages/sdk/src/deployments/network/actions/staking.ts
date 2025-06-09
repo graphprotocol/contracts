@@ -1,12 +1,11 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, ethers } from 'ethers'
 
-import { setGRTAllowances } from './graph-token'
-import { randomHexBytes } from '../../../utils/bytes'
-
-import type { GraphNetworkAction } from './types'
-import type { GraphNetworkContracts } from '../deployment/contracts/load'
 import { ChannelKey } from '../../../utils'
+import { randomHexBytes } from '../../../utils/bytes'
+import type { GraphNetworkContracts } from '../deployment/contracts/load'
+import { setGRTAllowances } from './graph-token'
+import type { GraphNetworkAction } from './types'
 
 export const stake: GraphNetworkAction<{ amount: BigNumber }> = async (
   contracts: GraphNetworkContracts,
@@ -16,9 +15,7 @@ export const stake: GraphNetworkAction<{ amount: BigNumber }> = async (
   const { amount } = args
 
   // Approve
-  await setGRTAllowances(contracts, indexer, [
-    { spender: contracts.Staking.address, allowance: amount },
-  ])
+  await setGRTAllowances(contracts, indexer, [{ spender: contracts.Staking.address, allowance: amount }])
   const allowance = await contracts.GraphToken.allowance(indexer.address, contracts.Staking.address)
   console.log(`Allowance: ${ethers.utils.formatEther(allowance)}`)
 

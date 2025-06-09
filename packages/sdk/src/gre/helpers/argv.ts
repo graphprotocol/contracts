@@ -3,7 +3,7 @@ import { GraphRuntimeEnvironmentOptions } from '../types'
 export function getGREOptsFromArgv(): GraphRuntimeEnvironmentOptions {
   const argv = process.argv.slice(2)
 
-  const getArgv: any = (index: number) =>
+  const getArgv = (index: number): string | undefined =>
     argv[index] && argv[index] !== 'undefined' ? argv[index] : undefined
 
   return {

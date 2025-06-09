@@ -1,5 +1,6 @@
-import { BigNumber, ethers } from 'ethers'
+import { BigNumber } from 'ethers'
 import { solidityKeccak256 } from 'ethers/lib/utils'
+
 import { base58ToHex, randomHexBytes } from './bytes'
 
 export interface PublishSubgraph {

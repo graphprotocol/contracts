@@ -1,7 +1,6 @@
 import { GraphChainList } from './list'
-import { isGraphChainName, isGraphL1ChainName, isGraphL2ChainName } from './types'
-
 import type { GraphChainName, GraphL1ChainName, GraphL2ChainName } from './types'
+import { isGraphChainName, isGraphL1ChainName, isGraphL2ChainName } from './types'
 
 /** A list of all L1 chain names supported by the protocol */
 export const l1ChainNames: GraphL1ChainName[] = GraphChainList.map((c) => c.l1.name)

@@ -14,7 +14,7 @@ import {
   L2GraphTokenLockTransferTool__factory,
   L2GraphTokenLockWallet,
   L2TokenGatewayMock,
-} from '../typechain-types'
+} from '../types'
 import { defaultInitArgs, TokenLockParameters } from './config'
 import { Account, getAccounts, getContract, toBN, toGRT } from './network'
 

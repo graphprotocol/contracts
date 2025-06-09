@@ -1,13 +1,13 @@
-import { deployContract, deployContractAndSave } from './contract'
-import { DeployType, isDeployType } from '../types/deploy'
+import type { Signer } from 'ethers'
 import { providers } from 'ethers'
 
-import type { Signer } from 'ethers'
-import type { DeployData, DeployResult } from '../types/deploy'
-import type { AddressBook } from '../address-book'
-import { loadArtifact } from './artifacts'
-import { hashHexString } from '../../../utils/hash'
 import { assertObject } from '../../../utils/assertions'
+import { hashHexString } from '../../../utils/hash'
+import type { AddressBook } from '../address-book'
+import type { DeployData, DeployResult } from '../types/deploy'
+import { DeployType, isDeployType } from '../types/deploy'
+import { loadArtifact } from './artifacts'
+import { deployContract, deployContractAndSave } from './contract'
 
 /**
  * Checks wether a contract is deployed or not
@@ -26,6 +26,7 @@ export const isContractDeployed = async (
   address: string | undefined,
   addressBook: AddressBook,
   provider: providers.Provider,
+  artifactsPath?: string | string[],
   checkCreationCode = true,
 ): Promise<boolean> => {
   console.info(`Checking for valid ${name} contract...`)
@@ -37,7 +38,8 @@ export const isContractDeployed = async (
   const addressEntry = addressBook.getEntry(name)
 
   // If the contract is behind a proxy we check the Proxy artifact instead
-  const artifact = addressEntry.proxy === true ? loadArtifact(proxyName) : loadArtifact(name)
+  const artifact =
+    addressEntry.proxy === true ? loadArtifact(proxyName, artifactsPath) : loadArtifact(name, artifactsPath)
 
   if (checkCreationCode) {
     const savedCreationCodeHash = addressEntry.creationCodeHash

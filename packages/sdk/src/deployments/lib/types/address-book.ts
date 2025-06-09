@@ -9,10 +9,10 @@ import type { DeployResult } from './deploy'
 //     ...
 //    }
 // }
-export type AddressBookJson<
-  ChainId extends number = number,
-  ContractName extends string = string,
-> = Record<ChainId, Record<ContractName, AddressBookEntry>>
+export type AddressBookJson<ChainId extends number = number, ContractName extends string = string> = Record<
+  ChainId,
+  Record<ContractName, AddressBookEntry>
+>
 
 export type ConstructorArg = string | Array<string>
 

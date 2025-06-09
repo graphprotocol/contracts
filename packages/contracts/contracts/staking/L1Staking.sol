@@ -11,7 +11,7 @@ import { Stakes } from "./libs/Stakes.sol";
 import { IStakingData } from "./IStakingData.sol";
 import { IL2Staking } from "../l2/staking/IL2Staking.sol";
 import { L1StakingV1Storage } from "./L1StakingStorage.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 import { IL1StakingBase } from "./IL1StakingBase.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";

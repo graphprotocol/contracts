@@ -1,13 +1,13 @@
-import fs from 'fs'
 import { addCustomNetwork } from '@arbitrum/sdk'
-import { applyL1ToL2Alias } from '../utils/arbitrum/'
-import { impersonateAccount } from './impersonate'
-import { Wallet, ethers, providers } from 'ethers'
-
-import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { DeployType, deploy } from '../deployments'
 import type { BridgeMock, InboxMock, OutboxMock } from '@graphprotocol/contracts'
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { ethers, providers, Wallet } from 'ethers'
+import fs from 'fs'
+
+import { deploy, DeployType } from '../deployments'
+import { applyL1ToL2Alias } from '../utils/arbitrum/'
 import { setCode } from './code'
+import { impersonateAccount } from './impersonate'
 
 export interface L1ArbitrumMocks {
   bridgeMock: BridgeMock
@@ -26,12 +26,9 @@ export async function deployL1MockBridge(
   provider: providers.Provider,
 ): Promise<L1ArbitrumMocks> {
   // Deploy mock contracts
-  const bridgeMock = (await deploy(DeployType.Deploy, deployer, { name: 'BridgeMock' }))
-    .contract as BridgeMock
-  const inboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'InboxMock' }))
-    .contract as InboxMock
-  const outboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'OutboxMock' }))
-    .contract as OutboxMock
+  const bridgeMock = (await deploy(DeployType.Deploy, deployer, { name: 'BridgeMock' })).contract as BridgeMock
+  const inboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'InboxMock' })).contract as InboxMock
+  const outboxMock = (await deploy(DeployType.Deploy, deployer, { name: 'OutboxMock' })).contract as OutboxMock
 
   // "deploy" router - set dummy code so that it appears as a contract
   const routerMock = Wallet.createRandom()
@@ -44,9 +41,7 @@ export async function deployL1MockBridge(
   await outboxMock.connect(deployer).setBridge(bridgeMock.address)
 
   // Update address book
-  const deployment = fs.existsSync(arbitrumAddressBook)
-    ? JSON.parse(fs.readFileSync(arbitrumAddressBook, 'utf-8'))
-    : {}
+  const deployment = fs.existsSync(arbitrumAddressBook) ? JSON.parse(fs.readFileSync(arbitrumAddressBook, 'utf-8')) : {}
   const addressBook = {
     '1337': {
       L1GatewayRouter: {
@@ -83,9 +78,7 @@ export async function deployL2MockBridge(
   await setCode(routerMock.address, '0x1234')
 
   // Update address book
-  const deployment = fs.existsSync(arbitrumAddressBook)
-    ? JSON.parse(fs.readFileSync(arbitrumAddressBook, 'utf-8'))
-    : {}
+  const deployment = fs.existsSync(arbitrumAddressBook) ? JSON.parse(fs.readFileSync(arbitrumAddressBook, 'utf-8')) : {}
   const addressBook = {
     '1337': {
       L1GatewayRouter: {
@@ -127,10 +120,7 @@ export function addLocalNetwork(deploymentFile: string) {
 
 // Use prefunded genesis address to fund accounts
 // See: https://docs.arbitrum.io/node-running/how-tos/local-dev-node#default-endpoints-and-addresses
-export async function fundLocalAccounts(
-  accounts: SignerWithAddress[],
-  provider: providers.Provider,
-) {
+export async function fundLocalAccounts(accounts: SignerWithAddress[], provider: providers.Provider) {
   for (const account of accounts) {
     const amount = ethers.utils.parseEther('10')
     const wallet = new Wallet('b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659')

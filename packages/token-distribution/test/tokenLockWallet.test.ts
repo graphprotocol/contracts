@@ -1,13 +1,13 @@
 import '@nomiclabs/hardhat-ethers'
 import 'hardhat-deploy'
 
-import { Staking__factory } from '@graphprotocol/contracts/typechain-types'
+import { Staking__factory } from '@graphprotocol/contracts/types'
 import { expect } from 'chai'
 import { BigNumber, constants, Wallet } from 'ethers'
 import { deployments, ethers } from 'hardhat'
 import { DeployOptions } from 'hardhat-deploy/types'
 
-import { GraphTokenLockManager, GraphTokenLockWallet, GraphTokenMock, StakingMock } from '../typechain-types'
+import { GraphTokenLockManager, GraphTokenLockWallet, GraphTokenMock, StakingMock } from '../types'
 import { defaultInitArgs, Revocability, TokenLockParameters } from './config'
 import { Account, advanceBlocks, advanceTimeAndBlock, getAccounts, getContract, randomHexBytes, toGRT } from './network'
 

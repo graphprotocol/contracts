@@ -9,14 +9,14 @@ import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { Multicall } from "../base/Multicall.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 import { IStakingBase } from "./IStakingBase.sol";
 import { StakingV4Storage } from "./StakingStorage.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 import { Stakes } from "./libs/Stakes.sol";
 import { Managed } from "../governance/Managed.sol";
 import { ICuration } from "../curation/ICuration.sol";
-import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
 import { StakingExtension } from "./StakingExtension.sol";
 import { LibExponential } from "./libs/Exponential.sol";
 

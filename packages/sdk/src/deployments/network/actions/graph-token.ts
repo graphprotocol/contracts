@@ -1,7 +1,7 @@
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, ethers } from 'ethers'
 
-import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import type { GraphNetworkContracts, GraphNetworkAction } from '../..'
+import type { GraphNetworkAction, GraphNetworkContracts } from '../..'
 
 export const setGRTBalances: GraphNetworkAction<
   {
@@ -38,9 +38,7 @@ export const setGRTBalance: GraphNetworkAction<{
   }
 }
 
-export const setGRTAllowances: GraphNetworkAction<
-  { spender: string; allowance: BigNumber }[]
-> = async (
+export const setGRTAllowances: GraphNetworkAction<{ spender: string; allowance: BigNumber }[]> = async (
   contracts: GraphNetworkContracts,
   signer: SignerWithAddress,
   args: { spender: string; allowance: BigNumber }[],
@@ -66,9 +64,7 @@ export const setGRTAllowance: GraphNetworkAction<{
   const currentAllowance = await contracts.GraphToken.allowance(signer.address, spender)
   if (!currentAllowance.eq(allowance)) {
     console.log(
-      `Approving ${spender} with ${ethers.utils.formatEther(allowance)} GRT on behalf of ${
-        signer.address
-      }...`,
+      `Approving ${spender} with ${ethers.utils.formatEther(allowance)} GRT on behalf of ${signer.address}...`,
     )
     const tx = await contracts.GraphToken.connect(signer).approve(spender, allowance)
     await tx.wait()

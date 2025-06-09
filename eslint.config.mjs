@@ -137,7 +137,6 @@ export default [
     plugins: {
       import: importPlugin,
       'simple-import-sort': simpleImportSort,
-      typescript: typescriptPlugin,
     },
     rules: {
       // Turn off the original import/order rule
@@ -145,7 +144,6 @@ export default [
       // Configure simple-import-sort and set to 'error' to enforce sorting
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
-      'typescript/no-explicit-any': 'warn',
     },
   },
 
@@ -195,12 +193,16 @@ export default [
       },
     },
     plugins: {
+      '@typescript-eslint': typescriptPlugin,
       'no-only-tests': noOnlyTests,
     },
     rules: {
       'prefer-const': 'warn',
       'no-only-tests/no-only-tests': 'error',
-      'no-unused-vars': [
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'warn',
+      'no-unused-vars': 'off', // Turn off base rule
+      '@typescript-eslint/no-unused-vars': [
         'error',
         {
           varsIgnorePattern: 'Null|Active|Closed|graph|_i',
@@ -242,6 +244,18 @@ export default [
     languageOptions: {
       globals: {
         ...globals.mocha,
+      },
+    },
+  },
+
+  // Add Hardhat globals for hardhat config files
+  {
+    files: ['**/hardhat.config.ts', '**/hardhat.config.js', '**/tasks/**/*.ts', '**/tasks/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        task: 'readonly',
+        HardhatUserConfig: 'readonly',
       },
     },
   },

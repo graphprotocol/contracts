@@ -1,5 +1,5 @@
-import { allocateFrom, deriveChannelKey, randomHexBytes, stake, toGRT } from '@graphprotocol/sdk'
-import hre, { ethers } from 'hardhat'
+import { allocateFrom, deriveChannelKey, stake, toGRT } from '@graphprotocol/sdk'
+import hre from 'hardhat'
 
 async function main() {
   const graph = hre.graph()

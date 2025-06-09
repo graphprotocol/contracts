@@ -24,7 +24,11 @@ services:
       - GH_CONFIG_DIR=/home/vscode/.cache/github
       - PIP_CACHE_DIR=/home/vscode/.cache/pip
 
-      # Note: NPM, Yarn, Foundry, and Solidity caches are intentionally not set
+      # pnpm cache is safe to share due to content-addressable storage
+      - PNPM_HOME=/home/vscode/.local/share/pnpm
+      - PNPM_CACHE_DIR=/home/vscode/.cache/pnpm
+
+      # Note: NPM, Foundry, and Solidity caches are intentionally not set
       # to avoid cross-branch contamination. Tools will use their default locations.
     volumes:
       # Git repo root

@@ -7,7 +7,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { StakingV4Storage } from "./StakingStorage.sol";
 import { IStakingExtension } from "./IStakingExtension.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Stakes } from "./libs/Stakes.sol";
 import { IStakingData } from "./IStakingData.sol";

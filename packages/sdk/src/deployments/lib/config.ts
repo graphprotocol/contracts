@@ -1,14 +1,9 @@
 import fs from 'fs'
 import YAML from 'yaml'
 import { Scalar, YAMLMap } from 'yaml/types'
-import { AddressBook } from './address-book'
 
-import type {
-  ABRefReplace,
-  ContractConfig,
-  ContractConfigCall,
-  ContractConfigParam,
-} from './types/config'
+import { AddressBook } from './address-book'
+import type { ABRefReplace, ContractConfig, ContractConfigCall, ContractConfigParam } from './types/config'
 import type { ContractParam } from './types/contract'
 
 // TODO: tidy this up
@@ -24,11 +19,7 @@ function isAddressBookRef(value: string): boolean {
   return ABRefMatcher.test(value)
 }
 
-function parseAddressBookRef(
-  addressBook: AddressBook,
-  value: string,
-  abInject: ABRefReplace[],
-): string {
+function parseAddressBookRef(addressBook: AddressBook, value: string, abInject: ABRefReplace[]): string {
   const valueMatch = ABRefMatcher.exec(value)
   if (valueMatch === null) {
     throw new Error('Could not parse address book reference')
@@ -66,12 +57,12 @@ export function loadCallParams(
 }
 
 export function getContractConfig(
-  config: any,
+  config: Record<string, unknown>,
   addressBook: AddressBook,
   name: string,
   deployerAddress: string,
 ): ContractConfig {
-  const contractConfig = config.contracts[name] || {}
+  const contractConfig = ((config.contracts as Record<string, unknown>)[name] as Record<string, unknown>) || {}
   const contractParams: Array<ContractConfigParam> = []
   const contractCalls: Array<ContractConfigCall> = []
   let proxy = false
@@ -80,7 +71,7 @@ export function getContractConfig(
   for (const [name, value] of optsList) {
     // Process constructor params
     if (name.startsWith('init')) {
-      const initList = Object.entries(contractConfig.init) as Array<Array<string>>
+      const initList = Object.entries(contractConfig.init as Record<string, unknown>) as Array<Array<string>>
       for (const [initName, initValue] of initList) {
         contractParams.push({
           name: initName,
@@ -92,8 +83,8 @@ export function getContractConfig(
 
     // Process contract calls
     if (name.startsWith('calls')) {
-      for (const entry of contractConfig.calls) {
-        const fn = entry['fn']
+      for (const entry of contractConfig.calls as Array<Record<string, unknown>>) {
+        const fn = entry['fn'] as string
         const params = Object.values(entry).slice(1) as Array<ContractParam> // skip fn
         contractCalls.push({ fn, params })
       }
@@ -122,7 +113,7 @@ const getNode = (doc: YAML.Document.Parsed, path: string[]): YAMLMap | undefined
       node = node === undefined ? doc.get(p) : node.get(p)
     }
     return node
-  } catch (error) {
+  } catch {
     throw new Error(`Could not find node: ${path}.`)
   }
 }
@@ -150,12 +141,12 @@ function getItemFromPath(doc: YAML.Document.Parsed, path: string) {
   return item
 }
 
-export const getItemValue = (doc: YAML.Document.Parsed, path: string): any => {
+export const getItemValue = (doc: YAML.Document.Parsed, path: string): unknown => {
   const item = getItemFromPath(doc, path)
   return item?.value
 }
 
-export const updateItemValue = (doc: YAML.Document.Parsed, path: string, value: any): boolean => {
+export const updateItemValue = (doc: YAML.Document.Parsed, path: string, value: unknown): boolean => {
   const item = getItemFromPath(doc, path)
   if (item === undefined) {
     throw new Error(`Could not find item: ${path}.`)

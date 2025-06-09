@@ -1,7 +1,6 @@
 import { l1Chains, l2Chains } from './id'
-import { l1ChainNames, l2ChainNames } from './name'
-
 import type { GraphChainList } from './list'
+import { l1ChainNames, l2ChainNames } from './name'
 
 /**
  * A chain pair is an object containing a valid L1 and L2 chain pairing

@@ -1,6 +1,6 @@
 import { eip712 } from '@graphprotocol/common-ts/dist/attestations'
 import { BigNumber, BytesLike, Signature } from 'ethers'
-import { SigningKey, keccak256 } from 'ethers/lib/utils'
+import { keccak256, SigningKey } from 'ethers/lib/utils'
 
 export interface Permit {
   owner: string

@@ -10,11 +10,10 @@ import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/Clo
 import { BancorFormula } from "../bancor/BancorFormula.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
 import { Managed } from "../governance/Managed.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 import { CurationV2Storage } from "./CurationStorage.sol";
-import { ICuration } from "./ICuration.sol";
 import { IGraphCurationToken } from "./IGraphCurationToken.sol";
 
 /**

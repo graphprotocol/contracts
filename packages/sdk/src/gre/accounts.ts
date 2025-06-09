@@ -1,12 +1,12 @@
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { derivePrivateKeys } from 'hardhat/internal/core/providers/util'
 import { Wallet } from 'ethers'
-import { getItemValue, readConfig } from '..'
-import { getNetworkName } from './helpers/network'
+import { derivePrivateKeys } from 'hardhat/internal/core/providers/util'
 import { HttpNetworkHDAccountsConfig, NetworksConfig } from 'hardhat/types'
-import { GREPluginError } from './helpers/error'
 
+import { getItemValue, readConfig } from '../deployments/lib/config'
+import { GREPluginError } from './helpers/error'
+import { getNetworkName } from './helpers/network'
 import type { AccountNames, NamedAccounts } from './types'
 
 const namedAccountList: AccountNames[] = [
@@ -25,10 +25,10 @@ export async function getNamedAccounts(
   const namedAccounts = namedAccountList.reduce(
     async (accountsPromise, name) => {
       const accounts = await accountsPromise
-      let address
+      let address: string | undefined
       try {
-        address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`)
-      } catch (e) {
+        address = getItemValue(readConfig(graphConfigPath, true), `general/${name}`) as string | undefined
+      } catch {
         // Skip if not found
       }
       if (address) {
@@ -73,13 +73,9 @@ export async function getTestAccounts(
   })
 }
 
-export async function getAllAccounts(
-  provider: EthersProviderWrapper,
-): Promise<SignerWithAddress[]> {
+export async function getAllAccounts(provider: EthersProviderWrapper): Promise<SignerWithAddress[]> {
   const accounts = await provider.listAccounts()
-  return await Promise.all(
-    accounts.map(async (account) => await SignerWithAddress.create(provider.getSigner(account))),
-  )
+  return await Promise.all(accounts.map(async (account) => await SignerWithAddress.create(provider.getSigner(account))))
 }
 
 export async function getWallets(

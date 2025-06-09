@@ -165,7 +165,7 @@ const config = {
     ],
   },
   typechain: {
-    outDir: 'typechain-types',
+    outDir: 'types',
     target: 'ethers-v5',
   },
   abiExporter: {
@@ -185,13 +185,7 @@ const config = {
     outputFile: 'reports/gas-report.log',
   },
   mocha: {
-    timeout: 60000,
-  },
-  solidity_coverage: {
-    configureYulOptimizer: true,
-    solcOptimizerDetails: {
-      yul: false,
-    },
+    timeout: 120000,
   },
 }
 

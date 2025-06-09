@@ -1,9 +1,9 @@
 import YAML from 'yaml'
-import { getItemValue, updateItemValue } from '../../lib/config'
 
+import { toBN } from '../../../utils'
+import { getItemValue, updateItemValue } from '../../lib/config'
 import type { GraphNetworkContractName } from './contracts/list'
 import type { GraphNetworkContracts } from './contracts/load'
-import { toBN, toGRT } from '../../../utils'
 
 interface GeneralParam {
   contract: GraphNetworkContractName // contract where the param is defined
@@ -24,9 +24,7 @@ interface ContractInitParam {
 
 const epochManager: Contract = {
   name: 'EpochManager',
-  initParams: [
-    { name: 'lengthInBlocks', type: 'BigNumber', getter: 'epochLength', format: 'number' },
-  ],
+  initParams: [{ name: 'lengthInBlocks', type: 'BigNumber', getter: 'epochLength', format: 'number' }],
 }
 
 const curation: Contract = {
@@ -138,27 +136,15 @@ export const getDefaults = (config: YAML.Document.Parsed, isL1: boolean) => {
   return {
     curation: {
       reserveRatio: getItemValue(config, 'contracts/Curation/init/reserveRatio'),
-      minimumCurationDeposit: getItemValue(
-        config,
-        'contracts/Curation/init/minimumCurationDeposit',
-      ),
+      minimumCurationDeposit: getItemValue(config, 'contracts/Curation/init/minimumCurationDeposit'),
       l2MinimumCurationDeposit: toBN(1),
       curationTaxPercentage: getItemValue(config, 'contracts/Curation/init/curationTaxPercentage'),
     },
     dispute: {
       minimumDeposit: getItemValue(config, 'contracts/DisputeManager/init/minimumDeposit'),
-      fishermanRewardPercentage: getItemValue(
-        config,
-        'contracts/DisputeManager/init/fishermanRewardPercentage',
-      ),
-      qrySlashingPercentage: getItemValue(
-        config,
-        'contracts/DisputeManager/init/qrySlashingPercentage',
-      ),
-      idxSlashingPercentage: getItemValue(
-        config,
-        'contracts/DisputeManager/init/idxSlashingPercentage',
-      ),
+      fishermanRewardPercentage: getItemValue(config, 'contracts/DisputeManager/init/fishermanRewardPercentage'),
+      qrySlashingPercentage: getItemValue(config, 'contracts/DisputeManager/init/qrySlashingPercentage'),
+      idxSlashingPercentage: getItemValue(config, 'contracts/DisputeManager/init/idxSlashingPercentage'),
     },
     epochs: {
       lengthInBlocks: getItemValue(config, 'contracts/EpochManager/init/lengthInBlocks'),
@@ -167,26 +153,11 @@ export const getDefaults = (config: YAML.Document.Parsed, isL1: boolean) => {
       minimumIndexerStake: getItemValue(config, `contracts/${staking}/init/minimumIndexerStake`),
       maxAllocationEpochs: getItemValue(config, `contracts/${staking}/init/maxAllocationEpochs`),
       thawingPeriod: getItemValue(config, `contracts/${staking}/init/thawingPeriod`),
-      delegationUnbondingPeriod: getItemValue(
-        config,
-        `contracts/${staking}/init/delegationUnbondingPeriod`,
-      ),
-      alphaNumerator: getItemValue(
-        config,
-        `contracts/${staking}/init/rebateParameters/alphaNumerator`,
-      ),
-      alphaDenominator: getItemValue(
-        config,
-        `contracts/${staking}/init/rebateParameters/alphaDenominator`,
-      ),
-      lambdaNumerator: getItemValue(
-        config,
-        `contracts/${staking}/init/rebateParameters/lambdaNumerator`,
-      ),
-      lambdaDenominator: getItemValue(
-        config,
-        `contracts/${staking}/init/rebateParameters/lambdaDenominator`,
-      ),
+      delegationUnbondingPeriod: getItemValue(config, `contracts/${staking}/init/delegationUnbondingPeriod`),
+      alphaNumerator: getItemValue(config, `contracts/${staking}/init/rebateParameters/alphaNumerator`),
+      alphaDenominator: getItemValue(config, `contracts/${staking}/init/rebateParameters/alphaDenominator`),
+      lambdaNumerator: getItemValue(config, `contracts/${staking}/init/rebateParameters/lambdaNumerator`),
+      lambdaDenominator: getItemValue(config, `contracts/${staking}/init/rebateParameters/lambdaDenominator`),
     },
     token: {
       initialSupply: getItemValue(config, 'contracts/GraphToken/init/initialSupply'),

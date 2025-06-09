@@ -17,6 +17,7 @@ export type DeployData = {
   name: string
   args?: Array<ContractParam>
   opts?: Record<string, any>
+  artifactsPath?: string | string[]
 }
 
 export type DeployResult = {
@@ -40,10 +41,7 @@ export type DeployAddressBookFunction = (
   contract: DeployData,
   addressBook: AddressBook,
 ) => Promise<DeployResult>
-export type DeployAddressBookWithProxyFunction = AddParameters<
-  DeployAddressBookFunction,
-  [proxy: DeployData]
->
+export type DeployAddressBookWithProxyFunction = AddParameters<DeployAddressBookFunction, [proxy: DeployData]>
 
 // ** Type guards **
 export function isDeployType(value: unknown): value is DeployType {

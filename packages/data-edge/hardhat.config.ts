@@ -8,20 +8,14 @@ import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
 import 'solidity-coverage'
-
-import * as tdly from '@tenderly/hardhat-tenderly'
-import { task } from 'hardhat/config'
-import { HardhatUserConfig } from 'hardhat/types'
-tdly.setup()
-
-import * as dotenv from 'dotenv'
-dotenv.config()
-
+import '@tenderly/hardhat-tenderly'
+import 'hardhat-secure-accounts' // for graph config
 // Tasks
-
 import './tasks/craft-calldata'
 import './tasks/post-calldata'
 import './tasks/deploy'
+
+import { HardhatUserConfig, task } from 'hardhat/config'
 
 // Networks
 
@@ -95,6 +89,10 @@ task('accounts', 'Prints the list of accounts', async (_, bre) => {
 
 // Config
 const config: HardhatUserConfig = {
+  graph: {
+    addressBook: process.env.ADDRESS_BOOK || 'addresses.json',
+    disableSecureAccounts: true,
+  },
   paths: {
     sources: './contracts',
     tests: './test',

@@ -2,7 +2,7 @@
 
 GRE is a hardhat plugin that extends hardhat's runtime environment to inject additional functionality related to the usage of the Graph Protocol.
 
-### Features
+## Features
 
 - Provides a simple interface to interact with protocol contracts
 - Exposes protocol configuration via graph config file and address book
@@ -14,7 +14,8 @@ GRE is a hardhat plugin that extends hardhat's runtime environment to inject add
 
 ## Usage
 
-#### Example
+### Example
+
 Import GRE using `import '@graphprotocol/sdk/gre'` on your hardhat config file and then:
 
 ```js
@@ -28,7 +29,8 @@ const { governor } = await l2.getNamedAccounts()
 
 const tx = L2GraphTokenGateway.connect(governor).setL1TokenAddress(GraphToken.address)
 ```
-__Note__: Project must run hardhat@~2.14.0 due to https://github.com/NomicFoundation/hardhat/issues/1539#issuecomment-1067543942
+
+**Note**: Project must run hardhat@~2.14.0 due to <https://github.com/NomicFoundation/hardhat/issues/1539#issuecomment-1067543942>
 
 #### Network selection
 
@@ -51,12 +53,13 @@ hh console --network mainnet
 
 To use GRE you'll need to configure the target networks. That is done via either hardhat's config file using the `networks` [config field](https://hardhat.org/hardhat-runner/docs/config#json-rpc-based-networks) or by passing the appropriate arguments to `hre.graph()` initializer.
 
-__Note__: The "main" network, defined by hardhat's `--network` flag _MUST_ be properly configured for GRE to initialize successfully. It's not necessary to configure the counterpart network if you don't plan on using it.
+**Note**: The "main" network, defined by hardhat's `--network` flag _MUST_ be properly configured for GRE to initialize successfully. It's not necessary to configure the counterpart network if you don't plan on using it.
 
-**Hardhat: Network config**
+### Hardhat: Network config
+
 ```js
 networks: {
-  goerli: { 
+  goerli: {
     chainId: 5,
     url: `https://goerli.infura.io/v3/123456`
     accounts: {
@@ -68,15 +71,15 @@ networks: {
 ```
 
 Fields:
+
 - **(_REQUIRED_) chainId**: the chainId of the network. This field is not required by hardhat but it's used by GRE to simplify the API.
 - **(_REQUIRED_) url**: the RPC endpoint of the network.
 - **(_OPTIONAL_) accounts**: the accounts to use on the network. These will be used by the account management functions on GRE.
 - **(_OPTIONAL_) graphConfig**: the path to the graph config file for the network.
 
-**Hardhat: Graph config**
+### Hardhat: Graph config
 
 Additionally, the plugin adds a new config field to hardhat's config file: `graphConfig`. This can be used used to define defaults for the graph config file.
-
 
 ```js
 ...
@@ -92,13 +95,15 @@ graph: {
 ```
 
 Fields:
+
 - **(_OPTIONAL_) addressBook**: the path to the address book.
 - **(_REQUIRED_) l1GraphConfig**: default path to the graph config file for L1 networks. This will be used if the `graphConfig` field is not defined on the network config.
 - **(_REQUIRED_) l2GraphConfig**: default path to the graph config file for L2 networks. This will be used if the `graphConfig` field is not defined on the network config.
 
-**Options: Graph initializer**
+### Options: Graph initializer
 
 The GRE initializer also allows you to set the address book and the graph config files like so:
+
 ```js
 const graph = hre.graph({
   addressBook: 'addresses.json',
@@ -113,26 +118,27 @@ const graph = hre.graph({
 })
 ```
 
-**Config priority**
+### Config priority
 
 The path to the graph config and the address book can be set in multiple ways. The plugin will use the following order to determine the path to the graph config file:
 
-1) `hre.graph({ ... })` init parameters `l1GraphConfigPath` and `l2GraphConfigPath`
-2) `hre.graph({ ...})` init parameter graphConfigPath (but only for the "main" network)
-3) `networks.<NETWORK_NAME>.graphConfig` network config parameter `graphConfig` in hardhat config file
-4) `graph.l<X>GraphConfig` graph config parameters `l1GraphConfig` and `l2GraphConfig` in hardhat config file
+1. `hre.graph({ ... })` init parameters `l1GraphConfigPath` and `l2GraphConfigPath`
+2. `hre.graph({ ...})` init parameter graphConfigPath (but only for the "main" network)
+3. `networks.<NETWORK_NAME>.graphConfig` network config parameter `graphConfig` in hardhat config file
+4. `graph.l<X>GraphConfig` graph config parameters `l1GraphConfig` and `l2GraphConfig` in hardhat config file
 
 The priority for the address book is:
-1) `hre.graph({ ... })` init parameter `addressBook`
-2) `graph.addressBook` graph config parameter `addressBook` in hardhat config file
+
+1. `hre.graph({ ... })` init parameter `addressBook`
+2. `graph.addressBook` graph config parameter `addressBook` in hardhat config file
 
 ### Graph task convenience method
 
-GRE accepts a few parameters when being initialized. When using GRE in the context of a hardhat task these parameters would typically be configured as task options. 
+GRE accepts a few parameters when being initialized. When using GRE in the context of a hardhat task these parameters would typically be configured as task options.
 
 In order to simplify the creation of hardhat tasks that will make use of GRE and would require several options to be defined we provide a convenience method: `greTask`. This is a drop in replacement for hardhat's `task` that includes GRE related boilerplate, you can still customize the task as you would do with `task`.
 
- you avoid having to define GRE's options on all of your tasks.
+you avoid having to define GRE's options on all of your tasks.
 
 Here is an example of a task using this convenience method:
 
@@ -169,7 +175,7 @@ For global options help run: hardhat help
 
 By default all transactions executed via GRE will be logged to a file. The file will be created on the first transaction with the following convention `tx-<yyyy-mm-dd>.log`. Here is a sample log file:
 
-```
+```text
 [2024-01-15T14:33:26.747Z] > Sending transaction: GraphToken.addMinter
 [2024-01-15T14:33:26.747Z]    = Sender: 0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1
 [2024-01-15T14:33:26.747Z]    = Contract: 0x428aAe4Fa354c21600b6ec0077F2a6855C7dcbC8
@@ -184,7 +190,7 @@ By default all transactions executed via GRE will be logged to a file. The file 
 [2024-01-15T14:33:26.780Z]    ✔ Transaction succeeded!
 ```
 
-If you want to disable transaction logging you can do so by setting the `enableTxLogging` option to `false` when initializing GRE: ```g=graph({ disableSecureAccounts: true })```
+If you want to disable transaction logging you can do so by setting the `enableTxLogging` option to `false` when initializing GRE: `g=graph({ disableSecureAccounts: true })`
 
 ## API
 
@@ -215,11 +221,11 @@ export interface GraphNetworkEnvironment {
 }
 ```
 
-**ChainId**
+### ChainId
 
 The chainId of the network.
 
-**Contracts**
+### Contracts
 
 Returns an object with all the contracts available in the network. Connects using a provider created with the URL specified in hardhat's network configuration (it doesn't use the usual hardhat `hre.ethers.provider`).
 
@@ -231,13 +237,13 @@ Returns an object with all the contracts available in the network. Connects usin
 500000
 ```
 
-**Graph Config**
+### Graph Config
 
 Returns an object that grants raw access to the YAML parse of the graph config file for the protocol. The graph config file is a YAML file that contains all the parameters with which the protocol was deployed.
 
 > TODO: add better APIs to interact with the graph config file.
 
-**Address Book**
+### Address Book
 
 Returns an object that allows interacting with the address book.
 
@@ -293,7 +299,7 @@ Returns an object with wallets derived from the mnemonic or private key provided
 **Account management: getWallet**
 Returns a wallet derived from the mnemonic or private key provided via hardhat network configuration that matches a given address. This wallet is not connected to a provider.
 
-#### Integration with hardhat-secure-accounts
+### Integration with hardhat-secure-accounts
 
 [hardhat-secure-accounts](https://www.npmjs.com/package/hardhat-secure-accounts) is a hardhat plugin that allows you to use encrypted keystore files to store your private keys. GRE has built-in support to use this plugin. By default is enabled but can be disabled by setting the `disableSecureAccounts` option to `true` when instantiating the GRE object. When enabled, each time you call any of the account management methods you will be prompted for an account name and password to unlock:
 

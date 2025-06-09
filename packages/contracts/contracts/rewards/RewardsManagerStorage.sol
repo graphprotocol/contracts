@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+/* solhint-disable one-contract-per-file */
 
-import "./IRewardsManager.sol";
-import "../governance/Managed.sol";
+pragma solidity 0.7.6;
+
+import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { Managed } from "../governance/Managed.sol";
 
 contract RewardsManagerV1Storage is Managed {
     // -- State --

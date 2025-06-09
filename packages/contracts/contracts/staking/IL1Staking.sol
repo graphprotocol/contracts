@@ -15,6 +15,4 @@ import { IL1StakingBase } from "./IL1StakingBase.sol";
  * the custom setup of the Staking contract where part of the functionality is implemented
  * in a separate contract (StakingExtension) to which calls are delegated through the fallback function.
  */
-interface IL1Staking is IStaking, IL1StakingBase {
-    // Nothing to see here
-}
+interface IL1Staking is IStaking, IL1StakingBase {}

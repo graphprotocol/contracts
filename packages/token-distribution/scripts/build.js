@@ -135,7 +135,7 @@ async function build() {
   // Build GraphClient if needed
   if (graphClientBuildNeeded) {
     console.log('Building GraphClient...')
-    execSync('yarn graphclient build --fileType json', { stdio: 'inherit' })
+    execSync('pnpm graphclient build --fileType json', { stdio: 'inherit' })
   } else {
     console.log('GraphClient is up to date.')
   }
@@ -150,7 +150,7 @@ async function build() {
     //   stdio: 'inherit',
     // })
 
-    execSync('yarn run compile', { stdio: 'inherit' })
+    execSync('pnpm run compile', { stdio: 'inherit' })
   } else {
     console.log('Contracts are up to date.')
   }

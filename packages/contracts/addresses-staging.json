@@ -94,10 +94,7 @@
     },
     "L2GNS": {
       "address": "0xE0e09986912E7723c28Cc81c01c0B6b2789B7ff7",
-      "initArgs": [
-        "0x1eB3dC938d1Bc573D657d3cF05F48523773EADd3",
-        "0xB4C1c4998f547679841714ae3E2241543b52Ca85"
-      ],
+      "initArgs": ["0x1eB3dC938d1Bc573D657d3cF05F48523773EADd3", "0xB4C1c4998f547679841714ae3E2241543b52Ca85"],
       "creationCodeHash": "0xcdd28bb3db05f1267ca0f5ea29536c61841be5937ce711b813924f8ff38918cc",
       "runtimeCodeHash": "0x4ca8c37c807bdfda1d6dcf441324b7ea14c6ddec5db37c20c2bf05aeae49bc0d",
       "txHash": "0xbd2d3f6d4fee611c5f090da74c1abcb83274fc9deb3e57f9903ce6e6eb7c3d2c",
@@ -320,10 +317,7 @@
     },
     "L1GNS": {
       "address": "0x4A952e8eF0373471ac44F71b540BE9164430E8Eb",
-      "initArgs": [
-        "0x030C73c651445310bcc568449E956e2A976F1a29",
-        "0x0d12A34c88D2753f6523E5Ac5942a0c7b60d1448"
-      ],
+      "initArgs": ["0x030C73c651445310bcc568449E956e2A976F1a29", "0x0d12A34c88D2753f6523E5Ac5942a0c7b60d1448"],
       "creationCodeHash": "0xcdd28bb3db05f1267ca0f5ea29536c61841be5937ce711b813924f8ff38918cc",
       "runtimeCodeHash": "0x4ca8c37c807bdfda1d6dcf441324b7ea14c6ddec5db37c20c2bf05aeae49bc0d",
       "txHash": "0x779bb878b6a8d2f741650e02d53ae5b89a85e326aa25d49866f9914dc5794132",

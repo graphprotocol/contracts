@@ -1,13 +1,13 @@
-import PQueue from 'p-queue'
-import fs from 'fs'
-import consola from 'consola'
-import inquirer from 'inquirer'
-import { BigNumber, Contract, ContractFactory, ContractReceipt, ContractTransaction, Event, utils } from 'ethers'
-
 import { NonceManager } from '@ethersproject/experimental'
+import consola from 'consola'
+import { BigNumber, Contract, ContractFactory, ContractReceipt, ContractTransaction, Event, utils } from 'ethers'
+import fs from 'fs'
 import { task } from 'hardhat/config'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { boolean } from 'hardhat/internal/core/params/argumentTypes'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import inquirer from 'inquirer'
+import PQueue from 'p-queue'
+
 import { TxBuilder } from './tx-builder'
 
 const { getAddress, keccak256, formatEther, parseEther } = utils
@@ -47,14 +47,14 @@ export const askConfirm = async () => {
     type: 'confirm',
     message: `Are you sure you want to proceed?`,
   })
-  return res.confirm ? res.confirm as boolean : false
+  return res.confirm ? (res.confirm as boolean) : false
 }
 
 const isValidAddress = (address: string) => {
   try {
     getAddress(address)
     return true
-  } catch (err) {
+  } catch {
     logger.error(`Invalid address ${address}`)
     return false
   }
@@ -68,10 +68,10 @@ export const isValidAddressOrFail = (address: string) => {
 
 const loadDeployData = (filepath: string): TokenLockConfigEntry[] => {
   const data = fs.readFileSync(filepath, 'utf8')
-  const entries = data.split('\n').map(e => e.trim())
+  const entries = data.split('\n').map((e) => e.trim())
   entries.shift() // remove the title from the csv
   return entries
-    .filter(entryData => !!entryData)
+    .filter((entryData) => !!entryData)
     .map((entryData) => {
       const entry = entryData.split(',')
       return {
@@ -89,9 +89,9 @@ const loadDeployData = (filepath: string): TokenLockConfigEntry[] => {
 
 const loadResultData = (filepath: string): TokenLockConfigEntry[] => {
   const data = fs.readFileSync(filepath, 'utf8')
-  const entries = data.split('\n').map(e => e.trim())
+  const entries = data.split('\n').map((e) => e.trim())
   return entries
-    .filter(entryData => !!entryData)
+    .filter((entryData) => !!entryData)
     .map((entryData) => {
       const entry = entryData.split(',')
       return {
@@ -230,7 +230,7 @@ const getDeployContractAddresses = async (entries: TokenLockConfigEntry[], manag
         masterCopy,
         manager.address,
       )
-    } catch (error) {
+    } catch {
       contractAddress = await manager['getDeploymentAddress(bytes32,address)'](entry.salt, masterCopy)
     }
 
@@ -265,7 +265,7 @@ export const getTokenLockManagerOrFail = async (hre: HardhatRuntimeEnvironment, 
   const manager = await hre.ethers.getContractAt('GraphTokenLockManager', deployment.address)
   try {
     await manager.deployed()
-  } catch (err) {
+  } catch {
     logger.error('GraphTokenLockManager not deployed at', manager.address)
     process.exit(1)
   }
@@ -323,7 +323,7 @@ task('create-token-locks', 'Create token lock contracts from file')
     entries = await populateEntries(hre, entries, manager.address, tokenAddress, taskArgs.ownerAddress)
 
     // Filter out already deployed ones
-    entries = entries.filter(entry => !deployedEntries.find(deployedEntry => deployedEntry.salt === entry.salt))
+    entries = entries.filter((entry) => !deployedEntries.find((deployedEntry) => deployedEntry.salt === entry.salt))
     logger.success(`Total of ${entries.length} entries after removing already deployed. All good!`)
     if (entries.length === 0) {
       logger.warn('Nothing new to deploy')

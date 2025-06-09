@@ -1,9 +1,9 @@
 import { expect } from 'chai'
-import { useEnvironment } from './helpers'
 import path from 'path'
 
 import { getAddressBookPath, getChains, getDefaultProviders, getGraphConfigPaths } from '../config'
 import { getNetworkName } from '../helpers/network'
+import { useEnvironment } from './helpers'
 
 describe('GRE init functions', function () {
   describe('getAddressBookPath with graph-config project', function () {
@@ -93,15 +93,11 @@ describe('GRE init functions', function () {
     useEnvironment('graph-config-bad')
 
     it('should throw if main network is not defined in hardhat config (HH L1)', function () {
-      expect(() => getDefaultProviders(this.hre, 4, 421611, true)).to.throw(
-        /Must set a provider url for chain: /,
-      )
+      expect(() => getDefaultProviders(this.hre, 4, 421611, true)).to.throw(/Must set a provider url for chain: /)
     })
 
     it('should throw if main network is not defined in hardhat config (HH L2)', function () {
-      expect(() => getDefaultProviders(this.hre, 5, 421613, false)).to.throw(
-        /Must set a provider url for chain: /,
-      )
+      expect(() => getDefaultProviders(this.hre, 5, 421613, false)).to.throw(/Must set a provider url for chain: /)
     })
   })
 
@@ -217,13 +213,7 @@ describe('GRE init functions', function () {
     })
 
     it('should use network specific config if no opts given', function () {
-      const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(
-        this.hre,
-        {},
-        1,
-        42161,
-        false,
-      )
+      const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(this.hre, {}, 1, 42161, false)
       expect(l1GraphConfigPath).not.to.be.undefined
       expect(l2GraphConfigPath).not.to.be.undefined
       expect(path.basename(l1GraphConfigPath!)).to.equal('graph.mainnet.yml')
@@ -231,13 +221,7 @@ describe('GRE init functions', function () {
     })
 
     it('should use graph generic config if nothing else given', function () {
-      const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(
-        this.hre,
-        {},
-        4,
-        421611,
-        false,
-      )
+      const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(this.hre, {}, 4, 421611, false)
       expect(l1GraphConfigPath).not.to.be.undefined
       expect(l2GraphConfigPath).not.to.be.undefined
       expect(path.basename(l1GraphConfigPath!)).to.equal('graph.hre.yml')
@@ -261,9 +245,7 @@ describe('GRE init functions', function () {
     })
 
     it('should throw if config file does not exist', function () {
-      expect(() => getGraphConfigPaths(this.hre, {}, 1, 421611, true)).to.throw(
-        /Graph config file not found: /,
-      )
+      expect(() => getGraphConfigPaths(this.hre, {}, 1, 421611, true)).to.throw(/Graph config file not found: /)
     })
   })
 })

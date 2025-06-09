@@ -24,11 +24,11 @@ echo "User directories set up with proper permissions"
 # Install project dependencies
 echo "Installing project dependencies..."
 if [ -f "$REPO_ROOT/package.json" ]; then
-  echo "Running yarn to install dependencies..."
+  echo "Running pnpm to install dependencies..."
   cd "$REPO_ROOT"
-  # Note: With set -e, if yarn fails, the script will exit
+  # Note: With set -e, if pnpm fails, the script will exit
   # This is desirable as we want to ensure dependencies are properly installed
-  yarn
+  pnpm install
 else
   echo "No package.json found in the root directory, skipping dependency installation"
 fi

@@ -26,7 +26,7 @@ import type {
   SubgraphNFTDescriptor,
 } from '@graphprotocol/contracts'
 import { Contract, providers, Signer } from 'ethers'
-import path from 'path'
+import * as path from 'path'
 
 import type { GraphChainId } from '../../../..'
 import { isGraphChainId, isGraphL1ChainId } from '../../../..'
@@ -90,12 +90,8 @@ export interface GraphNetworkContracts extends ContractList<GraphNetworkContract
   [Symbol.iterator]: () => Generator<Contract, void, void>
 }
 
-// This ensures that local artifacts are preferred over the ones that ship with the sdk in node_modules
-export function getArtifactsPath() {
-  return [path.resolve('artifacts'), path.resolve('node_modules', '@graphprotocol/contracts/artifacts')]
-}
 export function loadGraphNetworkContracts(
-  addressBookPath: string,
+  addressBookFileName: string,
   chainId: number,
   signerOrProvider?: Signer | providers.Provider,
   artifactsPath?: string | string[],
@@ -105,14 +101,24 @@ export function loadGraphNetworkContracts(
     l2Load?: boolean
   },
 ): GraphNetworkContracts {
-  artifactsPath = artifactsPath ?? getArtifactsPath()
   if (!isGraphChainId(chainId)) {
     throw new Error(`ChainId not supported: ${chainId}`)
   }
+
+  // Validate addressBookFileName - should not start with '.' to avoid path confusion
+  if (addressBookFileName.startsWith('.')) {
+    throw new Error(
+      `addressBookFileName should be a filename, not a path. Got: ${addressBookFileName}. Use just the filename like 'addresses-local.json'`,
+    )
+  }
+
+  const { addressBookDir } = require('@graphprotocol/contracts')
+  const addressBookPath = path.join(addressBookDir, addressBookFileName)
+
   const addressBook = new GraphNetworkAddressBook(addressBookPath, chainId)
   const contracts = loadContracts<GraphChainId, GraphNetworkContractName>(
     addressBook,
-    artifactsPath,
+    artifactsPath ?? [], // Pass empty array since loadContractAt now ignores this
     signerOrProvider,
     opts?.enableTxLogging ?? true,
     GraphNetworkOptionalContractNameList as unknown as GraphNetworkContractName[], // This is ugly but safe
@@ -137,7 +143,7 @@ export function loadGraphNetworkContracts(
     const stakingOverride = loadContract(
       stakingName,
       addressBook,
-      artifactsPath,
+      artifactsPath ?? [], // Use provided artifacts path or empty array
       signerOrProvider,
       opts?.enableTxLogging ?? true,
       new Contract(

@@ -1,28 +1,17 @@
-import path from 'path'
+import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
 import { Wallet } from 'ethers'
 import { lazyFunction, lazyObject } from 'hardhat/plugins'
 import { HardhatConfig, HardhatRuntimeEnvironment, HardhatUserConfig } from 'hardhat/types'
-import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
+import path from 'path'
 
-import { GraphNetworkAddressBook, readConfig, loadGraphNetworkContracts } from '..'
-import {
-  getAllAccounts,
-  getDeployer,
-  getNamedAccounts,
-  getTestAccounts,
-  getWallet,
-  getWallets,
-} from './accounts'
-import { getAddressBookPath, getChains, getDefaultProviders, getGraphConfigPaths } from './config'
-import { getSecureAccountsProvider } from './providers'
-import { logDebug, logWarn } from './helpers/logger'
+import { GraphNetworkAddressBook, loadGraphNetworkContracts } from '..'
 import { getDefaults } from '..'
-
-import type {
-  GraphNetworkEnvironment,
-  GraphRuntimeEnvironment,
-  GraphRuntimeEnvironmentOptions,
-} from './types'
+import { readConfig } from '../deployments/lib/config'
+import { getAllAccounts, getDeployer, getNamedAccounts, getTestAccounts, getWallet, getWallets } from './accounts'
+import { getAddressBookPath, getChains, getDefaultProviders, getGraphConfigPaths } from './config'
+import { logDebug, logWarn } from './helpers/logger'
+import { getSecureAccountsProvider } from './providers'
+import type { GraphNetworkEnvironment, GraphRuntimeEnvironment, GraphRuntimeEnvironmentOptions } from './types'
 
 export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
   // Source for the path convention:
@@ -55,11 +44,7 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
     logDebug(`Tx logging: ${enableTxLogging ? 'enabled' : 'disabled'}`)
 
     // Secure accounts
-    const secureAccounts = !(
-      opts.disableSecureAccounts ??
-      hre.config.graph?.disableSecureAccounts ??
-      false
-    )
+    const secureAccounts = !(opts.disableSecureAccounts ?? hre.config.graph?.disableSecureAccounts ?? false)
     logDebug(`Secure accounts: ${secureAccounts ? 'enabled' : 'disabled'}`)
 
     // Forking
@@ -105,21 +90,13 @@ export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
       )
 
     const addressBookPath = getAddressBookPath(hre, opts)
-    const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(
-      hre,
-      opts,
-      l1ChainId,
-      l2ChainId,
-      isHHL1,
-    )
+    const { l1GraphConfigPath, l2GraphConfigPath } = getGraphConfigPaths(hre, opts, l1ChainId, l2ChainId, isHHL1)
 
     // Wallet functions
     const l1GetWallets = () => getWallets(hre.config.networks, l1ChainId, hre.network.name)
-    const l1GetWallet = (address: string) =>
-      getWallet(hre.config.networks, l1ChainId, hre.network.name, address)
+    const l1GetWallet = (address: string) => getWallet(hre.config.networks, l1ChainId, hre.network.name, address)
     const l2GetWallets = () => getWallets(hre.config.networks, l2ChainId, hre.network.name)
-    const l2GetWallet = (address: string) =>
-      getWallet(hre.config.networks, l2ChainId, hre.network.name, address)
+    const l2GetWallet = (address: string) => getWallet(hre.config.networks, l2ChainId, hre.network.name, address)
 
     // Build the Graph Runtime Environment (GRE)
     const l1Graph: GraphNetworkEnvironment | null = buildGraphNetworkEnvironment(
@@ -177,24 +154,17 @@ function buildGraphNetworkEnvironment(
   unlockProvider: (caller: string) => Promise<EthersProviderWrapper>,
 ): GraphNetworkEnvironment | null {
   if (graphConfigPath === undefined) {
-    logWarn(
-      `No graph config file provided for chain: ${chainId}. ${
-        isHHL1 ? 'L2' : 'L1'
-      } will not be initialized.`,
-    )
+    logWarn(`No graph config file provided for chain: ${chainId}. ${isHHL1 ? 'L2' : 'L1'} will not be initialized.`)
     return null
   }
 
   if (provider === undefined) {
-    logWarn(
-      `No provider URL found for: ${chainId}. ${isHHL1 ? 'L2' : 'L1'} will not be initialized.`,
-    )
+    logWarn(`No provider URL found for: ${chainId}. ${isHHL1 ? 'L2' : 'L1'} will not be initialized.`)
     return null
   }
 
   // Upgrade provider to secure accounts if feature is enabled
-  const getUpdatedProvider = async (caller: string) =>
-    secureAccounts ? await unlockProvider(caller) : provider
+  const getUpdatedProvider = async (caller: string) => (secureAccounts ? await unlockProvider(caller) : provider)
 
   return {
     chainId: chainId,
@@ -212,22 +182,14 @@ function buildGraphNetworkEnvironment(
     ),
     getWallets: lazyFunction(() => () => getWallets()),
     getWallet: lazyFunction(() => (address: string) => getWallet(address)),
-    getDeployer: lazyFunction(
-      () => async () => getDeployer(await getUpdatedProvider('getDeployer')),
-    ),
+    getDeployer: lazyFunction(() => async () => getDeployer(await getUpdatedProvider('getDeployer'))),
     getNamedAccounts: lazyFunction(
       () => async () =>
-        getNamedAccounts(
-          fork ? provider : await getUpdatedProvider('getNamedAccounts'),
-          graphConfigPath,
-        ),
+        getNamedAccounts(fork ? provider : await getUpdatedProvider('getNamedAccounts'), graphConfigPath),
     ),
     getTestAccounts: lazyFunction(
-      () => async () =>
-        getTestAccounts(await getUpdatedProvider('getTestAccounts'), graphConfigPath),
+      () => async () => getTestAccounts(await getUpdatedProvider('getTestAccounts'), graphConfigPath),
     ),
-    getAllAccounts: lazyFunction(
-      () => async () => getAllAccounts(await getUpdatedProvider('getAllAccounts')),
-    ),
+    getAllAccounts: lazyFunction(() => async () => getAllAccounts(await getUpdatedProvider('getAllAccounts'))),
   }
 }

@@ -1,16 +1,16 @@
+import type { Provider } from '@ethersproject/providers'
+import type { Contract, ContractFunction, ContractTransaction, Signer } from 'ethers'
 import lodash from 'lodash'
 
-import type { Contract, ContractFunction, ContractTransaction, Signer } from 'ethers'
-import type { Provider } from '@ethersproject/providers'
 import type { ContractParam } from '../types/contract'
 import { logContractCall, logContractReceipt } from './log'
 
 class WrappedContract {
   // The meta-class properties
-  [key: string]: ContractFunction | any
+  [key: string]: ContractFunction | unknown
 }
 
-function isContractTransaction(call: ContractTransaction | any): call is ContractTransaction {
+function isContractTransaction(call: ContractTransaction | unknown): call is ContractTransaction {
   return typeof call === 'object' && (call as ContractTransaction).hash !== undefined
 }
 
@@ -52,7 +52,7 @@ export function wrapCalls(contract: Contract, contractName: string): Contract {
 
   for (const fn of Object.keys(contract.functions)) {
     const call = contract.functions[fn]
-    const override = async (...args: Array<ContractParam>): Promise<ContractTransaction | any> => {
+    const override = async (...args: Array<ContractParam>): Promise<ContractTransaction | unknown> => {
       const response = await call(...args)
 
       // If it's a read only call, return the response
@@ -72,7 +72,7 @@ export function wrapCalls(contract: Contract, contractName: string): Contract {
     }
 
     wrappedContract[fn] = override
-    wrappedContract.functions[fn] = override
+    ;(wrappedContract.functions as Record<string, unknown>)[fn] = override
   }
 
   return wrappedContract as Contract

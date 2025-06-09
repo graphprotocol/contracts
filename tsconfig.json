@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "allowJs": true,
-    "checkJs": false
-  },
-  "include": ["**/*.ts", "**/*.js", "**/*.mjs", "**/*.cjs"],
-  "exclude": ["node_modules", "dist", "build", "cache", "coverage"]
+    "checkJs": false,
+    "incremental": true,
+    "noEmitOnError": true
+  }
 }

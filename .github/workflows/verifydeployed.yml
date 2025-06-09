@@ -13,10 +13,10 @@ on:
         type: choice
         default: mainnet
         options:
-        - mainnet
-        - arbitrum-one
-        - goerli
-        - arbitrum-goerli
+          - mainnet
+          - arbitrum-one
+          - goerli
+          - arbitrum-goerli
 
 jobs:
   build:
@@ -25,22 +25,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - name: Set up environment
         uses: ./.github/actions/setup
 
       - name: Build
         run: |
           pushd packages/contracts
-          yarn build || yarn build
+          pnpm build
 
       - name: Save build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: contract-artifacts
           path: |
-            packages/contracts/build
+            packages/contracts/artifacts
             packages/contracts/cache/*.json
-  
+
   verify:
     name: Verify deployments
     runs-on: ubuntu-latest
@@ -53,16 +55,16 @@ jobs:
       - name: Build
         run: |
           pushd packages/contracts
-          yarn build || yarn build
+          pnpm build || pnpm build
       - name: Get build artifacts
         uses: actions/download-artifact@v3
         with:
           name: contract-artifacts
 
       - name: Verify contracts on Defender
-        run: cd packages/contracts && yarn hardhat --network ${{ inputs.network }} verify-defender ${{ inputs.contracts }}
+        run: cd packages/contracts && pnpm hardhat --network ${{ inputs.network }} verify-defender ${{ inputs.contracts }}
         env:
-          DEFENDER_API_KEY: "${{ secrets.DEFENDER_API_KEY }}"
-          DEFENDER_API_SECRET: "${{ secrets.DEFENDER_API_SECRET }}"
-          INFURA_KEY: "${{ secrets.INFURA_KEY }}"
-          WORKFLOW_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          DEFENDER_API_KEY: '${{ secrets.DEFENDER_API_KEY }}'
+          DEFENDER_API_SECRET: '${{ secrets.DEFENDER_API_SECRET }}'
+          INFURA_KEY: '${{ secrets.INFURA_KEY }}'
+          WORKFLOW_URL: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'

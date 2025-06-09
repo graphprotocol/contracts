@@ -2,13 +2,11 @@ import { BigNumber, Contract } from 'ethers'
 
 import { Account } from './network'
 
-/* eslint-disable no-unused-vars */
 export enum Revocability {
   NotSet,
   Enabled,
   Disabled,
 }
-/* eslint-enable no-unused-vars */
 
 export interface TokenLockSchedule {
   startTime: number

@@ -2,5 +2,5 @@
 
 set -eo pipefail
 
-yarn compile
+pnpm compile
 npx hardhat coverage $@
