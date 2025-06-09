@@ -8,8 +8,6 @@ env:
   CI: true
 
 on:
-  push:
-    branches: '*'
   pull_request:
     branches: '*'
   workflow_dispatch:
