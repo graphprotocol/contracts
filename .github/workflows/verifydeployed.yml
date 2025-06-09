@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: |
           pushd packages/contracts
-          pnpm build || pnpm build
+          pnpm build
 
       - name: Save build artifacts
         uses: actions/upload-artifact@v3
