@@ -1,18 +1,37 @@
-import fs from 'fs'
-import { assertObject } from '../../utils/assertions'
 import { AssertionError } from 'assert'
+import fs from 'fs'
 
-import type { AddressBookJson, AddressBookEntry } from './types/address-book'
+import { assertObject } from '../../utils/assertions'
 import { logInfo } from '../logger'
+import type { AddressBookEntry, AddressBookJson } from './types/address-book'
+
+/**
+ * Format JSON content using Prettier to match project formatting standards
+ */
+function formatJsonWithPrettier(content: string): string {
+  try {
+    // Try to use prettier if available
+    const prettier = require('prettier')
+    // Look for prettier config starting from the contracts package directory
+    const configPath = require('path').resolve(__dirname, '../../../..')
+    const prettierConfig = prettier.resolveConfigSync(configPath) || {}
+    return prettier.format(content, {
+      ...prettierConfig,
+      parser: 'json',
+    })
+  } catch (error) {
+    // Fallback to standard JSON formatting if prettier is not available
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logInfo(`Prettier formatting failed: ${errorMessage}, using standard JSON formatting`)
+    return content
+  }
+}
 
 /**
  * An abstract class to manage the address book
  * Must be extended and implement `assertChainId` and `assertAddressBookJson`
  */
-export abstract class AddressBook<
-  ChainId extends number = number,
-  ContractName extends string = string,
-> {
+export abstract class AddressBook<ChainId extends number = number, ContractName extends string = string> {
   // The path to the address book file
   public file: string
 
@@ -81,16 +100,13 @@ export abstract class AddressBook<
       if (typeof json.address !== 'string') throw new AssertionError({ message: 'Invalid address' })
       if (json.constructorArgs && !Array.isArray(json.constructorArgs))
         throw new AssertionError({ message: 'Invalid constructorArgs' })
-      if (json.initArgs && !Array.isArray(json.initArgs))
-        throw new AssertionError({ message: 'Invalid initArgs' })
+      if (json.initArgs && !Array.isArray(json.initArgs)) throw new AssertionError({ message: 'Invalid initArgs' })
       if (json.creationCodeHash && typeof json.creationCodeHash !== 'string')
         throw new AssertionError({ message: 'Invalid creationCodeHash' })
       if (json.runtimeCodeHash && typeof json.runtimeCodeHash !== 'string')
         throw new AssertionError({ message: 'Invalid runtimeCodeHash' })
-      if (json.txHash && typeof json.txHash !== 'string')
-        throw new AssertionError({ message: 'Invalid txHash' })
-      if (json.proxy && typeof json.proxy !== 'boolean')
-        throw new AssertionError({ message: 'Invalid proxy' })
+      if (json.txHash && typeof json.txHash !== 'string') throw new AssertionError({ message: 'Invalid txHash' })
+      if (json.proxy && typeof json.proxy !== 'boolean') throw new AssertionError({ message: 'Invalid proxy' })
       if (json.implementation && typeof json.implementation !== 'object')
         throw new AssertionError({ message: 'Invalid implementation' })
       if (json.libraries && typeof json.libraries !== 'object')
@@ -119,7 +135,7 @@ export abstract class AddressBook<
   getEntry(name: ContractName): AddressBookEntry {
     try {
       return this.addressBook[this.chainId][name]
-    } catch (e) {
+    } catch {
       // TODO: should we throw instead?
       // We could use ethers.constants.AddressZero but it's a costly import
       return { address: '0x0000000000000000000000000000000000000000' }
@@ -135,7 +151,10 @@ export abstract class AddressBook<
   setEntry(name: ContractName, entry: AddressBookEntry): void {
     this.addressBook[this.chainId][name] = entry
     try {
-      fs.writeFileSync(this.file, JSON.stringify(this.addressBook, null, 2))
+      const jsonContent = JSON.stringify(this.addressBook, null, 2)
+      // Format with prettier to match project standards
+      const formattedContent = formatJsonWithPrettier(jsonContent)
+      fs.writeFileSync(this.file, formattedContent)
     } catch (e: unknown) {
       if (e instanceof Error) console.log(`Error saving artifacts: ${e.message}`)
       else console.log(`Error saving artifacts: ${e}`)

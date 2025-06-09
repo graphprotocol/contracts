@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 
 import "../governance/Governed.sol";
 import "../staking/IStaking.sol";
-import "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 
 /**
  * @title Allocation Exchange

@@ -1,5 +1,5 @@
-import { utils, Wallet } from 'ethers'
 import type { Signer } from 'ethers'
+import { utils, Wallet } from 'ethers'
 
 export enum AllocationState {
   Null,
@@ -25,10 +25,7 @@ export const deriveChannelKey = (): ChannelKey => {
     address: w.address,
     wallet: w,
     generateProof: (indexerAddress: string): Promise<string> => {
-      const messageHash = utils.solidityKeccak256(
-        ['address', 'address'],
-        [indexerAddress, w.address],
-      )
+      const messageHash = utils.solidityKeccak256(['address', 'address'], [indexerAddress, w.address])
       const messageHashBytes = utils.arrayify(messageHash)
       return w.signMessage(messageHashBytes)
     },

@@ -1,8 +1,4 @@
-import {
-  mine as hardhatMine,
-  mineUpTo as hardhatMineUpTo,
-} from '@nomicfoundation/hardhat-network-helpers'
-
+import { mine as hardhatMine, mineUpTo as hardhatMineUpTo } from '@nomicfoundation/hardhat-network-helpers'
 import type { BigNumber } from 'ethers'
 
 export async function mine(

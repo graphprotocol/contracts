@@ -8,20 +8,21 @@ Testing is done with the following stack:
 
 ## Unit testing
 
-To test all the smart contracts, use `yarn test`.
+To test all the smart contracts, use `pnpm test`.
 To test a single file run: `npx hardhat test test/<FILE_NAME>.ts`
 
 ## E2E Testing
 
-End to end tests are also available and can be run against a local network or a live network. These can be useful to validate that a protocol deployment is configured and working as expected. 
+End to end tests are also available and can be run against a local network or a live network. These can be useful to validate that a protocol deployment is configured and working as expected.
 
 There are several types of e2e tests which can be run separately:
+
 - **deployment/config**
   - Test the configuration of deployed contracts (parameters that don't change over time).
   - Can be run against any network at any time and the tests should pass.
   - Only read only interactions with the blockchain.
   - Example: a test validating the curation default reserve ratio matches the value in the graph config file.
-- **deployment/init** 
+- **deployment/init**
   - Test the initialization of deployed contracts (parameters that change with protocol usage).
   - Can be run against a "fresh" protocol deployment. Running these tests against a protocol with pre-existing state will probably fail.
   - Only read only interactions with the blockchain.
@@ -37,10 +38,11 @@ There are several types of e2e tests which can be run separately:
 It can be useful to run E2E tests against a fresh protocol deployment on L1, this can be done with the following:
 
 ```bash
-L1_NETWORK=localhost yarn test:e2e
+L1_NETWORK=localhost pnpm test:e2e
 ```
 
 The command will:
+
 - start a hardhat local node
 - deploy the L1 protocol
 - configure the new L1 deployment
@@ -51,10 +53,11 @@ The command will:
 If you want to test the protocol on an L1/L2 setup, you can run:
 
 ```bash
-L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 yarn test:e2e
+L1_NETWORK=localnitrol1 L2_NETWORK=localnitrol2 pnpm test:e2e
 ```
 
 In this case the command will:
+
 - deploy the L1 protocol
 - configure the new L1 deployment
 - deploy the L2 protocol
@@ -90,10 +93,10 @@ Note that this command will only run the tests so you need to be sure the protoc
 Scenarios are defined by an optional script and a test file:
 
 - Optional ts script
-   - The objective of this script is to perform actions on the protocol to advance it's state to the desired one.
-   - Should follow hardhat script convention.
-   - Should be named test/e2e/scenarios/{scenario-name}.ts.
-   - They run before the test file.
-- Test file
-   - Should be named test/e2e/scenarios/{scenario-name}.test.ts.
-   - Standard chai/mocha/hardhat/ethers test file.
+  - The objective of this script is to perform actions on the protocol to advance it's state to the desired one.
+  - Should follow hardhat script convention.
+  - Should be named test/e2e/scenarios/{scenario-name}.ts.
+  - They run before the test file.
+- est file
+  - Should be named test/e2e/scenarios/{scenario-name}.test.ts.
+  - Standard chai/mocha/hardhat/ethers test file.

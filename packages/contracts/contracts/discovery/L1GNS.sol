@@ -9,7 +9,7 @@ import { GNS } from "./GNS.sol";
 
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { IL2GNS } from "../l2/discovery/IL2GNS.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 import { L1GNSV1Storage } from "./L1GNSStorage.sol";
 
 /**

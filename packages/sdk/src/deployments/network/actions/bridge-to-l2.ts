@@ -1,11 +1,11 @@
+import { L1ToL2MessageStatus, L1ToL2MessageWriter, L1TransactionReceipt } from '@arbitrum/sdk'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, providers, utils } from 'ethers'
 
-import { L1TransactionReceipt, L1ToL2MessageStatus, L1ToL2MessageWriter } from '@arbitrum/sdk'
-import { GraphNetworkAction } from './types'
-import { GraphNetworkContracts } from '../deployment/contracts/load'
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { setGRTAllowance } from './graph-token'
 import { estimateRetryableTxGas, getL1ToL2MessageWriter } from '../../../utils/arbitrum'
+import { GraphNetworkContracts } from '../deployment/contracts/load'
+import { setGRTAllowance } from './graph-token'
+import { GraphNetworkAction } from './types'
 
 export const sendToL2: GraphNetworkAction<{
   l2Provider: providers.Provider
@@ -72,17 +72,9 @@ export const sendToL2: GraphNetworkAction<{
   const txData = utils.defaultAbiCoder.encode(['uint256', 'bytes'], [maxSubmissionCost, calldata])
   const tx = await contracts
     .L1GraphTokenGateway!.connect(signer)
-    .outboundTransfer(
-      contracts.GraphToken.address,
-      recipient,
-      amount,
-      maxGas,
-      gasPriceBid,
-      txData,
-      {
-        value: ethValue,
-      },
-    )
+    .outboundTransfer(contracts.GraphToken.address, recipient, amount, maxGas, gasPriceBid, txData, {
+      value: ethValue,
+    })
   const receipt = await tx.wait()
 
   // get l2 ticket status
@@ -124,7 +116,7 @@ export const redeemSendToL2: GraphNetworkAction<{
   await checkAndRedeemMessage(l1ToL2Message)
 }
 
-const logAutoRedeemReason = (autoRedeemRec: any) => {
+const logAutoRedeemReason = (autoRedeemRec: unknown) => {
   if (autoRedeemRec == null) {
     console.info(`Auto redeem was not attempted.`)
     return

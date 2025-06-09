@@ -1,10 +1,10 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import chai, { expect } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import { ethers } from 'ethers'
-import { useEnvironment } from './helpers'
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 import type { AccountNames, GraphRuntimeEnvironment } from '../types'
+import { useEnvironment } from './helpers'
 
 chai.use(chaiAsPromised)
 

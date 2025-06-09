@@ -1,15 +1,10 @@
+import type { ContractReceipt, ContractTransaction } from 'ethers'
 import fs from 'fs'
 
-import type { ContractReceipt, ContractTransaction } from 'ethers'
-import type { ContractParam } from '../types/contract'
 import { logInfo } from '../../logger'
+import type { ContractParam } from '../types/contract'
 
-export function logContractCall(
-  tx: ContractTransaction,
-  contractName: string,
-  fn: string,
-  args: Array<ContractParam>,
-) {
+export function logContractCall(tx: ContractTransaction, contractName: string, fn: string, args: Array<ContractParam>) {
   const msg: string[] = []
   msg.push(`> Sending transaction: ${contractName}.${fn}`)
   msg.push(`   = Sender: ${tx.from}`)
@@ -20,11 +15,7 @@ export function logContractCall(
   logToConsoleAndFile(msg)
 }
 
-export function logContractDeploy(
-  tx: ContractTransaction,
-  contractName: string,
-  args: Array<ContractParam>,
-) {
+export function logContractDeploy(tx: ContractTransaction, contractName: string, args: Array<ContractParam>) {
   const msg: string[] = []
   msg.push(`> Deploying contract: ${contractName}`)
   msg.push(`   = Sender: ${tx.from}`)
@@ -33,11 +24,7 @@ export function logContractDeploy(
   logToConsoleAndFile(msg)
 }
 
-export function logContractDeployReceipt(
-  receipt: ContractReceipt,
-  creationCodeHash: string,
-  runtimeCodeHash: string,
-) {
+export function logContractDeployReceipt(receipt: ContractReceipt, creationCodeHash: string, runtimeCodeHash: string) {
   const msg: string[] = []
   msg.push(`   = Contract deployed at: ${receipt.contractAddress}`)
   msg.push(`   = CreationCodeHash: ${creationCodeHash}`)

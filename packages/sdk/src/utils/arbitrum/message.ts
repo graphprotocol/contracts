@@ -8,7 +8,6 @@ import {
   L2ToL1MessageWriter,
   L2TransactionReceipt,
 } from '@arbitrum/sdk'
-
 import type { Provider } from '@ethersproject/abstract-provider'
 import type { providers, Signer } from 'ethers'
 
@@ -44,9 +43,7 @@ async function getL1ToL2Message(
   l2Provider: Provider,
 ): Promise<L1ToL2MessageWriter | L1ToL2MessageReader> {
   const txReceipt =
-    typeof txHashOrReceipt === 'string'
-      ? await l1Provider.getTransactionReceipt(txHashOrReceipt)
-      : txHashOrReceipt
+    typeof txHashOrReceipt === 'string' ? await l1Provider.getTransactionReceipt(txHashOrReceipt) : txHashOrReceipt
   const l1Receipt = new L1TransactionReceipt(txReceipt)
   const l1ToL2Messages = await l1Receipt.getL1ToL2Messages(l2Provider)
   return l1ToL2Messages[0]
@@ -59,12 +56,7 @@ export async function getL2ToL1MessageWriter(
   l2Provider: Provider,
   signer: Signer,
 ): Promise<L2ToL1MessageWriter> {
-  return (await getL2ToL1Message(
-    txHashOrReceipt,
-    l1Provider,
-    l2Provider,
-    signer,
-  )) as L2ToL1MessageWriter
+  return (await getL2ToL1Message(txHashOrReceipt, l1Provider, l2Provider, signer)) as L2ToL1MessageWriter
 }
 
 export async function getL2ToL1MessageReader(
@@ -91,9 +83,7 @@ async function getL2ToL1Message(
   signer?: Signer,
 ) {
   const txReceipt =
-    typeof txHashOrReceipt === 'string'
-      ? await l2Provider.getTransactionReceipt(txHashOrReceipt)
-      : txHashOrReceipt
+    typeof txHashOrReceipt === 'string' ? await l2Provider.getTransactionReceipt(txHashOrReceipt) : txHashOrReceipt
   const l1SignerOrProvider = signer ? signer.connect(l1Provider) : l1Provider
   const l2Receipt = new L2TransactionReceipt(txReceipt)
   const l2ToL1Messages = await l2Receipt.getL2ToL1Messages(l1SignerOrProvider)

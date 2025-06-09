@@ -1,4 +1,5 @@
 import { HardhatPluginError } from 'hardhat/plugins'
+
 import { logError } from './logger'
 
 export class GREPluginError extends HardhatPluginError {

@@ -47,10 +47,7 @@ export const GraphNetworkContractNameList = [
 export type GraphNetworkContractName = (typeof GraphNetworkContractNameList)[number]
 
 export function isGraphNetworkContractName(name: unknown): name is GraphNetworkContractName {
-  return (
-    typeof name === 'string' &&
-    GraphNetworkContractNameList.includes(name as GraphNetworkContractName)
-  )
+  return typeof name === 'string' && GraphNetworkContractNameList.includes(name as GraphNetworkContractName)
 }
 
 export const GraphNetworkGovernedContractNameList: GraphNetworkContractName[] = [

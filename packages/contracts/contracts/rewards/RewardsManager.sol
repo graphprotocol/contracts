@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity 0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../upgrades/GraphUpgradeable.sol";
-import "../staking/libs/MathUtils.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { Managed } from "../governance/Managed.sol";
+import { MathUtils } from "../staking/libs/MathUtils.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
+import { IStaking, IStakingBase } from "../staking/IStaking.sol";
 
-import "./RewardsManagerStorage.sol";
-import "./IRewardsManager.sol";
+import { RewardsManagerV4Storage } from "./RewardsManagerStorage.sol";
+import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -31,34 +34,48 @@ import "./IRewardsManager.sol";
 contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
+    /// @dev Fixed point scaling factor used for decimals in reward calculations
     uint256 private constant FIXED_POINT_SCALING_FACTOR = 1e18;
 
     // -- Events --
 
     /**
-     * @dev Emitted when rewards are assigned to an indexer.
+     * @dev Emitted when rewards are assigned to an indexer
+     * @param indexer Address of the indexer receiving rewards
+     * @param allocationID Address of the allocation receiving rewards
+     * @param epoch Epoch when the rewards were assigned
+     * @param amount Amount of rewards assigned
      */
     event RewardsAssigned(address indexed indexer, address indexed allocationID, uint256 epoch, uint256 amount);
 
     /**
-     * @dev Emitted when rewards are denied to an indexer.
+     * @dev Emitted when rewards are denied to an indexer
+     * @param indexer Address of the indexer being denied rewards
+     * @param allocationID Address of the allocation being denied rewards
+     * @param epoch Epoch when the rewards were denied
      */
     event RewardsDenied(address indexed indexer, address indexed allocationID, uint256 epoch);
 
     /**
-     * @dev Emitted when a subgraph is denied for claiming rewards.
+     * @dev Emitted when a subgraph is denied for claiming rewards
+     * @param subgraphDeploymentID Subgraph deployment ID being denied
+     * @param sinceBlock Block number since when the subgraph is denied
      */
     event RewardsDenylistUpdated(bytes32 indexed subgraphDeploymentID, uint256 sinceBlock);
 
     // -- Modifiers --
 
+    /**
+     * @dev Modifier to restrict access to the subgraph availability oracle only
+     */
     modifier onlySubgraphAvailabilityOracle() {
         require(msg.sender == address(subgraphAvailabilityOracle), "Caller must be the subgraph availability oracle");
         _;
     }
 
     /**
-     * @dev Initialize this contract.
+     * @notice Initialize this contract
+     * @param _controller Address of the controller contract
      */
     function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
@@ -92,7 +109,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the subgraph oracle allowed to denegate distribution of rewards to subgraphs.
+     * @notice Sets the subgraph oracle allowed to deny distribution of rewards to subgraphs
      * @param _subgraphAvailabilityOracle Address of the subgraph availability oracle
      */
     function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle) external override onlyGovernor {
@@ -101,8 +118,8 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Sets the minimum signaled tokens on a subgraph to start accruing rewards.
-     * @dev Can be set to zero which means that this feature is not being used.
+     * @notice Sets the minimum signaled tokens on a subgraph to start accruing rewards
+     * @dev Can be set to zero which means that this feature is not being used
      * @param _minimumSubgraphSignal Minimum signaled tokens
      */
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external override {
@@ -118,8 +135,8 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Denylist --
 
     /**
-     * @dev Denies to claim rewards for a subgraph.
-     * NOTE: Can only be called by the subgraph availability oracle
+     * @notice Denies to claim rewards for a subgraph
+     * @dev Can only be called by the subgraph availability oracle
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny Whether to set the subgraph as denied for claiming rewards or not
      */
@@ -139,7 +156,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Tells if subgraph is in deny list
+     * @notice Tells if subgraph is in deny list
      * @param _subgraphDeploymentID Subgraph deployment ID to check
      * @return Whether the subgraph is denied for claiming rewards or not
      */
@@ -150,9 +167,8 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Getters --
 
     /**
-     * @dev Gets the issuance of rewards per signal since last updated.
-     *
-     * Linear formula: `x = r * t`
+     * @notice Gets the issuance of rewards per signal since last updated
+     * @dev Linear formula: `x = r * t`
      *
      * Notation:
      * t: time steps are in blocks since last updated
@@ -187,7 +203,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Gets the currently accumulated rewards per signal.
+     * @notice Gets the currently accumulated rewards per signal
      * @return Currently accumulated rewards per signal
      */
     function getAccRewardsPerSignal() public view override returns (uint256) {
@@ -195,7 +211,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Gets the accumulated rewards for the subgraph.
+     * @notice Gets the accumulated rewards for the subgraph
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards for subgraph
      */
@@ -215,7 +231,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Gets the accumulated rewards per allocated token for the subgraph.
+     * @notice Gets the accumulated rewards per allocated token for the subgraph
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards per allocated token for the subgraph
      * @return Accumulated rewards for subgraph
@@ -245,8 +261,8 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     // -- Updates --
 
     /**
-     * @dev Updates the accumulated rewards per signal and save checkpoint block number.
-     * Must be called before `issuancePerBlock` or `total signalled GRT` changes
+     * @notice Updates the accumulated rewards per signal and save checkpoint block number
+     * @dev Must be called before `issuancePerBlock` or `total signalled GRT` changes.
      * Called from the Curation contract on mint() and burn()
      * @return Accumulated rewards per signal
      */
@@ -257,9 +273,9 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Triggers an update of rewards for a subgraph.
-     * Must be called before `signalled GRT` on a subgraph changes.
-     * Note: Hook called from the Curation contract on mint() and burn()
+     * @notice Triggers an update of rewards for a subgraph
+     * @dev Must be called before `signalled GRT` on a subgraph changes.
+     * Hook called from the Curation contract on mint() and burn()
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards for subgraph
      */
@@ -275,9 +291,9 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Triggers an update of rewards for a subgraph.
-     * Must be called before allocation on a subgraph changes.
-     * NOTE: Hook called from the Staking contract on allocate() and close()
+     * @notice Triggers an update of rewards for a subgraph
+     * @dev Must be called before allocation on a subgraph changes.
+     * Hook called from the Staking contract on allocate() and close()
      *
      * @param _subgraphDeploymentID Subgraph deployment
      * @return Accumulated rewards per allocated token for a subgraph
@@ -293,7 +309,7 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Calculate current rewards for a given allocation on demand.
+     * @notice Calculate current rewards for a given allocation on demand
      * @param _allocationID Allocation
      * @return Rewards amount for an allocation
      */
@@ -326,8 +342,8 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
-     * @dev Pull rewards from the contract for a particular allocation.
-     * This function can only be called by the Staking contract.
+     * @notice Pull rewards from the contract for a particular allocation
+     * @dev This function can only be called by the Staking contract.
      * This function will mint the necessary tokens to reward based on the inflation calculation.
      * @param _allocationID Allocation
      * @return Assigned rewards amount

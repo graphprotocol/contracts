@@ -1,12 +1,11 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, ethers } from 'ethers'
 
-import { setGRTAllowances } from './graph-token'
-import { buildSubgraphId } from '../../../utils/subgraph'
 import { randomHexBytes } from '../../../utils/bytes'
-
-import type { GraphNetworkAction } from './types'
+import { buildSubgraphId } from '../../../utils/subgraph'
 import type { GraphNetworkContracts } from '../deployment/contracts/load'
+import { setGRTAllowances } from './graph-token'
+import type { GraphNetworkAction } from './types'
 
 export const mintSignal: GraphNetworkAction<{ subgraphId: string; amount: BigNumber }> = async (
   contracts: GraphNetworkContracts,
@@ -19,15 +18,11 @@ export const mintSignal: GraphNetworkAction<{ subgraphId: string; amount: BigNum
   const { subgraphId, amount } = args
 
   // Approve
-  await setGRTAllowances(contracts, curator, [
-    { spender: contracts.GNS.address, allowance: amount },
-  ])
+  await setGRTAllowances(contracts, curator, [{ spender: contracts.GNS.address, allowance: amount }])
 
   // Add signal
   console.log(
-    `\nCurator ${curator.address} add ${ethers.utils.formatEther(
-      amount,
-    )} in signal to subgraphId ${subgraphId}..`,
+    `\nCurator ${curator.address} add ${ethers.utils.formatEther(amount)} in signal to subgraphId ${subgraphId}..`,
   )
   const tx = await contracts.GNS.connect(curator).mintSignal(subgraphId, amount, 0, {
     gasLimit: 4_000_000,
@@ -35,10 +30,7 @@ export const mintSignal: GraphNetworkAction<{ subgraphId: string; amount: BigNum
   await tx.wait()
 }
 
-export const publishNewSubgraph: GraphNetworkAction<
-  { deploymentId: string; chainId: number },
-  string
-> = async (
+export const publishNewSubgraph: GraphNetworkAction<{ deploymentId: string; chainId: number }, string> = async (
   contracts: GraphNetworkContracts,
   publisher: SignerWithAddress,
   args: { deploymentId: string; chainId: number },

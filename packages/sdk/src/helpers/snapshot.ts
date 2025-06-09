@@ -1,7 +1,4 @@
-import {
-  SnapshotRestorer,
-  takeSnapshot as hardhatTakeSnapshot,
-} from '@nomicfoundation/hardhat-network-helpers'
+import { SnapshotRestorer, takeSnapshot as hardhatTakeSnapshot } from '@nomicfoundation/hardhat-network-helpers'
 
 export async function takeSnapshot(): Promise<SnapshotRestorer> {
   return hardhatTakeSnapshot()

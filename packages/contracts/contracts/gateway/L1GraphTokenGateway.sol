@@ -14,7 +14,7 @@ import { IOutbox } from "../arbitrum/IOutbox.sol";
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { Managed } from "../governance/Managed.sol";
 import { GraphTokenGateway } from "./GraphTokenGateway.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 
 /**
  * @title L1 Graph Token Gateway Contract

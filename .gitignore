@@ -1,10 +1,12 @@
 # Logs
 yarn-debug.log*
 yarn-error.log*
+node.log
 
 # Dependency directories
 node_modules/
 forge-std/
+**/lib/forge-std/
 
 # Yarn
 .yarn/*
@@ -27,9 +29,11 @@ packages/*/.eslintcache
 # Build artifacts
 dist/
 build/
-typechain/
-typechain-types/
+types/
 deployments/hardhat/
+
+# TypeScript incremental compilation cache
+**/tsconfig.tsbuildinfo
 
 # Ignore solc bin output
 bin/
@@ -44,6 +48,7 @@ coverage/
 reports/
 coverage.json
 lcov.info
+hardhat-dependency-compiler/
 
 # Local test files
 addresses-local.json
@@ -51,6 +56,8 @@ localNetwork.json
 arbitrum-addresses-local.json
 tx-*.log
 addresses-fork.json
+addresses-hardhat.json
+addresses-local-network.json
 
 # Keys
 .keystore
@@ -58,6 +65,7 @@ addresses-fork.json
 # Forge artifacts
 cache_forge
 forge-artifacts/
+out/
 packages/issuance/lib/forge-std/
 
 # Graph client

@@ -1,7 +1,8 @@
-import type { GraphNetworkAction } from './types'
-import type { GraphNetworkContracts } from '../deployment/contracts/load'
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+
 import { SimpleAddressBook } from '../../lib/address-book'
+import type { GraphNetworkContracts } from '../deployment/contracts/load'
+import type { GraphNetworkAction } from './types'
 
 export const configureL1Bridge: GraphNetworkAction<{
   l2GRTAddress: string
@@ -22,14 +23,7 @@ export const configureL1Bridge: GraphNetworkAction<{
     chainId: number
   },
 ): Promise<void> => {
-  const {
-    l2GRTAddress,
-    l2GRTGatewayAddress,
-    l2GNSAddress,
-    l2StakingAddress,
-    arbAddressBookPath,
-    chainId,
-  } = args
+  const { l2GRTAddress, l2GRTGatewayAddress, l2GNSAddress, l2StakingAddress, arbAddressBookPath, chainId } = args
   console.info(`>>> Setting L1 Bridge Configuration <<<\n`)
 
   const arbAddressBook = new SimpleAddressBook(arbAddressBookPath, chainId)
@@ -51,9 +45,7 @@ export const configureL1Bridge: GraphNetworkAction<{
 
   const l1Inbox = arbAddressBook.getEntry('IInbox')
   const l1Router = arbAddressBook.getEntry('L1GatewayRouter')
-  console.info(
-    'L1 Inbox address: ' + l1Inbox.address + ' and L1 Router address: ' + l1Router.address,
-  )
+  console.info('L1 Inbox address: ' + l1Inbox.address + ' and L1 Router address: ' + l1Router.address)
   await gateway.connect(signer).setArbitrumAddresses(l1Inbox.address, l1Router.address)
 
   // GNS
@@ -90,14 +82,7 @@ export const configureL2Bridge: GraphNetworkAction<{
     chainId: number
   },
 ): Promise<void> => {
-  const {
-    l1GRTAddress,
-    l1GRTGatewayAddress,
-    l1GNSAddress,
-    l1StakingAddress,
-    arbAddressBookPath,
-    chainId,
-  } = args
+  const { l1GRTAddress, l1GRTGatewayAddress, l1GNSAddress, l1StakingAddress, arbAddressBookPath, chainId } = args
   console.info(`>>> Setting L2 Bridge Configuration <<<\n`)
 
   const arbAddressBook = new SimpleAddressBook(arbAddressBookPath, chainId)

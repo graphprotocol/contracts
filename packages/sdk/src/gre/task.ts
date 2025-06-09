@@ -18,14 +18,8 @@ export function greTask(
         'Path to the graph config file for the network specified using --network. Lower priority than --l1GraphConfig and --l2GraphConfig.',
       ),
     )
-    .addOptionalParam(
-      'l1GraphConfig',
-      grePrefix('Path to the graph config file for the L1 network.'),
-    )
-    .addOptionalParam(
-      'l2GraphConfig',
-      grePrefix('Path to the graph config file for the L2 network.'),
-    )
+    .addOptionalParam('l1GraphConfig', grePrefix('Path to the graph config file for the L1 network.'))
+    .addOptionalParam('l2GraphConfig', grePrefix('Path to the graph config file for the L2 network.'))
     .addFlag('disableSecureAccounts', grePrefix('Disable secure accounts plugin.'))
     .addFlag('enableTxLogging', grePrefix('Enable transaction logging.'))
     .addFlag('fork', grePrefix('Wether or not the network is a fork.'))

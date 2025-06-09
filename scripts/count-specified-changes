@@ -1,0 +1,160 @@
+#!/bin/bash
+
+# Count changes in Solidity files between two branches, using include/exclude text files
+set -euo pipefail
+
+# Enable globstar for predictable glob behavior
+# * matches single directory level only
+# ** matches recursively across multiple levels
+# Enable extglob for extended patterns like !(pattern)
+shopt -s globstar extglob
+
+# Check if cloc is installed
+if ! command -v cloc &> /dev/null; then
+  echo "Error: cloc is not installed. Install with: sudo npm install -g cloc"
+  exit 1
+fi
+
+# Check if required filter file exists
+if [ ! -f "count-patterns.txt" ]; then
+  echo "Error: count-patterns.txt file not found"
+  exit 1
+fi
+
+# Define the branches to compare
+BASE_BRANCH="${1:-main}"  # Default to 'main' if no argument provided
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+echo "Comparing Solidity changes between $BASE_BRANCH and $CURRENT_BRANCH..."
+echo
+
+# Get all modified Solidity contract files
+ALL_FILES=$(git diff --name-only "$BASE_BRANCH" -- 'packages/*/contracts/**/*.sol')
+
+# Read patterns from file, separating include and exclude patterns
+INCLUDE_PATTERNS=""
+EXCLUDE_PATTERNS=""
+
+while IFS= read -r line; do
+  # Skip comments and empty lines
+  if [[ "$line" =~ ^[[:space:]]*# ]] || [[ "$line" =~ ^[[:space:]]*$ ]]; then
+    continue
+  fi
+
+  # Check if line starts with ! (exclude pattern)
+  if [[ "$line" =~ ^[[:space:]]*! ]]; then
+    # Remove the ! prefix and any leading whitespace
+    pattern=$(echo "$line" | sed 's/^[[:space:]]*!//')
+    EXCLUDE_PATTERNS="$EXCLUDE_PATTERNS$pattern"$'\n'
+  else
+    # Include pattern
+    INCLUDE_PATTERNS="$INCLUDE_PATTERNS$line"$'\n'
+  fi
+done < count-patterns.txt
+
+# Remove trailing newlines from pattern lists
+INCLUDE_PATTERNS=$(echo "$INCLUDE_PATTERNS" | sed '/^$/d')
+EXCLUDE_PATTERNS=$(echo "$EXCLUDE_PATTERNS" | sed '/^$/d')
+
+# Function to check if a file matches any pattern in a list using glob patterns
+matches_pattern() {
+  local file="$1"
+  local patterns="$2"
+
+  if [ -z "$patterns" ]; then
+    return 1
+  fi
+
+  while IFS= read -r pattern; do
+    # Use bash glob pattern matching
+    if [[ "$file" == $pattern ]]; then
+      return 0
+    fi
+  done <<< "$patterns"
+
+  return 1
+}
+
+# Filter files based on include/exclude lists
+INCLUDED_FILES=""
+EXCLUDED_FILES=""
+UNMATCHED_FILES=""
+
+while IFS= read -r file; do
+  if [ -n "$file" ]; then
+    if matches_pattern "$file" "$EXCLUDE_PATTERNS"; then
+      EXCLUDED_FILES="$EXCLUDED_FILES$file"$'\n'
+    elif matches_pattern "$file" "$INCLUDE_PATTERNS"; then
+      INCLUDED_FILES="$INCLUDED_FILES$file"$'\n'
+    else
+      UNMATCHED_FILES="$UNMATCHED_FILES$file"$'\n'
+    fi
+  fi
+done <<< "$ALL_FILES"
+
+# Remove trailing newlines
+INCLUDED_FILES=$(echo "$INCLUDED_FILES" | sed '/^$/d')
+EXCLUDED_FILES=$(echo "$EXCLUDED_FILES" | sed '/^$/d')
+UNMATCHED_FILES=$(echo "$UNMATCHED_FILES" | sed '/^$/d')
+
+# Check for unmatched files and stop if any exist
+if [ -n "$UNMATCHED_FILES" ]; then
+  echo "Error: Found changed .sol files that don't match any patterns in count-patterns.txt:"
+  echo "$UNMATCHED_FILES" | sed 's/^/- /'
+  echo
+  echo "Please add patterns to count-patterns.txt to match these files (use ! prefix to exclude)."
+  exit 1
+fi
+
+FILES="$INCLUDED_FILES"
+
+# Check if there are any files to process
+if [ -z "$FILES" ]; then
+  echo "No Solidity files changed between $BASE_BRANCH and $CURRENT_BRANCH that match include patterns."
+  exit 0
+fi
+
+echo "Found changed Solidity files (matching include patterns):"
+echo "$FILES" | sed 's/^/- /'
+echo
+
+# Display excluded files if any
+if [ -n "$EXCLUDED_FILES" ]; then
+  echo "Excluded files (matching ! patterns):"
+  echo "$EXCLUDED_FILES" | sed 's/^/- /'
+  echo
+fi
+
+# Create directories for diff analysis
+TEMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TEMP_DIR"' EXIT
+mkdir -p "$TEMP_DIR/old"
+mkdir -p "$TEMP_DIR/new"
+
+# Extract all changed files
+echo "$FILES" | while IFS= read -r file; do
+  if [ -f "$file" ]; then
+    # Create directory structure
+    dir=$(dirname "$file")
+    mkdir -p "$TEMP_DIR/new/$dir"
+    mkdir -p "$TEMP_DIR/old/$dir"
+
+    # Copy current version
+    cp "$file" "$TEMP_DIR/new/$file"
+
+    # Get old version if it exists
+    if git show "$BASE_BRANCH:$file" &>/dev/null; then
+      git show "$BASE_BRANCH:$file" > "$TEMP_DIR/old/$file"
+    fi
+  fi
+done
+
+# Run cloc diff on all files
+echo "Summary of changes (files matching include patterns):"
+echo "===================================================="
+cloc --diff "$TEMP_DIR/old" "$TEMP_DIR/new" --include-lang=Solidity --quiet
+
+echo
+echo "Note: This analysis only counts changes in Solidity files matching include patterns."
+echo "Files matching ! patterns are excluded, and any unmatched files cause the script to exit."
+echo "The 'same' category shows lines that were unchanged in modified files."

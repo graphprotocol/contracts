@@ -1,9 +1,9 @@
+# Graph Protocol Contracts
+
 ![License: GPL](https://img.shields.io/badge/license-GPLv2-blue)
 ![Version Badge](https://img.shields.io/badge/version-1.14.0-lightgrey.svg)
 ![CI Status](https://github.com/graphprotocol/contracts/actions/workflows/npmtest.yml/badge.svg)
 [![codecov](https://codecov.io/gh/graphprotocol/contracts/branch/dev/graph/badge.svg?token=S8JWGR9SBN)](https://codecov.io/gh/graphprotocol/contracts)
-
-# Graph Protocol Contracts
 
 The Graph Protocol Smart Contracts are a set of Solidity contracts that exist on the Ethereum Blockchain. The contracts enable an open and permissionless decentralized network that coordinates [Graph Nodes](https://github.com/graphprotocol/graph-node) to Index any subgraph that is added to the network. Graph Nodes then provide queries to users for those Subgraphs. Users pay for queries with the Graph Token (GRT).
 
@@ -11,7 +11,7 @@ The protocol allows Indexers to Stake, Delegators to Delegate, and Curators to S
 
 You can learn more by heading to [the documentation](https://thegraph.com/docs/about/introduction), or checking out some of the [blog posts on the protocol](https://thegraph.com/blog/the-graph-network-in-depth-part-1).
 
-# Contracts
+## Contracts
 
 The contracts are upgradable, following the [Open Zeppelin Proxy Upgrade Pattern](https://docs.openzeppelin.com/upgrades-plugins/1.x/proxies). Each contract will be explained in brief detail below.
 
@@ -51,36 +51,36 @@ The contracts are upgradable, following the [Open Zeppelin Proxy Upgrade Pattern
 
 > An ERC-20 token (GRT) that is used as a work token to power the network incentives. The token is inflationary.
 
-# NPM package
+## NPM package
 
 The [NPM package](https://www.npmjs.com/package/@graphprotocol/contracts) contains contract interfaces and addresses for the testnet and mainnet. It also contains [typechain](https://github.com/ethereum-ts/TypeChain) generated objects to easily interact with the contracts. This allows for anyone to install the package in their repository and interact with the protocol. It is updated and released whenever a change to the contracts occurs.
 
-```
-yarn add @graphprotocol/contracts
+```bash
+pnpm add @graphprotocol/contracts
 ```
 
-# Contract Addresses
+## Contract Addresses
 
 The testnet runs on Goerli, while mainnet is on Ethereum Mainnet. The addresses for both of these can be found in `./addresses.json`.
 
-# Local Setup
+## Local Setup
 
 To setup the contracts locally, checkout the `dev` branch, then run:
 
 ```bash
-yarn
-yarn build
+pnpm
+pnpm build
 ```
 
-# Testing
+## Testing
 
 For testing details see [TESTING.md](./TESTING.md).
 
-# Deploying Contracts
+## Deploying Contracts
 
 In order to run deployments, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-# Interacting with the contracts
+## Interacting with the contracts
 
 There are three ways to interact with the contracts through this repo:
 
@@ -88,7 +88,7 @@ There are three ways to interact with the contracts through this repo:
 
 The most straightforward way to interact with the contracts is through the hardhat console. We have extended the hardhat runtime environment to include all of the contracts. This makes it easy to run the console with autocomplete for all contracts and all functions. It is a quick and easy way to read and write to the contracts.
 
-```
+```bash
 # A console to interact with testnet contracts
 npx hardhat console --network goerli
 ```
@@ -124,7 +124,7 @@ Considerations when forking a chain:
 
 - When running on the `localhost` network it will use by default a deterministic seed for testing purposes. If you want to connect to a local node that is forking while retaining the capability to impersonate accounts or use local accounts you need to set the FORK=true environment variable.
 
-# Copyright
+## Copyright
 
 Copyright &copy; 2021 The Graph Foundation
 

@@ -1,6 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import type { ContractTransaction, providers, Signer } from 'ethers'
 import { Contract, ethers, Wallet } from 'ethers'
+import * as path from 'path'
 
 import { type GraphChainId, isGraphL1ChainId, isGraphL2ChainId } from '../../../../chain'
 import { setCode } from '../../../../helpers/code'
@@ -28,8 +29,8 @@ import { GraphNetworkContracts, loadGraphNetworkContracts } from './load'
 import { deployContractImplementationAndSave, deployContractWithProxy, deployContractWithProxyAndSave } from './proxy'
 
 export async function deployGraphNetwork(
-  addressBookPath: string,
-  graphConfigPath: string,
+  addressBookFileName: string,
+  graphConfigFileName: string,
   chainId: GraphChainId,
   deployer: SignerWithAddress,
   provider: providers.Provider,
@@ -40,8 +41,27 @@ export async function deployGraphNetwork(
     buildAcceptTx?: boolean
     l2Deploy?: boolean
     enableTxLogging?: boolean
+    artifactsDir?: string | string[]
   },
 ): Promise<GraphNetworkContracts | undefined> {
+  // Validate addressBookFileName - should not start with '.' to avoid path confusion
+  if (addressBookFileName.startsWith('.')) {
+    throw new Error(
+      `addressBookFileName should be a filename, not a relative path. Got: ${addressBookFileName}. Use just the filename like 'addresses-local.json'`,
+    )
+  }
+
+  // Validate graphConfigFileName - should not start with '.' to avoid path confusion
+  if (graphConfigFileName.startsWith('.')) {
+    throw new Error(
+      `graphConfigFileName should be a filename, not a relative path. Got: ${graphConfigFileName}. Use just the filename like 'graph.hardhat.yml'`,
+    )
+  }
+
+  const { addressBookDir, configDir } = require('@graphprotocol/contracts')
+  const addressBookPath = path.join(addressBookDir, addressBookFileName)
+  const graphConfigPath = path.join(configDir, graphConfigFileName)
+
   // Opts
   const governor = opts?.governor ?? undefined
   const skipConfirmation = opts?.skipConfirmation ?? false
@@ -93,7 +113,14 @@ export async function deployGraphNetwork(
 
     // Check if contract already deployed
     if (!forceDeploy) {
-      const isDeployed = await isContractDeployed(name, 'GraphProxy', savedAddress, addressBook, provider)
+      const isDeployed = await isContractDeployed(
+        name,
+        'GraphProxy',
+        savedAddress,
+        addressBook,
+        provider,
+        opts?.artifactsDir,
+      )
       if (isDeployed) {
         logDebug(`${name} is up to date, no action required`)
         logDebug(`Address: ${savedAddress}\n`)
@@ -109,6 +136,7 @@ export async function deployGraphNetwork(
       {
         name: name,
         args: contractConfig.params.map((a) => a.value),
+        artifactsPath: opts?.artifactsDir,
       },
       addressBook,
       {
@@ -116,6 +144,7 @@ export async function deployGraphNetwork(
         opts: {
           buildAcceptTx: buildAcceptTx,
         },
+        artifactsPath: opts?.artifactsDir,
       },
     )
     contracts.push({ contract: contract, name: name })
@@ -180,7 +209,7 @@ export async function deployGraphNetwork(
   ////////////////////////////////////////
   // Load contracts
   ////////////////////////////////////////
-  const loadedContracts = loadGraphNetworkContracts(addressBookPath, chainId, provider, undefined, {
+  const loadedContracts = loadGraphNetworkContracts(addressBookFileName, chainId, provider, opts?.artifactsDir, {
     l2Load: l2Deploy,
     enableTxLogging: enableTxLogging,
   })

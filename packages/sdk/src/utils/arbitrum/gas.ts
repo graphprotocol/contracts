@@ -1,9 +1,8 @@
 import { L1ToL2MessageGasEstimator } from '@arbitrum/sdk'
-import { parseEther } from 'ethers/lib/utils'
-
 import type { L1ToL2MessageNoGasParams } from '@arbitrum/sdk/dist/lib/message/L1ToL2MessageCreator'
 import type { GasOverrides } from '@arbitrum/sdk/dist/lib/message/L1ToL2MessageGasEstimator'
 import type { BigNumber, providers } from 'ethers'
+import { parseEther } from 'ethers/lib/utils'
 
 export interface L2GasParams {
   maxGas: BigNumber

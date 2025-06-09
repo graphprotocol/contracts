@@ -1,13 +1,13 @@
-import { L2TransactionReceipt, L2ToL1MessageStatus, L2ToL1MessageWriter } from '@arbitrum/sdk'
+import { L2ToL1MessageStatus, L2ToL1MessageWriter, L2TransactionReceipt } from '@arbitrum/sdk'
+import type { L2GraphToken, L2GraphTokenGateway } from '@graphprotocol/contracts'
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber } from 'ethers'
 import { Contract, providers } from 'ethers'
-import { wait as waitFn } from '../../../utils/time'
-import { getL2ToL1MessageReader, getL2ToL1MessageWriter } from '../../../utils/arbitrum'
 
-import type { GraphNetworkAction } from './types'
+import { getL2ToL1MessageReader, getL2ToL1MessageWriter } from '../../../utils/arbitrum'
+import { wait as waitFn } from '../../../utils/time'
 import type { GraphNetworkContracts } from '../deployment/contracts/load'
-import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import type { L2GraphToken, L2GraphTokenGateway } from '@graphprotocol/contracts'
+import type { GraphNetworkAction } from './types'
 
 const LEGACY_L2_GRT_ADDRESS = '0x23A941036Ae778Ac51Ab04CEa08Ed6e2FE103614'
 const LEGACY_L2_GATEWAY_ADDRESS = '0x09e9222e96e7b4ae2a407b98d48e330053351eee'
@@ -79,9 +79,7 @@ export const startSendToL1: GraphNetworkAction<{
   } else {
     console.info(`The transaction generated an L2 to L1 message in outbox with eth block number:`)
     console.info(ethBlockNum.toString())
-    console.info(
-      `After the dispute period is finalized (in ~1 week), you can finalize this by calling`,
-    )
+    console.info(`After the dispute period is finalized (in ~1 week), you can finalize this by calling`)
   }
   console.info(`finish-send-to-l1 with the following txhash:`)
   console.info(l2Receipt.transactionHash)
@@ -119,18 +117,13 @@ export const finishSendToL1: GraphNetworkAction<{
   console.info(`Using L2 gateway ${GraphTokenGateway.address}`)
 
   if (txHash === undefined) {
-    console.info(
-      `Looking for withdrawals initiated by ${signer.address} in roughly the last 14 days`,
-    )
+    console.info(`Looking for withdrawals initiated by ${signer.address} in roughly the last 14 days`)
     const fromBlock = await searchForArbBlockByTimestamp(
       l2Provider,
       Math.round(Date.now() / 1000) - FOURTEEN_DAYS_IN_SECONDS,
     )
     const filt = GraphTokenGateway.filters.WithdrawalInitiated(null, signer.address)
-    const allEvents = await GraphTokenGateway.queryFilter(
-      filt,
-      BigNumber.from(fromBlock).toHexString(),
-    )
+    const allEvents = await GraphTokenGateway.queryFilter(filt, BigNumber.from(fromBlock).toHexString())
     if (allEvents.length == 0) {
       throw new Error('No withdrawals found')
     }
@@ -164,10 +157,7 @@ export const finishSendToL1: GraphNetworkAction<{
   console.info(outboxExecuteReceipt.transactionHash)
 }
 
-const searchForArbBlockByTimestamp = async (
-  l2Provider: providers.Provider,
-  timestamp: number,
-): Promise<number> => {
+const searchForArbBlockByTimestamp = async (l2Provider: providers.Provider, timestamp: number): Promise<number> => {
   let step = 131072
   let block = await l2Provider.getBlock('latest')
   while (block.timestamp > timestamp) {

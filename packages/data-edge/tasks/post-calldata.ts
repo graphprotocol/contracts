@@ -1,4 +1,5 @@
 import '@nomiclabs/hardhat-ethers'
+
 import { task } from 'hardhat/config'
 
 task('data:post', 'Post calldata')
@@ -20,7 +21,9 @@ task('data:post', 'Post calldata')
     console.log(`> sender: ${await contract.signer.getAddress()}`)
     console.log(`> payload: ${txData}`)
     const tx = await contract.signer.sendTransaction(txRequest)
-    console.log(`> tx: ${tx.hash} nonce:${tx.nonce} limit: ${tx.gasLimit.toString()} gas: ${tx.gasPrice.toNumber() / 1e9} (gwei)`)
+    console.log(
+      `> tx: ${tx.hash} nonce:${tx.nonce} limit: ${tx.gasLimit.toString()} gas: ${tx.gasPrice.toNumber() / 1e9} (gwei)`,
+    )
     const rx = await tx.wait()
     console.log('> rx: ', rx.status == 1 ? 'success' : 'failed')
     console.log(`Done!`)

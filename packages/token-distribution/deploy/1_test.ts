@@ -1,6 +1,5 @@
-import { utils } from 'ethers'
 import consola from 'consola'
-
+import { utils } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction, DeployOptions } from 'hardhat-deploy/types'
 

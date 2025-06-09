@@ -61,9 +61,8 @@ RUN curl -L https://foundry.paradigm.xyz | bash && \
     chmod 755 /usr/local/bin/forge && \
     chmod 755 /usr/local/bin/chisel
 
-# Set up yarn and pnpm
+# Set up pnpm
 RUN corepack enable && \
-    corepack prepare yarn@4.0.2 --activate && \
     corepack prepare pnpm@9.0.6 --activate
 
 # Ensure all users have access to the tools

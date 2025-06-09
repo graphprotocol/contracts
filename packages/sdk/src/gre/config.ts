@@ -1,16 +1,14 @@
-import fs from 'fs'
-
-import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
-
-import { GREPluginError } from './helpers/error'
-import { isGraphChainId, counterpart, isGraphL1ChainId, isGraphL2ChainId } from '..'
 import { EthersProviderWrapper } from '@nomiclabs/hardhat-ethers/internal/ethers-provider-wrapper'
+import fs from 'fs'
+import { HardhatRuntimeEnvironment } from 'hardhat/types/runtime'
+import path from 'path'
 
+import { counterpart, isGraphChainId, isGraphL1ChainId, isGraphL2ChainId } from '..'
+import { GREPluginError } from './helpers/error'
 import { logDebug } from './helpers/logger'
-import { normalizePath } from './helpers/utils'
 import { getNetworkConfig } from './helpers/network'
+import { normalizePath } from './helpers/utils'
 import { getDefaultProvider } from './providers'
-
 import type { GraphRuntimeEnvironmentOptions } from './types'
 
 interface GREChains {
@@ -30,31 +28,37 @@ interface GREGraphConfigs {
   l2GraphConfigPath: string | undefined
 }
 
-export function getAddressBookPath(
-  hre: HardhatRuntimeEnvironment,
-  opts: GraphRuntimeEnvironmentOptions,
-): string {
+export function getAddressBookPath(hre: HardhatRuntimeEnvironment, opts: GraphRuntimeEnvironmentOptions): string {
   logDebug('== Getting address book path')
   logDebug(`Graph base dir: ${hre.config.paths.graph}`)
   logDebug(`1) opts.addressBook: ${opts.addressBook}`)
   logDebug(`2) hre.network.config.addressBook: ${hre.network.config?.addressBook}`)
   logDebug(`3) hre.config.graph.addressBook: ${hre.config.graph?.addressBook}`)
 
-  let addressBookPath =
-    opts.addressBook ?? hre.network.config?.addressBook ?? hre.config.graph?.addressBook
+  let addressBookFileName = opts.addressBook ?? hre.network.config?.addressBook ?? hre.config.graph?.addressBook
 
-  if (addressBookPath === undefined) {
+  if (addressBookFileName === undefined) {
     throw new GREPluginError('Must set a an addressBook path!')
   }
 
-  addressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
+  // If it's a relative or absolute path, extract just the filename
+  addressBookFileName = path.basename(addressBookFileName)
 
-  if (!fs.existsSync(addressBookPath)) {
-    throw new GREPluginError(`Address book not found: ${addressBookPath}`)
+  // Use module resolution to find the contracts package directory
+  try {
+    const contractsModulePath = require.resolve('@graphprotocol/contracts')
+    const contractsPackageDir = path.dirname(contractsModulePath)
+    const addressBookPath = path.join(contractsPackageDir, addressBookFileName)
+
+    if (!fs.existsSync(addressBookPath)) {
+      throw new GREPluginError(`Address book not found: ${addressBookPath}`)
+    }
+
+    logDebug(`Address book path found: ${addressBookPath}`)
+    return addressBookPath
+  } catch (error) {
+    throw new GREPluginError(`Could not resolve @graphprotocol/contracts package: ${error}`)
   }
-
-  logDebug(`Address book path found: ${addressBookPath}`)
-  return addressBookPath
 }
 
 export function getChains(mainChainId: number | undefined): GREChains {

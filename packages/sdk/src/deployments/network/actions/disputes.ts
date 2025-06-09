@@ -1,9 +1,10 @@
 import {
+  Attestation,
   createAttestation,
   encodeAttestation as encodeAttestationLib,
-  Attestation,
   Receipt,
 } from '@graphprotocol/common-ts'
+
 import { GraphChainId } from '../../../chain'
 
 export async function buildAttestation(

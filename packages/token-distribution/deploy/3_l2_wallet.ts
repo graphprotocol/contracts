@@ -1,5 +1,6 @@
-import consola from 'consola'
 import '@nomiclabs/hardhat-ethers'
+
+import consola from 'consola'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction, DeployOptions } from 'hardhat-deploy/types'
 

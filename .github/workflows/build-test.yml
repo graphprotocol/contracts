@@ -1,0 +1,43 @@
+name: Build and Test
+
+env:
+  CI: true
+  STUDIO_API_KEY: ${{ secrets.STUDIO_API_KEY }}
+
+on:
+  push:
+    branches: '*'
+  pull_request:
+    branches: '*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up environment
+        uses: ./.github/actions/setup
+
+      - name: Build all packages
+        run: pnpm -r --sequential run build
+
+      - name: Test all packages
+        run: pnpm -r --sequential run test
+
+      - name: Test with coverage
+        run: pnpm -r --sequential run test:coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./packages/*/reports/coverage/coverage-final.json
+          flags: unittests
+          name: graphprotocol-contracts
+          fail_ci_if_error: true

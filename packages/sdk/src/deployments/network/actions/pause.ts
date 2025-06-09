@@ -1,4 +1,5 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+
 import { GraphNetworkContracts } from '../deployment/contracts/load'
 import { GraphNetworkAction } from './types'
 

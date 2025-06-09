@@ -1,5 +1,6 @@
-import { mine } from './mine'
 import type { EpochManager } from '@graphprotocol/contracts'
+
+import { mine } from './mine'
 
 export type PartialEpochManager = Pick<EpochManager, 'epochLength' | 'currentEpochBlockSinceStart'>
 

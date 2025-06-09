@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+
 import { useEnvironment } from './helpers'
 
 describe('GRE usage', function () {

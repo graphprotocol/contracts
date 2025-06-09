@@ -1,17 +1,12 @@
-import { loadArtifact } from '../../../lib/deploy/artifacts'
-import { AddressBook } from '../../../lib/address-book'
-import { deployContract, deployContractAndSave } from '../../../lib/deploy/contract'
-import { hashHexString } from '../../../../utils/hash'
-import { loadContractAt } from '../../../lib/contracts/load'
-import { getArtifactsPath } from './load'
-
 import type { Contract, Signer } from 'ethers'
+
+import { hashHexString } from '../../../../utils/hash'
+import { AddressBook } from '../../../lib/address-book'
+import { loadContractAt } from '../../../lib/contracts/load'
+import { loadArtifact } from '../../../lib/deploy/artifacts'
+import { deployContract, deployContractAndSave } from '../../../lib/deploy/contract'
 import type { ContractParam } from '../../../lib/types/contract'
-import type {
-  DeployAddressBookWithProxyFunction,
-  DeployData,
-  DeployResult,
-} from '../../../lib/types/deploy'
+import type { DeployAddressBookWithProxyFunction, DeployData, DeployResult } from '../../../lib/types/deploy'
 import { logDebug } from '../../../logger'
 
 /**
@@ -42,12 +37,13 @@ export const deployContractWithProxy: DeployAddressBookWithProxyFunction = async
     throw Error('Sender must be connected to a provider')
   }
 
-  const proxyAdmin = getProxyAdmin(addressBook)
+  const proxyAdmin = getProxyAdmin(addressBook, contractData.artifactsPath)
 
   // Deploy implementation
   const implDeployResult = await deployContract(sender, {
     name: contractData.name,
     args: [],
+    artifactsPath: contractData.artifactsPath,
   })
 
   // Deploy proxy
@@ -55,6 +51,7 @@ export const deployContractWithProxy: DeployAddressBookWithProxyFunction = async
     name: proxyData.name,
     args: [implDeployResult.contract.address, proxyAdmin.address],
     opts: { autolink: false },
+    artifactsPath: proxyData.artifactsPath,
   })
 
   // Accept implementation upgrade
@@ -97,7 +94,7 @@ export const deployContractWithProxyAndSave: DeployAddressBookWithProxyFunction 
     throw Error('Sender must be connected to a provider')
   }
 
-  const proxyAdmin = getProxyAdmin(addressBook)
+  const proxyAdmin = getProxyAdmin(addressBook, contractData.artifactsPath)
 
   // Deploy implementation
   const implDeployResult = await deployContractAndSave(
@@ -105,6 +102,7 @@ export const deployContractWithProxyAndSave: DeployAddressBookWithProxyFunction 
     {
       name: contractData.name,
       args: [],
+      artifactsPath: contractData.artifactsPath,
     },
     addressBook,
   )
@@ -114,6 +112,7 @@ export const deployContractWithProxyAndSave: DeployAddressBookWithProxyFunction 
     name: proxyData.name,
     args: [implDeployResult.contract.address, proxyAdmin.address],
     opts: { autolink: false },
+    artifactsPath: proxyData.artifactsPath,
   })
 
   // Accept implementation upgrade
@@ -127,13 +126,12 @@ export const deployContractWithProxyAndSave: DeployAddressBookWithProxyFunction 
   )
 
   // Overwrite address entry with proxy
-  const artifact = loadArtifact(proxyData.name)
+  const artifact = loadArtifact(proxyData.name, proxyData.artifactsPath)
   const contractEntry = addressBook.getEntry(contractData.name)
 
   addressBook.setEntry(contractData.name, {
     address: proxy.address,
-    initArgs:
-      contractData.args?.length === 0 ? undefined : contractData.args?.map((e) => e.toString()),
+    initArgs: contractData.args?.length === 0 ? undefined : contractData.args?.map((e) => e.toString()),
     creationCodeHash: hashHexString(artifact.bytecode),
     runtimeCodeHash: hashHexString(await sender.provider.getCode(proxy.address)),
     txHash: proxy.deployTransaction.hash,
@@ -157,12 +155,13 @@ export const deployContractImplementationAndSave: DeployAddressBookWithProxyFunc
     throw Error('Sender must be connected to a provider')
   }
 
-  const proxyAdmin = getProxyAdmin(addressBook)
+  const proxyAdmin = getProxyAdmin(addressBook, contractData.artifactsPath)
 
   // Deploy implementation
   const implDeployResult = await deployContract(sender, {
     name: contractData.name,
     args: [],
+    artifactsPath: contractData.artifactsPath,
   })
 
   // Get proxy entry
@@ -181,8 +180,7 @@ export const deployContractImplementationAndSave: DeployAddressBookWithProxyFunc
   // Save address entry
   contractEntry.implementation = {
     address: implDeployResult.contract.address,
-    constructorArgs:
-      contractData.args?.length === 0 ? undefined : contractData.args?.map((e) => e.toString()),
+    constructorArgs: contractData.args?.length === 0 ? undefined : contractData.args?.map((e) => e.toString()),
     creationCodeHash: implDeployResult.creationCodeHash,
     runtimeCodeHash: implDeployResult.runtimeCodeHash,
     txHash: implDeployResult.txHash,
@@ -222,9 +220,7 @@ const proxyAdminAcceptUpgrade = async (
 ) => {
   const initTx = args ? await contract.populateTransaction.initialize(...args) : null
   const acceptFunctionName = initTx ? 'acceptProxyAndCall' : 'acceptProxy'
-  const acceptFunctionParams = initTx
-    ? [contract.address, proxyAddress, initTx.data]
-    : [contract.address, proxyAddress]
+  const acceptFunctionParams = initTx ? [contract.address, proxyAddress, initTx.data] : [contract.address, proxyAddress]
 
   if (buildAcceptTx) {
     console.info(
@@ -243,10 +239,10 @@ const proxyAdminAcceptUpgrade = async (
 }
 
 // Get the proxy admin to own the proxy for this contract
-function getProxyAdmin(addressBook: AddressBook): Contract {
+function getProxyAdmin(addressBook: AddressBook, artifactsPath?: string | string[]): Contract {
   const proxyAdminEntry = addressBook.getEntry('GraphProxyAdmin')
   if (!proxyAdminEntry) {
     throw new Error('GraphProxyAdmin not detected in the config, must be deployed first!')
   }
-  return loadContractAt('GraphProxyAdmin', proxyAdminEntry.address, getArtifactsPath())
+  return loadContractAt('GraphProxyAdmin', proxyAdminEntry.address, artifactsPath)
 }

@@ -9,9 +9,9 @@ import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/Clo
 
 import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../../utils/TokenUtils.sol";
-import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
+import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
 import { Managed } from "../../governance/Managed.sol";
-import { IGraphToken } from "../../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 import { CurationV2Storage } from "../../curation/CurationStorage.sol";
 import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
 import { IL2Curation } from "./IL2Curation.sol";

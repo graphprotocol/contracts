@@ -1,16 +1,12 @@
-import { loadArtifact } from './artifacts'
-import { getContractFactory } from './factory'
-import { AddressBook } from '../address-book'
+import type { Signer } from 'ethers'
+
 import { hashHexString } from '../../../utils/hash'
 import { logInfo } from '../../logger'
-import type { Signer } from 'ethers'
-import type {
-  DeployData,
-  DeployResult,
-  DeployFunction,
-  DeployAddressBookFunction,
-} from '../types/deploy'
+import { AddressBook } from '../address-book'
 import { logContractDeploy, logContractDeployReceipt } from '../contracts/log'
+import type { DeployAddressBookFunction, DeployData, DeployFunction, DeployResult } from '../types/deploy'
+import { loadArtifact } from './artifacts'
+import { getContractFactory } from './factory'
 
 /**
  * Deploys a contract
@@ -33,6 +29,7 @@ export const deployContract: DeployFunction = async (
   const name = contractData.name
   const args = contractData.args ?? []
   const opts = contractData.opts ?? {}
+  const artifactsPath = contractData.artifactsPath
 
   if (!sender.provider) {
     throw Error('Sender must be connected to a provider')
@@ -41,7 +38,7 @@ export const deployContract: DeployFunction = async (
   // Autolink
   const libraries = {} as Record<string, string>
   if (opts?.autolink ?? true) {
-    const artifact = loadArtifact(name)
+    const artifact = loadArtifact(name, artifactsPath)
     if (artifact.linkReferences && Object.keys(artifact.linkReferences).length > 0) {
       for (const fileReferences of Object.values(artifact.linkReferences)) {
         for (const libName of Object.keys(fileReferences)) {
@@ -49,6 +46,7 @@ export const deployContract: DeployFunction = async (
             name: libName,
             args: [],
             opts: { autolink: false },
+            artifactsPath: artifactsPath,
           })
           libraries[libName] = deployResult.contract.address
         }
@@ -57,7 +55,7 @@ export const deployContract: DeployFunction = async (
   }
 
   // Deploy
-  const factory = getContractFactory(name, libraries)
+  const factory = getContractFactory(name, libraries, artifactsPath)
   const contract = await factory.connect(sender).deploy(...args)
   const txHash = contract.deployTransaction.hash
   logContractDeploy(contract.deployTransaction, name, args)
@@ -100,6 +98,7 @@ export const deployContractAndSave: DeployAddressBookFunction = async (
   const deployResult = await deployContract(sender, {
     name: name,
     args: args,
+    artifactsPath: contractData.artifactsPath,
   })
 
   const constructorArgs = args.map((e) => {
@@ -118,9 +117,7 @@ export const deployContractAndSave: DeployAddressBookFunction = async (
     runtimeCodeHash: deployResult.runtimeCodeHash,
     txHash: deployResult.txHash,
     libraries:
-      deployResult.libraries && Object.keys(deployResult.libraries).length > 0
-        ? deployResult.libraries
-        : undefined,
+      deployResult.libraries && Object.keys(deployResult.libraries).length > 0 ? deployResult.libraries : undefined,
   })
   logInfo('> Contract saved to address book')
 
