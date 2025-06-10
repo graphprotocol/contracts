@@ -6,7 +6,6 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initial
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Managed } from "../governance/Managed.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title Bridge Escrow

@@ -5,11 +5,11 @@ env:
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/subgraph-service/**
   pull_request:
-    branches: "*"
+    branches: '*'
     paths:
       - packages/subgraph-service/**
   workflow_dispatch:

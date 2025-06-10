@@ -4,6 +4,11 @@ runs:
   using: composite
 
   steps:
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev libusb-1.0-0-dev
     - name: Install Foundry
       uses: foundry-rs/foundry-toolchain@v1
     - name: Enable Corepack
@@ -12,7 +17,7 @@ runs:
     - name: Install Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 22
+        node-version: 20
         cache: 'pnpm'
     - name: Set up pnpm via Corepack
       shell: bash

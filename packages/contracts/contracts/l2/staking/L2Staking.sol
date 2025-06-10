@@ -6,7 +6,6 @@ pragma abicoder v2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Staking } from "../../staking/Staking.sol";
 import { IL2StakingBase } from "./IL2StakingBase.sol";
-import { IL2Staking } from "./IL2Staking.sol";
 import { Stakes } from "../../staking/libs/Stakes.sol";
 import { IStakes } from "../../staking/libs/IStakes.sol";
 import { IL2StakingTypes } from "./IL2StakingTypes.sol";

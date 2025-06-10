@@ -14,7 +14,6 @@ import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 import { Managed } from "../governance/Managed.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 import { CurationV2Storage } from "./CurationStorage.sol";
-import { ICuration } from "./ICuration.sol";
 import { IGraphCurationToken } from "./IGraphCurationToken.sol";
 
 /**

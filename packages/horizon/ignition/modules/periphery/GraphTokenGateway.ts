@@ -5,7 +5,7 @@ import { deployWithGraphProxy } from '../proxy/GraphProxy'
 import ControllerModule from '../periphery/Controller'
 import GraphProxyAdminModule from '../periphery/GraphProxyAdmin'
 
-import GraphTokenGatewayArtifact from '@graphprotocol/contracts/build/contracts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
+import GraphTokenGatewayArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/gateway/L2GraphTokenGateway.sol/L2GraphTokenGateway.json'
 
 export default buildModule('L2GraphTokenGateway', (m) => {
   const { Controller } = m.useModule(ControllerModule)

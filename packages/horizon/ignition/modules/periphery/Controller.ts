@@ -2,7 +2,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
 
-import ControllerArtifact from '@graphprotocol/contracts/build/contracts/contracts/governance/Controller.sol/Controller.json'
+import ControllerArtifact from '@graphprotocol/contracts/artifacts/contracts/governance/Controller.sol/Controller.json'
 
 export default buildModule('Controller', (m) => {
   const governor = m.getAccount(1)

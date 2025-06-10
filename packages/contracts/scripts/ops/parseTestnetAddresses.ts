@@ -4,8 +4,8 @@
 // Validates the address is valid, trims and exit on error
 // Outputs a json in the format used by the distribution script
 
-import fs from 'fs'
 import { utils } from 'ethers'
+import fs from 'fs'
 
 const { getAddress } = utils
 
@@ -18,16 +18,16 @@ export const teamAddresses: Array<TeamMember> = []
 
 function main() {
   const data = fs.readFileSync('indexers.csv', 'utf8')
-  const entries = data.split('\n').map(e => e.trim())
+  const entries = data.split('\n').map((e) => e.trim())
   for (const entry of entries) {
     if (!entry) continue
 
-    const [name, address] = entry.split(',').map(e => e.trim())
+    const [name, address] = entry.split(',').map((e) => e.trim())
 
     // Verify address
     try {
       getAddress(address.trim())
-    } catch (_) {
+    } catch {
       console.log('Invalid', name, address)
       process.exit(1)
     }

@@ -5,7 +5,7 @@ pragma solidity ^0.7.6 || 0.8.27;
 interface IRewardsIssuer {
     /**
      * @dev Get allocation data to calculate rewards issuance
-     * 
+     *
      * @param allocationId The allocation Id
      * @return isActive Whether the allocation is active or not
      * @return indexer The indexer address
