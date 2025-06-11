@@ -171,4 +171,14 @@ contract SubgraphServiceCollectIndexingTest is SubgraphServiceTest {
         );
         subgraphService.collect(newIndexer, paymentType, data);
     }
+
+    function test_SubgraphService_Collect_Indexing_RevertWhen_IncorrectPaymentType(uint256 tokens) public useIndexer useAllocation(tokens) {
+        bytes memory data = abi.encode(allocationID, bytes32("POI"), _getHardcodedPOIMetadata());
+
+        // skip time to ensure allocation gets rewards
+        vm.roll(block.number + EPOCH_LENGTH);
+
+        vm.expectRevert();
+        subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
+    }
 }
