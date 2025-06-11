@@ -136,6 +136,9 @@ importers:
       '@graphprotocol/common-ts':
         specifier: ^1.8.3
         version: 1.8.7(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@graphprotocol/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
       '@nomicfoundation/hardhat-network-helpers':
         specifier: ^1.0.0
         version: 1.0.12(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.0)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))

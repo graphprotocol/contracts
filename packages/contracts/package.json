@@ -55,6 +55,7 @@
     "@ethersproject/bytes": "^5.8.0",
     "@ethersproject/providers": "^5.8.0",
     "@graphprotocol/common-ts": "^1.8.3",
+    "@graphprotocol/interfaces": "workspace:^",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
