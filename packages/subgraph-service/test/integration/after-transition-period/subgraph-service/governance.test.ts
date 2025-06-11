@@ -1,8 +1,8 @@
-import { ethers } from 'hardhat'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
+import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { SubgraphService } from '../../../../typechain-types'
 
 describe('Subgraph Service Governance', () => {

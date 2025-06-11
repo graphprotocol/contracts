@@ -5,7 +5,9 @@ import "forge-std/Test.sol";
 
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { IHorizonStakingExtension } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingExtension.sol";
+import {
+    IHorizonStakingExtension
+} from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingExtension.sol";
 
 import { SubgraphBaseTest } from "../SubgraphBaseTest.t.sol";
 

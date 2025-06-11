@@ -1,5 +1,6 @@
-import { indexers as horizonIndexers } from '../../../../horizon/tasks/test/fixtures/indexers'
 import { parseEther } from 'ethers'
+
+import { indexers as horizonIndexers } from '../../../../horizon/tasks/test/fixtures/indexers'
 
 // Allocation interface
 export interface Allocation {
@@ -87,7 +88,7 @@ const allocations = new Map<string, Allocation[]>([
 
 // Indexers data
 export const indexers: Indexer[] = horizonIndexers
-  .filter(indexer => !indexer.tokensToUnstake || indexer.tokensToUnstake <= parseEther('100000'))
+  .filter((indexer) => !indexer.tokensToUnstake || indexer.tokensToUnstake <= parseEther('100000'))
   .map((indexer) => {
     // Move existing allocations to legacyAllocations
     const legacyAllocations = indexer.allocations

@@ -1,7 +1,6 @@
-import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-
-import L2GNSArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/discovery/L2GNS.sol/L2GNS.json'
 import SubgraphNFTArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json'
+import L2GNSArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/discovery/L2GNS.sol/L2GNS.json'
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 // Note that this module is a no-op, we only run it to get gns addresses into the address book.
 // GNS deployment should be managed by ignition scripts in subgraph-service package however

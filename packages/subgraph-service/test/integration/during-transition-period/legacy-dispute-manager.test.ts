@@ -1,15 +1,18 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
-import { generateAttestationData, generateLegacyIndexingDisputeId, generateLegacyQueryDisputeId } from '@graphprotocol/toolshed'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { HorizonStaking } from '@graphprotocol/horizon'
-import { IGraphToken } from '../../../typechain-types'
+import {
+  generateAttestationData,
+  generateLegacyIndexingDisputeId,
+  generateLegacyQueryDisputeId,
+} from '@graphprotocol/toolshed'
 import type { LegacyDisputeManager } from '@graphprotocol/toolshed/deployments'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { IGraphToken } from '../../../typechain-types'
 
 describe('Legacy Dispute Manager', () => {
   let legacyDisputeManager: LegacyDisputeManager
@@ -96,7 +99,10 @@ describe('Legacy Dispute Manager', () => {
 
       // Verify fisherman received their deposit and 50% of the slashed amount
       const fishermanBalance = await graphToken.balanceOf(fisherman.address)
-      expect(fishermanBalance).to.equal(fishermanBalanceBefore + slashedAmount / 2n + disputeDeposit, 'Fisherman balance was not updated correctly')
+      expect(fishermanBalance).to.equal(
+        fishermanBalanceBefore + slashedAmount / 2n + disputeDeposit,
+        'Fisherman balance was not updated correctly',
+      )
     })
   })
 
@@ -131,7 +137,8 @@ describe('Legacy Dispute Manager', () => {
       // Create a query dispute
       await graphToken.connect(fisherman).approve(legacyDisputeManager.target, disputeDeposit)
       await legacyDisputeManager.connect(fisherman).createQueryDispute(attestationData, disputeDeposit)
-      const disputeId = generateLegacyQueryDisputeId(queryHash,
+      const disputeId = generateLegacyQueryDisputeId(
+        queryHash,
         responseHash,
         subgraphDeploymentId,
         indexer.address,
@@ -157,7 +164,10 @@ describe('Legacy Dispute Manager', () => {
 
       // Verify fisherman received their deposit and 50% of the slashed amount
       const fishermanBalance = await graphToken.balanceOf(fisherman.address)
-      expect(fishermanBalance).to.equal(fishermanBalanceBefore + slashedAmount / 2n + disputeDeposit, 'Fisherman balance was not updated correctly')
+      expect(fishermanBalance).to.equal(
+        fishermanBalanceBefore + slashedAmount / 2n + disputeDeposit,
+        'Fisherman balance was not updated correctly',
+      )
     })
   })
 

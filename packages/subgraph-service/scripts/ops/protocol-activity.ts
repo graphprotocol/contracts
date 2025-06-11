@@ -11,12 +11,12 @@ import {
   TEN_MILLION,
   ThawRequestType,
 } from '@graphprotocol/toolshed'
-import hre, { ethers } from 'hardhat'
-import { allocationKeys } from './data'
 import { randomBigInt } from '@graphprotocol/toolshed/utils'
-import { Wallet } from 'ethers'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { Wallet } from 'ethers'
+import hre, { ethers } from 'hardhat'
+
+import { allocationKeys } from './data'
 
 const GAS_LIMIT = process.env.GAS_LIMIT ? parseInt(process.env.GAS_LIMIT) : 1_000_000
 const LOCAL_NETWORK_INDEXER_PRIVATE_KEY = '0x2ee789a68207020b45607f5adb71933de0946baebbaaab74af7cbd69c8a90573'
@@ -88,7 +88,13 @@ async function main() {
     } else {
       const idleStake = await HorizonStaking.getIdleStake(signer.address)
       const provisionAmount = randomBigInt(ONE_HUNDRED_THOUSAND, idleStake - ONE_HUNDRED_THOUSAND)
-      await HorizonStaking.connect(signer).provision(signer.address, SubgraphService.target, provisionAmount, PROVISION_MAX_VERIFIER_CUT, PROVISION_THAWING_PERIOD)
+      await HorizonStaking.connect(signer).provision(
+        signer.address,
+        SubgraphService.target,
+        provisionAmount,
+        PROVISION_MAX_VERIFIER_CUT,
+        PROVISION_THAWING_PERIOD,
+      )
     }
   }
 
@@ -123,11 +129,22 @@ async function main() {
   // Deprovision/Reprovision - any thawed tokens
   console.log('🧊 Deprovisioning thawed tokens...')
   for (const signer of signers) {
-    const thawedTokens = await HorizonStaking.getThawedTokens(ThawRequestType.Provision, signer.address, SubgraphService.target, signer.address)
+    const thawedTokens = await HorizonStaking.getThawedTokens(
+      ThawRequestType.Provision,
+      signer.address,
+      SubgraphService.target,
+      signer.address,
+    )
     if (thawedTokens > 0) {
       const reprovision = Math.random() < 0.5
       if (reprovision) {
-        await HorizonStaking.connect(signer).provision(signer.address, ethers.ZeroAddress, 1n, PROVISION_MAX_VERIFIER_CUT, PROVISION_THAWING_PERIOD)
+        await HorizonStaking.connect(signer).provision(
+          signer.address,
+          ethers.ZeroAddress,
+          1n,
+          PROVISION_MAX_VERIFIER_CUT,
+          PROVISION_THAWING_PERIOD,
+        )
         await HorizonStaking.connect(signer).reprovision(signer.address, SubgraphService.target, ethers.ZeroAddress, 0)
       } else {
         await HorizonStaking.connect(signer).deprovision(signer.address, SubgraphService.target, 0)
@@ -161,12 +178,22 @@ async function main() {
       const wallet = new ethers.Wallet(privateKey)
       const allocation = await SubgraphService.getAllocation(wallet.address)
       if (allocation.createdAt === 0n) {
-        const freeAmount = await HorizonStaking.getProviderTokensAvailable(signer.address, SubgraphService.target) - await SubgraphService.allocationProvisionTracker(signer.address)
+        const freeAmount =
+          (await HorizonStaking.getProviderTokensAvailable(signer.address, SubgraphService.target)) -
+          (await SubgraphService.allocationProvisionTracker(signer.address))
         if (freeAmount > ONE_THOUSAND) {
           const allocationAmount = randomBigInt(ONE_THOUSAND, freeAmount)
           const subgraphDeploymentId = ethers.keccak256(`0x${i.toString(16).padStart(2, '0')}`)
-          const proof = await generateAllocationProof(signer.address, privateKey, SubgraphService.target as string, graph.chainId)
-          const data = abi.encode(['bytes32', 'uint256', 'address', 'bytes'], [subgraphDeploymentId, allocationAmount, wallet.address, proof])
+          const proof = await generateAllocationProof(
+            signer.address,
+            privateKey,
+            SubgraphService.target as string,
+            graph.chainId,
+          )
+          const data = abi.encode(
+            ['bytes32', 'uint256', 'address', 'bytes'],
+            [subgraphDeploymentId, allocationAmount, wallet.address, proof],
+          )
           await SubgraphService.connect(signer).startService(signer.address, data, { gasLimit: GAS_LIMIT })
           // Curate
           const curate = Math.random() < 0.5
@@ -192,8 +219,18 @@ async function main() {
   for (const signer of signers) {
     const queryFeeCut = randomBigInt(0n, 50_000n)
     const indexerFeeCut = randomBigInt(0n, 50_000n)
-    await HorizonStaking.connect(signer).setDelegationFeeCut(signer.address, SubgraphService.target, PaymentTypes.QueryFee, queryFeeCut)
-    await HorizonStaking.connect(signer).setDelegationFeeCut(signer.address, SubgraphService.target, PaymentTypes.IndexingRewards, indexerFeeCut)
+    await HorizonStaking.connect(signer).setDelegationFeeCut(
+      signer.address,
+      SubgraphService.target,
+      PaymentTypes.QueryFee,
+      queryFeeCut,
+    )
+    await HorizonStaking.connect(signer).setDelegationFeeCut(
+      signer.address,
+      SubgraphService.target,
+      PaymentTypes.IndexingRewards,
+      indexerFeeCut,
+    )
   }
 
   // Subgraph service - resize allocation
@@ -205,10 +242,14 @@ async function main() {
         const allocation = await SubgraphService.getAllocation(wallet.address)
 
         if (allocation.createdAt !== 0n && allocation.closedAt === 0n) {
-          const resizeAmount = Math.random() > 0.5 ? allocation.tokens * 9n / 10n : allocation.tokens * 11n / 10n
-          const freeAmount = await HorizonStaking.getProviderTokensAvailable(signer.address, SubgraphService.target) - await SubgraphService.allocationProvisionTracker(signer.address)
+          const resizeAmount = Math.random() > 0.5 ? (allocation.tokens * 9n) / 10n : (allocation.tokens * 11n) / 10n
+          const freeAmount =
+            (await HorizonStaking.getProviderTokensAvailable(signer.address, SubgraphService.target)) -
+            (await SubgraphService.allocationProvisionTracker(signer.address))
           if (resizeAmount - allocation.tokens < freeAmount) {
-            await SubgraphService.connect(signer).resizeAllocation(signer.address, wallet.address, resizeAmount, { gasLimit: GAS_LIMIT })
+            await SubgraphService.connect(signer).resizeAllocation(signer.address, wallet.address, resizeAmount, {
+              gasLimit: GAS_LIMIT,
+            })
           }
         }
       }
@@ -232,7 +273,11 @@ async function main() {
 
     const delegationPool = await HorizonStaking.getDelegationPool(signer.address, SubgraphService.target)
     if (delegationPool.shares > 0) {
-      await addToDelegationPool(signer as HardhatEthersSigner, [signer.address, SubgraphService.target, delegationAmount])
+      await addToDelegationPool(signer as HardhatEthersSigner, [
+        signer.address,
+        SubgraphService.target,
+        delegationAmount,
+      ])
     }
   }
 
@@ -242,7 +287,11 @@ async function main() {
     for (const serviceProvider of signers) {
       const delegation = await HorizonStaking.getDelegation(serviceProvider, SubgraphService.target, signer.address)
       if (delegation.shares > 0) {
-        await HorizonStaking.connect(signer)['undelegate(address,address,uint256)'](serviceProvider, SubgraphService.target, delegation.shares)
+        await HorizonStaking.connect(signer)['undelegate(address,address,uint256)'](
+          serviceProvider,
+          SubgraphService.target,
+          delegation.shares,
+        )
       }
     }
   }
@@ -250,9 +299,18 @@ async function main() {
   // withdraw delegation
   console.log('💸 Withdrawing delegation...')
   for (const signer of signers) {
-    const tokensThawed = await HorizonStaking.getThawedTokens(ThawRequestType.Delegation, signer.address, SubgraphService.target, signer.address)
+    const tokensThawed = await HorizonStaking.getThawedTokens(
+      ThawRequestType.Delegation,
+      signer.address,
+      SubgraphService.target,
+      signer.address,
+    )
     if (tokensThawed > 0) {
-      await HorizonStaking.connect(signer)['withdrawDelegated(address,address,uint256)'](signer.address, SubgraphService.target, 0)
+      await HorizonStaking.connect(signer)['withdrawDelegated(address,address,uint256)'](
+        signer.address,
+        SubgraphService.target,
+        0,
+      )
     }
   }
 
@@ -264,12 +322,15 @@ async function main() {
       const allocation = await SubgraphService.getAllocation(wallet.address)
 
       const timeSinceCreated = Math.floor(Date.now() / 1000) - Number(allocation.createdAt)
-      if (timeSinceCreated > 120 && allocation.createdAt !== 0n && allocation.closedAt === 0n) { // 10 minutes
+      if (timeSinceCreated > 120 && allocation.createdAt !== 0n && allocation.closedAt === 0n) {
+        // 10 minutes
         const poi = generatePOI('POI')
         const publicPoi = generatePOI('publicPOI')
         const poiMetadata = encodePOIMetadata(222, publicPoi, 1, 10, 0) // random data, doesnt matter
         const data = abi.encode(['address', 'bytes32', 'bytes'], [wallet.address, poi, poiMetadata])
-        await SubgraphService.connect(signer).collect(signer.address, PaymentTypes.IndexingRewards, data, { gasLimit: GAS_LIMIT })
+        await SubgraphService.connect(signer).collect(signer.address, PaymentTypes.IndexingRewards, data, {
+          gasLimit: GAS_LIMIT,
+        })
       }
     }
   }
@@ -280,21 +341,40 @@ async function main() {
   const signerAuth = await GraphTallyCollector.authorizations(gatewaySigner.address)
 
   if (signerAuth.authorizer === ethers.ZeroAddress) {
-    const gatewayProof = generateSignerProof(9962283664n, gateway.address, gatewaySigner.privateKey, GraphTallyCollector.target as string, graph.chainId)
+    const gatewayProof = generateSignerProof(
+      9962283664n,
+      gateway.address,
+      gatewaySigner.privateKey,
+      GraphTallyCollector.target as string,
+      graph.chainId,
+    )
     await GraphTallyCollector.connect(gateway).authorizeSigner(gatewaySigner.address, 9962283664n, gatewayProof)
   }
 
   for (const [i, signer] of signers.entries()) {
-    const escrowAccount = await PaymentsEscrow.escrowAccounts(gateway.address, GraphTallyCollector.target, signer.address)
+    const escrowAccount = await PaymentsEscrow.escrowAccounts(
+      gateway.address,
+      GraphTallyCollector.target,
+      signer.address,
+    )
     if (escrowAccount.balance < ONE_HUNDRED_THOUSAND) {
       await GraphToken.connect(gateway).approve(PaymentsEscrow.target, ONE_HUNDRED_THOUSAND - escrowAccount.balance)
-      await PaymentsEscrow.connect(gateway).deposit(GraphTallyCollector.target, signer.address, ONE_HUNDRED_THOUSAND - escrowAccount.balance)
+      await PaymentsEscrow.connect(gateway).deposit(
+        GraphTallyCollector.target,
+        signer.address,
+        ONE_HUNDRED_THOUSAND - escrowAccount.balance,
+      )
     }
 
     for (const privateKey of allocationKeys[i]) {
       const wallet = new ethers.Wallet(privateKey)
       const collectionId = abi.encode(['address'], [wallet.address])
-      const tokensCollected = await GraphTallyCollector.tokensCollected(SubgraphService.target, collectionId, signer.address, gateway.address)
+      const tokensCollected = await GraphTallyCollector.tokensCollected(
+        SubgraphService.target,
+        collectionId,
+        signer.address,
+        gateway.address,
+      )
       const { rav, signature } = await generateSignedRAV(
         wallet.address,
         gateway.address,
