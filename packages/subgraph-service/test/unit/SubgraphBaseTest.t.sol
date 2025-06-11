@@ -15,7 +15,7 @@ import { IPaymentsEscrow } from "@graphprotocol/horizon/contracts/interfaces/IPa
 import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
 import { GraphTallyCollector } from "@graphprotocol/horizon/contracts/payments/collectors/GraphTallyCollector.sol";
 import { PaymentsEscrow } from "@graphprotocol/horizon/contracts/payments/PaymentsEscrow.sol";
-import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/Upgrades.sol";
 
 import { Constants } from "./utils/Constants.sol";
 import { DisputeManager } from "../../contracts/DisputeManager.sol";

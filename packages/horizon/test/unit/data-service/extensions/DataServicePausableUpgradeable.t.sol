@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import { GraphBaseTest } from "../../GraphBase.t.sol";
 import { DataServiceImpPausableUpgradeable } from "../implementations/DataServiceImpPausableUpgradeable.sol";
-import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/Upgrades.sol";
 
 import { PPMMath } from "./../../../../contracts/libraries/PPMMath.sol";
 

@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
-import { UnsafeUpgrades } from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import { UnsafeUpgrades } from "@openzeppelin/foundry-upgrades/Upgrades.sol";
 import { DisputeManager } from "../../../../contracts/DisputeManager.sol";
 import { DisputeManagerTest } from "../DisputeManager.t.sol";
 import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManager.sol";
