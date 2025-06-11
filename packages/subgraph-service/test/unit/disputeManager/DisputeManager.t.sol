@@ -773,8 +773,16 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 signer1,
         uint256 signer2
     ) internal view returns (bytes memory attestationData1, bytes memory attestationData2) {
-        IAttestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeploymentId);
-        IAttestation.Receipt memory receipt2 = _createAttestationReceipt(requestCID, responseCID2, subgraphDeploymentId);
+        IAttestation.Receipt memory receipt1 = _createAttestationReceipt(
+            requestCID,
+            responseCID1,
+            subgraphDeploymentId
+        );
+        IAttestation.Receipt memory receipt2 = _createAttestationReceipt(
+            requestCID,
+            responseCID2,
+            subgraphDeploymentId
+        );
 
         bytes memory _attestationData1 = _createAtestationData(receipt1, signer1);
         bytes memory _attestationData2 = _createAtestationData(receipt2, signer2);
