@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { existsSync } from 'fs'
 import { globSync } from 'glob'
 import { join } from 'path'

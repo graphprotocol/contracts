@@ -1,15 +1,14 @@
+import { Provider, Signer } from 'ethers'
 import fs from 'fs'
 
-import { logDebug, logError, logWarn } from '../lib/logger'
 import { assertObject } from '../lib/assert'
-
+import { logDebug, logError, logWarn } from '../lib/logger'
 import { ContractList, loadContract } from './contract'
-import { Provider, Signer } from 'ethers'
 
-export type AddressBookJson<
-  ChainId extends number = number,
-  ContractName extends string = string,
-> = Record<ChainId, Record<ContractName, AddressBookEntry>>
+export type AddressBookJson<ChainId extends number = number, ContractName extends string = string> = Record<
+  ChainId,
+  Record<ContractName, AddressBookEntry>
+>
 
 export type AddressBookEntry = {
   address: string
@@ -36,10 +35,7 @@ export type AddressBookEntry = {
  * - `isContractName(name: string): name is ContractName`, a type predicate to check if a given string is a ContractName
  * - `loadContracts(signerOrProvider?: Signer | Provider): ContractList<ContractName>` to load contracts from the address book
  */
-export abstract class AddressBook<
-  ChainId extends number = number,
-  ContractName extends string = string,
-> {
+export abstract class AddressBook<ChainId extends number = number, ContractName extends string = string> {
   // The path to the address book file
   public file: string
 
@@ -166,7 +162,9 @@ export abstract class AddressBook<
     }
 
     if (this.invalidContracts.length > 0) {
-      logWarn(`Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`)
+      logWarn(
+        `Detected invalid contracts in address book - these will not be loaded: ${this.invalidContracts.join(', ')}`,
+      )
     }
   }
 
@@ -189,13 +187,10 @@ export abstract class AddressBook<
       return contracts
     }
     for (const contractName of this.listEntries()) {
-      const artifactPath = typeof artifactsPath === 'object' && !Array.isArray(artifactsPath)
-        ? artifactsPath[contractName]
-        : artifactsPath
+      const artifactPath =
+        typeof artifactsPath === 'object' && !Array.isArray(artifactsPath) ? artifactsPath[contractName] : artifactsPath
 
-      if (Array.isArray(artifactPath)
-        ? !artifactPath.some(fs.existsSync)
-        : !fs.existsSync(artifactPath)) {
+      if (Array.isArray(artifactPath) ? !artifactPath.some(fs.existsSync) : !fs.existsSync(artifactPath)) {
         logWarn(`Could not load contract ${contractName} - artifact not found`)
         logWarn(artifactPath)
         continue
@@ -217,9 +212,7 @@ export abstract class AddressBook<
 
   // Asserts the provided object has the correct JSON format shape for an address book
   // This method can be overridden by subclasses to provide custom validation
-  assertAddressBookJson(
-    json: unknown,
-  ): asserts json is AddressBookJson<ChainId, ContractName> {
+  assertAddressBookJson(json: unknown): asserts json is AddressBookJson<ChainId, ContractName> {
     this._assertAddressBookJson(json)
   }
 
@@ -237,9 +230,7 @@ export abstract class AddressBook<
   }
 
   // Asserts the provided object is a valid address book entry
-  _assertAddressBookEntry(
-    entry: unknown,
-  ): asserts entry is AddressBookEntry {
+  _assertAddressBookEntry(entry: unknown): asserts entry is AddressBookEntry {
     assertObject(entry)
     if (!('address' in entry)) {
       throw new Error('Address book entry must have an address field')
@@ -247,7 +238,7 @@ export abstract class AddressBook<
 
     const allowedFields = ['address', 'implementation', 'proxyAdmin', 'proxy']
     const entryFields = Object.keys(entry)
-    const invalidFields = entryFields.filter(field => !allowedFields.includes(field))
+    const invalidFields = entryFields.filter((field) => !allowedFields.includes(field))
     if (invalidFields.length > 0) {
       throw new Error(`Address book entry contains invalid fields: ${invalidFields.join(', ')}`)
     }

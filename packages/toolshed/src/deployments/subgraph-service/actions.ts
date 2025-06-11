@@ -1,7 +1,6 @@
-import { Interface } from 'ethers'
-
-import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import type { ISubgraphService } from '@graphprotocol/subgraph-service'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { Interface } from 'ethers'
 
 export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
   return {
@@ -12,7 +11,8 @@ export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
      *   - `[indexer, paymentType, data]` - The collect parameters
      * @returns The payment collected
      */
-    collect: (signer: HardhatEthersSigner, args: Parameters<ISubgraphService['collect']>): Promise<bigint> => collect(contracts, signer, args),
+    collect: (signer: HardhatEthersSigner, args: Parameters<ISubgraphService['collect']>): Promise<bigint> =>
+      collect(contracts, signer, args),
   }
 }
 
@@ -29,8 +29,10 @@ async function collect(
   const receipt = await tx.wait()
   if (!receipt) throw new Error('Transaction failed')
 
-  const iface = new Interface(['event ServicePaymentCollected(address indexed serviceProvider, uint8 indexed feeType, uint256 tokens)'])
-  const event = receipt.logs.find(log => log.topics[0] === iface.getEvent('ServicePaymentCollected')?.topicHash)
+  const iface = new Interface([
+    'event ServicePaymentCollected(address indexed serviceProvider, uint8 indexed feeType, uint256 tokens)',
+  ])
+  const event = receipt.logs.find((log) => log.topics[0] === iface.getEvent('ServicePaymentCollected')?.topicHash)
   if (!event) throw new Error('ServicePaymentCollected event not found')
 
   return BigInt(event.data)

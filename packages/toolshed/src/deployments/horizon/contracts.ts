@@ -1,5 +1,3 @@
-import { resolvePackagePath } from '../../lib/path'
-
 import type {
   Controller,
   GraphPayments,
@@ -9,16 +7,10 @@ import type {
   HorizonStakingExtension,
   PaymentsEscrow,
 } from '@graphprotocol/horizon'
-import type {
-  EpochManager,
-  L2Curation,
-  L2GNS,
-  L2GraphToken,
-  LegacyStaking,
-  RewardsManager,
-  SubgraphNFT,
-} from './types'
+
+import { resolvePackagePath } from '../../lib/path'
 import type { ContractList } from '../contract'
+import type { EpochManager, L2Curation, L2GNS, L2GraphToken, LegacyStaking, RewardsManager, SubgraphNFT } from './types'
 
 export const GraphHorizonContractNameList = [
   // @graphprotocol/contracts

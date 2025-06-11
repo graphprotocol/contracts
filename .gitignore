@@ -47,20 +47,17 @@ bin/
 
 # Coverage and other reports
 coverage/
-coverage/
 reports/
 coverage.json
 lcov.info
 hardhat-dependency-compiler/
 
 # Local test files
-addresses-local.json
 localNetwork.json
 arbitrum-addresses-local.json
-tx-*.log
 addresses-fork.json
 addresses-hardhat.json
-addresses-local-network.json
+addresses-local*.json
 
 # Keys
 .keystore
@@ -74,6 +71,8 @@ packages/issuance/lib/forge-std/
 # Graph client
 .graphclient
 
+# Tx builder and logger
+tx-*.log
 tx-builder-*.json
 !tx-builder-template.json
 

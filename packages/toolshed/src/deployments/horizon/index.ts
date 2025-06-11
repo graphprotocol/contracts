@@ -1,29 +1,28 @@
-import { GraphHorizonAddressBook } from './address-book'
-import { loadActions } from './actions'
-
-import type { Provider, Signer } from 'ethers'
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+import type { Provider, Signer } from 'ethers'
 
+import { loadActions } from './actions'
+import { GraphHorizonAddressBook } from './address-book'
+
+export { GraphHorizonAddressBook } from './address-book'
+export type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 export type {
-  HorizonStaking,
   EpochManager,
-  L2GraphToken,
+  HorizonStaking,
   L2Curation,
-  RewardsManager,
   L2GNS,
+  L2GraphToken,
+  RewardsManager,
   SubgraphNFT,
 } from './types'
 export type {
   Controller,
   GraphPayments,
-  GraphTallyCollector,
   GraphProxyAdmin,
+  GraphTallyCollector,
   HorizonStakingExtension,
   PaymentsEscrow,
 } from '@graphprotocol/horizon'
-
-export { GraphHorizonAddressBook } from './address-book'
-export type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 
 export function loadGraphHorizon(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)

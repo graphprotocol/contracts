@@ -1,5 +1,4 @@
 import { Artifacts } from 'hardhat/internal/artifacts'
-
 import type { Artifact } from 'hardhat/types'
 
 /**
