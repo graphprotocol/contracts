@@ -1,11 +1,9 @@
-import hre from 'hardhat'
-
 import { ONE_MILLION, PaymentTypes } from '@graphprotocol/toolshed'
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Operator', () => {
   let serviceProvider: HardhatEthersSigner
@@ -23,7 +21,7 @@ describe('Operator', () => {
 
   before(async () => {
     // Get signers
-    [serviceProvider, operator] = await graph.accounts.getTestAccounts()
+    ;[serviceProvider, operator] = await graph.accounts.getTestAccounts()
     verifier = await ethers.Wallet.createRandom().getAddress()
     await setGRTBalance(graph.provider, graphToken.target, operator.address, ONE_MILLION)
 
@@ -59,19 +57,10 @@ describe('Operator', () => {
     const paymentType = PaymentTypes.QueryFee
 
     // Operator sets delegation fee cut
-    await horizonStaking.connect(operator).setDelegationFeeCut(
-      serviceProvider.address,
-      verifier,
-      paymentType,
-      feeCut,
-    )
+    await horizonStaking.connect(operator).setDelegationFeeCut(serviceProvider.address, verifier, paymentType, feeCut)
 
     // Verify fee cut
-    const delegationFeeCut = await horizonStaking.getDelegationFeeCut(
-      serviceProvider.address,
-      verifier,
-      paymentType,
-    )
+    const delegationFeeCut = await horizonStaking.getDelegationFeeCut(serviceProvider.address, verifier, paymentType)
     expect(delegationFeeCut).to.equal(feeCut)
   })
 
@@ -82,7 +71,9 @@ describe('Operator', () => {
       await stakeTo(operator, [serviceProvider.address, provisionTokens])
 
       // Operator creates provision
-      await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, provisionTokens, maxVerifierCut, thawingPeriod)
+      await horizonStaking
+        .connect(serviceProvider)
+        .provision(serviceProvider.address, verifier, provisionTokens, maxVerifierCut, thawingPeriod)
 
       // Verify provision
       const provision = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -128,7 +119,9 @@ describe('Operator', () => {
       await horizonStaking.connect(serviceProvider).setOperator(newVerifier, operator.address, true)
 
       // Operator creates a provision for the new verifier
-      await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, newVerifier, thawTokens, maxVerifierCut, thawingPeriod)
+      await horizonStaking
+        .connect(serviceProvider)
+        .provision(serviceProvider.address, newVerifier, thawTokens, maxVerifierCut, thawingPeriod)
 
       // Operator reprovisions
       await horizonStaking.connect(serviceProvider).reprovision(serviceProvider.address, verifier, newVerifier, 1n)
@@ -139,12 +132,9 @@ describe('Operator', () => {
       const newThawingPeriod = 7200 // 2 hours
 
       // Operator sets new parameters
-      await horizonStaking.connect(operator).setProvisionParameters(
-        serviceProvider.address,
-        verifier,
-        newMaxVerifierCut,
-        newThawingPeriod,
-      )
+      await horizonStaking
+        .connect(operator)
+        .setProvisionParameters(serviceProvider.address, verifier, newMaxVerifierCut, newThawingPeriod)
 
       // Verify new parameters
       const provision = await horizonStaking.getProvision(serviceProvider.address, verifier)

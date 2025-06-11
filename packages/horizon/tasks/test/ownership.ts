@@ -1,6 +1,6 @@
-import { task, types } from 'hardhat/config'
-import { printBanner } from '@graphprotocol/toolshed/utils'
 import { requireLocalNetwork } from '@graphprotocol/toolshed/hardhat'
+import { printBanner } from '@graphprotocol/toolshed/utils'
+import { task, types } from 'hardhat/config'
 
 // This is required because we cannot impersonate Ignition accounts
 // so we impersonate current governor and transfer ownership to accounts that Ignition can control

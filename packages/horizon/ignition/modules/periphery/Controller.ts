@@ -1,8 +1,6 @@
-/* eslint-disable no-secrets/no-secrets */
+import ControllerArtifact from '@graphprotocol/contracts/artifacts/contracts/governance/Controller.sol/Controller.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import { ethers } from 'ethers'
-
-import ControllerArtifact from '@graphprotocol/contracts/artifacts/contracts/governance/Controller.sol/Controller.json'
 
 export default buildModule('Controller', (m) => {
   const governor = m.getAccount(1)
@@ -30,7 +28,9 @@ export const MigrateControllerGovernorModule = buildModule('ControllerGovernor',
   const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
 
   // GraphProxyAdmin was not registered in the controller in the original protocol
-  m.call(Controller, 'setContractProxy',
+  m.call(
+    Controller,
+    'setContractProxy',
     [ethers.keccak256(ethers.toUtf8Bytes('GraphProxyAdmin')), graphProxyAdminAddress],
     { id: 'setContractProxy_GraphProxyAdmin' },
   )

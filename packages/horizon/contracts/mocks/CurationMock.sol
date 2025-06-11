@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.27;
 
-import { MockGRTToken } from "./MockGRTToken.sol";
 
 contract CurationMock {
     mapping(bytes32 => uint256) public curation;

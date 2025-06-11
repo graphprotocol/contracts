@@ -40,8 +40,14 @@ export default buildModule('GraphHorizon_Deploy', (m) => {
   // Removing HorizonStaking from the after list will trigger the bug
 
   // Accept ownership of Graph Governed based contracts
-  m.call(Controller, 'acceptOwnership', [], { from: governor, after: [GraphPeripheryModule, GraphHorizonCoreModule, HorizonStaking] })
-  m.call(GraphProxyAdmin, 'acceptOwnership', [], { from: governor, after: [GraphPeripheryModule, GraphHorizonCoreModule, HorizonStaking] })
+  m.call(Controller, 'acceptOwnership', [], {
+    from: governor,
+    after: [GraphPeripheryModule, GraphHorizonCoreModule, HorizonStaking],
+  })
+  m.call(GraphProxyAdmin, 'acceptOwnership', [], {
+    from: governor,
+    after: [GraphPeripheryModule, GraphHorizonCoreModule, HorizonStaking],
+  })
 
   return {
     Controller,

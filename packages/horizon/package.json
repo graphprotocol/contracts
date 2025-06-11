@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "lint": "pnpm lint:ts && pnpm lint:sol",
-    "lint:ts": "eslint '**/*.{js,ts}' --fix --no-warn-ignored",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "pnpm lint:sol:prettier && pnpm lint:sol:solhint",
     "lint:sol:prettier": "prettier --write \"contracts/**/*.sol\" \"test/**/*.sol\"",
     "lint:sol:solhint": "solhint --noPrompt --fix \"contracts/**/*.sol\" --config node_modules/solhint-graph-config/index.js",

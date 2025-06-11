@@ -1,14 +1,13 @@
+import SubgraphNFTArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json'
+import SubgraphNFTDescriptorArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json'
+import L2GNSArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/discovery/L2GNS.sol/L2GNS.json'
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployWithGraphProxy } from '../proxy/GraphProxy'
 
+import { deployWithGraphProxy } from '../proxy/GraphProxy'
 import ControllerModule from './Controller'
 import CurationModule from './Curation'
 import GraphProxyAdminModule from './GraphProxyAdmin'
 import GraphTokenModule from './GraphToken'
-
-import L2GNSArtifact from '@graphprotocol/contracts/artifacts/contracts/l2/discovery/L2GNS.sol/L2GNS.json'
-import SubgraphNFTArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/SubgraphNFT.sol/SubgraphNFT.json'
-import SubgraphNFTDescriptorArtifact from '@graphprotocol/contracts/artifacts/contracts/discovery/SubgraphNFTDescriptor.sol/SubgraphNFTDescriptor.json'
 
 // GNS deployment should be managed by ignition scripts in subgraph-service package however
 // due to tight coupling with Controller it's easier to do it on the horizon package.

@@ -1,8 +1,7 @@
-import { glob } from 'glob'
-import { task } from 'hardhat/config'
-import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
-
 import { printBanner } from '@graphprotocol/toolshed/utils'
+import { glob } from 'glob'
+import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
+import { task } from 'hardhat/config'
 
 task('test:integration', 'Runs all integration tests')
   .addParam(
@@ -13,7 +12,9 @@ task('test:integration', 'Runs all integration tests')
     // Get test files for each phase
     const duringTransitionPeriodFiles = await glob('test/integration/during-transition-period/**/*.{js,ts}')
     const afterTransitionPeriodFiles = await glob('test/integration/after-transition-period/**/*.{js,ts}')
-    const afterDelegationSlashingEnabledFiles = await glob('test/integration/after-delegation-slashing-enabled/**/*.{js,ts}')
+    const afterDelegationSlashingEnabledFiles = await glob(
+      'test/integration/after-delegation-slashing-enabled/**/*.{js,ts}',
+    )
 
     // Display banner for the current test phase
     printBanner(taskArgs.phase, 'INTEGRATION TESTS: ')

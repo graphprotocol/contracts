@@ -1,34 +1,34 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
 import { zeroPadValue } from 'ethers'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
-const abi = [{
-  inputs: [
-    {
-      internalType: 'contract ITransparentUpgradeableProxy',
-      name: 'proxy',
-      type: 'address',
-    },
-    {
-      internalType: 'address',
-      name: 'implementation',
-      type: 'address',
-    },
-    {
-      internalType: 'bytes',
-      name: 'data',
-      type: 'bytes',
-    },
-  ],
-  name: 'upgradeAndCall',
-  outputs: [],
-  stateMutability: 'payable',
-  type: 'function',
-}]
+const abi = [
+  {
+    inputs: [
+      {
+        internalType: 'contract ITransparentUpgradeableProxy',
+        name: 'proxy',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: 'implementation',
+        type: 'address',
+      },
+      {
+        internalType: 'bytes',
+        name: 'data',
+        type: 'bytes',
+      },
+    ],
+    name: 'upgradeAndCall',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+]
 
 describe('Upgrading contracts', () => {
   let snapshotId: string
@@ -62,8 +62,13 @@ describe('Upgrading contracts', () => {
     await ProxyAdmin.upgradeAndCall(proxy, graph.horizon.contracts.GraphTallyCollector.target, '0x')
 
     // https:// github.com/OpenZeppelin/openzeppelin-contracts/blob/dbb6104ce834628e473d2173bbc9d47f81a9eec3/contracts/proxy/ERC1967/ERC1967Utils.sol#L37C53-L37C119
-    const implementation = await hre.ethers.provider.getStorage(proxy, '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc')
-    expect(zeroPadValue(implementation, 32)).to.equal(zeroPadValue(graph.horizon.contracts.GraphTallyCollector.target as string, 32))
+    const implementation = await hre.ethers.provider.getStorage(
+      proxy,
+      '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',
+    )
+    expect(zeroPadValue(implementation, 32)).to.equal(
+      zeroPadValue(graph.horizon.contracts.GraphTallyCollector.target as string, 32),
+    )
   })
 
   it('PaymentsEscrow should be upgradeable by the governor', async () => {
@@ -77,7 +82,12 @@ describe('Upgrading contracts', () => {
     await ProxyAdmin.upgradeAndCall(proxy, graph.horizon.contracts.GraphTallyCollector.target, '0x')
 
     // https:// github.com/OpenZeppelin/openzeppelin-contracts/blob/dbb6104ce834628e473d2173bbc9d47f81a9eec3/contracts/proxy/ERC1967/ERC1967Utils.sol#L37C53-L37C119
-    const implementation = await hre.ethers.provider.getStorage(proxy, '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc')
-    expect(zeroPadValue(implementation, 32)).to.equal(zeroPadValue(graph.horizon.contracts.GraphTallyCollector.target as string, 32))
+    const implementation = await hre.ethers.provider.getStorage(
+      proxy,
+      '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',
+    )
+    expect(zeroPadValue(implementation, 32)).to.equal(
+      zeroPadValue(graph.horizon.contracts.GraphTallyCollector.target as string, 32),
+    )
   })
 })

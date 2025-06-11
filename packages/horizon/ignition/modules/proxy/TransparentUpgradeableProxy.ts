@@ -1,11 +1,16 @@
-import { CallableContractFuture, ContractFuture, ContractOptions, IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
-import { ImplementationMetadata } from './implementation'
-import { loadProxyWithABI } from './utils'
+import {
+  CallableContractFuture,
+  ContractFuture,
+  ContractOptions,
+  IgnitionModuleBuilder,
+} from '@nomicfoundation/ignition-core'
 
-// Importing artifacts from build directory so we have all build artifacts for contract verification
-import DummyArtifact from '../../../build/contracts/contracts/mocks/Dummy.sol/Dummy.json'
 import ProxyAdminArtifact from '../../../build/contracts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json'
 import TransparentUpgradeableProxyArtifact from '../../../build/contracts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json'
+// Importing artifacts from build directory so we have all build artifacts for contract verification
+import DummyArtifact from '../../../build/contracts/contracts/mocks/Dummy.sol/Dummy.json'
+import { ImplementationMetadata } from './implementation'
+import { loadProxyWithABI } from './utils'
 
 // Deploy a TransparentUpgradeableProxy
 // The TransparentUpgradeableProxy contract creates the ProxyAdmin within its constructor.
@@ -22,21 +27,22 @@ export function deployTransparentUpgradeableProxy(
     implementation = m.contract('Dummy', DummyArtifact, [], { ...options, id: `OZProxyDummy_${metadata.name}` })
   }
 
-  const Proxy = m.contract('TransparentUpgradeableProxy', TransparentUpgradeableProxyArtifact, [
-    implementation,
-    deployer,
-    '0x',
-  ],
-  { ...options, id: `TransparentUpgradeableProxy_${metadata.name}` })
-
-  const proxyAdminAddress = m.readEventArgument(
-    Proxy,
-    'AdminChanged',
-    'newAdmin',
-    { ...options, id: `TransparentUpgradeableProxy_${metadata.name}_AdminChanged` },
+  const Proxy = m.contract(
+    'TransparentUpgradeableProxy',
+    TransparentUpgradeableProxyArtifact,
+    [implementation, deployer, '0x'],
+    { ...options, id: `TransparentUpgradeableProxy_${metadata.name}` },
   )
 
-  const ProxyAdmin = m.contractAt('ProxyAdmin', ProxyAdminArtifact, proxyAdminAddress, { ...options, id: `ProxyAdmin_${metadata.name}` })
+  const proxyAdminAddress = m.readEventArgument(Proxy, 'AdminChanged', 'newAdmin', {
+    ...options,
+    id: `TransparentUpgradeableProxy_${metadata.name}_AdminChanged`,
+  })
+
+  const ProxyAdmin = m.contractAt('ProxyAdmin', ProxyAdminArtifact, proxyAdminAddress, {
+    ...options,
+    id: `ProxyAdmin_${metadata.name}`,
+  })
 
   if (implementation !== undefined) {
     return { ProxyAdmin, Proxy: loadProxyWithABI(m, Proxy, metadata, options) }
@@ -53,7 +59,9 @@ export function upgradeTransparentUpgradeableProxy(
   metadata: ImplementationMetadata,
   options?: ContractOptions,
 ) {
-  const upgradeCall = m.call(proxyAdmin, 'upgradeAndCall',
+  const upgradeCall = m.call(
+    proxyAdmin,
+    'upgradeAndCall',
     [proxy, implementation, m.encodeFunctionCall(implementation, 'initialize', metadata.initArgs)],
     options,
   )

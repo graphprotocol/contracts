@@ -1,6 +1,5 @@
-import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-
 import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 export default buildModule('GraphProxyAdmin', (m) => {
   const governor = m.getAccount(1)

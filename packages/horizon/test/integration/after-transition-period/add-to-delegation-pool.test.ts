@@ -1,11 +1,9 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { ONE_MILLION } from '@graphprotocol/toolshed'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Add to delegation pool', () => {
   let serviceProvider: HardhatEthersSigner
@@ -24,7 +22,7 @@ describe('Add to delegation pool', () => {
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    [serviceProvider, delegator, signer] = await graph.accounts.getTestAccounts()
+    ;[serviceProvider, delegator, signer] = await graph.accounts.getTestAccounts()
     await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)
     verifier = ethers.Wallet.createRandom().address
@@ -34,7 +32,9 @@ describe('Add to delegation pool', () => {
 
     // Create provision
     const provisionTokens = ethers.parseEther('1000')
-    await horizonStaking.connect(serviceProvider).provision(serviceProvider.address, verifier, provisionTokens, maxVerifierCut, thawingPeriod)
+    await horizonStaking
+      .connect(serviceProvider)
+      .provision(serviceProvider.address, verifier, provisionTokens, maxVerifierCut, thawingPeriod)
 
     // Send funds to delegator and signer
     await graphToken.connect(serviceProvider).transfer(delegator.address, tokens)
@@ -71,7 +71,13 @@ describe('Add to delegation pool', () => {
     // Create new provision without any delegations
     const newVerifier = await ethers.Wallet.createRandom().getAddress()
     const newVerifierProvisionTokens = ethers.parseEther('1000')
-    await provision(serviceProvider, [serviceProvider.address, newVerifier, newVerifierProvisionTokens, maxVerifierCut, thawingPeriod])
+    await provision(serviceProvider, [
+      serviceProvider.address,
+      newVerifier,
+      newVerifierProvisionTokens,
+      maxVerifierCut,
+      thawingPeriod,
+    ])
 
     // Attempt to add tokens to the new provision
     const addTokens = ethers.parseEther('500')

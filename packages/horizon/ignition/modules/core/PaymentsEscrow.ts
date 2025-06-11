@@ -1,11 +1,10 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployImplementation } from '../proxy/implementation'
-import { upgradeTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
-
-import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
-import HorizonProxiesModule, { MigrateHorizonProxiesDeployerModule } from './HorizonProxies'
 
 import PaymentsEscrowArtifact from '../../../build/contracts/contracts/payments/PaymentsEscrow.sol/PaymentsEscrow.json'
+import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
+import { deployImplementation } from '../proxy/implementation'
+import { upgradeTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
+import HorizonProxiesModule, { MigrateHorizonProxiesDeployerModule } from './HorizonProxies'
 
 export default buildModule('PaymentsEscrow', (m) => {
   const { Controller } = m.useModule(GraphPeripheryModule)
@@ -15,21 +14,28 @@ export default buildModule('PaymentsEscrow', (m) => {
   const withdrawEscrowThawingPeriod = m.getParameter('withdrawEscrowThawingPeriod')
 
   // Deploy PaymentsEscrow implementation - requires periphery and proxies to be registered in the controller
-  const PaymentsEscrowImplementation = deployImplementation(m, {
-    name: 'PaymentsEscrow',
-    artifact: PaymentsEscrowArtifact,
-    constructorArgs: [Controller, withdrawEscrowThawingPeriod],
-  }, { after: [GraphPeripheryModule, HorizonProxiesModule] })
+  const PaymentsEscrowImplementation = deployImplementation(
+    m,
+    {
+      name: 'PaymentsEscrow',
+      artifact: PaymentsEscrowArtifact,
+      constructorArgs: [Controller, withdrawEscrowThawingPeriod],
+    },
+    { after: [GraphPeripheryModule, HorizonProxiesModule] },
+  )
 
   // Upgrade proxy to implementation contract
-  const PaymentsEscrow = upgradeTransparentUpgradeableProxy(m,
+  const PaymentsEscrow = upgradeTransparentUpgradeableProxy(
+    m,
     PaymentsEscrowProxyAdmin,
     PaymentsEscrowProxy,
-    PaymentsEscrowImplementation, {
+    PaymentsEscrowImplementation,
+    {
       name: 'PaymentsEscrow',
       artifact: PaymentsEscrowArtifact,
       initArgs: [],
-    })
+    },
+  )
 
   m.call(PaymentsEscrowProxyAdmin, 'transferOwnership', [governor], { after: [PaymentsEscrow] })
 
@@ -55,14 +61,17 @@ export const MigratePaymentsEscrowModule = buildModule('PaymentsEscrow', (m) => 
   })
 
   // Upgrade proxy to implementation contract
-  const PaymentsEscrow = upgradeTransparentUpgradeableProxy(m,
+  const PaymentsEscrow = upgradeTransparentUpgradeableProxy(
+    m,
     PaymentsEscrowProxyAdmin,
     PaymentsEscrowProxy,
-    PaymentsEscrowImplementation, {
+    PaymentsEscrowImplementation,
+    {
       name: 'PaymentsEscrow',
       artifact: PaymentsEscrowArtifact,
       initArgs: [],
-    })
+    },
+  )
 
   m.call(PaymentsEscrowProxyAdmin, 'transferOwnership', [governor], { after: [PaymentsEscrow] })
 

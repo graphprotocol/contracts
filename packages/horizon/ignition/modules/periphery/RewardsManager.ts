@@ -1,13 +1,12 @@
+import RewardsManagerArtifact from '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
+import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
+import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 import { buildModule, IgnitionModuleBuilder } from '@nomicfoundation/ignition-core'
+
 import { deployWithGraphProxy, upgradeGraphProxy } from '../proxy/GraphProxy'
 import { deployImplementation } from '../proxy/implementation'
-
 import ControllerModule from './Controller'
 import GraphProxyAdminModule from './GraphProxyAdmin'
-
-import GraphProxyAdminArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
-import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
-import RewardsManagerArtifact from '@graphprotocol/contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json'
 
 export default buildModule('RewardsManager', (m) => {
   const { Controller } = m.useModule(ControllerModule)
@@ -17,11 +16,15 @@ export default buildModule('RewardsManager', (m) => {
   const subgraphAvailabilityOracle = m.getParameter('subgraphAvailabilityOracle')
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
 
-  const { proxy: RewardsManager, implementation: RewardsManagerImplementation } = deployWithGraphProxy(m, GraphProxyAdmin, {
-    name: 'RewardsManager',
-    artifact: RewardsManagerArtifact,
-    initArgs: [Controller],
-  })
+  const { proxy: RewardsManager, implementation: RewardsManagerImplementation } = deployWithGraphProxy(
+    m,
+    GraphProxyAdmin,
+    {
+      name: 'RewardsManager',
+      artifact: RewardsManagerArtifact,
+      initArgs: [Controller],
+    },
+  )
   m.call(RewardsManager, 'setSubgraphAvailabilityOracle', [subgraphAvailabilityOracle])
   m.call(RewardsManager, 'setIssuancePerBlock', [issuancePerBlock])
   m.call(RewardsManager, 'setSubgraphService', [subgraphServiceAddress])
@@ -50,7 +53,11 @@ export const MigrateRewardsManagerGovernorModule = buildModule('RewardsManagerGo
 
   const GraphProxyAdmin = m.contractAt('GraphProxyAdmin', GraphProxyAdminArtifact, graphProxyAdminAddress)
   const RewardsManagerProxy = m.contractAt('RewardsManagerProxy', GraphProxyArtifact, rewardsManagerAddress)
-  const RewardsManagerImplementation = m.contractAt('RewardsManagerImplementation', RewardsManagerArtifact, rewardsManagerImplementationAddress)
+  const RewardsManagerImplementation = m.contractAt(
+    'RewardsManagerImplementation',
+    RewardsManagerArtifact,
+    rewardsManagerImplementationAddress,
+  )
 
   const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
 
@@ -59,7 +66,13 @@ export const MigrateRewardsManagerGovernorModule = buildModule('RewardsManagerGo
     artifact: RewardsManagerArtifact,
   }
 
-  const RewardsManager = upgradeGraphProxy(m, GraphProxyAdmin, RewardsManagerProxy, RewardsManagerImplementation, implementationMetadata)
+  const RewardsManager = upgradeGraphProxy(
+    m,
+    GraphProxyAdmin,
+    RewardsManagerProxy,
+    RewardsManagerImplementation,
+    implementationMetadata,
+  )
   m.call(RewardsManager, 'setSubgraphService', [subgraphServiceAddress])
 
   return { RewardsManager, RewardsManagerImplementation }

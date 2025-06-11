@@ -1,11 +1,9 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { ONE_MILLION } from '@graphprotocol/toolshed'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Service Provider', () => {
   let snapshotId: string
@@ -29,11 +27,11 @@ describe('Service Provider', () => {
     await ethers.provider.send('evm_revert', [snapshotId])
   })
 
-  describe(('New Protocol Users'), () => {
+  describe('New Protocol Users', () => {
     let serviceProvider: HardhatEthersSigner
 
     before(async () => {
-      [,,serviceProvider] = await graph.accounts.getTestAccounts()
+      ;[, , serviceProvider] = await graph.accounts.getTestAccounts()
       await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     })
 
@@ -73,7 +71,13 @@ describe('Service Provider', () => {
       const tokens = ethers.parseEther('100')
 
       // setup state
-      await provision(serviceProvider, [serviceProvider.address, subgraphServiceAddress, tokens, maxVerifierCut, thawingPeriod])
+      await provision(serviceProvider, [
+        serviceProvider.address,
+        subgraphServiceAddress,
+        tokens,
+        maxVerifierCut,
+        thawingPeriod,
+      ])
       await horizonStaking.connect(serviceProvider).thaw(serviceProvider.address, subgraphServiceAddress, tokens)
       await ethers.provider.send('evm_increaseTime', [Number(thawingPeriod)])
       await ethers.provider.send('evm_mine', [])
