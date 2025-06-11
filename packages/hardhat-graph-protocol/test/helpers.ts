@@ -1,7 +1,6 @@
-import path from 'path'
-
 import { resetHardhatContext as _resetHardhatContext } from 'hardhat/plugins-testing'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
+import path from 'path'
 
 declare module 'mocha' {
   interface Context {
@@ -28,7 +27,7 @@ export function loadHardhatContext(fixtureProjectName: string, network?: string)
   if (network !== undefined) {
     process.env.HARDHAT_NETWORK = network
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+
   return require('hardhat')
 }
 

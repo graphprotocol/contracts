@@ -1,6 +1,6 @@
+import { expect } from 'chai'
 import path from 'path'
 
-import { expect } from 'chai'
 import { getAddressBookPath } from '../src/config'
 import { loadHardhatContext } from './helpers'
 
@@ -12,7 +12,7 @@ describe('GRE init functions', function () {
       expect(() => getAddressBookPath('horizon', this.hre, {})).to.throw('Must set a an addressBook path!')
     })
 
-    it('should throw if address book doesn\'t exist', function () {
+    it("should throw if address book doesn't exist", function () {
       this.hre = loadHardhatContext('invalid-address-book', 'mainnet')
       expect(() => getAddressBookPath('horizon', this.hre, {})).to.throw(/Address book not found: /)
     })

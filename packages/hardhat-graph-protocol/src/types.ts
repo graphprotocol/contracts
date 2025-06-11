@@ -1,7 +1,6 @@
-import { GraphDeploymentsList } from '@graphprotocol/toolshed/deployments'
-
-import type { GraphDeploymentName, GraphDeployments } from '@graphprotocol/toolshed/deployments'
 import type { GraphAccounts } from '@graphprotocol/toolshed'
+import type { GraphDeploymentName, GraphDeployments } from '@graphprotocol/toolshed/deployments'
+import { GraphDeploymentsList } from '@graphprotocol/toolshed/deployments'
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 export type GraphDeploymentOptions = {
