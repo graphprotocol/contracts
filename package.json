@@ -49,6 +49,7 @@
     "prettier-plugin-solidity": "^1.0.0",
     "pretty-quick": "^4.1.1",
     "solhint": "^5.1.0",
+    "solhint-plugin-graph": "workspace:*",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1",
     "yaml-lint": "^1.7.0"

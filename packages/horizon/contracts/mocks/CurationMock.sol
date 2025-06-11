@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.27;
 
-
 contract CurationMock {
     mapping(bytes32 => uint256) public curation;
 
