@@ -2,14 +2,24 @@
   "name": "@graphprotocol/interfaces",
   "version": "0.1.0",
   "description": "Contract interfaces for The Graph protocol",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.d.ts"
+    },
+    "./artifacts/*": "./artifacts/*"
+  },
   "files": [
+    "artifacts/**/*",
     "contracts/**/*",
+    "types/**/*",
     "README.md"
   ],
   "author": "The Graph Team",
   "license": "GPL-2.0-or-later",
   "scripts": {
-    "clean": "rm -rf build cache artifacts",
+    "clean": "rm -rf build cache artifacts types",
     "lint": "pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
     "lint:natspec": "cd ../.. && node scripts/filter-natspec.js --include 'packages/interfaces/contracts/**/*.sol'",
@@ -21,6 +31,8 @@
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "ethers": "6.13.7",
     "hardhat": "^2.24.0",
     "markdownlint-cli": "^0.45.0",
     "prettier": "^3.5.3",
