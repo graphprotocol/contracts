@@ -126,7 +126,8 @@ export function getGitignorePatterns(customGitignorePath = null) {
   return translateGitignorePatterns(gitignorePath, repoRoot)
 }
 
-export default [
+/** @type {import('eslint').Linter.Config[]} */
+const eslintConfig = [
   // Include .gitignore patterns
   includeGitignore(),
 
@@ -271,3 +272,5 @@ export default [
     files: ['packages/**/*.{js,ts,cjs,mjs,jsx,tsx}'],
   },
 ]
+
+export default eslintConfig
