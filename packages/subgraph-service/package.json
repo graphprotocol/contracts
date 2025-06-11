@@ -29,6 +29,7 @@
     "@defi-wonderland/natspec-smells": "^1.1.6",
     "@graphprotocol/contracts": "workspace:^7.1.2",
     "@graphprotocol/horizon": "workspace:^0.3.3",
+    "@graphprotocol/interfaces": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "3.0.8",

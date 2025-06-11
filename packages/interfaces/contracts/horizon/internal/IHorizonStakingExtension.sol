@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.27;
 
-import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
+import { IRewardsIssuer } from "../../contracts/rewards/IRewardsIssuer.sol";
 
 /**
  * @title Interface for {HorizonStakingExtension} contract.

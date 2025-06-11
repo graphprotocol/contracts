@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.27;
 
-import { Attestation } from "../libraries/Attestation.sol";
+import { IAttestation } from "./internal/IAttestation.sol";
 
 /**
  * @title IDisputeManager
@@ -584,14 +584,14 @@ interface IDisputeManager {
      * @param receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function encodeReceipt(Attestation.Receipt memory receipt) external view returns (bytes32);
+    function encodeReceipt(IAttestation.Receipt memory receipt) external view returns (bytes32);
 
     /**
      * @notice Returns the indexer that signed an attestation.
      * @param attestation Attestation
      * @return indexer address
      */
-    function getAttestationIndexer(Attestation.State memory attestation) external view returns (address);
+    function getAttestationIndexer(IAttestation.State memory attestation) external view returns (address);
 
     /**
      * @notice Get the stake snapshot for an indexer.
@@ -607,7 +607,7 @@ interface IDisputeManager {
      * @return Whether the attestations are conflicting
      */
     function areConflictingAttestations(
-        Attestation.State memory attestation1,
-        Attestation.State memory attestation2
+        IAttestation.State memory attestation1,
+        IAttestation.State memory attestation2
     ) external pure returns (bool);
 }

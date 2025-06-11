@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IAuthorizable } from "../../../../../contracts/interfaces/IAuthorizable.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 
 import { GraphTallyTest } from "../GraphTallyCollector.t.sol";
 

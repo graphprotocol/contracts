@@ -6,8 +6,8 @@ import "forge-std/Test.sol";
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 contract SubgraphServiceAllocationResizeTest is SubgraphServiceTest {
     /*

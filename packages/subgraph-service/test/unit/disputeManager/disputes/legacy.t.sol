@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import { Attestation } from "../../../../contracts/libraries/Attestation.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IDisputeManager } from "../../../../contracts/interfaces/IDisputeManager.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { DisputeManagerTest } from "../DisputeManager.t.sol";
 
 contract DisputeManagerLegacyDisputeTest is DisputeManagerTest {

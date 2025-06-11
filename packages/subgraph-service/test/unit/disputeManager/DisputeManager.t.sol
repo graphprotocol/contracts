@@ -5,10 +5,11 @@ import "forge-std/Test.sol";
 
 import { MathUtils } from "@graphprotocol/horizon/contracts/libraries/MathUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IDisputeManager } from "../../../contracts/interfaces/IDisputeManager.sol";
-import { Attestation } from "../../../contracts/libraries/Attestation.sol";
-import { Allocation } from "../../../contracts/libraries/Allocation.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
+import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 
+import { Attestation } from "../../../contracts/libraries/Attestation.sol";
 import { SubgraphServiceSharedTest } from "../shared/SubgraphServiceShared.t.sol";
 
 contract DisputeManagerTest is SubgraphServiceSharedTest {
@@ -74,7 +75,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         bytes32 expectedDisputeId = keccak256(abi.encodePacked(_allocationId, _poi));
         uint256 disputeDeposit = disputeManager.disputeDeposit();
         uint256 beforeFishermanBalance = token.balanceOf(fisherman);
-        Allocation.State memory alloc = subgraphService.getAllocation(_allocationId);
+        IAllocation.State memory alloc = subgraphService.getAllocation(_allocationId);
         uint256 stakeSnapshot = disputeManager.getStakeSnapshot(alloc.indexer);
         uint256 cancellableAt = block.timestamp + disputeManager.disputePeriod();
 
@@ -132,7 +133,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
 
     function _createQueryDispute(bytes memory _attestationData) internal returns (bytes32) {
         (, address fisherman, ) = vm.readCallers();
-        Attestation.State memory attestation = Attestation.parse(_attestationData);
+        IAttestation.State memory attestation = Attestation.parse(_attestationData);
         address indexer = disputeManager.getAttestationIndexer(attestation);
         bytes32 expectedDisputeId = keccak256(
             abi.encodePacked(
@@ -275,8 +276,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
     }
 
     struct BeforeValues_CreateQueryDisputeConflict {
-        Attestation.State attestation1;
-        Attestation.State attestation2;
+        IAttestation.State attestation1;
+        IAttestation.State attestation2;
         address indexer1;
         address indexer2;
         uint256 stakeSnapshot1;
@@ -755,9 +756,9 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         bytes32 requestCID,
         bytes32 responseCID,
         bytes32 subgraphDeploymentId
-    ) internal pure returns (Attestation.Receipt memory receipt) {
+    ) internal pure returns (IAttestation.Receipt memory receipt) {
         return
-            Attestation.Receipt({
+            IAttestation.Receipt({
                 requestCID: requestCID,
                 responseCID: responseCID,
                 subgraphDeploymentId: subgraphDeploymentId
@@ -772,8 +773,8 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         uint256 signer1,
         uint256 signer2
     ) internal view returns (bytes memory attestationData1, bytes memory attestationData2) {
-        Attestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeploymentId);
-        Attestation.Receipt memory receipt2 = _createAttestationReceipt(requestCID, responseCID2, subgraphDeploymentId);
+        IAttestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeploymentId);
+        IAttestation.Receipt memory receipt2 = _createAttestationReceipt(requestCID, responseCID2, subgraphDeploymentId);
 
         bytes memory _attestationData1 = _createAtestationData(receipt1, signer1);
         bytes memory _attestationData2 = _createAtestationData(receipt2, signer2);
@@ -781,7 +782,7 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
     }
 
     function _createAtestationData(
-        Attestation.Receipt memory receipt,
+        IAttestation.Receipt memory receipt,
         uint256 signer
     ) internal view returns (bytes memory attestationData) {
         bytes32 digest = disputeManager.encodeReceipt(receipt);

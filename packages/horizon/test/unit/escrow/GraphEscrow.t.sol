@@ -2,9 +2,9 @@
 pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
-import { IPaymentsEscrow } from "../../../contracts/interfaces/IPaymentsEscrow.sol";
-import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 
 import { HorizonStakingSharedTest } from "../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { PaymentsEscrowSharedTest } from "../shared/payments-escrow/PaymentsEscrowShared.t.sol";

@@ -4,8 +4,10 @@ pragma solidity 0.8.27;
 
 import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
-import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
+import {
+    IHorizonStakingExtension
+} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";

@@ -1,0 +1,30 @@
+{
+  "name": "@graphprotocol/interfaces",
+  "version": "0.1.0",
+  "description": "Contract interfaces for The Graph protocol",
+  "files": [
+    "contracts/**/*",
+    "README.md"
+  ],
+  "author": "The Graph Team",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "clean": "rm -rf build cache artifacts",
+    "lint": "pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
+    "lint:natspec": "cd ../.. && node scripts/filter-natspec.js --include 'packages/interfaces/contracts/**/*.sol'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
+    "build": "hardhat compile",
+    "build:clean": "pnpm clean && pnpm build"
+  },
+  "devDependencies": {
+    "@defi-wonderland/natspec-smells": "^1.1.6",
+    "hardhat": "^2.24.0",
+    "markdownlint-cli": "^0.45.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-solidity": "^2.0.0",
+    "solhint": "5.1.0"
+  }
+}

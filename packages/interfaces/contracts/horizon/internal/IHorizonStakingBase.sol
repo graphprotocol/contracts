@@ -5,7 +5,7 @@ pragma solidity 0.8.27;
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 import { IGraphPayments } from "../IGraphPayments.sol";
 
-import { LinkedList } from "../../libraries/LinkedList.sol";
+import { ILinkedList } from "./ILinkedList.sol";
 
 /**
  * @title Interface for the {HorizonStakingBase} contract.
@@ -166,7 +166,7 @@ interface IHorizonStakingBase {
         address serviceProvider,
         address verifier,
         address owner
-    ) external view returns (LinkedList.List memory);
+    ) external view returns (ILinkedList.List memory);
 
     /**
      * @notice Gets the amount of thawed tokens that can be releasedfor a given provision.

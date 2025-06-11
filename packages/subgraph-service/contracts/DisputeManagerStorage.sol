@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.27;
 
-import { IDisputeManager } from "./interfaces/IDisputeManager.sol";
-import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 
 /**
  * @title DisputeManagerStorage

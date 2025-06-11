@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
+import { IGraphPayments } from "../horizon/IGraphPayments.sol";
 
-import { Allocation } from "../libraries/Allocation.sol";
-import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
+import { IAllocation } from "./internal/IAllocation.sol";
+import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
 
 /**
  * @title Interface for the {SubgraphService} contract
@@ -263,7 +263,7 @@ interface ISubgraphService is IDataServiceFees {
      * @param allocationId The id of the allocation
      * @return The allocation details
      */
-    function getAllocation(address allocationId) external view returns (Allocation.State memory);
+    function getAllocation(address allocationId) external view returns (IAllocation.State memory);
 
     /**
      * @notice Gets the details of a legacy allocation
@@ -271,7 +271,7 @@ interface ISubgraphService is IDataServiceFees {
      * @param allocationId The id of the allocation
      * @return The legacy allocation details
      */
-    function getLegacyAllocation(address allocationId) external view returns (LegacyAllocation.State memory);
+    function getLegacyAllocation(address allocationId) external view returns (ILegacyAllocation.State memory);
 
     /**
      * @notice Encodes the allocation proof for EIP712 signing

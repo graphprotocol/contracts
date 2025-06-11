@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.27;
 
-import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "../IGraphPayments.sol";
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 
 /**

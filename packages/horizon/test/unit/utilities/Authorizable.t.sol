@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import { Test } from "forge-std/Test.sol";
 
 import { Authorizable } from "../../../contracts/utilities/Authorizable.sol";
-import { IAuthorizable } from "../../../contracts/interfaces/IAuthorizable.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 import { Bounder } from "../utils/Bounder.t.sol";
 
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";

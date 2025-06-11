@@ -2,11 +2,12 @@
 
 pragma solidity 0.8.27;
 
-import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
-import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
-
-import { LinkedList } from "../libraries/LinkedList.sol";
+import {
+    IHorizonStakingExtension
+} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 /* solhint-disable max-states-count */
 
@@ -162,7 +163,7 @@ abstract contract HorizonStakingV1Storage {
 
     /// @dev Thaw request lists
     /// Metadata defining linked lists of thaw requests for each service provider or delegator (owner)
-    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(address serviceProvider => mapping(address verifier => mapping(address owner => LinkedList.List list))))
+    mapping(IHorizonStakingTypes.ThawRequestType thawRequestType => mapping(address serviceProvider => mapping(address verifier => mapping(address owner => ILinkedList.List list))))
         internal _thawRequestLists;
 
     /// @dev Operator allow list

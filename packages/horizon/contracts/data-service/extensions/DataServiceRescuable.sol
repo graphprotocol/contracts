@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IDataServiceRescuable } from "../interfaces/IDataServiceRescuable.sol";
+import { IDataServiceRescuable } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceRescuable.sol";
 
 import { DataService } from "../DataService.sol";
 

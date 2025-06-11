@@ -3,14 +3,14 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
-import { LegacyAllocation } from "../../../../contracts/libraries/LegacyAllocation.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
@@ -70,7 +70,7 @@ contract SubgraphServiceAllocationStopTest is SubgraphServiceTest {
     ) public useIndexer useAllocation(tokens) {
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);
-        vm.expectRevert(abi.encodeWithSelector(Allocation.AllocationClosed.selector, allocationID, block.timestamp));
+        vm.expectRevert(abi.encodeWithSelector(IAllocation.AllocationClosed.selector, allocationID, block.timestamp));
         subgraphService.stopService(users.indexer, data);
     }
 }
