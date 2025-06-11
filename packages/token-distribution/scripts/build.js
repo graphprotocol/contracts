@@ -16,6 +16,12 @@ const fs = require('fs')
 const { readdir } = require('fs/promises')
 const path = require('path')
 
+// Check for STUDIO_API_KEY
+if (!process.env.STUDIO_API_KEY) {
+    console.log('Warning: STUDIO_API_KEY is not set. Skipping build steps. Some functionality may be limited.')
+    process.exit(0)
+}
+
 // Get the directory name
 const rootDir = path.resolve(__dirname, '..')
 
