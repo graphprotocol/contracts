@@ -19,19 +19,21 @@
   "author": "The Graph Team",
   "license": "GPL-2.0-or-later",
   "scripts": {
-    "clean": "rm -rf build cache artifacts types",
+    "clean": "rm -rf dist cache artifacts types",
     "lint": "pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
     "lint:natspec": "cd ../.. && node scripts/filter-natspec.js --include 'packages/interfaces/contracts/**/*.sol'",
     "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
-    "build": "hardhat compile",
+    "build": "hardhat compile && tsc",
     "build:clean": "pnpm clean && pnpm build"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts-3.4.1": "npm:@openzeppelin/contracts@3.4.1",
+    "@openzeppelin/contracts-upgradeable-3.4.2": "npm:@openzeppelin/contracts-upgradeable@3.4.2",
     "ethers": "6.13.7",
     "hardhat": "^2.24.0",
     "markdownlint-cli": "^0.45.0",

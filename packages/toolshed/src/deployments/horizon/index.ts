@@ -6,23 +6,7 @@ import { GraphHorizonAddressBook } from './address-book'
 
 export { GraphHorizonAddressBook } from './address-book'
 export type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
-export type {
-  EpochManager,
-  HorizonStaking,
-  L2Curation,
-  L2GNS,
-  L2GraphToken,
-  RewardsManager,
-  SubgraphNFT,
-} from './types'
-export type {
-  Controller,
-  GraphPayments,
-  GraphProxyAdmin,
-  GraphTallyCollector,
-  HorizonStakingExtension,
-  PaymentsEscrow,
-} from '@graphprotocol/horizon'
+export * from './types'
 
 export function loadGraphHorizon(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)

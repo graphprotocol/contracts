@@ -267,7 +267,7 @@ importers:
         version: 0.6.0(bufferutil@4.0.9)(encoding@0.1.13)(ts-node@10.9.2(@types/node@20.19.0)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)
       axios:
         specifier: ^1.9.0
-        version: 1.9.0
+        version: 1.9.0(debug@4.4.0)
       console-table-printer:
         specifier: ^2.14.1
         version: 2.14.2
@@ -853,6 +853,12 @@ importers:
       '@nomicfoundation/hardhat-toolbox':
         specifier: ^4.0.0
         version: 4.0.0(@nomicfoundation/hardhat-chai-matchers@2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-network-helpers@1.0.12(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-verify@2.0.13(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@typechain/ethers-v6@0.5.1(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3))(@typechain/hardhat@9.1.0(@typechain/ethers-v6@0.5.1(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3))(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3)))(@types/chai@4.3.20)(@types/mocha@10.0.10)(@types/node@22.7.5)(chai@4.5.0)(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat-gas-reporter@1.0.10(bufferutil@4.0.9)(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(solidity-coverage@0.8.16(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3)
+      '@openzeppelin/contracts-3.4.1':
+        specifier: npm:@openzeppelin/contracts@3.4.1
+        version: '@openzeppelin/contracts@3.4.1'
+      '@openzeppelin/contracts-upgradeable-3.4.2':
+        specifier: npm:@openzeppelin/contracts-upgradeable@3.4.2
+        version: '@openzeppelin/contracts-upgradeable@3.4.2'
       ethers:
         specifier: 6.13.7
         version: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -1171,6 +1177,9 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
     devDependencies:
+      '@graphprotocol/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
@@ -3220,6 +3229,9 @@ packages:
     resolution: {integrity: sha512-yVzSSyTMWO6rapGI5tuqkcLpcGGXA0UA1vScyV5EhE5yw8By3Ewex9rDUw8lfVw0iTkvR/egjfcW5vpk03lqZg==}
     peerDependencies:
       '@openzeppelin/contracts': 5.3.0
+
+  '@openzeppelin/contracts@3.4.1':
+    resolution: {integrity: sha512-cUriqMauq1ylzP2TxePNdPqkwI7Le3Annh4K9rrpvKfSBB/bdW+Iu1ihBaTIABTAAJ85LmKL5SSPPL9ry8d1gQ==}
 
   '@openzeppelin/contracts@3.4.2':
     resolution: {integrity: sha512-z0zMCjyhhp4y7XKAcDAi3Vgms4T2PstwBdahiO0+9NaGICQKjynK3wduSRplTgk4LXmoO1yfDGO5RbjKYxtuxA==}
@@ -15714,6 +15726,8 @@ snapshots:
     dependencies:
       '@openzeppelin/contracts': 5.3.0
 
+  '@openzeppelin/contracts@3.4.1': {}
+
   '@openzeppelin/contracts@3.4.2': {}
 
   '@openzeppelin/contracts@4.9.6': {}
@@ -15755,7 +15769,7 @@ snapshots:
   '@openzeppelin/defender-sdk-deploy-client@2.6.0(encoding@0.1.13)':
     dependencies:
       '@openzeppelin/defender-sdk-base-client': 2.6.0(encoding@0.1.13)
-      axios: 1.9.0
+      axios: 1.9.0(debug@4.4.0)
       lodash: 4.17.21
     transitivePeerDependencies:
       - aws-crt
@@ -15765,7 +15779,7 @@ snapshots:
   '@openzeppelin/defender-sdk-network-client@2.6.0(encoding@0.1.13)':
     dependencies:
       '@openzeppelin/defender-sdk-base-client': 2.6.0(encoding@0.1.13)
-      axios: 1.9.0
+      axios: 1.9.0(debug@4.4.0)
       lodash: 4.17.21
     transitivePeerDependencies:
       - aws-crt
@@ -16421,7 +16435,7 @@ snapshots:
 
   '@tenderly/hardhat-tenderly@1.0.13(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.0)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
-      axios: 0.21.4
+      axios: 0.21.4(debug@4.4.0)
       fs-extra: 9.1.0
       hardhat: 2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.0)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)
       js-yaml: 3.14.1
@@ -17265,12 +17279,6 @@ snapshots:
 
   aws4@1.13.2: {}
 
-  axios@0.21.4:
-    dependencies:
-      follow-redirects: 1.15.9(debug@4.4.1)
-    transitivePeerDependencies:
-      - debug
-
   axios@0.21.4(debug@4.4.0):
     dependencies:
       follow-redirects: 1.15.9(debug@4.4.0)
@@ -17279,16 +17287,8 @@ snapshots:
 
   axios@0.27.2:
     dependencies:
-      follow-redirects: 1.15.9(debug@4.4.1)
+      follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.2
-    transitivePeerDependencies:
-      - debug
-
-  axios@1.9.0:
-    dependencies:
-      follow-redirects: 1.15.9(debug@4.4.1)
-      form-data: 4.0.2
-      proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
 
@@ -19690,7 +19690,7 @@ snapshots:
   eth-gas-reporter@0.2.27(bufferutil@4.0.9)(utf-8-validate@5.0.10):
     dependencies:
       '@solidity-parser/parser': 0.14.5
-      axios: 1.9.0
+      axios: 1.9.0(debug@4.4.0)
       cli-table3: 0.5.1
       colors: 1.4.0
       ethereum-cryptography: 1.2.0
@@ -25620,7 +25620,7 @@ snapshots:
 
   solc-typed-ast@18.2.4(typescript@5.8.3)(zod@3.24.4):
     dependencies:
-      axios: 1.9.0
+      axios: 1.9.0(debug@4.4.0)
       commander: 12.1.0
       decimal.js: 10.5.0
       findup-sync: 5.0.0
@@ -25658,7 +25658,7 @@ snapshots:
     dependencies:
       command-exists: 1.2.9
       commander: 8.3.0
-      follow-redirects: 1.15.9(debug@4.4.1)
+      follow-redirects: 1.15.9(debug@4.4.0)
       js-sha3: 0.8.0
       memorystream: 0.3.1
       semver: 5.7.2
@@ -25670,7 +25670,7 @@ snapshots:
     dependencies:
       command-exists: 1.2.9
       commander: 8.3.0
-      follow-redirects: 1.15.9(debug@4.4.1)
+      follow-redirects: 1.15.9(debug@4.4.0)
       js-sha3: 0.8.0
       memorystream: 0.3.1
       semver: 5.7.2

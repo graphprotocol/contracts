@@ -1,8 +1,9 @@
-import type { ISubgraphService } from '@graphprotocol/subgraph-service'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { Interface } from 'ethers'
 
-export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
+import type { SubgraphService } from './types'
+
+export function loadActions(contracts: { SubgraphService: SubgraphService }) {
   return {
     /**
      * Collects the allocated funds for a subgraph deployment
@@ -11,16 +12,16 @@ export function loadActions(contracts: { SubgraphService: ISubgraphService }) {
      *   - `[indexer, paymentType, data]` - The collect parameters
      * @returns The payment collected
      */
-    collect: (signer: HardhatEthersSigner, args: Parameters<ISubgraphService['collect']>): Promise<bigint> =>
+    collect: (signer: HardhatEthersSigner, args: Parameters<SubgraphService['collect']>): Promise<bigint> =>
       collect(contracts, signer, args),
   }
 }
 
 // Collects payment from the subgraph service
 async function collect(
-  contracts: { SubgraphService: ISubgraphService },
+  contracts: { SubgraphService: SubgraphService },
   signer: HardhatEthersSigner,
-  args: Parameters<ISubgraphService['collect']>,
+  args: Parameters<SubgraphService['collect']>,
 ): Promise<bigint> {
   const { SubgraphService } = contracts
   const [indexer, paymentType, data] = args
