@@ -2,7 +2,8 @@ import { resolvePackagePath } from '../../lib/path'
 import type { ContractList } from '../contract'
 import type {
   Controller,
-  EpochManager,   GraphPayments,
+  EpochManager,
+  GraphPayments,
   GraphProxyAdmin,
   GraphTallyCollector,
   HorizonStaking,

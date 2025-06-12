@@ -34,4 +34,3 @@ export {
   IRewardsManagerToolshed as RewardsManager,
   ISubgraphNFT as SubgraphNFT,
 }
-
