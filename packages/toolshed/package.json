@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/toolshed",
-  "version": "0.5.5",
+  "version": "0.5.7",
   "publishConfig": {
     "access": "public"
   },

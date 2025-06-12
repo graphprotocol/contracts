@@ -1,11 +1,11 @@
 {
   "name": "@graphprotocol/contracts-tests",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "description": "Tests for @graphprotocol/contracts",
   "dependencies": {
     "@graphprotocol/contracts": "workspace:^",
-    "@graphprotocol/sdk": "workspace:^"
+    "@graphprotocol/sdk": "0.6.0"
   },
   "devDependencies": {
     "@arbitrum/sdk": "~3.1.13",

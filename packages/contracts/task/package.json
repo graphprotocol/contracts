@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts-task",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "description": "Task utilities for @graphprotocol/contracts",
   "main": "src/index.ts",
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@graphprotocol/contracts": "workspace:^",
-    "@graphprotocol/sdk": "workspace:^",
+    "@graphprotocol/sdk": "0.6.0",
     "axios": "^1.9.0",
     "console-table-printer": "^2.14.1"
   },

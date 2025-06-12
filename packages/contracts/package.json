@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "7.1.2",
+  "version": "7.2.1",
   "publishConfig": {
     "access": "public"
   },
@@ -27,7 +27,7 @@
     "index.d.ts"
   ],
   "scripts": {
-    "prepack": "scripts/build",
+    "prepack": "pnpm build",
     "clean": "rm -rf artifacts/ cache/ types/ abis/",
     "build": "pnpm compile",
     "compile": "hardhat compile",
