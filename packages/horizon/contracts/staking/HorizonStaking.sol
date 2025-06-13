@@ -3,9 +3,12 @@
 pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStakingMain } from "../interfaces/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingExtension } from "../interfaces/internal/IHorizonStakingExtension.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
+import {
+    IHorizonStakingExtension
+} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { MathUtils } from "../libraries/MathUtils.sol";
@@ -30,7 +33,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     using TokenUtils for IGraphToken;
     using PPMMath for uint256;
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
     uint256 private constant MAX_THAW_REQUESTS = 1_000;
@@ -1034,7 +1037,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 _thawingNonce
     ) private returns (bytes32) {
         require(_shares != 0, HorizonStakingInvalidZeroShares());
-        LinkedList.List storage thawRequestList = _getThawRequestList(
+        ILinkedList.List storage thawRequestList = _getThawRequestList(
             _requestType,
             _serviceProvider,
             _verifier,
@@ -1078,7 +1081,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     function _fulfillThawRequests(
         FulfillThawRequestsParams memory _params
     ) private returns (uint256, uint256, uint256) {
-        LinkedList.List storage thawRequestList = _getThawRequestList(
+        ILinkedList.List storage thawRequestList = _getThawRequestList(
             _params.requestType,
             _params.serviceProvider,
             _params.verifier,
@@ -1108,7 +1111,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      */
     function _traverseThawRequests(
         FulfillThawRequestsParams memory _params,
-        LinkedList.List storage _thawRequestList
+        ILinkedList.List storage _thawRequestList
     ) private returns (TraverseThawRequestsResults memory) {
         function(bytes32) view returns (bytes32) getNextItem = _getNextThawRequest(_params.requestType);
         function(bytes32) deleteItem = _getDeleteThawRequest(_params.requestType);

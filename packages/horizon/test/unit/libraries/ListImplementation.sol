@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.27;
 
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
 
 contract ListImplementation {
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     uint256 constant LIST_LENGTH = 100;
 
@@ -13,11 +14,11 @@ contract ListImplementation {
         bytes32 next;
     }
 
-    LinkedList.List public list;
+    ILinkedList.List public list;
     mapping(bytes32 id => Item data) public items;
     bytes32[LIST_LENGTH] public ids;
 
-    function _addItemToList(LinkedList.List storage _list, bytes32 _id, uint256 _data) internal returns (bytes32) {
+    function _addItemToList(ILinkedList.List storage _list, bytes32 _id, uint256 _data) internal returns (bytes32) {
         items[_id] = Item({ data: _data, next: bytes32(0) });
         if (_list.count != 0) {
             items[_list.tail].next = _id;

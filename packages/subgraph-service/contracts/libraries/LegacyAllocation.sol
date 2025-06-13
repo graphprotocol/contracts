@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHorizonStaking.sol";
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 
 /**
  * @title LegacyAllocation library
@@ -10,31 +11,7 @@ import { IHorizonStaking } from "@graphprotocol/horizon/contracts/interfaces/IHo
  * bugs. We may have an active bug bounty program.
  */
 library LegacyAllocation {
-    using LegacyAllocation for State;
-
-    /**
-     * @notice Legacy allocation details
-     * @dev Note that we are only storing the indexer and subgraphDeploymentId. The main point of tracking legacy allocations
-     * is to prevent them from being re used on the Subgraph Service. We don't need to store the rest of the allocation details.
-     * @param indexer The indexer that owns the allocation
-     * @param subgraphDeploymentId The subgraph deployment id the allocation is for
-     */
-    struct State {
-        address indexer;
-        bytes32 subgraphDeploymentId;
-    }
-
-    /**
-     * @notice Thrown when attempting to migrate an allocation with an existing id
-     * @param allocationId The allocation id
-     */
-    error LegacyAllocationAlreadyExists(address allocationId);
-
-    /**
-     * @notice Thrown when trying to get a non-existent allocation
-     * @param allocationId The allocation id
-     */
-    error LegacyAllocationDoesNotExist(address allocationId);
+    using LegacyAllocation for ILegacyAllocation.State;
 
     /**
      * @notice Migrate a legacy allocation
@@ -47,14 +24,14 @@ library LegacyAllocation {
      * @custom:error LegacyAllocationAlreadyMigrated if the allocation has already been migrated
      */
     function migrate(
-        mapping(address => State) storage self,
+        mapping(address => ILegacyAllocation.State) storage self,
         address indexer,
         address allocationId,
         bytes32 subgraphDeploymentId
     ) internal {
-        require(!self[allocationId].exists(), LegacyAllocationAlreadyExists(allocationId));
+        require(!self[allocationId].exists(), ILegacyAllocation.LegacyAllocationAlreadyExists(allocationId));
 
-        self[allocationId] = State({ indexer: indexer, subgraphDeploymentId: subgraphDeploymentId });
+        self[allocationId] = ILegacyAllocation.State({ indexer: indexer, subgraphDeploymentId: subgraphDeploymentId });
     }
 
     /**
@@ -63,7 +40,10 @@ library LegacyAllocation {
      * @param allocationId The allocation id
      * @return The legacy allocation details
      */
-    function get(mapping(address => State) storage self, address allocationId) internal view returns (State memory) {
+    function get(
+        mapping(address => ILegacyAllocation.State) storage self,
+        address allocationId
+    ) internal view returns (ILegacyAllocation.State memory) {
         return _get(self, allocationId);
     }
 
@@ -77,12 +57,15 @@ library LegacyAllocation {
      * @param allocationId The allocation id
      */
     function revertIfExists(
-        mapping(address => State) storage self,
+        mapping(address => ILegacyAllocation.State) storage self,
         IHorizonStaking graphStaking,
         address allocationId
     ) internal view {
-        require(!self[allocationId].exists(), LegacyAllocationAlreadyExists(allocationId));
-        require(!graphStaking.isAllocation(allocationId), LegacyAllocationAlreadyExists(allocationId));
+        require(!self[allocationId].exists(), ILegacyAllocation.LegacyAllocationAlreadyExists(allocationId));
+        require(
+            !graphStaking.isAllocation(allocationId),
+            ILegacyAllocation.LegacyAllocationAlreadyExists(allocationId)
+        );
     }
 
     /**
@@ -90,7 +73,7 @@ library LegacyAllocation {
      * @param self The legacy allocation
      * @return True if the allocation exists
      */
-    function exists(State memory self) internal pure returns (bool) {
+    function exists(ILegacyAllocation.State memory self) internal pure returns (bool) {
         return self.indexer != address(0);
     }
 
@@ -100,9 +83,12 @@ library LegacyAllocation {
      * @param allocationId The allocation id
      * @return The legacy allocation details
      */
-    function _get(mapping(address => State) storage self, address allocationId) private view returns (State storage) {
-        State storage allocation = self[allocationId];
-        require(allocation.exists(), LegacyAllocationDoesNotExist(allocationId));
+    function _get(
+        mapping(address => ILegacyAllocation.State) storage self,
+        address allocationId
+    ) private view returns (ILegacyAllocation.State storage) {
+        ILegacyAllocation.State storage allocation = self[allocationId];
+        require(allocation.exists(), ILegacyAllocation.LegacyAllocationDoesNotExist(allocationId));
         return allocation;
     }
 }

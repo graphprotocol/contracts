@@ -1,2 +1,2 @@
-@graphprotocol/common/=packages/common/
+@graphprotocol/interfaces/=packages/interfaces/
 @openzeppelin/=node_modules/@openzeppelin/

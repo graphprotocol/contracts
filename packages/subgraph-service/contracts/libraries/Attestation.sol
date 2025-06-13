@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
+
 /**
  * @title Attestation library
  * @notice A library to handle Attestation.
@@ -8,36 +10,6 @@ pragma solidity 0.8.27;
  * bugs. We may have an active bug bounty program.
  */
 library Attestation {
-    /**
-     * @notice Receipt content sent from the service provider in response to request
-     * @param requestCID The request CID
-     * @param responseCID The response CID
-     * @param subgraphDeploymentId The subgraph deployment id
-     */
-    struct Receipt {
-        bytes32 requestCID;
-        bytes32 responseCID;
-        bytes32 subgraphDeploymentId;
-    }
-
-    /**
-     * @notice Attestation sent from the service provider in response to a request
-     * @param requestCID The request CID
-     * @param responseCID The response CID
-     * @param subgraphDeploymentId The subgraph deployment id
-     * @param r The r value of the signature
-     * @param s The s value of the signature
-     * @param v The v value of the signature
-     */
-    struct State {
-        bytes32 requestCID;
-        bytes32 responseCID;
-        bytes32 subgraphDeploymentId;
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-    }
-
     /// @notice Attestation size is the sum of the receipt (96) + signature (65)
     uint256 private constant RECEIPT_SIZE_BYTES = 96;
 
@@ -72,13 +44,6 @@ library Attestation {
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
 
     /**
-     * @notice The error thrown when the attestation data length is invalid
-     * @param length The length of the attestation data
-     * @param expectedLength The expected length of the attestation data
-     */
-    error AttestationInvalidBytesLength(uint256 length, uint256 expectedLength);
-
-    /**
      * @dev Returns if two attestations are conflicting.
      * Everything must match except for the responseId.
      * @param _attestation1 Attestation
@@ -86,8 +51,8 @@ library Attestation {
      * @return True if the two attestations are conflicting
      */
     function areConflicting(
-        Attestation.State memory _attestation1,
-        Attestation.State memory _attestation2
+        IAttestation.State memory _attestation1,
+        IAttestation.State memory _attestation2
     ) internal pure returns (bool) {
         return (_attestation1.requestCID == _attestation2.requestCID &&
             _attestation1.subgraphDeploymentId == _attestation2.subgraphDeploymentId &&
@@ -99,11 +64,11 @@ library Attestation {
      * @param _data The bytes to parse
      * @return Attestation struct
      */
-    function parse(bytes memory _data) internal pure returns (State memory) {
+    function parse(bytes memory _data) internal pure returns (IAttestation.State memory) {
         // Check attestation data length
         require(
             _data.length == ATTESTATION_SIZE_BYTES,
-            AttestationInvalidBytesLength(_data.length, ATTESTATION_SIZE_BYTES)
+            IAttestation.AttestationInvalidBytesLength(_data.length, ATTESTATION_SIZE_BYTES)
         );
 
         // Decode receipt
@@ -118,7 +83,7 @@ library Attestation {
         bytes32 s = _toBytes32(_data, SIG_S_OFFSET);
         uint8 v = _toUint8(_data, SIG_V_OFFSET);
 
-        return State(requestCID, responseCID, subgraphDeploymentId, r, s, v);
+        return IAttestation.State(requestCID, responseCID, subgraphDeploymentId, r, s, v);
     }
 
     /**
@@ -130,7 +95,7 @@ library Attestation {
     function _toUint8(bytes memory _bytes, uint256 _start) private pure returns (uint8) {
         require(
             _bytes.length >= _start + UINT8_BYTE_LENGTH,
-            AttestationInvalidBytesLength(_bytes.length, _start + UINT8_BYTE_LENGTH)
+            IAttestation.AttestationInvalidBytesLength(_bytes.length, _start + UINT8_BYTE_LENGTH)
         );
         uint8 tempUint;
 
@@ -154,7 +119,7 @@ library Attestation {
     function _toBytes32(bytes memory _bytes, uint256 _start) private pure returns (bytes32) {
         require(
             _bytes.length >= _start + BYTES32_BYTE_LENGTH,
-            AttestationInvalidBytesLength(_bytes.length, _start + BYTES32_BYTE_LENGTH)
+            IAttestation.AttestationInvalidBytesLength(_bytes.length, _start + BYTES32_BYTE_LENGTH)
         );
         bytes32 tempBytes32;
 

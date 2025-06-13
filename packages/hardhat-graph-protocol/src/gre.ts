@@ -30,9 +30,17 @@ export const greExtendConfig = (config: HardhatConfig, userConfig: Readonly<Hard
 }
 
 export const greExtendEnvironment = (hre: HardhatRuntimeEnvironment) => {
-  hre.graph = lazyFunction(() => (opts: GraphRuntimeEnvironmentOptions = { deployments: {} }) => {
+  hre.graph = lazyFunction(() => (opts?: GraphRuntimeEnvironmentOptions) => {
     logDebug('*** Initializing Graph Runtime Environment (GRE) ***')
     logDebug(`Main network: ${hre.network.name}`)
+
+    if (opts === undefined) {
+      opts = {
+        deployments: {},
+        createAddressBook: false,
+      }
+    }
+
     const chainId = hre.network.config.chainId
     if (chainId === undefined) {
       throw new GraphPluginError('Please define chainId in your Hardhat network configuration')

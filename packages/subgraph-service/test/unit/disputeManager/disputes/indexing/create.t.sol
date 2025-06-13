@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IDisputeManager } from "../../../../../contracts/interfaces/IDisputeManager.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerIndexingCreateDisputeTest is DisputeManagerTest {

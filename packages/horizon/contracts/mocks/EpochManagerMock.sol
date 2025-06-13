@@ -14,10 +14,10 @@ contract EpochManagerMock is IEpochManager {
 
     // -- Configuration --
 
-    function setEpochLength(uint256 _epochLength) public {
+    function setEpochLength(uint256 epochLength_) public {
         lastLengthUpdateEpoch = 1;
         lastLengthUpdateBlock = blockNum();
-        epochLength = _epochLength;
+        epochLength = epochLength_;
     }
 
     // -- Epochs
@@ -36,8 +36,8 @@ contract EpochManagerMock is IEpochManager {
         return block.number;
     }
 
-    function blockHash(uint256 _block) public view returns (bytes32) {
-        return blockhash(_block);
+    function blockHash(uint256 block_) public view returns (bytes32) {
+        return blockhash(block_);
     }
 
     function currentEpoch() public view returns (uint256) {
@@ -52,9 +52,9 @@ contract EpochManagerMock is IEpochManager {
         return blockNum() - currentEpochBlock();
     }
 
-    function epochsSince(uint256 _epoch) public view returns (uint256) {
+    function epochsSince(uint256 epoch_) public view returns (uint256) {
         uint256 epoch = currentEpoch();
-        return _epoch < epoch ? (epoch - _epoch) : 0;
+        return epoch_ < epoch ? (epoch - epoch_) : 0;
     }
 
     function epochsSinceUpdate() public view returns (uint256) {

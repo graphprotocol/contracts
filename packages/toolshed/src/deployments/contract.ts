@@ -1,6 +1,6 @@
+import { getInterface } from '@graphprotocol/interfaces'
 import { Contract, Provider, Signer } from 'ethers'
 
-import { loadArtifact } from './artifact'
 import { wrapTransactionCalls } from './tx-logging'
 
 export type ContractList<T extends string = string> = Partial<Record<T, unknown>>
@@ -20,12 +20,11 @@ export type ContractList<T extends string = string> = Partial<Record<T, unknown>
 export function loadContract<ContractName extends string = string>(
   name: ContractName,
   address: string,
-  artifactsPath: string | string[],
   signerOrProvider?: Signer | Provider,
   enableTxLogging?: boolean,
 ): Contract {
   try {
-    let contract = new Contract(address, loadArtifact(name, artifactsPath).abi, signerOrProvider)
+    let contract = new Contract(address, getInterface(name), signerOrProvider)
 
     if (signerOrProvider) {
       contract = contract.connect(signerOrProvider) as Contract

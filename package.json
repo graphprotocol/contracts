@@ -10,7 +10,7 @@
     "postinstall": "husky",
     "clean": "pnpm -r run clean",
     "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules",
-    "build": "chmod +x ./scripts/build && ./scripts/build",
+    "build": "pnpm -r run build",
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'packages/*/contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",

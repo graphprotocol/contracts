@@ -3,7 +3,7 @@ pragma solidity 0.8.27;
 
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { DataServiceImpPausable } from "../implementations/DataServiceImpPausable.sol";
-import { IDataServicePausable } from "./../../../../contracts/data-service/interfaces/IDataServicePausable.sol";
+import { IDataServicePausable } from "@graphprotocol/interfaces/contracts/data-service/IDataServicePausable.sol";
 
 contract DataServicePausableTest is HorizonStakingSharedTest {
     DataServiceImpPausable dataService;

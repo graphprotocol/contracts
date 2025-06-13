@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interfaces/IGraphTallyCollector.sol";
-import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
-import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -23,7 +25,6 @@ import { SubgraphServiceV1Storage } from "./SubgraphServiceStorage.sol";
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
-import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
 
 /**
  * @title SubgraphService contract
@@ -44,8 +45,8 @@ contract SubgraphService is
     ISubgraphService
 {
     using PPMMath for uint256;
-    using Allocation for mapping(address => Allocation.State);
-    using Allocation for Allocation.State;
+    using Allocation for mapping(address => IAllocation.State);
+    using Allocation for IAllocation.State;
     using TokenUtils for IGraphToken;
 
     /**
@@ -301,7 +302,7 @@ contract SubgraphService is
 
     /// @inheritdoc ISubgraphService
     function closeStaleAllocation(address allocationId) external override whenNotPaused {
-        Allocation.State memory allocation = _allocations.get(allocationId);
+        IAllocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
         _closeAllocation(allocationId, true);
@@ -373,7 +374,7 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
+    function getAllocation(address allocationId) external view override returns (IAllocation.State memory) {
         return _allocations[allocationId];
     }
 
@@ -381,7 +382,7 @@ contract SubgraphService is
     function getAllocationData(
         address allocationId
     ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
-        Allocation.State memory allo = _allocations[allocationId];
+        IAllocation.State memory allo = _allocations[allocationId];
         return (
             allo.isOpen(),
             allo.indexer,
@@ -398,7 +399,7 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function getLegacyAllocation(address allocationId) external view override returns (LegacyAllocation.State memory) {
+    function getLegacyAllocation(address allocationId) external view override returns (ILegacyAllocation.State memory) {
         return _legacyAllocations[allocationId];
     }
 
@@ -507,7 +508,7 @@ contract SubgraphService is
             SubgraphServiceInvalidCollectionId(signedRav.rav.collectionId)
         );
         address allocationId = address(uint160(uint256(signedRav.rav.collectionId)));
-        Allocation.State memory allocation = _allocations.get(allocationId);
+        IAllocation.State memory allocation = _allocations.get(allocationId);
 
         // Check RAV is consistent - RAV indexer must match the allocation's indexer
         require(allocation.indexer == _indexer, SubgraphServiceInvalidRAV(_indexer, allocation.indexer));

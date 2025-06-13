@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import { DataService } from "../../../../contracts/data-service/DataService.sol";
-import { IGraphPayments } from "./../../../../contracts/interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 contract DataServiceBase is DataService {
     uint32 public constant DELEGATION_RATIO = 100;

@@ -1,5 +1,4 @@
 import { generatePOI } from '@graphprotocol/toolshed'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
@@ -56,7 +55,7 @@ describe('Permissionless', () => {
 
       // Close allocation
       const poi = generatePOI('poi')
-      await (horizonStaking as HorizonStakingExtension).connect(anySigner).closeAllocation(allocationID, poi)
+      await horizonStaking.connect(anySigner).closeAllocation(allocationID, poi)
 
       // Get indexer's idle stake after closing allocation
       const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)

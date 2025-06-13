@@ -3,4 +3,5 @@
 @openzeppelin/foundry-upgrades/=node_modules/@openzeppelin/foundry-upgrades/src/
 @graphprotocol/contracts/=node_modules/@graphprotocol/contracts/
 @graphprotocol/horizon/=node_modules/@graphprotocol/horizon/
+@graphprotocol/interfaces/=node_modules/@graphprotocol/interfaces/
 forge-std/=node_modules/forge-std/src/

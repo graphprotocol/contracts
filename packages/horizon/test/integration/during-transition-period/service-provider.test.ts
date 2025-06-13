@@ -1,5 +1,4 @@
 import { generatePOI, ONE_MILLION } from '@graphprotocol/toolshed'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
 import { getEventData, setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -14,7 +13,6 @@ describe('Service Provider', () => {
   const graph = hre.graph()
   const { stake, collect } = graph.horizon.actions
   const horizonStaking = graph.horizon.contracts.HorizonStaking
-  const horizonStakingExtension = horizonStaking as HorizonStakingExtension
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   // Subgraph service address is not set for integration tests
@@ -257,7 +255,7 @@ describe('Service Provider', () => {
           const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
           // Close allocation
-          const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
+          const tx = await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
           const eventData = await getEventData(
             tx,
             'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)',
@@ -332,7 +330,7 @@ describe('Service Provider', () => {
           }
 
           // Close allocation
-          await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
+          await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
 
           // Tokens to collect
           const tokensToCollect = ethers.parseEther('1000')
@@ -407,7 +405,7 @@ describe('Service Provider', () => {
           const balanceBefore = await graphToken.balanceOf(rewardsDestination)
 
           // Close allocation
-          const tx = await horizonStakingExtension.connect(indexer).closeAllocation(allocationID, poi)
+          const tx = await horizonStaking.connect(indexer).closeAllocation(allocationID, poi)
           const eventData = await getEventData(
             tx,
             'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)',

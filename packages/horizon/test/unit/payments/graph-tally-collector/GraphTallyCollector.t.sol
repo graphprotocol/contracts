@@ -5,11 +5,11 @@ import "forge-std/Test.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IGraphTallyCollector } from "../../../../contracts/interfaces/IGraphTallyCollector.sol";
-import { IPaymentsCollector } from "../../../../contracts/interfaces/IPaymentsCollector.sol";
-import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
-import { IAuthorizable } from "../../../../contracts/interfaces/IAuthorizable.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 import { GraphTallyCollector } from "../../../../contracts/payments/collectors/GraphTallyCollector.sol";
 import { PPMMath } from "../../../../contracts/libraries/PPMMath.sol";
 

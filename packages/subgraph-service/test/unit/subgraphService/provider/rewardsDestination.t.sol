@@ -3,9 +3,9 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceProviderRewardsDestinationTest is SubgraphServiceTest {

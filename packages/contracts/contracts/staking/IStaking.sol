@@ -15,6 +15,4 @@ import { IManaged } from "../governance/IManaged.sol";
  * the custom setup of the Staking contract where part of the functionality is implemented
  * in a separate contract (StakingExtension) to which calls are delegated through the fallback function.
  */
-interface IStaking is IStakingBase, IStakingExtension, IMulticall, IManaged {
-    // Nothing to see here
-}
+interface IStaking is IStakingBase, IStakingExtension, IMulticall, IManaged {}
