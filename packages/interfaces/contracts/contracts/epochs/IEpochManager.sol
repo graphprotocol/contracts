@@ -5,7 +5,7 @@ pragma solidity ^0.7.6 || 0.8.27;
 interface IEpochManager {
     // -- Configuration --
 
-    function setEpochLength(uint256 _epochLength) external;
+    function setEpochLength(uint256 epochLength) external;
 
     // -- Epochs
 
@@ -17,7 +17,7 @@ interface IEpochManager {
 
     function blockNum() external view returns (uint256);
 
-    function blockHash(uint256 _block) external view returns (bytes32);
+    function blockHash(uint256 block) external view returns (bytes32);
 
     function currentEpoch() external view returns (uint256);
 
@@ -25,7 +25,7 @@ interface IEpochManager {
 
     function currentEpochBlockSinceStart() external view returns (uint256);
 
-    function epochsSince(uint256 _epoch) external view returns (uint256);
+    function epochsSince(uint256 epoch) external view returns (uint256);
 
     function epochsSinceUpdate() external view returns (uint256);
 }

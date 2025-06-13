@@ -3,17 +3,17 @@
 pragma solidity 0.8.27;
 
 contract CurationMock {
-    mapping(bytes32 => uint256) public curation;
+    mapping(bytes32 subgraphDeploymentID => uint256 tokens) public curation;
 
-    function signal(bytes32 _subgraphDeploymentID, uint256 _tokens) public {
-        curation[_subgraphDeploymentID] += _tokens;
+    function signal(bytes32 subgraphDeploymentID, uint256 tokens) public {
+        curation[subgraphDeploymentID] += tokens;
     }
 
-    function isCurated(bytes32 _subgraphDeploymentID) public view returns (bool) {
-        return curation[_subgraphDeploymentID] != 0;
+    function isCurated(bytes32 subgraphDeploymentID) public view returns (bool) {
+        return curation[subgraphDeploymentID] != 0;
     }
 
-    function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external {
-        curation[_subgraphDeploymentID] += _tokens;
+    function collect(bytes32 subgraphDeploymentID, uint256 tokens) external {
+        curation[subgraphDeploymentID] += tokens;
     }
 }

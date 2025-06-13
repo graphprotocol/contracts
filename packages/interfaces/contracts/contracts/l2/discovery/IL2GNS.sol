@@ -28,29 +28,29 @@ interface IL2GNS is ICallhookReceiver {
      * @notice Finish a subgraph transfer from L1.
      * The subgraph must have been previously sent through the bridge
      * using the sendSubgraphToL2 function on L1GNS.
-     * @param _l2SubgraphID Subgraph ID in L2 (aliased from the L1 subgraph ID)
-     * @param _subgraphDeploymentID Latest subgraph deployment to assign to the subgraph
-     * @param _subgraphMetadata IPFS hash of the subgraph metadata
-     * @param _versionMetadata IPFS hash of the version metadata
+     * @param l2SubgraphID Subgraph ID in L2 (aliased from the L1 subgraph ID)
+     * @param subgraphDeploymentID Latest subgraph deployment to assign to the subgraph
+     * @param subgraphMetadata IPFS hash of the subgraph metadata
+     * @param versionMetadata IPFS hash of the version metadata
      */
     function finishSubgraphTransferFromL1(
-        uint256 _l2SubgraphID,
-        bytes32 _subgraphDeploymentID,
-        bytes32 _subgraphMetadata,
-        bytes32 _versionMetadata
+        uint256 l2SubgraphID,
+        bytes32 subgraphDeploymentID,
+        bytes32 subgraphMetadata,
+        bytes32 versionMetadata
     ) external;
 
     /**
      * @notice Return the aliased L2 subgraph ID from a transferred L1 subgraph ID
-     * @param _l1SubgraphID L1 subgraph ID
+     * @param l1SubgraphID L1 subgraph ID
      * @return L2 subgraph ID
      */
-    function getAliasedL2SubgraphID(uint256 _l1SubgraphID) external pure returns (uint256);
+    function getAliasedL2SubgraphID(uint256 l1SubgraphID) external pure returns (uint256);
 
     /**
      * @notice Return the unaliased L1 subgraph ID from a transferred L2 subgraph ID
-     * @param _l2SubgraphID L2 subgraph ID
+     * @param l2SubgraphID L2 subgraph ID
      * @return L1subgraph ID
      */
-    function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID) external pure returns (uint256);
+    function getUnaliasedL1SubgraphID(uint256 l2SubgraphID) external pure returns (uint256);
 }

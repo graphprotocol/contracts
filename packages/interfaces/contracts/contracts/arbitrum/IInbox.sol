@@ -25,8 +25,8 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
-import "./IBridge.sol";
-import "./IMessageProvider.sol";
+import { IBridge } from "./IBridge.sol";
+import { IMessageProvider } from "./IMessageProvider.sol";
 
 interface IInbox is IMessageProvider {
     function sendL2Message(bytes calldata messageData) external returns (uint256);

@@ -2,12 +2,12 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
-import "@openzeppelin/contracts-upgradeable-3.4.2/token/ERC20/IERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 interface IGraphCurationToken is IERC20Upgradeable {
-    function initialize(address _owner) external;
+    function initialize(address owner) external;
 
-    function burnFrom(address _account, uint256 _amount) external;
+    function burnFrom(address account, uint256 amount) external;
 
-    function mint(address _to, uint256 _amount) external;
+    function mint(address to, uint256 amount) external;
 }

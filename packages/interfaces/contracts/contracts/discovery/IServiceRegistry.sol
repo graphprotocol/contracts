@@ -8,13 +8,13 @@ interface IServiceRegistry {
         string geohash;
     }
 
-    function register(string calldata _url, string calldata _geohash) external;
+    function register(string calldata url, string calldata geohash) external;
 
-    function registerFor(address _indexer, string calldata _url, string calldata _geohash) external;
+    function registerFor(address indexer, string calldata url, string calldata geohash) external;
 
     function unregister() external;
 
-    function unregisterFor(address _indexer) external;
+    function unregisterFor(address indexer) external;
 
-    function isRegistered(address _indexer) external view returns (bool);
+    function isRegistered(address indexer) external view returns (bool);
 }

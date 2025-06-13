@@ -31,7 +31,9 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "prepublishOnly": "tsc",
-    "lint": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "clean": "rm -rf dist"
   },
   "keywords": [

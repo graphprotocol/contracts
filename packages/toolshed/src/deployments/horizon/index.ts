@@ -24,9 +24,6 @@ export function connectGraphHorizon(chainId: number, signerOrProvider: Signer | 
   if (!addressBookPath) {
     throw new Error('Address book path not found')
   }
-  const addressBook = new GraphHorizonAddressBook(
-    addressBookPath,
-    chainId,
-  )
+  const addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)
   return addressBook.loadContracts(signerOrProvider, false)
 }

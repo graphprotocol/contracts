@@ -5,13 +5,13 @@ pragma solidity ^0.7.6 || 0.8.27;
 interface IGraphProxy {
     function admin() external returns (address);
 
-    function setAdmin(address _newAdmin) external;
+    function setAdmin(address newAdmin) external;
 
     function implementation() external returns (address);
 
     function pendingImplementation() external returns (address);
 
-    function upgradeTo(address _newImplementation) external;
+    function upgradeTo(address newImplementation) external;
 
     function acceptUpgrade() external;
 

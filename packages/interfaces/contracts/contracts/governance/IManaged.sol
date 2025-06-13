@@ -12,9 +12,9 @@ interface IManaged {
     /**
      * @notice Set the controller that manages this contract
      * @dev Only the current controller can set a new controller
-     * @param _controller Address of the new controller
+     * @param controller Address of the new controller
      */
-    function setController(address _controller) external;
+    function setController(address controller) external;
 
     /**
      * @notice Sync protocol contract addresses from the Controller registry

@@ -30,8 +30,8 @@ interface IRewardsIssuer {
 
     /**
      * @notice Return the total amount of tokens allocated to subgraph.
-     * @param _subgraphDeploymentId Deployment Id for the subgraph
+     * @param subgraphDeploymentId Deployment Id for the subgraph
      * @return Total tokens allocated to subgraph
      */
-    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentId) external view returns (uint256);
+    function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentId) external view returns (uint256);
 }

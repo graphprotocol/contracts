@@ -124,116 +124,116 @@ interface IStakingBase is IStakingData {
 
     /**
      * @notice Initialize this contract.
-     * @param _controller Address of the controller that manages this contract
-     * @param _minimumIndexerStake Minimum amount of tokens that an indexer must stake
-     * @param _thawingPeriod Number of blocks that tokens get locked after unstaking
-     * @param _protocolPercentage Percentage of query fees that are burned as protocol fee (in PPM)
-     * @param _curationPercentage Percentage of query fees that are given to curators (in PPM)
-     * @param _maxAllocationEpochs The maximum number of epochs that an allocation can be active
-     * @param _delegationUnbondingPeriod The period in epochs that tokens get locked after undelegating
-     * @param _delegationRatio The ratio between an indexer's own stake and the delegation they can use
-     * @param _rebatesParameters Alpha and lambda parameters for rebates function
-     * @param _extensionImpl Address of the StakingExtension implementation
+     * @param controller Address of the controller that manages this contract
+     * @param minimumIndexerStake Minimum amount of tokens that an indexer must stake
+     * @param thawingPeriod Number of blocks that tokens get locked after unstaking
+     * @param protocolPercentage Percentage of query fees that are burned as protocol fee (in PPM)
+     * @param curationPercentage Percentage of query fees that are given to curators (in PPM)
+     * @param maxAllocationEpochs The maximum number of epochs that an allocation can be active
+     * @param delegationUnbondingPeriod The period in epochs that tokens get locked after undelegating
+     * @param delegationRatio The ratio between an indexer's own stake and the delegation they can use
+     * @param rebatesParameters Alpha and lambda parameters for rebates function
+     * @param extensionImpl Address of the StakingExtension implementation
      */
     function initialize(
-        address _controller,
-        uint256 _minimumIndexerStake,
-        uint32 _thawingPeriod,
-        uint32 _protocolPercentage,
-        uint32 _curationPercentage,
-        uint32 _maxAllocationEpochs,
-        uint32 _delegationUnbondingPeriod,
-        uint32 _delegationRatio,
-        RebatesParameters calldata _rebatesParameters,
-        address _extensionImpl
+        address controller,
+        uint256 minimumIndexerStake,
+        uint32 thawingPeriod,
+        uint32 protocolPercentage,
+        uint32 curationPercentage,
+        uint32 maxAllocationEpochs,
+        uint32 delegationUnbondingPeriod,
+        uint32 delegationRatio,
+        RebatesParameters calldata rebatesParameters,
+        address extensionImpl
     ) external;
 
     /**
      * @notice Set the address of the StakingExtension implementation.
      * @dev This function can only be called by the governor.
-     * @param _extensionImpl Address of the StakingExtension implementation
+     * @param extensionImpl Address of the StakingExtension implementation
      */
-    function setExtensionImpl(address _extensionImpl) external;
+    function setExtensionImpl(address extensionImpl) external;
 
     /**
      * @notice Set the address of the counterpart (L1 or L2) staking contract.
      * @dev This function can only be called by the governor.
-     * @param _counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
+     * @param counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
      */
-    function setCounterpartStakingAddress(address _counterpart) external;
+    function setCounterpartStakingAddress(address counterpart) external;
 
     /**
      * @notice Set the minimum stake needed to be an Indexer
      * @dev This function can only be called by the governor.
-     * @param _minimumIndexerStake Minimum amount of tokens that an indexer must stake
+     * @param minimumIndexerStake Minimum amount of tokens that an indexer must stake
      */
-    function setMinimumIndexerStake(uint256 _minimumIndexerStake) external;
+    function setMinimumIndexerStake(uint256 minimumIndexerStake) external;
 
     /**
      * @notice Set the number of blocks that tokens get locked after unstaking
      * @dev This function can only be called by the governor.
-     * @param _thawingPeriod Number of blocks that tokens get locked after unstaking
+     * @param thawingPeriod Number of blocks that tokens get locked after unstaking
      */
-    function setThawingPeriod(uint32 _thawingPeriod) external;
+    function setThawingPeriod(uint32 thawingPeriod) external;
 
     /**
      * @notice Set the curation percentage of query fees sent to curators.
      * @dev This function can only be called by the governor.
-     * @param _percentage Percentage of query fees sent to curators
+     * @param percentage Percentage of query fees sent to curators
      */
-    function setCurationPercentage(uint32 _percentage) external;
+    function setCurationPercentage(uint32 percentage) external;
 
     /**
      * @notice Set a protocol percentage to burn when collecting query fees.
      * @dev This function can only be called by the governor.
-     * @param _percentage Percentage of query fees to burn as protocol fee
+     * @param percentage Percentage of query fees to burn as protocol fee
      */
-    function setProtocolPercentage(uint32 _percentage) external;
+    function setProtocolPercentage(uint32 percentage) external;
 
     /**
      * @notice Set the max time allowed for indexers to allocate on a subgraph
      * before others are allowed to close the allocation.
      * @dev This function can only be called by the governor.
-     * @param _maxAllocationEpochs Allocation duration limit in epochs
+     * @param maxAllocationEpochs Allocation duration limit in epochs
      */
-    function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external;
+    function setMaxAllocationEpochs(uint32 maxAllocationEpochs) external;
 
     /**
      * @notice Set the rebate parameters
      * @dev This function can only be called by the governor.
-     * @param _alphaNumerator Numerator of `alpha`
-     * @param _alphaDenominator Denominator of `alpha`
-     * @param _lambdaNumerator Numerator of `lambda`
-     * @param _lambdaDenominator Denominator of `lambda`
+     * @param alphaNumerator Numerator of `alpha`
+     * @param alphaDenominator Denominator of `alpha`
+     * @param lambdaNumerator Numerator of `lambda`
+     * @param lambdaDenominator Denominator of `lambda`
      */
     function setRebateParameters(
-        uint32 _alphaNumerator,
-        uint32 _alphaDenominator,
-        uint32 _lambdaNumerator,
-        uint32 _lambdaDenominator
+        uint32 alphaNumerator,
+        uint32 alphaDenominator,
+        uint32 lambdaNumerator,
+        uint32 lambdaDenominator
     ) external;
 
     /**
      * @notice Authorize or unauthorize an address to be an operator for the caller.
-     * @param _operator Address to authorize or unauthorize
-     * @param _allowed Whether the operator is authorized or not
+     * @param operator Address to authorize or unauthorize
+     * @param allowed Whether the operator is authorized or not
      */
-    function setOperator(address _operator, bool _allowed) external;
+    function setOperator(address operator, bool allowed) external;
 
     /**
      * @notice Deposit tokens on the indexer's stake.
      * The amount staked must be over the minimumIndexerStake.
-     * @param _tokens Amount of tokens to stake
+     * @param tokens Amount of tokens to stake
      */
-    function stake(uint256 _tokens) external;
+    function stake(uint256 tokens) external;
 
     /**
      * @notice Deposit tokens on the Indexer stake, on behalf of the Indexer.
      * The amount staked must be over the minimumIndexerStake.
-     * @param _indexer Address of the indexer
-     * @param _tokens Amount of tokens to stake
+     * @param indexer Address of the indexer
+     * @param tokens Amount of tokens to stake
      */
-    function stakeTo(address _indexer, uint256 _tokens) external;
+    function stakeTo(address indexer, uint256 tokens) external;
 
     /**
      * @notice Unstake tokens from the indexer stake, lock them until the thawing period expires.
@@ -241,9 +241,9 @@ interface IStakingBase is IStakingData {
      * If that happens, it will try to unstake the max amount of tokens it can.
      * The reason for this behaviour is to avoid time conditions while the transaction
      * is in flight.
-     * @param _tokens Amount of tokens to unstake
+     * @param tokens Amount of tokens to unstake
      */
-    function unstake(uint256 _tokens) external;
+    function unstake(uint256 tokens) external;
 
     /**
      * @notice Withdraw indexer tokens once the thawing period has passed.
@@ -252,65 +252,65 @@ interface IStakingBase is IStakingData {
 
     /**
      * @notice Set the destination where to send rewards for an indexer.
-     * @param _destination Rewards destination address. If set to zero, rewards will be restaked
+     * @param destination Rewards destination address. If set to zero, rewards will be restaked
      */
-    function setRewardsDestination(address _destination) external;
+    function setRewardsDestination(address destination) external;
 
     /**
      * @notice Set the delegation parameters for the caller.
-     * @param _indexingRewardCut Percentage of indexing rewards left for the indexer
-     * @param _queryFeeCut Percentage of query fees left for the indexer
+     * @param indexingRewardCut Percentage of indexing rewards left for the indexer
+     * @param queryFeeCut Percentage of query fees left for the indexer
      */
     function setDelegationParameters(
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
-        uint32 // _cooldownBlocks, deprecated
+        uint32 indexingRewardCut,
+        uint32 queryFeeCut,
+        uint32 // cooldownBlocks, deprecated
     ) external;
 
     /**
      * @notice Allocate available tokens to a subgraph deployment.
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
-     * @param _tokens Amount of tokens to allocate
-     * @param _allocationID The allocation identifier
-     * @param _metadata IPFS hash for additional information about the allocation
-     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
+     * @param subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
+     * @param tokens Amount of tokens to allocate
+     * @param allocationID The allocation identifier
+     * @param metadata IPFS hash for additional information about the allocation
+     * @param proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
      */
     function allocate(
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
-        address _allocationID,
-        bytes32 _metadata,
-        bytes calldata _proof
+        bytes32 subgraphDeploymentID,
+        uint256 tokens,
+        address allocationID,
+        bytes32 metadata,
+        bytes calldata proof
     ) external;
 
     /**
      * @notice Allocate available tokens to a subgraph deployment from and indexer's stake.
      * The caller must be the indexer or the indexer's operator.
-     * @param _indexer Indexer address to allocate funds from.
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
-     * @param _tokens Amount of tokens to allocate
-     * @param _allocationID The allocation identifier
-     * @param _metadata IPFS hash for additional information about the allocation
-     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
+     * @param indexer Indexer address to allocate funds from.
+     * @param subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
+     * @param tokens Amount of tokens to allocate
+     * @param allocationID The allocation identifier
+     * @param metadata IPFS hash for additional information about the allocation
+     * @param proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
      */
     function allocateFrom(
-        address _indexer,
-        bytes32 _subgraphDeploymentID,
-        uint256 _tokens,
-        address _allocationID,
-        bytes32 _metadata,
-        bytes calldata _proof
+        address indexer,
+        bytes32 subgraphDeploymentID,
+        uint256 tokens,
+        address allocationID,
+        bytes32 metadata,
+        bytes calldata proof
     ) external;
 
     /**
      * @notice Close an allocation and free the staked tokens.
      * To be eligible for rewards a proof of indexing must be presented.
      * Presenting a bad proof is subject to slashable condition.
-     * To opt out of rewards set _poi to 0x0
-     * @param _allocationID The allocation identifier
-     * @param _poi Proof of indexing submitted for the allocated period
+     * To opt out of rewards set poi to 0x0
+     * @param allocationID The allocation identifier
+     * @param poi Proof of indexing submitted for the allocated period
      */
-    function closeAllocation(address _allocationID, bytes32 _poi) external;
+    function closeAllocation(address allocationID, bytes32 poi) external;
 
     /**
      * @notice Collect query fees from state channels and assign them to an allocation.
@@ -319,47 +319,47 @@ interface IStakingBase is IStakingData {
      * 1) Accept calls with zero tokens.
      * 2) Accept calls after an allocation passed the dispute period, in that case, all
      *    the received tokens are burned.
-     * @param _tokens Amount of tokens to collect
-     * @param _allocationID Allocation where the tokens will be assigned
+     * @param tokens Amount of tokens to collect
+     * @param allocationID Allocation where the tokens will be assigned
      */
-    function collect(uint256 _tokens, address _allocationID) external;
+    function collect(uint256 tokens, address allocationID) external;
 
     /**
      * @notice Return true if operator is allowed for indexer.
-     * @param _operator Address of the operator
-     * @param _indexer Address of the indexer
+     * @param operator Address of the operator
+     * @param indexer Address of the indexer
      * @return True if operator is allowed for indexer, false otherwise
      */
-    function isOperator(address _operator, address _indexer) external view returns (bool);
+    function isOperator(address operator, address indexer) external view returns (bool);
 
     /**
      * @notice Getter that returns if an indexer has any stake.
-     * @param _indexer Address of the indexer
+     * @param indexer Address of the indexer
      * @return True if indexer has staked tokens
      */
-    function hasStake(address _indexer) external view returns (bool);
+    function hasStake(address indexer) external view returns (bool);
 
     /**
      * @notice Get the total amount of tokens staked by the indexer.
-     * @param _indexer Address of the indexer
+     * @param indexer Address of the indexer
      * @return Amount of tokens staked by the indexer
      */
-    function getIndexerStakedTokens(address _indexer) external view returns (uint256);
+    function getIndexerStakedTokens(address indexer) external view returns (uint256);
 
     /**
      * @notice Get the total amount of tokens available to use in allocations.
      * This considers the indexer stake and delegated tokens according to delegation ratio
-     * @param _indexer Address of the indexer
+     * @param indexer Address of the indexer
      * @return Amount of tokens available to allocate including delegation
      */
-    function getIndexerCapacity(address _indexer) external view returns (uint256);
+    function getIndexerCapacity(address indexer) external view returns (uint256);
 
     /**
      * @notice Return the allocation by ID.
-     * @param _allocationID Address used as allocation identifier
+     * @param allocationID Address used as allocation identifier
      * @return Allocation data
      */
-    function getAllocation(address _allocationID) external view returns (Allocation memory);
+    function getAllocation(address allocationID) external view returns (Allocation memory);
 
     /**
      * @dev New function to get the allocation data for the rewards manager
@@ -367,7 +367,7 @@ interface IStakingBase is IStakingData {
      * this changes will never get deployed. HorizonStaking is taking it's place.
      */
     function getAllocationData(
-        address _allocationID
+        address allocationID
     ) external view returns (bool, address, bytes32, uint256, uint256, uint256);
 
     /**
@@ -375,26 +375,26 @@ interface IStakingBase is IStakingData {
      * @dev Note that this is only to make tests pass, as the staking contract with
      * this changes will never get deployed. HorizonStaking is taking it's place.
      */
-    function isActiveAllocation(address _allocationID) external view returns (bool);
+    function isActiveAllocation(address allocationID) external view returns (bool);
 
     /**
      * @notice Return the current state of an allocation
-     * @param _allocationID Allocation identifier
+     * @param allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
      */
-    function getAllocationState(address _allocationID) external view returns (AllocationState);
+    function getAllocationState(address allocationID) external view returns (AllocationState);
 
     /**
      * @notice Return if allocationID is used.
-     * @param _allocationID Address used as signer by the indexer for an allocation
+     * @param allocationID Address used as signer by the indexer for an allocation
      * @return True if allocationID already used
      */
-    function isAllocation(address _allocationID) external view returns (bool);
+    function isAllocation(address allocationID) external view returns (bool);
 
     /**
      * @notice Return the total amount of tokens allocated to subgraph.
-     * @param _subgraphDeploymentID Deployment ID for the subgraph
+     * @param subgraphDeploymentID Deployment ID for the subgraph
      * @return Total tokens allocated to subgraph
      */
-    function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);
+    function getSubgraphAllocatedTokens(bytes32 subgraphDeploymentID) external view returns (uint256);
 }

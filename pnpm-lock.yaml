@@ -850,12 +850,12 @@ importers:
       '@nomicfoundation/hardhat-toolbox':
         specifier: ^4.0.0
         version: 4.0.0(@nomicfoundation/hardhat-chai-matchers@2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(chai@4.5.0)(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-network-helpers@1.0.12(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-verify@2.0.13(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(@typechain/ethers-v6@0.5.1(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3))(@typechain/hardhat@9.1.0(@typechain/ethers-v6@0.5.1(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3))(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3)))(@types/chai@4.3.20)(@types/mocha@10.0.10)(@types/node@22.7.5)(chai@4.5.0)(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat-gas-reporter@1.0.10(bufferutil@4.0.9)(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))(solidity-coverage@0.8.16(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)))(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3)
-      '@openzeppelin/contracts-3.4.1':
-        specifier: npm:@openzeppelin/contracts@3.4.1
-        version: '@openzeppelin/contracts@3.4.1'
-      '@openzeppelin/contracts-upgradeable-3.4.2':
-        specifier: npm:@openzeppelin/contracts-upgradeable@3.4.2
-        version: '@openzeppelin/contracts-upgradeable@3.4.2'
+      '@openzeppelin/contracts':
+        specifier: 3.4.1
+        version: 3.4.1
+      '@openzeppelin/contracts-upgradeable':
+        specifier: 3.4.2
+        version: 3.4.2
       ethers:
         specifier: 6.13.7
         version: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -15477,7 +15477,7 @@ snapshots:
 
   '@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
-      debug: 4.4.1(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       ethers: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       hardhat: 2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)
       lodash.isequal: 4.5.0
@@ -15603,7 +15603,7 @@ snapshots:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/address': 5.8.0
       cbor: 8.1.0
-      debug: 4.4.1(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@9.4.0)
       hardhat: 2.24.2(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@22.7.5)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10)
       lodash.clonedeep: 4.5.0
       picocolors: 1.1.1
@@ -17277,14 +17277,6 @@ snapshots:
     dependencies:
       follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.2
-    transitivePeerDependencies:
-      - debug
-
-  axios@1.9.0:
-    dependencies:
-      follow-redirects: 1.15.9(debug@4.4.1)
-      form-data: 4.0.2
-      proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
 
@@ -19686,7 +19678,7 @@ snapshots:
   eth-gas-reporter@0.2.27(bufferutil@4.0.9)(utf-8-validate@5.0.10):
     dependencies:
       '@solidity-parser/parser': 0.14.5
-      axios: 1.9.0
+      axios: 1.9.0(debug@4.4.0)
       cli-table3: 0.5.1
       colors: 1.4.0
       ethereum-cryptography: 1.2.0
@@ -25616,7 +25608,7 @@ snapshots:
 
   solc-typed-ast@18.2.4(typescript@5.8.3)(zod@3.24.4):
     dependencies:
-      axios: 1.9.0
+      axios: 1.9.0(debug@4.4.0)
       commander: 12.1.0
       decimal.js: 10.5.0
       findup-sync: 5.0.0
@@ -25666,7 +25658,7 @@ snapshots:
     dependencies:
       command-exists: 1.2.9
       commander: 8.3.0
-      follow-redirects: 1.15.9(debug@4.4.1)
+      follow-redirects: 1.15.9(debug@4.4.0)
       js-sha3: 0.8.0
       memorystream: 0.3.1
       semver: 5.7.2
@@ -25790,7 +25782,7 @@ snapshots:
       pify: 4.0.1
       recursive-readdir: 2.2.3
       sc-istanbul: 0.4.6
-      semver: 7.7.2
+      semver: 7.7.1
       shelljs: 0.8.5
       web3-utils: 1.10.4
 

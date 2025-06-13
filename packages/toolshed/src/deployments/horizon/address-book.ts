@@ -41,11 +41,7 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
 
     if (contracts.HorizonStaking) {
       // add LegacyStaking alias using old IL2Staking abi
-      const contract = new Contract(
-        contracts.HorizonStaking.target,
-        getInterface('IL2Staking'),
-        signerOrProvider,
-      )
+      const contract = new Contract(contracts.HorizonStaking.target, getInterface('IL2Staking'), signerOrProvider)
       contracts.LegacyStaking = (enableTxLogging
         ? wrapTransactionCalls(contract, 'LegacyStaking')
         : contract) as unknown as LegacyStaking

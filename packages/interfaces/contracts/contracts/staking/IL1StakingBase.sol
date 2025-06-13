@@ -37,9 +37,9 @@ interface IL1StakingBase {
     /**
      * @notice Set the L1GraphTokenLockTransferTool contract address
      * @dev This function can only be called by the governor.
-     * @param _l1GraphTokenLockTransferTool Address of the L1GraphTokenLockTransferTool contract
+     * @param l1GraphTokenLockTransferTool Address of the L1GraphTokenLockTransferTool contract
      */
-    function setL1GraphTokenLockTransferTool(IL1GraphTokenLockTransferTool _l1GraphTokenLockTransferTool) external;
+    function setL1GraphTokenLockTransferTool(IL1GraphTokenLockTransferTool l1GraphTokenLockTransferTool) external;
 
     /**
      * @notice Send an indexer's stake to L2.
@@ -50,19 +50,19 @@ interface IL1StakingBase {
      * Since the indexer address might be an L1-only contract, the function takes a beneficiary
      * address that will be the indexer's address in L2.
      * The caller must provide an amount of ETH to use for the L2 retryable ticket, that
-     * must be at least `_maxSubmissionCost + _gasPriceBid * _maxGas`.
-     * @param _l2Beneficiary Address of the indexer in L2. If the indexer has previously transferred stake, this must match the previously-used value.
-     * @param _amount Amount of stake GRT to transfer to L2
-     * @param _maxGas Max gas to use for the L2 retryable ticket
-     * @param _gasPriceBid Gas price bid for the L2 retryable ticket
-     * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
+     * must be at least `maxSubmissionCost + gasPriceBid * maxGas`.
+     * @param l2Beneficiary Address of the indexer in L2. If the indexer has previously transferred stake, this must match the previously-used value.
+     * @param amount Amount of stake GRT to transfer to L2
+     * @param maxGas Max gas to use for the L2 retryable ticket
+     * @param gasPriceBid Gas price bid for the L2 retryable ticket
+     * @param maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
     function transferStakeToL2(
-        address _l2Beneficiary,
-        uint256 _amount,
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost
+        address l2Beneficiary,
+        uint256 amount,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        uint256 maxSubmissionCost
     ) external payable;
 
     /**
@@ -75,18 +75,18 @@ interface IL1StakingBase {
      * so the caller must have previously transferred tokens through that first
      * (see GIP-0046 for details: https://forum.thegraph.com/t/4023).
      * The ETH for the L2 gas will be pulled from the L1GraphTokenLockTransferTool, so the owner of
-     * the GraphTokenLockWallet must have previously deposited at least `_maxSubmissionCost + _gasPriceBid * _maxGas`
+     * the GraphTokenLockWallet must have previously deposited at least `maxSubmissionCost + gasPriceBid * maxGas`
      * ETH into the L1GraphTokenLockTransferTool contract (using its depositETH function).
-     * @param _amount Amount of stake GRT to transfer to L2
-     * @param _maxGas Max gas to use for the L2 retryable ticket
-     * @param _gasPriceBid Gas price bid for the L2 retryable ticket
-     * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
+     * @param amount Amount of stake GRT to transfer to L2
+     * @param maxGas Max gas to use for the L2 retryable ticket
+     * @param gasPriceBid Gas price bid for the L2 retryable ticket
+     * @param maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
     function transferLockedStakeToL2(
-        uint256 _amount,
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost
+        uint256 amount,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        uint256 maxSubmissionCost
     ) external;
 
     /**
@@ -97,19 +97,19 @@ interface IL1StakingBase {
      * Since the delegator's address might be an L1-only contract, the function takes a beneficiary
      * address that will be the delegator's address in L2.
      * The caller must provide an amount of ETH to use for the L2 retryable ticket, that
-     * must be at least `_maxSubmissionCost + _gasPriceBid * _maxGas`.
-     * @param _indexer Address of the indexer (in L1, before transferring to L2)
-     * @param _l2Beneficiary Address of the delegator in L2
-     * @param _maxGas Max gas to use for the L2 retryable ticket
-     * @param _gasPriceBid Gas price bid for the L2 retryable ticket
-     * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
+     * must be at least `maxSubmissionCost + gasPriceBid * maxGas`.
+     * @param indexer Address of the indexer (in L1, before transferring to L2)
+     * @param l2Beneficiary Address of the delegator in L2
+     * @param maxGas Max gas to use for the L2 retryable ticket
+     * @param gasPriceBid Gas price bid for the L2 retryable ticket
+     * @param maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
     function transferDelegationToL2(
-        address _indexer,
-        address _l2Beneficiary,
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost
+        address indexer,
+        address l2Beneficiary,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        uint256 maxSubmissionCost
     ) external payable;
 
     /**
@@ -121,18 +121,18 @@ interface IL1StakingBase {
      * so the caller must have previously transferred tokens through that first
      * (see GIP-0046 for details: https://forum.thegraph.com/t/4023).
      * The ETH for the L2 gas will be pulled from the L1GraphTokenLockTransferTool, so the owner of
-     * the GraphTokenLockWallet must have previously deposited at least `_maxSubmissionCost + _gasPriceBid * _maxGas`
+     * the GraphTokenLockWallet must have previously deposited at least `maxSubmissionCost + gasPriceBid * maxGas`
      * ETH into the L1GraphTokenLockTransferTool contract (using its depositETH function).
-     * @param _indexer Address of the indexer (in L1, before transferring to L2)
-     * @param _maxGas Max gas to use for the L2 retryable ticket
-     * @param _gasPriceBid Gas price bid for the L2 retryable ticket
-     * @param _maxSubmissionCost Max submission cost for the L2 retryable ticket
+     * @param indexer Address of the indexer (in L1, before transferring to L2)
+     * @param maxGas Max gas to use for the L2 retryable ticket
+     * @param gasPriceBid Gas price bid for the L2 retryable ticket
+     * @param maxSubmissionCost Max submission cost for the L2 retryable ticket
      */
     function transferLockedDelegationToL2(
-        address _indexer,
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost
+        address indexer,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        uint256 maxSubmissionCost
     ) external;
 
     /**
@@ -142,7 +142,7 @@ interface IL1StakingBase {
      * and that the indexer has no remaining stake in L1.
      * The tokens must previously be locked for undelegation by calling `undelegate()`,
      * and can be withdrawn with `withdrawDelegated()` immediately after calling this.
-     * @param _indexer Address of the indexer (in L1, before transferring to L2)
+     * @param indexer Address of the indexer (in L1, before transferring to L2)
      */
-    function unlockDelegationToTransferredIndexer(address _indexer) external;
+    function unlockDelegationToTransferredIndexer(address indexer) external;
 }

@@ -15,13 +15,31 @@ interface IL2GraphToken is IGraphToken {
     function l1Address() external view returns (address);
 
     // Functions
-    function initialize(address _owner) external;
+    function initialize(address owner) external;
 
-    function setGateway(address _gw) external;
+    /**
+     * @notice Set the gateway address.
+     * @param gw Address of the gateway
+     */
+    function setGateway(address gw) external;
 
-    function setL1Address(address _addr) external;
+    /**
+     * @notice Set the L1 address.
+     * @param addr Address of the L1 contract
+     */
+    function setL1Address(address addr) external;
 
-    function bridgeMint(address _account, uint256 _amount) external;
+    /**
+     * @notice Mint tokens for a bridge transfer.
+     * @param account Address to mint tokens to
+     * @param amount Amount of tokens to mint
+     */
+    function bridgeMint(address account, uint256 amount) external;
 
-    function bridgeBurn(address _account, uint256 _amount) external;
+    /**
+     * @notice Burn tokens for a bridge transfer.
+     * @param account Address to burn tokens from
+     * @param amount Amount of tokens to burn
+     */
+    function bridgeBurn(address account, uint256 amount) external;
 }

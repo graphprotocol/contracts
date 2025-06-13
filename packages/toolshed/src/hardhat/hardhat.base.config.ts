@@ -15,10 +15,10 @@ interface SecureAccountsOptions {
 type GraphRuntimeEnvironmentOptions = {
   deployments?: {
     [deployment in 'horizon' | 'subgraphService']?:
-    | string
-    | {
-      addressBook: string
-    }
+      | string
+      | {
+          addressBook: string
+        }
   }
 }
 
@@ -96,7 +96,11 @@ export const networksUserConfig = function (callerRequire: typeof require): Base
       url: LOCAL_NETWORK_RPC,
       deployments: {
         horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-local-network.json'),
-        subgraphService: resolveAddressBook(callerRequire, '@graphprotocol/subgraph-service', 'addresses-local-network.json'),
+        subgraphService: resolveAddressBook(
+          callerRequire,
+          '@graphprotocol/subgraph-service',
+          'addresses-local-network.json',
+        ),
       },
     },
     localhost: {
@@ -107,7 +111,11 @@ export const networksUserConfig = function (callerRequire: typeof require): Base
       },
       deployments: {
         horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-localhost.json'),
-        subgraphService: resolveAddressBook(callerRequire, '@graphprotocol/subgraph-service', 'addresses-localhost.json'),
+        subgraphService: resolveAddressBook(
+          callerRequire,
+          '@graphprotocol/subgraph-service',
+          'addresses-localhost.json',
+        ),
       },
     },
     arbitrumOne: {
@@ -122,7 +130,7 @@ export const networksUserConfig = function (callerRequire: typeof require): Base
       url: ARBITRUM_SEPOLIA_RPC,
       secureAccounts: {
         enabled: true,
-      }
+      },
     },
   }
 }

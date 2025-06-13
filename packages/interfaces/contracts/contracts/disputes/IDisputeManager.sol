@@ -51,41 +51,41 @@ interface IDisputeManager {
 
     // -- Configuration --
 
-    function setArbitrator(address _arbitrator) external;
+    function setArbitrator(address arbitrator) external;
 
-    function setMinimumDeposit(uint256 _minimumDeposit) external;
+    function setMinimumDeposit(uint256 minimumDeposit) external;
 
-    function setFishermanRewardPercentage(uint32 _percentage) external;
+    function setFishermanRewardPercentage(uint32 percentage) external;
 
-    function setSlashingPercentage(uint32 _qryPercentage, uint32 _idxPercentage) external;
+    function setSlashingPercentage(uint32 qryPercentage, uint32 idxPercentage) external;
 
     // -- Getters --
 
-    function isDisputeCreated(bytes32 _disputeID) external view returns (bool);
+    function isDisputeCreated(bytes32 disputeID) external view returns (bool);
 
-    function encodeHashReceipt(Receipt memory _receipt) external view returns (bytes32);
+    function encodeHashReceipt(Receipt memory receipt) external view returns (bytes32);
 
     function areConflictingAttestations(
-        Attestation memory _attestation1,
-        Attestation memory _attestation2
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) external pure returns (bool);
 
-    function getAttestationIndexer(Attestation memory _attestation) external view returns (address);
+    function getAttestationIndexer(Attestation memory attestation) external view returns (address);
 
     // -- Dispute --
 
-    function createQueryDispute(bytes calldata _attestationData, uint256 _deposit) external returns (bytes32);
+    function createQueryDispute(bytes calldata attestationData, uint256 deposit) external returns (bytes32);
 
     function createQueryDisputeConflict(
-        bytes calldata _attestationData1,
-        bytes calldata _attestationData2
+        bytes calldata attestationData1,
+        bytes calldata attestationData2
     ) external returns (bytes32, bytes32);
 
-    function createIndexingDispute(address _allocationID, uint256 _deposit) external returns (bytes32);
+    function createIndexingDispute(address allocationID, uint256 deposit) external returns (bytes32);
 
-    function acceptDispute(bytes32 _disputeID) external;
+    function acceptDispute(bytes32 disputeID) external;
 
-    function rejectDispute(bytes32 _disputeID) external;
+    function rejectDispute(bytes32 disputeID) external;
 
-    function drawDispute(bytes32 _disputeID) external;
+    function drawDispute(bytes32 disputeID) external;
 }

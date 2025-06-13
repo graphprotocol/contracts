@@ -11,9 +11,9 @@ pragma solidity ^0.7.6 || 0.8.27;
 interface ICallhookReceiver {
     /**
      * @notice Receive tokens with a callhook from the bridge
-     * @param _from Token sender in L1
-     * @param _amount Amount of tokens that were transferred
-     * @param _data ABI-encoded callhook data
+     * @param from Token sender in L1
+     * @param amount Amount of tokens that were transferred
+     * @param data ABI-encoded callhook data
      */
-    function onTokenTransfer(address _from, uint256 _amount, bytes calldata _data) external;
+    function onTokenTransfer(address from, uint256 amount, bytes calldata data) external;
 }

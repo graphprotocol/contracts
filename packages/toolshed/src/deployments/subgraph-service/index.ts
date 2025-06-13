@@ -24,9 +24,6 @@ export function connectSubgraphService(chainId: number, signerOrProvider: Signer
   if (!addressBookPath) {
     throw new Error('Address book path not found')
   }
-  const addressBook = new SubgraphServiceAddressBook(
-    addressBookPath,
-    chainId,
-  )
+  const addressBook = new SubgraphServiceAddressBook(addressBookPath, chainId)
   return addressBook.loadContracts(signerOrProvider, false)
 }

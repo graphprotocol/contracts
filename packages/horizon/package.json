@@ -20,10 +20,11 @@
     "addresses.json"
   ],
   "scripts": {
-    "lint": "pnpm lint:ts && pnpm lint:sol",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:json",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --config ../../.solhint.json --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
-    "lint:sol:natspec": "natspec-smells --config natspec-smells.config.js",
+    "lint:natspec": "natspec-smells --config natspec-smells.config.js",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "hardhat compile",
     "test": "forge test",

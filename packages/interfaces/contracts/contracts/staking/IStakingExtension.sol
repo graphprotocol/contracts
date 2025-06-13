@@ -67,88 +67,88 @@ interface IStakingExtension is IStakingData {
      * If set to 10 it means the indexer can use up to 10x the indexer staked amount
      * from their delegated tokens
      * @dev This function is only callable by the governor
-     * @param _delegationRatio Delegation capacity multiplier
+     * @param delegationRatio Delegation capacity multiplier
      */
-    function setDelegationRatio(uint32 _delegationRatio) external;
+    function setDelegationRatio(uint32 delegationRatio) external;
 
     /**
      * @notice Set the time, in epochs, a Delegator needs to wait to withdraw tokens after undelegating.
      * @dev This function is only callable by the governor
-     * @param _delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
+     * @param delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
      */
-    function setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) external;
+    function setDelegationUnbondingPeriod(uint32 delegationUnbondingPeriod) external;
 
     /**
      * @notice Set a delegation tax percentage to burn when delegated funds are deposited.
      * @dev This function is only callable by the governor
-     * @param _percentage Percentage of delegated tokens to burn as delegation tax, expressed in parts per million
+     * @param percentage Percentage of delegated tokens to burn as delegation tax, expressed in parts per million
      */
-    function setDelegationTaxPercentage(uint32 _percentage) external;
+    function setDelegationTaxPercentage(uint32 percentage) external;
 
     /**
      * @notice Set or unset an address as allowed slasher.
      * @dev This function can only be called by the governor.
-     * @param _slasher Address of the party allowed to slash indexers
-     * @param _allowed True if slasher is allowed
+     * @param slasher Address of the party allowed to slash indexers
+     * @param allowed True if slasher is allowed
      */
-    function setSlasher(address _slasher, bool _allowed) external;
+    function setSlasher(address slasher, bool allowed) external;
 
     /**
      * @notice Delegate tokens to an indexer.
-     * @param _indexer Address of the indexer to which tokens are delegated
-     * @param _tokens Amount of tokens to delegate
+     * @param indexer Address of the indexer to which tokens are delegated
+     * @param tokens Amount of tokens to delegate
      * @return Amount of shares issued from the delegation pool
      */
-    function delegate(address _indexer, uint256 _tokens) external returns (uint256);
+    function delegate(address indexer, uint256 tokens) external returns (uint256);
 
     /**
      * @notice Undelegate tokens from an indexer. Tokens will be locked for the unbonding period.
-     * @param _indexer Address of the indexer to which tokens had been delegated
-     * @param _shares Amount of shares to return and undelegate tokens
+     * @param indexer Address of the indexer to which tokens had been delegated
+     * @param shares Amount of shares to return and undelegate tokens
      * @return Amount of tokens returned for the shares of the delegation pool
      */
-    function undelegate(address _indexer, uint256 _shares) external returns (uint256);
+    function undelegate(address indexer, uint256 shares) external returns (uint256);
 
     /**
      * @notice Withdraw undelegated tokens once the unbonding period has passed, and optionally
      * re-delegate to a new indexer.
-     * @param _indexer Withdraw available tokens delegated to indexer
-     * @param _newIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
+     * @param indexer Withdraw available tokens delegated to indexer
+     * @param newIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
      */
-    function withdrawDelegated(address _indexer, address _newIndexer) external returns (uint256);
+    function withdrawDelegated(address indexer, address newIndexer) external returns (uint256);
 
     /**
      * @notice Slash the indexer stake. Delegated tokens are not subject to slashing.
      * @dev Can only be called by the slasher role.
-     * @param _indexer Address of indexer to slash
-     * @param _tokens Amount of tokens to slash from the indexer stake
-     * @param _reward Amount of reward tokens to send to a beneficiary
-     * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
+     * @param indexer Address of indexer to slash
+     * @param tokens Amount of tokens to slash from the indexer stake
+     * @param reward Amount of reward tokens to send to a beneficiary
+     * @param beneficiary Address of a beneficiary to receive a reward for the slashing
      */
-    function slash(address _indexer, uint256 _tokens, uint256 _reward, address _beneficiary) external;
+    function slash(address indexer, uint256 tokens, uint256 reward, address beneficiary) external;
 
     /**
      * @notice Return the delegation from a delegator to an indexer.
-     * @param _indexer Address of the indexer where funds have been delegated
-     * @param _delegator Address of the delegator
+     * @param indexer Address of the indexer where funds have been delegated
+     * @param delegator Address of the delegator
      * @return Delegation data
      */
-    function getDelegation(address _indexer, address _delegator) external view returns (Delegation memory);
+    function getDelegation(address indexer, address delegator) external view returns (Delegation memory);
 
     /**
      * @notice Return whether the delegator has delegated to the indexer.
-     * @param _indexer Address of the indexer where funds have been delegated
-     * @param _delegator Address of the delegator
+     * @param indexer Address of the indexer where funds have been delegated
+     * @param delegator Address of the delegator
      * @return True if delegator has tokens delegated to the indexer
      */
-    function isDelegator(address _indexer, address _delegator) external view returns (bool);
+    function isDelegator(address indexer, address delegator) external view returns (bool);
 
     /**
      * @notice Returns amount of delegated tokens ready to be withdrawn after unbonding period.
-     * @param _delegation Delegation of tokens from delegator to indexer
+     * @param delegation Delegation of tokens from delegator to indexer
      * @return Amount of tokens to withdraw
      */
-    function getWithdraweableDelegatedTokens(Delegation memory _delegation) external view returns (uint256);
+    function getWithdraweableDelegatedTokens(Delegation memory delegation) external view returns (uint256);
 
     /**
      * @notice Getter for the delegationRatio, i.e. the delegation capacity multiplier:
@@ -175,43 +175,43 @@ interface IStakingExtension is IStakingData {
     /**
      * @notice Getter for delegationPools[_indexer]:
      * gets the delegation pool structure for a particular indexer.
-     * @param _indexer Address of the indexer for which to query the delegation pool
+     * @param indexer Address of the indexer for which to query the delegation pool
      * @return Delegation pool as a DelegationPoolReturn struct
      */
-    function delegationPools(address _indexer) external view returns (DelegationPoolReturn memory);
+    function delegationPools(address indexer) external view returns (DelegationPoolReturn memory);
 
     /**
      * @notice Getter for operatorAuth[_indexer][_maybeOperator]:
      * returns true if the operator is authorized to operate on behalf of the indexer.
-     * @param _indexer The indexer address for which to query authorization
-     * @param _maybeOperator The address that may or may not be an operator
+     * @param indexer The indexer address for which to query authorization
+     * @param maybeOperator The address that may or may not be an operator
      * @return True if the operator is authorized to operate on behalf of the indexer
      */
-    function operatorAuth(address _indexer, address _maybeOperator) external view returns (bool);
+    function operatorAuth(address indexer, address maybeOperator) external view returns (bool);
 
     /**
      * @notice Getter for rewardsDestination[_indexer]:
      * returns the address where the indexer's rewards are sent.
-     * @param _indexer The indexer address for which to query the rewards destination
+     * @param indexer The indexer address for which to query the rewards destination
      * @return The address where the indexer's rewards are sent, zero if none is set in which case rewards are re-staked
      */
-    function rewardsDestination(address _indexer) external view returns (address);
+    function rewardsDestination(address indexer) external view returns (address);
 
     /**
      * @notice Getter for subgraphAllocations[_subgraphDeploymentId]:
      * returns the amount of tokens allocated to a subgraph deployment.
-     * @param _subgraphDeploymentId The subgraph deployment for which to query the allocations
+     * @param subgraphDeploymentId The subgraph deployment for which to query the allocations
      * @return The amount of tokens allocated to the subgraph deployment
      */
-    function subgraphAllocations(bytes32 _subgraphDeploymentId) external view returns (uint256);
+    function subgraphAllocations(bytes32 subgraphDeploymentId) external view returns (uint256);
 
     /**
      * @notice Getter for slashers[_maybeSlasher]:
      * returns true if the address is a slasher, i.e. an entity that can slash indexers
-     * @param _maybeSlasher Address for which to check the slasher role
+     * @param maybeSlasher Address for which to check the slasher role
      * @return True if the address is a slasher
      */
-    function slashers(address _maybeSlasher) external view returns (bool);
+    function slashers(address maybeSlasher) external view returns (bool);
 
     /**
      * @notice Getter for minimumIndexerStake: the minimum
@@ -277,16 +277,16 @@ interface IStakingExtension is IStakingData {
     /**
      * @notice Getter for stakes[_indexer]:
      * gets the stake information for an indexer as a IStakes.Indexer struct.
-     * @param _indexer Indexer address for which to query the stake information
+     * @param indexer Indexer address for which to query the stake information
      * @return Stake information for the specified indexer, as a IStakes.Indexer struct
      */
-    function stakes(address _indexer) external view returns (IStakes.Indexer memory);
+    function stakes(address indexer) external view returns (IStakes.Indexer memory);
 
     /**
      * @notice Getter for allocations[_allocationID]:
      * gets an allocation's information as an IStakingData.Allocation struct.
-     * @param _allocationID Allocation ID for which to query the allocation information
+     * @param allocationID Allocation ID for which to query the allocation information
      * @return The specified allocation, as an IStakingData.Allocation struct
      */
-    function allocations(address _allocationID) external view returns (IStakingData.Allocation memory);
+    function allocations(address allocationID) external view returns (IStakingData.Allocation memory);
 }

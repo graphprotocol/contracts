@@ -176,10 +176,7 @@ export abstract class AddressBook<ChainId extends number = number, ContractName 
    * @param enableTxLogging Enable transaction logging to console and output file. Defaults to false.
    * @returns the loaded contracts
    */
-  _loadContracts(
-    signerOrProvider?: Signer | Provider,
-    enableTxLogging?: boolean,
-  ): ContractList<ContractName> {
+  _loadContracts(signerOrProvider?: Signer | Provider, enableTxLogging?: boolean): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     if (this.listEntries().length == 0) {
       logError('No valid contracts found in address book')

@@ -7,21 +7,21 @@ interface IController {
 
     // -- Registry --
 
-    function setContractProxy(bytes32 _id, address _contractAddress) external;
+    function setContractProxy(bytes32 id, address contractAddress) external;
 
-    function unsetContractProxy(bytes32 _id) external;
+    function unsetContractProxy(bytes32 id) external;
 
-    function updateController(bytes32 _id, address _controller) external;
+    function updateController(bytes32 id, address controller) external;
 
-    function getContractProxy(bytes32 _id) external view returns (address);
+    function getContractProxy(bytes32 id) external view returns (address);
 
     // -- Pausing --
 
-    function setPartialPaused(bool _partialPaused) external;
+    function setPartialPaused(bool partialPaused) external;
 
-    function setPaused(bool _paused) external;
+    function setPaused(bool paused) external;
 
-    function setPauseGuardian(address _newPauseGuardian) external;
+    function setPauseGuardian(address newPauseGuardian) external;
 
     function paused() external view returns (bool);
 

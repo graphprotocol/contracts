@@ -15,19 +15,19 @@ interface IRewardsManager {
 
     // -- Config --
 
-    function setIssuancePerBlock(uint256 _issuancePerBlock) external;
+    function setIssuancePerBlock(uint256 issuancePerBlock) external;
 
-    function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external;
+    function setMinimumSubgraphSignal(uint256 minimumSubgraphSignal) external;
 
-    function setSubgraphService(address _subgraphService) external;
+    function setSubgraphService(address subgraphService) external;
 
     // -- Denylist --
 
-    function setSubgraphAvailabilityOracle(address _subgraphAvailabilityOracle) external;
+    function setSubgraphAvailabilityOracle(address subgraphAvailabilityOracle) external;
 
-    function setDenied(bytes32 _subgraphDeploymentID, bool _deny) external;
+    function setDenied(bytes32 subgraphDeploymentID, bool deny) external;
 
-    function isDenied(bytes32 _subgraphDeploymentID) external view returns (bool);
+    function isDenied(bytes32 subgraphDeploymentID) external view returns (bool);
 
     // -- Getters --
 
@@ -35,23 +35,23 @@ interface IRewardsManager {
 
     function getAccRewardsPerSignal() external view returns (uint256);
 
-    function getAccRewardsForSubgraph(bytes32 _subgraphDeploymentID) external view returns (uint256);
+    function getAccRewardsForSubgraph(bytes32 subgraphDeploymentID) external view returns (uint256);
 
-    function getAccRewardsPerAllocatedToken(bytes32 _subgraphDeploymentID) external view returns (uint256, uint256);
+    function getAccRewardsPerAllocatedToken(bytes32 subgraphDeploymentID) external view returns (uint256, uint256);
 
-    function getRewards(address _rewardsIssuer, address _allocationID) external view returns (uint256);
+    function getRewards(address rewardsIssuer, address allocationID) external view returns (uint256);
 
-    function calcRewards(uint256 _tokens, uint256 _accRewardsPerAllocatedToken) external pure returns (uint256);
+    function calcRewards(uint256 tokens, uint256 accRewardsPerAllocatedToken) external pure returns (uint256);
 
     // -- Updates --
 
     function updateAccRewardsPerSignal() external returns (uint256);
 
-    function takeRewards(address _allocationID) external returns (uint256);
+    function takeRewards(address allocationID) external returns (uint256);
 
     // -- Hooks --
 
-    function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID) external returns (uint256);
+    function onSubgraphSignalUpdate(bytes32 subgraphDeploymentID) external returns (uint256);
 
-    function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) external returns (uint256);
+    function onSubgraphAllocationUpdate(bytes32 subgraphDeploymentID) external returns (uint256);
 }
