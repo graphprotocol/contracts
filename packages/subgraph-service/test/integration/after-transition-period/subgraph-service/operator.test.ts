@@ -1,4 +1,11 @@
-import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
+import {
+  DisputeManager,
+  GraphTallyCollector,
+  HorizonStaking,
+  L2GraphToken,
+  PaymentsEscrow,
+  SubgraphService,
+} from '@graphprotocol/interfaces'
 import {
   encodeCollectIndexingRewardsData,
   encodeCollectQueryFeesData,
@@ -18,13 +25,12 @@ import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
-import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
 
 describe('Operator', () => {
   let subgraphService: SubgraphService
   let staking: HorizonStaking
-  let graphToken: IGraphToken
-  let escrow: IPaymentsEscrow
+  let graphToken: L2GraphToken
+  let escrow: PaymentsEscrow
   let disputeManager: DisputeManager
   let graphTallyCollector: GraphTallyCollector
 

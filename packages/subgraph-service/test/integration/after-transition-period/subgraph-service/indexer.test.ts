@@ -1,5 +1,12 @@
-import { GraphPayments, GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
-import { delegators } from '@graphprotocol/horizon/tasks/test/fixtures/delegators'
+import { delegators } from '@graphprotocol/horizon/tasks/test/fixtures/delegators.js'
+import {
+  GraphPayments,
+  GraphTallyCollector,
+  HorizonStaking,
+  L2GraphToken,
+  PaymentsEscrow,
+  SubgraphService,
+} from '@graphprotocol/interfaces'
 import {
   encodeCollectIndexingRewardsData,
   encodeCollectQueryFeesData,
@@ -19,13 +26,12 @@ import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
 import { Indexer, indexers } from '../../../../tasks/test/fixtures/indexers'
-import { IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
 
 describe('Indexer', () => {
-  let escrow: IPaymentsEscrow
+  let escrow: PaymentsEscrow
   let graphPayments: GraphPayments
   let graphTallyCollector: GraphTallyCollector
-  let graphToken: IGraphToken
+  let graphToken: L2GraphToken
   let staking: HorizonStaking
   let subgraphService: SubgraphService
 

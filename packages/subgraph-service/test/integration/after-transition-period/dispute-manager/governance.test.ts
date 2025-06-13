@@ -1,9 +1,8 @@
+import { DisputeManager } from '@graphprotocol/interfaces'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
-
-import { DisputeManager } from '../../../../typechain-types'
 
 describe('DisputeManager Governance', () => {
   let disputeManager: DisputeManager

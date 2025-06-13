@@ -2,7 +2,8 @@ import { ContractRunner, Interface } from 'ethers'
 
 import { factories } from '../types'
 
-export * from '../types'
+export * from './types/horizon'
+export * from './types/subgraph-service'
 
 /**
  * Interface representing a static contract factory with methods to create interfaces and connect to contracts
@@ -150,12 +151,16 @@ export function collectFactoriesMap(obj: unknown): Record<string, ContractFactor
 function getContractNameAlternatives(contractName: string): string[] {
   const nameOverrides: Record<string, string> = {
     Controller: 'ControllerToolshed',
+    DisputeManager: 'DisputeManagerToolshed',
     EpochManager: 'EpochManagerToolshed',
     GNS: 'GNSToolshed',
+    GraphTallyCollector: 'GraphTallyCollectorToolshed',
     HorizonStaking: 'HorizonStakingToolshed',
     L2Curation: 'L2CurationToolshed',
+    PaymentsEscrow: 'PaymentsEscrowToolshed',
     RewardsManager: 'RewardsManagerToolshed',
     ServiceRegistry: 'ServiceRegistryToolshed',
+    SubgraphService: 'SubgraphServiceToolshed',
   }
 
   if (nameOverrides[contractName]) {

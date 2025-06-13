@@ -7,7 +7,6 @@ import { GraphHorizonAddressBook } from './address-book'
 
 export { GraphHorizonAddressBook } from './address-book'
 export type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
-export * from './types'
 
 export function loadGraphHorizon(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)

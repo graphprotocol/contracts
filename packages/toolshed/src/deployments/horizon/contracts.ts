@@ -1,4 +1,3 @@
-import type { ContractList } from '../contract'
 import type {
   Controller,
   EpochManager,
@@ -13,7 +12,9 @@ import type {
   PaymentsEscrow,
   RewardsManager,
   SubgraphNFT,
-} from './types'
+} from '@graphprotocol/interfaces'
+
+import type { ContractList } from '../contract'
 
 export const GraphHorizonContractNameList = [
   // @graphprotocol/contracts

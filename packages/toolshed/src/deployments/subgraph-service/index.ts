@@ -7,7 +7,6 @@ import { SubgraphServiceAddressBook } from './address-book'
 
 export { SubgraphServiceAddressBook }
 export type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
-export * from './types'
 
 export function loadSubgraphService(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new SubgraphServiceAddressBook(addressBookPath, chainId)

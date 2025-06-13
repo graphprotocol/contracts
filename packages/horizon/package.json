@@ -11,7 +11,8 @@
   "exports": {
     "./artifacts/*": "./build/contracts/*",
     "./addresses*": "./addresses*",
-    "./ignition": "./ignition/modules/index.ts"
+    "./ignition": "./ignition/modules/index.ts",
+    "./tasks/*": "./tasks/*"
   },
   "files": [
     "build/contracts/**/*",

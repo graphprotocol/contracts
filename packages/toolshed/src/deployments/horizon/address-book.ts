@@ -1,3 +1,4 @@
+import type { LegacyStaking } from '@graphprotocol/interfaces'
 import { getInterface } from '@graphprotocol/interfaces'
 import { Provider, Signer } from 'ethers'
 import { Contract } from 'ethers'
@@ -8,7 +9,6 @@ import { AddressBook } from '../address-book'
 import { wrapTransactionCalls } from '../tx-logging'
 import type { GraphHorizonContractName, GraphHorizonContracts } from './contracts'
 import { GraphHorizonContractNameList } from './contracts'
-import type { LegacyStaking } from './types'
 
 export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonContractName> {
   isContractName(name: unknown): name is GraphHorizonContractName {

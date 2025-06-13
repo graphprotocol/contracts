@@ -1,10 +1,9 @@
-import { HorizonStaking } from '@graphprotocol/horizon'
+import { HorizonStaking, L2GraphToken, LegacyDisputeManager } from '@graphprotocol/interfaces'
 import {
   generateAttestationData,
   generateLegacyIndexingDisputeId,
   generateLegacyQueryDisputeId,
 } from '@graphprotocol/toolshed'
-import type { LegacyDisputeManager } from '@graphprotocol/toolshed/deployments'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -12,11 +11,10 @@ import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
-import { IGraphToken } from '../../../typechain-types'
 
 describe('Legacy Dispute Manager', () => {
   let legacyDisputeManager: LegacyDisputeManager
-  let graphToken: IGraphToken
+  let graphToken: L2GraphToken
   let staking: HorizonStaking
 
   let snapshotId: string

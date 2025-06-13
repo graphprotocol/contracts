@@ -1,9 +1,8 @@
+import { SubgraphService } from '@graphprotocol/interfaces'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
-
-import { SubgraphService } from '../../../../typechain-types'
 
 describe('Subgraph Service Governance', () => {
   let subgraphService: SubgraphService

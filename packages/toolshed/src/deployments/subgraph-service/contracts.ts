@@ -1,4 +1,3 @@
-import type { ContractList } from '../contract'
 import type {
   DisputeManager,
   L2Curation,
@@ -7,7 +6,9 @@ import type {
   LegacyServiceRegistry,
   SubgraphNFT,
   SubgraphService,
-} from './types'
+} from '@graphprotocol/interfaces'
+
+import type { ContractList } from '../contract'
 
 export const SubgraphServiceContractNameList = [
   // @graphprotocol/contracts

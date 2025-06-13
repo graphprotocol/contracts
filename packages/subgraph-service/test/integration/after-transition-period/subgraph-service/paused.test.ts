@@ -1,3 +1,4 @@
+import { DisputeManager, L2GraphToken, SubgraphService } from '@graphprotocol/interfaces'
 import {
   encodeCollectIndexingRewardsData,
   encodePOIMetadata,
@@ -14,11 +15,10 @@ import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
-import { DisputeManager, IGraphToken, SubgraphService } from '../../../../typechain-types'
 
 describe('Paused Protocol', () => {
   let disputeManager: DisputeManager
-  let graphToken: IGraphToken
+  let graphToken: L2GraphToken
   let subgraphService: SubgraphService
 
   let snapshotId: string
