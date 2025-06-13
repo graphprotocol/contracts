@@ -1,4 +1,4 @@
-import { getInterface, getMergedInterface } from '@graphprotocol/interfaces'
+import { getInterface } from '@graphprotocol/interfaces'
 import { Provider, Signer } from 'ethers'
 import { Contract } from 'ethers'
 
@@ -19,18 +19,6 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
     logDebug('Loading Graph Horizon contracts...')
 
     const contracts = this._loadContracts(signerOrProvider, enableTxLogging)
-
-    // rewire HorizonStaking to include HorizonStakingExtension abi
-    if (contracts.HorizonStaking) {
-      const stakingOverride = new Contract(
-        this.getEntry('HorizonStaking').address,
-        getMergedInterface(['HorizonStaking', 'HorizonStakingExtension']),
-        signerOrProvider,
-      )
-      contracts.HorizonStaking = enableTxLogging
-        ? wrapTransactionCalls(stakingOverride, 'HorizonStaking')
-        : stakingOverride
-    }
 
     this._assertGraphHorizonContracts(contracts)
 

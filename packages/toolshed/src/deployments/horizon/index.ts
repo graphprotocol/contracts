@@ -11,7 +11,7 @@ export * from './types'
 
 export function loadGraphHorizon(addressBookPath: string, chainId: number, provider: HardhatEthersProvider) {
   const addressBook = new GraphHorizonAddressBook(addressBookPath, chainId)
-  const contracts = addressBook.loadContracts(provider, true)
+  const contracts = addressBook.loadContracts(provider, false)
   return {
     addressBook: addressBook,
     contracts: contracts,

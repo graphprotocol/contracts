@@ -2,6 +2,6 @@
 pragma solidity ^0.7.6 || 0.8.27;
 
 import { IHorizonStaking } from "../horizon/IHorizonStaking.sol";
-import { IMulticall } from "../horizon/internal/IMulticall.sol";
+import { IMulticall } from "../contracts/base/IMulticall.sol";
 
 interface IHorizonStakingToolshed is IHorizonStaking, IMulticall {}

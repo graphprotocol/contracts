@@ -77,10 +77,12 @@ export function getAbi(contractName: string): unknown[] {
 export function collectFactoriesMap(obj: unknown): Record<string, ContractFactoryStatic> {
   const factoriesMap: Record<string, ContractFactoryStatic> = {}
 
+  // For factory name 'x', use contract name 'y'
   const factoryNameOverrides: Record<string, string> = {
     'contracts.contracts.disputes.IDisputeManager__factory': 'ILegacyDisputeManager',
   }
 
+  // For contract name 'x', also create an entry for alias 'y' in the factory map
   const factoryNameAliases: Record<string, string> = {
     IServiceRegistry: 'ILegacyServiceRegistry',
   }
@@ -140,11 +142,26 @@ export function collectFactoriesMap(obj: unknown): Record<string, ContractFactor
 /**
  * Gets alternative names for a contract to handle interface naming conventions
  * For any given value passed to it, returns `ContractName` and `IContractName`
+ * Note that this function will apply toolshed overrides, this returns a more complete interface
  * @param {string} contractName - The original contract name
  * @returns {string[]} Array of possible contract names including interface variants
  * @private
  */
 function getContractNameAlternatives(contractName: string): string[] {
+  const nameOverrides: Record<string, string> = {
+    Controller: 'ControllerToolshed',
+    EpochManager: 'EpochManagerToolshed',
+    GNS: 'GNSToolshed',
+    HorizonStaking: 'HorizonStakingToolshed',
+    L2Curation: 'L2CurationToolshed',
+    RewardsManager: 'RewardsManagerToolshed',
+    ServiceRegistry: 'ServiceRegistryToolshed',
+  }
+
+  if (nameOverrides[contractName]) {
+    contractName = nameOverrides[contractName]
+  }
+
   const alternatives: string[] = [contractName]
 
   if (contractName.startsWith('I')) {
