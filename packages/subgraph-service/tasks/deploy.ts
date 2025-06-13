@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import HorizonModule from '@graphprotocol/horizon/ignition/modules/deploy'
+import { HorizonModule } from '@graphprotocol/horizon/ignition'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
 import type { AddressBook } from '@graphprotocol/toolshed/deployments'
 import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'

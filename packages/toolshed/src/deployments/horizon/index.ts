@@ -1,6 +1,7 @@
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import type { Provider, Signer } from 'ethers'
 
+import { resolveAddressBook } from '../../lib/resolve'
 import { loadActions } from './actions'
 import { GraphHorizonAddressBook } from './address-book'
 
@@ -19,8 +20,12 @@ export function loadGraphHorizon(addressBookPath: string, chainId: number, provi
 }
 
 export function connectGraphHorizon(chainId: number, signerOrProvider: Signer | Provider, addressBookPath?: string) {
+  addressBookPath = addressBookPath ?? resolveAddressBook(require, '@graphprotocol/horizon', 'addresses.json')
+  if (!addressBookPath) {
+    throw new Error('Address book path not found')
+  }
   const addressBook = new GraphHorizonAddressBook(
-    addressBookPath ?? require.resolve('@graphprotocol/horizon/addresses.json'),
+    addressBookPath,
     chainId,
   )
   return addressBook.loadContracts(signerOrProvider, false)

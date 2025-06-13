@@ -24,7 +24,7 @@ export function getAddressBookPath(
 
   const addressBookPath = optsPath ?? networkPath ?? globalPath
   if (addressBookPath === undefined) {
-    throw new GraphPluginError('Must set a an addressBook path!')
+    return undefined
   }
 
   const normalizedAddressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)

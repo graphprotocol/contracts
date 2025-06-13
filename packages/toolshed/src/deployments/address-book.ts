@@ -177,7 +177,6 @@ export abstract class AddressBook<ChainId extends number = number, ContractName 
    * @returns the loaded contracts
    */
   _loadContracts(
-    artifactsPath: string | string[] | Record<ContractName, string>,
     signerOrProvider?: Signer | Provider,
     enableTxLogging?: boolean,
   ): ContractList<ContractName> {
@@ -187,20 +186,11 @@ export abstract class AddressBook<ChainId extends number = number, ContractName 
       return contracts
     }
     for (const contractName of this.listEntries()) {
-      const artifactPath =
-        typeof artifactsPath === 'object' && !Array.isArray(artifactsPath) ? artifactsPath[contractName] : artifactsPath
-
-      if (Array.isArray(artifactPath) ? !artifactPath.some(fs.existsSync) : !fs.existsSync(artifactPath)) {
-        logWarn(`Could not load contract ${contractName} - artifact not found`)
-        logWarn(artifactPath)
-        continue
-      }
       logDebug(`Loading contract ${contractName}`)
 
       const contract = loadContract(
         contractName,
         this.getEntry(contractName).address,
-        artifactPath,
         signerOrProvider,
         enableTxLogging,
       )

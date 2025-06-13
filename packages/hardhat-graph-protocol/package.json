@@ -26,6 +26,8 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:clean": "pnpm clean && pnpm build",
+    "watch": "tsc --watch",
     "clean": "rm -rf dist",
     "lint": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",

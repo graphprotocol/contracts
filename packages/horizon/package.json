@@ -8,6 +8,11 @@
   "author": "The Graph core devs",
   "license": "GPL-2.0-or-later",
   "types": "typechain-types/index.ts",
+  "exports": {
+    "./artifacts/*": "./build/contracts/*",
+    "./addresses*": "./addresses*",
+    "./ignition": "./ignition/modules/index.ts"
+  },
   "files": [
     "build/contracts/**/*",
     "typechain-types/**/*",

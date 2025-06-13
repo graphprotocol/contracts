@@ -15,8 +15,9 @@ if (isProjectBuilt(__dirname)) {
   loadTasks(__dirname)
 }
 
+const baseConfig = hardhatBaseConfig(require)
 const config: HardhatUserConfig = {
-  ...hardhatBaseConfig,
+  ...baseConfig,
   solidity: {
     version: '0.8.27',
     settings: {

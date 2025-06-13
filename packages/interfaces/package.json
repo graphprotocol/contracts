@@ -2,13 +2,13 @@
   "name": "@graphprotocol/interfaces",
   "version": "0.1.0",
   "description": "Contract interfaces for The Graph protocol",
+  "main": "./dist/src/index.js",
   "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/types/index.d.ts",
-      "default": "./dist/types/index.d.ts"
-    },
-    "./artifacts/*": "./artifacts/*"
+      "default": "./dist/src/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
   },
   "files": [
     "artifacts/**/*",
@@ -27,7 +27,8 @@
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
     "build": "hardhat compile && tsc",
-    "build:clean": "pnpm clean && pnpm build"
+    "build:clean": "pnpm clean && pnpm build",
+    "watch": "tsc --watch"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
