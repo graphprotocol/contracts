@@ -31,7 +31,12 @@ export function getAddressBookPath(
   logDebug(`Address book path: ${normalizedAddressBookPath}`)
 
   if (!fs.existsSync(normalizedAddressBookPath)) {
-    throw new GraphPluginError(`Address book not found: ${normalizedAddressBookPath}`)
+    if (opts.createAddressBook) {
+      logDebug(`Creating address book: ${normalizedAddressBookPath}`)
+      fs.writeFileSync(normalizedAddressBookPath, '{}')
+    } else {
+      throw new GraphPluginError(`Address book not found: ${normalizedAddressBookPath}`)
+    }
   }
 
   return normalizedAddressBookPath

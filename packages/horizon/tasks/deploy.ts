@@ -17,7 +17,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
   )
   .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
-    const graph = hre.graph()
+    const graph = hre.graph({ createAddressBook: true })
 
     // Load configuration for the deployment
     console.log('\n========== ⚙️ Deployment configuration ==========')

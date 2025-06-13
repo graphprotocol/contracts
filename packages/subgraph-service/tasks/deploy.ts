@@ -30,7 +30,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     types.string,
   )
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
-    const graph = hre.graph()
+    const graph = hre.graph({ createAddressBook: true })
 
     // Load configuration files for the deployment
     console.log('\n========== ⚙️ Deployment configuration ==========')
