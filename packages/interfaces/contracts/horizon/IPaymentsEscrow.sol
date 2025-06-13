@@ -144,6 +144,18 @@ interface IPaymentsEscrow {
     error PaymentsEscrowInvalidZeroTokens();
 
     /**
+     * @notice The maximum thawing period for escrow funds withdrawal
+     * @return The maximum thawing period in seconds
+     */
+    function MAX_WAIT_PERIOD() external view returns (uint256);
+
+    /**
+     * @notice The thawing period for escrow funds withdrawal
+     * @return The thawing period in seconds
+     */
+    function WITHDRAW_ESCROW_THAWING_PERIOD() external view returns (uint256);
+
+    /**
      * @notice Initialize the contract
      */
     function initialize() external;

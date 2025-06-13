@@ -6,7 +6,6 @@ import type {
   GraphProxyAdmin,
   GraphTallyCollector,
   HorizonStaking,
-  HorizonStakingExtension,
   L2Curation,
   L2GNS,
   L2GraphToken,
@@ -51,7 +50,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   SubgraphNFT: SubgraphNFT
 
   // @graphprotocol/horizon
-  HorizonStaking: HorizonStaking & HorizonStakingExtension
+  HorizonStaking: HorizonStaking
   GraphPayments: GraphPayments
   PaymentsEscrow: PaymentsEscrow
   GraphTallyCollector: GraphTallyCollector

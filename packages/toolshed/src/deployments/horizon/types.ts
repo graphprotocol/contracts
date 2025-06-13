@@ -1,13 +1,12 @@
 import type {
-  IController,
+  IControllerToolshed,
   IEpochManagerToolshed,
   IGNSToolshed,
   IGraphPayments,
   IGraphProxyAdmin,
   IGraphTallyCollector,
   IGraphToken,
-  IHorizonStaking,
-  IHorizonStakingExtension,
+  IHorizonStakingToolshed,
   IL2CurationToolshed,
   IPaymentsEscrow,
   IRewardsManagerToolshed,
@@ -15,17 +14,13 @@ import type {
   ISubgraphNFT,
 } from '@graphprotocol/interfaces'
 
-// These are just type re-declarations to keep naming conventions consistent
-type HorizonStaking = IHorizonStaking & IHorizonStakingExtension
-
 export {
-  IController as Controller,
+  IControllerToolshed as Controller,
   IEpochManagerToolshed as EpochManager,
   IGraphPayments as GraphPayments,
   IGraphProxyAdmin as GraphProxyAdmin,
   IGraphTallyCollector as GraphTallyCollector,
-  HorizonStaking,
-  IHorizonStakingExtension as HorizonStakingExtension,
+  IHorizonStakingToolshed as HorizonStaking,
   IL2CurationToolshed as L2Curation,
   IGNSToolshed as L2GNS,
   IGraphToken as L2GraphToken,

@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import { IPaymentsCollector } from "./IPaymentsCollector.sol";
 import { IGraphPayments } from "./IGraphPayments.sol";
+import { IAuthorizable } from "./IAuthorizable.sol";
 
 /**
  * @title Interface for the {GraphTallyCollector} contract
@@ -13,7 +14,7 @@ import { IGraphPayments } from "./IGraphPayments.sol";
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
-interface IGraphTallyCollector is IPaymentsCollector {
+interface IGraphTallyCollector is IPaymentsCollector, IAuthorizable {
     /**
      * @notice The Receipt Aggregate Voucher (RAV) struct
      * @param collectionId The ID of the collection "bucket" the RAV belongs to. Note that multiple RAVs can be collected for the same collection id.

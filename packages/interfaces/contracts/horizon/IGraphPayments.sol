@@ -59,6 +59,12 @@ interface IGraphPayments {
     error GraphPaymentsInvalidCut(uint256 cut);
 
     /**
+     * @notice Returns the protocol payment cut
+     * @return The protocol payment cut in PPM
+     */
+    function PROTOCOL_PAYMENT_CUT() external view returns (uint256);
+
+    /**
      * @notice Initialize the contract
      */
     function initialize() external;

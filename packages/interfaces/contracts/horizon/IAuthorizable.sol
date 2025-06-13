@@ -93,6 +93,12 @@ interface IAuthorizable {
     error AuthorizableSignerStillThawing(uint256 currentTimestamp, uint256 thawEndTimestamp);
 
     /**
+     * @notice The period after which a signer can be revoked after thawing
+     * @return The period in seconds
+     */
+    function REVOKE_AUTHORIZATION_THAWING_PERIOD() external view returns (uint256);
+
+    /**
      * @notice Authorize a signer to sign on behalf of the authorizer
      * @dev Requirements:
      * - `signer` must not be already authorized
