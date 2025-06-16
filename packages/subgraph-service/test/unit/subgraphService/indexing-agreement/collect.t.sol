@@ -11,6 +11,7 @@ import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphServ
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { AllocationHandler } from "../../../../contracts/libraries/AllocationHandler.sol";
 import { IndexingAgreement } from "../../../../contracts/libraries/IndexingAgreement.sol";
+import { IndexingAgreementDecoder } from "../../../../contracts/libraries/IndexingAgreementDecoder.sol";
 
 import { SubgraphServiceIndexingAgreementSharedTest } from "./shared.t.sol";
 
@@ -175,6 +176,21 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
     }
 
+    function test_SubgraphService_CollectIndexingFees_Revert_WhenInvalidData(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+
+        bytes memory invalidData = bytes("invalid data");
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreementDecoder.IndexingAgreementDecoderInvalidData.selector,
+            "decodeCollectData",
+            invalidData
+        );
+        vm.expectRevert(expectedErr);
+        resetPrank(indexerState.addr);
+        subgraphService.collect(indexerState.addr, IGraphPayments.PaymentTypes.IndexingFee, invalidData);
+    }
+
     function test_SubgraphService_CollectIndexingFees_Revert_WhenInvalidAgreement(
         Seed memory seed,
         bytes16 agreementId,
@@ -192,6 +208,27 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
             indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
             _encodeCollectDataV1(agreementId, entities, poi, currentEpochBlock, bytes(""))
+        );
+    }
+
+    function test_SubgraphService_CollectIndexingFees_Reverts_WhenInvalidNestedData(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        resetPrank(indexerState.addr);
+
+        bytes memory invalidNestedData = bytes("invalid nested data");
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreementDecoder.IndexingAgreementDecoderInvalidData.selector,
+            "decodeCollectIndexingFeeDataV1",
+            invalidNestedData
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.collect(
+            indexerState.addr,
+            IGraphPayments.PaymentTypes.IndexingFee,
+            _encodeCollectData(accepted.rca.agreementId, invalidNestedData)
         );
     }
 

@@ -312,12 +312,23 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         bytes32 _subgraphDeploymentId
     ) internal pure returns (IndexingAgreement.AcceptIndexingAgreementMetadata memory) {
         return
+            _newAcceptIndexingAgreementMetadataV1Terms(
+                _subgraphDeploymentId,
+                abi.encode(
+                    IndexingAgreement.IndexingAgreementTermsV1({ tokensPerSecond: 0, tokensPerEntityPerSecond: 0 })
+                )
+            );
+    }
+
+    function _newAcceptIndexingAgreementMetadataV1Terms(
+        bytes32 _subgraphDeploymentId,
+        bytes memory _terms
+    ) internal pure returns (IndexingAgreement.AcceptIndexingAgreementMetadata memory) {
+        return
             IndexingAgreement.AcceptIndexingAgreementMetadata({
                 subgraphDeploymentId: _subgraphDeploymentId,
                 version: IndexingAgreement.IndexingAgreementVersion.V1,
-                terms: abi.encode(
-                    IndexingAgreement.IndexingAgreementTermsV1({ tokensPerSecond: 0, tokensPerEntityPerSecond: 0 })
-                )
+                terms: _terms
             });
     }
 
@@ -344,17 +355,27 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         uint256 _poiBlock,
         bytes memory _metadata
     ) internal pure returns (bytes memory) {
+        return _encodeCollectData(_agreementId, _encodeV1Data(_entities, _poi, _poiBlock, _metadata));
+    }
+
+    function _encodeCollectData(bytes16 _agreementId, bytes memory _nestedData) internal pure returns (bytes memory) {
+        return abi.encode(_agreementId, _nestedData);
+    }
+
+    function _encodeV1Data(
+        uint256 _entities,
+        bytes32 _poi,
+        uint256 _poiBlock,
+        bytes memory _metadata
+    ) internal pure returns (bytes memory) {
         return
             abi.encode(
-                _agreementId,
-                abi.encode(
-                    IndexingAgreement.CollectIndexingFeeDataV1({
-                        entities: _entities,
-                        poi: _poi,
-                        poiBlockNumber: _poiBlock,
-                        metadata: _metadata
-                    })
-                )
+                IndexingAgreement.CollectIndexingFeeDataV1({
+                    entities: _entities,
+                    poi: _poi,
+                    poiBlockNumber: _poiBlock,
+                    metadata: _metadata
+                })
             );
     }
 
@@ -376,5 +397,19 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         IndexingAgreement.UpdateIndexingAgreementMetadata memory _t
     ) internal pure returns (bytes memory) {
         return abi.encode(_t);
+    }
+
+    function _assertEqualAgreement(
+        IRecurringCollector.RecurringCollectionAgreement memory _expected,
+        IndexingAgreement.AgreementWrapper memory _actual
+    ) internal pure {
+        assertEq(_expected.dataService, _actual.collectorAgreement.dataService);
+        assertEq(_expected.payer, _actual.collectorAgreement.payer);
+        assertEq(_expected.serviceProvider, _actual.collectorAgreement.serviceProvider);
+        assertEq(_expected.endsAt, _actual.collectorAgreement.endsAt);
+        assertEq(_expected.maxInitialTokens, _actual.collectorAgreement.maxInitialTokens);
+        assertEq(_expected.maxOngoingTokensPerSecond, _actual.collectorAgreement.maxOngoingTokensPerSecond);
+        assertEq(_expected.minSecondsPerCollection, _actual.collectorAgreement.minSecondsPerCollection);
+        assertEq(_expected.maxSecondsPerCollection, _actual.collectorAgreement.maxSecondsPerCollection);
     }
 }

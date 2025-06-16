@@ -9,7 +9,7 @@ import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurring
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
 
 import { Bounder } from "../../../unit/utils/Bounder.t.sol";
-import { RecurringCollectorControllerMock } from "./RecurringCollectorControllerMock.t.sol";
+import { PartialControllerMock } from "../../mocks/PartialControllerMock.t.sol";
 import { PaymentsEscrowMock } from "./PaymentsEscrowMock.t.sol";
 import { RecurringCollectorHelper } from "./RecurringCollectorHelper.t.sol";
 
@@ -35,10 +35,12 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     function setUp() public {
         _paymentsEscrow = new PaymentsEscrowMock();
+        PartialControllerMock.Entry[] memory entries = new PartialControllerMock.Entry[](1);
+        entries[0] = PartialControllerMock.Entry({ name: "PaymentsEscrow", addr: address(_paymentsEscrow) });
         _recurringCollector = new RecurringCollector(
             "RecurringCollector",
             "1",
-            address(new RecurringCollectorControllerMock(address(_paymentsEscrow))),
+            address(new PartialControllerMock(entries)),
             1
         );
         _recurringCollectorHelper = new RecurringCollectorHelper(_recurringCollector);
