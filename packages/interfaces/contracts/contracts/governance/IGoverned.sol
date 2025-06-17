@@ -16,9 +16,9 @@ interface IGoverned {
 
     /**
      * @notice Admin function to begin change of governor.
-     * @param _newGovernor Address of new `governor`
+     * @param newGovernor Address of new `governor`
      */
-    function transferOwnership(address _newGovernor) external;
+    function transferOwnership(address newGovernor) external;
 
     /**
      * @notice Admin function for pending governor to accept role and update governor.

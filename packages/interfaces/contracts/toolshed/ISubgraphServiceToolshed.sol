@@ -9,7 +9,15 @@ import { IProvisionManager } from "./internal/IProvisionManager.sol";
 import { IProvisionTracker } from "./internal/IProvisionTracker.sol";
 import { IDataServicePausable } from "../data-service/IDataServicePausable.sol";
 
-interface ISubgraphServiceToolshed is ISubgraphService, IOwnable, IPausable, IDataServicePausable, ILegacyAllocation, IProvisionManager, IProvisionTracker {
+interface ISubgraphServiceToolshed is
+    ISubgraphService,
+    IOwnable,
+    IPausable,
+    IDataServicePausable,
+    ILegacyAllocation,
+    IProvisionManager,
+    IProvisionTracker
+{
     /**
      * @notice Gets the indexer details
      * @dev Note that this storage getter actually returns a ISubgraphService.Indexer struct, but ethers v6 is not
@@ -19,7 +27,9 @@ interface ISubgraphServiceToolshed is ISubgraphService, IOwnable, IPausable, IDa
      * @return url The URL where the indexer can be reached at for queries
      * @return geoHash The indexer's geo location, expressed as a geo hash
      */
-    function indexers(address indexer) external view returns (uint256 registeredAt, string memory url, string memory geoHash);
+    function indexers(
+        address indexer
+    ) external view returns (uint256 registeredAt, string memory url, string memory geoHash);
 
     /**
      * @notice Gets the allocation provision tracker

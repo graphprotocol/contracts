@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.27;
 
-import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import {
     IHorizonStakingExtension

@@ -7,13 +7,13 @@ import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHo
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 
-import { IController } from "@graphprotocol/contracts/contracts/governance/IController.sol";
-import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
-import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
-import { ITokenGateway } from "@graphprotocol/contracts/contracts/arbitrum/ITokenGateway.sol";
+import { IController } from "@graphprotocol/interfaces/contracts/contracts/governance/IController.sol";
+import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxyAdmin.sol";
 
-import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 
 /**
  * @title GraphDirectory contract
