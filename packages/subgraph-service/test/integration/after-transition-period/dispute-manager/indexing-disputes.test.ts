@@ -1,12 +1,11 @@
 import { DisputeManager, HorizonStaking, L2GraphToken, SubgraphService } from '@graphprotocol/interfaces'
 import { generatePOI } from '@graphprotocol/toolshed'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { EventLog } from 'ethers'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
-
-import { indexers } from '../../../../tasks/test/fixtures/indexers'
 
 describe('Indexing Disputes', () => {
   let disputeManager: DisputeManager

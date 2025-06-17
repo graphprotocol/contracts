@@ -6,13 +6,12 @@ import {
   SubgraphService,
 } from '@graphprotocol/interfaces'
 import { generateLegacyIndexingDisputeId, generateLegacyTypeDisputeId } from '@graphprotocol/toolshed'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
-
-import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Dispute Manager', () => {
   let disputeManager: DisputeManager

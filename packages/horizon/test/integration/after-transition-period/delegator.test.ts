@@ -1,11 +1,10 @@
 import { ONE_MILLION, ZERO_ADDRESS } from '@graphprotocol/toolshed'
+import { delegators } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
-
-import { delegators } from '../../../tasks/test/fixtures/delegators'
 
 describe('Delegator', () => {
   let delegator: HardhatEthersSigner

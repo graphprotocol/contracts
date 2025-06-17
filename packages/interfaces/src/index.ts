@@ -75,7 +75,7 @@ export function getAbi(contractName: string): unknown[] {
  * @returns {Record<string, ContractFactoryStatic>} A map of contract names to their factory instances
  * @private
  */
-export function collectFactoriesMap(obj: unknown): Record<string, ContractFactoryStatic> {
+function collectFactoriesMap(obj: unknown): Record<string, ContractFactoryStatic> {
   const factoriesMap: Record<string, ContractFactoryStatic> = {}
 
   // For factory name 'x', use contract name 'y'

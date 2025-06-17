@@ -1,9 +1,9 @@
 import { parseEther } from 'ethers'
 
-import { indexers as horizonIndexers } from '../../../../horizon/tasks/test/fixtures/indexers'
+import { indexers as horizonIndexers } from './indexers'
 
 // Allocation interface
-export interface Allocation {
+export interface AllocationData {
   allocationID: string
   subgraphDeploymentID: string
   allocationPrivateKey: string
@@ -11,7 +11,7 @@ export interface Allocation {
 }
 
 // Indexer interface
-export interface Indexer {
+export interface IndexerData {
   address: string
   indexingRewardCut: number
   queryFeeCut: number
@@ -19,8 +19,8 @@ export interface Indexer {
   geoHash: string
   rewardsDestination?: string
   provisionTokens: bigint
-  legacyAllocations: Allocation[]
-  allocations: Allocation[]
+  legacyAllocations: AllocationData[]
+  allocations: AllocationData[]
 }
 
 // Subgraph deployment IDs
@@ -43,7 +43,7 @@ const INDEXER_TWO_SECOND_ALLOCATION_ID = '0x1bF6afCF9542983432B2fab15717c2537A3d
 const INDEXER_TWO_SECOND_ALLOCATION_PRIVATE_KEY = '0x4bf454f7d52fff97701c1ea5d1e6184c81543780ca61b82cce155a5a3e35a134'
 
 // Allocations map
-const allocations = new Map<string, Allocation[]>([
+const allocations = new Map<string, AllocationData[]>([
   [
     horizonIndexers[0].address,
     [
@@ -87,7 +87,7 @@ const allocations = new Map<string, Allocation[]>([
 ])
 
 // Indexers data
-export const indexers: Indexer[] = horizonIndexers
+export const indexersData: IndexerData[] = horizonIndexers
   .filter((indexer) => !indexer.tokensToUnstake || indexer.tokensToUnstake <= parseEther('100000'))
   .map((indexer) => {
     // Move existing allocations to legacyAllocations

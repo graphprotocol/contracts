@@ -1,10 +1,9 @@
 import { generatePOI } from '@graphprotocol/toolshed'
+import { indexers } from '@graphprotocol/toolshed/fixtures'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
-
-import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Permissionless', () => {
   let snapshotId: string

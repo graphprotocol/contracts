@@ -18,6 +18,10 @@
       "types": "./dist/deployments/index.d.ts",
       "default": "./dist/deployments/index.js"
     },
+    "./fixtures": {
+      "types": "./dist/fixtures/index.d.ts",
+      "default": "./dist/fixtures/index.js"
+    },
     "./hardhat": {
       "types": "./src/hardhat/index.ts",
       "default": "./src/hardhat/index.ts"

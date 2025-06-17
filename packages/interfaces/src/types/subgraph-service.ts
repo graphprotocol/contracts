@@ -18,4 +18,3 @@ import type {
     ISubgraphNFT as SubgraphNFT,
     ISubgraphServiceToolshed as SubgraphService,
   }
-  

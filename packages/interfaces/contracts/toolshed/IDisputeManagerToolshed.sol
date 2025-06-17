@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import { IDisputeManager } from "../subgraph-service/IDisputeManager.sol";
-import { IOwnable } from "../subgraph-service/internal/IOwnable.sol";
+import { IOwnable } from "./internal/IOwnable.sol";
 
 interface IDisputeManagerToolshed is IDisputeManager, IOwnable {
     /**

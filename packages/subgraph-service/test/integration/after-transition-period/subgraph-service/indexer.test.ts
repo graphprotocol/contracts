@@ -1,4 +1,3 @@
-import { delegators } from '@graphprotocol/horizon/tasks/test/fixtures/delegators.js'
 import {
   GraphPayments,
   GraphTallyCollector,
@@ -18,14 +17,13 @@ import {
   generateSignerProof,
   PaymentTypes,
 } from '@graphprotocol/toolshed'
+import { delegators, IndexerData as Indexer, indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { HDNodeWallet } from 'ethers'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
-
-import { Indexer, indexers } from '../../../../tasks/test/fixtures/indexers'
 
 describe('Indexer', () => {
   let escrow: PaymentsEscrow

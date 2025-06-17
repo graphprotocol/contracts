@@ -1,11 +1,10 @@
 import { generatePOI } from '@graphprotocol/toolshed'
+import { indexers } from '@graphprotocol/toolshed/fixtures'
 import { getEventData } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
-
-import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Operator', () => {
   let snapshotId: string

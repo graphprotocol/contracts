@@ -5,9 +5,8 @@ import {
   generatePOI,
   PaymentTypes,
 } from '@graphprotocol/toolshed'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { task } from 'hardhat/config'
-
-import { indexers } from './fixtures/indexers'
 
 task('test:seed', 'Seed the test environment, must be run after deployment').setAction(async (_, hre) => {
   // Get contracts
