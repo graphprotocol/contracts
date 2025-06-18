@@ -9,9 +9,11 @@ import { IProvisionManager } from "./internal/IProvisionManager.sol";
 import { IProvisionTracker } from "./internal/IProvisionTracker.sol";
 import { IDataServicePausable } from "../data-service/IDataServicePausable.sol";
 import { IMulticall } from "../contracts/base/IMulticall.sol";
+import { IAllocationManager } from "./internal/IAllocationManager.sol";
 
 interface ISubgraphServiceToolshed is
     ISubgraphService,
+    IAllocationManager,
     IOwnable,
     IPausable,
     IDataServicePausable,

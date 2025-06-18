@@ -1,5 +1,13 @@
 # @graphprotocol/toolshed
 
+## 0.6.5
+
+### Patch Changes
+
+- Updated dependencies [fbe38f9]
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.5
+
 ## 0.6.4
 
 ### Patch Changes

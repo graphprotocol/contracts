@@ -1,5 +1,12 @@
 # @graphprotocol/interfaces
 
+## 0.2.5
+
+### Patch Changes
+
+- fbe38f9: Add ICuration to L2Curation interface
+- Add missing events to SubgraphService and RewardsManager interfaces
+
 ## 0.2.4
 
 ### Patch Changes
