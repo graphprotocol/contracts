@@ -356,7 +356,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
         // Process non-zero-allocation rewards tracking
         if (alloc.tokens > 0) {
             // Distribute rewards if proof of indexing was presented by the indexer or operator
-            if (isIndexerOrOperator && _poi != 0) {
+            if (isIndexerOrOperator && _poi != 0 && epochs > 0) {
                 _distributeRewards(_allocationID, alloc.indexer);
             } else {
                 _updateRewards(alloc.subgraphDeploymentID);

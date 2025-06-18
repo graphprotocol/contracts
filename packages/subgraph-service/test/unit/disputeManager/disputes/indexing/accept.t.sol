@@ -18,7 +18,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         resetPrank(users.arbitrator);
         _acceptDispute(disputeID, tokensSlash);
@@ -31,7 +31,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         resetPrank(users.arbitrator);
         // clear subgraph service address from storage
@@ -48,7 +48,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         resetPrank(users.arbitrator);
         _acceptDispute(disputeID, tokensSlash);
@@ -61,7 +61,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
         tokensSlash = bound(tokensSlash, 1, uint256(maxSlashingPercentage).mulPPM(tokens));
 
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         // attempt to accept dispute as fisherman
         resetPrank(users.fisherman);
@@ -75,7 +75,7 @@ contract DisputeManagerIndexingAcceptDisputeTest is DisputeManagerTest {
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
         tokensSlash = bound(tokensSlash, uint256(maxSlashingPercentage).mulPPM(tokens) + 1, type(uint256).max);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"), block.number);
 
         // max slashing percentage is 50%
         resetPrank(users.arbitrator);
