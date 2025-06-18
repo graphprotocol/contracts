@@ -156,7 +156,10 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         disputeManager.createQueryDispute(attestationData);
     }
 
-    function test_Query_Create_DontRevertIf_IndexerIsBelowStake_WithDelegation(uint256 tokens, uint256 delegationTokens) public useIndexer useAllocation(tokens) {
+    function test_Query_Create_DontRevertIf_IndexerIsBelowStake_WithDelegation(
+        uint256 tokens,
+        uint256 delegationTokens
+    ) public useIndexer useAllocation(tokens) {
         // Close allocation
         bytes memory data = abi.encode(allocationID);
         _stopService(users.indexer, data);

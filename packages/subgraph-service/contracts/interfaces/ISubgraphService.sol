@@ -3,7 +3,9 @@ pragma solidity 0.8.27;
 
 import { IDataServiceFees } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataServiceFees.sol";
 import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 
+import { IndexingAgreement } from "../libraries/IndexingAgreement.sol";
 import { Allocation } from "../libraries/Allocation.sol";
 import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
 
@@ -108,7 +110,7 @@ interface ISubgraphService is IDataServiceFees {
     error SubgraphServiceInconsistentCollection(uint256 balanceBefore, uint256 balanceAfter);
 
     /**
-     * @notice @notice Thrown when the service provider in the RAV does not match the expected indexer.
+     * @notice @notice Thrown when the service provider does not match the expected indexer.
      * @param providedIndexer The address of the provided indexer.
      * @param expectedIndexer The address of the expected indexer.
      */
@@ -256,6 +258,42 @@ interface ISubgraphService is IDataServiceFees {
      * @param paymentsDestination The address where payments should be sent
      */
     function setPaymentsDestination(address paymentsDestination) external;
+
+    /**
+     * @notice Accept an indexing agreement.
+     * @param allocationId The id of the allocation
+     * @param signedRCA The signed recurring collector agreement (RCA) that the indexer accepts
+     */
+    function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
+
+    /**
+     * @notice Update an indexing agreement.
+     * @param indexer The address of the indexer
+     * @param signedRCAU The signed recurring collector agreement update (RCAU) that the indexer accepts
+     */
+    function updateIndexingAgreement(address indexer, IRecurringCollector.SignedRCAU calldata signedRCAU) external;
+
+    /**
+     * @notice Cancel an indexing agreement by indexer / operator.
+     * @param indexer The address of the indexer
+     * @param agreementId The id of the indexing agreement
+     */
+    function cancelIndexingAgreement(address indexer, bytes16 agreementId) external;
+
+    /**
+     * @notice Cancel an indexing agreement by payer / signer.
+     * @param agreementId The id of the indexing agreement
+     */
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external;
+
+    /**
+     * @notice Get the indexing agreement for a given agreement ID.
+     * @param agreementId The id of the indexing agreement
+     * @return The indexing agreement details
+     */
+    function getIndexingAgreement(
+        bytes16 agreementId
+    ) external view returns (IndexingAgreement.AgreementWrapper memory);
 
     /**
      * @notice Gets the details of an allocation

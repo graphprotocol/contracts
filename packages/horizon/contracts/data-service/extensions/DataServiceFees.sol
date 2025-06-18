@@ -5,6 +5,7 @@ import { IDataServiceFees } from "../interfaces/IDataServiceFees.sol";
 
 import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
 import { LinkedList } from "../../libraries/LinkedList.sol";
+import { StakeClaims } from "../libraries/StakeClaims.sol";
 
 import { DataService } from "../DataService.sol";
 import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
@@ -41,23 +42,17 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _unlockTimestamp The timestamp when the tokens can be released
      */
     function _lockStake(address _serviceProvider, uint256 _tokens, uint256 _unlockTimestamp) internal {
-        require(_tokens != 0, DataServiceFeesZeroTokens());
-        feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, _delegationRatio);
-
-        LinkedList.List storage claimsList = claimsLists[_serviceProvider];
-
-        // Save item and add to list
-        bytes32 claimId = _buildStakeClaimId(_serviceProvider, claimsList.nonce);
-        claims[claimId] = StakeClaim({
-            tokens: _tokens,
-            createdAt: block.timestamp,
-            releasableAt: _unlockTimestamp,
-            nextClaim: bytes32(0)
-        });
-        if (claimsList.count != 0) claims[claimsList.tail].nextClaim = claimId;
-        claimsList.addTail(claimId);
-
-        emit StakeClaimLocked(_serviceProvider, claimId, _tokens, _unlockTimestamp);
+        StakeClaims.lockStake(
+            feesProvisionTracker,
+            claims,
+            claimsLists,
+            _graphStaking(),
+            address(this),
+            _delegationRatio,
+            _serviceProvider,
+            _tokens,
+            _unlockTimestamp
+        );
     }
 
     /**
@@ -80,7 +75,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
             _numClaimsToRelease
         );
 
-        emit StakeClaimsReleased(_serviceProvider, claimsReleased, abi.decode(data, (uint256)));
+        emit StakeClaims.StakeClaimsReleased(_serviceProvider, claimsReleased, abi.decode(data, (uint256)));
     }
 
     /**
@@ -92,23 +87,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @return The updated accumulator data
      */
     function _processStakeClaim(bytes32 _claimId, bytes memory _acc) private returns (bool, bytes memory) {
-        StakeClaim memory claim = _getStakeClaim(_claimId);
-
-        // early exit
-        if (claim.releasableAt > block.timestamp) {
-            return (true, LinkedList.NULL_BYTES);
-        }
-
-        // decode
-        (uint256 tokensClaimed, address serviceProvider) = abi.decode(_acc, (uint256, address));
-
-        // process
-        feesProvisionTracker.release(serviceProvider, claim.tokens);
-        emit StakeClaimReleased(serviceProvider, _claimId, claim.tokens, claim.releasableAt);
-
-        // encode
-        _acc = abi.encode(tokensClaimed + claim.tokens, serviceProvider);
-        return (false, _acc);
+        return StakeClaims.processStakeClaim(feesProvisionTracker, claims, _claimId, _acc);
     }
 
     /**
@@ -117,18 +96,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _claimId The ID of the stake claim to delete
      */
     function _deleteStakeClaim(bytes32 _claimId) private {
-        delete claims[_claimId];
-    }
-
-    /**
-     * @notice Gets the details of a stake claim
-     * @param _claimId The ID of the stake claim
-     * @return The stake claim details
-     */
-    function _getStakeClaim(bytes32 _claimId) private view returns (StakeClaim memory) {
-        StakeClaim memory claim = claims[_claimId];
-        require(claim.createdAt != 0, DataServiceFeesClaimNotFound(_claimId));
-        return claim;
+        StakeClaims.deleteStakeClaim(claims, _claimId);
     }
 
     /**
@@ -138,16 +106,6 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @return The next stake claim ID
      */
     function _getNextStakeClaim(bytes32 _claimId) private view returns (bytes32) {
-        return claims[_claimId].nextClaim;
-    }
-
-    /**
-     * @notice Builds a stake claim ID
-     * @param _serviceProvider The address of the service provider
-     * @param _nonce A nonce of the stake claim
-     * @return The stake claim ID
-     */
-    function _buildStakeClaimId(address _serviceProvider, uint256 _nonce) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(address(this), _serviceProvider, _nonce));
+        return StakeClaims.getNextStakeClaim(claims, _claimId);
     }
 }

@@ -7,6 +7,7 @@ import { IGraphTallyCollector } from "@graphprotocol/horizon/contracts/interface
 import { IRewardsIssuer } from "@graphprotocol/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
 import { ISubgraphService } from "./interfaces/ISubgraphService.sol";
+import { IRecurringCollector } from "@graphprotocol/horizon/contracts/interfaces/IRecurringCollector.sol";
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
@@ -22,6 +23,8 @@ import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
 import { Allocation } from "./libraries/Allocation.sol";
 import { LegacyAllocation } from "./libraries/LegacyAllocation.sol";
+import { IndexingAgreementDecoder } from "./libraries/IndexingAgreementDecoder.sol";
+import { IndexingAgreement } from "./libraries/IndexingAgreement.sol";
 
 /**
  * @title SubgraphService contract
@@ -45,13 +48,14 @@ contract SubgraphService is
     using Allocation for mapping(address => Allocation.State);
     using Allocation for Allocation.State;
     using TokenUtils for IGraphToken;
+    using IndexingAgreement for IndexingAgreement.StorageManager;
 
     /**
      * @notice Checks that an indexer is registered
      * @param indexer The address of the indexer
      */
     modifier onlyRegisteredIndexer(address indexer) {
-        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
+        _requireRegisteredIndexer(indexer);
         _;
     }
 
@@ -62,13 +66,18 @@ contract SubgraphService is
      * @param disputeManager The address of the DisputeManager contract
      * @param graphTallyCollector The address of the GraphTallyCollector contract
      * @param curation The address of the Curation contract
+     * @param recurringCollector The address of the RecurringCollector contract
      */
     constructor(
         address graphController,
         address disputeManager,
         address graphTallyCollector,
-        address curation
-    ) DataService(graphController) Directory(address(this), disputeManager, graphTallyCollector, curation) {
+        address curation,
+        address recurringCollector
+    )
+        DataService(graphController)
+        Directory(address(this), disputeManager, graphTallyCollector, curation, recurringCollector)
+    {
         _disableInitializers();
     }
 
@@ -226,13 +235,14 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == indexer,
             SubgraphServiceAllocationNotAuthorized(indexer, allocationId)
         );
+        _onCloseAllocation(allocationId, false);
         _closeAllocation(allocationId, false);
         emit ServiceStopped(indexer, data);
     }
 
     /**
      * @notice Collects payment for the service provided by the indexer
-     * Allows collecting different types of payments such as query fees and indexing rewards.
+     * Allows collecting different types of payments such as query fees, indexing rewards and indexing fees.
      * It uses Graph Horizon payments protocol to process payments.
      * Reverts if the payment type is not supported.
      * @dev This function is the equivalent of the `collect` function for query fees and the `closeAllocation` function
@@ -246,6 +256,12 @@ contract SubgraphService is
      *
      * For query fees, see {SubgraphService-_collectQueryFees} for more details.
      * For indexing rewards, see {AllocationManager-_collectIndexingRewards} for more details.
+     * For indexing fees, see {SubgraphService-_collectIndexingFees} for more details.
+     *
+     * Note that collecting any type of payment will require locking provisioned stake as collateral for a period of time.
+     * All types of payment share the same pool of provisioned stake however they each have separate accounting:
+     * - Indexing rewards can make full use of the available stake
+     * - Query and indexing fees share the pool, combined they can also make full use of the available stake
      *
      * @param indexer The address of the indexer
      * @param paymentType The type of payment to collect as defined in {IGraphPayments}
@@ -256,6 +272,9 @@ contract SubgraphService is
      *      - address `allocationId`: The id of the allocation
      *      - bytes32 `poi`: The POI being presented
      *      - bytes `poiMetadata`: The metadata associated with the POI. See {AllocationManager-_collectIndexingRewards} for more details.
+     *    - For indexing fees:
+     *      - bytes16 `agreementId`: The id of the indexing agreement
+     *      - bytes `agreementCollectionMetadata`: The metadata required by the indexing agreement version.
      */
     /// @inheritdoc IDataService
     function collect(
@@ -265,10 +284,10 @@ contract SubgraphService is
     )
         external
         override
+        whenNotPaused
         onlyAuthorizedForProvision(indexer)
         onlyValidProvision(indexer)
         onlyRegisteredIndexer(indexer)
-        whenNotPaused
         returns (uint256)
     {
         uint256 paymentCollected = 0;
@@ -277,6 +296,9 @@ contract SubgraphService is
             paymentCollected = _collectQueryFees(indexer, data);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingRewards) {
             paymentCollected = _collectIndexingRewards(indexer, data);
+        } else if (paymentType == IGraphPayments.PaymentTypes.IndexingFee) {
+            (bytes16 agreementId, bytes memory iaCollectionData) = IndexingAgreementDecoder.decodeCollectData(data);
+            paymentCollected = _collectIndexingFees(agreementId, paymentsDestination[indexer], iaCollectionData);
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -302,6 +324,7 @@ contract SubgraphService is
         Allocation.State memory allocation = _allocations.get(allocationId);
         require(allocation.isStale(maxPOIStaleness), SubgraphServiceCannotForceCloseAllocation(allocationId));
         require(!allocation.isAltruistic(), SubgraphServiceAllocationIsAltruistic(allocationId));
+        _onCloseAllocation(allocationId, true);
         _closeAllocation(allocationId, true);
     }
 
@@ -370,6 +393,121 @@ contract SubgraphService is
         emit CurationCutSet(curationCut);
     }
 
+    /**
+     * @inheritdoc ISubgraphService
+     * @notice Accept an indexing agreement.
+     *
+     * See {ISubgraphService.acceptIndexingAgreement}.
+     *
+     * Requirements:
+     * - The agreement's indexer must be registered
+     * - The caller must be authorized by the agreement's indexer
+     * - The provision must be valid according to the subgraph service rules
+     * - Allocation must belong to the indexer and be open
+     * - Agreement must be for this data service
+     * - Agreement's subgraph deployment must match the allocation's subgraph deployment
+     * - Agreement must not have been accepted before
+     * - Allocation must not have an agreement already
+     *
+     * @dev signedRCA.rca.metadata is an encoding of {IndexingAgreement.AcceptIndexingAgreementMetadata}
+     *
+     * Emits {IndexingAgreement.IndexingAgreementAccepted} event
+     *
+     * @param allocationId The id of the allocation
+     * @param signedRCA The signed Recurring Collection Agreement
+     */
+    function acceptIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.SignedRCA calldata signedRCA
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(signedRCA.rca.serviceProvider)
+        onlyValidProvision(signedRCA.rca.serviceProvider)
+        onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
+    {
+        IndexingAgreement._getStorageManager().accept(_allocations, allocationId, signedRCA);
+    }
+
+    /**
+     * @inheritdoc ISubgraphService
+     * @notice Update an indexing agreement.
+     *
+     * See {IndexingAgreement.update}.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be valid
+     *
+     * @param indexer The indexer address
+     * @param signedRCAU The signed Recurring Collection Agreement Update
+     */
+    function updateIndexingAgreement(
+        address indexer,
+        IRecurringCollector.SignedRCAU calldata signedRCAU
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+    {
+        IndexingAgreement._getStorageManager().update(indexer, signedRCAU);
+    }
+
+    /**
+     * @inheritdoc ISubgraphService
+     * @notice Cancel an indexing agreement by indexer / operator.
+     *
+     * See {IndexingAgreement.cancel}.
+     *
+     * @dev Can only be canceled on behalf of a valid indexer.
+     *
+     * Requirements:
+     * - The contract must not be paused
+     * - The indexer must be valid
+     *
+     * @param indexer The indexer address
+     * @param agreementId The id of the agreement
+     */
+    function cancelIndexingAgreement(
+        address indexer,
+        bytes16 agreementId
+    )
+        external
+        whenNotPaused
+        onlyAuthorizedForProvision(indexer)
+        onlyValidProvision(indexer)
+        onlyRegisteredIndexer(indexer)
+    {
+        IndexingAgreement._getStorageManager().cancel(indexer, agreementId);
+    }
+
+    /**
+     * @inheritdoc ISubgraphService
+     * @notice Cancel an indexing agreement by payer / signer.
+     *
+     * See {ISubgraphService.cancelIndexingAgreementByPayer}.
+     *
+     * Requirements:
+     * - The caller must be authorized by the payer
+     * - The agreement must be active
+     *
+     * Emits {IndexingAgreementCanceled} event
+     *
+     * @param agreementId The id of the agreement
+     */
+    function cancelIndexingAgreementByPayer(bytes16 agreementId) external whenNotPaused {
+        IndexingAgreement._getStorageManager().cancelByPayer(agreementId);
+    }
+
+    /// @inheritdoc ISubgraphService
+    function getIndexingAgreement(
+        bytes16 agreementId
+    ) external view returns (IndexingAgreement.AgreementWrapper memory) {
+        return IndexingAgreement._getStorageManager().get(agreementId);
+    }
+
     /// @inheritdoc ISubgraphService
     function getAllocation(address allocationId) external view override returns (Allocation.State memory) {
         return _allocations[allocationId];
@@ -426,6 +564,16 @@ contract SubgraphService is
     }
 
     /**
+     * @notice Internal function to handle closing an allocation
+     * @dev This function is called when an allocation is closed, either by the indexer or by a third party
+     * @param _allocationId The id of the allocation being closed
+     * @param _stale Whether the allocation is stale or not
+     */
+    function _onCloseAllocation(address _allocationId, bool _stale) internal {
+        IndexingAgreement._getStorageManager().onCloseAllocation(_allocationId, _stale);
+    }
+
+    /**
      * @notice Sets the payments destination for an indexer to receive payments
      * @dev Emits a {PaymentsDestinationSet} event
      * @param _indexer The address of the indexer
@@ -434,6 +582,14 @@ contract SubgraphService is
     function _setPaymentsDestination(address _indexer, address _paymentsDestination) internal {
         paymentsDestination[_indexer] = _paymentsDestination;
         emit PaymentsDestinationSet(_indexer, _paymentsDestination);
+    }
+
+    /**
+     * @notice Requires that the indexer is registered
+     * @param _indexer The address of the indexer
+     */
+    function _requireRegisteredIndexer(address _indexer) internal view {
+        require(indexers[_indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(_indexer));
     }
 
     // -- Data service parameter getters --
@@ -576,6 +732,59 @@ contract SubgraphService is
             SubgraphServiceAllocationNotAuthorized(_indexer, allocationId)
         );
         return _presentPOI(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[_indexer]);
+    }
+
+    /**
+     * @notice Collect Indexing fees
+     * Stake equal to the amount being collected times the `stakeToFeesRatio` is locked into a stake claim.
+     * This claim can be released at a later stage once expired.
+     *
+     * It's important to note that before collecting this function will attempt to release any expired stake claims.
+     * This could lead to an out of gas error if there are too many expired claims. In that case, the indexer will need to
+     * manually release the claims, see {IDataServiceFees-releaseStake}, before attempting to collect again.
+     *
+     * @dev Uses the {RecurringCollector} to collect payment from Graph Horizon payments protocol.
+     * Fees are distributed to service provider and delegators by {GraphPayments}
+     *
+     * Requirements:
+     * - Indexer must have enough available tokens to lock as economic security for fees
+     * - Allocation must be open
+     *
+     * Emits a {StakeClaimsReleased} event, and a {StakeClaimReleased} event for each claim released.
+     * Emits a {StakeClaimLocked} event.
+     * Emits a {IndexingFeesCollectedV1} event.
+     *
+     * @param _agreementId The id of the indexing agreement
+     * @param _paymentsDestination The address where the fees should be sent
+     * @param _data The indexing agreement collection data
+     * @return The amount of fees collected
+     */
+    function _collectIndexingFees(
+        bytes16 _agreementId,
+        address _paymentsDestination,
+        bytes memory _data
+    ) private returns (uint256) {
+        (address indexer, uint256 tokensCollected) = IndexingAgreement._getStorageManager().collect(
+            _allocations,
+            IndexingAgreement.CollectParams({
+                agreementId: _agreementId,
+                currentEpoch: _graphEpochManager().currentEpoch(),
+                receiverDestination: _paymentsDestination,
+                data: _data
+            })
+        );
+
+        _releaseStake(indexer, 0);
+        if (tokensCollected > 0) {
+            // lock stake as economic security for fees
+            _lockStake(
+                indexer,
+                tokensCollected * stakeToFeesRatio,
+                block.timestamp + _disputeManager().getDisputePeriod()
+            );
+        }
+
+        return tokensCollected;
     }
 
     /**
