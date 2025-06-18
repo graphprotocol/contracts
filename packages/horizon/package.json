@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/horizon",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },
@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
-    "@graphprotocol/contracts": "workspace:^7.2.1",
+    "@graphprotocol/contracts": "workspace:^7.3.0",
     "@graphprotocol/interfaces": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -62,7 +62,7 @@
     "hardhat": "^2.22.18",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",
-    "hardhat-graph-protocol": "workspace:^0.1.24",
+    "hardhat-graph-protocol": "workspace:^0.2.0",
     "hardhat-secure-accounts": "^1.0.5",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",

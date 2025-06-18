@@ -1,5 +1,16 @@
 # @graphprotocol/toolshed
 
+## 0.6.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.0
+
 ## 0.5.7
 
 ### Patch Changes

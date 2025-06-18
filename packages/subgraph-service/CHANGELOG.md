@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 0.4.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
 ## 0.3.5
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # hardhat-graph-protocol
 
+## 0.2.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/toolshed@0.6.0
+
 ## 0.1.24
 
 ### Patch Changes

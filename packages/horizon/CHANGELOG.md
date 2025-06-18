@@ -1,5 +1,11 @@
 # @graphprotocol/horizon
 
+## 0.4.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
 ## 0.3.3
 
 ### Patch Changes
