@@ -1,5 +1,20 @@
 # @graphprotocol/toolshed
 
+## 0.6.4
+
+### Patch Changes
+
+- Ensure latest build is published to npm
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.4
+
+## 0.6.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.3
+
 ## 0.6.2
 
 ### Patch Changes

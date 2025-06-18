@@ -1,5 +1,11 @@
 # @graphprotocol/horizon
 
+## 0.4.1
+
+### Patch Changes
+
+- Ensure latest build is published to npm
+
 ## 0.4.0
 
 ### Minor Changes

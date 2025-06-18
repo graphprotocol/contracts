@@ -1,5 +1,17 @@
 # @graphprotocol/interfaces
 
+## 0.2.4
+
+### Patch Changes
+
+- Ensure latest build is published to npm
+
+## 0.2.3
+
+### Patch Changes
+
+- Add missing interfaces to SubgraphService and ServiceRegistry contracts
+
 ## 0.2.2
 
 ### Patch Changes

@@ -8,6 +8,7 @@ import { ILegacyAllocation } from "../subgraph-service/internal/ILegacyAllocatio
 import { IProvisionManager } from "./internal/IProvisionManager.sol";
 import { IProvisionTracker } from "./internal/IProvisionTracker.sol";
 import { IDataServicePausable } from "../data-service/IDataServicePausable.sol";
+import { IMulticall } from "../contracts/base/IMulticall.sol";
 
 interface ISubgraphServiceToolshed is
     ISubgraphService,
@@ -16,7 +17,8 @@ interface ISubgraphServiceToolshed is
     IDataServicePausable,
     ILegacyAllocation,
     IProvisionManager,
-    IProvisionTracker
+    IProvisionTracker,
+    IMulticall
 {
     /**
      * @notice Gets the indexer details

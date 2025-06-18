@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/interfaces",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "publishConfig": {
     "access": "public"
   },
@@ -31,7 +31,8 @@
     "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
     "build": "hardhat compile && tsc",
     "build:clean": "pnpm clean && pnpm build",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",

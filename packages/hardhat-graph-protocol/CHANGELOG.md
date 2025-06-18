@@ -1,5 +1,19 @@
 # hardhat-graph-protocol
 
+## 0.2.4
+
+### Patch Changes
+
+- Ensure latest build is published to npm
+- Updated dependencies
+  - @graphprotocol/toolshed@0.6.4
+
+## 0.2.3
+
+### Patch Changes
+
+- @graphprotocol/toolshed@0.6.3
+
 ## 0.2.2
 
 ### Patch Changes
