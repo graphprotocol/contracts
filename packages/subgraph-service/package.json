@@ -26,7 +26,9 @@
     "build": "hardhat compile",
     "test": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
-    "test:integration": "./scripts/integration"
+    "test:integration": "./scripts/integration",
+    "test:coverage": "forge coverage --no-match-coverage \"test/*|contracts/mocks/*\"",
+    "test:coverage:lcov": "forge coverage --no-match-coverage \"test/*|contracts/mocks/*\" --report lcov"
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",

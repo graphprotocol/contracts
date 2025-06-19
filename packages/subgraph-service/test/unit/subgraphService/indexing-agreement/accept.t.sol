@@ -225,6 +225,25 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
 
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAllocated() public {}
 
+    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenInvalidTermsData(Seed memory seed) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
+        bytes memory invalidTermsData = bytes("invalid terms data");
+        acceptable.rca.metadata = abi.encode(
+            _newAcceptIndexingAgreementMetadataV1Terms(indexerState.subgraphDeploymentId, invalidTermsData)
+        );
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreementDecoder.IndexingAgreementDecoderInvalidData.selector,
+            "decodeCollectIndexingFeeData",
+            invalidTermsData
+        );
+        vm.expectRevert(expectedErr);
+        resetPrank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, acceptable);
+    }
+
     function test_SubgraphService_AcceptIndexingAgreement(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
