@@ -18,6 +18,13 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         uint256 indexerTokensLocked;
     }
 
+    struct ExpectedTokens {
+        uint256 expectedTotalTokensCollected;
+        uint256 expectedTokensLocked;
+        uint256 expectedProtocolTokensBurnt;
+        uint256 expectedIndexerTokensCollected;
+    }
+
     /*
      * TESTS
      */
@@ -27,81 +34,164 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         Seed memory seed,
         uint256 fuzzyTokensCollected
     ) public {
-        uint256 expectedTotalTokensCollected = bound(fuzzyTokensCollected, 1000, 1_000_000);
-        uint256 expectedTokensLocked = stakeToFeesRatio * expectedTotalTokensCollected;
-        uint256 expectedProtocolTokensBurnt = expectedTotalTokensCollected.mulPPMRoundUp(
-            graphPayments.PROTOCOL_PAYMENT_CUT()
-        );
-        uint256 expectedIndexerTokensCollected = expectedTotalTokensCollected - expectedProtocolTokensBurnt;
-
+        // Setup
+        ExpectedTokens memory expectedTokens = _newExptectedTokens(fuzzyTokensCollected);
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        _addTokensToProvision(indexerState, expectedTokensLocked);
+        _addTokensToProvision(indexerState, expectedTokens.expectedTokensLocked);
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
-        uint256 agreementTokensPerSecond = 1;
-        rca.deadline = uint64(block.timestamp); // accept now
-        rca.endsAt = type(uint64).max; // no expiration
-        rca.maxInitialTokens = 0; // no initial payment
-        rca.maxOngoingTokensPerSecond = type(uint32).max; // unlimited tokens per second
-        rca.minSecondsPerCollection = 1; // 1 second between collections
-        rca.maxSecondsPerCollection = type(uint32).max; // no maximum time between collections
-        rca.serviceProvider = indexerState.addr; // service provider is the indexer
-        rca.dataService = address(subgraphService); // data service is the subgraph service
-        rca.metadata = _encodeAcceptIndexingAgreementMetadataV1(
-            indexerState.subgraphDeploymentId,
-            IndexingAgreement.IndexingAgreementTermsV1({
-                tokensPerSecond: agreementTokensPerSecond,
-                tokensPerEntityPerSecond: 0 // no payment for entities
-            })
-        );
+        _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
-        _setupPayerWithEscrow(rca.payer, ctx.payer.signerPrivateKey, indexerState.addr, expectedTotalTokensCollected);
-
-        resetPrank(indexerState.addr);
-        // Set the payments destination to the indexer address
-        subgraphService.setPaymentsDestination(indexerState.addr);
-        // Accept the Indexing Agreement
-        subgraphService.acceptIndexingAgreement(
-            indexerState.allocationId,
-            _recurringCollectorHelper.generateSignedRCA(rca, ctx.payer.signerPrivateKey)
-        );
-        // Skip ahead to collection point
-        skip(expectedTotalTokensCollected / agreementTokensPerSecond);
-        // vm.assume(block.timestamp < type(uint64).max);
         TestState memory beforeCollect = _getState(rca.payer, indexerState.addr);
-        bytes16 agreementId = rca.agreementId;
+
+        // Collect
+        resetPrank(indexerState.addr);
         uint256 tokensCollected = subgraphService.collect(
             indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
             _encodeCollectDataV1(
-                agreementId,
+                rca.agreementId,
                 1,
                 keccak256(abi.encodePacked("poi")),
                 epochManager.currentEpochBlock(),
                 bytes("")
             )
         );
+
         TestState memory afterCollect = _getState(rca.payer, indexerState.addr);
-        uint256 indexerTokensCollected = afterCollect.indexerBalance - beforeCollect.indexerBalance;
-        uint256 protocolTokensBurnt = tokensCollected - indexerTokensCollected;
-        assertEq(
-            afterCollect.escrowBalance,
-            beforeCollect.escrowBalance - tokensCollected,
-            "Escrow balance should be reduced by the amount collected"
+        _sharedAssert(beforeCollect, afterCollect, expectedTokens, tokensCollected);
+    }
+
+    function test_SubgraphService_CollectIndexingFee_WhenCanceledByPayer_Integration(
+        Seed memory seed,
+        uint256 fuzzyTokensCollected
+    ) public {
+        // Setup
+        ExpectedTokens memory expectedTokens = _newExptectedTokens(fuzzyTokensCollected);
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
+            ctx.ctxInternal.seed.rca
         );
-        assertEq(tokensCollected, expectedTotalTokensCollected, "Total tokens collected should match");
-        assertEq(expectedProtocolTokensBurnt, protocolTokensBurnt, "Protocol tokens burnt should match");
-        assertEq(indexerTokensCollected, expectedIndexerTokensCollected, "Indexer tokens collected should match");
-        assertEq(
-            afterCollect.indexerTokensLocked,
-            beforeCollect.indexerTokensLocked + expectedTokensLocked,
-            "Locked tokens should match"
+        _sharedSetup(ctx, rca, indexerState, expectedTokens);
+
+        // Cancel the indexing agreement by the payer
+        resetPrank(ctx.payer.signer);
+        subgraphService.cancelIndexingAgreementByPayer(rca.agreementId);
+
+        TestState memory beforeCollect = _getState(rca.payer, indexerState.addr);
+
+        // Collect
+        resetPrank(indexerState.addr);
+        uint256 tokensCollected = subgraphService.collect(
+            indexerState.addr,
+            IGraphPayments.PaymentTypes.IndexingFee,
+            _encodeCollectDataV1(
+                rca.agreementId,
+                1,
+                keccak256(abi.encodePacked("poi")),
+                epochManager.currentEpochBlock(),
+                bytes("")
+            )
         );
+
+        TestState memory afterCollect = _getState(rca.payer, indexerState.addr);
+        _sharedAssert(beforeCollect, afterCollect, expectedTokens, tokensCollected);
     }
 
     /* solhint-enable graph/func-name-mixedcase */
+
+    function _sharedSetup(
+        Context storage _ctx,
+        IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        IndexerState memory _indexerState,
+        ExpectedTokens memory _expectedTokens
+    ) internal {
+        _addTokensToProvision(_indexerState, _expectedTokens.expectedTokensLocked);
+
+        IndexingAgreement.IndexingAgreementTermsV1 memory terms = IndexingAgreement.IndexingAgreementTermsV1({
+            tokensPerSecond: 1,
+            tokensPerEntityPerSecond: 0 // no payment for entities
+        });
+        _rca.deadline = uint64(block.timestamp); // accept now
+        _rca.endsAt = type(uint64).max; // no expiration
+        _rca.maxInitialTokens = 0; // no initial payment
+        _rca.maxOngoingTokensPerSecond = type(uint32).max; // unlimited tokens per second
+        _rca.minSecondsPerCollection = 1; // 1 second between collections
+        _rca.maxSecondsPerCollection = type(uint32).max; // no maximum time between collections
+        _rca.serviceProvider = _indexerState.addr; // service provider is the indexer
+        _rca.dataService = address(subgraphService); // data service is the subgraph service
+        _rca.metadata = _encodeAcceptIndexingAgreementMetadataV1(_indexerState.subgraphDeploymentId, terms);
+
+        _setupPayerWithEscrow(
+            _rca.payer,
+            _ctx.payer.signerPrivateKey,
+            _indexerState.addr,
+            _expectedTokens.expectedTotalTokensCollected
+        );
+
+        resetPrank(_indexerState.addr);
+        // Set the payments destination to the indexer address
+        subgraphService.setPaymentsDestination(_indexerState.addr);
+
+        // Accept the Indexing Agreement
+        subgraphService.acceptIndexingAgreement(
+            _indexerState.allocationId,
+            _recurringCollectorHelper.generateSignedRCA(_rca, _ctx.payer.signerPrivateKey)
+        );
+
+        // Skip ahead to collection point
+        skip(_expectedTokens.expectedTotalTokensCollected / terms.tokensPerSecond);
+    }
+
+    function _newExptectedTokens(uint256 _fuzzyTokensCollected) internal view returns (ExpectedTokens memory) {
+        uint256 expectedTotalTokensCollected = bound(_fuzzyTokensCollected, 1000, 1_000_000);
+        uint256 expectedTokensLocked = stakeToFeesRatio * expectedTotalTokensCollected;
+        uint256 expectedProtocolTokensBurnt = expectedTotalTokensCollected.mulPPMRoundUp(
+            graphPayments.PROTOCOL_PAYMENT_CUT()
+        );
+        uint256 expectedIndexerTokensCollected = expectedTotalTokensCollected - expectedProtocolTokensBurnt;
+        return
+            ExpectedTokens({
+                expectedTotalTokensCollected: expectedTotalTokensCollected,
+                expectedTokensLocked: expectedTokensLocked,
+                expectedProtocolTokensBurnt: expectedProtocolTokensBurnt,
+                expectedIndexerTokensCollected: expectedIndexerTokensCollected
+            });
+    }
+
+    function _sharedAssert(
+        TestState memory _beforeCollect,
+        TestState memory _afterCollect,
+        ExpectedTokens memory _expectedTokens,
+        uint256 _tokensCollected
+    ) internal pure {
+        uint256 indexerTokensCollected = _afterCollect.indexerBalance - _beforeCollect.indexerBalance;
+        assertEq(_expectedTokens.expectedTotalTokensCollected, _tokensCollected, "Total tokens collected should match");
+        assertEq(
+            _expectedTokens.expectedProtocolTokensBurnt,
+            _tokensCollected - indexerTokensCollected,
+            "Protocol tokens burnt should match"
+        );
+        assertEq(
+            _expectedTokens.expectedIndexerTokensCollected,
+            indexerTokensCollected,
+            "Indexer tokens collected should match"
+        );
+        assertEq(
+            _afterCollect.escrowBalance,
+            _beforeCollect.escrowBalance - _expectedTokens.expectedTotalTokensCollected,
+            "_Escrow balance should be reduced by the amount collected"
+        );
+
+        assertEq(
+            _afterCollect.indexerTokensLocked,
+            _beforeCollect.indexerTokensLocked + _expectedTokens.expectedTokensLocked,
+            "_Locked tokens should match"
+        );
+    }
 
     function _addTokensToProvision(IndexerState memory _indexerState, uint256 _tokensToAddToProvision) private {
         deal({ token: address(token), to: _indexerState.addr, give: _tokensToAddToProvision });

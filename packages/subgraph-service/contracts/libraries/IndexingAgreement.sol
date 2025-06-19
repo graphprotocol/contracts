@@ -255,6 +255,12 @@ library IndexingAgreement {
     error IndexingAgreementNotActive(bytes16 agreementId);
 
     /**
+     * @notice Thrown when the agreement is not collectable
+     * @param agreementId The agreement ID
+     */
+    error IndexingAgreementNotCollectable(bytes16 agreementId);
+
+    /**
      * @notice Thrown when trying to interact with an agreement not owned by the indexer
      * @param agreementId The agreement ID
      * @param unauthorizedIndexer The unauthorized indexer
@@ -517,7 +523,7 @@ library IndexingAgreement {
             wrapper.agreement.allocationId,
             wrapper.collectorAgreement.serviceProvider
         );
-        require(_isActive(wrapper), IndexingAgreementNotActive(params.agreementId));
+        require(_isCollectable(wrapper), IndexingAgreementNotCollectable(params.agreementId));
 
         require(
             wrapper.agreement.version == IndexingAgreementVersion.V1,
@@ -692,17 +698,37 @@ library IndexingAgreement {
     /**
      * @notice Checks if the agreement is active
      * Requirements:
+     * - The indexing agreement is valid
      * - The underlying collector agreement has been accepted
-     * - The underlying collector agreement's data service is this contract
-     * - The indexing agreement has been accepted and has a valid allocation ID
      * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
      * @return True if the agreement is active, false otherwise
      **/
     function _isActive(AgreementWrapper memory wrapper) private view returns (bool) {
-        return
-            wrapper.collectorAgreement.dataService == address(this) &&
-            wrapper.collectorAgreement.state == IRecurringCollector.AgreementState.Accepted &&
-            wrapper.agreement.allocationId != address(0);
+        return _isValid(wrapper) && wrapper.collectorAgreement.state == IRecurringCollector.AgreementState.Accepted;
+    }
+
+    /**
+     * @notice Checks if the agreement is collectable
+     * Requirements:
+     * - The indexing agreement is valid
+     * - The underlying collector agreement is collectable
+     * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
+     * @return True if the agreement is collectable, false otherwise
+     **/
+    function _isCollectable(AgreementWrapper memory wrapper) private view returns (bool) {
+        return _isValid(wrapper) && _directory().recurringCollector().isCollectable(wrapper.collectorAgreement);
+    }
+
+    /**
+     * @notice Checks if the agreement is valid
+     * Requirements:
+     * - The underlying collector agreement's data service is this contract
+     * - The indexing agreement has been accepted and has a valid allocation ID
+     * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
+     * @return True if the agreement is valid, false otherwise
+     **/
+    function _isValid(AgreementWrapper memory wrapper) private view returns (bool) {
+        return wrapper.collectorAgreement.dataService == address(this) && wrapper.agreement.allocationId != address(0);
     }
 
     /**
