@@ -77,13 +77,7 @@ tx-builder-*.json
 !tx-builder-template.json
 
 # Hardhat Ignition
-**/chain-31337/
-**/chain-1337/
-**/horizon-localhost/
-**/horizon-hardhat/
-**/subgraph-service-localhost/
-**/subgraph-service-hardhat/
-!**/ignition/**/artifacts/
-
-
-!packages/interfaces/src/types/
+**/ignition/deployments/*-localhost/
+**/ignition/deployments/*-hardhat/
+**/ignition/deployments/*-31337/
+**/ignition/deployments/*-1337/
