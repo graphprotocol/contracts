@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@defi-wonderland/natspec-smells": "^1.1.6",
-    "@graphprotocol/contracts": "workspace:^7.3.0",
+    "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -63,7 +63,7 @@
     "hardhat": "^2.22.18",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.8",
-    "hardhat-graph-protocol": "workspace:^0.2.5",
+    "hardhat-graph-protocol": "workspace:^",
     "hardhat-secure-accounts": "^1.0.5",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
