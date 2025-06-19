@@ -249,6 +249,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         return _getAgreement(agreementId);
     }
 
+    /// @inheritdoc IRecurringCollector
+    function isCollectable(AgreementData memory agreement) external pure returns (bool) {
+        return _isCollectable(agreement);
+    }
+
     /**
      * @notice Decodes the collect data.
      * @param data The encoded collect parameters.
@@ -270,7 +275,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     function _collect(CollectParams memory _params) private returns (uint256) {
         AgreementData storage agreement = _getAgreementStorage(_params.agreementId);
         require(
-            agreement.state == AgreementState.Accepted || agreement.state == AgreementState.CanceledByPayer,
+            _isCollectable(agreement),
             RecurringCollectorAgreementIncorrectState(_params.agreementId, agreement.state)
         );
 
@@ -536,5 +541,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      */
     function _agreementCollectionStartAt(AgreementData memory _agreement) private pure returns (uint256) {
         return _agreement.lastCollectionAt > 0 ? _agreement.lastCollectionAt : _agreement.acceptedAt;
+    }
+
+    /**
+     * @notice Requires that the agreement is collectable.
+     * @param _agreement The agreement data
+     * @return The boolean indicating if the agreement is collectable
+     */
+    function _isCollectable(AgreementData memory _agreement) private pure returns (bool) {
+        return _agreement.state == AgreementState.Accepted || _agreement.state == AgreementState.CanceledByPayer;
     }
 }
