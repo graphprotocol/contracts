@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 
 contract MockGRTToken is ERC20, IGraphToken {
     constructor() ERC20("Graph Token", "GRT") {}

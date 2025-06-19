@@ -1,14 +1,10 @@
 import { Provider, Signer } from 'ethers'
-import { Contract } from 'ethers'
 
 import { assertObject } from '../../lib/assert'
 import { logDebug, logError } from '../../lib/logger'
 import { AddressBook } from '../address-book'
-import { loadArtifact } from '../artifact'
-import { wrapTransactionCalls } from '../tx-logging'
 import type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
-import { SubgraphServiceArtifactsMap, SubgraphServiceContractNameList } from './contracts'
-import type { LegacyDisputeManager, LegacyServiceRegistry } from './types'
+import { SubgraphServiceContractNameList } from './contracts'
 
 export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServiceContractName> {
   isContractName(name: unknown): name is SubgraphServiceContractName {
@@ -18,50 +14,15 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
   loadContracts(signerOrProvider?: Signer | Provider, enableTxLogging?: boolean): SubgraphServiceContracts {
     logDebug('Loading Subgraph Service contracts...')
 
-    // Filter out LegacyDisputeManager from the artifacts map
-    const { LegacyDisputeManager: _, LegacyServiceRegistry: __, ...filteredArtifactsMap } = SubgraphServiceArtifactsMap
+    const contracts = this._loadContracts(signerOrProvider, enableTxLogging)
 
-    const contracts = this._loadContracts(
-      filteredArtifactsMap as typeof SubgraphServiceArtifactsMap,
-      signerOrProvider,
-      enableTxLogging,
-    )
+    this._assertSubgraphServiceContracts(contracts)
 
     // Aliases
-    const contractsWithAliases = {
-      ...contracts,
-      Curation: contracts.L2Curation,
-      GNS: contracts.L2GNS,
-    } as SubgraphServiceContracts
+    contracts.Curation = contracts.L2Curation
+    contracts.GNS = contracts.L2GNS
 
-    // Load LegacyDisputeManager manually
-    if (this.entryExists('LegacyDisputeManager')) {
-      const entry = this.getEntry('LegacyDisputeManager')
-      const contract = new Contract(
-        entry.address,
-        loadArtifact('IDisputeManager', SubgraphServiceArtifactsMap.LegacyDisputeManager).abi,
-        signerOrProvider,
-      )
-      contractsWithAliases.LegacyDisputeManager = (enableTxLogging
-        ? wrapTransactionCalls(contract, 'LegacyDisputeManager')
-        : contract) as unknown as LegacyDisputeManager
-    }
-
-    // Load ServiceRegistry manually
-    if (this.entryExists('LegacyServiceRegistry')) {
-      const entry = this.getEntry('LegacyServiceRegistry')
-      const contract = new Contract(
-        entry.address,
-        loadArtifact('IServiceRegistry', SubgraphServiceArtifactsMap.LegacyServiceRegistry).abi,
-        signerOrProvider,
-      )
-      contractsWithAliases.LegacyServiceRegistry = (enableTxLogging
-        ? wrapTransactionCalls(contract, 'LegacyServiceRegistry')
-        : contract) as unknown as LegacyServiceRegistry
-    }
-
-    this._assertSubgraphServiceContracts(contractsWithAliases)
-    return contractsWithAliases
+    return contracts
   }
 
   _assertSubgraphServiceContracts(contracts: unknown): asserts contracts is SubgraphServiceContracts {

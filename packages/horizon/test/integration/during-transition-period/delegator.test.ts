@@ -1,10 +1,9 @@
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
+import { delegators } from '@graphprotocol/toolshed/fixtures'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
-
-import { delegators } from '../../../tasks/test/fixtures/delegators'
 
 describe('Delegator', () => {
   let snapshotId: string

@@ -21,14 +21,14 @@ The package is organized into several modules that can be imported separately:
 
 ```typescript
 // Import core functionality
-import { generateAllocationProof } from '@graphprotocol/toolshed';
+import { generateAllocationProof } from '@graphprotocol/toolshed'
 
 // Import deployment
-import { loadGraphHorizon } from '@graphprotocol/toolshed/deployments/horizon';
+import { loadGraphHorizon } from '@graphprotocol/toolshed/deployments/horizon'
 
 // Import Hardhat utilities
-import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat';
+import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 
 // Import utility functions
-import { printBanner } from '@graphprotocol/toolshed/utils';
+import { printBanner } from '@graphprotocol/toolshed/utils'
 ```

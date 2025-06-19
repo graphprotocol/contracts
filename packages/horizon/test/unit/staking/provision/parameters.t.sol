@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 
 contract HorizonStakingProvisionParametersTest is HorizonStakingTest {
     /*

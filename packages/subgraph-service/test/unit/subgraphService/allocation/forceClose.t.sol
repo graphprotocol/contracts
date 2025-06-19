@@ -4,10 +4,10 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationForceCloseTest is SubgraphServiceTest {

@@ -5,13 +5,15 @@ import "forge-std/Test.sol";
 
 import { Allocation } from "../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../contracts/utilities/AllocationManager.sol";
-import { IDataService } from "@graphprotocol/horizon/contracts/data-service/interfaces/IDataService.sol";
-import { ISubgraphService } from "../../../contracts/interfaces/ISubgraphService.sol";
+
+import { IDataService } from "@graphprotocol/interfaces/contracts/data-service/IDataService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
 
 import { HorizonStakingSharedTest } from "./HorizonStakingShared.t.sol";
 
 abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
-    using Allocation for Allocation.State;
+    using Allocation for IAllocation.State;
 
     /*
      * VARIABLES
@@ -115,7 +117,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
         subgraphService.startService(_indexer, _data);
 
         // Check allocation data
-        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
         assertEq(allocation.tokens, tokens);
         assertEq(allocation.indexer, _indexer);
         assertEq(allocation.subgraphDeploymentId, subgraphDeploymentId);
@@ -134,7 +136,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
     function _stopService(address _indexer, bytes memory _data) internal {
         address allocationId = abi.decode(_data, (address));
 
-        Allocation.State memory allocation = subgraphService.getAllocation(allocationId);
+        IAllocation.State memory allocation = subgraphService.getAllocation(allocationId);
         assertTrue(allocation.isOpen());
         uint256 previousSubgraphAllocatedTokens = subgraphService.getSubgraphAllocatedTokens(
             allocation.subgraphDeploymentId

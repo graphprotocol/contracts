@@ -36,3 +36,4 @@ deployments/hardhat/
 **/horizon-hardhat/
 **/subgraph-service-localhost/
 **/subgraph-service-hardhat/
+.changeset/

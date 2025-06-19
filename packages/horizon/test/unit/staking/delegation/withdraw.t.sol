@@ -3,9 +3,9 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
-import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
@@ -24,7 +24,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         useDelegation(delegationAmount)
         useUndelegate(withdrawShares)
     {
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(
+        ILinkedList.List memory thawingRequests = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Delegation,
             users.indexer,
             subgraphDataServiceAddress,
@@ -79,7 +79,7 @@ contract HorizonStakingWithdrawDelegationTest is HorizonStakingTest {
         );
         _undelegate(users.indexer, delegation.shares);
 
-        LinkedList.List memory thawingRequests = staking.getThawRequestList(
+        ILinkedList.List memory thawingRequests = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Delegation,
             users.indexer,
             subgraphDataServiceLegacyAddress,

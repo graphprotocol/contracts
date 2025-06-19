@@ -1,4 +1,5 @@
 // Test-focused Hardhat configuration
+import '@graphprotocol/sdk/gre'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import '@typechain/hardhat'

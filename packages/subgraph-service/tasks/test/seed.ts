@@ -1,4 +1,3 @@
-import { HorizonStakingExtension } from '@graphprotocol/horizon'
 import {
   encodeRegistrationData,
   encodeStartServiceData,
@@ -6,15 +5,13 @@ import {
   generatePOI,
   PaymentTypes,
 } from '@graphprotocol/toolshed'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { task } from 'hardhat/config'
-
-import { indexers } from './fixtures/indexers'
 
 task('test:seed', 'Seed the test environment, must be run after deployment').setAction(async (_, hre) => {
   // Get contracts
   const graph = hre.graph()
   const horizonStaking = graph.horizon.contracts.HorizonStaking
-  const horizonStakingExtension = graph.horizon.contracts.HorizonStaking as HorizonStakingExtension
   const subgraphService = graph.subgraphService.contracts.SubgraphService
   const disputeManager = graph.subgraphService.contracts.DisputeManager
 
@@ -47,7 +44,7 @@ task('test:seed', 'Seed the test environment, must be run after deployment').set
 
       // Close allocation
       const poi = generatePOI()
-      await horizonStakingExtension.connect(indexerSigner).closeAllocation(allocation.allocationID, poi)
+      await horizonStaking.connect(indexerSigner).closeAllocation(allocation.allocationID, poi)
 
       const allocationData = await horizonStaking.getAllocation(allocation.allocationID)
       console.log(`Allocation closed at epoch: ${allocationData.closedAtEpoch}`)

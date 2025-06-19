@@ -9,6 +9,7 @@ export type GraphDeploymentOptions = {
 
 export type GraphRuntimeEnvironmentOptions = {
   deployments?: GraphDeploymentOptions
+  createAddressBook?: boolean
 }
 
 export type GraphRuntimeEnvironment = GraphDeployments & {

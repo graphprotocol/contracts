@@ -6,10 +6,12 @@ import "forge-std/Test.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ProvisionManager } from "@graphprotocol/horizon/contracts/data-service/utilities/ProvisionManager.sol";
 import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/libraries/ProvisionTracker.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
 import { AllocationManager } from "../../../../contracts/utilities/AllocationManager.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 import { LegacyAllocation } from "../../../../contracts/libraries/LegacyAllocation.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
@@ -143,7 +145,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         bytes memory data = _generateData(tokens);
         _startService(users.indexer, data);
 
-        vm.expectRevert(abi.encodeWithSelector(Allocation.AllocationAlreadyExists.selector, allocationID));
+        vm.expectRevert(abi.encodeWithSelector(IAllocation.AllocationAlreadyExists.selector, allocationID));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -158,7 +160,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
 
         resetPrank(users.indexer);
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(LegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
+        vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
         subgraphService.startService(users.indexer, data);
     }
 
@@ -172,7 +174,7 @@ contract SubgraphServiceAllocationStartTest is SubgraphServiceTest {
         _setStorage_allocation_hardcoded(users.indexer, allocationID, tokens);
 
         bytes memory data = _generateData(tokens);
-        vm.expectRevert(abi.encodeWithSelector(LegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
+        vm.expectRevert(abi.encodeWithSelector(ILegacyAllocation.LegacyAllocationAlreadyExists.selector, allocationID));
         subgraphService.startService(users.indexer, data);
     }
 

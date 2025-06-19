@@ -1,14 +1,13 @@
+import { SubgraphService } from '@graphprotocol/interfaces'
 import { encodeStartServiceData, generateAllocationProof } from '@graphprotocol/toolshed'
+import { indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
-import { indexers } from '../../../tasks/test/fixtures/indexers'
-import { ISubgraphService } from '../../../typechain-types'
-
 describe('Indexer', () => {
-  let subgraphService: ISubgraphService
+  let subgraphService: SubgraphService
   let snapshotId: string
   let chainId: number
 

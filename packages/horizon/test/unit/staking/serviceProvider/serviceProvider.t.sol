@@ -3,8 +3,8 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 

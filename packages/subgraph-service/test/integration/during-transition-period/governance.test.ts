@@ -1,12 +1,11 @@
+import { SubgraphService } from '@graphprotocol/interfaces'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
-import { ISubgraphService } from '../../../typechain-types'
-
 describe('Governance', () => {
-  let subgraphService: ISubgraphService
+  let subgraphService: SubgraphService
   let snapshotId: string
 
   // Test addresses

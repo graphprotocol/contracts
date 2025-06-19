@@ -1,11 +1,10 @@
 import { ONE_MILLION, PaymentTypes } from '@graphprotocol/toolshed'
+import { indexers } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
-
-import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Service provider', () => {
   let verifier: string

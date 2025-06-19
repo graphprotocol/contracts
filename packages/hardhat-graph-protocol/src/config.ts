@@ -24,14 +24,19 @@ export function getAddressBookPath(
 
   const addressBookPath = optsPath ?? networkPath ?? globalPath
   if (addressBookPath === undefined) {
-    throw new GraphPluginError('Must set a an addressBook path!')
+    return undefined
   }
 
   const normalizedAddressBookPath = normalizePath(addressBookPath, hre.config.paths.graph)
   logDebug(`Address book path: ${normalizedAddressBookPath}`)
 
   if (!fs.existsSync(normalizedAddressBookPath)) {
-    throw new GraphPluginError(`Address book not found: ${normalizedAddressBookPath}`)
+    if (opts.createAddressBook) {
+      logDebug(`Creating address book: ${normalizedAddressBookPath}`)
+      fs.writeFileSync(normalizedAddressBookPath, '{}')
+    } else {
+      throw new GraphPluginError(`Address book not found: ${normalizedAddressBookPath}`)
+    }
   }
 
   return normalizedAddressBookPath

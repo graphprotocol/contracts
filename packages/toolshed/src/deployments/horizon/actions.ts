@@ -1,6 +1,6 @@
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
-import type { GraphHorizonContracts, HorizonStakingExtension } from '.'
+import type { GraphHorizonContracts } from '.'
 
 /**
  * It's important to use JSDoc in the return functions here for good developer experience as
@@ -166,7 +166,7 @@ async function collect(
   const [tokens, allocationID] = args
 
   await GraphToken.connect(signer).approve(HorizonStaking.target, tokens)
-  await (HorizonStaking as HorizonStakingExtension).connect(signer).collect(tokens, allocationID)
+  await HorizonStaking.connect(signer).collect(tokens, allocationID)
 }
 
 async function delegate(

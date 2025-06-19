@@ -7,20 +7,20 @@ import { MockGRTToken } from "./MockGRTToken.sol";
 contract RewardsManagerMock {
     // -- Variables --
     MockGRTToken public token;
-    uint256 private rewards;
+    uint256 private _rewards;
 
     // -- Constructor --
 
-    constructor(MockGRTToken _token, uint256 _rewards) {
-        token = _token;
-        rewards = _rewards;
+    constructor(MockGRTToken token_, uint256 rewards) {
+        token = token_;
+        _rewards = rewards;
     }
 
     function takeRewards(address) external returns (uint256) {
-        token.mint(msg.sender, rewards);
-        return rewards;
+        token.mint(msg.sender, _rewards);
+        return _rewards;
     }
 
     function onSubgraphAllocationUpdate(bytes32) public returns (uint256) {}
-    function onSubgraphSignalUpdate(bytes32 _subgraphDeploymentID) external returns (uint256) {}
+    function onSubgraphSignalUpdate(bytes32 subgraphDeploymentID) external returns (uint256) {}
 }

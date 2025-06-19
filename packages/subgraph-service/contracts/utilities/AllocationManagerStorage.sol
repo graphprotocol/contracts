@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-import { Allocation } from "../libraries/Allocation.sol";
-import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 
 /**
  * @title AllocationManagerStorage
@@ -12,10 +12,10 @@ import { LegacyAllocation } from "../libraries/LegacyAllocation.sol";
  */
 abstract contract AllocationManagerV1Storage {
     /// @notice Allocation details
-    mapping(address allocationId => Allocation.State allocation) internal _allocations;
+    mapping(address allocationId => IAllocation.State allocation) internal _allocations;
 
     /// @notice Legacy allocation details
-    mapping(address allocationId => LegacyAllocation.State allocation) internal _legacyAllocations;
+    mapping(address allocationId => ILegacyAllocation.State allocation) internal _legacyAllocations;
 
     /// @notice Tracks allocated tokens per indexer
     mapping(address indexer => uint256 tokens) public allocationProvisionTracker;
