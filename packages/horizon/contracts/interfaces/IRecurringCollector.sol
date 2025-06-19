@@ -413,4 +413,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @return The AgreementData struct containing the agreement's data.
      */
     function getAgreement(bytes16 agreementId) external view returns (AgreementData memory);
+
+    /**
+     * @notice Checks if an agreement is collectable.
+     * @param agreement The agreement data
+     * @return The boolean indicating if the agreement is collectable
+     */
+    function isCollectable(AgreementData memory agreement) external view returns (bool);
 }
