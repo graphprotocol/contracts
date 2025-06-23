@@ -62,12 +62,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @dev Caller must be the data service the RCA was issued to.
      */
     function collect(IGraphPayments.PaymentTypes paymentType, bytes calldata data) external returns (uint256) {
-        require(
-            paymentType == IGraphPayments.PaymentTypes.IndexingFee,
-            RecurringCollectorInvalidPaymentType(paymentType)
-        );
         try this.decodeCollectData(data) returns (CollectParams memory collectParams) {
-            return _collect(collectParams);
+            return _collect(paymentType, collectParams);
         } catch {
             revert RecurringCollectorInvalidCollectData(data);
         }
@@ -269,10 +265,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      *
      * Emits {PaymentCollected} and {RCACollected} events.
      *
+     * @param _paymentType The type of payment to collect
      * @param _params The decoded parameters for the collection
      * @return The amount of tokens collected
      */
-    function _collect(CollectParams memory _params) private returns (uint256) {
+    function _collect(
+        IGraphPayments.PaymentTypes _paymentType,
+        CollectParams memory _params
+    ) private returns (uint256) {
         AgreementData storage agreement = _getAgreementStorage(_params.agreementId);
         require(
             _isCollectable(agreement),
@@ -289,7 +289,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             tokensToCollect = _requireValidCollect(agreement, _params.agreementId, _params.tokens);
 
             _graphPaymentsEscrow().collect(
-                IGraphPayments.PaymentTypes.IndexingFee,
+                _paymentType,
                 agreement.payer,
                 agreement.serviceProvider,
                 tokensToCollect,
@@ -301,7 +301,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.lastCollectionAt = uint64(block.timestamp);
 
         emit PaymentCollected(
-            IGraphPayments.PaymentTypes.IndexingFee,
+            _paymentType,
             _params.collectionId,
             agreement.payer,
             agreement.serviceProvider,

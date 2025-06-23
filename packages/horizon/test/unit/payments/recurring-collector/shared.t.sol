@@ -16,6 +16,7 @@ import { RecurringCollectorHelper } from "./RecurringCollectorHelper.t.sol";
 contract RecurringCollectorSharedTest is Test, Bounder {
     struct FuzzyTestCollect {
         FuzzyTestAccept fuzzyTestAccept;
+        uint8 unboundedPaymentType;
         IRecurringCollector.CollectParams collectParams;
     }
 
@@ -106,6 +107,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     function _expectCollectCallAndEmit(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        IGraphPayments.PaymentTypes __paymentType,
         IRecurringCollector.CollectParams memory _fuzzyParams,
         uint256 _tokens
     ) internal {
@@ -114,7 +116,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             abi.encodeCall(
                 _paymentsEscrow.collect,
                 (
-                    IGraphPayments.PaymentTypes.IndexingFee,
+                    __paymentType,
                     _rca.payer,
                     _rca.serviceProvider,
                     _tokens,
@@ -126,7 +128,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         );
         vm.expectEmit(address(_recurringCollector));
         emit IPaymentsCollector.PaymentCollected(
-            IGraphPayments.PaymentTypes.IndexingFee,
+            __paymentType,
             _fuzzyParams.collectionId,
             _rca.payer,
             _rca.serviceProvider,
@@ -191,6 +193,17 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         return
             IRecurringCollector.CancelAgreementBy(
                 bound(_seed, 0, uint256(IRecurringCollector.CancelAgreementBy.Payer))
+            );
+    }
+
+    function _paymentType(uint8 _unboundedPaymentType) internal pure returns (IGraphPayments.PaymentTypes) {
+        return
+            IGraphPayments.PaymentTypes(
+                bound(
+                    _unboundedPaymentType,
+                    uint256(type(IGraphPayments.PaymentTypes).min),
+                    uint256(type(IGraphPayments.PaymentTypes).max)
+                )
             );
     }
 }
