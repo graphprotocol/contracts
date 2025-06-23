@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
-
 import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurringCollector.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
@@ -14,32 +12,14 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
 
     /* solhint-disable graph/func-name-mixedcase */
 
-    function test_Collect_Revert_WhenInvalidPaymentType(uint8 unboundedPaymentType, bytes memory data) public {
-        IGraphPayments.PaymentTypes paymentType = IGraphPayments.PaymentTypes(
-            bound(
-                unboundedPaymentType,
-                uint256(type(IGraphPayments.PaymentTypes).min),
-                uint256(type(IGraphPayments.PaymentTypes).max)
-            )
-        );
-        vm.assume(paymentType != IGraphPayments.PaymentTypes.IndexingFee);
-
-        bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorInvalidPaymentType.selector,
-            paymentType
-        );
-        vm.expectRevert(expectedErr);
-        _recurringCollector.collect(paymentType, data);
-    }
-
-    function test_Collect_Revert_WhenInvalidData(address caller, bytes memory data) public {
+    function test_Collect_Revert_WhenInvalidData(address caller, uint8 unboundedPaymentType, bytes memory data) public {
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorInvalidCollectData.selector,
             data
         );
         vm.expectRevert(expectedErr);
         vm.prank(caller);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(unboundedPaymentType), data);
     }
 
     function test_Collect_Revert_WhenCallerNotDataService(
@@ -61,7 +41,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         vm.expectRevert(expectedErr);
         vm.prank(notDataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 
     function test_Collect_Revert_WhenUnknownAgreement(FuzzyTestCollect memory fuzzy, address dataService) public {
@@ -74,7 +54,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         vm.expectRevert(expectedErr);
         vm.prank(dataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 
     function test_Collect_Revert_WhenCanceledAgreementByServiceProvider(FuzzyTestCollect calldata fuzzy) public {
@@ -97,7 +77,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         vm.expectRevert(expectedErr);
         vm.prank(accepted.rca.dataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 
     function test_Collect_Revert_WhenCollectingTooSoon(
@@ -116,7 +96,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             )
         );
         vm.prank(accepted.rca.dataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
 
         uint256 collectionSeconds = boundSkip(unboundedCollectionSeconds, 1, accepted.rca.minSecondsPerCollection - 1);
         skip(collectionSeconds);
@@ -136,7 +116,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         vm.expectRevert(expectedErr);
         vm.prank(accepted.rca.dataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 
     function test_Collect_Revert_WhenCollectingTooLate(
@@ -163,7 +143,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             )
         );
         vm.prank(accepted.rca.dataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
 
         // skip beyond collectable time but still within the agreement endsAt
         uint256 collectionSeconds = boundSkip(
@@ -189,7 +169,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         vm.expectRevert(expectedErr);
         vm.prank(accepted.rca.dataService);
-        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 
     function test_Collect_OK_WhenCollectingTooMuch(
@@ -219,7 +199,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
                 )
             );
             vm.prank(accepted.rca.dataService);
-            _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, initialData);
+            _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), initialData);
         }
 
         // skip to collectable time
@@ -240,7 +220,7 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         bytes memory data = _generateCollectData(collectParams);
         vm.prank(accepted.rca.dataService);
-        uint256 collected = _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        uint256 collected = _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
         assertEq(collected, maxTokens);
     }
 
@@ -258,9 +238,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
             unboundedTokens
         );
         skip(collectionSeconds);
-        _expectCollectCallAndEmit(accepted.rca, fuzzy.collectParams, tokens);
+        _expectCollectCallAndEmit(accepted.rca, _paymentType(fuzzy.unboundedPaymentType), fuzzy.collectParams, tokens);
         vm.prank(accepted.rca.dataService);
-        uint256 collected = _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        uint256 collected = _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
         assertEq(collected, tokens);
     }
     /* solhint-enable graph/func-name-mixedcase */
