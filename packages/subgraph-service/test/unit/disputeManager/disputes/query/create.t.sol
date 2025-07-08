@@ -174,7 +174,7 @@ contract DisputeManagerQueryCreateDisputeTest is DisputeManagerTest {
         resetPrank(users.fisherman);
         token.approve(address(disputeManager), tokens);
 
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        IAttestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         _createQueryDispute(attestationData);
     }

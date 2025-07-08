@@ -7,7 +7,7 @@ source $(pwd)/scripts/evm
 
 # Ensure we compiled sources and dependencies
 
-pnpm --filter @graphprotocol/contracts --filter @graphprotocol/sdk build
+pnpm --filter @graphprotocol/contracts build
 
 ### Cleanup
 function cleanup() {
@@ -28,6 +28,10 @@ fi
 
 # Init address book
 echo {} > ../addresses-local.json
+
+# TODO: fix this! For some reason the resolved package does not have a few required files
+echo {} > ../../../node_modules/.pnpm/@graphprotocol+contracts@7.2.1/node_modules/@graphprotocol/contracts/addresses-local.json
+cp -r ../config ../../../node_modules/.pnpm/@graphprotocol+contracts@7.2.1/node_modules/@graphprotocol/contracts/config
 
 mkdir -p reports
 

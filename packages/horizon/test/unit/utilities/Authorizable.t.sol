@@ -69,6 +69,7 @@ contract AuthorizableTest is Test, Bounder {
     }
 
     function test_AuthorizeSigner_Revert_WhenInvalidProofDeadline(uint256 _proofDeadline, uint256 _now) public {
+        _now = bound(_now, 0, type(uint64).max - 1);
         _proofDeadline = bound(_proofDeadline, 0, _now);
         vm.warp(_now);
 
@@ -89,7 +90,7 @@ contract AuthorizableTest is Test, Bounder {
         uint256 _chainid,
         uint256 _wrong
     ) public {
-        _now = bound(_now, 0, type(uint256).max - 1);
+        _now = bound(_now, 0, type(uint64).max - 1);
         address authorizer = boundAddr(_unboundedAuthorizer);
         (uint256 signerKey, address signer) = boundAddrAndKey(_unboundedKey);
         _proofDeadline = boundTimestampMin(_proofDeadline, _now + 1);
