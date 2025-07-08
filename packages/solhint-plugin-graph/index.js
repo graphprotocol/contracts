@@ -15,28 +15,28 @@ function isUpperSnakeCase(text) {
 }
 
 class Base {
-  constructor(reporter, config, source, fileName) {
-    this.ignoreDeprecated = true;
-    this.deprecatedPrefix = '__DEPRECATED_';
-    this.underscorePrefix = '__';
-    this.reporter = reporter;
-    this.ignored = this.constructor.global;
-    this.ruleId = this.constructor.ruleId;
+  constructor(reporter, _config, _source, _fileName) {
+    this.ignoreDeprecated = true
+    this.deprecatedPrefix = '__DEPRECATED_'
+    this.underscorePrefix = '__'
+    this.reporter = reporter
+    this.ignored = this.constructor.global
+    this.ruleId = this.constructor.ruleId
     if (this.ruleId === undefined) {
-      throw Error('missing ruleId static property');
+      throw Error('missing ruleId static property')
     }
   }
 
   error(node, message, fix) {
     if (!this.ignored) {
-      this.reporter.error(node, this.ruleId, message, fix);
+      this.reporter.error(node, this.ruleId, message, fix)
     }
   }
 }
 
 module.exports = [
   class extends Base {
-    static ruleId = 'leading-underscore';
+    static ruleId = 'leading-underscore'
 
     ContractDefinition(node) {
       if (node.kind === 'library') {
@@ -65,7 +65,6 @@ module.exports = [
 
         this.validateName(node, 'variable')
       }
-
     }
 
     FunctionDefinition(node) {
@@ -78,7 +77,6 @@ module.exports = [
         }
 
         this.validateName(node, 'function')
-
       }
     }
 
@@ -104,7 +102,7 @@ module.exports = [
 
     fixStatement(node, shouldHaveLeadingUnderscore, type) {
       let range
-  
+
       if (type === 'function') {
         range = node.range
         range[0] += 8
@@ -114,23 +112,23 @@ module.exports = [
         range = node.identifier.range
         range[0] -= 1
       }
-  
+
       return (fixer) =>
         shouldHaveLeadingUnderscore
           ? fixer.insertTextBeforeRange(range, ' _')
           : fixer.removeRange([range[0] + 1, range[0] + 1])
     }
 
-    _error(node, name, shouldHaveLeadingUnderscore, type) {
+    _error(node, name, shouldHaveLeadingUnderscore, _type) {
       this.error(
         node,
-        `'${name}' ${shouldHaveLeadingUnderscore ? 'should' : 'should not'} start with _`, 
+        `'${name}' ${shouldHaveLeadingUnderscore ? 'should' : 'should not'} start with _`,
         // this.fixStatement(node, shouldHaveLeadingUnderscore, type)
       )
     }
   },
   class extends Base {
-    static ruleId = 'func-name-mixedcase';
+    static ruleId = 'func-name-mixedcase'
 
     FunctionDefinition(node) {
       // Allow __DEPRECATED_ prefixed functions and __ prefixed functions
@@ -138,18 +136,18 @@ module.exports = [
         return
       }
 
-      if (!isMixedCase(node.name) && !node.isConstructor) { 
+      if (!isMixedCase(node.name) && !node.isConstructor) {
         // Allow external functions to be in UPPER_SNAKE_CASE - for immutable state getters
         if (node.visibility === 'external' && isUpperSnakeCase(node.name)) {
           return
         }
-        this.error(node, 'Function name must be in mixedCase',)
+        this.error(node, 'Function name must be in mixedCase')
       }
     }
   },
   class extends Base {
-    static ruleId = 'var-name-mixedcase';
-  
+    static ruleId = 'var-name-mixedcase'
+
     VariableDeclaration(node) {
       if (node.name.startsWith(this.deprecatedPrefix)) {
         return
@@ -158,7 +156,7 @@ module.exports = [
         this.validateVariablesName(node)
       }
     }
-  
+
     validateVariablesName(node) {
       if (node.name.startsWith(this.deprecatedPrefix)) {
         return
@@ -167,6 +165,5 @@ module.exports = [
         this.error(node, 'Variable name must be in mixedCase')
       }
     }
-  }
-  
-];
+  },
+]

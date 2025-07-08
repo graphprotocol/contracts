@@ -1,8 +1,8 @@
 import { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+import type { Provider, Signer } from 'ethers'
+
 import { loadActions } from './actions'
 import { SubgraphServiceAddressBook } from './address-book'
-
-import type { Provider, Signer } from 'ethers'
 
 export { SubgraphServiceAddressBook }
 export type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'

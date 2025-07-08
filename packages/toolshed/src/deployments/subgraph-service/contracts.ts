@@ -1,17 +1,8 @@
-import { resolvePackagePath } from '../../lib/path'
+import type { DisputeManager, SubgraphService } from '@graphprotocol/subgraph-service'
 
-import type {
-  DisputeManager,
-  SubgraphService,
-} from '@graphprotocol/subgraph-service'
-import type {
-  L2Curation,
-  L2GNS,
-  LegacyDisputeManager,
-  LegacyServiceRegistry,
-  SubgraphNFT,
-} from './types'
+import { resolvePackagePath } from '../../lib/path'
 import type { ContractList } from '../contract'
+import type { L2Curation, L2GNS, LegacyDisputeManager, LegacyServiceRegistry, SubgraphNFT } from './types'
 
 export const SubgraphServiceContractNameList = [
   // @graphprotocol/contracts

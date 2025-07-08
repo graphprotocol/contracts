@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import GraphProxyArtifact from '@graphprotocol/contracts/artifacts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 import {
   CallableContractFuture,
   ContractFuture,
@@ -8,8 +8,6 @@ import {
 
 import { deployImplementation, type ImplementationMetadata } from './implementation'
 import { loadProxyWithABI } from './utils'
-
-import GraphProxyArtifact from '@graphprotocol/contracts/build/contracts/contracts/upgrades/GraphProxy.sol/GraphProxy.json'
 
 export function deployGraphProxy(
   m: IgnitionModuleBuilder,
@@ -70,7 +68,12 @@ export function deployWithGraphProxy(
   if (metadata.initArgs === undefined) {
     m.call(proxyAdmin, 'acceptProxy', [implementation, proxy], options)
   } else {
-    m.call(proxyAdmin, 'acceptProxyAndCall', [implementation, proxy, m.encodeFunctionCall(implementation, 'initialize', metadata.initArgs)], options)
+    m.call(
+      proxyAdmin,
+      'acceptProxyAndCall',
+      [implementation, proxy, m.encodeFunctionCall(implementation, 'initialize', metadata.initArgs)],
+      options,
+    )
   }
 
   return { proxy, implementation }

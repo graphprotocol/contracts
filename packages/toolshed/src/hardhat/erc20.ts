@@ -1,8 +1,7 @@
-import { toBeHex, zeroPadValue } from 'ethers/utils'
-import { keccak256 } from 'ethers/crypto'
-
-import type { Addressable } from 'ethers'
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
+import type { Addressable } from 'ethers'
+import { keccak256 } from 'ethers/crypto'
+import { toBeHex, zeroPadValue } from 'ethers/utils'
 
 export async function setGRTBalance(
   provider: HardhatEthersProvider,
@@ -35,9 +34,5 @@ export async function setERC20Balance(
   // Pad the balance to 32 bytes
   const paddedValue = toBeHex(balance, 32)
 
-  await provider.send('hardhat_setStorageAt', [
-    tokenAddress,
-    storageKey,
-    paddedValue,
-  ])
+  await provider.send('hardhat_setStorageAt', [tokenAddress, storageKey, paddedValue])
 }

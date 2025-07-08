@@ -2,14 +2,17 @@ import {
   getAccounts as getAccountsToolshed,
   getArbitrator,
   getDeployer,
-  getGateway, getGovernor, getPauseGuardian, getSubgraphAvailabilityOracle, getTestAccounts,
+  getGateway,
+  getGovernor,
+  getPauseGuardian,
+  getSubgraphAvailabilityOracle,
+  getTestAccounts,
   TEN_MILLION,
 } from '@graphprotocol/toolshed'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
-import type { Addressable } from 'ethers'
 import type { HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import type { Addressable } from 'ethers'
 
 type Accounts = {
   getAccounts: () => ReturnType<typeof getAccountsToolshed>
@@ -22,7 +25,11 @@ type Accounts = {
   getTestAccounts: () => ReturnType<typeof getTestAccounts>
 }
 
-export function getAccounts(provider: HardhatEthersProvider, chainId: number, grtTokenAddress: string | Addressable | undefined): Accounts {
+export function getAccounts(
+  provider: HardhatEthersProvider,
+  chainId: number,
+  grtTokenAddress: string | Addressable | undefined,
+): Accounts {
   return {
     getAccounts: async () => {
       const accounts = await getAccountsToolshed(provider)
@@ -77,7 +84,12 @@ export function getAccounts(provider: HardhatEthersProvider, chainId: number, gr
   }
 }
 
-async function setBalanceIfLocal(provider: HardhatEthersProvider, chainId: number, grtTokenAddress: string | Addressable | undefined, account: HardhatEthersSigner) {
+async function setBalanceIfLocal(
+  provider: HardhatEthersProvider,
+  chainId: number,
+  grtTokenAddress: string | Addressable | undefined,
+  account: HardhatEthersSigner,
+) {
   if (grtTokenAddress && [1337, 31337].includes(chainId)) {
     await setGRTBalance(provider, grtTokenAddress, account.address, TEN_MILLION)
   }

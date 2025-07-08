@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Third-party libraries in lib directories
+**/lib/
+
+# Build outputs
+**/build/
+**/dist/
+**/artifacts/
+**/typechain-types/
+**/types/
+**/cache/
+**/cached/
+cache
+typechain/
+bin/
+forge-artifacts/
+out/
+
+# Coverage and reports
+coverage/
+reports/
+coverage.json
+lcov.info
+.nyc_output/
+
+# Other generated files
+.eslintcache
+packages/*/.eslintcache
+deployments/hardhat/
+.graphclient
+**/chain-31337/
+**/chain-1377/
+**/horizon-localhost/
+**/horizon-hardhat/
+**/subgraph-service-localhost/
+**/subgraph-service-hardhat/

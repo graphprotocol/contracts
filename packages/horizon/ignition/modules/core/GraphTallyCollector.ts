@@ -1,9 +1,8 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
+import GraphTallyCollectorArtifact from '../../../build/contracts/contracts/payments/collectors/GraphTallyCollector.sol/GraphTallyCollector.json'
 import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
 import HorizonProxiesModule from './HorizonProxies'
-
-import GraphTallyCollectorArtifact from '../../../build/contracts/contracts/payments/collectors/GraphTallyCollector.sol/GraphTallyCollector.json'
 
 export default buildModule('GraphTallyCollector', (m) => {
   const { Controller } = m.useModule(GraphPeripheryModule)
@@ -33,11 +32,12 @@ export const MigrateGraphTallyCollectorModule = buildModule('GraphTallyCollector
   const version = m.getParameter('eip712Version')
   const revokeSignerThawingPeriod = m.getParameter('revokeSignerThawingPeriod')
 
-  const GraphTallyCollector = m.contract(
-    'GraphTallyCollector',
-    GraphTallyCollectorArtifact,
-    [name, version, Controller, revokeSignerThawingPeriod],
-  )
+  const GraphTallyCollector = m.contract('GraphTallyCollector', GraphTallyCollectorArtifact, [
+    name,
+    version,
+    Controller,
+    revokeSignerThawingPeriod,
+  ])
 
   return { GraphTallyCollector }
 })

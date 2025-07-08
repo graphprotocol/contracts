@@ -1,6 +1,6 @@
+import { expect } from 'chai'
 import hre from 'hardhat'
 
-import { expect } from 'chai'
 import { graphProxyTests } from './lib/GraphProxy.test'
 
 const graph = hre.graph()

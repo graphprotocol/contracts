@@ -1,22 +1,26 @@
-import hre from 'hardhat'
-import data from './data.json'
 import { confirm, subgraphIdToHex } from '@graphprotocol/sdk'
 import { BigNumber, ethers } from 'ethers'
+import hre from 'hardhat'
+
+import data from './data.json'
 
 async function main() {
   const graph = hre.graph()
   const deployer = await graph.getDeployer()
 
   // First estimate cost
-  const gasEstimate = await data.data.subgraphs.reduce(async (acc, subgraph) => {
-    return (await acc).add(
-      await graph.contracts.L1GNS.connect(deployer).estimateGas.migrateLegacySubgraph(
-        subgraph.owner.id,
-        subgraph.subgraphNumber,
-        subgraph.metadataHash,
-      ),
-    )
-  }, Promise.resolve(BigNumber.from(0)))
+  const gasEstimate = await data.data.subgraphs.reduce(
+    async (acc, subgraph) => {
+      return (await acc).add(
+        await graph.contracts.L1GNS.connect(deployer).estimateGas.migrateLegacySubgraph(
+          subgraph.owner.id,
+          subgraph.subgraphNumber,
+          subgraph.metadataHash,
+        ),
+      )
+    },
+    Promise.resolve(BigNumber.from(0)),
+  )
   const gasPrice = await graph.provider.getGasPrice()
   const cost = ethers.utils.formatEther(gasEstimate.mul(gasPrice))
 

@@ -1,11 +1,9 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { ONE_MILLION } from '@graphprotocol/toolshed'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
-
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
 
 describe('Slasher', () => {
   let snapshotId: string
@@ -26,7 +24,7 @@ describe('Slasher', () => {
   const graphToken = graph.horizon.contracts.L2GraphToken
 
   before(async () => {
-    [serviceProvider, delegator, verifier, slashingVerifier] = await graph.accounts.getTestAccounts()
+    ;[serviceProvider, delegator, verifier, slashingVerifier] = await graph.accounts.getTestAccounts()
     verifierDestination = ethers.Wallet.createRandom().address
     await setGRTBalance(graph.provider, graphToken.target, serviceProvider.address, ONE_MILLION)
     await setGRTBalance(graph.provider, graphToken.target, delegator.address, ONE_MILLION)
@@ -37,7 +35,13 @@ describe('Slasher', () => {
     snapshotId = await ethers.provider.send('evm_snapshot', [])
 
     // Create provision
-    await provision(serviceProvider, [serviceProvider.address, verifier.address, provisionTokens, maxVerifierCut, thawingPeriod])
+    await provision(serviceProvider, [
+      serviceProvider.address,
+      verifier.address,
+      provisionTokens,
+      maxVerifierCut,
+      thawingPeriod,
+    ])
 
     // Send funds to delegator
     await graphToken.connect(serviceProvider).transfer(delegator.address, delegationTokens * 3n)
@@ -64,7 +68,9 @@ describe('Slasher', () => {
     const verifierDestinationBalanceBefore = await graphToken.balanceOf(verifierDestination)
 
     // Slash provision
-    await horizonStaking.connect(verifier).slash(serviceProvider.address, slashTokens, tokensVerifier, verifierDestination)
+    await horizonStaking
+      .connect(verifier)
+      .slash(serviceProvider.address, slashTokens, tokensVerifier, verifierDestination)
 
     // Verify provision tokens are reduced
     const provisionAfter = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -72,7 +78,10 @@ describe('Slasher', () => {
 
     // Verify verifier destination received the tokens
     const verifierDestinationBalanceAfter = await graphToken.balanceOf(verifierDestination)
-    expect(verifierDestinationBalanceAfter).to.equal(verifierDestinationBalanceBefore + tokensVerifier, 'Verifier destination should receive the tokens')
+    expect(verifierDestinationBalanceAfter).to.equal(
+      verifierDestinationBalanceBefore + tokensVerifier,
+      'Verifier destination should receive the tokens',
+    )
   })
 
   it('should slash service provider tokens when tokens are thawing', async () => {
@@ -86,7 +95,9 @@ describe('Slasher', () => {
     const verifierDestinationBalanceBefore = await graphToken.balanceOf(verifierDestination)
 
     // Slash provision
-    await horizonStaking.connect(verifier).slash(serviceProvider.address, slashTokens, tokensVerifier, verifierDestination)
+    await horizonStaking
+      .connect(verifier)
+      .slash(serviceProvider.address, slashTokens, tokensVerifier, verifierDestination)
 
     // Verify provision tokens are reduced
     const provisionAfter = await horizonStaking.getProvision(serviceProvider.address, verifier)
@@ -94,7 +105,10 @@ describe('Slasher', () => {
 
     // Verify verifier destination received the tokens
     const verifierDestinationBalanceAfter = await graphToken.balanceOf(verifierDestination)
-    expect(verifierDestinationBalanceAfter).to.equal(verifierDestinationBalanceBefore + tokensVerifier, 'Verifier destination should receive the tokens')
+    expect(verifierDestinationBalanceAfter).to.equal(
+      verifierDestinationBalanceBefore + tokensVerifier,
+      'Verifier destination should receive the tokens',
+    )
   })
 
   it('should only slash service provider when delegation slashing is disabled', async () => {
@@ -108,7 +122,13 @@ describe('Slasher', () => {
     })
 
     // Create provision for slashing verifier
-    await provision(serviceProvider, [serviceProvider.address, slashingVerifier.address, provisionTokens, maxVerifierCut, thawingPeriod])
+    await provision(serviceProvider, [
+      serviceProvider.address,
+      slashingVerifier.address,
+      provisionTokens,
+      maxVerifierCut,
+      thawingPeriod,
+    ])
 
     // Initialize delegation pool for slashing verifier
     await delegate(serviceProvider, [serviceProvider.address, slashingVerifier.address, delegationTokens, 0n])
@@ -117,7 +137,9 @@ describe('Slasher', () => {
     const poolBefore = await horizonStaking.getDelegationPool(serviceProvider.address, slashingVerifier.address)
 
     // Slash the provision for all service provider and delegation pool tokens
-    await horizonStaking.connect(slashingVerifier).slash(serviceProvider.address, slashTokens, tokensVerifier, verifierDestination)
+    await horizonStaking
+      .connect(slashingVerifier)
+      .slash(serviceProvider.address, slashTokens, tokensVerifier, verifierDestination)
 
     // Verify provision tokens were completely slashed
     const provisionAfter = await horizonStaking.getProvision(serviceProvider.address, slashingVerifier.address)

@@ -1,9 +1,9 @@
-import { ethers } from 'hardhat'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
+import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
 import { DisputeManager } from '../../../../typechain-types'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 describe('DisputeManager Governance', () => {
   let disputeManager: DisputeManager
@@ -41,9 +41,10 @@ describe('DisputeManager Governance', () => {
     })
 
     it('should not allow non-owner to set arbitrator', async () => {
-      await expect(
-        disputeManager.connect(nonOwner).setArbitrator(newArbitrator.address),
-      ).to.be.revertedWithCustomError(disputeManager, 'OwnableUnauthorizedAccount')
+      await expect(disputeManager.connect(nonOwner).setArbitrator(newArbitrator.address)).to.be.revertedWithCustomError(
+        disputeManager,
+        'OwnableUnauthorizedAccount',
+      )
     })
   })
 
@@ -56,9 +57,10 @@ describe('DisputeManager Governance', () => {
 
     it('should not allow non-owner to set dispute period', async () => {
       const newDisputePeriod = 7 * 24 * 60 * 60
-      await expect(
-        disputeManager.connect(nonOwner).setDisputePeriod(newDisputePeriod),
-      ).to.be.revertedWithCustomError(disputeManager, 'OwnableUnauthorizedAccount')
+      await expect(disputeManager.connect(nonOwner).setDisputePeriod(newDisputePeriod)).to.be.revertedWithCustomError(
+        disputeManager,
+        'OwnableUnauthorizedAccount',
+      )
     })
   })
 
@@ -71,9 +73,10 @@ describe('DisputeManager Governance', () => {
 
     it('should not allow non-owner to set dispute deposit', async () => {
       const newDisputeDeposit = ethers.parseEther('1000')
-      await expect(
-        disputeManager.connect(nonOwner).setDisputeDeposit(newDisputeDeposit),
-      ).to.be.revertedWithCustomError(disputeManager, 'OwnableUnauthorizedAccount')
+      await expect(disputeManager.connect(nonOwner).setDisputeDeposit(newDisputeDeposit)).to.be.revertedWithCustomError(
+        disputeManager,
+        'OwnableUnauthorizedAccount',
+      )
     })
   })
 
@@ -101,9 +104,10 @@ describe('DisputeManager Governance', () => {
 
     it('should not allow non-owner to set max slashing cut', async () => {
       const newMaxSlashingCut = 200000
-      await expect(
-        disputeManager.connect(nonOwner).setMaxSlashingCut(newMaxSlashingCut),
-      ).to.be.revertedWithCustomError(disputeManager, 'OwnableUnauthorizedAccount')
+      await expect(disputeManager.connect(nonOwner).setMaxSlashingCut(newMaxSlashingCut)).to.be.revertedWithCustomError(
+        disputeManager,
+        'OwnableUnauthorizedAccount',
+      )
     })
   })
 

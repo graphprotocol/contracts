@@ -5,6 +5,7 @@
 /** @type {import('@defi-wonderland/natspec-smells').Config} */
 module.exports = {
   include: 'contracts/**/*.sol',
-  exclude: ['test/**/*.sol', 'contracts/mocks/**/*.sol', 'contracts/**/LibFixedMath.sol'],
+  exclude: ['contracts/mocks/**/*.sol', 'contracts/**/LibFixedMath.sol'],
   constructorNatspec: true,
+  enforceInheritdoc: false,
 }

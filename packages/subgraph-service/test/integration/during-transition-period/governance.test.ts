@@ -1,8 +1,8 @@
-import { ethers } from 'hardhat'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
+import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { ISubgraphService } from '../../../typechain-types'
 
 describe('Governance', () => {
@@ -43,11 +43,9 @@ describe('Governance', () => {
   describe('Legacy Allocation Migration', () => {
     it('should migrate legacy allocation', async () => {
       // Migrate legacy allocation
-      await subgraphService.connect(governor).migrateLegacyAllocation(
-        indexer.address,
-        allocationId,
-        subgraphDeploymentId,
-      )
+      await subgraphService
+        .connect(governor)
+        .migrateLegacyAllocation(indexer.address, allocationId, subgraphDeploymentId)
 
       // Verify the legacy allocation was migrated
       const legacyAllocation = await subgraphService.getLegacyAllocation(allocationId)
@@ -58,36 +56,22 @@ describe('Governance', () => {
     it('should not allow non-owner to migrate legacy allocation', async () => {
       // Attempt to migrate legacy allocation as non-owner
       await expect(
-        subgraphService.connect(nonOwner).migrateLegacyAllocation(
-          indexer.address,
-          allocationId,
-          subgraphDeploymentId,
-        ),
-      ).to.be.revertedWithCustomError(
-        subgraphService,
-        'OwnableUnauthorizedAccount',
-      )
+        subgraphService.connect(nonOwner).migrateLegacyAllocation(indexer.address, allocationId, subgraphDeploymentId),
+      ).to.be.revertedWithCustomError(subgraphService, 'OwnableUnauthorizedAccount')
     })
 
     it('should not allow migrating a legacy allocation that was already migrated', async () => {
       // First migration
-      await subgraphService.connect(governor).migrateLegacyAllocation(
-        indexer.address,
-        allocationId,
-        subgraphDeploymentId,
-      )
+      await subgraphService
+        .connect(governor)
+        .migrateLegacyAllocation(indexer.address, allocationId, subgraphDeploymentId)
 
       // Attempt to migrate the same allocation again
       await expect(
-        subgraphService.connect(governor).migrateLegacyAllocation(
-          indexer.address,
-          allocationId,
-          subgraphDeploymentId,
-        ),
-      ).to.be.revertedWithCustomError(
-        subgraphService,
-        'LegacyAllocationAlreadyExists',
-      ).withArgs(allocationId)
+        subgraphService.connect(governor).migrateLegacyAllocation(indexer.address, allocationId, subgraphDeploymentId),
+      )
+        .to.be.revertedWithCustomError(subgraphService, 'LegacyAllocationAlreadyExists')
+        .withArgs(allocationId)
     })
   })
 })

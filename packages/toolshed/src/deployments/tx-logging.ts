@@ -1,8 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import fs from 'fs'
-
-import { logTxLogging } from '../lib/logger'
-
 import type {
   Contract,
   ContractMethod,
@@ -11,6 +7,9 @@ import type {
   ContractTransactionReceipt,
   ContractTransactionResponse,
 } from 'ethers'
+import fs from 'fs'
+
+import { logTxLogging } from '../lib/logger'
 
 /**
  * Wraps contract calls with a modified call function that logs the tx details
@@ -61,7 +60,7 @@ export function wrapTransactionCalls<T extends Contract>(contract: T, contractNa
       // Finally, this is a transaction call so intercept it :D
       return async (...args: unknown[]) => {
         // Make the call
-        const response = await orig.apply(target, args) as ContractTransactionResponse
+        const response = (await orig.apply(target, args)) as ContractTransactionResponse
         logContractTransaction(response, contractName, String(prop), args)
 
         // And wait for confirmation

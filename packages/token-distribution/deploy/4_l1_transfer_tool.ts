@@ -1,18 +1,18 @@
-import consola from 'consola'
-
 import '@nomiclabs/hardhat-ethers'
+
+import consola from 'consola'
+import { ethers, upgrades } from 'hardhat'
+import { Artifacts } from 'hardhat/internal/artifacts'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
-
-import { getDeploymentName, promptContractAddress } from './lib/utils'
-import { ethers, upgrades } from 'hardhat'
-import { L1GraphTokenLockTransferTool } from '../build/typechain/contracts/L1GraphTokenLockTransferTool'
 import path from 'path'
-import { Artifacts } from 'hardhat/internal/artifacts'
+
+import { L1GraphTokenLockTransferTool } from '../build/typechain/contracts/L1GraphTokenLockTransferTool'
+import { getDeploymentName, promptContractAddress } from './lib/utils'
 
 const logger = consola.create({})
 
-const ARTIFACTS_PATH = path.resolve('build/artifacts')
+const ARTIFACTS_PATH = path.resolve(__dirname, '../build/artifacts')
 const artifacts = new Artifacts(ARTIFACTS_PATH)
 const l1TransferToolAbi = artifacts.readArtifactSync('L1GraphTokenLockTransferTool').abi
 

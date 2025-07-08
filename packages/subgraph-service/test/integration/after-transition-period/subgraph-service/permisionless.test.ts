@@ -1,12 +1,11 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
 import { encodeStartServiceData, generateAllocationProof } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { SubgraphService } from '../../../../typechain-types'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { SubgraphService } from '../../../../typechain-types'
 
 describe('Permissionless', () => {
   let subgraphService: SubgraphService
@@ -92,7 +91,12 @@ describe('Permissionless', () => {
       // Start allocation
       const subgraphServiceAddress = await subgraphService.getAddress()
       const chainId = Number((await hre.ethers.provider.getNetwork()).chainId)
-      const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
+      const signature = await generateAllocationProof(
+        indexer.address,
+        allocationPrivateKey,
+        subgraphServiceAddress,
+        chainId,
+      )
       const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
       await subgraphService.connect(indexer).startService(indexer.address, data)
     })
@@ -104,12 +108,9 @@ describe('Permissionless', () => {
       await ethers.provider.send('evm_mine', [])
 
       // Attempt to close allocation as anyone
-      await expect(
-        subgraphService.connect(anyone).closeStaleAllocation(allocationId),
-      ).to.be.revertedWithCustomError(
-        subgraphService,
-        'SubgraphServiceAllocationIsAltruistic',
-      ).withArgs(allocationId)
+      await expect(subgraphService.connect(anyone).closeStaleAllocation(allocationId))
+        .to.be.revertedWithCustomError(subgraphService, 'SubgraphServiceAllocationIsAltruistic')
+        .withArgs(allocationId)
     })
   })
 })

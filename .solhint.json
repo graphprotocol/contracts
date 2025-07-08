@@ -1,0 +1,21 @@
+{
+  "extends": "solhint:recommended",
+  "plugins": ["graph"],
+  "rules": {
+    "func-visibility": ["warn", { "ignoreConstructors": true }],
+    "compiler-version": ["off"],
+    "constructor-syntax": "warn",
+    "quotes": ["error", "double"],
+    "reason-string": ["off"],
+    "not-rely-on-time": "off",
+    "no-empty-blocks": "off",
+    "named-parameters-mapping": "warn",
+    "private-vars-leading-underscore": "off",
+    "graph/leading-underscore": "warn",
+    "func-name-mixedcase": "off",
+    "graph/func-name-mixedcase": "warn",
+    "var-name-mixedcase": "off",
+    "graph/var-name-mixedcase": "warn",
+    "gas-custom-errors": "off"
+  }
+}

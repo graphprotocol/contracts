@@ -31,7 +31,7 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "prepublishOnly": "tsc",
-    "lint": "eslint '**/*.{js,ts}' --fix",
+    "lint": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "clean": "rm -rf dist"
   },
   "keywords": [
@@ -58,7 +58,6 @@
     "@types/debug": "^4.1.12",
     "@types/json5": "^2.2.0",
     "eslint": "^8.56.0",
-    "eslint-graph-config": "workspace:^",
     "typescript": "^5.0.0"
   }
 }

@@ -35,7 +35,10 @@ export async function getAccounts(provider: HardhatEthersProvider): Promise<Grap
     governor: await getGovernor(provider, GraphAccountIndex.Governor),
     arbitrator: await getArbitrator(provider, GraphAccountIndex.Arbitrator),
     pauseGuardian: await getPauseGuardian(provider, GraphAccountIndex.PauseGuardian),
-    subgraphAvailabilityOracle: await getSubgraphAvailabilityOracle(provider, GraphAccountIndex.SubgraphAvailabilityOracle),
+    subgraphAvailabilityOracle: await getSubgraphAvailabilityOracle(
+      provider,
+      GraphAccountIndex.SubgraphAvailabilityOracle,
+    ),
     gateway: await getGateway(provider, GraphAccountIndex.Gateway),
     test: await getTestAccounts(provider),
   }
@@ -53,11 +56,17 @@ export async function getArbitrator(provider: HardhatEthersProvider, accountInde
   return _getAccount(provider, accountIndex)
 }
 
-export async function getPauseGuardian(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.PauseGuardian) {
+export async function getPauseGuardian(
+  provider: HardhatEthersProvider,
+  accountIndex = GraphAccountIndex.PauseGuardian,
+) {
   return _getAccount(provider, accountIndex)
 }
 
-export async function getSubgraphAvailabilityOracle(provider: HardhatEthersProvider, accountIndex = GraphAccountIndex.SubgraphAvailabilityOracle) {
+export async function getSubgraphAvailabilityOracle(
+  provider: HardhatEthersProvider,
+  accountIndex = GraphAccountIndex.SubgraphAvailabilityOracle,
+) {
   return _getAccount(provider, accountIndex)
 }
 
@@ -66,15 +75,13 @@ export async function getGateway(provider: HardhatEthersProvider, accountIndex =
 }
 
 export async function getTestAccounts(provider: HardhatEthersProvider) {
-  const accounts = await provider.send('eth_accounts', []) as string[]
-  const numReservedAccounts = Object.values(GraphAccountIndex).filter(v => typeof v === 'number').length
+  const accounts = (await provider.send('eth_accounts', [])) as string[]
+  const numReservedAccounts = Object.values(GraphAccountIndex).filter((v) => typeof v === 'number').length
   if (accounts.length < numReservedAccounts) {
     return []
   }
   return await Promise.all(
-    accounts
-      .slice(numReservedAccounts)
-      .map(async account => await _getAccount(provider, account)),
+    accounts.slice(numReservedAccounts).map(async (account) => await _getAccount(provider, account)),
   )
 }
 

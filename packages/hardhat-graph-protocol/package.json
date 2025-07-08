@@ -27,7 +27,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "lint": "eslint '**/*.{js,ts}' --fix",
+    "lint": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
     "prepublishOnly": "npm run build"
   },
@@ -50,7 +50,6 @@
     "@types/mocha": "^10.0.9",
     "chai": "^4.0.0",
     "eslint": "^8.56.0",
-    "eslint-graph-config": "workspace:^0.0.1",
     "ethers": "6.13.7",
     "hardhat": "^2.22.16",
     "hardhat-secure-accounts": "^1.0.4",

@@ -1,8 +1,12 @@
 import { ethers, id, Wallet } from 'ethers'
 
-export const EIP712_DISPUTE_MANAGER_DOMAIN_SALT = ethers.getBytes('0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2')
+export const EIP712_DISPUTE_MANAGER_DOMAIN_SALT = ethers.getBytes(
+  '0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2',
+)
 
-export const EIP712_ATTESTATION_PROOF_TYPEHASH = id('Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)')
+export const EIP712_ATTESTATION_PROOF_TYPEHASH = id(
+  'Receipt(bytes32 requestCID,bytes32 responseCID,bytes32 subgraphDeploymentID)',
+)
 export const EIP712_ATTESTATION_PROOF_TYPES = {
   Receipt: [
     { name: 'requestCID', type: 'bytes32' },

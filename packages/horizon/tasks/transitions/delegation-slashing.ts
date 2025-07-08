@@ -1,6 +1,6 @@
-import { task, types } from 'hardhat/config'
-import { printBanner } from '@graphprotocol/toolshed/utils'
 import { requireLocalNetwork } from '@graphprotocol/toolshed/hardhat'
+import { printBanner } from '@graphprotocol/toolshed/utils'
+import { task, types } from 'hardhat/config'
 
 task('transition:enable-delegation-slashing', 'Enables delegation slashing in HorizonStaking')
   .addOptionalParam('governorIndex', 'Derivation path index for the governor account', 1, types.int)

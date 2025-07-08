@@ -1,27 +1,21 @@
-import { logDebug, logError } from '../../lib/logger'
 import { Provider, Signer } from 'ethers'
-import { SubgraphServiceArtifactsMap, SubgraphServiceContractNameList } from './contracts'
-import { AddressBook } from '../address-book'
-import { assertObject } from '../../lib/assert'
 import { Contract } from 'ethers'
+
+import { assertObject } from '../../lib/assert'
+import { logDebug, logError } from '../../lib/logger'
+import { AddressBook } from '../address-book'
 import { loadArtifact } from '../artifact'
 import { wrapTransactionCalls } from '../tx-logging'
-
-import type { LegacyDisputeManager, LegacyServiceRegistry } from './types'
 import type { SubgraphServiceContractName, SubgraphServiceContracts } from './contracts'
+import { SubgraphServiceArtifactsMap, SubgraphServiceContractNameList } from './contracts'
+import type { LegacyDisputeManager, LegacyServiceRegistry } from './types'
 
 export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServiceContractName> {
   isContractName(name: unknown): name is SubgraphServiceContractName {
-    return (
-      typeof name === 'string'
-      && SubgraphServiceContractNameList.includes(name as SubgraphServiceContractName)
-    )
+    return typeof name === 'string' && SubgraphServiceContractNameList.includes(name as SubgraphServiceContractName)
   }
 
-  loadContracts(
-    signerOrProvider?: Signer | Provider,
-    enableTxLogging?: boolean,
-  ): SubgraphServiceContracts {
+  loadContracts(signerOrProvider?: Signer | Provider, enableTxLogging?: boolean): SubgraphServiceContracts {
     logDebug('Loading Subgraph Service contracts...')
 
     // Filter out LegacyDisputeManager from the artifacts map
@@ -38,7 +32,6 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
       ...contracts,
       Curation: contracts.L2Curation,
       GNS: contracts.L2GNS,
-
     } as SubgraphServiceContracts
 
     // Load LegacyDisputeManager manually
@@ -49,11 +42,9 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
         loadArtifact('IDisputeManager', SubgraphServiceArtifactsMap.LegacyDisputeManager).abi,
         signerOrProvider,
       )
-      contractsWithAliases.LegacyDisputeManager = (
-        enableTxLogging
-          ? wrapTransactionCalls(contract, 'LegacyDisputeManager')
-          : contract
-      ) as unknown as LegacyDisputeManager
+      contractsWithAliases.LegacyDisputeManager = (enableTxLogging
+        ? wrapTransactionCalls(contract, 'LegacyDisputeManager')
+        : contract) as unknown as LegacyDisputeManager
     }
 
     // Load ServiceRegistry manually
@@ -64,20 +55,16 @@ export class SubgraphServiceAddressBook extends AddressBook<number, SubgraphServ
         loadArtifact('IServiceRegistry', SubgraphServiceArtifactsMap.LegacyServiceRegistry).abi,
         signerOrProvider,
       )
-      contractsWithAliases.LegacyServiceRegistry = (
-        enableTxLogging
-          ? wrapTransactionCalls(contract, 'LegacyServiceRegistry')
-          : contract
-      ) as unknown as LegacyServiceRegistry
+      contractsWithAliases.LegacyServiceRegistry = (enableTxLogging
+        ? wrapTransactionCalls(contract, 'LegacyServiceRegistry')
+        : contract) as unknown as LegacyServiceRegistry
     }
 
     this._assertSubgraphServiceContracts(contractsWithAliases)
     return contractsWithAliases
   }
 
-  _assertSubgraphServiceContracts(
-    contracts: unknown,
-  ): asserts contracts is SubgraphServiceContracts {
+  _assertSubgraphServiceContracts(contracts: unknown): asserts contracts is SubgraphServiceContracts {
     assertObject(contracts)
 
     // Assert that all SubgraphServiceContracts were loaded

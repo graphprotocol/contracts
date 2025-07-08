@@ -9,7 +9,11 @@ type IgnitionConfig = {
   [key: string]: Record<string, IgnitionConfigValue>
 }
 
-export function loadConfig(configPath: string, prefix: string, configName: string): {
+export function loadConfig(
+  configPath: string,
+  prefix: string,
+  configName: string,
+): {
   config: IgnitionConfig
   file: string
 } {
@@ -20,11 +24,9 @@ export function loadConfig(configPath: string, prefix: string, configName: strin
     path.resolve(process.cwd(), configPath, `${prefix}.default.json5`),
   ]
 
-  const configFile = configFileCandidates.find(file => fs.existsSync(file))
+  const configFile = configFileCandidates.find((file) => fs.existsSync(file))
   if (!configFile) {
-    throw new Error(
-      `Config file not found. Tried:\n${configFileCandidates.map(f => `- ${f}`).join('\n')}`,
-    )
+    throw new Error(`Config file not found. Tried:\n${configFileCandidates.map((f) => `- ${f}`).join('\n')}`)
   }
 
   const config = parse<IgnitionConfig>(fs.readFileSync(configFile, 'utf8'))
@@ -74,7 +76,10 @@ export function saveToAddressBook<ChainId extends number, ContractName extends s
 
     // Proxy admin contracts
     if (ignitionContractName.includes('_ProxyAdmin_')) {
-      const contractName = ignitionContractName.replace(/(Transparent_ProxyAdmin_|Graph_ProxyAdmin_)/, '') as ContractName
+      const contractName = ignitionContractName.replace(
+        /(Transparent_ProxyAdmin_|Graph_ProxyAdmin_)/,
+        '',
+      ) as ContractName
       const proxy = ignitionContractName.includes('Transparent_ProxyAdmin_') ? 'transparent' : 'graph'
       const entry = addressBook.entryExists(contractName) ? addressBook.getEntry(contractName) : {}
       addressBook.setEntry(contractName, {
@@ -113,10 +118,7 @@ function removeNFromBigInts(config: IgnitionConfig): IgnitionConfig {
   for (const [key, value] of Object.entries(config)) {
     if (typeof value === 'object') {
       result[key] = Object.fromEntries(
-        Object.entries(value).map(([k, v]) => [
-          k,
-          typeof v === 'string' && /^\d+n$/.test(v) ? v.slice(0, -1) : v,
-        ]),
+        Object.entries(value).map(([k, v]) => [k, typeof v === 'string' && /^\d+n$/.test(v) ? v.slice(0, -1) : v]),
       )
     }
   }

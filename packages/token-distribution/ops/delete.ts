@@ -1,7 +1,8 @@
+import consola from 'consola'
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+
 import { askConfirm, prettyEnv, waitTransaction } from './create'
-import consola from 'consola'
 import { TxBuilder } from './tx-builder'
 
 const logger = consola.create({})
@@ -10,7 +11,7 @@ const getTokenLockWalletOrFail = async (hre: HardhatRuntimeEnvironment, address:
   const wallet = await hre.ethers.getContractAt('GraphTokenLockWallet', address)
   try {
     await wallet.deployed()
-  } catch (err) {
+  } catch {
     logger.error('GraphTokenLockWallet not deployed at', wallet.address)
     process.exit(1)
   }

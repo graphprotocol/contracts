@@ -1,12 +1,11 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { generatePOI } from '@graphprotocol/toolshed'
-import { indexers } from '../../../tasks/test/fixtures/indexers'
-
-import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
+
+import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Permissionless', () => {
   let snapshotId: string
@@ -51,7 +50,7 @@ describe('Permissionless', () => {
 
       // Mine blocks to simulate 28 epochs passing
       const startingEpoch = await epochManager.currentEpoch()
-      while (await epochManager.currentEpoch() - startingEpoch < 28) {
+      while ((await epochManager.currentEpoch()) - startingEpoch < 28) {
         await ethers.provider.send('evm_mine', [])
       }
 

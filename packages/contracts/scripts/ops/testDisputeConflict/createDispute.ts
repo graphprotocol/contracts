@@ -1,9 +1,4 @@
-import {
-  GraphChainId,
-  buildAttestation,
-  encodeAttestation,
-  randomHexBytes,
-} from '@graphprotocol/sdk'
+import { buildAttestation, encodeAttestation, GraphChainId, randomHexBytes } from '@graphprotocol/sdk'
 import hre from 'hardhat'
 
 async function main() {

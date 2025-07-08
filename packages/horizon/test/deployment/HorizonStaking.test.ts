@@ -1,8 +1,8 @@
+import { loadConfig } from '@graphprotocol/toolshed/hardhat'
+import { assert, expect } from 'chai'
 import hre from 'hardhat'
 
-import { assert, expect } from 'chai'
 import { graphProxyTests } from './lib/GraphProxy.test'
-import { loadConfig } from '@graphprotocol/toolshed/hardhat'
 import { testIf } from './lib/testIf'
 
 const config = loadConfig(

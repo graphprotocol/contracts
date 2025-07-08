@@ -1,8 +1,7 @@
-import { glob } from 'glob'
-import { task } from 'hardhat/config'
-import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
-
 import { printBanner } from '@graphprotocol/toolshed/utils'
+import { glob } from 'glob'
+import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
+import { task } from 'hardhat/config'
 
 task('test:integration', 'Runs all integration tests')
   .addParam(

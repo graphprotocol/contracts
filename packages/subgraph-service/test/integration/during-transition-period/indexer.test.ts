@@ -1,12 +1,11 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
 import { encodeStartServiceData, generateAllocationProof } from '@graphprotocol/toolshed'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
-import { ISubgraphService } from '../../../typechain-types'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 import { indexers } from '../../../tasks/test/fixtures/indexers'
+import { ISubgraphService } from '../../../typechain-types'
 
 describe('Indexer', () => {
   let subgraphService: ISubgraphService
@@ -62,45 +61,41 @@ describe('Indexer', () => {
 
     it('should not be able to create an allocation with an AllocationID that already exists in HorizonStaking contract', async () => {
       // Build allocation proof
-      const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
+      const signature = await generateAllocationProof(
+        indexer.address,
+        allocationPrivateKey,
+        subgraphServiceAddress,
+        chainId,
+      )
 
       // Attempt to create an allocation with the same ID
       const data = encodeStartServiceData(subgraphDeploymentId, 1000n, allocationId, signature)
 
-      await expect(
-        subgraphService.connect(indexer).startService(
-          indexer.address,
-          data,
-        ),
-      ).to.be.revertedWithCustomError(
-        subgraphService,
-        'LegacyAllocationAlreadyExists',
-      ).withArgs(allocationId)
+      await expect(subgraphService.connect(indexer).startService(indexer.address, data))
+        .to.be.revertedWithCustomError(subgraphService, 'LegacyAllocationAlreadyExists')
+        .withArgs(allocationId)
     })
 
     it('should not be able to create an allocation that was already migrated by the owner', async () => {
       // Migrate legacy allocation
-      await subgraphService.connect(governor).migrateLegacyAllocation(
-        indexer.address,
-        allocationId,
-        subgraphDeploymentId,
-      )
+      await subgraphService
+        .connect(governor)
+        .migrateLegacyAllocation(indexer.address, allocationId, subgraphDeploymentId)
 
       // Build allocation proof
-      const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
+      const signature = await generateAllocationProof(
+        indexer.address,
+        allocationPrivateKey,
+        subgraphServiceAddress,
+        chainId,
+      )
 
       // Attempt to create the same allocation
       const data = encodeStartServiceData(subgraphDeploymentId, 1000n, allocationId, signature)
 
-      await expect(
-        subgraphService.connect(indexer).startService(
-          indexer.address,
-          data,
-        ),
-      ).to.be.revertedWithCustomError(
-        subgraphService,
-        'LegacyAllocationAlreadyExists',
-      ).withArgs(allocationId)
+      await expect(subgraphService.connect(indexer).startService(indexer.address, data))
+        .to.be.revertedWithCustomError(subgraphService, 'LegacyAllocationAlreadyExists')
+        .withArgs(allocationId)
     })
   })
 })

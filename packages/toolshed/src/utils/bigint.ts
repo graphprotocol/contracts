@@ -1,5 +1,4 @@
 import { hexlify } from 'ethers'
-
 import { randomBytes } from 'ethers'
 
 export function randomBigInt(min: bigint, max: bigint): bigint {

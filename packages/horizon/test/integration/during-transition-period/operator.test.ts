@@ -1,13 +1,12 @@
-import hre from 'hardhat'
-
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
 import { generatePOI } from '@graphprotocol/toolshed'
-import { getEventData } from '@graphprotocol/toolshed/hardhat'
-import { indexers } from '../../../tasks/test/fixtures/indexers'
-
-import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+import { getEventData } from '@graphprotocol/toolshed/hardhat'
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { ethers } from 'hardhat'
+
+import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Operator', () => {
   let snapshotId: string
@@ -72,7 +71,10 @@ describe('Operator', () => {
 
       // Close allocation
       const tx = await (horizonStaking as HorizonStakingExtension).connect(operator).closeAllocation(allocationID, poi)
-      const eventData = await getEventData(tx, 'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)')
+      const eventData = await getEventData(
+        tx,
+        'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)',
+      )
       const rewards = eventData[2]
 
       // Verify rewards are not zero
@@ -80,14 +82,20 @@ describe('Operator', () => {
 
       // Verify rewards minus delegation cut are restaked
       const idleStakeAfter = await horizonStaking.getIdleStake(indexer.address)
-      const idleStakeRewardsTokens = rewards * BigInt(delegationIndexingCut) / 1000000n
-      expect(idleStakeAfter).to.equal(idleStakeBefore + allocationTokens + idleStakeRewardsTokens, 'Rewards were not restaked')
+      const idleStakeRewardsTokens = (rewards * BigInt(delegationIndexingCut)) / 1000000n
+      expect(idleStakeAfter).to.equal(
+        idleStakeBefore + allocationTokens + idleStakeRewardsTokens,
+        'Rewards were not restaked',
+      )
 
       // Verify delegators cut is added to delegation pool
       const delegationPool = await horizonStaking.getDelegationPool(indexer.address, subgraphServiceAddress)
       const delegationPoolTokensAfter = delegationPool.tokens
       const delegationRewardsTokens = rewards - idleStakeRewardsTokens
-      expect(delegationPoolTokensAfter).to.equal(delegationPoolTokensBefore + delegationRewardsTokens, 'Delegators cut was not added to delegation pool')
+      expect(delegationPoolTokensAfter).to.equal(
+        delegationPoolTokensBefore + delegationRewardsTokens,
+        'Delegators cut was not added to delegation pool',
+      )
     })
   })
 })

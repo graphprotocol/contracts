@@ -1,5 +1,6 @@
-import { indexers } from './indexers'
 import { parseEther } from 'ethers'
+
+import { indexers } from './indexers'
 
 export interface Delegator {
   address: string

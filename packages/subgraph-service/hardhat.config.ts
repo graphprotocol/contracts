@@ -1,6 +1,3 @@
-import { hardhatBaseConfig, isProjectBuilt, loadTasks } from '@graphprotocol/toolshed/hardhat'
-import { HardhatUserConfig } from 'hardhat/config'
-
 // Hardhat plugins
 import '@nomicfoundation/hardhat-foundry'
 import '@nomicfoundation/hardhat-toolbox'
@@ -8,6 +5,9 @@ import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
 import 'solidity-docgen'
+
+import { hardhatBaseConfig, isProjectBuilt, loadTasks } from '@graphprotocol/toolshed/hardhat'
+import { HardhatUserConfig } from 'hardhat/config'
 
 // Skip importing hardhat-graph-protocol when building the project, it has circular dependency
 if (isProjectBuilt(__dirname)) {

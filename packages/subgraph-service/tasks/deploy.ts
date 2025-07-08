@@ -1,15 +1,14 @@
 /* eslint-disable no-case-declarations */
-import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
-import { task, types } from 'hardhat/config'
-import { printHorizonBanner } from '@graphprotocol/toolshed/utils'
+import HorizonModule from '@graphprotocol/horizon/ignition/modules/deploy'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
-
 import type { AddressBook } from '@graphprotocol/toolshed/deployments'
+import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
+import { printHorizonBanner } from '@graphprotocol/toolshed/utils'
+import { task, types } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 import Deploy1Module from '../ignition/modules/deploy/deploy-1'
 import Deploy2Module from '../ignition/modules/deploy/deploy-2'
-import HorizonModule from '@graphprotocol/horizon/ignition/modules/deploy'
 
 // Horizon needs the SubgraphService proxy address before it can be deployed
 // But SubgraphService and DisputeManager implementations need Horizon...
@@ -18,15 +17,33 @@ import HorizonModule from '@graphprotocol/horizon/ignition/modules/deploy'
 // - Deploy Horizon
 // - Deploy SubgraphService and DisputeManager implementations
 task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon contracts - with Subgraph Service')
-  .addOptionalParam('subgraphServiceConfig', 'Name of the Subgraph Service configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
-  .addOptionalParam('horizonConfig', 'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory in the horizon package. Defaults to network name.', undefined, types.string)
+  .addOptionalParam(
+    'subgraphServiceConfig',
+    'Name of the Subgraph Service configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.',
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    'horizonConfig',
+    'Name of the Horizon configuration file to use. Format is "protocol.<name>.json5", file must be in the "ignition/configs/" directory in the horizon package. Defaults to network name.',
+    undefined,
+    types.string,
+  )
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
     const graph = hre.graph()
 
     // Load configuration files for the deployment
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: HorizonConfig, file: horizonFile } = loadConfig('./node_modules/@graphprotocol/horizon/ignition/configs', 'protocol', args.horizonConfig ?? hre.network.name)
-    const { config: SubgraphServiceConfig, file: subgraphServiceFile } = loadConfig('./ignition/configs/', 'protocol', args.subgraphServiceConfig ?? hre.network.name)
+    const { config: HorizonConfig, file: horizonFile } = loadConfig(
+      './node_modules/@graphprotocol/horizon/ignition/configs',
+      'protocol',
+      args.horizonConfig ?? hre.network.name,
+    )
+    const { config: SubgraphServiceConfig, file: subgraphServiceFile } = loadConfig(
+      './ignition/configs/',
+      'protocol',
+      args.subgraphServiceConfig ?? hre.network.name,
+    )
     console.log(`Loaded Horizon migration configuration from ${horizonFile}`)
     console.log(`Loaded Subgraph Service migration configuration from ${subgraphServiceFile}`)
 
@@ -98,7 +115,12 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
 
 task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deployment')
   .addOptionalParam('step', 'Migration step to run (1, 2)', undefined, types.int)
-  .addOptionalParam('subgraphServiceConfig', 'Name of the Subgraph Service configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.', undefined, types.string)
+  .addOptionalParam(
+    'subgraphServiceConfig',
+    'Name of the Subgraph Service configuration file to use. Format is "migrate.<name>.json5", file must be in the "ignition/configs/" directory. Defaults to network name.',
+    undefined,
+    types.string,
+  )
   .addOptionalParam('accountIndex', 'Derivation path index for the account to use', 0, types.int)
   .addFlag('patchConfig', 'Patch configuration file using address book values - does not save changes')
   .addFlag('hideBanner', 'Hide the banner display')
@@ -125,7 +147,11 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
 
     // Load configuration for the migration
     console.log('\n========== ⚙️ Deployment configuration ==========')
-    const { config: SubgraphServiceMigrateConfig, file } = loadConfig('./ignition/configs/', 'migrate', args.subgraphServiceConfig ?? hre.network.name)
+    const { config: SubgraphServiceMigrateConfig, file } = loadConfig(
+      './ignition/configs/',
+      'migrate',
+      args.subgraphServiceConfig ?? hre.network.name,
+    )
     console.log(`Loaded migration configuration from ${file}`)
 
     // Display the deployer -- this also triggers the secure accounts prompt if being used
@@ -142,13 +168,18 @@ task('deploy:migrate', 'Deploy the Subgraph Service on an existing Horizon deplo
     // Run migration step
     console.log(`\n========== 🚧 Running migration: step ${step} ==========`)
     const MigrationModule = require(`../ignition/modules/migrate/migrate-${step}`).default
-    const deployment = await hre.ignition.deploy(
-      MigrationModule,
-      {
-        displayUi: true,
-        parameters: patchConfig ? _patchStepConfig(step, SubgraphServiceMigrateConfig, graph.subgraphService.addressBook, graph.horizon.addressBook) : SubgraphServiceMigrateConfig,
-        deploymentId: `subgraph-service-${hre.network.name}`,
-      })
+    const deployment = await hre.ignition.deploy(MigrationModule, {
+      displayUi: true,
+      parameters: patchConfig
+        ? _patchStepConfig(
+            step,
+            SubgraphServiceMigrateConfig,
+            graph.subgraphService.addressBook,
+            graph.horizon.addressBook,
+          )
+        : SubgraphServiceMigrateConfig,
+      deploymentId: `subgraph-service-${hre.network.name}`,
+    })
 
     // Update address book
     console.log('\n========== 📖 Updating address book ==========')

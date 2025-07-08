@@ -1,15 +1,24 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
-import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-import { encodeCollectIndexingRewardsData, encodeCollectQueryFeesData, encodePOIMetadata, encodeRegistrationData, encodeStartServiceData, generateAllocationProof, generatePOI, generateSignedRAV, generateSignerProof } from '@graphprotocol/toolshed'
 import { GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import {
+  encodeCollectIndexingRewardsData,
+  encodeCollectQueryFeesData,
+  encodePOIMetadata,
+  encodeRegistrationData,
+  encodeStartServiceData,
+  generateAllocationProof,
+  generatePOI,
+  generateSignedRAV,
+  generateSignerProof,
+} from '@graphprotocol/toolshed'
 import { PaymentTypes } from '@graphprotocol/toolshed'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 import { indexers } from '../../../../tasks/test/fixtures/indexers'
+import { DisputeManager, IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
 
 describe('Operator', () => {
   let subgraphService: SubgraphService
@@ -65,7 +74,7 @@ describe('Operator', () => {
   describe('New indexer', () => {
     beforeEach(async () => {
       // Get indexer
-      [indexer, authorizedOperator, unauthorizedOperator] = await graph.accounts.getTestAccounts()
+      ;[indexer, authorizedOperator, unauthorizedOperator] = await graph.accounts.getTestAccounts()
 
       // Set balances for operators
       await ethers.provider.send('hardhat_setBalance', [authorizedOperator.address, '0x56BC75E2D63100000'])
@@ -75,7 +84,13 @@ describe('Operator', () => {
       const disputePeriod = await disputeManager.getDisputePeriod()
       const maxSlashingCut = await disputeManager.maxSlashingCut()
       await setGRTBalance(graph.provider, graphToken.target, indexer.address, ethers.parseEther('100000'))
-      await provision(indexer, [indexer.address, subgraphServiceAddress, ethers.parseEther('100000'), maxSlashingCut, disputePeriod])
+      await provision(indexer, [
+        indexer.address,
+        subgraphServiceAddress,
+        ethers.parseEther('100000'),
+        maxSlashingCut,
+        disputePeriod,
+      ])
     })
 
     describe('Authorized Operator', () => {
@@ -106,10 +121,7 @@ describe('Operator', () => {
 
         await expect(
           subgraphService.connect(unauthorizedOperator).register(indexer.address, indexerRegistrationData),
-        ).to.be.revertedWithCustomError(
-          subgraphService,
-          'ProvisionManagerNotAuthorized',
-        )
+        ).to.be.revertedWithCustomError(subgraphService, 'ProvisionManagerNotAuthorized')
       })
     })
   })
@@ -119,7 +131,6 @@ describe('Operator', () => {
       // Get indexer
       const indexerFixture = indexers[0]
       indexer = await ethers.getSigner(indexerFixture.address)
-
       ;[authorizedOperator, unauthorizedOperator] = await graph.accounts.getTestAccounts()
     })
 
@@ -143,15 +154,17 @@ describe('Operator', () => {
 
         it('should be able to create an allocation', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
+          const signature = await generateAllocationProof(
+            indexer.address,
+            allocationPrivateKey,
+            subgraphServiceAddress,
+            chainId,
+          )
 
           // Build allocation data
           const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
           // Start allocation
-          await subgraphService.connect(authorizedOperator).startService(
-            indexer.address,
-            data,
-          )
+          await subgraphService.connect(authorizedOperator).startService(indexer.address, data)
 
           // Verify allocation
           const allocation = await subgraphService.getAllocation(allocationId)
@@ -164,20 +177,19 @@ describe('Operator', () => {
       describe('Unauthorized Operator', () => {
         it('should not be able to create an allocation', async () => {
           // Build allocation proof
-          const signature = await generateAllocationProof(indexer.address, allocationPrivateKey, subgraphServiceAddress, chainId)
+          const signature = await generateAllocationProof(
+            indexer.address,
+            allocationPrivateKey,
+            subgraphServiceAddress,
+            chainId,
+          )
 
           // Build allocation data
           const data = encodeStartServiceData(subgraphDeploymentId, allocationTokens, allocationId, signature)
 
           await expect(
-            subgraphService.connect(unauthorizedOperator).startService(
-              indexer.address,
-              data,
-            ),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'ProvisionManagerNotAuthorized',
-          )
+            subgraphService.connect(unauthorizedOperator).startService(indexer.address, data),
+          ).to.be.revertedWithCustomError(subgraphService, 'ProvisionManagerNotAuthorized')
         })
       })
     })
@@ -200,11 +212,9 @@ describe('Operator', () => {
         it('should be able to resize an allocation', async () => {
           // Resize allocation
           const newAllocationTokens = allocationTokens + ethers.parseEther('5000')
-          await subgraphService.connect(authorizedOperator).resizeAllocation(
-            indexer.address,
-            allocationId,
-            newAllocationTokens,
-          )
+          await subgraphService
+            .connect(authorizedOperator)
+            .resizeAllocation(indexer.address, allocationId, newAllocationTokens)
 
           // Verify allocation
           const allocation = await subgraphService.getAllocation(allocationId)
@@ -213,14 +223,8 @@ describe('Operator', () => {
 
         it('should be able to close an allocation', async () => {
           // Close allocation
-          const data = ethers.AbiCoder.defaultAbiCoder().encode(
-            ['address'],
-            [allocationId],
-          )
-          await subgraphService.connect(authorizedOperator).stopService(
-            indexer.address,
-            data,
-          )
+          const data = ethers.AbiCoder.defaultAbiCoder().encode(['address'], [allocationId])
+          await subgraphService.connect(authorizedOperator).stopService(indexer.address, data)
 
           // Verify allocation is closed
           const allocation = await subgraphService.getAllocation(allocationId)
@@ -236,17 +240,15 @@ describe('Operator', () => {
           // Build data for collect indexing rewards
           const poi = generatePOI()
           const publicPOI = generatePOI('public poi')
-          const poiMetadata = encodePOIMetadata(
-            0,
-            publicPOI,
-            0,
-            0,
-            0,
-          )
+          const poiMetadata = encodePOIMetadata(0, publicPOI, 0, 0, 0)
           const collectData = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           // Collect rewards
-          const rewards = await collect(authorizedOperator, [indexer.address, PaymentTypes.IndexingRewards, collectData])
+          const rewards = await collect(authorizedOperator, [
+            indexer.address,
+            PaymentTypes.IndexingRewards,
+            collectData,
+          ])
           expect(rewards).to.not.equal(0n)
         })
 
@@ -265,7 +267,13 @@ describe('Operator', () => {
 
           // Authorize payer as signer
           const proofDeadline = (await ethers.provider.getBlock('latest'))!.timestamp + 31536000
-          const signerProof = generateSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
+          const signerProof = generateSignerProof(
+            BigInt(proofDeadline),
+            payer.address,
+            signer.privateKey,
+            graphTallyCollectorAddress,
+            chainId,
+          )
           await graphTallyCollector.connect(payer).authorizeSigner(signer.address, proofDeadline, signerProof)
 
           // Deposit tokens in escrow
@@ -298,28 +306,17 @@ describe('Operator', () => {
           // Attempt to resize with unauthorized operator
           const newAllocationTokens = allocationTokens + ethers.parseEther('5000')
           await expect(
-            subgraphService.connect(unauthorizedOperator).resizeAllocation(
-              indexer.address,
-              allocationId,
-              newAllocationTokens,
-            ),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'ProvisionManagerNotAuthorized',
-          )
+            subgraphService
+              .connect(unauthorizedOperator)
+              .resizeAllocation(indexer.address, allocationId, newAllocationTokens),
+          ).to.be.revertedWithCustomError(subgraphService, 'ProvisionManagerNotAuthorized')
         })
 
         it('should not be able to close an allocation', async () => {
           // Attempt to close with unauthorized operator
           await expect(
-            subgraphService.connect(unauthorizedOperator).stopService(
-              indexer.address,
-              allocationId,
-            ),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'ProvisionManagerNotAuthorized',
-          )
+            subgraphService.connect(unauthorizedOperator).stopService(indexer.address, allocationId),
+          ).to.be.revertedWithCustomError(subgraphService, 'ProvisionManagerNotAuthorized')
         })
 
         it('should not be able to collect indexing rewards', async () => {
@@ -330,22 +327,13 @@ describe('Operator', () => {
 
           // Build data for collect indexing rewards
           const poi = generatePOI()
-          const poiMetadata = encodePOIMetadata(
-            0,
-            generatePOI('public poi'),
-            0,
-            0,
-            0,
-          )
+          const poiMetadata = encodePOIMetadata(0, generatePOI('public poi'), 0, 0, 0)
           const collectData = encodeCollectIndexingRewardsData(allocationId, poi, poiMetadata)
 
           // Attempt to collect rewards with unauthorized operator
           await expect(
             collect(unauthorizedOperator, [indexer.address, PaymentTypes.IndexingRewards, collectData]),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'ProvisionManagerNotAuthorized',
-          )
+          ).to.be.revertedWithCustomError(subgraphService, 'ProvisionManagerNotAuthorized')
         })
 
         it('should not be able to collect query fees', async () => {
@@ -363,7 +351,13 @@ describe('Operator', () => {
 
           // Authorize payer as signer
           const proofDeadline = (await ethers.provider.getBlock('latest'))!.timestamp + 31536000
-          const signerProof = generateSignerProof(BigInt(proofDeadline), payer.address, signer.privateKey, graphTallyCollectorAddress, chainId)
+          const signerProof = generateSignerProof(
+            BigInt(proofDeadline),
+            payer.address,
+            signer.privateKey,
+            graphTallyCollectorAddress,
+            chainId,
+          )
           await graphTallyCollector.connect(payer).authorizeSigner(signer.address, proofDeadline, signerProof)
 
           // Deposit tokens in escrow
@@ -387,10 +381,7 @@ describe('Operator', () => {
           // Attempt to collect query fees with unauthorized operator
           await expect(
             collect(unauthorizedOperator, [indexer.address, PaymentTypes.QueryFee, encodedSignedRAV]),
-          ).to.be.revertedWithCustomError(
-            subgraphService,
-            'ProvisionManagerNotAuthorized',
-          )
+          ).to.be.revertedWithCustomError(subgraphService, 'ProvisionManagerNotAuthorized')
         })
       })
     })

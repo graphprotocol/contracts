@@ -1,7 +1,9 @@
 import { BytesLike, ethers, id, Signature, Wallet } from 'ethers'
 
 import type { RAV } from './types'
-export const EIP712_RAV_PROOF_TYPEHASH = id('ReceiptAggregateVoucher(bytes32 collectionId,address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)')
+export const EIP712_RAV_PROOF_TYPEHASH = id(
+  'ReceiptAggregateVoucher(bytes32 collectionId,address payer,address serviceProvider,address dataService,uint64 timestampNs,uint128 valueAggregate,bytes metadata)',
+)
 export const EIP712_RAV_PROOF_TYPES = {
   ReceiptAggregateVoucher: [
     { name: 'collectionId', type: 'bytes32' },
@@ -39,7 +41,7 @@ export async function generateSignedRAV(
   signerPrivateKey: string,
   graphTallyCollectorAddress: string,
   chainId: number,
-): Promise<{ rav: RAV, signature: string }> {
+): Promise<{ rav: RAV; signature: string }> {
   // Create the domain for the EIP712 signature
   const domain = {
     name: 'GraphTallyCollector',
@@ -87,13 +89,7 @@ export function generateSignerProof(
   const messageHash = ethers.keccak256(
     ethers.solidityPacked(
       ['uint256', 'address', 'string', 'uint256', 'address'],
-      [
-        chainId,
-        graphTallyCollectorAddress,
-        'authorizeSignerProof',
-        proofDeadline,
-        payer,
-      ],
+      [chainId, graphTallyCollectorAddress, 'authorizeSignerProof', proofDeadline, payer],
     ),
   )
 

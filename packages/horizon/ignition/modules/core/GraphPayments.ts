@@ -1,11 +1,10 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import { deployImplementation } from '../proxy/implementation'
-import { upgradeTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
-
-import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
-import HorizonProxiesModule, { MigrateHorizonProxiesDeployerModule } from './HorizonProxies'
 
 import GraphPaymentsArtifact from '../../../build/contracts/contracts/payments/GraphPayments.sol/GraphPayments.json'
+import GraphPeripheryModule, { MigratePeripheryModule } from '../periphery/periphery'
+import { deployImplementation } from '../proxy/implementation'
+import { upgradeTransparentUpgradeableProxy } from '../proxy/TransparentUpgradeableProxy'
+import HorizonProxiesModule, { MigrateHorizonProxiesDeployerModule } from './HorizonProxies'
 
 export default buildModule('GraphPayments', (m) => {
   const { Controller } = m.useModule(GraphPeripheryModule)
@@ -15,21 +14,28 @@ export default buildModule('GraphPayments', (m) => {
   const protocolPaymentCut = m.getParameter('protocolPaymentCut')
 
   // Deploy GraphPayments implementation - requires periphery and proxies to be registered in the controller
-  const GraphPaymentsImplementation = deployImplementation(m, {
-    name: 'GraphPayments',
-    artifact: GraphPaymentsArtifact,
-    constructorArgs: [Controller, protocolPaymentCut],
-  }, { after: [GraphPeripheryModule, HorizonProxiesModule] })
+  const GraphPaymentsImplementation = deployImplementation(
+    m,
+    {
+      name: 'GraphPayments',
+      artifact: GraphPaymentsArtifact,
+      constructorArgs: [Controller, protocolPaymentCut],
+    },
+    { after: [GraphPeripheryModule, HorizonProxiesModule] },
+  )
 
   // Upgrade proxy to implementation contract
-  const GraphPayments = upgradeTransparentUpgradeableProxy(m,
+  const GraphPayments = upgradeTransparentUpgradeableProxy(
+    m,
     GraphPaymentsProxyAdmin,
     GraphPaymentsProxy,
-    GraphPaymentsImplementation, {
+    GraphPaymentsImplementation,
+    {
       name: 'GraphPayments',
       artifact: GraphPaymentsArtifact,
       initArgs: [],
-    })
+    },
+  )
 
   m.call(GraphPaymentsProxyAdmin, 'transferOwnership', [governor], { after: [GraphPayments] })
 
@@ -55,14 +61,17 @@ export const MigrateGraphPaymentsModule = buildModule('GraphPayments', (m) => {
   })
 
   // Upgrade proxy to implementation contract
-  const GraphPayments = upgradeTransparentUpgradeableProxy(m,
+  const GraphPayments = upgradeTransparentUpgradeableProxy(
+    m,
     GraphPaymentsProxyAdmin,
     GraphPaymentsProxy,
-    GraphPaymentsImplementation, {
+    GraphPaymentsImplementation,
+    {
       name: 'GraphPayments',
       artifact: GraphPaymentsArtifact,
       initArgs: [],
-    })
+    },
+  )
 
   m.call(GraphPaymentsProxyAdmin, 'transferOwnership', [governor], { after: [GraphPayments] })
 

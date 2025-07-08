@@ -1,25 +1,12 @@
 {
   "compilerOptions": {
-    "lib": ["ES2020", "dom"],
+    "target": "es2020",
     "module": "commonjs",
-    "moduleResolution": "node",
-    "target": "ES2020",
-    "outDir": "dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true
-  },
-  "exclude": ["dist", "node_modules"],
-  "include": [
-    ".solcover.js",
-    "eslint.config.js",
-    "prettier.config.js",
-    "./hardhat.config.ts",
-    "./scripts/**/*.ts",
-    "./deploy/**/*.ts",
-    "./test/**/*.ts",
-    "node_modules/@nomiclabs/hardhat-ethers/src/type-extensions.d.ts",
-    "node_modules/@nomiclabs/hardhat-etherscan/src/type-extensions.d.ts",
-    "node_modules/@nomiclabs/hardhat-waffle/src/type-extensions.d.ts",
-    "node_modules/hardhat-typechain/src/type-extensions.d.ts"
-  ]
+    "incremental": true
+  }
 }

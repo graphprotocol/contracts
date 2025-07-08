@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./cache/tsbuildinfo",
+    "removeComments": true,
+    "types": ["@nomiclabs/hardhat-ethers"],
+    "outDir": "./types"
+  },
+  "include": ["./src/**/*.ts", "./test/**/*.ts"],
+  "exclude": ["node_modules", "build", "types", "cache"]
+}

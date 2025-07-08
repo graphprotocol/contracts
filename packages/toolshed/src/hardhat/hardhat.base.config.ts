@@ -1,7 +1,7 @@
-import { resolveNodeModulesPath } from '../lib/path'
 import { vars } from 'hardhat/config'
-
 import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolidityUserConfig } from 'hardhat/types'
+
+import { resolveNodeModulesPath } from '../lib/path'
 
 // This base config file assumes the project is using the following hardhat plugins:
 // - hardhat-graph-protocol
@@ -14,9 +14,11 @@ interface SecureAccountsOptions {
 
 type GraphRuntimeEnvironmentOptions = {
   deployments?: {
-    [deployment in ('horizon' | 'subgraphService')]?: string | {
-      addressBook: string
-    }
+    [deployment in 'horizon' | 'subgraphService']?:
+      | string
+      | {
+          addressBook: string
+        }
   }
 }
 
@@ -123,10 +125,9 @@ export const networksUserConfig: BaseNetworksUserConfig = {
   },
 }
 
-type BaseHardhatConfig = HardhatUserConfig &
-  { etherscan: Partial<EtherscanConfig> } &
-  { graph: GraphRuntimeEnvironmentOptions } &
-  { secureAccounts: SecureAccountsOptions }
+type BaseHardhatConfig = HardhatUserConfig & { etherscan: Partial<EtherscanConfig> } & {
+  graph: GraphRuntimeEnvironmentOptions
+} & { secureAccounts: SecureAccountsOptions }
 export const hardhatBaseConfig: BaseHardhatConfig = {
   solidity: solidityUserConfig,
   paths: projectPathsUserConfig,

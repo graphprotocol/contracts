@@ -21,15 +21,16 @@ pnpm add --dev hardhat-graph-protocol
 Add the plugin to your `hardhat.config.ts`:
 
 ```ts
-import "hardhat-graph-protocol";
+import 'hardhat-graph-protocol'
 ```
 
 ### Using @graphprotocol/toolshed
+
 To use the plugin you'll need to configure the target networks. We recommend using our base hardhat configuration which can be imported from `@graphprotocol/toolshed`:
 
 ```ts
 import { hardhatBaseConfig, networksUserConfig } from '@graphprotocol/toolshed/hardhat'
-import "hardhat-graph-protocol";
+import 'hardhat-graph-protocol'
 
 const config: HardhatUserConfig = {
   ...networksUserConfig,
@@ -40,12 +41,14 @@ export default config // or just "export default hardhatBaseConfig"
 ```
 
 ### Manual configuration
+
 To manually configure target networks:
 
 **Hardhat: Network config**
+
 ```ts
   networks: {
-    arbitrumOne: { 
+    arbitrumOne: {
       chainId: 42161,
       url: `https://arbitrum-one.infura.io/v3/123456`
       deployments: {
@@ -55,6 +58,7 @@ To manually configure target networks:
     },
   }
 ```
+
 **Hardhat: Graph config**
 
 Additionally, the plugin adds a new config field to hardhat's config file: `graph`. This can be used used to define defaults for all networks:
@@ -86,10 +90,10 @@ The interface for the graph object can be found [here](src/types.ts), it's expan
 ```ts
 export type GraphRuntimeEnvironment = {
   [deploymentName]: {
-    contracts: DeploymentContractsType,
-    addressBook: DeploymentAddressBookType,
+    contracts: DeploymentContractsType
+    addressBook: DeploymentAddressBookType
     actions: DeplyomentActionsType
-  },
+  }
   provider: HardhatEthersProvider
   chainId: number
   accounts: {
@@ -110,6 +114,7 @@ export type GraphRuntimeEnvironment = {
 The plugin provides one object for each configured deployment, this object allows easily interacting with the associated deployment with a few additional features. The current deployments that are supported: `horizon` and `subgraphService`.
 
 Each deployment will be of the form:
+
 ```ts
   [deploymentName]: {
     contracts: DeploymentContractsType,
@@ -117,7 +122,9 @@ Each deployment will be of the form:
     actions: DeplyomentActionsType
   },
 ```
+
 Where:
+
 - `contracts`: an object with all the contracts available in the deployment, already instanced, fully typed and ready to go.
 - `addressBook`: an object allowing read and write access to the deployment's address book.
 - `actions`: (optional) an object with helper functions to perform common actions in the associated deployment.
@@ -125,11 +132,13 @@ Where:
 **Transaction logging**
 
 Any transactions made using the `contracts` object will be automatically logged both to the console and to a file:
+
 - `file`, in the project's root directory: `tx-YYYY-MM-DD.log`
 - `console`, not shown by default. Run with `DEBUG=toolshed:tx` to enable them.
 
 Note that this does not apply to getter functions (`view` or `pure`) as those are not state modifying calls.
 An example log output:
+
 ```
 [2025-04-10T20:32:37.182Z] > Sending transaction: HorizonStaking.addToProvision
 [2025-04-10T20:32:37.182Z]    = Sender: 0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E
@@ -145,7 +154,7 @@ An example log output:
 [2025-04-10T20:32:40.946Z]    ✔ Transaction succeeded!
 ```
 
-__Note__ Transaction logging requires using js Proxy which strips down some type definitions from contract methods. This means that when transaction logging is enabled `contract.functionName.estimateGas` for example will not be available.
+**Note** Transaction logging requires using js Proxy which strips down some type definitions from contract methods. This means that when transaction logging is enabled `contract.functionName.estimateGas` for example will not be available.
 
 **Transaction auto-awaiting**
 
@@ -162,6 +171,7 @@ await tx.wait(10)
 ```
 
 **Examples**
+
 ```js
 const graph = hre.graph()
 const { GraphPayments, HorizonStaking, GraphToken } = graph.horizon.contracts
@@ -179,7 +189,7 @@ await HorizonStaking.connect(signer).provision(signer.address, dataService.addre
 // Do the same but using actions - in this case the `provision` helper also approves and stakes
 await provision(signer, [signer.address, dataService.address, 100_000_000, 10_000, 42_690])
 
-// Read the address book 
+// Read the address book
 const entry = graph.horizon.addressBook.getEntry('HorizonStaking')
 console.log(entry.address) // HorizonStaking proxy address
 console.log(entry.implementation) // HorizonStaking implementation address
@@ -188,6 +198,7 @@ console.log(entry.implementation) // HorizonStaking implementation address
 ### Accounts
 
 The plugin provides helper functions to derive signers from the configured accounts in hardhat config:
+
 ```ts
   hardhat: {
     chainId: 31337,
@@ -198,16 +209,16 @@ The plugin provides helper functions to derive signers from the configured accou
   },
 ```
 
-| Function | Description | Default account derivation index |
-|----------|-------------|-------------|
-| `getAccounts()` | Returns all the accounts listed below | - |
-| `getDeployer()` | Returns the deployer signer | 0 |
-| `getGovernor()` | Returns the governor signer | 1 |
-| `getArbitrator()` | Returns the arbitrator signer | 2 |
-| `getPauseGuardian()` | Returns the pause guardian signer | 3 |
-| `getSubgraphAvailabilityOracle()` | Returns a service provider signer | 4 |
-| `getGateway()` | Returns the gateway signer | 5 |
-| `getTestAccounts()` | Returns the test signers | 6-20 |
+| Function                          | Description                           | Default account derivation index |
+| --------------------------------- | ------------------------------------- | -------------------------------- |
+| `getAccounts()`                   | Returns all the accounts listed below | -                                |
+| `getDeployer()`                   | Returns the deployer signer           | 0                                |
+| `getGovernor()`                   | Returns the governor signer           | 1                                |
+| `getArbitrator()`                 | Returns the arbitrator signer         | 2                                |
+| `getPauseGuardian()`              | Returns the pause guardian signer     | 3                                |
+| `getSubgraphAvailabilityOracle()` | Returns a service provider signer     | 4                                |
+| `getGateway()`                    | Returns the gateway signer            | 5                                |
+| `getTestAccounts()`               | Returns the test signers              | 6-20                             |
 
 Note that these are just helper functions to enforce a convention on which index to use for each account. These might not match what is configured in the target protocol deployment.
 

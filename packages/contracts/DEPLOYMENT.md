@@ -1,7 +1,8 @@
-## Deploying the Solidity Smart Contracts
-### Running
+# Deploying the Solidity Smart Contracts
 
-Deploy functionality exists in `cli/cli.ts`. You can deploy the contracts to the specified network 
+## Running
+
+Deploy functionality exists in `cli/cli.ts`. You can deploy the contracts to the specified network
 when used with the `migrate` command. This script accepts multiple commands that you can print using:
 
 ```bash
@@ -10,7 +11,7 @@ cli/cli.ts --help
 
 For convenience, the script can also be used as a hardhat command with `hardhat migrate` and it can be also run with:
 
-```
+```bash
 pnpm deploy
 ```
 
@@ -24,7 +25,7 @@ The **migrate** command will:
 
 The script accepts multiple parameters that allow to override default values, print the available options with:
 
-```
+```bash
 pnpm deploy -- --help
 ```
 
@@ -36,16 +37,16 @@ By default, `pnpm deploy` will deploy the contracts to a localhost instance of a
 
 To deploy to a different network execute:
 
-```
+```bash
 pnpm deploy -- --network {networkName}
 
 # Example
 pnpm deploy -- --network goerli
 ```
 
-The network must be configured in the `hardhat.config.ts` as explained in https://hardhat.org/config.
+The network must be configured in the `hardhat.config.ts` as explained in <https://hardhat.org/config>.
 
-To deploy using your own wallet add the HD Wallet Config to the `hardhat.config.ts` file according to https://hardhat.org/config/#hd-wallet-config.
+To deploy using your own wallet add the HD Wallet Config to the `hardhat.config.ts` file according to <https://hardhat.org/config/#hd-wallet-config>.
 
 ### Configuration
 
@@ -53,7 +54,7 @@ A configuration file called `graph.<networkName>.yml` located in the `config` fo
 
 You can use a different set of configuration options by specifying the file location in the command line:
 
-```
+```bash
 pnpm deploy -- --graph-config another-graph.mainnet.yml
 ```
 
@@ -112,7 +113,7 @@ Deployed smart contracts can be verified on etherscan and sourcify using built-i
 
 ### Etherscan
 
-[Etherscan](https://etherscan.io/) verification can be performed by using the [hardhat-etherscan](https://hardhat.org/hardhat-runner/plugins/nomiclabs-hardhat-etherscan) plugin. __Note__: ensure you have set a valid `ETHERSCAN_API_KEY` in the `.env` file.
+[Etherscan](https://etherscan.io/) verification can be performed by using the [hardhat-etherscan](https://hardhat.org/hardhat-runner/plugins/nomiclabs-hardhat-etherscan) plugin. **Note**: ensure you have set a valid `ETHERSCAN_API_KEY` in the `.env` file.
 
 - To verify a single contract, run:
 
@@ -121,6 +122,7 @@ Deployed smart contracts can be verified on etherscan and sourcify using built-i
   ```
 
 - To verify all contracts on the address book, run:
+
   ```bash
   npx hardhat verifyAll --network {networkName} --graph-config {graphConfigFile}
   ```
@@ -136,6 +138,7 @@ Additionally you can verify contracts on [Sourcify](https://sourcify.dev/).
   ```
 
 - To verify all contracts on the address book, run:
+
   ```bash
   npx hardhat sourcifyAll --network {networkName}
   ```

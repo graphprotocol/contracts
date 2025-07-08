@@ -10,7 +10,6 @@ horizon_packages=(
 )
 
 all_packages=(
-    "packages/eslint-graph-config"
     # "packages/solhint-graph-config" -- disabled since it doesn't have a build script
     # "packages/solhint-plugin-graph" -- disabled since it doesn't have a build script
     "packages/contracts"
