@@ -11,7 +11,6 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 
 import { ISubgraphService } from "../../../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../../SubgraphService.t.sol";
-import { Allocation } from "../../../../../contracts/libraries/Allocation.sol";
 
 contract SubgraphServiceRegisterTest is SubgraphServiceTest {
     using PPMMath for uint128;
@@ -279,51 +278,5 @@ contract SubgraphServiceRegisterTest is SubgraphServiceTest {
             users.gateway
         );
         assertEq(afterTokensCollected, intermediateTokensCollected + tokensToCollect + (oddTokensPayment ? 1 : 0));
-    }
-
-    function testCollect_QueryFees_ClosedAllocation(
-        uint256 tokensAllocated,
-        uint256 tokensPayment
-    ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
-            ? type(uint128).max
-            : tokensAllocated / stakeToFeesRatio;
-        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
-
-        resetPrank(users.gateway);
-        _deposit(tokensPayment);
-        _authorizeSigner();
-
-        // Close the allocation
-        resetPrank(users.indexer);
-        bytes memory closeAlloData = abi.encode(allocationID);
-        _stopService(users.indexer, closeAlloData);
-
-        // Collect the RAV
-        resetPrank(users.indexer);
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
-        _collect(users.indexer, IGraphPayments.PaymentTypes.QueryFee, data);
-    }
-
-    function testCollect_QueryFees_RevertWhen_IncorrectPaymentType(
-        uint256 tokensAllocated,
-        uint256 tokensPayment
-    ) public useIndexer useAllocation(tokensAllocated) {
-        vm.assume(tokensAllocated > minimumProvisionTokens * stakeToFeesRatio);
-        uint256 maxTokensPayment = tokensAllocated / stakeToFeesRatio > type(uint128).max
-            ? type(uint128).max
-            : tokensAllocated / stakeToFeesRatio;
-        tokensPayment = bound(tokensPayment, minimumProvisionTokens, maxTokensPayment);
-
-        resetPrank(users.gateway);
-        _deposit(tokensPayment);
-        _authorizeSigner();
-
-        resetPrank(users.indexer);
-        bytes memory data = _getQueryFeeEncodedData(users.indexer, uint128(tokensPayment), 0);
-
-        vm.expectRevert();
-        subgraphService.collect(users.indexer, IGraphPayments.PaymentTypes.IndexingRewards, data);
     }
 }

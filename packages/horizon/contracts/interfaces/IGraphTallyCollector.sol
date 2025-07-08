@@ -100,12 +100,6 @@ interface IGraphTallyCollector is IPaymentsCollector {
     error GraphTallyCollectorInvalidTokensToCollectAmount(uint256 tokensToCollect, uint256 maxTokensToCollect);
 
     /**
-     * @notice Thrown when the payment type is invalid
-     * @param paymentType The payment type
-     */
-    error GraphTallyCollectorInvalidPaymentType(IGraphPayments.PaymentTypes paymentType);
-
-    /**
      * @notice See {IPaymentsCollector.collect}
      * This variant adds the ability to partially collect a RAV by specifying the amount of tokens to collect.
      *
