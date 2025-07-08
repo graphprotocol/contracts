@@ -121,12 +121,16 @@ contract DisputeManager is
     }
 
     /// @inheritdoc IDisputeManager
-    function createIndexingDispute(address allocationId, bytes32 poi) external override returns (bytes32) {
+    function createIndexingDispute(
+        address allocationId,
+        bytes32 poi,
+        uint256 blockNumber
+    ) external override returns (bytes32) {
         // Get funds from fisherman
         _graphToken().pullTokens(msg.sender, disputeDeposit);
 
         // Create a dispute
-        return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi);
+        return _createIndexingDisputeWithAllocation(msg.sender, disputeDeposit, allocationId, poi, blockNumber);
     }
 
     /// @inheritdoc IDisputeManager
@@ -341,11 +345,7 @@ contract DisputeManager is
 
     /// @inheritdoc IDisputeManager
     function getStakeSnapshot(address indexer) external view override returns (uint256) {
-        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(
-            indexer,
-            address(_getSubgraphService())
-        );
-        return _getStakeSnapshot(indexer, provision.tokens);
+        return _getStakeSnapshot(indexer);
     }
 
     /// @inheritdoc IDisputeManager
@@ -395,13 +395,6 @@ contract DisputeManager is
         // Get the indexer that signed the attestation
         address indexer = getAttestationIndexer(_attestation);
 
-        // The indexer is disputable
-        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(
-            indexer,
-            address(_getSubgraphService())
-        );
-        require(provision.tokens != 0, DisputeManagerZeroTokens());
-
         // Create a disputeId
         bytes32 disputeId = keccak256(
             abi.encodePacked(
@@ -416,8 +409,11 @@ contract DisputeManager is
         // Only one dispute at a time
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
 
+        // The indexer is disputable
+        uint256 stakeSnapshot = _getStakeSnapshot(indexer);
+        require(stakeSnapshot != 0, DisputeManagerZeroTokens());
+
         // Store dispute
-        uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
         uint256 cancellableAt = block.timestamp + disputePeriod;
         disputes[disputeId] = Dispute(
             indexer,
@@ -451,16 +447,18 @@ contract DisputeManager is
      * @param _deposit Amount of tokens staked as deposit
      * @param _allocationId Allocation disputed
      * @param _poi The POI being disputed
+     * @param _blockNumber The block number for which the POI was calculated
      * @return The dispute id
      */
     function _createIndexingDisputeWithAllocation(
         address _fisherman,
         uint256 _deposit,
         address _allocationId,
-        bytes32 _poi
+        bytes32 _poi,
+        uint256 _blockNumber
     ) private returns (bytes32) {
         // Create a disputeId
-        bytes32 disputeId = keccak256(abi.encodePacked(_allocationId, _poi));
+        bytes32 disputeId = keccak256(abi.encodePacked(_allocationId, _poi, _blockNumber));
 
         // Only one dispute for an allocationId at a time
         require(!isDisputeCreated(disputeId), DisputeManagerDisputeAlreadyCreated(disputeId));
@@ -472,11 +470,10 @@ contract DisputeManager is
         require(indexer != address(0), DisputeManagerIndexerNotFound(_allocationId));
 
         // The indexer must be disputable
-        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(indexer, address(subgraphService_));
-        require(provision.tokens != 0, DisputeManagerZeroTokens());
+        uint256 stakeSnapshot = _getStakeSnapshot(indexer);
+        require(stakeSnapshot != 0, DisputeManagerZeroTokens());
 
         // Store dispute
-        uint256 stakeSnapshot = _getStakeSnapshot(indexer, provision.tokens);
         uint256 cancellableAt = block.timestamp + disputePeriod;
         disputes[disputeId] = Dispute(
             alloc.indexer,
@@ -497,6 +494,7 @@ contract DisputeManager is
             _deposit,
             _allocationId,
             _poi,
+            _blockNumber,
             stakeSnapshot,
             cancellableAt
         );
@@ -685,18 +683,19 @@ contract DisputeManager is
      * @dev A few considerations:
      * - We include both indexer and delegators stake.
      * - Thawing stake is not excluded from the snapshot.
-     * - Delegators stake is capped at the delegation ratio to prevent delegators from inflating the snapshot
-     *   to increase the indexer slash amount.
      *
      * Note that the snapshot can be inflated by delegators front-running the dispute creation with a delegation
      * to the indexer. Given the snapshot is a cap, the dispute outcome is uncertain and considering the cost of capital
      * and slashing risk, this is not a concern.
      * @param _indexer Indexer address
-     * @param _indexerStake Indexer's stake
      * @return Total stake snapshot
      */
-    function _getStakeSnapshot(address _indexer, uint256 _indexerStake) private view returns (uint256) {
-        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, address(_getSubgraphService())).tokens;
-        return _indexerStake + delegatorsStake;
+    function _getStakeSnapshot(address _indexer) private view returns (uint256) {
+        address subgraphService = address(_getSubgraphService());
+
+        IHorizonStaking.Provision memory provision = _graphStaking().getProvision(_indexer, subgraphService);
+        uint256 delegatorsStake = _graphStaking().getDelegationPool(_indexer, subgraphService).tokens;
+
+        return provision.tokens + delegatorsStake;
     }
 }

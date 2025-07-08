@@ -70,9 +70,9 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
         assertEq(address(disputeManager.subgraphService()), _subgraphService, "Subgraph service should be set.");
     }
 
-    function _createIndexingDispute(address _allocationId, bytes32 _poi) internal returns (bytes32) {
+    function _createIndexingDispute(address _allocationId, bytes32 _poi, uint256 _blockNumber) internal returns (bytes32) {
         (, address fisherman, ) = vm.readCallers();
-        bytes32 expectedDisputeId = keccak256(abi.encodePacked(_allocationId, _poi));
+        bytes32 expectedDisputeId = keccak256(abi.encodePacked(_allocationId, _poi, _blockNumber));
         uint256 disputeDeposit = disputeManager.disputeDeposit();
         uint256 beforeFishermanBalance = token.balanceOf(fisherman);
         IAllocation.State memory alloc = subgraphService.getAllocation(_allocationId);
@@ -89,13 +89,14 @@ contract DisputeManagerTest is SubgraphServiceSharedTest {
             fisherman,
             disputeDeposit,
             _allocationId,
-            _poi,
+            _poi,   
+            _blockNumber,
             stakeSnapshot,
             cancellableAt
         );
 
         // Create the indexing dispute
-        bytes32 _disputeId = disputeManager.createIndexingDispute(_allocationId, _poi);
+        bytes32 _disputeId = disputeManager.createIndexingDispute(_allocationId, _poi, _blockNumber);
 
         // Check that the dispute was created and that it has the correct ID
         assertTrue(disputeManager.isDisputeCreated(_disputeId), "Dispute should be created.");

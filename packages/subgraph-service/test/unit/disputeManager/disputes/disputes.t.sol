@@ -29,7 +29,7 @@ contract DisputeManagerDisputeTest is DisputeManagerTest {
 
     function test_Dispute_Accept_RevertIf_SlashZeroTokens(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI101"), block.number);
 
         // attempt to accept dispute with 0 tokens slashed
         resetPrank(users.arbitrator);

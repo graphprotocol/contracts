@@ -13,7 +13,7 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
 
     function test_Indexing_Cancel_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         // skip to end of dispute period
         uint256 disputePeriod = disputeManager.disputePeriod();
@@ -26,7 +26,7 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         resetPrank(users.arbitrator);
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerNotFisherman.selector));
@@ -37,7 +37,7 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         vm.expectRevert(abi.encodeWithSelector(IDisputeManager.DisputeManagerDisputePeriodNotFinished.selector));
         disputeManager.cancelDispute(disputeID);
@@ -45,7 +45,7 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
 
     function test_Indexing_Cancel_After_DisputePeriodIncreased(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         // change the dispute period to a higher value
         uint256 oldDisputePeriod = disputeManager.disputePeriod();
@@ -62,7 +62,7 @@ contract DisputeManagerIndexingCancelDisputeTest is DisputeManagerTest {
 
     function test_Indexing_Cancel_After_DisputePeriodDecreased(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"));
+        bytes32 disputeID = _createIndexingDispute(allocationID, bytes32("POI1"), block.number);
 
         // change the dispute period to a lower value
         uint256 oldDisputePeriod = disputeManager.disputePeriod();
