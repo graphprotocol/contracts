@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.3.0
+
+### Minor Changes
+
+- Add wagmi type generation for interfaces package
+
 ## 0.2.5
 
 ### Patch Changes
