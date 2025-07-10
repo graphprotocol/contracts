@@ -81,3 +81,6 @@ tx-builder-*.json
 **/ignition/deployments/*-hardhat/
 **/ignition/deployments/*-31337/
 **/ignition/deployments/*-1337/
+
+# wagmi generated types
+wagmi/
