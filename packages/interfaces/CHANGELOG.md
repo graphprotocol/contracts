@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.4.0
+
+### Minor Changes
+
+- Add ethers v5 type generation to interfaces package
+
 ## 0.3.0
 
 ### Minor Changes

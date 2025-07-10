@@ -28,6 +28,7 @@ packages/*/.eslintcache
 
 # Build artifacts
 dist/
+dist-v5/
 build/
 typechain/
 typechain-types/
