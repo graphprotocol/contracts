@@ -327,7 +327,7 @@ describe('L1GraphTokenLockTransferTool', () => {
       const tx = lockAsTransferTool
         .connect(beneficiary.signer)
         .depositToL2Locked(toGRT('10000000'), l2Beneficiary.address, maxGas, gasPrice, maxSubmissionCost)
-      await expect(tx).revertedWith('REVOCABLE')
+      await expect(tx).revertedWith('Revocable contracts cannot forward calls')
     })
     it('rejects calls if the wallet does not have enough tokens', async function () {
       await tokenLock.connect(beneficiary.signer).acceptLock()
