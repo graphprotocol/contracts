@@ -4,17 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  prettier: ^3.5.3
-  prettier-plugin-solidity: ^2.0.0
-  typescript: ^5.8.3
-  '@types/node': ^20.17.50
-
-patchedDependencies:
-  typechain@8.3.2:
-    hash: zy6bsbkpcar7tt6jjbnwpaczsm
-    path: patches/typechain@8.3.2.patch
-
 importers:
 
   .:
@@ -856,6 +845,9 @@ importers:
       '@openzeppelin/contracts-upgradeable':
         specifier: 3.4.2
         version: 3.4.2
+      '@typechain/ethers-v5':
+        specifier: ^10.2.1
+        version: 10.2.1(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3)
       '@wagmi/cli':
         specifier: ^2.3.1
         version: 2.3.1(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
@@ -877,9 +869,18 @@ importers:
       solhint:
         specifier: 5.1.0
         version: 5.1.0(typescript@5.8.3)
+      typechain:
+        specifier: ^8.3.2
+        version: 8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3)
       viem:
         specifier: ^2.31.7
         version: 2.31.7(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+
+  packages/interfaces/ethers-v5:
+    devDependencies:
+      ethers:
+        specifier: '5'
+        version: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
   packages/solhint-plugin-graph: {}
 
@@ -16874,6 +16875,16 @@ snapshots:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/providers': 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       ethers: 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      lodash: 4.17.21
+      ts-essentials: 7.0.3(typescript@5.8.3)
+      typechain: 8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3)
+      typescript: 5.8.3
+
+  '@typechain/ethers-v5@10.2.1(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3))(typescript@5.8.3)':
+    dependencies:
+      '@ethersproject/abi': 5.8.0
+      '@ethersproject/providers': 5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      ethers: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       lodash: 4.17.21
       ts-essentials: 7.0.3(typescript@5.8.3)
       typechain: 8.3.2(patch_hash=zy6bsbkpcar7tt6jjbnwpaczsm)(typescript@5.8.3)

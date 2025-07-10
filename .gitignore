@@ -32,6 +32,8 @@ build/
 typechain/
 typechain-types/
 types/
+types-v5/
+wagmi/
 deployments/hardhat/
 
 # TypeScript incremental compilation cache
@@ -81,6 +83,3 @@ tx-builder-*.json
 **/ignition/deployments/*-hardhat/
 **/ignition/deployments/*-31337/
 **/ignition/deployments/*-1337/
-
-# wagmi generated types
-wagmi/
