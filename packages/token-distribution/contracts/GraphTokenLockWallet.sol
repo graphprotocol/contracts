@@ -38,7 +38,7 @@ contract GraphTokenLockWallet is GraphTokenLock {
     // -- State --
 
     IGraphTokenLockManager public manager;
-    uint256 public usedAmount;
+    uint256 public __DEPRECATED_usedAmount;
 
     // -- Events --
 
@@ -158,9 +158,7 @@ contract GraphTokenLockWallet is GraphTokenLock {
         }
 
         // A beneficiary can never have more releasable tokens than the contract balance
-        // We consider the `usedAmount` in the protocol as part of the calculations
-        // the beneficiary should not release funds that are used.
-        uint256 releasable = availableAmount().sub(releasedAmount).sub(usedAmount);
+        uint256 releasable = availableAmount().sub(releasedAmount);
         return MathUtils.min(currentBalance(), releasable);
     }
 
@@ -174,33 +172,15 @@ contract GraphTokenLockWallet is GraphTokenLock {
         require(msg.sender == beneficiary, "Unauthorized caller");
         require(msg.value == 0, "ETH transfers not supported");
 
+        // Only non-revocable contracts can forward calls
+        require(revocable == Revocability.Disabled, "Revocable contracts cannot forward calls");
+
         // Function call validation
         address _target = manager.getAuthFunctionCallTarget(msg.sig);
         require(_target != address(0), "Unauthorized function");
 
-        uint256 oldBalance = currentBalance();
-
         // Call function with data
         Address.functionCall(_target, msg.data);
-
-        // Tracked used tokens in the protocol
-        // We do this check after balances were updated by the forwarded call
-        // Check is only enforced for revocable contracts to save some gas
-        if (revocable == IGraphTokenLock.Revocability.Enabled) {
-            // Track contract balance change
-            uint256 newBalance = currentBalance();
-            if (newBalance < oldBalance) {
-                // Outflow
-                uint256 diff = oldBalance.sub(newBalance);
-                usedAmount = usedAmount.add(diff);
-            } else {
-                // Inflow: We can receive profits from the protocol, that could make usedAmount to
-                // underflow. We set it to zero in that case.
-                uint256 diff = newBalance.sub(oldBalance);
-                usedAmount = (diff >= usedAmount) ? 0 : usedAmount.sub(diff);
-            }
-            require(usedAmount <= vestedAmount(), "Cannot use more tokens than vested amount");
-        }
     }
 
     /**
