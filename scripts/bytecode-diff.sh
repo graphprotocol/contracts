@@ -17,7 +17,7 @@ process() {
   local file="$1"
   local out="$2"
 
-  jq -r '.deployedBytecode' "$file" | fold -w 64 > "$out"
+  jq -r '.bytecode' "$file" | fold -w 64 > "$out"
 }
 
 # Find all JSON files in DIR1
