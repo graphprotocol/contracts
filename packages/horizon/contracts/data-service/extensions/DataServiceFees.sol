@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-import { IDataServiceFees } from "../interfaces/IDataServiceFees.sol";
+import { IDataServiceFees } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceFees.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { ProvisionTracker } from "../libraries/ProvisionTracker.sol";
 import { LinkedList } from "../../libraries/LinkedList.sol";
@@ -21,7 +22,7 @@ import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
  */
 abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDataServiceFees {
     using ProvisionTracker for mapping(address => uint256);
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     /// @inheritdoc IDataServiceFees
     function releaseStake(uint256 numClaimsToRelease) external virtual override {
@@ -44,7 +45,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
         require(_tokens != 0, DataServiceFeesZeroTokens());
         feesProvisionTracker.lock(_graphStaking(), _serviceProvider, _tokens, _delegationRatio);
 
-        LinkedList.List storage claimsList = claimsLists[_serviceProvider];
+        ILinkedList.List storage claimsList = claimsLists[_serviceProvider];
 
         // Save item and add to list
         bytes32 claimId = _buildStakeClaimId(_serviceProvider, claimsList.nonce);
@@ -71,7 +72,7 @@ abstract contract DataServiceFees is DataService, DataServiceFeesV1Storage, IDat
      * @param _numClaimsToRelease Amount of stake claims to process. If 0, all stake claims are processed.
      */
     function _releaseStake(address _serviceProvider, uint256 _numClaimsToRelease) internal {
-        LinkedList.List storage claimsList = claimsLists[_serviceProvider];
+        ILinkedList.List storage claimsList = claimsLists[_serviceProvider];
         (uint256 claimsReleased, bytes memory data) = claimsList.traverse(
             _getNextStakeClaim,
             _processStakeClaim,

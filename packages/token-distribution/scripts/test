@@ -5,6 +5,11 @@ set -eo pipefail
 MNEMONIC="myth like bonus scare over problem client lizard pioneer submit female collect"
 TESTRPC_PORT=8545
 
+if [ -z "${STUDIO_API_KEY}" ]; then
+    echo "Warning: STUDIO_API_KEY is not set. Skipping tests."
+    exit 0
+fi
+
 ### Functions
 
 evm_running() {

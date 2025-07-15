@@ -3,9 +3,10 @@ pragma solidity 0.8.27;
 
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { DataServiceImpFees } from "../implementations/DataServiceImpFees.sol";
-import { IDataServiceFees } from "../../../../contracts/data-service/interfaces/IDataServiceFees.sol";
+import { IDataServiceFees } from "@graphprotocol/interfaces/contracts/data-service/IDataServiceFees.sol";
 import { ProvisionTracker } from "../../../../contracts/data-service/libraries/ProvisionTracker.sol";
 import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 contract DataServiceFeesTest is HorizonStakingSharedTest {
     function test_Lock_RevertWhen_ZeroTokensAreLocked()
@@ -121,7 +122,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         }
 
         // it should revert
-        vm.expectRevert(abi.encodeWithSelector(LinkedList.LinkedListInvalidIterations.selector));
+        vm.expectRevert(abi.encodeWithSelector(ILinkedList.LinkedListInvalidIterations.selector));
         dataService.releaseStake(steps + 1);
     }
 

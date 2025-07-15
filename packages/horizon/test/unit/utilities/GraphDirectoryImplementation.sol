@@ -3,16 +3,16 @@
 pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStaking } from "../../../contracts/interfaces/IHorizonStaking.sol";
-import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
-import { IPaymentsEscrow } from "../../../contracts/interfaces/IPaymentsEscrow.sol";
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 
-import { IController } from "@graphprotocol/contracts/contracts/governance/IController.sol";
-import { IEpochManager } from "@graphprotocol/contracts/contracts/epochs/IEpochManager.sol";
-import { IRewardsManager } from "@graphprotocol/contracts/contracts/rewards/IRewardsManager.sol";
-import { ITokenGateway } from "@graphprotocol/contracts/contracts/arbitrum/ITokenGateway.sol";
-import { IGraphProxyAdmin } from "../../../contracts/interfaces/IGraphProxyAdmin.sol";
-import { ICuration } from "@graphprotocol/contracts/contracts/curation/ICuration.sol";
+import { IController } from "@graphprotocol/interfaces/contracts/contracts/governance/IController.sol";
+import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
+import { IGraphProxyAdmin } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxyAdmin.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 
 import { GraphDirectory } from "./../../../contracts/utilities/GraphDirectory.sol";
 

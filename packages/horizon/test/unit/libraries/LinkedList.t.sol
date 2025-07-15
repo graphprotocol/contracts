@@ -4,19 +4,19 @@ pragma solidity 0.8.27;
 import "forge-std/console.sol";
 import { Test } from "forge-std/Test.sol";
 import { LinkedList } from "../../../contracts/libraries/LinkedList.sol";
-
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 import { ListImplementation } from "./ListImplementation.sol";
 
 contract LinkedListTest is Test, ListImplementation {
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     function setUp() internal {
-        list = LinkedList.List({ head: bytes32(0), tail: bytes32(0), nonce: 0, count: 0 });
+        list = ILinkedList.List({ head: bytes32(0), tail: bytes32(0), nonce: 0, count: 0 });
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_Add_RevertGiven_TheItemIdIsZero() external {
-        vm.expectRevert(LinkedList.LinkedListInvalidZeroId.selector);
+        vm.expectRevert(ILinkedList.LinkedListInvalidZeroId.selector);
         list.addTail(bytes32(0));
     }
 
@@ -39,13 +39,13 @@ contract LinkedListTest is Test, ListImplementation {
             _addItemToList(list, id, i);
         }
 
-        vm.expectRevert(LinkedList.LinkedListMaxElementsExceeded.selector);
+        vm.expectRevert(ILinkedList.LinkedListMaxElementsExceeded.selector);
         list.addTail(_buildItemId(list.nonce));
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_Remove_RevertGiven_TheListIsEmpty() external {
-        vm.expectRevert(LinkedList.LinkedListEmptyList.selector);
+        vm.expectRevert(ILinkedList.LinkedListEmptyList.selector);
         list.removeHead(_getNextItem, _deleteItem);
     }
 
@@ -92,7 +92,7 @@ contract LinkedListTest is Test, ListImplementation {
         for (uint256 i = 0; i < n; i++) {
             sum += i;
         }
-        vm.expectRevert(LinkedList.LinkedListInvalidIterations.selector);
+        vm.expectRevert(ILinkedList.LinkedListInvalidIterations.selector);
         _assert_traverseList(_processItemAddition, abi.encode(0), n, abi.encode(sum));
     }
 

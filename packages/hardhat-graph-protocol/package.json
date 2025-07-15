@@ -1,6 +1,6 @@
 {
   "name": "hardhat-graph-protocol",
-  "version": "0.1.22",
+  "version": "0.2.5",
   "publishConfig": {
     "access": "public"
   },
@@ -26,10 +26,12 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:clean": "pnpm clean && pnpm build",
+    "watch": "tsc --watch",
     "clean": "rm -rf dist",
     "lint": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "test": "mocha --exit --recursive 'test/**/*.test.ts'",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "pnpm run build"
   },
   "files": [
     "dist/",

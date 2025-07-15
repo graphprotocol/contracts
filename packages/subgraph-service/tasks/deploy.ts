@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import HorizonModule from '@graphprotocol/horizon/ignition/modules/deploy'
+import { HorizonModule } from '@graphprotocol/horizon/ignition'
 import { ZERO_ADDRESS } from '@graphprotocol/toolshed'
 import type { AddressBook } from '@graphprotocol/toolshed/deployments'
 import { loadConfig, patchConfig, saveToAddressBook } from '@graphprotocol/toolshed/hardhat'
@@ -30,7 +30,7 @@ task('deploy:protocol', 'Deploy a new version of the Graph Protocol Horizon cont
     types.string,
   )
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
-    const graph = hre.graph()
+    const graph = hre.graph({ createAddressBook: true })
 
     // Load configuration files for the deployment
     console.log('\n========== ⚙️ Deployment configuration ==========')

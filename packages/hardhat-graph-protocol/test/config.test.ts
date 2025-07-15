@@ -7,9 +7,9 @@ import { loadHardhatContext } from './helpers'
 describe('GRE init functions', function () {
   // No address book - should throw
   describe('getAddressBookPath', function () {
-    it('should throw if no address book is specified', function () {
+    it('should return undefined if no address book is specified', function () {
       this.hre = loadHardhatContext('default-config', 'mainnet')
-      expect(() => getAddressBookPath('horizon', this.hre, {})).to.throw('Must set a an addressBook path!')
+      expect(getAddressBookPath('horizon', this.hre, {})).to.be.undefined
     })
 
     it("should throw if address book doesn't exist", function () {

@@ -3,8 +3,8 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IGraphPayments } from "../../../contracts/interfaces/IGraphPayments.sol";
-import { IPaymentsEscrow } from "../../../contracts/interfaces/IPaymentsEscrow.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
 
 import { GraphEscrowTest } from "./GraphEscrow.t.sol";
 

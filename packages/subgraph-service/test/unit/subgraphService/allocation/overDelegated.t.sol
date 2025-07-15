@@ -3,11 +3,11 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
-import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 
 import { Allocation } from "../../../../contracts/libraries/Allocation.sol";
-import { ISubgraphService } from "../../../../contracts/interfaces/ISubgraphService.sol";
 import { SubgraphServiceTest } from "../SubgraphService.t.sol";
 
 contract SubgraphServiceAllocationOverDelegatedTest is SubgraphServiceTest {

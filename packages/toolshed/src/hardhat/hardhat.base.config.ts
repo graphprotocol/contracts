@@ -1,7 +1,7 @@
 import { vars } from 'hardhat/config'
 import type { HardhatUserConfig, NetworksUserConfig, ProjectPathsUserConfig, SolidityUserConfig } from 'hardhat/types'
 
-import { resolveNodeModulesPath } from '../lib/path'
+import { resolveAddressBook } from '../lib/resolve'
 
 // This base config file assumes the project is using the following hardhat plugins:
 // - hardhat-graph-protocol
@@ -71,77 +71,89 @@ export const etherscanUserConfig: Partial<EtherscanConfig> = {
 type EnhancedNetworkConfig<T> = T & {
   secureAccounts?: SecureAccountsOptions
   deployments?: {
-    horizon: string
-    subgraphService: string
+    horizon?: string
+    subgraphService?: string
   }
 }
 
 type BaseNetworksUserConfig = {
   [K in keyof NetworksUserConfig]: EnhancedNetworkConfig<NetworksUserConfig[K]>
 }
-export const networksUserConfig: BaseNetworksUserConfig = {
-  hardhat: {
-    chainId: 31337,
-    accounts: {
-      mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
+export const networksUserConfig = function (callerRequire: typeof require): BaseNetworksUserConfig {
+  return {
+    hardhat: {
+      chainId: 31337,
+      accounts: {
+        mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
+      },
+      deployments: {
+        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-hardhat.json'),
+        subgraphService: resolveAddressBook(callerRequire, '@graphprotocol/subgraph-service', 'addresses-hardhat.json'),
+      },
     },
-    deployments: {
-      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-hardhat.json'),
-      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-hardhat.json'),
+    localNetwork: {
+      chainId: 1337,
+      url: LOCAL_NETWORK_RPC,
+      deployments: {
+        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-local-network.json'),
+        subgraphService: resolveAddressBook(
+          callerRequire,
+          '@graphprotocol/subgraph-service',
+          'addresses-local-network.json',
+        ),
+      },
     },
-  },
-  localNetwork: {
-    chainId: 1337,
-    url: LOCAL_NETWORK_RPC,
-    deployments: {
-      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-local-network.json'),
-      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-local-network.json'),
+    localhost: {
+      chainId: 31337,
+      url: LOCALHOST_RPC,
+      secureAccounts: {
+        enabled: true,
+      },
+      deployments: {
+        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-localhost.json'),
+        subgraphService: resolveAddressBook(
+          callerRequire,
+          '@graphprotocol/subgraph-service',
+          'addresses-localhost.json',
+        ),
+      },
     },
-  },
-  localhost: {
-    chainId: 31337,
-    url: LOCALHOST_RPC,
-    secureAccounts: {
-      enabled: true,
+    arbitrumOne: {
+      chainId: 42161,
+      url: ARBITRUM_ONE_RPC,
+      secureAccounts: {
+        enabled: true,
+      },
     },
-    deployments: {
-      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses-localhost.json'),
-      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses-localhost.json'),
+    arbitrumSepolia: {
+      chainId: 421614,
+      url: ARBITRUM_SEPOLIA_RPC,
+      secureAccounts: {
+        enabled: true,
+      },
     },
-  },
-  arbitrumOne: {
-    chainId: 42161,
-    url: ARBITRUM_ONE_RPC,
-    secureAccounts: {
-      enabled: true,
-    },
-  },
-  arbitrumSepolia: {
-    chainId: 421614,
-    url: ARBITRUM_SEPOLIA_RPC,
-    secureAccounts: {
-      enabled: true,
-    },
-  },
+  }
 }
 
 type BaseHardhatConfig = HardhatUserConfig & { etherscan: Partial<EtherscanConfig> } & {
   graph: GraphRuntimeEnvironmentOptions
 } & { secureAccounts: SecureAccountsOptions }
-export const hardhatBaseConfig: BaseHardhatConfig = {
-  solidity: solidityUserConfig,
-  paths: projectPathsUserConfig,
-  secureAccounts: {
-    enabled: false,
-  },
-  networks: networksUserConfig,
-  graph: {
-    deployments: {
-      horizon: resolveNodeModulesPath('@graphprotocol/horizon/addresses.json'),
-      subgraphService: resolveNodeModulesPath('@graphprotocol/subgraph-service/addresses.json'),
+export const hardhatBaseConfig = function (callerRequire: typeof require): BaseHardhatConfig {
+  return {
+    solidity: solidityUserConfig,
+    paths: projectPathsUserConfig,
+    secureAccounts: {
+      enabled: false,
     },
-  },
-  etherscan: etherscanUserConfig,
+    networks: networksUserConfig(callerRequire),
+    graph: {
+      deployments: {
+        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon'),
+        subgraphService: resolveAddressBook(callerRequire, '@graphprotocol/subgraph-service'),
+      },
+    },
+    etherscan: etherscanUserConfig,
+  }
 }
 
 export default hardhatBaseConfig

@@ -176,31 +176,18 @@ export abstract class AddressBook<ChainId extends number = number, ContractName 
    * @param enableTxLogging Enable transaction logging to console and output file. Defaults to false.
    * @returns the loaded contracts
    */
-  _loadContracts(
-    artifactsPath: string | string[] | Record<ContractName, string>,
-    signerOrProvider?: Signer | Provider,
-    enableTxLogging?: boolean,
-  ): ContractList<ContractName> {
+  _loadContracts(signerOrProvider?: Signer | Provider, enableTxLogging?: boolean): ContractList<ContractName> {
     const contracts = {} as ContractList<ContractName>
     if (this.listEntries().length == 0) {
       logError('No valid contracts found in address book')
       return contracts
     }
     for (const contractName of this.listEntries()) {
-      const artifactPath =
-        typeof artifactsPath === 'object' && !Array.isArray(artifactsPath) ? artifactsPath[contractName] : artifactsPath
-
-      if (Array.isArray(artifactPath) ? !artifactPath.some(fs.existsSync) : !fs.existsSync(artifactPath)) {
-        logWarn(`Could not load contract ${contractName} - artifact not found`)
-        logWarn(artifactPath)
-        continue
-      }
       logDebug(`Loading contract ${contractName}`)
 
       const contract = loadContract(
         contractName,
         this.getEntry(contractName).address,
-        artifactPath,
         signerOrProvider,
         enableTxLogging,
       )

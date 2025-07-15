@@ -4,11 +4,14 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { GraphBaseTest } from "../../GraphBase.t.sol";
-import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
-import { IHorizonStakingBase } from "../../../../contracts/interfaces/internal/IHorizonStakingBase.sol";
-import { IHorizonStakingMain } from "../../../../contracts/interfaces/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingExtension } from "../../../../contracts/interfaces/internal/IHorizonStakingExtension.sol";
-import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
+import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
+import {
+    IHorizonStakingExtension
+} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
 import { MathUtils } from "../../../../contracts/libraries/MathUtils.sol";
@@ -16,7 +19,7 @@ import { PPMMath } from "../../../../contracts/libraries/PPMMath.sol";
 import { ExponentialRebates } from "../../../../contracts/staking/libraries/ExponentialRebates.sol";
 
 abstract contract HorizonStakingSharedTest is GraphBaseTest {
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
     using PPMMath for uint256;
 
     event Transfer(address indexed from, address indexed to, uint tokens);
@@ -452,7 +455,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function _thaw(address serviceProvider, address verifier, uint256 tokens) internal returns (bytes32) {
         // before
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
-        LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
+        ILinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
@@ -488,7 +491,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             IHorizonStakingTypes.ThawRequestType.Provision,
             thawRequestId
         );
-        LinkedList.List memory afterThawRequestList = _getThawRequestList(
+        ILinkedList.List memory afterThawRequestList = _getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
@@ -535,7 +538,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // before
         Provision memory beforeProvision = staking.getProvision(serviceProvider, verifier);
         ServiceProviderInternal memory beforeServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
-        LinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
+        ILinkedList.List memory beforeThawRequestList = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
@@ -581,7 +584,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // after
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
         ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
-        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+        ILinkedList.List memory afterThawRequestList = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
@@ -643,7 +646,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         Provision provision;
         Provision provisionNewVerifier;
         ServiceProviderInternal serviceProvider;
-        LinkedList.List thawRequestList;
+        ILinkedList.List thawRequestList;
     }
 
     function _reprovision(
@@ -708,7 +711,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         Provision memory afterProvision = staking.getProvision(serviceProvider, verifier);
         Provision memory afterProvisionNewVerifier = staking.getProvision(serviceProvider, newVerifier);
         ServiceProviderInternal memory afterServiceProvider = _getStorage_ServiceProviderInternal(serviceProvider);
-        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+        ILinkedList.List memory afterThawRequestList = staking.getThawRequestList(
             IHorizonStakingTypes.ThawRequestType.Provision,
             serviceProvider,
             verifier,
@@ -1011,7 +1014,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     struct BeforeValues_Undelegate {
         DelegationPoolInternalTest pool;
         DelegationInternal delegation;
-        LinkedList.List thawRequestList;
+        ILinkedList.List thawRequestList;
         uint256 delegatedTokens;
     }
     struct CalcValues_Undelegate {
@@ -1092,7 +1095,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             beneficiary,
             legacy
         );
-        LinkedList.List memory afterThawRequestList = staking.getThawRequestList(
+        ILinkedList.List memory afterThawRequestList = staking.getThawRequestList(
             thawRequestType,
             serviceProvider,
             verifier,
@@ -1161,7 +1164,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         DelegationPoolInternalTest pool;
         DelegationPoolInternalTest newPool;
         DelegationInternal newDelegation;
-        LinkedList.List thawRequestList;
+        ILinkedList.List thawRequestList;
         uint256 senderBalance;
         uint256 stakingBalance;
     }
@@ -1169,7 +1172,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         DelegationPoolInternalTest pool;
         DelegationPoolInternalTest newPool;
         DelegationInternal newDelegation;
-        LinkedList.List thawRequestList;
+        ILinkedList.List thawRequestList;
         uint256 senderBalance;
         uint256 stakingBalance;
     }
@@ -2390,7 +2393,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
     function calcThawRequestData(
         Params_CalcThawRequestData memory params
     ) private view returns (CalcValues_ThawRequestData memory) {
-        LinkedList.List memory thawRequestList = _getThawRequestList(
+        ILinkedList.List memory thawRequestList = _getThawRequestList(
             params.thawRequestType,
             params.serviceProvider,
             params.verifier,
@@ -2475,7 +2478,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         address serviceProvider,
         address verifier,
         address owner
-    ) private view returns (LinkedList.List memory) {
+    ) private view returns (ILinkedList.List memory) {
         return staking.getThawRequestList(thawRequestType, serviceProvider, verifier, owner);
     }
 

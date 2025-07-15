@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import { HorizonStakingSharedTest } from "../../shared/horizon-staking/HorizonStakingShared.t.sol";
 import { ProvisionTrackerImplementation } from "./ProvisionTrackerImplementation.sol";
 import { ProvisionTracker } from "../../../../contracts/data-service/libraries/ProvisionTracker.sol";
-import { IHorizonStaking } from "./../../../../contracts/interfaces/IHorizonStaking.sol";
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 
 // Wrapper required because when using vm.expectRevert, the error is expected in the next immediate call
 // Which in the case of this library is an internal call to the staking contract

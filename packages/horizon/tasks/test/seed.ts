@@ -1,10 +1,8 @@
 import { generateLegacyAllocationProof, randomAllocationMetadata } from '@graphprotocol/toolshed'
+import { delegators, indexers } from '@graphprotocol/toolshed/fixtures'
 import { requireLocalNetwork, setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { printBanner } from '@graphprotocol/toolshed/utils'
 import { task } from 'hardhat/config'
-
-import { delegators } from './fixtures/delegators'
-import { indexers } from './fixtures/indexers'
 
 task('test:seed', 'Sets up some protocol state for testing').setAction(async (_, hre) => {
   printBanner('PROTOCOL STATE SETUP')

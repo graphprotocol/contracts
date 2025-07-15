@@ -1,0 +1,66 @@
+{
+  "name": "@graphprotocol/interfaces",
+  "version": "0.4.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Contract interfaces for The Graph protocol",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "default": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    },
+    "./types-v5": {
+      "default": "./dist/types-v5/index.js",
+      "types": "./dist/types-v5/index.d.ts"
+    },
+    "./wagmi": {
+      "default": "./dist/wagmi/generated.js",
+      "types": "./dist/wagmi/generated.d.ts"
+    }
+  },
+  "files": [
+    "artifacts/**/*",
+    "dist/**/*",
+    "contracts/**/*",
+    "types/**/*",
+    "types-v5/**/*",
+    "wagmi/**/*",
+    "README.md"
+  ],
+  "author": "The Graph Team",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "clean": "rm -rf dist dist-v5 cache artifacts types types-v5 wagmi",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
+    "build": "scripts/build.sh",
+    "build:clean": "pnpm clean && pnpm build",
+    "watch": "tsc --watch",
+    "prepublishOnly": "pnpm run build"
+  },
+  "devDependencies": {
+    "@defi-wonderland/natspec-smells": "^1.1.6",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "3.4.1",
+    "@openzeppelin/contracts-upgradeable": "3.4.2",
+    "@typechain/ethers-v5": "^10.2.1",
+    "@wagmi/cli": "^2.3.1",
+    "ethers": "6.13.7",
+    "ethers-v5": "npm:ethers@5.7.2",
+    "@ethersproject/abi": "5.7.0",
+    "@ethersproject/providers": "5.7.2",
+    "hardhat": "^2.24.0",
+    "markdownlint-cli": "^0.45.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-solidity": "^2.0.0",
+    "solhint": "5.1.0",
+    "typechain": "^8.3.2",
+    "viem": "^2.31.7"
+  }
+}

@@ -2,9 +2,10 @@
 
 pragma solidity 0.8.27;
 
-import { IHorizonStakingTypes } from "../interfaces/internal/IHorizonStakingTypes.sol";
-import { IHorizonStakingBase } from "../interfaces/internal/IHorizonStakingBase.sol";
-import { IGraphPayments } from "../interfaces/IGraphPayments.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 import { MathUtils } from "../libraries/MathUtils.sol";
 import { LinkedList } from "../libraries/LinkedList.sol";
@@ -32,7 +33,7 @@ abstract contract HorizonStakingBase is
     IHorizonStakingTypes,
     IHorizonStakingBase
 {
-    using LinkedList for LinkedList.List;
+    using LinkedList for ILinkedList.List;
 
     /**
      * @notice The address of the subgraph data service.
@@ -158,7 +159,7 @@ abstract contract HorizonStakingBase is
         address serviceProvider,
         address verifier,
         address owner
-    ) external view override returns (LinkedList.List memory) {
+    ) external view override returns (ILinkedList.List memory) {
         return _getThawRequestList(requestType, serviceProvider, verifier, owner);
     }
 
@@ -169,7 +170,7 @@ abstract contract HorizonStakingBase is
         address verifier,
         address owner
     ) external view override returns (uint256) {
-        LinkedList.List storage thawRequestList = _getThawRequestList(requestType, serviceProvider, verifier, owner);
+        ILinkedList.List storage thawRequestList = _getThawRequestList(requestType, serviceProvider, verifier, owner);
         if (thawRequestList.count == 0) {
             return 0;
         }
@@ -307,7 +308,7 @@ abstract contract HorizonStakingBase is
         address _serviceProvider,
         address _verifier,
         address _owner
-    ) internal view returns (LinkedList.List storage) {
+    ) internal view returns (ILinkedList.List storage) {
         return _thawRequestLists[_requestType][_serviceProvider][_verifier][_owner];
     }
 

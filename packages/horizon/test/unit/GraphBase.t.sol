@@ -12,10 +12,10 @@ import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/trans
 import { PaymentsEscrow } from "contracts/payments/PaymentsEscrow.sol";
 import { GraphPayments } from "contracts/payments/GraphPayments.sol";
 import { GraphTallyCollector } from "contracts/payments/collectors/GraphTallyCollector.sol";
-import { IHorizonStaking } from "contracts/interfaces/IHorizonStaking.sol";
+import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { HorizonStaking } from "contracts/staking/HorizonStaking.sol";
 import { HorizonStakingExtension } from "contracts/staking/HorizonStakingExtension.sol";
-import { IHorizonStakingTypes } from "contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { MockGRTToken } from "../../contracts/mocks/MockGRTToken.sol";
 import { EpochManagerMock } from "contracts/mocks/EpochManagerMock.sol";
 import { RewardsManagerMock } from "contracts/mocks/RewardsManagerMock.sol";

@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/toolshed",
-  "version": "0.5.5",
+  "version": "0.6.7",
   "publishConfig": {
     "access": "public"
   },
@@ -18,6 +18,10 @@
       "types": "./dist/deployments/index.d.ts",
       "default": "./dist/deployments/index.js"
     },
+    "./fixtures": {
+      "types": "./dist/fixtures/index.d.ts",
+      "default": "./dist/fixtures/index.js"
+    },
     "./hardhat": {
       "types": "./src/hardhat/index.ts",
       "default": "./src/hardhat/index.ts"
@@ -30,9 +34,11 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "prepublishOnly": "tsc",
-    "lint": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
-    "clean": "rm -rf dist"
+    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "ethereum",
@@ -44,9 +50,7 @@
     "horizon"
   ],
   "dependencies": {
-    "@graphprotocol/contracts": "workspace:^",
-    "@graphprotocol/horizon": "workspace:^",
-    "@graphprotocol/subgraph-service": "workspace:^",
+    "@graphprotocol/interfaces": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "3.0.8",
     "debug": "^4.4.0",
     "ethers": "6.13.7",

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
+
 import { AttestationManagerV1Storage } from "./AttestationManagerStorage.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { Attestation } from "../libraries/Attestation.sol";
 
 /**
  * @title AttestationManager contract
@@ -62,9 +63,9 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
      * @param _attestation The attestation struct
      * @return Signer address
      */
-    function _recoverSigner(Attestation.State memory _attestation) internal view returns (address) {
+    function _recoverSigner(IAttestation.State memory _attestation) internal view returns (address) {
         // Obtain the hash of the fully-encoded message, per EIP-712 encoding
-        Attestation.Receipt memory receipt = Attestation.Receipt(
+        IAttestation.Receipt memory receipt = IAttestation.Receipt(
             _attestation.requestCID,
             _attestation.responseCID,
             _attestation.subgraphDeploymentId
@@ -84,7 +85,7 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
      * @param _receipt Receipt returned by indexer and submitted by fisherman
      * @return Message hash used to sign the receipt
      */
-    function _encodeReceipt(Attestation.Receipt memory _receipt) internal view returns (bytes32) {
+    function _encodeReceipt(IAttestation.Receipt memory _receipt) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(

@@ -4,18 +4,19 @@ import '@nomicfoundation/hardhat-toolbox'
 import '@nomicfoundation/hardhat-ignition-ethers'
 import 'hardhat-contract-sizer'
 import 'hardhat-secure-accounts'
+import 'hardhat-graph-protocol'
 
 import { hardhatBaseConfig, isProjectBuilt, loadTasks } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/types'
 
-// Skip importing hardhat-graph-protocol when building the project, it has circular dependency
+// Some tasks need compiled artifacts to run so we avoid loading them when building the project
 if (isProjectBuilt(__dirname)) {
-  require('hardhat-graph-protocol')
   loadTasks(__dirname)
 }
 
+const baseConfig = hardhatBaseConfig(require)
 const config: HardhatUserConfig = {
-  ...hardhatBaseConfig,
+  ...baseConfig,
   solidity: {
     version: '0.8.27',
     settings: {
@@ -26,7 +27,7 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    ...hardhatBaseConfig.etherscan,
+    ...baseConfig.etherscan,
     customChains: [
       {
         network: 'arbitrumSepolia',

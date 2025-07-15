@@ -199,7 +199,6 @@ async function main() {
           const curate = Math.random() < 0.5
           if (curate) {
             await GraphToken.connect(signer).approve(Curation.target, 12345n)
-            // @ts-expect-error - TODO: Fix this?
             await Curation.connect(signer).mint(subgraphDeploymentId, 12345n, 0)
           }
         }

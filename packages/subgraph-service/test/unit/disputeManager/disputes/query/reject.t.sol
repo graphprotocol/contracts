@@ -3,8 +3,8 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { Attestation } from "../../../../../contracts/libraries/Attestation.sol";
-import { IDisputeManager } from "../../../../../contracts/interfaces/IDisputeManager.sol";
+import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryRejectDisputeTest is DisputeManagerTest {
@@ -18,7 +18,7 @@ contract DisputeManagerQueryRejectDisputeTest is DisputeManagerTest {
 
     function test_Query_Reject_Dispute(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        IAttestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 
@@ -28,7 +28,7 @@ contract DisputeManagerQueryRejectDisputeTest is DisputeManagerTest {
 
     function test_Query_Reject_RevertIf_CallerIsNotArbitrator(uint256 tokens) public useIndexer useAllocation(tokens) {
         resetPrank(users.fisherman);
-        Attestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
+        IAttestation.Receipt memory receipt = _createAttestationReceipt(requestCID, responseCID, subgraphDeploymentId);
         bytes memory attestationData = _createAtestationData(receipt, allocationIDPrivateKey);
         bytes32 disputeID = _createQueryDispute(attestationData);
 

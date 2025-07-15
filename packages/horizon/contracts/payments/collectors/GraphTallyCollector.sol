@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-import { IGraphPayments } from "../../interfaces/IGraphPayments.sol";
-import { IGraphTallyCollector } from "../../interfaces/IGraphTallyCollector.sol";
-import { IPaymentsCollector } from "../../interfaces/IPaymentsCollector.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
+import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
+import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
 
 import { Authorizable } from "../../utilities/Authorizable.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";

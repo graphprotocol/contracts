@@ -1,4 +1,3 @@
-export * from './abi'
 export * from './accounts'
 export * from './allocation'
 export * from './attestations'

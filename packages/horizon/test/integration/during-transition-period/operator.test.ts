@@ -1,12 +1,10 @@
 import { generatePOI } from '@graphprotocol/toolshed'
-import type { HorizonStakingExtension } from '@graphprotocol/toolshed/deployments'
+import { indexers } from '@graphprotocol/toolshed/fixtures'
 import { getEventData } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
-
-import { indexers } from '../../../tasks/test/fixtures/indexers'
 
 describe('Operator', () => {
   let snapshotId: string
@@ -70,7 +68,7 @@ describe('Operator', () => {
       const idleStakeBefore = await horizonStaking.getIdleStake(indexer.address)
 
       // Close allocation
-      const tx = await (horizonStaking as HorizonStakingExtension).connect(operator).closeAllocation(allocationID, poi)
+      const tx = await horizonStaking.connect(operator).closeAllocation(allocationID, poi)
       const eventData = await getEventData(
         tx,
         'event HorizonRewardsAssigned(address indexed indexer, address indexed allocationID, uint256 amount)',

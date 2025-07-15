@@ -1,5 +1,85 @@
 # @graphprotocol/toolshed
 
+## 0.6.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.4.0
+
+## 0.6.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.3.0
+
+## 0.6.5
+
+### Patch Changes
+
+- Updated dependencies [fbe38f9]
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.5
+
+## 0.6.4
+
+### Patch Changes
+
+- Ensure latest build is published to npm
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.4
+
+## 0.6.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.3
+
+## 0.6.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.2
+
+## 0.6.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.1
+
+## 0.6.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/interfaces@0.2.0
+
+## 0.5.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/contracts@7.2.1
+  - @graphprotocol/horizon@0.3.3
+  - @graphprotocol/subgraph-service@0.3.5
+
+## 0.5.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/contracts@7.2.0
+  - @graphprotocol/horizon@0.3.3
+  - @graphprotocol/subgraph-service@0.3.5
+
 ## 0.5.5
 
 ### Patch Changes

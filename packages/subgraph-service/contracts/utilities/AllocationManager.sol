@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
-import { IGraphPayments } from "@graphprotocol/horizon/contracts/interfaces/IGraphPayments.sol";
+import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IHorizonStakingTypes } from "@graphprotocol/horizon/contracts/interfaces/internal/IHorizonStakingTypes.sol";
+import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
+import { IAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAllocation.sol";
+import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/ILegacyAllocation.sol";
 
 import { GraphDirectory } from "@graphprotocol/horizon/contracts/utilities/GraphDirectory.sol";
 import { AllocationManagerV1Storage } from "./AllocationManagerStorage.sol";
@@ -26,9 +28,9 @@ import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/
  */
 abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, AllocationManagerV1Storage {
     using ProvisionTracker for mapping(address => uint256);
-    using Allocation for mapping(address => Allocation.State);
-    using Allocation for Allocation.State;
-    using LegacyAllocation for mapping(address => LegacyAllocation.State);
+    using Allocation for mapping(address => IAllocation.State);
+    using Allocation for IAllocation.State;
+    using LegacyAllocation for mapping(address => ILegacyAllocation.State);
     using PPMMath for uint256;
     using TokenUtils for IGraphToken;
 
@@ -213,7 +215,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         _legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
 
         uint256 currentEpoch = _graphEpochManager().currentEpoch();
-        Allocation.State memory allocation = _allocations.create(
+        IAllocation.State memory allocation = _allocations.create(
             _indexer,
             _allocationId,
             _subgraphDeploymentId,
@@ -268,7 +270,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         uint32 _delegationRatio,
         address _paymentsDestination
     ) internal returns (uint256) {
-        Allocation.State memory allocation = _allocations.get(_allocationId);
+        IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
 
         // Mint indexing rewards if all conditions are met
@@ -358,7 +360,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      */
     function _resizeAllocation(address _allocationId, uint256 _tokens, uint32 _delegationRatio) internal {
-        Allocation.State memory allocation = _allocations.get(_allocationId);
+        IAllocation.State memory allocation = _allocations.get(_allocationId);
         require(allocation.isOpen(), AllocationManagerAllocationClosed(_allocationId));
         require(_tokens != allocation.tokens, AllocationManagerAllocationSameSize(_allocationId, _tokens));
 
@@ -409,7 +411,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _forceClosed Whether the allocation was force closed
      */
     function _closeAllocation(address _allocationId, bool _forceClosed) internal {
-        Allocation.State memory allocation = _allocations.get(_allocationId);
+        IAllocation.State memory allocation = _allocations.get(_allocationId);
 
         // Take rewards snapshot to prevent other allos from counting tokens from this allo
         _allocations.snapshotRewards(

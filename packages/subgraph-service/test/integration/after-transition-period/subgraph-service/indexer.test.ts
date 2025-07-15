@@ -1,5 +1,11 @@
-import { GraphPayments, GraphTallyCollector, HorizonStaking } from '@graphprotocol/horizon'
-import { delegators } from '@graphprotocol/horizon/tasks/test/fixtures/delegators'
+import {
+  GraphPayments,
+  GraphTallyCollector,
+  HorizonStaking,
+  L2GraphToken,
+  PaymentsEscrow,
+  SubgraphService,
+} from '@graphprotocol/interfaces'
 import {
   encodeCollectIndexingRewardsData,
   encodeCollectQueryFeesData,
@@ -11,6 +17,7 @@ import {
   generateSignerProof,
   PaymentTypes,
 } from '@graphprotocol/toolshed'
+import { delegators, IndexerData as Indexer, indexersData as indexers } from '@graphprotocol/toolshed/fixtures'
 import { setGRTBalance } from '@graphprotocol/toolshed/hardhat'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -18,14 +25,11 @@ import { HDNodeWallet } from 'ethers'
 import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
-import { Indexer, indexers } from '../../../../tasks/test/fixtures/indexers'
-import { IGraphToken, IPaymentsEscrow, SubgraphService } from '../../../../typechain-types'
-
 describe('Indexer', () => {
-  let escrow: IPaymentsEscrow
+  let escrow: PaymentsEscrow
   let graphPayments: GraphPayments
   let graphTallyCollector: GraphTallyCollector
-  let graphToken: IGraphToken
+  let graphToken: L2GraphToken
   let staking: HorizonStaking
   let subgraphService: SubgraphService
 

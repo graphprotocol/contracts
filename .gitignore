@@ -28,10 +28,13 @@ packages/*/.eslintcache
 
 # Build artifacts
 dist/
+dist-v5/
 build/
 typechain/
 typechain-types/
 types/
+types-v5/
+wagmi/
 deployments/hardhat/
 
 # TypeScript incremental compilation cache
@@ -77,10 +80,7 @@ tx-builder-*.json
 !tx-builder-template.json
 
 # Hardhat Ignition
-**/chain-31337/
-**/chain-1337/
-**/horizon-localhost/
-**/horizon-hardhat/
-**/subgraph-service-localhost/
-**/subgraph-service-hardhat/
-!**/ignition/**/artifacts/
+**/ignition/deployments/*-localhost/
+**/ignition/deployments/*-hardhat/
+**/ignition/deployments/*-31337/
+**/ignition/deployments/*-1337/

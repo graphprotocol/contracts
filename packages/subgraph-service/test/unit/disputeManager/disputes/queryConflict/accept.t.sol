@@ -4,7 +4,7 @@ pragma solidity 0.8.27;
 import "forge-std/Test.sol";
 
 import { PPMMath } from "@graphprotocol/horizon/contracts/libraries/PPMMath.sol";
-import { IDisputeManager } from "../../../../../contracts/interfaces/IDisputeManager.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryConflictAcceptDisputeTest is DisputeManagerTest {

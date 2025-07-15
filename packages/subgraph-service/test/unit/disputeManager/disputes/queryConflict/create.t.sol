@@ -3,8 +3,8 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import { IDisputeManager } from "../../../../../contracts/interfaces/IDisputeManager.sol";
-import { Attestation } from "../../../../../contracts/libraries/Attestation.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
+import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 import { DisputeManagerTest } from "../../DisputeManager.t.sol";
 
 contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
@@ -83,10 +83,10 @@ contract DisputeManagerQueryConflictCreateDisputeTest is DisputeManagerTest {
     function test_Query_Conflict_Create_RevertIf_AttestationsHaveDifferentSubgraph() public useFisherman {
         bytes32 subgraphDeploymentId2 = keccak256(abi.encodePacked("Subgraph Deployment ID 2"));
 
-        Attestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeployment);
+        IAttestation.Receipt memory receipt1 = _createAttestationReceipt(requestCID, responseCID1, subgraphDeployment);
         bytes memory attestationData1 = _createAtestationData(receipt1, allocationIDPrivateKey);
 
-        Attestation.Receipt memory receipt2 = _createAttestationReceipt(
+        IAttestation.Receipt memory receipt2 = _createAttestationReceipt(
             requestCID,
             responseCID2,
             subgraphDeploymentId2
