@@ -16,7 +16,7 @@ export class GraphNetworkAddressBook extends AddressBook<GraphChainId, GraphNetw
   assertAddressBookJson(json: unknown): asserts json is AddressBookJson<GraphChainId, GraphNetworkContractName> {
     this._assertAddressBookJson(json)
 
-    // // Validate contract names
+    // Validate contract names
     const contractList = json[this.chainId]
 
     const contractNames = contractList ? Object.keys(contractList) : []

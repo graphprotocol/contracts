@@ -1308,7 +1308,7 @@ describe.skip('L1GNS @skip-on-coverage', () => {
         }
 
         const subgraph0 = await publishCurateAndSendSubgraph(async (_subgraphId) => {
-          // We add another curator before transferring, so the the subgraph doesn't
+          // We add another curator before transferring, so the subgraph doesn't
           // run out of withdrawable GRT and we can test that it denies the specific curator
           // because they have sent their signal to L2, not because the subgraph is out of GRT.
           await gns.connect(another).mintSignal(_subgraphId, toGRT('1000'), toBN(0))

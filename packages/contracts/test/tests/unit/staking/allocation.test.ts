@@ -272,7 +272,7 @@ describe('Staking:Allocation', () => {
     expect(afterAlloc.distributedRebates).eq(beforeAlloc.distributedRebates.add(queryRebates).add(delegationRewards))
     expect(alloStateAfter).eq(alloStateBefore)
 
-    // // Funds distributed to indexer or restaked
+    // Funds distributed to indexer or restaked
     const restake = (await staking.rewardsDestination(indexer.address)) === AddressZero
     if (restake) {
       expect(afterIndexerBalance).eq(beforeIndexerBalance)
