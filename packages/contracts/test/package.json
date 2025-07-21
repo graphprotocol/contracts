@@ -36,7 +36,7 @@
     "eslint": "^9.28.0",
     "ethereum-waffle": "^4.0.10",
     "ethers": "^5.7.0",
-    "form-data": "^4.0.0",
+    "form-data": "^4.0.4",
     "glob": "^8.0.3",
     "graphql": "^16.11.0",
     "graphql-tag": "^2.12.4",
