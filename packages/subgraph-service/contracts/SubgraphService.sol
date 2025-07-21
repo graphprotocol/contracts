@@ -298,7 +298,12 @@ contract SubgraphService is
             paymentCollected = _collectIndexingRewards(indexer, data);
         } else if (paymentType == IGraphPayments.PaymentTypes.IndexingFee) {
             (bytes16 agreementId, bytes memory iaCollectionData) = IndexingAgreementDecoder.decodeCollectData(data);
-            paymentCollected = _collectIndexingFees(agreementId, paymentsDestination[indexer], iaCollectionData);
+            paymentCollected = _collectIndexingFees(
+                indexer,
+                agreementId,
+                paymentsDestination[indexer],
+                iaCollectionData
+            );
         } else {
             revert SubgraphServiceInvalidPaymentType(paymentType);
         }
@@ -754,12 +759,14 @@ contract SubgraphService is
      * Emits a {StakeClaimLocked} event.
      * Emits a {IndexingFeesCollectedV1} event.
      *
+     * @param _indexer The address of the indexer
      * @param _agreementId The id of the indexing agreement
      * @param _paymentsDestination The address where the fees should be sent
      * @param _data The indexing agreement collection data
      * @return The amount of fees collected
      */
     function _collectIndexingFees(
+        address _indexer,
         bytes16 _agreementId,
         address _paymentsDestination,
         bytes memory _data
@@ -767,6 +774,7 @@ contract SubgraphService is
         (address indexer, uint256 tokensCollected) = IndexingAgreement._getStorageManager().collect(
             _allocations,
             IndexingAgreement.CollectParams({
+                indexer: _indexer,
                 agreementId: _agreementId,
                 currentEpoch: _graphEpochManager().currentEpoch(),
                 receiverDestination: _paymentsDestination,

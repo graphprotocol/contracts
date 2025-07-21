@@ -75,12 +75,14 @@ library IndexingAgreement {
 
     /**
      * @notice Parameters for collecting indexing fees
+     * @param indexer The address of the indexer
      * @param agreementId The ID of the indexing agreement
      * @param currentEpoch The current epoch
      * @param receiverDestination The address where the collected fees should be sent
      * @param data The encoded data containing the number of entities indexed, proof of indexing, and epoch
      */
     struct CollectParams {
+        address indexer;
         bytes16 agreementId;
         uint256 currentEpoch;
         address receiverDestination;
@@ -522,6 +524,10 @@ library IndexingAgreement {
             allocations,
             wrapper.agreement.allocationId,
             wrapper.collectorAgreement.serviceProvider
+        );
+        require(
+            allocation.indexer == params.indexer,
+            IndexingAgreementNotAuthorized(params.agreementId, params.indexer)
         );
         require(_isCollectable(wrapper), IndexingAgreementNotCollectable(params.agreementId));
 

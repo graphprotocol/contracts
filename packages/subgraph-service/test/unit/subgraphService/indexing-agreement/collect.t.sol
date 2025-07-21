@@ -232,6 +232,35 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
     }
 
+    function test_SubgraphService_CollectIndexingFees_Reverts_WhenIndexingAgreementNotAuthorized(
+        Seed memory seed,
+        uint256 entities,
+        bytes32 poi
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        IndexerState memory otherIndexerState = _withIndexer(ctx);
+        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        vm.assume(otherIndexerState.addr != indexerState.addr);
+
+        resetPrank(otherIndexerState.addr);
+
+        uint256 currentEpochBlock = epochManager.currentEpochBlock();
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreement.IndexingAgreementNotAuthorized.selector,
+            accepted.rca.agreementId,
+            otherIndexerState.addr
+        );
+        vm.expectRevert(expectedErr);
+        subgraphService.collect(
+            otherIndexerState.addr,
+            IGraphPayments.PaymentTypes.IndexingFee,
+            _encodeCollectDataV1(accepted.rca.agreementId, entities, poi, currentEpochBlock, bytes(""))
+        );
+    }
+
     function test_SubgraphService_CollectIndexingFees_Reverts_WhenStopService(
         Seed memory seed,
         uint256 entities,
