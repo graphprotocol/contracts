@@ -35,7 +35,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpdate struct
     bytes32 public constant EIP712_RCAU_TYPEHASH =
         keccak256(
-            "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint256 deadline,uint256 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
+            "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint64 deadline,uint64 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
         );
 
     /// @notice Tracks agreements
