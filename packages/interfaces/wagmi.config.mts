@@ -2,7 +2,7 @@ import { defineConfig, type Config } from '@wagmi/cli'
 import { Abi } from 'viem'
 
 import GraphToken from './artifacts/contracts/contracts/token/IGraphToken.sol/IGraphToken.json'
-import L2GNS from './artifacts/contracts/toolshed/IGNSToolshed.sol/IGNSToolshed.json'
+import L2GNS from './artifacts/contracts/toolshed/IL2GNSToolshed.sol/IL2GNSToolshed.json'
 import L2Curation from './artifacts/contracts/toolshed/IL2CurationToolshed.sol/IL2CurationToolshed.json'
 import HorizonStaking from './artifacts/contracts/toolshed/IHorizonStakingToolshed.sol/IHorizonStakingToolshed.json'
 import EpochManager from './artifacts/contracts/toolshed/IEpochManagerToolshed.sol/IEpochManagerToolshed.json'

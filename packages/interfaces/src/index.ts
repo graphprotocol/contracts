@@ -153,7 +153,7 @@ function getContractNameAlternatives(contractName: string): string[] {
     Controller: 'ControllerToolshed',
     DisputeManager: 'DisputeManagerToolshed',
     EpochManager: 'EpochManagerToolshed',
-    GNS: 'GNSToolshed',
+    L2GNS: 'L2GNSToolshed',
     GraphTallyCollector: 'GraphTallyCollectorToolshed',
     HorizonStaking: 'HorizonStakingToolshed',
     L2Curation: 'L2CurationToolshed',

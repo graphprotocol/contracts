@@ -32,6 +32,17 @@ interface IGNS {
         uint256 accountSeqID;
     }
 
+    // -- Events --
+
+    /**
+     * @dev Emitted when a subgraph version is updated.
+     */
+    event SubgraphVersionUpdated(
+        uint256 indexed subgraphID,
+        bytes32 indexed subgraphDeploymentID,
+        bytes32 versionMetadata
+    );
+
     // -- Configuration --
 
     /**
