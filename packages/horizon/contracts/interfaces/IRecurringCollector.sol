@@ -253,6 +253,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param unauthorizedDataService The address of the unauthorized data service
      */
     error RecurringCollectorDataServiceNotAuthorized(bytes16 agreementId, address unauthorizedDataService);
+    /**
+     * @notice Thrown when the data service is not authorized for the service provider
+     * @param dataService The address of the unauthorized data service
+     */
+    error RecurringCollectorUnauthorizedDataService(address dataService);
 
     /**
      * @notice Thrown when interacting with an agreement with an elapsed deadline

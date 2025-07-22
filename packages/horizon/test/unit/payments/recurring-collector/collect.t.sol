@@ -2,6 +2,7 @@
 pragma solidity 0.8.27;
 
 import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurringCollector.sol";
+import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
 
@@ -41,6 +42,42 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         );
         vm.expectRevert(expectedErr);
         vm.prank(notDataService);
+        _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
+    }
+
+    function test_Collect_Revert_WhenUnauthorizedDataService(FuzzyTestCollect calldata fuzzy) public {
+        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
+        IRecurringCollector.CollectParams memory collectParams = fuzzy.collectParams;
+
+        collectParams.agreementId = accepted.rca.agreementId;
+        collectParams.tokens = bound(collectParams.tokens, 1, type(uint256).max);
+        bytes memory data = _generateCollectData(collectParams);
+
+        // Set up the scenario where service provider has no tokens staked with data service
+        // This simulates an unauthorized data service attack
+        _horizonStaking.setProvision(
+            accepted.rca.serviceProvider,
+            accepted.rca.dataService,
+            IHorizonStakingTypes.Provision({
+                tokens: 0, // No tokens staked - this triggers the vulnerability
+                tokensThawing: 0,
+                sharesThawing: 0,
+                maxVerifierCut: 100000,
+                thawingPeriod: 604800,
+                createdAt: uint64(block.timestamp),
+                maxVerifierCutPending: 100000,
+                thawingPeriodPending: 604800,
+                lastParametersStagedAt: 0,
+                thawingNonce: 0
+            })
+        );
+
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IRecurringCollector.RecurringCollectorUnauthorizedDataService.selector,
+            accepted.rca.dataService
+        );
+        vm.expectRevert(expectedErr);
+        vm.prank(accepted.rca.dataService);
         _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
     }
 

@@ -29,4 +29,9 @@ contract HorizonStakingMock {
     function setIsAuthorized(address serviceProvider, address verifier, address operator, bool authorized) external {
         authorizations[serviceProvider][verifier][operator] = authorized;
     }
+
+    function getProviderTokensAvailable(address serviceProvider, address verifier) external view returns (uint256) {
+        IHorizonStakingTypes.Provision memory provision = provisions[serviceProvider][verifier];
+        return provision.tokens - provision.tokensThawing;
+    }
 }

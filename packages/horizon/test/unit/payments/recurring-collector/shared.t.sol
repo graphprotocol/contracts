@@ -6,10 +6,12 @@ import { Test } from "forge-std/Test.sol";
 import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
 import { IPaymentsCollector } from "../../../../contracts/interfaces/IPaymentsCollector.sol";
 import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurringCollector.sol";
+import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 import { RecurringCollector } from "../../../../contracts/payments/collectors/RecurringCollector.sol";
 
 import { Bounder } from "../../../unit/utils/Bounder.t.sol";
 import { PartialControllerMock } from "../../mocks/PartialControllerMock.t.sol";
+import { HorizonStakingMock } from "../../mocks/HorizonStakingMock.t.sol";
 import { PaymentsEscrowMock } from "./PaymentsEscrowMock.t.sol";
 import { RecurringCollectorHelper } from "./RecurringCollectorHelper.t.sol";
 
@@ -32,12 +34,15 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     RecurringCollector internal _recurringCollector;
     PaymentsEscrowMock internal _paymentsEscrow;
+    HorizonStakingMock internal _horizonStaking;
     RecurringCollectorHelper internal _recurringCollectorHelper;
 
     function setUp() public {
         _paymentsEscrow = new PaymentsEscrowMock();
-        PartialControllerMock.Entry[] memory entries = new PartialControllerMock.Entry[](1);
+        _horizonStaking = new HorizonStakingMock();
+        PartialControllerMock.Entry[] memory entries = new PartialControllerMock.Entry[](2);
         entries[0] = PartialControllerMock.Entry({ name: "PaymentsEscrow", addr: address(_paymentsEscrow) });
+        entries[1] = PartialControllerMock.Entry({ name: "Staking", addr: address(_horizonStaking) });
         _recurringCollector = new RecurringCollector(
             "RecurringCollector",
             "1",
@@ -71,6 +76,9 @@ contract RecurringCollectorSharedTest is Test, Bounder {
     }
 
     function _accept(IRecurringCollector.SignedRCA memory _signedRCA) internal {
+        // Set up valid staking provision by default to allow collections to succeed
+        _setupValidProvision(_signedRCA.rca.serviceProvider, _signedRCA.rca.dataService);
+
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementAccepted(
             _signedRCA.rca.dataService,
@@ -86,6 +94,25 @@ contract RecurringCollectorSharedTest is Test, Bounder {
         );
         vm.prank(_signedRCA.rca.dataService);
         _recurringCollector.accept(_signedRCA);
+    }
+
+    function _setupValidProvision(address _serviceProvider, address _dataService) internal {
+        _horizonStaking.setProvision(
+            _serviceProvider,
+            _dataService,
+            IHorizonStakingTypes.Provision({
+                tokens: 1000 ether,
+                tokensThawing: 0,
+                sharesThawing: 0,
+                maxVerifierCut: 100000, // 10%
+                thawingPeriod: 604800, // 7 days
+                createdAt: uint64(block.timestamp),
+                maxVerifierCutPending: 100000,
+                thawingPeriodPending: 604800,
+                lastParametersStagedAt: 0,
+                thawingNonce: 0
+            })
+        );
     }
 
     function _cancel(

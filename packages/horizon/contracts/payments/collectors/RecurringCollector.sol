@@ -284,6 +284,17 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             RecurringCollectorDataServiceNotAuthorized(_params.agreementId, msg.sender)
         );
 
+        // Check the service provider has an active provision with the data service
+        // This prevents an attack where the payer can deny the service provider from collecting payments
+        // by using a signer as data service to syphon off the tokens in the escrow to an account they control
+        {
+            uint256 tokensAvailable = _graphStaking().getProviderTokensAvailable(
+                agreement.serviceProvider,
+                agreement.dataService
+            );
+            require(tokensAvailable > 0, RecurringCollectorUnauthorizedDataService(agreement.dataService));
+        }
+
         uint256 tokensToCollect = 0;
         if (_params.tokens != 0) {
             tokensToCollect = _requireValidCollect(agreement, _params.agreementId, _params.tokens);
