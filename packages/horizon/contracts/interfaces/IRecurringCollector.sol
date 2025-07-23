@@ -40,7 +40,6 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
 
     /**
      * @notice The Recurring Collection Agreement (RCA)
-     * @param agreementId The agreement ID of the RCA
      * @param deadline The deadline for accepting the RCA
      * @param endsAt The timestamp when the agreement ends
      * @param payer The address of the payer the RCA was issued by
@@ -52,11 +51,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param nonce A unique nonce for preventing collisions (user-chosen)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      *
      */
     struct RecurringCollectionAgreement {
-        bytes16 agreementId;
         uint64 deadline;
         uint64 endsAt;
         address payer;
@@ -66,6 +65,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 maxOngoingTokensPerSecond;
         uint32 minSecondsPerCollection;
         uint32 maxSecondsPerCollection;
+        uint256 nonce;
         bytes metadata;
     }
 
@@ -372,8 +372,9 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     /**
      * @dev Accept an indexing agreement.
      * @param signedRCA The signed Recurring Collection Agreement which is to be accepted.
+     * @return agreementId The deterministically generated agreement ID
      */
-    function accept(SignedRCA calldata signedRCA) external;
+    function accept(SignedRCA calldata signedRCA) external returns (bytes16 agreementId);
 
     /**
      * @dev Cancel an indexing agreement.
@@ -433,4 +434,21 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     function getCollectionInfo(
         AgreementData memory agreement
     ) external view returns (bool isCollectable, uint256 collectionSeconds);
+
+    /**
+     * @notice Generate a deterministic agreement ID from agreement parameters
+     * @param payer The address of the payer
+     * @param dataService The address of the data service
+     * @param serviceProvider The address of the service provider
+     * @param deadline The deadline for accepting the agreement
+     * @param nonce A unique nonce for preventing collisions
+     * @return agreementId The deterministically generated agreement ID
+     */
+    function generateAgreementId(
+        address payer,
+        address dataService,
+        address serviceProvider,
+        uint64 deadline,
+        uint256 nonce
+    ) external pure returns (bytes16 agreementId);
 }

@@ -263,8 +263,12 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Accept an indexing agreement.
      * @param allocationId The id of the allocation
      * @param signedRCA The signed recurring collector agreement (RCA) that the indexer accepts
+     * @return agreementId The ID of the accepted indexing agreement
      */
-    function acceptIndexingAgreement(address allocationId, IRecurringCollector.SignedRCA calldata signedRCA) external;
+    function acceptIndexingAgreement(
+        address allocationId,
+        IRecurringCollector.SignedRCA calldata signedRCA
+    ) external returns (bytes16);
 
     /**
      * @notice Update an indexing agreement.

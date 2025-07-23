@@ -33,7 +33,10 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         address rando
     ) public withSafeIndexerOrOperator(rando) {
         Context storage ctx = _newCtx(seed);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, _withIndexer(ctx));
+        (IRecurringCollector.SignedRCA memory accepted, bytes16 agreementId) = _withAcceptedIndexingAgreement(
+            ctx,
+            _withIndexer(ctx)
+        );
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreement.IndexingAgreementNonCancelableBy.selector,
@@ -42,7 +45,7 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
         );
         vm.expectRevert(expectedErr);
         resetPrank(rando);
-        subgraphService.cancelIndexingAgreementByPayer(accepted.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(agreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer_Revert_WhenNotAccepted(
@@ -67,28 +70,34 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
     ) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        (IRecurringCollector.SignedRCA memory accepted, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(
+            ctx,
+            indexerState
+        );
         IRecurringCollector.CancelAgreementBy by = cancelSource
             ? IRecurringCollector.CancelAgreementBy.ServiceProvider
             : IRecurringCollector.CancelAgreementBy.Payer;
-        _cancelAgreement(ctx, accepted.rca.agreementId, indexerState.addr, accepted.rca.payer, by);
+        _cancelAgreement(ctx, acceptedAgreementId, indexerState.addr, accepted.rca.payer, by);
 
         resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreement.IndexingAgreementNotActive.selector,
-            accepted.rca.agreementId
+            acceptedAgreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.cancelIndexingAgreementByPayer(accepted.rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(acceptedAgreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreementByPayer(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, _withIndexer(ctx));
+        (IRecurringCollector.SignedRCA memory accepted, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(
+            ctx,
+            _withIndexer(ctx)
+        );
 
         _cancelAgreement(
             ctx,
-            accepted.rca.agreementId,
+            acceptedAgreementId,
             accepted.rca.serviceProvider,
             accepted.rca.payer,
             IRecurringCollector.CancelAgreementBy.Payer
@@ -184,28 +193,34 @@ contract SubgraphServiceIndexingAgreementCancelTest is SubgraphServiceIndexingAg
     ) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        (IRecurringCollector.SignedRCA memory accepted, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(
+            ctx,
+            indexerState
+        );
         IRecurringCollector.CancelAgreementBy by = cancelSource
             ? IRecurringCollector.CancelAgreementBy.ServiceProvider
             : IRecurringCollector.CancelAgreementBy.Payer;
-        _cancelAgreement(ctx, accepted.rca.agreementId, accepted.rca.serviceProvider, accepted.rca.payer, by);
+        _cancelAgreement(ctx, acceptedAgreementId, accepted.rca.serviceProvider, accepted.rca.payer, by);
 
         resetPrank(indexerState.addr);
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreement.IndexingAgreementNotActive.selector,
-            accepted.rca.agreementId
+            acceptedAgreementId
         );
         vm.expectRevert(expectedErr);
-        subgraphService.cancelIndexingAgreement(indexerState.addr, accepted.rca.agreementId);
+        subgraphService.cancelIndexingAgreement(indexerState.addr, acceptedAgreementId);
     }
 
     function test_SubgraphService_CancelIndexingAgreement_OK(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, _withIndexer(ctx));
+        (IRecurringCollector.SignedRCA memory accepted, bytes16 acceptedAgreementId) = _withAcceptedIndexingAgreement(
+            ctx,
+            _withIndexer(ctx)
+        );
 
         _cancelAgreement(
             ctx,
-            accepted.rca.agreementId,
+            acceptedAgreementId,
             accepted.rca.serviceProvider,
             accepted.rca.payer,
             IRecurringCollector.CancelAgreementBy.ServiceProvider

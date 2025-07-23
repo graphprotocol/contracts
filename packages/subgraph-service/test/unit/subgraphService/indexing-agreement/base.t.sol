@@ -13,22 +13,29 @@ contract SubgraphServiceIndexingAgreementBaseTest is SubgraphServiceIndexingAgre
      */
 
     /* solhint-disable graph/func-name-mixedcase */
-    function test_SubgraphService_GetIndexingAgreement(Seed memory seed, address operator, bytes16 agreementId) public {
+    function test_SubgraphService_GetIndexingAgreement(
+        Seed memory seed,
+        address operator,
+        bytes16 fuzzyAgreementId
+    ) public {
         vm.assume(_isSafeSubgraphServiceCaller(operator));
 
         resetPrank(address(operator));
 
         // Get unkown indexing agreement
-        vm.expectRevert(abi.encodeWithSelector(IndexingAgreement.IndexingAgreementNotActive.selector, agreementId));
-        subgraphService.getIndexingAgreement(agreementId);
+        vm.expectRevert(
+            abi.encodeWithSelector(IndexingAgreement.IndexingAgreementNotActive.selector, fuzzyAgreementId)
+        );
+        subgraphService.getIndexingAgreement(fuzzyAgreementId);
 
         // Accept an indexing agreement
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
-        IndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(
-            accepted.rca.agreementId
+        (IRecurringCollector.SignedRCA memory accepted, bytes16 agreementId) = _withAcceptedIndexingAgreement(
+            ctx,
+            indexerState
         );
+        IndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
         _assertEqualAgreement(accepted.rca, agreement);
     }
 

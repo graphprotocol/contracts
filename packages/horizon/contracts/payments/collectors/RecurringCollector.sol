@@ -29,7 +29,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /// @notice The EIP712 typehash for the RecurringCollectionAgreement struct
     bytes32 public constant EIP712_RCA_TYPEHASH =
         keccak256(
-            "RecurringCollectionAgreement(bytes16 agreementId,uint256 deadline,uint256 endsAt,address payer,address dataService,address serviceProvider,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
+            "RecurringCollectionAgreement(uint64 deadline,uint64 endsAt,address payer,address dataService,address serviceProvider,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,uint256 nonce,bytes metadata)"
         );
 
     /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpdate struct
@@ -75,8 +75,16 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * See {IRecurringCollector.accept}.
      * @dev Caller must be the data service the RCA was issued to.
      */
-    function accept(SignedRCA calldata signedRCA) external {
-        require(signedRCA.rca.agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
+    function accept(SignedRCA calldata signedRCA) external returns (bytes16) {
+        bytes16 agreementId = _generateAgreementId(
+            signedRCA.rca.payer,
+            signedRCA.rca.dataService,
+            signedRCA.rca.serviceProvider,
+            signedRCA.rca.deadline,
+            signedRCA.rca.nonce
+        );
+
+        require(agreementId != bytes16(0), RecurringCollectorAgreementIdZero());
         require(
             msg.sender == signedRCA.rca.dataService,
             RecurringCollectorUnauthorizedCaller(msg.sender, signedRCA.rca.dataService)
@@ -102,11 +110,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             signedRCA.rca.maxSecondsPerCollection
         );
 
-        AgreementData storage agreement = _getAgreementStorage(signedRCA.rca.agreementId);
+        AgreementData storage agreement = _getAgreementStorage(agreementId);
         // check that the agreement is not already accepted
         require(
             agreement.state == AgreementState.NotAccepted,
-            RecurringCollectorAgreementIncorrectState(signedRCA.rca.agreementId, agreement.state)
+            RecurringCollectorAgreementIncorrectState(agreementId, agreement.state)
         );
 
         // accept the agreement
@@ -126,7 +134,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             agreement.dataService,
             agreement.payer,
             agreement.serviceProvider,
-            signedRCA.rca.agreementId,
+            agreementId,
             agreement.acceptedAt,
             agreement.endsAt,
             agreement.maxInitialTokens,
@@ -134,6 +142,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
             agreement.minSecondsPerCollection,
             agreement.maxSecondsPerCollection
         );
+
+        return agreementId;
     }
 
     /**
@@ -259,6 +269,17 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         AgreementData memory agreement
     ) external view returns (bool isCollectable, uint256 collectionSeconds) {
         return _getCollectionInfo(agreement);
+    }
+
+    /// @inheritdoc IRecurringCollector
+    function generateAgreementId(
+        address payer,
+        address dataService,
+        address serviceProvider,
+        uint64 deadline,
+        uint256 nonce
+    ) external pure returns (bytes16) {
+        return _generateAgreementId(payer, dataService, serviceProvider, deadline, nonce);
     }
 
     /**
@@ -457,7 +478,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                 keccak256(
                     abi.encode(
                         EIP712_RCA_TYPEHASH,
-                        _rca.agreementId,
                         _rca.deadline,
                         _rca.endsAt,
                         _rca.payer,
@@ -467,6 +487,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                         _rca.maxOngoingTokensPerSecond,
                         _rca.minSecondsPerCollection,
                         _rca.maxSecondsPerCollection,
+                        _rca.nonce,
                         keccak256(_rca.metadata)
                     )
                 )
@@ -589,5 +610,24 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      */
     function _agreementCollectionStartAt(AgreementData memory _agreement) private pure returns (uint256) {
         return _agreement.lastCollectionAt > 0 ? _agreement.lastCollectionAt : _agreement.acceptedAt;
+    }
+
+    /**
+     * @notice Internal function to generate deterministic agreement ID
+     * @param _payer The address of the payer
+     * @param _dataService The address of the data service
+     * @param _serviceProvider The address of the service provider
+     * @param _deadline The deadline for accepting the agreement
+     * @param _nonce A unique nonce for preventing collisions
+     * @return agreementId The deterministically generated agreement ID
+     */
+    function _generateAgreementId(
+        address _payer,
+        address _dataService,
+        address _serviceProvider,
+        uint64 _deadline,
+        uint256 _nonce
+    ) private pure returns (bytes16) {
+        return bytes16(keccak256(abi.encode(_payer, _dataService, _serviceProvider, _deadline, _nonce)));
     }
 }

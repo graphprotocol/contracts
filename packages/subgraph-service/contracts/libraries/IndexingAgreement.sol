@@ -293,7 +293,7 @@ library IndexingAgreement {
         mapping(address allocationId => Allocation.State allocation) storage allocations,
         address allocationId,
         IRecurringCollector.SignedRCA calldata signedRCA
-    ) external {
+    ) external returns (bytes16) {
         Allocation.State memory allocation = _requireValidAllocation(
             allocations,
             allocationId,
@@ -309,9 +309,17 @@ library IndexingAgreement {
             signedRCA.rca.metadata
         );
 
-        State storage agreement = self.agreements[signedRCA.rca.agreementId];
+        bytes16 agreementId = _directory().recurringCollector().generateAgreementId(
+            signedRCA.rca.payer,
+            signedRCA.rca.dataService,
+            signedRCA.rca.serviceProvider,
+            signedRCA.rca.deadline,
+            signedRCA.rca.nonce
+        );
 
-        require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(signedRCA.rca.agreementId));
+        State storage agreement = self.agreements[agreementId];
+
+        require(agreement.allocationId == address(0), IndexingAgreementAlreadyAccepted(agreementId));
 
         require(
             allocation.subgraphDeploymentId == metadata.subgraphDeploymentId,
@@ -327,25 +335,26 @@ library IndexingAgreement {
             self.allocationToActiveAgreementId[allocationId] == bytes16(0),
             AllocationAlreadyHasIndexingAgreement(allocationId)
         );
-        self.allocationToActiveAgreementId[allocationId] = signedRCA.rca.agreementId;
+        self.allocationToActiveAgreementId[allocationId] = agreementId;
 
         agreement.version = metadata.version;
         agreement.allocationId = allocationId;
 
         require(metadata.version == IndexingAgreementVersion.V1, IndexingAgreementInvalidVersion(metadata.version));
-        _setTermsV1(self, signedRCA.rca.agreementId, metadata.terms);
+        _setTermsV1(self, agreementId, metadata.terms);
 
         emit IndexingAgreementAccepted(
             signedRCA.rca.serviceProvider,
             signedRCA.rca.payer,
-            signedRCA.rca.agreementId,
+            agreementId,
             allocationId,
             metadata.subgraphDeploymentId,
             metadata.version,
             metadata.terms
         );
 
-        _directory().recurringCollector().accept(signedRCA);
+        require(_directory().recurringCollector().accept(signedRCA) == agreementId, "internal: agreement ID mismatch");
+        return agreementId;
     }
 
     /**

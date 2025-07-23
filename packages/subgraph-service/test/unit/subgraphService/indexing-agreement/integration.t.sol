@@ -42,7 +42,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
-        _sharedSetup(ctx, rca, indexerState, expectedTokens);
+        bytes16 acceptedAgreementId = _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
         TestState memory beforeCollect = _getState(rca.payer, indexerState.addr);
 
@@ -52,7 +52,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
             indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
             _encodeCollectDataV1(
-                rca.agreementId,
+                acceptedAgreementId,
                 1,
                 keccak256(abi.encodePacked("poi")),
                 epochManager.currentEpochBlock(),
@@ -75,11 +75,11 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             ctx.ctxInternal.seed.rca
         );
-        _sharedSetup(ctx, rca, indexerState, expectedTokens);
+        bytes16 acceptedAgreementId = _sharedSetup(ctx, rca, indexerState, expectedTokens);
 
         // Cancel the indexing agreement by the payer
         resetPrank(ctx.payer.signer);
-        subgraphService.cancelIndexingAgreementByPayer(rca.agreementId);
+        subgraphService.cancelIndexingAgreementByPayer(acceptedAgreementId);
 
         TestState memory beforeCollect = _getState(rca.payer, indexerState.addr);
 
@@ -89,7 +89,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
             indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
             _encodeCollectDataV1(
-                rca.agreementId,
+                acceptedAgreementId,
                 1,
                 keccak256(abi.encodePacked("poi")),
                 epochManager.currentEpochBlock(),
@@ -108,7 +108,7 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
         IndexerState memory _indexerState,
         ExpectedTokens memory _expectedTokens
-    ) internal {
+    ) internal returns (bytes16) {
         _addTokensToProvision(_indexerState, _expectedTokens.expectedTokensLocked);
 
         IndexingAgreement.IndexingAgreementTermsV1 memory terms = IndexingAgreement.IndexingAgreementTermsV1({
@@ -137,13 +137,15 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         subgraphService.setPaymentsDestination(_indexerState.addr);
 
         // Accept the Indexing Agreement
-        subgraphService.acceptIndexingAgreement(
+        bytes16 agreementId = subgraphService.acceptIndexingAgreement(
             _indexerState.allocationId,
             _recurringCollectorHelper.generateSignedRCA(_rca, _ctx.payer.signerPrivateKey)
         );
 
         // Skip ahead to collection point
         skip(_expectedTokens.expectedTotalTokensCollected / terms.tokensPerSecond);
+
+        return agreementId;
     }
 
     function _newExpectedTokens(uint256 _fuzzyTokensCollected) internal view returns (ExpectedTokens memory) {

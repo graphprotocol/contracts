@@ -107,7 +107,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerStateA = _withIndexer(ctx);
         IndexerState memory indexerStateB = _withIndexer(ctx);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerStateA);
+        (IRecurringCollector.SignedRCA memory accepted, ) = _withAcceptedIndexingAgreement(ctx, indexerStateA);
         IRecurringCollector.SignedRCAU memory acceptableUpdate = _generateAcceptableSignedRCAU(ctx, accepted.rca);
 
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -123,7 +123,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
     function test_SubgraphService_UpdateIndexingAgreement_Revert_WhenInvalidMetadata(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        (IRecurringCollector.SignedRCA memory accepted, ) = _withAcceptedIndexingAgreement(ctx, indexerState);
         IRecurringCollector.RecurringCollectionAgreementUpdate
             memory acceptableUpdate = _generateAcceptableRecurringCollectionAgreementUpdate(ctx, accepted.rca);
         acceptableUpdate.metadata = bytes("invalid");
@@ -147,7 +147,7 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
     function test_SubgraphService_UpdateIndexingAgreement_OK(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        (IRecurringCollector.SignedRCA memory accepted, ) = _withAcceptedIndexingAgreement(ctx, indexerState);
         IRecurringCollector.SignedRCAU memory acceptableUpdate = _generateAcceptableSignedRCAU(ctx, accepted.rca);
 
         IndexingAgreement.UpdateIndexingAgreementMetadata memory metadata = abi.decode(

@@ -54,37 +54,47 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     function _sensibleAuthorizeAndAccept(
         FuzzyTestAccept calldata _fuzzyTestAccept
-    ) internal returns (IRecurringCollector.SignedRCA memory, uint256 key) {
+    ) internal returns (IRecurringCollector.SignedRCA memory, uint256 key, bytes16 agreementId) {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _recurringCollectorHelper.sensibleRCA(
             _fuzzyTestAccept.rca
         );
         key = boundKey(_fuzzyTestAccept.unboundedSignerKey);
-        return (_authorizeAndAccept(rca, key), key);
+        IRecurringCollector.SignedRCA memory signedRCA;
+        (signedRCA, agreementId) = _authorizeAndAccept(rca, key);
+        return (signedRCA, key, agreementId);
     }
 
     // authorizes signer, signs the RCA, and accepts it
     function _authorizeAndAccept(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
         uint256 _signerKey
-    ) internal returns (IRecurringCollector.SignedRCA memory) {
+    ) internal returns (IRecurringCollector.SignedRCA memory, bytes16 agreementId) {
         _recurringCollectorHelper.authorizeSignerWithChecks(_rca.payer, _signerKey);
         IRecurringCollector.SignedRCA memory signedRCA = _recurringCollectorHelper.generateSignedRCA(_rca, _signerKey);
 
-        _accept(signedRCA);
-
-        return signedRCA;
+        agreementId = _accept(signedRCA);
+        return (signedRCA, agreementId);
     }
 
-    function _accept(IRecurringCollector.SignedRCA memory _signedRCA) internal {
+    function _accept(IRecurringCollector.SignedRCA memory _signedRCA) internal returns (bytes16) {
         // Set up valid staking provision by default to allow collections to succeed
         _setupValidProvision(_signedRCA.rca.serviceProvider, _signedRCA.rca.dataService);
+
+        // Calculate the expected agreement ID for verification
+        bytes16 expectedAgreementId = _recurringCollector.generateAgreementId(
+            _signedRCA.rca.payer,
+            _signedRCA.rca.dataService,
+            _signedRCA.rca.serviceProvider,
+            _signedRCA.rca.deadline,
+            _signedRCA.rca.nonce
+        );
 
         vm.expectEmit(address(_recurringCollector));
         emit IRecurringCollector.AgreementAccepted(
             _signedRCA.rca.dataService,
             _signedRCA.rca.payer,
             _signedRCA.rca.serviceProvider,
-            _signedRCA.rca.agreementId,
+            expectedAgreementId,
             uint64(block.timestamp),
             _signedRCA.rca.endsAt,
             _signedRCA.rca.maxInitialTokens,
@@ -93,7 +103,11 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _signedRCA.rca.maxSecondsPerCollection
         );
         vm.prank(_signedRCA.rca.dataService);
-        _recurringCollector.accept(_signedRCA);
+        bytes16 actualAgreementId = _recurringCollector.accept(_signedRCA);
+
+        // Verify the agreement ID matches expectation
+        assertEq(actualAgreementId, expectedAgreementId);
+        return actualAgreementId;
     }
 
     function _setupValidProvision(address _serviceProvider, address _dataService) internal {
@@ -117,6 +131,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     function _cancel(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        bytes16 _agreementId,
         IRecurringCollector.CancelAgreementBy _by
     ) internal {
         vm.expectEmit(address(_recurringCollector));
@@ -124,16 +139,17 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.dataService,
             _rca.payer,
             _rca.serviceProvider,
-            _rca.agreementId,
+            _agreementId,
             uint64(block.timestamp),
             _by
         );
         vm.prank(_rca.dataService);
-        _recurringCollector.cancel(_rca.agreementId, _by);
+        _recurringCollector.cancel(_agreementId, _by);
     }
 
     function _expectCollectCallAndEmit(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        bytes16 _agreementId,
         IGraphPayments.PaymentTypes __paymentType,
         IRecurringCollector.CollectParams memory _fuzzyParams,
         uint256 _tokens
@@ -168,7 +184,7 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.dataService,
             _rca.payer,
             _rca.serviceProvider,
-            _rca.agreementId,
+            _agreementId,
             _fuzzyParams.collectionId,
             _tokens,
             _fuzzyParams.dataServiceCut
@@ -187,8 +203,18 @@ contract RecurringCollectorSharedTest is Test, Bounder {
             _rca.maxSecondsPerCollection
         );
         uint256 tokens = bound(_unboundedTokens, 1, _rca.maxOngoingTokensPerSecond * collectionSeconds);
+
+        // Generate the agreement ID deterministically
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            _rca.payer,
+            _rca.dataService,
+            _rca.serviceProvider,
+            _rca.deadline,
+            _rca.nonce
+        );
+
         bytes memory data = _generateCollectData(
-            _generateCollectParams(_rca, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
+            _generateCollectParams(_rca, agreementId, _fuzzyParams.collectionId, tokens, _fuzzyParams.dataServiceCut)
         );
 
         return (data, collectionSeconds, tokens);
@@ -196,13 +222,14 @@ contract RecurringCollectorSharedTest is Test, Bounder {
 
     function _generateCollectParams(
         IRecurringCollector.RecurringCollectionAgreement memory _rca,
+        bytes16 _agreementId,
         bytes32 _collectionId,
         uint256 _tokens,
         uint256 _dataServiceCut
     ) internal pure returns (IRecurringCollector.CollectParams memory) {
         return
             IRecurringCollector.CollectParams({
-                agreementId: _rca.agreementId,
+                agreementId: _agreementId,
                 collectionId: _collectionId,
                 tokens: _tokens,
                 dataServiceCut: _dataServiceCut,

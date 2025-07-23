@@ -19,7 +19,15 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
     ) public {
         rca = _recurringCollectorHelper.sensibleRCA(rca);
         rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
-        rcau.agreementId = rca.agreementId;
+        // Generate deterministic agreement ID
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+        rcau.agreementId = agreementId;
 
         boundSkipCeil(unboundedUpdateSkip, type(uint64).max);
         rcau.deadline = uint64(bound(rcau.deadline, 0, block.timestamp - 1));
@@ -44,7 +52,15 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
     ) public {
         rca = _recurringCollectorHelper.sensibleRCA(rca);
         rcau = _recurringCollectorHelper.sensibleRCAU(rcau);
-        rcau.agreementId = rca.agreementId;
+        // Generate deterministic agreement ID
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+        rcau.agreementId = agreementId;
 
         rcau.deadline = uint64(block.timestamp);
         IRecurringCollector.SignedRCAU memory signedRCAU = IRecurringCollector.SignedRCAU({
@@ -67,14 +83,12 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         address notDataService
     ) public {
         vm.assume(fuzzyTestUpdate.fuzzyTestAccept.rca.dataService != notDataService);
-        (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestUpdate.fuzzyTestAccept
-        );
+        (, uint256 signerKey, bytes16 agreementId) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
             fuzzyTestUpdate.rcau
         );
-        rcau.agreementId = accepted.rca.agreementId;
+        rcau.agreementId = agreementId;
 
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAUWithCorrectNonce(
             rcau,
@@ -95,16 +109,18 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         FuzzyTestUpdate calldata fuzzyTestUpdate,
         uint256 unboundedInvalidSignerKey
     ) public {
-        (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestUpdate.fuzzyTestAccept
-        );
+        (
+            IRecurringCollector.SignedRCA memory accepted,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
         uint256 invalidSignerKey = boundKey(unboundedInvalidSignerKey);
         vm.assume(signerKey != invalidSignerKey);
 
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
             fuzzyTestUpdate.rcau
         );
-        rcau.agreementId = accepted.rca.agreementId;
+        rcau.agreementId = agreementId;
 
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
             rcau,
@@ -117,13 +133,15 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
     }
 
     function test_Update_OK(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
-        (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestUpdate.fuzzyTestAccept
-        );
+        (
+            IRecurringCollector.SignedRCA memory accepted,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
             fuzzyTestUpdate.rcau
         );
-        rcau.agreementId = accepted.rca.agreementId;
+        rcau.agreementId = agreementId;
         // Don't use fuzzed nonce - use correct nonce for first update
         rcau.nonce = 1;
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
@@ -147,7 +165,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         vm.prank(accepted.rca.dataService);
         _recurringCollector.update(signedRCAU);
 
-        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(accepted.rca.agreementId);
+        IRecurringCollector.AgreementData memory agreement = _recurringCollector.getAgreement(agreementId);
         assertEq(rcau.endsAt, agreement.endsAt);
         assertEq(rcau.maxInitialTokens, agreement.maxInitialTokens);
         assertEq(rcau.maxOngoingTokensPerSecond, agreement.maxOngoingTokensPerSecond);
@@ -157,13 +175,15 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
     }
 
     function test_Update_Revert_WhenInvalidNonce_TooLow(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
-        (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestUpdate.fuzzyTestAccept
-        );
+        (
+            IRecurringCollector.SignedRCA memory accepted,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
             fuzzyTestUpdate.rcau
         );
-        rcau.agreementId = accepted.rca.agreementId;
+        rcau.agreementId = agreementId;
         rcau.nonce = 0; // Invalid: should be 1 for first update
 
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
@@ -183,13 +203,15 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
     }
 
     function test_Update_Revert_WhenInvalidNonce_TooHigh(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
-        (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestUpdate.fuzzyTestAccept
-        );
+        (
+            IRecurringCollector.SignedRCA memory accepted,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _recurringCollectorHelper.sensibleRCAU(
             fuzzyTestUpdate.rcau
         );
-        rcau.agreementId = accepted.rca.agreementId;
+        rcau.agreementId = agreementId;
         rcau.nonce = 5; // Invalid: should be 1 for first update
 
         IRecurringCollector.SignedRCAU memory signedRCAU = _recurringCollectorHelper.generateSignedRCAU(
@@ -209,13 +231,15 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
     }
 
     function test_Update_Revert_WhenReplayAttack(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
-        (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestUpdate.fuzzyTestAccept
-        );
+        (
+            IRecurringCollector.SignedRCA memory accepted,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau1 = _recurringCollectorHelper.sensibleRCAU(
             fuzzyTestUpdate.rcau
         );
-        rcau1.agreementId = accepted.rca.agreementId;
+        rcau1.agreementId = agreementId;
         rcau1.nonce = 1;
 
         // First update succeeds
@@ -251,21 +275,21 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
     }
 
     function test_Update_OK_NonceIncrementsCorrectly(FuzzyTestUpdate calldata fuzzyTestUpdate) public {
-        (IRecurringCollector.SignedRCA memory accepted, uint256 signerKey) = _sensibleAuthorizeAndAccept(
-            fuzzyTestUpdate.fuzzyTestAccept
-        );
+        (
+            IRecurringCollector.SignedRCA memory accepted,
+            uint256 signerKey,
+            bytes16 agreementId
+        ) = _sensibleAuthorizeAndAccept(fuzzyTestUpdate.fuzzyTestAccept);
 
         // Initial nonce should be 0
-        IRecurringCollector.AgreementData memory initialAgreement = _recurringCollector.getAgreement(
-            accepted.rca.agreementId
-        );
+        IRecurringCollector.AgreementData memory initialAgreement = _recurringCollector.getAgreement(agreementId);
         assertEq(initialAgreement.updateNonce, 0);
 
         // First update with nonce 1
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau1 = _recurringCollectorHelper.sensibleRCAU(
             fuzzyTestUpdate.rcau
         );
-        rcau1.agreementId = accepted.rca.agreementId;
+        rcau1.agreementId = agreementId;
         rcau1.nonce = 1;
 
         IRecurringCollector.SignedRCAU memory signedRCAU1 = _recurringCollectorHelper.generateSignedRCAU(
@@ -276,9 +300,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         _recurringCollector.update(signedRCAU1);
 
         // Verify nonce incremented to 1
-        IRecurringCollector.AgreementData memory updatedAgreement1 = _recurringCollector.getAgreement(
-            accepted.rca.agreementId
-        );
+        IRecurringCollector.AgreementData memory updatedAgreement1 = _recurringCollector.getAgreement(agreementId);
         assertEq(updatedAgreement1.updateNonce, 1);
 
         // Second update with nonce 2
@@ -294,9 +316,7 @@ contract RecurringCollectorUpdateTest is RecurringCollectorSharedTest {
         _recurringCollector.update(signedRCAU2);
 
         // Verify nonce incremented to 2
-        IRecurringCollector.AgreementData memory updatedAgreement2 = _recurringCollector.getAgreement(
-            accepted.rca.agreementId
-        );
+        IRecurringCollector.AgreementData memory updatedAgreement2 = _recurringCollector.getAgreement(agreementId);
         assertEq(updatedAgreement2.updateNonce, 2);
     }
 

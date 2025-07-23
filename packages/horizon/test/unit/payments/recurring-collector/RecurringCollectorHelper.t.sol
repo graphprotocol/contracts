@@ -45,15 +45,45 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         return signedRCAU;
     }
 
-    function generateSignedRCAUWithCorrectNonce(
+    function generateSignedRCAUForAgreement(
+        bytes16 agreementId,
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
         uint256 signerPrivateKey
     ) public view returns (IRecurringCollector.SignedRCAU memory) {
         // Automatically set the correct nonce based on current agreement state
-        IRecurringCollector.AgreementData memory agreement = collector.getAgreement(rcau.agreementId);
+        IRecurringCollector.AgreementData memory agreement = collector.getAgreement(agreementId);
         rcau.nonce = agreement.updateNonce + 1;
 
         return generateSignedRCAU(rcau, signerPrivateKey);
+    }
+
+    function generateSignedRCAUWithCorrectNonce(
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
+        uint256 signerPrivateKey
+    ) public view returns (IRecurringCollector.SignedRCAU memory) {
+        // This is kept for backwards compatibility but should not be used with new interface
+        // since we can't determine agreementId without it being passed separately
+        return generateSignedRCAU(rcau, signerPrivateKey);
+    }
+
+    function generateSignedRCAWithCalculatedId(
+        IRecurringCollector.RecurringCollectionAgreement memory rca,
+        uint256 signerPrivateKey
+    ) public view returns (IRecurringCollector.SignedRCA memory, bytes16) {
+        // Ensure we have sensible values
+        rca = sensibleRCA(rca);
+
+        // Calculate the agreement ID
+        bytes16 agreementId = collector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+
+        IRecurringCollector.SignedRCA memory signedRCA = generateSignedRCA(rca, signerPrivateKey);
+        return (signedRCA, agreementId);
     }
 
     function withElapsedAcceptDeadline(
@@ -76,10 +106,14 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
     function sensibleRCA(
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {
-        vm.assume(rca.agreementId != bytes16(0));
         vm.assume(rca.dataService != address(0));
         vm.assume(rca.payer != address(0));
         vm.assume(rca.serviceProvider != address(0));
+
+        // Ensure we have a nonce if it's zero
+        if (rca.nonce == 0) {
+            rca.nonce = 1;
+        }
 
         rca.minSecondsPerCollection = _sensibleMinSecondsPerCollection(rca.minSecondsPerCollection);
         rca.maxSecondsPerCollection = _sensibleMaxSecondsPerCollection(

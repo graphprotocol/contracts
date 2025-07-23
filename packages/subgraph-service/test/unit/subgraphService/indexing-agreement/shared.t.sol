@@ -169,7 +169,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
     function _withAcceptedIndexingAgreement(
         Context storage _ctx,
         IndexerState memory _indexerState
-    ) internal returns (IRecurringCollector.SignedRCA memory) {
+    ) internal returns (IRecurringCollector.SignedRCA memory, bytes16 agreementId) {
         IRecurringCollector.RecurringCollectionAgreement memory rca = _ctx.ctxInternal.seed.rca;
 
         IndexingAgreement.AcceptIndexingAgreementMetadata memory metadata = _newAcceptIndexingAgreementMetadataV1(
@@ -187,20 +187,31 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         );
         _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, _ctx.payer.signerPrivateKey);
 
+        // Generate deterministic agreement ID for event expectation
+        agreementId = recurringCollector.generateAgreementId(
+            rca.payer,
+            rca.dataService,
+            rca.serviceProvider,
+            rca.deadline,
+            rca.nonce
+        );
+
         vm.expectEmit(address(subgraphService));
         emit IndexingAgreement.IndexingAgreementAccepted(
             rca.serviceProvider,
             rca.payer,
-            rca.agreementId,
+            agreementId,
             _indexerState.allocationId,
             metadata.subgraphDeploymentId,
             metadata.version,
             metadata.terms
         );
         _subgraphServiceSafePrank(_indexerState.addr);
-        subgraphService.acceptIndexingAgreement(_indexerState.allocationId, signedRCA);
+        bytes16 actualAgreementId = subgraphService.acceptIndexingAgreement(_indexerState.allocationId, signedRCA);
 
-        return signedRCA;
+        // Verify the agreement ID matches expectation
+        assertEq(actualAgreementId, agreementId);
+        return (signedRCA, agreementId);
     }
 
     function _newCtx(Seed memory _seed) internal returns (Context storage) {
@@ -267,7 +278,14 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         IRecurringCollector.RecurringCollectionAgreement memory _rca
     ) internal view returns (IRecurringCollector.RecurringCollectionAgreementUpdate memory) {
         IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau = _ctx.ctxInternal.seed.rcau;
-        rcau.agreementId = _rca.agreementId;
+        // Generate deterministic agreement ID for the update
+        rcau.agreementId = recurringCollector.generateAgreementId(
+            _rca.payer,
+            _rca.dataService,
+            _rca.serviceProvider,
+            _rca.deadline,
+            _rca.nonce
+        );
         rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
             _newUpdateIndexingAgreementMetadataV1(
                 _ctx.ctxInternal.seed.termsV1.tokensPerSecond,

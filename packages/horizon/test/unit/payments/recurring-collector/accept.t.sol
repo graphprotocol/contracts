@@ -20,7 +20,15 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
         IRecurringCollector.SignedRCA memory fuzzySignedRCA,
         uint256 unboundedSkip
     ) public {
-        vm.assume(fuzzySignedRCA.rca.agreementId != bytes16(0));
+        // Generate deterministic agreement ID for validation
+        bytes16 agreementId = _recurringCollector.generateAgreementId(
+            fuzzySignedRCA.rca.payer,
+            fuzzySignedRCA.rca.dataService,
+            fuzzySignedRCA.rca.serviceProvider,
+            fuzzySignedRCA.rca.deadline,
+            fuzzySignedRCA.rca.nonce
+        );
+        vm.assume(agreementId != bytes16(0));
         skip(boundSkip(unboundedSkip, 1, type(uint64).max - block.timestamp));
         fuzzySignedRCA.rca = _recurringCollectorHelper.withElapsedAcceptDeadline(fuzzySignedRCA.rca);
 
@@ -35,11 +43,13 @@ contract RecurringCollectorAcceptTest is RecurringCollectorSharedTest {
     }
 
     function test_Accept_Revert_WhenAlreadyAccepted(FuzzyTestAccept calldata fuzzyTestAccept) public {
-        (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzyTestAccept);
+        (IRecurringCollector.SignedRCA memory accepted, , bytes16 agreementId) = _sensibleAuthorizeAndAccept(
+            fuzzyTestAccept
+        );
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
-            accepted.rca.agreementId,
+            agreementId,
             IRecurringCollector.AgreementState.Accepted
         );
         vm.expectRevert(expectedErr);

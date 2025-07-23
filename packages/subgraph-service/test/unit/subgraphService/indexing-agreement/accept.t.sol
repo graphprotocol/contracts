@@ -212,11 +212,14 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAccepted(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
-        IRecurringCollector.SignedRCA memory accepted = _withAcceptedIndexingAgreement(ctx, indexerState);
+        (IRecurringCollector.SignedRCA memory accepted, bytes16 agreementId) = _withAcceptedIndexingAgreement(
+            ctx,
+            indexerState
+        );
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreement.IndexingAgreementAlreadyAccepted.selector,
-            accepted.rca.agreementId
+            agreementId
         );
         vm.expectRevert(expectedErr);
         resetPrank(ctx.indexers[0].addr);
@@ -229,9 +232,14 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         Context storage ctx = _newCtx(seed);
         IndexerState memory indexerState = _withIndexer(ctx);
         IRecurringCollector.SignedRCA memory acceptable = _generateAcceptableSignedRCA(ctx, indexerState.addr);
+        IRecurringCollector.RecurringCollectionAgreement memory notAcceptableRCA = acceptable.rca;
         bytes memory invalidTermsData = bytes("invalid terms data");
-        acceptable.rca.metadata = abi.encode(
+        notAcceptableRCA.metadata = abi.encode(
             _newAcceptIndexingAgreementMetadataV1Terms(indexerState.subgraphDeploymentId, invalidTermsData)
+        );
+        IRecurringCollector.SignedRCA memory notAcceptable = _recurringCollectorHelper.generateSignedRCA(
+            notAcceptableRCA,
+            ctx.payer.signerPrivateKey
         );
 
         bytes memory expectedErr = abi.encodeWithSelector(
@@ -241,7 +249,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         );
         vm.expectRevert(expectedErr);
         resetPrank(indexerState.addr);
-        subgraphService.acceptIndexingAgreement(indexerState.allocationId, acceptable);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, notAcceptable);
     }
 
     function test_SubgraphService_AcceptIndexingAgreement(Seed memory seed) public {
@@ -252,11 +260,20 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
             acceptable.rca.metadata,
             (IndexingAgreement.AcceptIndexingAgreementMetadata)
         );
+        // Generate deterministic agreement ID for event expectation
+        bytes16 expectedAgreementId = recurringCollector.generateAgreementId(
+            acceptable.rca.payer,
+            acceptable.rca.dataService,
+            acceptable.rca.serviceProvider,
+            acceptable.rca.deadline,
+            acceptable.rca.nonce
+        );
+
         vm.expectEmit(address(subgraphService));
         emit IndexingAgreement.IndexingAgreementAccepted(
             acceptable.rca.serviceProvider,
             acceptable.rca.payer,
-            acceptable.rca.agreementId,
+            expectedAgreementId,
             indexerState.allocationId,
             metadata.subgraphDeploymentId,
             metadata.version,

@@ -420,6 +420,7 @@ contract SubgraphService is
      *
      * @param allocationId The id of the allocation
      * @param signedRCA The signed Recurring Collection Agreement
+     * @return agreementId The ID of the accepted indexing agreement
      */
     function acceptIndexingAgreement(
         address allocationId,
@@ -430,8 +431,9 @@ contract SubgraphService is
         onlyAuthorizedForProvision(signedRCA.rca.serviceProvider)
         onlyValidProvision(signedRCA.rca.serviceProvider)
         onlyRegisteredIndexer(signedRCA.rca.serviceProvider)
+        returns (bytes16)
     {
-        IndexingAgreement._getStorageManager().accept(_allocations, allocationId, signedRCA);
+        return IndexingAgreement._getStorageManager().accept(_allocations, allocationId, signedRCA);
     }
 
     /**
