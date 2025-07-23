@@ -1,5 +1,15 @@
 # @graphprotocol/interfaces
 
+## 0.5.0
+
+### Minor Changes
+
+- Add vesting interfaces for Horizon protocol
+  - Add IGraphTokenLockWallet base interface for core vesting functionality
+  - Add IGraphTokenLockWalletToolshed interface with Horizon protocol interactions
+  - Include functions for stake management, provision management, delegation, and configuration
+  - Support both current and legacy withdrawDelegated signatures for backward compatibility
+
 ## 0.4.0
 
 ### Minor Changes
