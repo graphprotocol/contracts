@@ -45,6 +45,17 @@ contract RecurringCollectorHelper is AuthorizableHelper, Bounder {
         return signedRCAU;
     }
 
+    function generateSignedRCAUWithCorrectNonce(
+        IRecurringCollector.RecurringCollectionAgreementUpdate memory rcau,
+        uint256 signerPrivateKey
+    ) public view returns (IRecurringCollector.SignedRCAU memory) {
+        // Automatically set the correct nonce based on current agreement state
+        IRecurringCollector.AgreementData memory agreement = collector.getAgreement(rcau.agreementId);
+        rcau.nonce = agreement.updateNonce + 1;
+
+        return generateSignedRCAU(rcau, signerPrivateKey);
+    }
+
     function withElapsedAcceptDeadline(
         IRecurringCollector.RecurringCollectionAgreement memory rca
     ) public view returns (IRecurringCollector.RecurringCollectionAgreement memory) {

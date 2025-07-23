@@ -90,6 +90,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param nonce The nonce for preventing replay attacks (must be current nonce + 1)
      * @param metadata Arbitrary metadata to extend functionality if a data service requires it
      */
     struct RecurringCollectionAgreementUpdate {
@@ -100,6 +101,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 maxOngoingTokensPerSecond;
         uint32 minSecondsPerCollection;
         uint32 maxSecondsPerCollection;
+        uint32 nonce;
         bytes metadata;
     }
 
@@ -118,6 +120,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * except for the first collection
      * @param minSecondsPerCollection The minimum amount of seconds that must pass between collections
      * @param maxSecondsPerCollection The maximum amount of seconds that can pass between collections
+     * @param updateNonce The current nonce for updates (prevents replay attacks)
      * @param canceledAt The timestamp when the agreement was canceled
      * @param state The state of the agreement
      */
@@ -132,6 +135,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 maxOngoingTokensPerSecond;
         uint32 minSecondsPerCollection;
         uint32 maxSecondsPerCollection;
+        uint32 updateNonce;
         uint64 canceledAt;
         AgreementState state;
     }
@@ -356,6 +360,14 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param maxSeconds Maximum seconds between collections
      */
     error RecurringCollectorCollectionTooLate(bytes16 agreementId, uint64 secondsSinceLast, uint32 maxSeconds);
+
+    /**
+     * @notice Thrown when calling update() with an invalid nonce
+     * @param agreementId The agreement ID
+     * @param expected The expected nonce
+     * @param provided The provided nonce
+     */
+    error RecurringCollectorInvalidUpdateNonce(bytes16 agreementId, uint32 expected, uint32 provided);
 
     /**
      * @dev Accept an indexing agreement.

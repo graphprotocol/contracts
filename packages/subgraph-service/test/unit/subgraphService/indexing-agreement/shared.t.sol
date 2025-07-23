@@ -255,11 +255,11 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         Context storage _ctx,
         IRecurringCollector.RecurringCollectionAgreement memory _rca
     ) internal view returns (IRecurringCollector.SignedRCAU memory) {
-        return
-            _recurringCollectorHelper.generateSignedRCAU(
-                _generateAcceptableRecurringCollectionAgreementUpdate(_ctx, _rca),
-                _ctx.payer.signerPrivateKey
-            );
+        IRecurringCollector.RecurringCollectionAgreementUpdate
+            memory rcau = _generateAcceptableRecurringCollectionAgreementUpdate(_ctx, _rca);
+        // Set correct nonce for first update (should be 1)
+        rcau.nonce = 1;
+        return _recurringCollectorHelper.generateSignedRCAU(rcau, _ctx.payer.signerPrivateKey);
     }
 
     function _generateAcceptableRecurringCollectionAgreementUpdate(

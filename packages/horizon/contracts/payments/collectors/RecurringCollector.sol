@@ -35,7 +35,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /// @notice The EIP712 typehash for the RecurringCollectionAgreementUpdate struct
     bytes32 public constant EIP712_RCAU_TYPEHASH =
         keccak256(
-            "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint64 deadline,uint64 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,bytes metadata)"
+            "RecurringCollectionAgreementUpdate(bytes16 agreementId,uint64 deadline,uint64 endsAt,uint256 maxInitialTokens,uint256 maxOngoingTokensPerSecond,uint32 minSecondsPerCollection,uint32 maxSecondsPerCollection,uint32 nonce,bytes metadata)"
         );
 
     /// @notice Tracks agreements
@@ -120,6 +120,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.maxOngoingTokensPerSecond = signedRCA.rca.maxOngoingTokensPerSecond;
         agreement.minSecondsPerCollection = signedRCA.rca.minSecondsPerCollection;
         agreement.maxSecondsPerCollection = signedRCA.rca.maxSecondsPerCollection;
+        agreement.updateNonce = 0;
 
         emit AgreementAccepted(
             agreement.dataService,
@@ -193,6 +194,13 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         // check that the voucher is signed by the payer (or proxy)
         _requireAuthorizedRCAUSigner(signedRCAU, agreement.payer);
 
+        // validate nonce to prevent replay attacks
+        uint32 expectedNonce = agreement.updateNonce + 1;
+        require(
+            signedRCAU.rcau.nonce == expectedNonce,
+            RecurringCollectorInvalidUpdateNonce(signedRCAU.rcau.agreementId, expectedNonce, signedRCAU.rcau.nonce)
+        );
+
         _requireValidCollectionWindowParams(
             signedRCAU.rcau.endsAt,
             signedRCAU.rcau.minSecondsPerCollection,
@@ -205,6 +213,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         agreement.maxOngoingTokensPerSecond = signedRCAU.rcau.maxOngoingTokensPerSecond;
         agreement.minSecondsPerCollection = signedRCAU.rcau.minSecondsPerCollection;
         agreement.maxSecondsPerCollection = signedRCAU.rcau.maxSecondsPerCollection;
+        agreement.updateNonce = signedRCAU.rcau.nonce;
 
         emit AgreementUpdated(
             agreement.dataService,
@@ -482,6 +491,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                         _rcau.maxOngoingTokensPerSecond,
                         _rcau.minSecondsPerCollection,
                         _rcau.maxSecondsPerCollection,
+                        _rcau.nonce,
                         keccak256(_rcau.metadata)
                     )
                 )

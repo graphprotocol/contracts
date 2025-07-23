@@ -127,6 +127,8 @@ contract SubgraphServiceIndexingAgreementUpgradeTest is SubgraphServiceIndexingA
         IRecurringCollector.RecurringCollectionAgreementUpdate
             memory acceptableUpdate = _generateAcceptableRecurringCollectionAgreementUpdate(ctx, accepted.rca);
         acceptableUpdate.metadata = bytes("invalid");
+        // Set correct nonce for first update (should be 1)
+        acceptableUpdate.nonce = 1;
         IRecurringCollector.SignedRCAU memory unacceptableUpdate = _recurringCollectorHelper.generateSignedRCAU(
             acceptableUpdate,
             ctx.payer.signerPrivateKey
