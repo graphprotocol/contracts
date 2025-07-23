@@ -155,6 +155,7 @@ function getContractNameAlternatives(contractName: string): string[] {
     EpochManager: 'EpochManagerToolshed',
     L2GNS: 'L2GNSToolshed',
     GraphTallyCollector: 'GraphTallyCollectorToolshed',
+    GraphTokenLockWallet: 'GraphTokenLockWalletToolshed',
     HorizonStaking: 'HorizonStakingToolshed',
     L2Curation: 'L2CurationToolshed',
     PaymentsEscrow: 'PaymentsEscrowToolshed',

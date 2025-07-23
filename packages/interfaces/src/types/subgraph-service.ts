@@ -1,7 +1,7 @@
 import type {
   IDisputeManager, // typechain builds contracts interface as IDisputeManager
   IDisputeManagerToolshed, // typechain doesn't build this interface so we toolshed-it
-  IGNSToolshed,
+  IL2GNSToolshed,
   IL2CurationToolshed,
   IServiceRegistryToolshed,
   ISubgraphNFT,
@@ -12,7 +12,7 @@ import type {
 export {
   IDisputeManagerToolshed as DisputeManager,
   IL2CurationToolshed as L2Curation,
-  IGNSToolshed as L2GNS,
+  IL2GNSToolshed as L2GNS,
   IDisputeManager as LegacyDisputeManager,
   IServiceRegistryToolshed as LegacyServiceRegistry,
   ISubgraphNFT as SubgraphNFT,

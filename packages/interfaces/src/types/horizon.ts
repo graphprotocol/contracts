@@ -1,7 +1,7 @@
 import type {
   IControllerToolshed,
   IEpochManagerToolshed,
-  IGNSToolshed,
+  IL2GNSToolshed,
   IGraphPayments,
   IGraphProxyAdmin,
   IGraphTallyCollectorToolshed,
@@ -22,7 +22,7 @@ export {
   IGraphTallyCollectorToolshed as GraphTallyCollector,
   IHorizonStakingToolshed as HorizonStaking,
   IL2CurationToolshed as L2Curation,
-  IGNSToolshed as L2GNS,
+  IL2GNSToolshed as L2GNS,
   IGraphToken as L2GraphToken,
   IStaking as LegacyStaking,
   IPaymentsEscrowToolshed as PaymentsEscrow,

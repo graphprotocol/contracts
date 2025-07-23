@@ -8,6 +8,7 @@ import HorizonStaking from './artifacts/contracts/toolshed/IHorizonStakingToolsh
 import EpochManager from './artifacts/contracts/toolshed/IEpochManagerToolshed.sol/IEpochManagerToolshed.json'
 import RewardsManager from './artifacts/contracts/toolshed/IRewardsManagerToolshed.sol/IRewardsManagerToolshed.json'
 import L2GraphTokenGateway from './artifacts/contracts/contracts/l2/gateway/IL2GraphTokenGateway.sol/IL2GraphTokenGateway.json'
+import GraphTokenLockWallet from './artifacts/contracts/toolshed/IGraphTokenLockWalletToolshed.sol/IGraphTokenLockWalletToolshed.json'
 
 // Only generate wagmi types for contracts that are used by the Explorer
 export default defineConfig({
@@ -40,6 +41,10 @@ export default defineConfig({
     {
       name: 'L2GraphTokenGateway',
       abi: L2GraphTokenGateway.abi as Abi,
+    },
+    {
+      name: 'GraphTokenLockWallet',
+      abi: GraphTokenLockWallet.abi as Abi,
     },
   ],
   plugins: []
