@@ -291,14 +291,6 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorInvalidCollectData(bytes invalidData);
 
     /**
-     * @notice Thrown when calling collect() on a payer canceled agreement
-     * where the final collection has already been done
-     * @param agreementId The agreement ID
-     * @param finalCollectionAt The timestamp when the final collection was done
-     */
-    error RecurringCollectorFinalCollectionDone(bytes16 agreementId, uint256 finalCollectionAt);
-
-    /**
      * @notice Thrown when interacting with an agreement that has an incorrect state
      * @param agreementId The agreement ID
      * @param incorrectState The incorrect state
@@ -420,11 +412,13 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     function getAgreement(bytes16 agreementId) external view returns (AgreementData memory);
 
     /**
-     * @notice Checks if an agreement is collectable.
-     * @dev "Collectable" means the agreement is in a valid state that allows collection attempts,
-     * not that there are necessarily funds available to collect.
+     * @notice Get collection info for an agreement
      * @param agreement The agreement data
-     * @return The boolean indicating if the agreement is collectable
+     * @return isCollectable Whether the agreement is in a valid state that allows collection attempts,
+     * not that there are necessarily funds available to collect.
+     * @return collectionSeconds The valid collection duration in seconds (0 if not collectable)
      */
-    function isCollectable(AgreementData memory agreement) external view returns (bool);
+    function getCollectionInfo(
+        AgreementData memory agreement
+    ) external view returns (bool isCollectable, uint256 collectionSeconds);
 }

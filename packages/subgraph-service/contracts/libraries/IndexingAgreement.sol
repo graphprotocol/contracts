@@ -529,7 +529,11 @@ library IndexingAgreement {
             allocation.indexer == params.indexer,
             IndexingAgreementNotAuthorized(params.agreementId, params.indexer)
         );
-        require(_isCollectable(wrapper), IndexingAgreementNotCollectable(params.agreementId));
+        // Get collection info from RecurringCollector (single source of truth for temporal logic)
+        (bool isCollectable, uint256 collectionSeconds) = _directory().recurringCollector().getCollectionInfo(
+            wrapper.collectorAgreement
+        );
+        require(_isValid(wrapper) && isCollectable, IndexingAgreementNotCollectable(params.agreementId));
 
         require(
             wrapper.agreement.version == IndexingAgreementVersion.V1,
@@ -540,7 +544,7 @@ library IndexingAgreement {
 
         uint256 expectedTokens = (data.entities == 0 && data.poi == bytes32(0))
             ? 0
-            : _tokensToCollect(self, params.agreementId, wrapper.collectorAgreement, data.entities);
+            : _tokensToCollect(self, params.agreementId, data.entities, collectionSeconds);
 
         // `tokensCollected` <= `expectedTokens` because the recurring collector will further narrow
         // down the tokens allowed, based on the RCA terms.
@@ -677,28 +681,21 @@ library IndexingAgreement {
     }
 
     /**
-     * @notice Calculate the number of tokens to collect for an indexing agreement.
-     *
-     * @dev This function calculates the number of tokens to collect based on the agreement terms and the collection time.
-     *
-     * @param _manager The indexing agreement storage manager
-     * @param _agreementId The id of the agreement
-     * @param _agreement The collector agreement data
+     * @notice Calculate tokens to collect based on pre-validated duration
+     * @param _manager The storage manager
+     * @param _agreementId The agreement ID
      * @param _entities The number of entities indexed
+     * @param _collectionSeconds Pre-calculated valid collection duration
      * @return The number of tokens to collect
      */
     function _tokensToCollect(
         StorageManager storage _manager,
         bytes16 _agreementId,
-        IRecurringCollector.AgreementData memory _agreement,
-        uint256 _entities
+        uint256 _entities,
+        uint256 _collectionSeconds
     ) private view returns (uint256) {
         IndexingAgreementTermsV1 memory termsV1 = _manager.termsV1[_agreementId];
-
-        uint256 collectionSeconds = block.timestamp;
-        collectionSeconds -= _agreement.lastCollectionAt > 0 ? _agreement.lastCollectionAt : _agreement.acceptedAt;
-
-        return collectionSeconds * (termsV1.tokensPerSecond + termsV1.tokensPerEntityPerSecond * _entities);
+        return _collectionSeconds * (termsV1.tokensPerSecond + termsV1.tokensPerEntityPerSecond * _entities);
     }
 
     /**
@@ -721,9 +718,6 @@ library IndexingAgreement {
      * @param wrapper The agreement wrapper containing the indexing agreement and collector agreement data
      * @return True if the agreement is collectable, false otherwise
      **/
-    function _isCollectable(AgreementWrapper memory wrapper) private view returns (bool) {
-        return _isValid(wrapper) && _directory().recurringCollector().isCollectable(wrapper.collectorAgreement);
-    }
 
     /**
      * @notice Checks if the agreement is valid

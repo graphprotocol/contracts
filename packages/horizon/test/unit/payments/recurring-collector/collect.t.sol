@@ -32,6 +32,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         (IRecurringCollector.SignedRCA memory accepted, ) = _sensibleAuthorizeAndAccept(fuzzy.fuzzyTestAccept);
         IRecurringCollector.CollectParams memory collectParams = fuzzy.collectParams;
 
+        skip(1);
+
         collectParams.agreementId = accepted.rca.agreementId;
         bytes memory data = _generateCollectData(collectParams);
 
@@ -52,6 +54,8 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         collectParams.agreementId = accepted.rca.agreementId;
         collectParams.tokens = bound(collectParams.tokens, 1, type(uint256).max);
         bytes memory data = _generateCollectData(collectParams);
+
+        skip(1);
 
         // Set up the scenario where service provider has no tokens staked with data service
         // This simulates an unauthorized data service attack

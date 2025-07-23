@@ -246,8 +246,10 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /// @inheritdoc IRecurringCollector
-    function isCollectable(AgreementData memory agreement) external pure returns (bool) {
-        return _isCollectable(agreement);
+    function getCollectionInfo(
+        AgreementData memory agreement
+    ) external view returns (bool isCollectable, uint256 collectionSeconds) {
+        return _getCollectionInfo(agreement);
     }
 
     /**
@@ -274,9 +276,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         CollectParams memory _params
     ) private returns (uint256) {
         AgreementData storage agreement = _getAgreementStorage(_params.agreementId);
+
+        // Check if agreement exists first (for unknown agreements)
+        (bool isCollectable, uint256 collectionSeconds) = _getCollectionInfo(agreement);
+        require(isCollectable, RecurringCollectorAgreementIncorrectState(_params.agreementId, agreement.state));
+
         require(
-            _isCollectable(agreement),
-            RecurringCollectorAgreementIncorrectState(_params.agreementId, agreement.state)
+            collectionSeconds > 0,
+            RecurringCollectorZeroCollectionSeconds(_params.agreementId, block.timestamp, agreement.lastCollectionAt)
         );
 
         require(
@@ -297,7 +304,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
         uint256 tokensToCollect = 0;
         if (_params.tokens != 0) {
-            tokensToCollect = _requireValidCollect(agreement, _params.agreementId, _params.tokens);
+            tokensToCollect = _requireValidCollect(agreement, _params.agreementId, _params.tokens, collectionSeconds);
 
             _graphPaymentsEscrow().collect(
                 _paymentType,
@@ -374,53 +381,37 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @param _agreement The agreement data
      * @param _agreementId The ID of the agreement
      * @param _tokens The number of tokens to collect
+     * @param _collectionSeconds Collection duration from _getCollectionInfo()
      * @return The number of tokens that can be collected
      */
     function _requireValidCollect(
         AgreementData memory _agreement,
         bytes16 _agreementId,
-        uint256 _tokens
+        uint256 _tokens,
+        uint256 _collectionSeconds
     ) private view returns (uint256) {
         bool canceledOrElapsed = _agreement.state == AgreementState.CanceledByPayer ||
             block.timestamp > _agreement.endsAt;
-        uint256 canceledOrNow = _agreement.state == AgreementState.CanceledByPayer
-            ? _agreement.canceledAt
-            : block.timestamp;
-
-        // if canceled by the payer allow collection till canceledAt
-        // if elapsed allow collection till endsAt
-        // if both are true, use the earlier one
-        uint256 collectionEnd = canceledOrElapsed ? Math.min(canceledOrNow, _agreement.endsAt) : block.timestamp;
-        uint256 collectionStart = _agreementCollectionStartAt(_agreement);
-        require(
-            collectionEnd != collectionStart,
-            RecurringCollectorZeroCollectionSeconds(_agreementId, block.timestamp, uint64(collectionStart))
-        );
-        require(collectionEnd > collectionStart, RecurringCollectorFinalCollectionDone(_agreementId, collectionStart));
-
-        uint256 collectionSeconds = collectionEnd - collectionStart;
-        // Check that the collection window is long enough
-        // If the agreement is canceled or elapsed, allow a shorter collection window
         if (!canceledOrElapsed) {
             require(
-                collectionSeconds >= _agreement.minSecondsPerCollection,
+                _collectionSeconds >= _agreement.minSecondsPerCollection,
                 RecurringCollectorCollectionTooSoon(
                     _agreementId,
-                    uint32(collectionSeconds),
+                    uint32(_collectionSeconds),
                     _agreement.minSecondsPerCollection
                 )
             );
         }
         require(
-            collectionSeconds <= _agreement.maxSecondsPerCollection,
+            _collectionSeconds <= _agreement.maxSecondsPerCollection,
             RecurringCollectorCollectionTooLate(
                 _agreementId,
-                uint64(collectionSeconds),
+                uint64(_collectionSeconds),
                 _agreement.maxSecondsPerCollection
             )
         );
 
-        uint256 maxTokens = _agreement.maxOngoingTokensPerSecond * collectionSeconds;
+        uint256 maxTokens = _agreement.maxOngoingTokensPerSecond * _collectionSeconds;
         maxTokens += _agreement.lastCollectionAt == 0 ? _agreement.maxInitialTokens : 0;
 
         return Math.min(_tokens, maxTokens);
@@ -546,20 +537,47 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     }
 
     /**
+     * @notice Internal function to get collection info for an agreement
+     * @dev This is the single source of truth for collection window logic
+     * @param _agreement The agreement data
+     * @return isCollectable Whether the agreement can be collected from
+     * @return collectionSeconds The valid collection duration in seconds (0 if not collectable)
+     */
+    function _getCollectionInfo(
+        AgreementData memory _agreement
+    ) private view returns (bool isCollectable, uint256 collectionSeconds) {
+        // Check if agreement is in collectable state
+        isCollectable =
+            _agreement.state == AgreementState.Accepted ||
+            _agreement.state == AgreementState.CanceledByPayer;
+
+        if (!isCollectable) {
+            return (false, 0);
+        }
+
+        bool canceledOrElapsed = _agreement.state == AgreementState.CanceledByPayer ||
+            block.timestamp > _agreement.endsAt;
+        uint256 canceledOrNow = _agreement.state == AgreementState.CanceledByPayer
+            ? _agreement.canceledAt
+            : block.timestamp;
+
+        uint256 collectionEnd = canceledOrElapsed ? Math.min(canceledOrNow, _agreement.endsAt) : block.timestamp;
+        uint256 collectionStart = _agreementCollectionStartAt(_agreement);
+
+        if (collectionEnd < collectionStart) {
+            return (false, 0);
+        }
+
+        collectionSeconds = collectionEnd - collectionStart;
+        return (isCollectable, collectionSeconds);
+    }
+
+    /**
      * @notice Gets the start time for the collection of an agreement.
      * @param _agreement The agreement data
      * @return The start time for the collection of the agreement
      */
     function _agreementCollectionStartAt(AgreementData memory _agreement) private pure returns (uint256) {
         return _agreement.lastCollectionAt > 0 ? _agreement.lastCollectionAt : _agreement.acceptedAt;
-    }
-
-    /**
-     * @notice Requires that the agreement is collectable.
-     * @param _agreement The agreement data
-     * @return The boolean indicating if the agreement is collectable
-     */
-    function _isCollectable(AgreementData memory _agreement) private pure returns (bool) {
-        return _agreement.state == AgreementState.Accepted || _agreement.state == AgreementState.CanceledByPayer;
     }
 }
