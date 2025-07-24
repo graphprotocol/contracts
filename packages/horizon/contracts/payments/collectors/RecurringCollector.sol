@@ -343,7 +343,10 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                 slippage <= _params.maxSlippage,
                 RecurringCollectorExcessiveSlippage(_params.tokens, tokensToCollect, _params.maxSlippage)
             );
+        }
+        agreement.lastCollectionAt = uint64(block.timestamp);
 
+        if (tokensToCollect > 0) {
             _graphPaymentsEscrow().collect(
                 _paymentType,
                 agreement.payer,
@@ -354,7 +357,6 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
                 _params.receiverDestination
             );
         }
-        agreement.lastCollectionAt = uint64(block.timestamp);
 
         emit PaymentCollected(
             _paymentType,
