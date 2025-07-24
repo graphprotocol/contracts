@@ -184,6 +184,8 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @notice Update an indexing agreement.
      * See {IRecurringCollector.update}.
      * @dev Caller must be the data service for the agreement.
+     * @dev Note: Updated pricing terms apply immediately and will affect the next collection
+     * for the entire period since lastCollectionAt.
      */
     function update(SignedRCAU calldata signedRCAU) external {
         require(
