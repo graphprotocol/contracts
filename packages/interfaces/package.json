@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/interfaces",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publishConfig": {
     "access": "public"
   },
@@ -9,16 +9,16 @@
   "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "default": "./dist/src/index.js",
-      "types": "./dist/src/index.d.ts"
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
     },
     "./types-v5": {
-      "default": "./dist/types-v5/index.js",
-      "types": "./dist/types-v5/index.d.ts"
+      "types": "./dist/types-v5/index.d.ts",
+      "default": "./dist/types-v5/index.js"
     },
     "./wagmi": {
-      "default": "./dist/wagmi/generated.js",
-      "types": "./dist/wagmi/generated.d.ts"
+      "types": "./dist/wagmi/generated.d.ts",
+      "default": "./dist/wagmi/generated.js"
     }
   },
   "files": [

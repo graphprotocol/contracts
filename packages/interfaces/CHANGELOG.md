@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.5.1
+
+### Patch Changes
+
+- Fix export conditions order to resolve Next.js import errors
+
 ## 0.5.0
 
 ### Minor Changes
