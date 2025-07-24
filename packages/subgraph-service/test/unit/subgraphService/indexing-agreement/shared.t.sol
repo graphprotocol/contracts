@@ -288,7 +288,7 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
         );
         rcau.metadata = _encodeUpdateIndexingAgreementMetadataV1(
             _newUpdateIndexingAgreementMetadataV1(
-                _ctx.ctxInternal.seed.termsV1.tokensPerSecond,
+                bound(_ctx.ctxInternal.seed.termsV1.tokensPerSecond, 0, _rca.maxOngoingTokensPerSecond),
                 _ctx.ctxInternal.seed.termsV1.tokensPerEntityPerSecond
             )
         );

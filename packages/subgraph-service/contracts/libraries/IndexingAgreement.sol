@@ -272,6 +272,13 @@ library IndexingAgreement {
     error IndexingAgreementNotAuthorized(bytes16 agreementId, address unauthorizedIndexer);
 
     /**
+     * @notice Thrown when indexing agreement terms are invalid
+     * @param tokensPerSecond The indexing agreement tokens per second
+     * @param maxOngoingTokensPerSecond The RCA maximum tokens per second
+     */
+    error IndexingAgreementInvalidTerms(uint256 tokensPerSecond, uint256 maxOngoingTokensPerSecond);
+
+    /**
      * @notice Accept an indexing agreement.
      *
      * Requirements:
@@ -343,7 +350,7 @@ library IndexingAgreement {
         agreement.allocationId = allocationId;
 
         require(metadata.version == IndexingAgreementVersion.V1, IndexingAgreementInvalidVersion(metadata.version));
-        _setTermsV1(self, agreementId, metadata.terms);
+        _setTermsV1(self, agreementId, metadata.terms, signedRCA.rca.maxOngoingTokensPerSecond);
 
         emit IndexingAgreementAccepted(
             signedRCA.rca.serviceProvider,
@@ -392,7 +399,12 @@ library IndexingAgreement {
 
         require(wrapper.agreement.version == IndexingAgreementVersion.V1, "internal: invalid version");
         require(metadata.version == IndexingAgreementVersion.V1, IndexingAgreementInvalidVersion(metadata.version));
-        _setTermsV1(self, signedRCAU.rcau.agreementId, metadata.terms);
+        _setTermsV1(
+            self,
+            signedRCAU.rcau.agreementId,
+            metadata.terms,
+            wrapper.collectorAgreement.maxOngoingTokensPerSecond
+        );
 
         emit IndexingAgreementUpdated({
             indexer: wrapper.collectorAgreement.serviceProvider,
@@ -621,9 +633,16 @@ library IndexingAgreement {
      * @param _manager The indexing agreement storage manager
      * @param _agreementId The id of the agreement to update
      * @param _data The encoded terms data
+     * @param maxOngoingTokensPerSecond The RCA maximum tokens per second limit for validation
      */
-    function _setTermsV1(StorageManager storage _manager, bytes16 _agreementId, bytes memory _data) private {
+    function _setTermsV1(
+        StorageManager storage _manager,
+        bytes16 _agreementId,
+        bytes memory _data,
+        uint256 maxOngoingTokensPerSecond
+    ) private {
         IndexingAgreementTermsV1 memory newTerms = IndexingAgreementDecoder.decodeIndexingAgreementTermsV1(_data);
+        _validateTermsAgainstRCA(newTerms, maxOngoingTokensPerSecond);
         _manager.termsV1[_agreementId].tokensPerSecond = newTerms.tokensPerSecond;
         _manager.termsV1[_agreementId].tokensPerEntityPerSecond = newTerms.tokensPerEntityPerSecond;
     }
@@ -763,5 +782,20 @@ library IndexingAgreement {
                 agreement: self.agreements[agreementId],
                 collectorAgreement: _directory().recurringCollector().getAgreement(agreementId)
             });
+    }
+
+    /**
+     * @notice Validates indexing agreement terms against RCA limits
+     * @param terms The indexing agreement terms to validate
+     * @param maxOngoingTokensPerSecond The RCA maximum tokens per second limit
+     */
+    function _validateTermsAgainstRCA(
+        IndexingAgreementTermsV1 memory terms,
+        uint256 maxOngoingTokensPerSecond
+    ) private pure {
+        require(
+            terms.tokensPerSecond <= maxOngoingTokensPerSecond,
+            IndexingAgreementInvalidTerms(terms.tokensPerSecond, maxOngoingTokensPerSecond)
+        );
     }
 }
