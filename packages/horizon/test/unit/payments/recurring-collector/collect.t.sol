@@ -2,6 +2,7 @@
 pragma solidity 0.8.27;
 
 import { IRecurringCollector } from "../../../../contracts/interfaces/IRecurringCollector.sol";
+import { IGraphPayments } from "../../../../contracts/interfaces/IGraphPayments.sol";
 import { IHorizonStakingTypes } from "../../../../contracts/interfaces/internal/IHorizonStakingTypes.sol";
 
 import { RecurringCollectorSharedTest } from "./shared.t.sol";
@@ -308,6 +309,139 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         vm.prank(accepted.rca.dataService);
         uint256 collected = _recurringCollector.collect(_paymentType(fuzzy.unboundedPaymentType), data);
         assertEq(collected, tokens);
+    }
+
+    function test_Collect_RevertWhen_ExceedsMaxSlippage() public {
+        // Setup: Create agreement with known parameters
+        IRecurringCollector.RecurringCollectionAgreement memory rca;
+        rca.deadline = uint64(block.timestamp + 1000);
+        rca.endsAt = uint64(block.timestamp + 2000);
+        rca.payer = address(0x123);
+        rca.dataService = address(0x456);
+        rca.serviceProvider = address(0x789);
+        rca.maxInitialTokens = 0; // No initial tokens to keep calculation simple
+        rca.maxOngoingTokensPerSecond = 1 ether; // 1 token per second
+        rca.minSecondsPerCollection = 60; // 1 minute
+        rca.maxSecondsPerCollection = 3600; // 1 hour
+        rca.nonce = 1;
+        rca.metadata = "";
+
+        // Accept the agreement
+        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, 1);
+        IRecurringCollector.SignedRCA memory signedRCA = _recurringCollectorHelper.generateSignedRCA(rca, 1);
+        bytes16 agreementId = _accept(signedRCA);
+
+        // Do a first collection to use up initial tokens allowance
+        skip(rca.minSecondsPerCollection);
+        IRecurringCollector.CollectParams memory firstCollection = IRecurringCollector.CollectParams({
+            agreementId: agreementId,
+            collectionId: keccak256("first"),
+            tokens: 1 ether, // Small amount
+            dataServiceCut: 0,
+            receiverDestination: rca.serviceProvider,
+            maxSlippage: type(uint256).max
+        });
+        vm.prank(rca.dataService);
+        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, _generateCollectData(firstCollection));
+
+        // Wait minimum collection time again for second collection
+        skip(rca.minSecondsPerCollection);
+
+        // Calculate expected narrowing: max allowed is 60 tokens (60 seconds * 1 token/second)
+        uint256 maxAllowed = rca.maxOngoingTokensPerSecond * rca.minSecondsPerCollection; // 60 tokens
+        uint256 requested = maxAllowed + 50 ether; // Request 110 tokens
+        uint256 expectedSlippage = requested - maxAllowed; // 50 tokens
+        uint256 maxSlippage = expectedSlippage - 1; // Allow up to 49 tokens slippage
+
+        // Create collect params with slippage protection
+        IRecurringCollector.CollectParams memory collectParams = IRecurringCollector.CollectParams({
+            agreementId: agreementId,
+            collectionId: keccak256("test"),
+            tokens: requested,
+            dataServiceCut: 0,
+            receiverDestination: rca.serviceProvider,
+            maxSlippage: maxSlippage
+        });
+
+        bytes memory data = _generateCollectData(collectParams);
+
+        // Expect revert due to excessive slippage (50 > 49)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IRecurringCollector.RecurringCollectorExcessiveSlippage.selector,
+                requested,
+                maxAllowed,
+                maxSlippage
+            )
+        );
+        vm.prank(rca.dataService);
+        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+    }
+
+    function test_Collect_OK_WithMaxSlippageDisabled() public {
+        // Setup: Create agreement with known parameters
+        IRecurringCollector.RecurringCollectionAgreement memory rca;
+        rca.deadline = uint64(block.timestamp + 1000);
+        rca.endsAt = uint64(block.timestamp + 2000);
+        rca.payer = address(0x123);
+        rca.dataService = address(0x456);
+        rca.serviceProvider = address(0x789);
+        rca.maxInitialTokens = 0; // No initial tokens to keep calculation simple
+        rca.maxOngoingTokensPerSecond = 1 ether; // 1 token per second
+        rca.minSecondsPerCollection = 60; // 1 minute
+        rca.maxSecondsPerCollection = 3600; // 1 hour
+        rca.nonce = 1;
+        rca.metadata = "";
+
+        // Accept the agreement
+        _recurringCollectorHelper.authorizeSignerWithChecks(rca.payer, 1);
+        IRecurringCollector.SignedRCA memory signedRCA = _recurringCollectorHelper.generateSignedRCA(rca, 1);
+        bytes16 agreementId = _accept(signedRCA);
+
+        // Do a first collection to use up initial tokens allowance
+        skip(rca.minSecondsPerCollection);
+        IRecurringCollector.CollectParams memory firstCollection = IRecurringCollector.CollectParams({
+            agreementId: agreementId,
+            collectionId: keccak256("first"),
+            tokens: 1 ether, // Small amount
+            dataServiceCut: 0,
+            receiverDestination: rca.serviceProvider,
+            maxSlippage: type(uint256).max
+        });
+        vm.prank(rca.dataService);
+        _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, _generateCollectData(firstCollection));
+
+        // Wait minimum collection time again for second collection
+        skip(rca.minSecondsPerCollection);
+
+        // Calculate expected narrowing: max allowed is 60 tokens (60 seconds * 1 token/second)
+        uint256 maxAllowed = rca.maxOngoingTokensPerSecond * rca.minSecondsPerCollection; // 60 tokens
+        uint256 requested = maxAllowed + 50 ether; // Request 110 tokens (will be narrowed to 60)
+
+        // Create collect params with slippage disabled (type(uint256).max)
+        IRecurringCollector.CollectParams memory collectParams = IRecurringCollector.CollectParams({
+            agreementId: agreementId,
+            collectionId: keccak256("test"),
+            tokens: requested,
+            dataServiceCut: 0,
+            receiverDestination: rca.serviceProvider,
+            maxSlippage: type(uint256).max
+        });
+
+        bytes memory data = _generateCollectData(collectParams);
+
+        // Should succeed despite slippage when maxSlippage is disabled
+        _expectCollectCallAndEmit(
+            rca,
+            agreementId,
+            IGraphPayments.PaymentTypes.IndexingFee,
+            collectParams,
+            maxAllowed // Will collect the narrowed amount
+        );
+
+        vm.prank(rca.dataService);
+        uint256 collected = _recurringCollector.collect(IGraphPayments.PaymentTypes.IndexingFee, data);
+        assertEq(collected, maxAllowed);
     }
     /* solhint-enable graph/func-name-mixedcase */
 }

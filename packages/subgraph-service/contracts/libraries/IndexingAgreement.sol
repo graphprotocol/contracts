@@ -96,12 +96,14 @@ library IndexingAgreement {
      * @param poi The proof of indexing (POI)
      * @param poiBlockNumber The block number of the POI
      * @param metadata Additional metadata associated with the collection
+     * @param maxSlippage Max acceptable tokens to lose due to rate limiting, or type(uint256).max to ignore
      */
     struct CollectIndexingFeeDataV1 {
         uint256 entities;
         bytes32 poi;
         uint256 poiBlockNumber;
         bytes metadata;
+        uint256 maxSlippage;
     }
 
     /**
@@ -565,7 +567,8 @@ library IndexingAgreement {
                     collectionId: bytes32(uint256(uint160(wrapper.agreement.allocationId))),
                     tokens: expectedTokens,
                     dataServiceCut: 0,
-                    receiverDestination: params.receiverDestination
+                    receiverDestination: params.receiverDestination,
+                    maxSlippage: data.maxSlippage
                 })
             )
         );

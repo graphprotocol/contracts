@@ -233,7 +233,8 @@ contract RecurringCollectorSharedTest is Test, Bounder {
                 collectionId: _collectionId,
                 tokens: _tokens,
                 dataServiceCut: _dataServiceCut,
-                receiverDestination: _rca.serviceProvider
+                receiverDestination: _rca.serviceProvider,
+                maxSlippage: type(uint256).max
             });
     }
 

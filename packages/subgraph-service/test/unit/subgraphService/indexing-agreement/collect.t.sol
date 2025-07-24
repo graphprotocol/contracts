@@ -45,7 +45,8 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
                 collectionId: bytes32(uint256(uint160(indexerState.allocationId))),
                 tokens: 0,
                 dataServiceCut: 0,
-                receiverDestination: indexerState.addr
+                receiverDestination: indexerState.addr,
+                maxSlippage: type(uint256).max
             })
         );
         uint256 tokensCollected = bound(unboundedTokensCollected, 1, indexerState.tokens / stakeToFeesRatio);

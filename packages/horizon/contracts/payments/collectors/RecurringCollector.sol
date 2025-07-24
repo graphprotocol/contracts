@@ -336,6 +336,12 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         if (_params.tokens != 0) {
             tokensToCollect = _requireValidCollect(agreement, _params.agreementId, _params.tokens, collectionSeconds);
 
+            uint256 slippage = _params.tokens - tokensToCollect;
+            require(
+                slippage <= _params.maxSlippage,
+                RecurringCollectorExcessiveSlippage(_params.tokens, tokensToCollect, _params.maxSlippage)
+            );
+
             _graphPaymentsEscrow().collect(
                 _paymentType,
                 agreement.payer,

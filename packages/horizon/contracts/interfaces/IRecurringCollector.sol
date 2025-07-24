@@ -147,6 +147,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param tokens The amount of tokens to collect
      * @param dataServiceCut The data service cut in parts per million
      * @param receiverDestination The address where the collected fees should be sent
+     * @param maxSlippage Max acceptable tokens to lose due to rate limiting, or type(uint256).max to ignore
      */
     struct CollectParams {
         bytes16 agreementId;
@@ -154,6 +155,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         uint256 tokens;
         uint256 dataServiceCut;
         address receiverDestination;
+        uint256 maxSlippage;
     }
 
     /**
@@ -368,6 +370,14 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param provided The provided nonce
      */
     error RecurringCollectorInvalidUpdateNonce(bytes16 agreementId, uint32 expected, uint32 provided);
+
+    /**
+     * @notice Thrown when collected tokens are less than requested beyond the allowed slippage
+     * @param requested The amount of tokens requested to collect
+     * @param actual The actual amount that would be collected
+     * @param maxSlippage The maximum allowed slippage
+     */
+    error RecurringCollectorExcessiveSlippage(uint256 requested, uint256 actual, uint256 maxSlippage);
 
     /**
      * @dev Accept an indexing agreement.

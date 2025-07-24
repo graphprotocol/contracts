@@ -392,7 +392,8 @@ contract SubgraphServiceIndexingAgreementSharedTest is SubgraphServiceTest, Boun
                     entities: _entities,
                     poi: _poi,
                     poiBlockNumber: _poiBlock,
-                    metadata: _metadata
+                    metadata: _metadata,
+                    maxSlippage: type(uint256).max
                 })
             );
     }
