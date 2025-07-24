@@ -450,10 +450,10 @@ library IndexingAgreement {
      *
      * @param self The indexing agreement storage manager
      * @param _allocationId The allocation ID
-     * @param stale Whether the allocation is stale or not
+     * @param forceClosed Whether the allocation was force closed
      *
      */
-    function onCloseAllocation(StorageManager storage self, address _allocationId, bool stale) external {
+    function onCloseAllocation(StorageManager storage self, address _allocationId, bool forceClosed) external {
         bytes16 agreementId = self.allocationToActiveAgreementId[_allocationId];
         if (agreementId == bytes16(0)) {
             return;
@@ -469,7 +469,7 @@ library IndexingAgreement {
             agreementId,
             wrapper.agreement,
             wrapper.collectorAgreement,
-            stale
+            forceClosed
                 ? IRecurringCollector.CancelAgreementBy.ThirdParty
                 : IRecurringCollector.CancelAgreementBy.ServiceProvider
         );

@@ -131,7 +131,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param _poiMetadata The metadata associated with the POI. The data and encoding format is for off-chain components to define, this function will only emit the value in an event as-is.
      * @param _delegationRatio The delegation ratio to consider when locking tokens
      * @param _paymentsDestination The address where indexing rewards should be sent
-     * @return The amount of tokens collected
+     * @return tokensCollected The amount of tokens collected
+     * @return allocationForceClosed True if the allocation was automatically closed due to over-allocation, false otherwise
      */
     function _presentPOI(
         address _allocationId,
@@ -139,7 +140,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
         bytes memory _poiMetadata,
         uint32 _delegationRatio,
         address _paymentsDestination
-    ) internal returns (uint256) {
+    ) internal returns (uint256, bool) {
         return
             AllocationHandler.presentPOI(
                 _allocations,

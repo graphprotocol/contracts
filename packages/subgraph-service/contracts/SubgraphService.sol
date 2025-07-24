@@ -574,10 +574,10 @@ contract SubgraphService is
      * @notice Internal function to handle closing an allocation
      * @dev This function is called when an allocation is closed, either by the indexer or by a third party
      * @param _allocationId The id of the allocation being closed
-     * @param _stale Whether the allocation is stale or not
+     * @param _forceClosed Whether the allocation was force closed
      */
-    function _onCloseAllocation(address _allocationId, bool _stale) internal {
-        IndexingAgreement._getStorageManager().onCloseAllocation(_allocationId, _stale);
+    function _onCloseAllocation(address _allocationId, bool _forceClosed) internal {
+        IndexingAgreement._getStorageManager().onCloseAllocation(_allocationId, _forceClosed);
     }
 
     /**
@@ -738,7 +738,20 @@ contract SubgraphService is
             _allocations.get(allocationId).indexer == _indexer,
             SubgraphServiceAllocationNotAuthorized(_indexer, allocationId)
         );
-        return _presentPOI(allocationId, poi_, poiMetadata_, _delegationRatio, paymentsDestination[_indexer]);
+
+        (uint256 paymentCollected, bool allocationForceClosed) = _presentPOI(
+            allocationId,
+            poi_,
+            poiMetadata_,
+            _delegationRatio,
+            paymentsDestination[_indexer]
+        );
+
+        if (allocationForceClosed) {
+            _onCloseAllocation(allocationId, true);
+        }
+
+        return paymentCollected;
     }
 
     /**

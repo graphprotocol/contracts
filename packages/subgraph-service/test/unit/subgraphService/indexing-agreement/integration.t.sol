@@ -101,6 +101,35 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         _sharedAssert(beforeCollect, afterCollect, expectedTokens, tokensCollected);
     }
 
+    function test_SubgraphService_CollectIndexingRewards_CancelsAgreementWhenOverAllocated_Integration(
+        Seed memory seed
+    ) public {
+        // Setup context and indexer with active agreement
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+        (, bytes16 agreementId) = _withAcceptedIndexingAgreement(ctx, indexerState);
+
+        // Reduce indexer's provision to force over-allocation after collecting rewards
+        uint256 extraTokens = indexerState.tokens - minimumProvisionTokens;
+        vm.assume(extraTokens > 0);
+        _removeTokensFromProvision(indexerState, extraTokens);
+
+        // Verify indexer will be over-allocated after presenting POI
+        assertTrue(subgraphService.isOverAllocated(indexerState.addr));
+
+        // Collect indexing rewards - this should trigger allocation closure and agreement cancellation
+        bytes memory collectData = abi.encode(indexerState.allocationId, bytes32("poi"), bytes("metadata"));
+        resetPrank(indexerState.addr);
+        subgraphService.collect(indexerState.addr, IGraphPayments.PaymentTypes.IndexingRewards, collectData);
+
+        // Verify the indexing agreement was properly cancelled
+        IndexingAgreement.AgreementWrapper memory agreement = subgraphService.getIndexingAgreement(agreementId);
+        assertEq(
+            uint8(agreement.collectorAgreement.state),
+            uint8(IRecurringCollector.AgreementState.CanceledByServiceProvider)
+        );
+    }
+
     /* solhint-enable graph/func-name-mixedcase */
 
     function _sharedSetup(
@@ -195,10 +224,17 @@ contract SubgraphServiceIndexingAgreementIntegrationTest is SubgraphServiceIndex
         );
     }
 
-    function _addTokensToProvision(IndexerState memory _indexerState, uint256 _tokensToAddToProvision) private {
-        deal({ token: address(token), to: _indexerState.addr, give: _tokensToAddToProvision });
+    function _addTokensToProvision(IndexerState memory _indexerState, uint256 _tokens) private {
+        deal({ token: address(token), to: _indexerState.addr, give: _tokens });
         vm.startPrank(_indexerState.addr);
-        _addToProvision(_indexerState.addr, _tokensToAddToProvision);
+        _addToProvision(_indexerState.addr, _tokens);
+        vm.stopPrank();
+    }
+
+    function _removeTokensFromProvision(IndexerState memory _indexerState, uint256 _tokens) private {
+        deal({ token: address(token), to: _indexerState.addr, give: _tokens });
+        vm.startPrank(_indexerState.addr);
+        _removeFromProvision(_indexerState.addr, _tokens);
         vm.stopPrank();
     }
 

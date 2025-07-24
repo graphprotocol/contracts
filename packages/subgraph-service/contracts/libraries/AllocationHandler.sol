@@ -281,14 +281,15 @@ library AllocationHandler {
      * @param allocationProvisionTracker The mapping of indexers to their locked tokens
      * @param _subgraphAllocatedTokens The mapping of subgraph deployment ids to their allocated tokens
      * @param params The parameters for the POI presentation
-     * @return The amount of tokens collected
+     * @return tokensCollected The amount of tokens collected
+     * @return allocationForceClosed True if the allocation was automatically closed due to over-allocation, false otherwise
      */
     function presentPOI(
         mapping(address allocationId => Allocation.State allocation) storage _allocations,
         mapping(address indexer => uint256 tokens) storage allocationProvisionTracker,
         mapping(bytes32 subgraphDeploymentId => uint256 tokens) storage _subgraphAllocatedTokens,
         PresentParams memory params
-    ) external returns (uint256) {
+    ) external returns (uint256, bool) {
         Allocation.State memory allocation = _allocations.get(params._allocationId);
         require(allocation.isOpen(), AllocationHandler.AllocationHandlerAllocationClosed(params._allocationId));
 
@@ -358,6 +359,7 @@ library AllocationHandler {
         );
 
         // Check if the indexer is over-allocated and force close the allocation if necessary
+        bool allocationForceClosed;
         if (
             _isOverAllocated(
                 allocationProvisionTracker,
@@ -366,6 +368,7 @@ library AllocationHandler {
                 params._delegationRatio
             )
         ) {
+            allocationForceClosed = true;
             _closeAllocation(
                 _allocations,
                 allocationProvisionTracker,
@@ -376,7 +379,7 @@ library AllocationHandler {
             );
         }
 
-        return tokensRewards;
+        return (tokensRewards, allocationForceClosed);
     }
 
     /**
