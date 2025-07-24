@@ -275,7 +275,7 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
 
         bytes memory expectedErr = abi.encodeWithSelector(
             IndexingAgreementDecoder.IndexingAgreementDecoderInvalidData.selector,
-            "decodeCollectIndexingFeeData",
+            "decodeIndexingAgreementTermsV1",
             invalidTermsData
         );
         vm.expectRevert(expectedErr);

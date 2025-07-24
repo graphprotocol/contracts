@@ -71,7 +71,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /**
      * @inheritdoc IRecurringCollector
-     * @notice Accept an indexing agreement.
+     * @notice Accept a Recurring Collection Agreement.
      * See {IRecurringCollector.accept}.
      * @dev Caller must be the data service the RCA was issued to.
      */
@@ -148,7 +148,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /**
      * @inheritdoc IRecurringCollector
-     * @notice Cancel an indexing agreement.
+     * @notice Cancel a Recurring Collection Agreement.
      * See {IRecurringCollector.cancel}.
      * @dev Caller must be the data service for the agreement.
      */
@@ -181,7 +181,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
 
     /**
      * @inheritdoc IRecurringCollector
-     * @notice Update an indexing agreement.
+     * @notice Update a Recurring Collection Agreement.
      * See {IRecurringCollector.update}.
      * @dev Caller must be the data service for the agreement.
      * @dev Note: Updated pricing terms apply immediately and will affect the next collection

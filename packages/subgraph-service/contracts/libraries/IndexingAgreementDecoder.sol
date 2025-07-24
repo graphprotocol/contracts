@@ -95,7 +95,7 @@ library IndexingAgreementDecoder {
         ) {
             return decoded;
         } catch {
-            revert IndexingAgreementDecoderInvalidData("decodeCollectIndexingFeeData", data);
+            revert IndexingAgreementDecoderInvalidData("decodeIndexingAgreementTermsV1", data);
         }
     }
 }
