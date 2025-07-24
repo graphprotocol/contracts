@@ -390,8 +390,7 @@ library IndexingAgreement {
             signedRCAU.rcau.metadata
         );
 
-        wrapper.agreement.version = metadata.version;
-
+        require(wrapper.agreement.version == IndexingAgreementVersion.V1, "internal: invalid version");
         require(metadata.version == IndexingAgreementVersion.V1, IndexingAgreementInvalidVersion(metadata.version));
         _setTermsV1(self, signedRCAU.rcau.agreementId, metadata.terms);
 

@@ -226,7 +226,38 @@ contract SubgraphServiceIndexingAgreementAcceptTest is SubgraphServiceIndexingAg
         subgraphService.acceptIndexingAgreement(ctx.indexers[0].allocationId, accepted);
     }
 
-    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAllocated() public {}
+    function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenAgreementAlreadyAllocated(
+        Seed memory seed,
+        uint256 alternativeNonce
+    ) public {
+        Context storage ctx = _newCtx(seed);
+        IndexerState memory indexerState = _withIndexer(ctx);
+
+        // First, accept an indexing agreement on the allocation
+        (IRecurringCollector.SignedRCA memory accepted, ) = _withAcceptedIndexingAgreement(ctx, indexerState);
+        vm.assume(accepted.rca.nonce != alternativeNonce);
+
+        // Now try to accept a different agreement on the same allocation
+        // Create a new agreement with different nonce to ensure different agreement ID
+        IRecurringCollector.RecurringCollectionAgreement
+            memory newRCA = _generateAcceptableRecurringCollectionAgreement(ctx, indexerState.addr);
+        newRCA.nonce = alternativeNonce; // Different nonce to ensure different agreement ID
+
+        // Sign the new agreement
+        IRecurringCollector.SignedRCA memory newSignedRCA = _recurringCollectorHelper.generateSignedRCA(
+            newRCA,
+            ctx.payer.signerPrivateKey
+        );
+
+        // Expect the error when trying to accept a second agreement on the same allocation
+        bytes memory expectedErr = abi.encodeWithSelector(
+            IndexingAgreement.AllocationAlreadyHasIndexingAgreement.selector,
+            indexerState.allocationId
+        );
+        vm.expectRevert(expectedErr);
+        resetPrank(indexerState.addr);
+        subgraphService.acceptIndexingAgreement(indexerState.allocationId, newSignedRCA);
+    }
 
     function test_SubgraphService_AcceptIndexingAgreement_Revert_WhenInvalidTermsData(Seed memory seed) public {
         Context storage ctx = _newCtx(seed);
