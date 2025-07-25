@@ -24,8 +24,8 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
-    "@commitlint/cli": "19.8.1",
-    "@commitlint/config-conventional": "19.8.1",
+    "@commitlint/cli": "^16.2.1",
+    "@commitlint/config-conventional": "^16.2.1",
     "@defi-wonderland/natspec-smells": "^1.1.6",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.28.0",
