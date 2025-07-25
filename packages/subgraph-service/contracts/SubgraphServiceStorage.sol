@@ -21,4 +21,7 @@ abstract contract SubgraphServiceV1Storage {
 
     /// @notice Destination of indexer payments
     mapping(address indexer => address destination) public paymentsDestination;
+
+    /// @notice The cut data service takes from indexing fee payments. In PPM.
+    uint256 public indexingFeesCut;
 }

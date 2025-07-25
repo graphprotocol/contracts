@@ -70,10 +70,22 @@ interface ISubgraphService is IDataServiceFees {
     event CurationCutSet(uint256 curationCut);
 
     /**
+     * @notice Emitted when indexing fees cut is set
+     * @param indexingFeesCut The indexing fees cut
+     */
+    event IndexingFeesCutSet(uint256 indexingFeesCut);
+
+    /**
      * @notice Thrown when trying to set a curation cut that is not a valid PPM value
      * @param curationCut The curation cut value
      */
     error SubgraphServiceInvalidCurationCut(uint256 curationCut);
+
+    /**
+     * @notice Thrown when trying to set an indexing fees cut that is not a valid PPM value
+     * @param indexingFeesCut The indexing fees cut value
+     */
+    error SubgraphServiceInvalidIndexingFeesCut(uint256 indexingFeesCut);
 
     /**
      * @notice Thrown when an indexer tries to register with an empty URL
@@ -251,6 +263,13 @@ interface ISubgraphService is IDataServiceFees {
      * @param curationCut The curation cut for the payment type
      */
     function setCurationCut(uint256 curationCut) external;
+
+    /**
+     * @notice Sets the data service payment cut for indexing fees
+     * @dev Emits a {IndexingFeesCutSet} event
+     * @param indexingFeesCut The indexing fees cut for the payment type
+     */
+    function setIndexingFeesCut(uint256 indexingFeesCut) external;
 
     /**
      * @notice Sets the payments destination for an indexer to receive payments

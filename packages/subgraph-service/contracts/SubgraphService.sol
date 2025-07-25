@@ -398,6 +398,13 @@ contract SubgraphService is
         emit CurationCutSet(curationCut);
     }
 
+    /// @inheritdoc ISubgraphService
+    function setIndexingFeesCut(uint256 indexingFeesCut_) external override onlyOwner {
+        require(PPMMath.isValidPPM(indexingFeesCut_), SubgraphServiceInvalidIndexingFeesCut(indexingFeesCut_));
+        indexingFeesCut = indexingFeesCut_;
+        emit IndexingFeesCutSet(indexingFeesCut_);
+    }
+
     /**
      * @inheritdoc ISubgraphService
      * @notice Accept an indexing agreement.
@@ -793,7 +800,8 @@ contract SubgraphService is
                 agreementId: _agreementId,
                 currentEpoch: _graphEpochManager().currentEpoch(),
                 receiverDestination: _paymentsDestination,
-                data: _data
+                data: _data,
+                indexingFeesCut: indexingFeesCut
             })
         );
 

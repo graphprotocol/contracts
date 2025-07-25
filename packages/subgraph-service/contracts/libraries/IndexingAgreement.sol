@@ -80,6 +80,7 @@ library IndexingAgreement {
      * @param currentEpoch The current epoch
      * @param receiverDestination The address where the collected fees should be sent
      * @param data The encoded data containing the number of entities indexed, proof of indexing, and epoch
+     * @param indexingFeesCut The indexing fees cut in PPM
      */
     struct CollectParams {
         address indexer;
@@ -87,6 +88,7 @@ library IndexingAgreement {
         uint256 currentEpoch;
         address receiverDestination;
         bytes data;
+        uint256 indexingFeesCut;
     }
 
     /**
@@ -577,7 +579,7 @@ library IndexingAgreement {
                     agreementId: params.agreementId,
                     collectionId: bytes32(uint256(uint160(wrapper.agreement.allocationId))),
                     tokens: expectedTokens,
-                    dataServiceCut: 0,
+                    dataServiceCut: params.indexingFeesCut,
                     receiverDestination: params.receiverDestination,
                     maxSlippage: data.maxSlippage
                 })
