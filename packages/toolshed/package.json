@@ -50,7 +50,9 @@
     "horizon"
   ],
   "dependencies": {
+    "@graphprotocol/horizon": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/subgraph-service": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "3.0.8",
     "debug": "^4.4.0",
     "ethers": "6.13.7",
