@@ -1168,14 +1168,14 @@ importers:
   packages/toolshed:
     dependencies:
       '@graphprotocol/horizon':
-        specifier: workspace:^
-        version: link:../horizon
+        specifier: '*'
+        version: 0.4.1
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
       '@graphprotocol/subgraph-service':
-        specifier: workspace:^
-        version: link:../subgraph-service
+        specifier: '*'
+        version: 0.4.1
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.0.8
         version: 3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.25.0(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.6)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@5.0.10))
@@ -2578,12 +2578,18 @@ packages:
   '@graphprotocol/contracts@7.2.1':
     resolution: {integrity: sha512-Ge2RD5QoEeSabCzdlMG3DT1mdsTGaD3aqxDsxRWwDx9nejudkrTlhjTTRAGVtBkfxlEy7P4Kxejr+fZmK29yRg==}
 
+  '@graphprotocol/horizon@0.4.1':
+    resolution: {integrity: sha512-YC/HVmWuCkfembwVQbPEY9NEDNsPsuHxnBMCThB1nAyai9I0Ad/nKnHZ+9baFmq5Sg1YwXxDG7Nc4SQJlgZD2g==}
+
   '@graphprotocol/pino-sentry-simple@0.7.1':
     resolution: {integrity: sha512-iccKFdFBjarSp8/liXuK1EtGq8Vwn118tqymbOJBxblecRsi4rOebk63qnL+dK/a0IvxH6h2+RjjWDbRt7UsUA==}
     engines: {node: '>=10'}
 
   '@graphprotocol/sdk@0.6.0':
     resolution: {integrity: sha512-oZGzUNFvZZ5MVsBvKXE0IzVBMzQ6Rxp9L3eCSeeOvHxQD7fUTFwbNr3SsGQagQlo3axLemAvK1hrl+aB5DlZIA==}
+
+  '@graphprotocol/subgraph-service@0.4.1':
+    resolution: {integrity: sha512-vJA9lzlNQr4IRDPAbUiXM1ybizB4GzI0B1bndvB2X00ecTOWQQCiDl0W/qlApQ86+YXMjU2g90Db23ldqVOvyQ==}
 
   '@graphql-codegen/core@3.1.0':
     resolution: {integrity: sha512-DH1/yaR7oJE6/B+c6ZF2Tbdh7LixF1K8L+8BoSubjNyQ8pNwR4a70mvc1sv6H7qgp6y1bPQ9tKE+aazRRshysw==}
@@ -14630,6 +14636,8 @@ snapshots:
 
   '@graphprotocol/contracts@7.2.1': {}
 
+  '@graphprotocol/horizon@0.4.1': {}
+
   '@graphprotocol/pino-sentry-simple@0.7.1':
     dependencies:
       '@sentry/node': 5.30.0
@@ -14671,6 +14679,8 @@ snapshots:
       - ts-node
       - typescript
       - utf-8-validate
+
+  '@graphprotocol/subgraph-service@0.4.1': {}
 
   '@graphql-codegen/core@3.1.0(graphql@16.11.0)':
     dependencies:
