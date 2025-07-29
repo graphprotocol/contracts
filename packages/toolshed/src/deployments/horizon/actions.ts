@@ -1,6 +1,6 @@
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
-import type { GraphHorizonContracts } from '.'
+import type { GraphHorizonContracts } from './contracts'
 
 /**
  * It's important to use JSDoc in the return functions here for good developer experience as

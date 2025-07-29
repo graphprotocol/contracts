@@ -50,6 +50,7 @@
     "horizon"
   ],
   "dependencies": {
+    "@graphprotocol/address-book": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "3.0.8",
     "debug": "^4.4.0",

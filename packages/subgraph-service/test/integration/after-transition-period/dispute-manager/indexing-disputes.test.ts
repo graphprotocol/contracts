@@ -72,7 +72,8 @@ describe('Indexing Disputes', () => {
       await graphToken.connect(fisherman).approve(disputeManager.target, disputeDeposit)
 
       // Create dispute
-      const tx = await disputeManager.connect(fisherman).createIndexingDispute(allocationId, poi)
+      const currentBlockNumber = await ethers.provider.getBlockNumber()
+      const tx = await disputeManager.connect(fisherman).createIndexingDispute(allocationId, poi, currentBlockNumber)
       const receipt = await tx.wait()
 
       // Get dispute ID from event
@@ -97,7 +98,8 @@ describe('Indexing Disputes', () => {
       await graphToken.connect(fisherman).approve(disputeManager.target, disputeDeposit)
 
       // Create dispute
-      const tx = await disputeManager.connect(fisherman).createIndexingDispute(allocationId, poi)
+      const currentBlockNumber = await ethers.provider.getBlockNumber()
+      const tx = await disputeManager.connect(fisherman).createIndexingDispute(allocationId, poi, currentBlockNumber)
       const receipt = await tx.wait()
 
       // Get dispute ID from event
@@ -138,7 +140,8 @@ describe('Indexing Disputes', () => {
 
       // Create dispute
       const poi = generatePOI()
-      const tx = await disputeManager.connect(fisherman).createIndexingDispute(allocationId, poi)
+      const currentBlockNumber = await ethers.provider.getBlockNumber()
+      const tx = await disputeManager.connect(fisherman).createIndexingDispute(allocationId, poi, currentBlockNumber)
       const receipt = await tx.wait()
 
       // Get dispute ID from event

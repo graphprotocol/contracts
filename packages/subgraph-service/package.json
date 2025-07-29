@@ -15,8 +15,7 @@
   "files": [
     "build/contracts/**/*",
     "typechain-types/**/*",
-    "README.md",
-    "addresses.json"
+    "README.md"
   ],
   "scripts": {
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:json",
