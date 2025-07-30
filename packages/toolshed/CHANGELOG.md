@@ -1,5 +1,12 @@
 # @graphprotocol/toolshed
 
+## 0.6.9
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/address-book@0.2.0
+
 ## 0.6.8
 
 ### Patch Changes
