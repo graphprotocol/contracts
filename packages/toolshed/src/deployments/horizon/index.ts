@@ -19,7 +19,8 @@ export function loadGraphHorizon(addressBookPath: string, chainId: number, provi
 }
 
 export function connectGraphHorizon(chainId: number, signerOrProvider: Signer | Provider, addressBookPath?: string) {
-  addressBookPath = addressBookPath ?? resolveAddressBook(require, '@graphprotocol/horizon', 'addresses.json')
+  addressBookPath =
+    addressBookPath ?? resolveAddressBook(require, '@graphprotocol/address-book', 'horizon/addresses.json')
   if (!addressBookPath) {
     throw new Error('Address book path not found')
   }
