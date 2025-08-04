@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.5.2
+
+### Patch Changes
+
+- fix: add missing nextAccountSeqID and multicall to IL2GNSToolshed interface
+
 ## 0.5.1
 
 ### Patch Changes
