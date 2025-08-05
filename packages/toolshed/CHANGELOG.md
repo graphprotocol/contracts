@@ -1,5 +1,11 @@
 # @graphprotocol/toolshed
 
+## 0.6.10
+
+### Patch Changes
+
+- Fixing release bug where dependency uses workspace nomenclature
+
 ## 0.6.9
 
 ### Patch Changes
