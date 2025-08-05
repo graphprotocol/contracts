@@ -87,18 +87,26 @@ export const networksUserConfig = function (callerRequire: typeof require): Base
         mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
       },
       deployments: {
-        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-hardhat.json'),
-        subgraphService: resolveAddressBook(callerRequire, '@graphprotocol/subgraph-service', 'addresses-hardhat.json'),
+        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon/addresses.json', 'addresses-hardhat.json'),
+        subgraphService: resolveAddressBook(
+          callerRequire,
+          '@graphprotocol/subgraph-service/addresses.json',
+          'addresses-hardhat.json',
+        ),
       },
     },
     localNetwork: {
       chainId: 1337,
       url: LOCAL_NETWORK_RPC,
       deployments: {
-        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-local-network.json'),
+        horizon: resolveAddressBook(
+          callerRequire,
+          '@graphprotocol/horizon/addresses.json',
+          'addresses-local-network.json',
+        ),
         subgraphService: resolveAddressBook(
           callerRequire,
-          '@graphprotocol/subgraph-service',
+          '@graphprotocol/subgraph-service/addresses.json',
           'addresses-local-network.json',
         ),
       },
@@ -110,10 +118,10 @@ export const networksUserConfig = function (callerRequire: typeof require): Base
         enabled: true,
       },
       deployments: {
-        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon', 'addresses-localhost.json'),
+        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon/addresses.json', 'addresses-localhost.json'),
         subgraphService: resolveAddressBook(
           callerRequire,
-          '@graphprotocol/subgraph-service',
+          '@graphprotocol/subgraph-service/addresses.json',
           'addresses-localhost.json',
         ),
       },
@@ -148,8 +156,8 @@ export const hardhatBaseConfig = function (callerRequire: typeof require): BaseH
     networks: networksUserConfig(callerRequire),
     graph: {
       deployments: {
-        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon'),
-        subgraphService: resolveAddressBook(callerRequire, '@graphprotocol/subgraph-service'),
+        horizon: resolveAddressBook(callerRequire, '@graphprotocol/horizon/addresses.json'),
+        subgraphService: resolveAddressBook(callerRequire, '@graphprotocol/subgraph-service/addresses.json'),
       },
     },
     etherscan: etherscanUserConfig,
