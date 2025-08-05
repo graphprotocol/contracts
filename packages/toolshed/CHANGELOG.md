@@ -1,5 +1,11 @@
 # @graphprotocol/toolshed
 
+## 0.6.11
+
+### Patch Changes
+
+- Fix address book path resolution in toolshed
+
 ## 0.6.10
 
 ### Patch Changes
