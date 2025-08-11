@@ -269,7 +269,7 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     /// @inheritdoc IRecurringCollector
     function getCollectionInfo(
         AgreementData memory agreement
-    ) external view returns (bool isCollectable, uint256 collectionSeconds) {
+    ) external view returns (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason) {
         return _getCollectionInfo(agreement);
     }
 
@@ -309,14 +309,11 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
     ) private returns (uint256) {
         AgreementData storage agreement = _getAgreementStorage(_params.agreementId);
 
-        // Check if agreement exists first (for unknown agreements)
-        (bool isCollectable, uint256 collectionSeconds) = _getCollectionInfo(agreement);
-        require(isCollectable, RecurringCollectorAgreementIncorrectState(_params.agreementId, agreement.state));
-
-        require(
-            collectionSeconds > 0,
-            RecurringCollectorZeroCollectionSeconds(_params.agreementId, block.timestamp, agreement.lastCollectionAt)
+        // Check if agreement is collectable first
+        (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason) = _getCollectionInfo(
+            agreement
         );
+        require(isCollectable, RecurringCollectorAgreementNotCollectable(_params.agreementId, reason));
 
         require(
             msg.sender == agreement.dataService,
@@ -583,17 +580,17 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
      * @param _agreement The agreement data
      * @return isCollectable Whether the agreement can be collected from
      * @return collectionSeconds The valid collection duration in seconds (0 if not collectable)
+     * @return reason The reason why the agreement is not collectable (None if collectable)
      */
     function _getCollectionInfo(
         AgreementData memory _agreement
-    ) private view returns (bool isCollectable, uint256 collectionSeconds) {
+    ) private view returns (bool, uint256, AgreementNotCollectableReason) {
         // Check if agreement is in collectable state
-        isCollectable =
-            _agreement.state == AgreementState.Accepted ||
+        bool hasValidState = _agreement.state == AgreementState.Accepted ||
             _agreement.state == AgreementState.CanceledByPayer;
 
-        if (!isCollectable) {
-            return (false, 0);
+        if (!hasValidState) {
+            return (false, 0, AgreementNotCollectableReason.InvalidAgreementState);
         }
 
         bool canceledOrElapsed = _agreement.state == AgreementState.CanceledByPayer ||
@@ -606,11 +603,14 @@ contract RecurringCollector is EIP712, GraphDirectory, Authorizable, IRecurringC
         uint256 collectionStart = _agreementCollectionStartAt(_agreement);
 
         if (collectionEnd < collectionStart) {
-            return (false, 0);
+            return (false, 0, AgreementNotCollectableReason.InvalidTemporalWindow);
         }
 
-        collectionSeconds = collectionEnd - collectionStart;
-        return (isCollectable, collectionSeconds);
+        if (collectionStart == collectionEnd) {
+            return (false, 0, AgreementNotCollectableReason.ZeroCollectionSeconds);
+        }
+
+        return (true, collectionEnd - collectionStart, AgreementNotCollectableReason.None);
     }
 
     /**

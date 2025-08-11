@@ -90,9 +90,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(fuzzy.collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+            IRecurringCollector.RecurringCollectorAgreementNotCollectable.selector,
             fuzzy.collectParams.agreementId,
-            IRecurringCollector.AgreementState.NotAccepted
+            IRecurringCollector.AgreementNotCollectableReason.InvalidAgreementState
         );
         vm.expectRevert(expectedErr);
         vm.prank(dataService);
@@ -116,9 +116,9 @@ contract RecurringCollectorCollectTest is RecurringCollectorSharedTest {
         bytes memory data = _generateCollectData(collectParams);
 
         bytes memory expectedErr = abi.encodeWithSelector(
-            IRecurringCollector.RecurringCollectorAgreementIncorrectState.selector,
+            IRecurringCollector.RecurringCollectorAgreementNotCollectable.selector,
             collectParams.agreementId,
-            IRecurringCollector.AgreementState.CanceledByServiceProvider
+            IRecurringCollector.AgreementNotCollectableReason.InvalidAgreementState
         );
         vm.expectRevert(expectedErr);
         vm.prank(accepted.rca.dataService);

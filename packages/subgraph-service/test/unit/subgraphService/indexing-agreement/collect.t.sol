@@ -58,6 +58,8 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
         );
         _expectCollectCallAndEmit(data, indexerState, accepted, acceptedAgreementId, tokensCollected, entities, poi);
 
+        skip(1); // To make agreement collectable
+
         subgraphService.collect(
             indexerState.addr,
             IGraphPayments.PaymentTypes.IndexingFee,
@@ -214,6 +216,8 @@ contract SubgraphServiceIndexingAgreementCollectTest is SubgraphServiceIndexingA
             invalidNestedData
         );
         vm.expectRevert(expectedErr);
+
+        skip(1); // To make agreement collectable
 
         subgraphService.collect(
             indexerState.addr,

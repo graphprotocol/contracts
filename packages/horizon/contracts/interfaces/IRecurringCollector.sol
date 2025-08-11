@@ -28,6 +28,14 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
         ThirdParty
     }
 
+    /// @notice Reasons why an agreement is not collectable
+    enum AgreementNotCollectableReason {
+        None,
+        InvalidAgreementState,
+        ZeroCollectionSeconds,
+        InvalidTemporalWindow
+    }
+
     /**
      * @notice A representation of a signed Recurring Collection Agreement (RCA)
      * @param rca The Recurring Collection Agreement to be signed
@@ -304,6 +312,13 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorAgreementIncorrectState(bytes16 agreementId, AgreementState incorrectState);
 
     /**
+     * @notice Thrown when an agreement is not collectable
+     * @param agreementId The agreement ID
+     * @param reason The reason why the agreement is not collectable
+     */
+    error RecurringCollectorAgreementNotCollectable(bytes16 agreementId, AgreementNotCollectableReason reason);
+
+    /**
      * @notice Thrown when accepting an agreement with an address that is not set
      */
     error RecurringCollectorAgreementAddressNotSet();
@@ -440,10 +455,11 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @return isCollectable Whether the agreement is in a valid state that allows collection attempts,
      * not that there are necessarily funds available to collect.
      * @return collectionSeconds The valid collection duration in seconds (0 if not collectable)
+     * @return reason The reason why the agreement is not collectable (None if collectable)
      */
     function getCollectionInfo(
         AgreementData memory agreement
-    ) external view returns (bool isCollectable, uint256 collectionSeconds);
+    ) external view returns (bool isCollectable, uint256 collectionSeconds, AgreementNotCollectableReason reason);
 
     /**
      * @notice Generate a deterministic agreement ID from agreement parameters

@@ -554,7 +554,7 @@ library IndexingAgreement {
             IndexingAgreementNotAuthorized(params.agreementId, params.indexer)
         );
         // Get collection info from RecurringCollector (single source of truth for temporal logic)
-        (bool isCollectable, uint256 collectionSeconds) = _directory().recurringCollector().getCollectionInfo(
+        (bool isCollectable, uint256 collectionSeconds, ) = _directory().recurringCollector().getCollectionInfo(
             wrapper.collectorAgreement
         );
         require(_isValid(wrapper) && isCollectable, IndexingAgreementNotCollectable(params.agreementId));
