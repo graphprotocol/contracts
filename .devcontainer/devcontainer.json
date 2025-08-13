@@ -16,9 +16,12 @@
   },
   "postCreateCommand": ".devcontainer/project-setup.sh",
   "remoteUser": "vscode",
-  "workspaceFolder": "${localWorkspaceFolder}",
+  "workspaceFolder": "/work",
   "customizations": {
     "vscode": {
+      "settings": {
+        "terminal.integrated.cwd": "/work"
+      },
       "extensions": [
         "rust-lang.rust-analyzer",
         "tamasfe.even-better-toml",
@@ -35,7 +38,8 @@
         "streetsidesoftware.code-spell-checker",
         "Augment.vscode-augment",
         "NomicFoundation.hardhat-solidity",
-        "foundry-rs.foundry-vscode"
+        "foundry-rs.foundry-vscode",
+        "BlueGlassBlock.better-json5"
       ]
     }
   }
