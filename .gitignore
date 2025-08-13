@@ -7,6 +7,7 @@ node.log
 node_modules/
 forge-std/
 **/lib/forge-std/
+.pnpm-store/
 
 # Yarn
 .yarn/*
