@@ -3,12 +3,14 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./MathUtils.sol";
+import { MathUtils } from "./MathUtils.sol";
 
 /**
  * @title A collection of data structures and functions to manage the Indexer Stake state.
+ * @author Edge & Node
+ * @notice A collection of data structures and functions to manage the Indexer Stake state.
  *        Used for low-level state changes, require() conditions should be evaluated
  *        at the caller function scope.
  */
@@ -16,6 +18,13 @@ library Stakes {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
 
+    /**
+     * @dev Indexer stake data structure
+     * @param tokensStaked Tokens on the indexer stake (staked by the indexer)
+     * @param tokensAllocated Tokens used in allocations
+     * @param tokensLocked Tokens locked for withdrawal subject to thawing period
+     * @param tokensLockedUntil Block when locked tokens can be withdrawn
+     */
     struct Indexer {
         uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
         uint256 tokensAllocated; // Tokens used in allocations
@@ -24,7 +33,7 @@ library Stakes {
     }
 
     /**
-     * @dev Deposit tokens to the indexer stake.
+     * @notice Deposit tokens to the indexer stake.
      * @param stake Stake data
      * @param _tokens Amount of tokens to deposit
      */
@@ -33,7 +42,7 @@ library Stakes {
     }
 
     /**
-     * @dev Release tokens from the indexer stake.
+     * @notice Release tokens from the indexer stake.
      * @param stake Stake data
      * @param _tokens Amount of tokens to release
      */
@@ -42,7 +51,7 @@ library Stakes {
     }
 
     /**
-     * @dev Allocate tokens from the main stack to a SubgraphDeployment.
+     * @notice Allocate tokens from the main stack to a SubgraphDeployment.
      * @param stake Stake data
      * @param _tokens Amount of tokens to allocate
      */
@@ -51,7 +60,7 @@ library Stakes {
     }
 
     /**
-     * @dev Unallocate tokens from a SubgraphDeployment back to the main stack.
+     * @notice Unallocate tokens from a SubgraphDeployment back to the main stack.
      * @param stake Stake data
      * @param _tokens Amount of tokens to unallocate
      */
@@ -60,7 +69,7 @@ library Stakes {
     }
 
     /**
-     * @dev Lock tokens until a thawing period pass.
+     * @notice Lock tokens until a thawing period pass.
      * @param stake Stake data
      * @param _tokens Amount of tokens to unstake
      * @param _period Period in blocks that need to pass before withdrawal
@@ -83,9 +92,9 @@ library Stakes {
     }
 
     /**
-     * @dev Unlock tokens.
+     * @notice Unlock tokens.
      * @param stake Stake data
-     * @param _tokens Amount of tokens to unkock
+     * @param _tokens Amount of tokens to unlock
      */
     function unlockTokens(Stakes.Indexer storage stake, uint256 _tokens) internal {
         stake.tokensLocked = stake.tokensLocked.sub(_tokens);
@@ -95,7 +104,7 @@ library Stakes {
     }
 
     /**
-     * @dev Take all tokens out from the locked stake for withdrawal.
+     * @notice Take all tokens out from the locked stake for withdrawal.
      * @param stake Stake data
      * @return Amount of tokens being withdrawn
      */
@@ -115,7 +124,7 @@ library Stakes {
     }
 
     /**
-     * @dev Return the amount of tokens used in allocations and locked for withdrawal.
+     * @notice Return the amount of tokens used in allocations and locked for withdrawal.
      * @param stake Stake data
      * @return Token amount
      */
@@ -124,7 +133,7 @@ library Stakes {
     }
 
     /**
-     * @dev Return the amount of tokens staked not considering the ones that are already going
+     * @notice Return the amount of tokens staked not considering the ones that are already going
      * through the thawing period or are ready for withdrawal. We call it secure stake because
      * it is not subject to change by a withdraw call from the indexer.
      * @param stake Stake data
@@ -135,7 +144,7 @@ library Stakes {
     }
 
     /**
-     * @dev Tokens free balance on the indexer stake that can be used for any purpose.
+     * @notice Tokens free balance on the indexer stake that can be used for any purpose.
      * Any token that is allocated cannot be used as well as tokens that are going through the
      * thawing period or are withdrawable
      * Calc: tokensStaked - tokensAllocated - tokensLocked
@@ -147,7 +156,7 @@ library Stakes {
     }
 
     /**
-     * @dev Tokens free balance on the indexer stake that can be used for allocations.
+     * @notice Tokens free balance on the indexer stake that can be used for allocations.
      * This function accepts a parameter for extra delegated capacity that takes into
      * account delegated tokens
      * @param stake Stake data
@@ -177,7 +186,7 @@ library Stakes {
     }
 
     /**
-     * @dev Tokens available for withdrawal after thawing period.
+     * @notice Tokens available for withdrawal after thawing period.
      * @param stake Stake data
      * @return Token amount
      */

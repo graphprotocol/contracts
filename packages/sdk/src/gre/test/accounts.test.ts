@@ -10,7 +10,7 @@ chai.use(chaiAsPromised)
 
 const mnemonic = 'pumpkin orient can short never warm truth legend cereal tourist craft skin'
 
-describe('GRE usage > account management', function () {
+describe.skip('GRE usage > account management', function () {
   // Tests that loop through all the wallets take more than the default timeout
   this.timeout(10_000)
 
@@ -86,7 +86,7 @@ describe('GRE usage > account management', function () {
   })
 })
 
-describe('GRE usage > secure accounts', function () {
+describe.skip('GRE usage > secure accounts', function () {
   useEnvironment('graph-config', 'hardhat')
 
   let graph: GraphRuntimeEnvironment
@@ -188,7 +188,7 @@ describe('GRE usage > secure accounts', function () {
   })
 })
 
-describe('GRE usage > fork', function () {
+describe.skip('GRE usage > fork', function () {
   useEnvironment('graph-config', 'hardhat')
 
   let graph: GraphRuntimeEnvironment

@@ -6,6 +6,6 @@
     "types": ["@nomiclabs/hardhat-ethers"],
     "outDir": "./types"
   },
-  "include": ["./src/**/*.ts", "./test/**/*.ts"],
-  "exclude": ["node_modules", "build", "types", "cache"]
+  "include": ["./src/**/*.ts"],
+  "exclude": ["node_modules", "build", "types", "cache", "test"]
 }

@@ -25,8 +25,11 @@
 
 pragma solidity ^0.7.3;
 
-import "./IBridge.sol";
-import "./IMessageProvider.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
+import { IBridge } from "./IBridge.sol";
+import { IMessageProvider } from "./IMessageProvider.sol";
 
 interface IInbox is IMessageProvider {
     function sendL2Message(bytes calldata messageData) external returns (uint256);

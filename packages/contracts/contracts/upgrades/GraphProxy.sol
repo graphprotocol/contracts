@@ -4,13 +4,19 @@ pragma solidity ^0.7.6;
 
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-small-strings
+
+/* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
+
 import { GraphProxyStorage } from "./GraphProxyStorage.sol";
 
 import { IGraphProxy } from "./IGraphProxy.sol";
 
 /**
  * @title Graph Proxy
- * @dev Graph Proxy contract used to delegate call implementation contracts and support upgrades.
+ * @author Edge & Node
+ * @notice Graph Proxy contract used to delegate call implementation contracts and support upgrades.
  * This contract should NOT define storage as it is managed by GraphProxyStorage.
  * This contract implements a proxy that is upgradeable by an admin.
  * https://docs.openzeppelin.com/upgrades-plugins/1.x/proxies#transparent-proxies-and-function-clashes
@@ -71,56 +77,49 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
     }
 
     /**
-     * @notice Get the current admin
-     *
+     * @inheritdoc IGraphProxy
      * @dev NOTE: Only the admin and implementation can call this function.
      *
      * TIP: To get this value clients can read directly from the storage slot shown below (specified by EIP1967) using the
      * https://eth.wiki/json-rpc/API#eth_getstorageat[`eth_getStorageAt`] RPC call.
      * `0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`
-     *
-     * @return The address of the current admin
      */
-    function admin() external override ifAdminOrPendingImpl returns (address) {
+    function admin() external override ifAdminOrPendingImpl returns (address adminAddress) {
         return _getAdmin();
     }
 
     /**
-     * @notice Get the current implementation.
-     *
+     * @inheritdoc IGraphProxy
      * @dev NOTE: Only the admin can call this function.
      *
      * TIP: To get this value clients can read directly from the storage slot shown below (specified by EIP1967) using the
      * https://eth.wiki/json-rpc/API#eth_getstorageat[`eth_getStorageAt`] RPC call.
      * `0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc`
-     *
-     * @return The address of the current implementation for this proxy
      */
-    function implementation() external override ifAdminOrPendingImpl returns (address) {
+    function implementation() external override ifAdminOrPendingImpl returns (address implementationAddress) {
         return _getImplementation();
     }
 
     /**
-     * @notice Get the current pending implementation.
-     *
+     * @inheritdoc IGraphProxy
      * @dev NOTE: Only the admin can call this function.
      *
      * TIP: To get this value clients can read directly from the storage slot shown below (specified by EIP1967) using the
      * https://eth.wiki/json-rpc/API#eth_getstorageat[`eth_getStorageAt`] RPC call.
      * `0x9e5eddc59e0b171f57125ab86bee043d9128098c3a6b9adb4f2e86333c2f6f8c`
-     *
-     * @return The address of the current pending implementation for this proxy
      */
-    function pendingImplementation() external override ifAdminOrPendingImpl returns (address) {
+    function pendingImplementation()
+        external
+        override
+        ifAdminOrPendingImpl
+        returns (address pendingImplementationAddress)
+    {
         return _getPendingImplementation();
     }
 
     /**
-     * @notice Changes the admin of the proxy.
-     *
+     * @inheritdoc IGraphProxy
      * @dev NOTE: Only the admin can call this function.
-     *
-     * @param _newAdmin Address of the new admin
      */
     function setAdmin(address _newAdmin) external override ifAdmin {
         require(_newAdmin != address(0), "Admin cant be the zero address");
@@ -128,25 +127,22 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
     }
 
     /**
-     * @notice Upgrades to a new implementation contract.
+     * @inheritdoc IGraphProxy
      * @dev NOTE: Only the admin can call this function.
-     * @param _newImplementation Address of implementation contract
      */
     function upgradeTo(address _newImplementation) external override ifAdmin {
         _setPendingImplementation(_newImplementation);
     }
 
     /**
-     * @notice Admin function for new implementation to accept its role as implementation.
+     * @inheritdoc IGraphProxy
      */
     function acceptUpgrade() external override ifAdminOrPendingImpl {
         _acceptUpgrade();
     }
 
     /**
-     * @notice Admin function for new implementation to accept its role as implementation,
-     * calling a function on the new implementation.
-     * @param data Calldata (including selector) for the function to delegatecall into the implementation
+     * @inheritdoc IGraphProxy
      */
     function acceptUpgradeAndCall(bytes calldata data) external override ifAdminOrPendingImpl {
         _acceptUpgrade();
@@ -156,7 +152,7 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
     }
 
     /**
-     * @dev Admin function for new implementation to accept its role as implementation.
+     * @notice Admin function for new implementation to accept its role as implementation.
      */
     function _acceptUpgrade() internal {
         address _pendingImplementation = _getPendingImplementation();
@@ -169,7 +165,7 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
     }
 
     /**
-     * @dev Delegates the current call to implementation.
+     * @notice Delegates the current call to implementation.
      * This function does not return to its internal call site, it will return directly to the
      * external caller.
      */

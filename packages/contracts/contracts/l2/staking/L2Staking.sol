@@ -3,15 +3,22 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Staking } from "../../staking/Staking.sol";
 import { IL2StakingBase } from "./IL2StakingBase.sol";
 import { IL2Staking } from "./IL2Staking.sol";
 import { Stakes } from "../../staking/libs/Stakes.sol";
 
+// solhint-disable-next-line no-unused-import
+import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol"; // Used by @inheritdoc
+
 /**
  * @title L2Staking contract
- * @dev This contract is the L2 variant of the Staking contract. It adds a function
+ * @author Edge & Node
+ * @notice This contract is the L2 variant of the Staking contract. It adds a function
  * to receive an indexer's stake or delegation from L1. Note that this contract inherits Staking,
  * which uses a StakingExtension contract to implement the full IStaking interface through delegatecalls.
  */
@@ -23,10 +30,14 @@ contract L2Staking is Staking, IL2StakingBase {
     uint256 private constant MINIMUM_DELEGATION = 1e18;
 
     /**
-     * @dev Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
+     * @notice Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
      * gets `shares` for the delegation pool proportionally to the tokens staked.
      * This is copied from IStakingExtension, but we can't inherit from it because we
      * don't implement the full interface here.
+     * @param indexer Address of the indexer receiving the delegation
+     * @param delegator Address of the delegator
+     * @param tokens Amount of tokens delegated
+     * @param shares Amount of shares issued to the delegator
      */
     event StakeDelegated(address indexed indexer, address indexed delegator, uint256 tokens, uint256 shares);
 
@@ -47,7 +58,7 @@ contract L2Staking is Staking, IL2StakingBase {
     }
 
     /**
-     * @notice Receive tokens with a callhook from the bridge.
+     * @inheritdoc ICallhookReceiver
      * @dev The encoded _data can contain information about an indexer's stake
      * or a delegator's delegation.
      * See L1MessageCodes in IL2Staking for the supported messages.
@@ -81,7 +92,7 @@ contract L2Staking is Staking, IL2StakingBase {
     }
 
     /**
-     * @dev Receive an Indexer's stake from L1.
+     * @notice Receive an Indexer's stake from L1.
      * The specified amount is added to the indexer's stake; the indexer's
      * address is specified in the _indexerData struct.
      * @param _amount Amount of tokens that were transferred
@@ -101,7 +112,7 @@ contract L2Staking is Staking, IL2StakingBase {
     }
 
     /**
-     * @dev Receive a Delegator's delegation from L1.
+     * @notice Receive a Delegator's delegation from L1.
      * The specified amount is added to the delegator's delegation; the delegator's
      * address and the indexer's address are specified in the _delegationData struct.
      * Note that no delegation tax is applied here.

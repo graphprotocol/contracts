@@ -1,3 +1,8 @@
+import { Curation } from '@graphprotocol/contracts'
+import { EpochManager } from '@graphprotocol/contracts'
+import { GraphToken } from '@graphprotocol/contracts'
+import { IStaking } from '@graphprotocol/contracts'
+import { RewardsManager } from '@graphprotocol/contracts'
 import {
   deriveChannelKey,
   formatGRT,
@@ -13,11 +18,6 @@ import { expect } from 'chai'
 import { BigNumber, constants } from 'ethers'
 import hre from 'hardhat'
 
-import { Curation } from '../../../build/types/Curation'
-import { EpochManager } from '../../../build/types/EpochManager'
-import { GraphToken } from '../../../build/types/GraphToken'
-import { IStaking } from '../../../build/types/IStaking'
-import { RewardsManager } from '../../../build/types/RewardsManager'
 import { NetworkFixture } from '../lib/fixtures'
 
 const MAX_PPM = 1000000

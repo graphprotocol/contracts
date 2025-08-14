@@ -4,33 +4,30 @@
   "description": "Contracts monorepo for The Graph protocol",
   "license": "GPL-2.0-or-later",
   "repository": "git@github.com:graphprotocol/contracts.git",
-  "author": "The Graph team",
-  "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879",
+  "author": "Edge & Node",
+  "packageManager": "pnpm@10.14.0",
   "scripts": {
     "postinstall": "husky",
     "clean": "pnpm -r run clean",
-    "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules",
-    "build": "pnpm -r run build",
-    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
+    "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules && rm -rf node_modules packages/*/*/node_modules",
+    "build": "pnpm -r run build:self",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
+    "lint:staged": "npx lint-staged",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
-    "lint:sol": "solhint --fix --noPrompt --noPoster 'packages/*/contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
-    "lint:natspec": "node scripts/filter-natspec.js",
-    "lint:md": "markdownlint --fix --ignore-path .gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:sol": "scripts/check-todos.sh; pnpm -r run lint:sol",
+    "lint:md": "markdownlint --fix --ignore-path .gitignore --ignore-path .markdownlintignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn '**/*.{yml,yaml}'",
     "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
-    "test": "pnpm -r run test",
+    "test": "pnpm -r run test:self",
     "test:coverage": "pnpm -r run test:coverage"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
-    "@defi-wonderland/natspec-smells": "^1.1.6",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.28.0",
-    "@openzeppelin/contracts": "^5.3.0",
-    "@openzeppelin/contracts-upgradeable": "^5.3.0",
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
     "eslint": "^9.28.0",
@@ -48,7 +45,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-solidity": "^1.0.0",
     "pretty-quick": "^4.1.1",
-    "solhint": "^5.1.0",
+    "solhint": "catalog:",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1",
     "yaml-lint": "^1.7.0"
@@ -66,10 +63,11 @@
   },
   "lint-staged": {
     "*.{js,ts,cjs,mjs,jsx,tsx}": [
-      "eslint --fix --cache",
-      "prettier -w --cache --log-level warn"
+      "scripts/lint-staged-run.sh 'eslint --fix --cache'",
+      "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ],
     "*.sol": [
+      "scripts/check-todos.sh",
       "solhint --fix --noPrompt --noPoster",
       "prettier -w --cache --log-level warn"
     ],

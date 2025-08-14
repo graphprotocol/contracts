@@ -8,6 +8,7 @@ import { IL2StakingBase } from "./IL2StakingBase.sol";
 
 /**
  * @title Interface for the L2 Staking contract
+ * @author Edge & Node
  * @notice This is the interface that should be used when interacting with the L2 Staking contract.
  * It extends the IStaking interface with the functions that are specific to L2, adding the callhook receiver
  * to receive transferred stake and delegation from L1.
@@ -22,12 +23,19 @@ interface IL2Staking is IStaking, IL2StakingBase {
         RECEIVE_DELEGATION_CODE
     }
 
-    /// @dev Encoded message struct when receiving indexer stake through the bridge
+    /**
+     * @dev Encoded message struct when receiving indexer stake through the bridge
+     * @param indexer Address of the indexer
+     */
     struct ReceiveIndexerStakeData {
         address indexer;
     }
 
-    /// @dev Encoded message struct when receiving delegation through the bridge
+    /**
+     * @dev Encoded message struct when receiving delegation through the bridge
+     * @param indexer Address of the indexer
+     * @param delegator Address of the delegator
+     */
     struct ReceiveDelegationData {
         address indexer;
         address delegator;

@@ -4,7 +4,8 @@ pragma solidity ^0.7.6;
 
 /**
  * @title Curation Interface
- * @dev Interface for the Curation contract (and L2Curation too)
+ * @author Edge & Node
+ * @notice Interface for the Curation contract (and L2Curation too)
  */
 interface ICuration {
     // -- Configuration --
@@ -84,14 +85,14 @@ interface ICuration {
 
     /**
      * @notice Get the amount of signal in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal minted for the subgraph deployment
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID) external view returns (uint256);
 
     /**
      * @notice Get the amount of token reserves in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of token reserves in the curation pool
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view returns (uint256);

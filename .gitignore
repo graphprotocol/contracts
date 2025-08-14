@@ -5,8 +5,6 @@ node.log
 
 # Dependency directories
 node_modules/
-forge-std/
-**/lib/forge-std/
 .pnpm-store/
 
 # Yarn
@@ -30,8 +28,12 @@ packages/*/.eslintcache
 # Build artifacts
 dist/
 build/
+typechain/
+typechain-types/
 types/
 deployments/hardhat/
+*.js.map
+*.d.ts.map
 
 # TypeScript incremental compilation cache
 **/tsconfig.tsbuildinfo
@@ -52,13 +54,12 @@ lcov.info
 hardhat-dependency-compiler/
 
 # Local test files
-addresses-local.json
+addresses-local*.json
 localNetwork.json
 arbitrum-addresses-local.json
 tx-*.log
 addresses-fork.json
 addresses-hardhat.json
-addresses-local-network.json
 
 # Keys
 .keystore
@@ -67,7 +68,6 @@ addresses-local-network.json
 cache_forge
 forge-artifacts/
 out/
-packages/issuance/lib/forge-std/
 
 # Graph client
 .graphclient

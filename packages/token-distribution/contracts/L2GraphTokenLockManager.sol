@@ -3,6 +3,9 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events, use-natspec
+
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
@@ -42,8 +45,10 @@ contract L2GraphTokenLockManager is GraphTokenLockManager, ICallhookReceiver {
     }
 
     /// Address of the L2GraphTokenGateway
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable l2Gateway;
     /// Address of the L1 transfer tool contract (in L1, no aliasing)
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable l1TransferTool;
     /// Mapping of each L1 wallet to its L2 wallet counterpart (populated when each wallet is received)
     /// L1 address => L2 address

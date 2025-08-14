@@ -2,16 +2,20 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-small-strings, gas-strict-inequalities
 
-import "../governance/Governed.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
+import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
+import { Governed } from "../governance/Governed.sol";
 
 /**
  * @title GraphToken contract
- * @dev This is the implementation of the ERC20 Graph Token.
+ * @author Edge & Node
+ * @notice This is the implementation of the ERC20 Graph Token.
  * The implementation exposes a Permit() function to allow for a spender to send a signed message
  * and approve funds to a spender following EIP2612 to make integration with other contracts easier.
  *
@@ -28,32 +32,53 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     // -- EIP712 --
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#definition-of-domainseparator
 
+    /// @dev EIP-712 domain type hash for signature verification
     bytes32 private constant DOMAIN_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)");
+    /// @dev EIP-712 domain name hash for signature verification
     bytes32 private constant DOMAIN_NAME_HASH = keccak256("Graph Token");
+    /// @dev EIP-712 domain version hash for signature verification
     bytes32 private constant DOMAIN_VERSION_HASH = keccak256("0");
+    /// @dev EIP-712 domain salt for signature verification (randomly generated)
     bytes32 private constant DOMAIN_SALT = 0x51f3d585afe6dfeb2af01bba0889a36c1db03beec88c6a4d0c53817069026afa; // Randomly generated salt
+    /// @dev EIP-712 permit typehash for signature verification
     bytes32 private constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     // -- State --
 
-    bytes32 private DOMAIN_SEPARATOR;
+    /// @dev EIP-712 domain separator for signature verification
+    bytes32 private domainSeparator;
+    /// @dev Mapping of addresses authorized to mint tokens
     mapping(address => bool) private _minters;
+    /**
+     * @notice Nonces for permit functionality (EIP-2612)
+     * @dev Mapping from owner address to current nonce for permit signatures
+     */
     mapping(address => uint256) public nonces;
 
     // -- Events --
 
+    /**
+     * @notice Emitted when a new minter is added
+     * @param account Address of the minter that was added
+     */
     event MinterAdded(address indexed account);
+
+    /**
+     * @notice Emitted when a minter is removed
+     * @param account Address of the minter that was removed
+     */
     event MinterRemoved(address indexed account);
 
+    /// @dev Modifier to restrict access to minters only
     modifier onlyMinter() {
         require(isMinter(msg.sender), "Only minter can call");
         _;
     }
 
     /**
-     * @dev Graph Token Contract Constructor.
+     * @notice Graph Token Contract Constructor.
      * @param _initialSupply Initial supply of GRT
      */
     constructor(uint256 _initialSupply) ERC20("Graph Token", "GRT") {
@@ -66,7 +91,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
         _addMinter(msg.sender);
 
         // EIP-712 domain separator
-        DOMAIN_SEPARATOR = keccak256(
+        domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_TYPE_HASH,
                 DOMAIN_NAME_HASH,
@@ -79,7 +104,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Approve token allowance by validating a message signed by the holder.
+     * @notice Approve token allowance by validating a message signed by the holder.
      * @param _owner Address of the token holder
      * @param _spender Address of the approved spender
      * @param _value Amount of tokens to approve the spender
@@ -100,7 +125,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
-                DOMAIN_SEPARATOR,
+                domainSeparator,
                 keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _spender, _value, nonces[_owner], _deadline))
             )
         );
@@ -114,7 +139,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Add a new minter.
+     * @notice Add a new minter.
      * @param _account Address of the minter
      */
     function addMinter(address _account) external onlyGovernor {
@@ -122,7 +147,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Remove a minter.
+     * @notice Remove a minter.
      * @param _account Address of the minter
      */
     function removeMinter(address _account) external onlyGovernor {
@@ -130,14 +155,14 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Renounce to be a minter.
+     * @notice Renounce to be a minter.
      */
     function renounceMinter() external {
         _removeMinter(msg.sender);
     }
 
     /**
-     * @dev Mint new tokens.
+     * @notice Mint new tokens.
      * @param _to Address to send the newly minted tokens
      * @param _amount Amount of tokens to mint
      */
@@ -146,7 +171,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Return if the `_account` is a minter or not.
+     * @notice Return if the `_account` is a minter or not.
      * @param _account Address to check
      * @return True if the `_account` is minter
      */
@@ -155,7 +180,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Add a new minter.
+     * @notice Add a new minter.
      * @param _account Address of the minter
      */
     function _addMinter(address _account) private {
@@ -164,7 +189,7 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Remove a minter.
+     * @notice Remove a minter.
      * @param _account Address of the minter
      */
     function _removeMinter(address _account) private {
@@ -173,11 +198,12 @@ contract GraphToken is Governed, ERC20, ERC20Burnable {
     }
 
     /**
-     * @dev Get the running network chain ID.
+     * @notice Get the running network chain ID.
      * @return The chain ID
      */
     function _getChainID() private pure returns (uint256) {
         uint256 id;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             id := chainid()
         }
