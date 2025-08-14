@@ -35,13 +35,13 @@ This repository is a pnpm workspaces monorepo containing the following packages:
 
 | Package                                             | Latest version                                                                                                                                   | Description                                                                                       |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| [contracts](./packages/contracts)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts)                   | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
-| [horizon](./packages/horizon)                       | -                                                                                                                                                | Contracts for Graph Horizon, the next iteration of The Graph protocol.                            |
-| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants                                           |
-| [sdk](./packages/sdk)                               | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk)                               | TypeScript based SDK to interact with the protocol contracts                                      |
-| [issuance](./packages/issuance)                     | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fissuance.svg)](https://badge.fury.io/js/@graphprotocol%2Fissuance)                     | Smart contracts for The Graph's token issuance functionality                                      |
-| [data-edge](./packages/data-edge)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fdata-edge.svg)](https://badge.fury.io/js/@graphprotocol%2Fdata-edge)                   | Data edge testing and utilities for The Graph protocol                                            |
 | [common](./packages/common)                         | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcommon.svg)](https://badge.fury.io/js/@graphprotocol%2Fcommon)                         | Common utilities and configuration for Graph Protocol packages                                    |
+| [contracts](./packages/contracts)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts)                   | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
+| [data-edge](./packages/data-edge)                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fdata-edge.svg)](https://badge.fury.io/js/@graphprotocol%2Fdata-edge)                   | Data edge testing and utilities for The Graph protocol                                            |
+| [horizon](./packages/horizon)                       | -                                                                                                                                                | Contracts for Graph Horizon, the next iteration of The Graph protocol.                            |
+| [issuance](./packages/issuance)                     | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fissuance.svg)](https://badge.fury.io/js/@graphprotocol%2Fissuance)                     | Smart contracts for The Graph's token issuance functionality                                      |
+| [sdk](./packages/sdk)                               | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk)                               | TypeScript based SDK to interact with the protocol contracts                                      |
+| [token-distribution](./packages/token-distribution) | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants                                           |
 
 ## Development
 
@@ -116,6 +116,161 @@ pnpm publish --recursive
 ```
 
 Alternatively, there is a GitHub action that can be manually triggered to publish a package.
+
+## Linting Configuration
+
+This monorepo uses a comprehensive linting setup with multiple tools to ensure code quality and consistency across all packages.
+
+### Linting Tools Overview
+
+- **ESLint**: JavaScript/TypeScript code quality and style enforcement
+- **Prettier**: Code formatting for JavaScript, TypeScript, JSON, Markdown, YAML, and Solidity
+- **Solhint**: Solidity-specific linting for smart contracts
+- **Markdownlint**: Markdown formatting and style consistency
+- **YAML Lint**: YAML file validation and formatting
+- **NatSpec Smells**: Documentation quality checks for Solidity contracts
+
+### Configuration Architecture
+
+The linting configuration follows a hierarchical structure where packages inherit from root-level configurations:
+
+#### ESLint Configuration
+
+- **Root Configuration**: `eslint.config.mjs` - Modern flat config format
+- **Direct Command**: `npx eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix`
+- **Behavior**: ESLint automatically searches up parent directories to find configuration files
+- **Package Inheritance**: Packages automatically inherit the root ESLint configuration without needing local config files
+- **Global Ignores**: Configured to exclude autogenerated files (`.graphclient-extracted/`, `lib/`) and build outputs
+
+#### Prettier Configuration
+
+- **Root Configuration**: `prettier.config.cjs` - Base formatting rules for all file types
+- **Direct Command**: `npx prettier -w --cache '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,sol,yml,yaml}'`
+- **Package Inheritance**: Packages that need Prettier must have a `prettier.config.cjs` file that inherits from the shared config
+- **Example Package Config**:
+
+  ```javascript
+  const baseConfig = require('../../prettier.config.cjs')
+  module.exports = { ...baseConfig }
+  ```
+
+- **Ignore Files**: `.prettierignore` excludes lock files, build outputs, and third-party dependencies
+
+#### Solidity Linting (Solhint)
+
+- **Root Configuration**: `.solhint.json` - Base Solidity linting rules extending `solhint:recommended`
+- **Direct Command**: `npx solhint 'contracts/**/*.sol'` (add `--fix` for auto-fixing)
+- **List Applied Rules**: `npx solhint list-rules`
+- **TODO Comment Checking**: `scripts/check-todos.sh` - Blocks commits and linting if TODO/FIXME/XXX/HACK comments are found in changed Solidity files
+- **Package Inheritance**: Packages can extend the root config with package-specific rules
+- **Configuration Inheritance Limitation**: Solhint has a limitation where nested `extends` don't work properly. When a local config extends a parent config that itself extends `solhint:recommended`, the built-in ruleset is ignored.
+- **Recommended Package Extension Pattern**:
+
+  ```json
+  {
+    "extends": ["solhint:recommended", "./../../.solhint.json"],
+    "rules": {
+      "no-console": "off",
+      "import-path-check": "off"
+    }
+  }
+  ```
+
+#### Markdown Linting (Markdownlint)
+
+- **Root Configuration**: `.markdownlint.json` - Markdown formatting and style rules
+- **Direct Command**: `npx markdownlint '**/*.md' --fix`
+- **Ignore Files**: `.markdownlintignore` automatically picked up by markdownlint CLI
+- **Global Application**: Applied to all markdown files across the monorepo
+
+### Linting Scripts
+
+#### Root Level Scripts
+
+```bash
+# Run all linting tools
+pnpm lint
+
+# Individual linting commands
+pnpm lint:ts      # ESLint + Prettier for TypeScript/JavaScript
+pnpm lint:sol     # TODO check + Solhint + Prettier for Solidity (runs recursively)
+pnpm lint:md      # Markdownlint + Prettier for Markdown
+pnpm lint:json    # Prettier for JSON files
+pnpm lint:yaml    # YAML linting + Prettier
+
+# Lint only staged files (useful for manual pre-commit checks)
+pnpm lint:staged  # Run linting on git-staged files only
+```
+
+#### Package Level Scripts
+
+Each package can define its own linting scripts that work with the inherited configurations:
+
+```bash
+# Example from packages/contracts
+pnpm lint:sol   # Solhint for contracts in this package only
+pnpm lint:ts    # ESLint for TypeScript files in this package
+```
+
+### Pre-commit Hooks (lint-staged)
+
+The repository uses `lint-staged` with Husky to run linting on staged files before commits:
+
+- **Automatic**: Runs automatically on `git commit` via Husky pre-commit hook
+- **Manual**: Run `pnpm lint:staged` to manually check staged files before committing
+- **Configuration**: Root `package.json` contains lint-staged configuration
+- **Custom Script**: `scripts/lint-staged-run.sh` filters out generated files that shouldn't be linted
+- **File Type Handling**:
+  - `.{js,ts,cjs,mjs,jsx,tsx}`: ESLint + Prettier
+  - `.sol`: TODO check + Solhint + Prettier
+  - `.md`: Markdownlint + Prettier
+  - `.json`: Prettier only
+  - `.{yml,yaml}`: YAML lint + Prettier
+
+**Usage**: `pnpm lint:staged` is particularly useful when you want to check what linting changes will be applied to your staged files before actually committing.
+
+### TODO Comment Enforcement
+
+The repository enforces TODO comment resolution to maintain code quality:
+
+- **Scope**: Applies only to Solidity (`.sol`) files
+- **Detection**: Finds TODO, FIXME, XXX, and HACK comments (case-insensitive)
+- **Triggers**:
+  - **Pre-commit**: Blocks commits if TODO comments exist in files being committed
+  - **Regular linting**: Flags TODO comments in locally changed, staged, or untracked Solidity files
+- **Script**: `scripts/check-todos.sh` (must be run from repository root)
+- **Bypass**: Use `git commit --no-verify` to bypass (not recommended for production)
+
+### Key Design Principles
+
+1. **Hierarchical Configuration**: Root configurations provide base rules, packages can extend as needed
+2. **Tool-Specific Inheritance**: ESLint searches up automatically, Prettier requires explicit inheritance
+3. **Generated File Exclusion**: Multiple layers of exclusion for autogenerated content
+4. **Consistent Formatting**: Prettier ensures consistent code formatting across all file types
+5. **Fail-Fast Linting**: Pre-commit hooks catch issues before they enter the repository
+
+### Configuration Files Reference
+
+| Tool         | Root Config           | Package Config                   | Ignore Files                 |
+| ------------ | --------------------- | -------------------------------- | ---------------------------- |
+| ESLint       | `eslint.config.mjs`   | Auto-inherited                   | Built into config            |
+| Prettier     | `prettier.config.cjs` | `prettier.config.cjs` (inherits) | `.prettierignore`            |
+| Solhint      | `.solhint.json`       | `.solhint.json` (array extends)  | N/A                          |
+| NatSpec      | No config required    | No config required               | N/A                          |
+| Markdownlint | `.markdownlint.json`  | Auto-inherited                   | `.markdownlintignore`        |
+| Lint-staged  | `package.json`        | N/A                              | `scripts/lint-staged-run.sh` |
+
+### Troubleshooting
+
+- **ESLint not finding config**: ESLint searches up parent directories automatically - no local config needed
+- **Prettier not working**: Packages need a `prettier.config.cjs` that inherits from root config
+- **Solhint missing rules**: If extending a parent config, use array format: `["solhint:recommended", "./../../.solhint.json"]` to ensure all rules are loaded
+- **Solhint inheritance not working**: Nested extends don't work - parent config's `solhint:recommended` won't be inherited with simple string extends
+- **Solhint rule reference**: Use `npx solhint list-rules` to see all available rules and their descriptions
+- **NatSpec linting failing**: Ensure package dependencies are properly declared in `package.json` and installed. The linting runs in each package's context and resolves imports through the package dependency system
+- **Generated files being linted**: Check ignore patterns in `.prettierignore`, `.markdownlintignore`, and ESLint config
+- **Preview lint changes before commit**: Use `pnpm lint:staged` to see what changes will be applied to staged files
+- **Commit blocked by linting**: Fix the linting issues or use `git commit --no-verify` to bypass (not recommended)
 
 ## Documentation
 

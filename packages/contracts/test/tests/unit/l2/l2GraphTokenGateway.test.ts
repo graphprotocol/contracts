@@ -86,15 +86,10 @@ describe('L2GraphTokenGateway', () => {
       process.env.npm_lifecycle_event === 'test:coverage'
 
     if (!isRunningUnderCoverage) {
-      try {
-        arbSysMock = await smock.fake('IArbSys', {
-          address: '0x0000000000000000000000000000000000000064',
-        })
-        arbSysMock.sendTxToL1.returns(1)
-      } catch {
-        // Skip smock setup if IArbSys artifact is not found
-        console.log('Skipping ArbSys mock setup due to artifact not found')
-      }
+      arbSysMock = await smock.fake('ArbSys', {
+        address: '0x0000000000000000000000000000000000000064',
+      })
+      arbSysMock.sendTxToL1.returns(1)
     }
   })
 
@@ -275,7 +270,7 @@ describe('L2GraphTokenGateway', () => {
           ](tokenSender.address, l1Receiver.address, toGRT('10'), defaultData)
         await expect(tx).revertedWith('TOKEN_NOT_GRT')
       })
-      it.skip('burns tokens and triggers an L1 call', async function () {
+      it('burns tokens and triggers an L1 call', async function () {
         // Check if we're running under coverage
         const isRunningUnderCoverage =
           hre.network.name === 'coverage' ||
@@ -291,7 +286,7 @@ describe('L2GraphTokenGateway', () => {
         await grt.connect(tokenSender).approve(l2GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(tokenSender, defaultData)
       })
-      it.skip('decodes the sender address from messages sent by the router', async function () {
+      it('decodes the sender address from messages sent by the router', async function () {
         // Check if we're running under coverage
         const isRunningUnderCoverage =
           hre.network.name === 'coverage' ||
@@ -413,8 +408,19 @@ describe('L2GraphTokenGateway', () => {
             callHookData,
           )
 
-        // The error message may vary depending on the environment
-        await expect(tx).to.be.reverted
+        // Under coverage, the error message may be different due to instrumentation
+        const isRunningUnderCoverage =
+          hre.network.name === 'coverage' ||
+          process.env.SOLIDITY_COVERAGE === 'true' ||
+          process.env.npm_lifecycle_event === 'test:coverage'
+
+        if (isRunningUnderCoverage) {
+          // Under coverage, the transaction should still revert, but the message might be empty
+          await expect(tx).to.be.reverted
+        } else {
+          // Normal test run should have the specific error message
+          await expect(tx).revertedWith("function selector was not recognized and there's no fallback function")
+        }
       })
     })
   })

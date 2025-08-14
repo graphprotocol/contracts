@@ -25,6 +25,11 @@
 
 pragma solidity ^0.7.6;
 
+/**
+ * @title Token Gateway Interface
+ * @author Edge & Node
+ * @notice Interface for token gateways that handle cross-chain token transfers
+ */
 interface ITokenGateway {
     /// @notice event deprecated in favor of DepositInitiated and WithdrawalInitiated
     // event OutboundTransferInitiated(
@@ -46,21 +51,39 @@ interface ITokenGateway {
     //     bytes _data
     // );
 
+    /**
+     * @notice Transfer tokens from L1 to L2 or L2 to L1
+     * @param token Address of the token being transferred
+     * @param to Recipient address on the destination chain
+     * @param amount Amount of tokens to transfer
+     * @param maxGas Maximum gas for the transaction
+     * @param gasPriceBid Gas price bid for the transaction
+     * @param data Additional data for the transfer
+     * @return Transaction data
+     */
     function outboundTransfer(
-        address _token,
-        address _to,
-        uint256 _amount,
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        bytes calldata _data
+        address token,
+        address to,
+        uint256 amount,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        bytes calldata data
     ) external payable returns (bytes memory);
 
+    /**
+     * @notice Finalize an inbound token transfer
+     * @param token Address of the token being transferred
+     * @param from Sender address on the source chain
+     * @param to Recipient address on the destination chain
+     * @param amount Amount of tokens being transferred
+     * @param data Additional data for the transfer
+     */
     function finalizeInboundTransfer(
-        address _token,
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes calldata _data
+        address token,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata data
     ) external payable;
 
     /**

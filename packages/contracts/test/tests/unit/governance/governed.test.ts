@@ -8,7 +8,7 @@ import hre from 'hardhat'
 const { ethers } = hre
 const { AddressZero } = ethers.constants
 
-describe.skip('Governed', () => {
+describe('Governed', () => {
   const graph = hre.graph()
   let me: SignerWithAddress
   let governor: SignerWithAddress
@@ -18,7 +18,7 @@ describe.skip('Governed', () => {
   beforeEach(async function () {
     ;[me, governor] = await graph.getTestAccounts()
 
-    const factory = await ethers.getContractFactory('GovernedMock')
+    const factory = await ethers.getContractFactory('contracts/tests/GovernedMock.sol:GovernedMock')
     governed = (await factory.connect(governor).deploy()) as Governed
   })
 

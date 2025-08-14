@@ -4,12 +4,22 @@ pragma solidity >=0.6.12 <0.8.0;
 
 /**
  * @title Staking Data interface
- * @dev This interface defines some structures used by the Staking contract.
+ * @author Edge & Node
+ * @notice This interface defines some structures used by the Staking contract.
  */
 interface IStakingData {
     /**
      * @dev Allocate GRT tokens for the purpose of serving queries of a subgraph deployment
      * An allocation is created in the allocate() function and closed in closeAllocation()
+     * @param indexer Address of the indexer that owns the allocation
+     * @param subgraphDeploymentID Subgraph deployment ID being allocated to
+     * @param tokens Tokens allocated to a SubgraphDeployment
+     * @param createdAtEpoch Epoch when it was created
+     * @param closedAtEpoch Epoch when it was closed
+     * @param collectedFees Collected fees for the allocation
+     * @param __DEPRECATED_effectiveAllocation Deprecated field for effective allocation
+     * @param accRewardsPerAllocatedToken Snapshot used for reward calc
+     * @param distributedRebates Collected rebates that have been rebated
      */
     struct Allocation {
         address indexer;
@@ -27,6 +37,13 @@ interface IStakingData {
 
     /**
      * @dev Delegation pool information. One per indexer.
+     * @param __DEPRECATED_cooldownBlocks Deprecated field for cooldown blocks
+     * @param indexingRewardCut Indexing reward cut in PPM
+     * @param queryFeeCut Query fee cut in PPM
+     * @param updatedAtBlock Block when the pool was last updated
+     * @param tokens Total tokens as pool reserves
+     * @param shares Total shares minted in the pool
+     * @param delegators Mapping of delegator => Delegation
      */
     struct DelegationPool {
         uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
@@ -40,6 +57,9 @@ interface IStakingData {
 
     /**
      * @dev Individual delegation data of a delegator in a pool.
+     * @param shares Shares owned by a delegator in the pool
+     * @param tokensLocked Tokens locked for undelegation
+     * @param tokensLockedUntil Epoch when locked tokens can be withdrawn
      */
     struct Delegation {
         uint256 shares; // Shares owned by a delegator in the pool
@@ -49,6 +69,10 @@ interface IStakingData {
 
     /**
      * @dev Rebates parameters. Used to avoid stack too deep errors in Staking initialize function.
+     * @param alphaNumerator Alpha parameter numerator for rebate calculation
+     * @param alphaDenominator Alpha parameter denominator for rebate calculation
+     * @param lambdaNumerator Lambda parameter numerator for rebate calculation
+     * @param lambdaDenominator Lambda parameter denominator for rebate calculation
      */
     struct RebatesParameters {
         uint32 alphaNumerator;

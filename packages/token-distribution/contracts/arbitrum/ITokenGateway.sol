@@ -26,6 +26,9 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
 interface ITokenGateway {
     /// @notice event deprecated in favor of DepositInitiated and WithdrawalInitiated
     // event OutboundTransferInitiated(

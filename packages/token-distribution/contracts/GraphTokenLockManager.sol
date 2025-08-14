@@ -3,14 +3,18 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/EnumerableSet.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec, gas-indexed-events, gas-strict-inequalities, gas-increment-by-one
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./MinimalProxyFactory.sol";
-import "./IGraphTokenLockManager.sol";
+import { MinimalProxyFactory } from "./MinimalProxyFactory.sol";
+import { IGraphTokenLockManager } from "./IGraphTokenLockManager.sol";
+import { IGraphTokenLock } from "./IGraphTokenLock.sol";
 import { GraphTokenLockWallet } from "./GraphTokenLockWallet.sol";
 
 /**

@@ -2,12 +2,16 @@
 
 pragma solidity ^0.7.6;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, gas-strict-inequalities
+
 import { Governed } from "../governance/Governed.sol";
 import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
 
 /**
  * @title Subgraph Availability Manager
- * @dev Manages the availability of subgraphs by allowing oracles to vote on whether
+ * @author Edge & Node
+ * @notice Manages the availability of subgraphs by allowing oracles to vote on whether
  * a subgraph should be denied rewards or not. When enough oracles have voted to deny or
  * allow rewards for a subgraph, it calls the RewardsManager Contract to set the correct
  * state. The oracles and the execution threshold are set at deployment time.
@@ -21,15 +25,16 @@ contract SubgraphAvailabilityManager is Governed {
     uint256 public constant NUM_ORACLES = 5;
 
     /// @notice Number of votes required to execute a deny or allow call to the RewardsManager
-    uint256 public immutable executionThreshold;
+    uint256 public immutable executionThreshold; // solhint-disable-line immutable-vars-naming
 
     /// @dev Address of the RewardsManager contract
+    // solhint-disable-next-line immutable-vars-naming
     IRewardsManager private immutable rewardsManager;
 
     // -- State --
 
-    /// @dev Nonce for generating votes on subgraph deployment IDs.
-    /// Increased whenever oracles or voteTimeLimit change, to invalidate old votes.
+    /// @notice Nonce for generating votes on subgraph deployment IDs
+    /// @dev Increased whenever oracles or voteTimeLimit change, to invalidate old votes
     uint256 public currentNonce;
 
     /// @notice Time limit for a vote to be valid
@@ -39,30 +44,30 @@ contract SubgraphAvailabilityManager is Governed {
     address[NUM_ORACLES] public oracles;
 
     /// @notice Mapping of current nonce to subgraph deployment ID to an array of timestamps of last deny vote
-    /// currentNonce => subgraphDeploymentId => timestamp[oracleIndex]
+    /// @dev currentNonce => subgraphDeploymentId => timestamp[oracleIndex]
     mapping(uint256 => mapping(bytes32 => uint256[NUM_ORACLES])) public lastDenyVote;
 
-    /// @notice Mapping of  current nonce to subgraph deployment ID to an array of timestamp of last allow vote
-    /// currentNonce => subgraphDeploymentId => timestamp[oracleIndex]
+    /// @notice Mapping of current nonce to subgraph deployment ID to an array of timestamp of last allow vote
+    /// @dev currentNonce => subgraphDeploymentId => timestamp[oracleIndex]
     mapping(uint256 => mapping(bytes32 => uint256[NUM_ORACLES])) public lastAllowVote;
 
     // -- Events --
 
     /**
-     * @dev Emitted when an oracle is set
+     * @notice Emitted when an oracle is set
      * @param index Index of the oracle
      * @param oracle Address of the oracle
      */
     event OracleSet(uint256 indexed index, address indexed oracle);
 
     /**
-     * @dev Emitted when the vote time limit is set
+     * @notice Emitted when the vote time limit is set
      * @param voteTimeLimit Vote time limit in seconds
      */
     event VoteTimeLimitSet(uint256 voteTimeLimit);
 
     /**
-     * @dev Emitted when an oracle votes to deny or allow a subgraph
+     * @notice Emitted when an oracle votes to deny or allow a subgraph
      * @param subgraphDeploymentID Subgraph deployment ID
      * @param deny True to deny, false to allow
      * @param oracleIndex Index of the oracle voting
@@ -72,6 +77,10 @@ contract SubgraphAvailabilityManager is Governed {
 
     // -- Modifiers --
 
+    /**
+     * @dev Modifier to restrict access to authorized oracles only
+     * @param _oracleIndex Index of the oracle in the oracles array
+     */
     modifier onlyOracle(uint256 _oracleIndex) {
         require(_oracleIndex < NUM_ORACLES, "SAM: index out of bounds");
         require(msg.sender == oracles[_oracleIndex], "SAM: caller must be oracle");
@@ -81,7 +90,7 @@ contract SubgraphAvailabilityManager is Governed {
     // -- Constructor --
 
     /**
-     * @dev Contract constructor
+     * @notice Contract constructor
      * @param _governor Account that can set or remove oracles and set the vote time limit
      * @param _rewardsManager Address of the RewardsManager contract
      * @param _executionThreshold Number of votes required to execute a deny or allow call to the RewardsManager
@@ -118,7 +127,7 @@ contract SubgraphAvailabilityManager is Governed {
     // -- Functions --
 
     /**
-     * @dev Set the vote time limit. Refreshes all existing votes by incrementing the current nonce.
+     * @notice Set the vote time limit. Refreshes all existing votes by incrementing the current nonce.
      * @param _voteTimeLimit Vote time limit in seconds
      */
     function setVoteTimeLimit(uint256 _voteTimeLimit) external onlyGovernor {
@@ -128,7 +137,7 @@ contract SubgraphAvailabilityManager is Governed {
     }
 
     /**
-     * @dev Set oracle address with index. Refreshes all existing votes by incrementing the current nonce.
+     * @notice Set oracle address with index. Refreshes all existing votes by incrementing the current nonce.
      * @param _index Index of the oracle
      * @param _oracle Address of the oracle
      */
@@ -144,7 +153,7 @@ contract SubgraphAvailabilityManager is Governed {
     }
 
     /**
-     * @dev Vote deny or allow for a subgraph.
+     * @notice Vote deny or allow for a subgraph.
      * NOTE: Can only be called by an oracle.
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny True to deny, false to allow
@@ -155,7 +164,7 @@ contract SubgraphAvailabilityManager is Governed {
     }
 
     /**
-     * @dev Vote deny or allow for many subgraphs.
+     * @notice Vote deny or allow for many subgraphs.
      * NOTE: Can only be called by an oracle.
      * @param _subgraphDeploymentID Array of subgraph deployment IDs
      * @param _deny Array of booleans, true to deny, false to allow
@@ -173,7 +182,7 @@ contract SubgraphAvailabilityManager is Governed {
     }
 
     /**
-     * @dev Vote deny or allow for a subgraph.
+     * @notice Vote deny or allow for a subgraph.
      * When oracles cast their votes we store the timestamp of the vote.
      * Check if the execution threshold has been reached for a subgraph.
      * If execution threshold is reached we call the RewardsManager to set the correct state.
@@ -203,7 +212,7 @@ contract SubgraphAvailabilityManager is Governed {
     }
 
     /**
-     * @dev Check if the execution threshold has been reached for a subgraph.
+     * @notice Check if the execution threshold has been reached for a subgraph.
      * For a vote to be valid it needs to be within the vote time limit.
      * @param _subgraphDeploymentID Subgraph deployment ID
      * @param _deny True to deny, false to allow

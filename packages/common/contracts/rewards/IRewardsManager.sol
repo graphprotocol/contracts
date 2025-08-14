@@ -2,9 +2,14 @@
 
 pragma solidity ^0.7.6 || ^0.8.0;
 
+/**
+ * @title IRewardsManager
+ * @author Edge & Node
+ * @notice Interface for the RewardsManager contract that handles reward distribution
+ */
 interface IRewardsManager {
     /**
-     * @dev Stores accumulated rewards and snapshots related to a particular SubgraphDeployment.
+     * @dev Stores accumulated rewards and snapshots related to a particular SubgraphDeployment
      * @param accRewardsForSubgraph Accumulated rewards for the subgraph
      * @param accRewardsForSubgraphSnapshot Snapshot of accumulated rewards for the subgraph
      * @param accRewardsPerSignalSnapshot Snapshot of accumulated rewards per signal
@@ -58,13 +63,7 @@ interface IRewardsManager {
 
     /**
      * @notice Gets the issuance of rewards per signal since last updated
-     * @dev Linear formula: `x = r * t`
-     *
-     * Notation:
-     * t: time steps are in blocks since last updated
-     * x: newly accrued rewards tokens for the period `t`
-     *
-     * @return newly accrued rewards per signal since last update, scaled by FIXED_POINT_SCALING_FACTOR
+     * @return newly accrued rewards per signal since last update
      */
     function getNewRewardsPerSignal() external view returns (uint256);
 

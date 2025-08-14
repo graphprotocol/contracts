@@ -47,6 +47,9 @@ RUN npm install -g ethers@6.13.4
 # Install cloc for code analysis
 RUN npm install -g cloc
 
+# Install Claude Code
+RUN npm install -g @anthropic-ai/claude-code
+
 # Install Foundry for Anvil (as root for global installation)
 RUN curl -L https://foundry.paradigm.xyz | bash && \
     /root/.foundry/bin/foundryup && \

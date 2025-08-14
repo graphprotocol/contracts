@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    user: vscode
+    working_dir: /work
     env_file:
       - /opt/configs/graphprotocol/contracts.env
     environment:
@@ -31,6 +33,8 @@ services:
       # Note: NPM, Foundry, and Solidity caches are intentionally not set
       # to avoid cross-branch contamination. Tools will use their default locations.
     volumes:
+      - ..:/work
+
       # Git repo root
       - /git:/git
 

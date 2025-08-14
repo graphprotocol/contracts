@@ -6,21 +6,21 @@ import { IController } from "./IController.sol";
 
 /**
  * @title Managed Interface
- * @dev Interface for contracts that can be managed by a controller.
+ * @author Edge & Node
+ * @notice Interface for contracts that can be managed by a controller.
  */
 interface IManaged {
     /**
-     * @notice Set the controller that manages this contract
-     * @dev Only the current controller can set a new controller
-     * @param _controller Address of the new controller
+     * @notice Set Controller. Only callable by current controller.
+     * @param _controller Controller contract address
      */
     function setController(address _controller) external;
 
     /**
      * @notice Sync protocol contract addresses from the Controller registry
-     * @dev This function will cache all the contracts using the latest addresses.
+     * @dev This function will cache all the contracts using the latest addresses
      * Anyone can call the function whenever a Proxy contract change in the
-     * controller to ensure the protocol is using the latest version.
+     * controller to ensure the protocol is using the latest version
      */
     function syncAllContracts() external;
 

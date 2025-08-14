@@ -25,8 +25,15 @@
 
 pragma solidity ^0.7.6;
 
+/**
+ * @title Address Alias Helper Library
+ * @author Edge & Node
+ * @notice Utility library for converting addresses between L1 and L2 in Arbitrum
+ */
 library AddressAliasHelper {
-    uint160 constant offset = uint160(0x1111000000000000000000000000000000001111);
+    /// @dev Offset used for L1 to L2 address aliasing
+    // solhint-disable-next-line const-name-snakecase
+    uint160 internal constant offset = uint160(0x1111000000000000000000000000000000001111);
 
     /// @notice Utility function that converts the address in the L1 that submitted a tx to
     /// the inbox to the msg.sender viewed in the L2

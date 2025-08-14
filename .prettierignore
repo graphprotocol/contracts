@@ -5,7 +5,9 @@ yarn.lock
 
 # Dependencies (from .gitignore)
 node_modules/
-forge-std/
+
+# Third-party libraries in lib directories
+**/lib/
 
 # Build outputs (from .gitignore)
 **/build/
@@ -33,6 +35,7 @@ lcov.info
 packages/*/.eslintcache
 deployments/hardhat/
 .graphclient
+**/.graphclient-extracted/
 **/chain-31337/
 **/chain-1377/
 **/horizon-localhost/

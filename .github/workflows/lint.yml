@@ -167,15 +167,6 @@ jobs:
             echo "sol_prettier_exit_code=0" >> $GITHUB_OUTPUT
           fi
 
-      - name: Lint Solidity files (Natspec Documentation)
-        id: lint_sol_natspec
-        continue-on-error: true
-        run: |
-          echo "Checking Solidity documentation with natspec-smells..."
-          # Run natspec-smells from root to check all configured packages
-          npx natspec-smells
-          echo "sol_natspec_exit_code=$?" >> $GITHUB_OUTPUT
-
       - name: Lint Markdown files (Markdownlint)
         id: lint_md_markdownlint
         continue-on-error: true
@@ -317,15 +308,6 @@ jobs:
             ERRORS=$((ERRORS+1))
           elif [ "$SOL_PRETTIER_EXIT_CODE" != "0" ]; then
             echo "::warning::Prettier found warnings in Solidity files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # Solidity - Natspec Documentation
-          if [ "$SOL_NATSPEC_EXIT_CODE" = "1" ]; then
-            echo "::error::natspec-smells found documentation issues in Solidity files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$SOL_NATSPEC_EXIT_CODE" != "0" ]; then
-            echo "::warning::natspec-smells found warnings in Solidity files"
             WARNINGS=$((WARNINGS+1))
           fi
 

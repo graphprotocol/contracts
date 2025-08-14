@@ -3,12 +3,16 @@
 pragma solidity >=0.6.12 <0.8.0;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IStakingData } from "./IStakingData.sol";
 import { Stakes } from "./libs/Stakes.sol";
 
 /**
  * @title Interface for the StakingExtension contract
- * @dev This interface defines the events and functions implemented
+ * @author Edge & Node
+ * @notice This interface defines the events and functions implemented
  * in the StakingExtension contract, which is used to extend the functionality
  * of the Staking contract while keeping it within the 24kB mainnet size limit.
  * In particular, this interface includes delegation functions and various storage
@@ -18,6 +22,12 @@ interface IStakingExtension is IStakingData {
     /**
      * @dev DelegationPool struct as returned by delegationPools(), since
      * the original DelegationPool in IStakingData.sol contains a nested mapping.
+     * @param __DEPRECATED_cooldownBlocks Deprecated field for cooldown blocks
+     * @param indexingRewardCut Indexing reward cut in PPM
+     * @param queryFeeCut Query fee cut in PPM
+     * @param updatedAtBlock Block when the pool was last updated
+     * @param tokens Total tokens as pool reserves
+     * @param shares Total shares minted in the pool
      */
     struct DelegationPoolReturn {
         uint32 __DEPRECATED_cooldownBlocks; // solhint-disable-line var-name-mixedcase
@@ -29,14 +39,23 @@ interface IStakingExtension is IStakingData {
     }
 
     /**
-     * @dev Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
+     * @notice Emitted when `delegator` delegated `tokens` to the `indexer`, the delegator
      * gets `shares` for the delegation pool proportionally to the tokens staked.
+     * @param indexer Address of the indexer receiving the delegation
+     * @param delegator Address of the delegator
+     * @param tokens Amount of tokens delegated
+     * @param shares Amount of shares issued to the delegator
      */
     event StakeDelegated(address indexed indexer, address indexed delegator, uint256 tokens, uint256 shares);
 
     /**
-     * @dev Emitted when `delegator` undelegated `tokens` from `indexer`.
+     * @notice Emitted when `delegator` undelegated `tokens` from `indexer`.
      * Tokens get locked for withdrawal after a period of time.
+     * @param indexer Address of the indexer from which tokens are undelegated
+     * @param delegator Address of the delegator
+     * @param tokens Amount of tokens undelegated
+     * @param shares Amount of shares returned
+     * @param until Epoch until which tokens are locked
      */
     event StakeDelegatedLocked(
         address indexed indexer,
@@ -47,18 +66,28 @@ interface IStakingExtension is IStakingData {
     );
 
     /**
-     * @dev Emitted when `delegator` withdrew delegated `tokens` from `indexer`.
+     * @notice Emitted when `delegator` withdrew delegated `tokens` from `indexer`.
+     * @param indexer Address of the indexer from which tokens are withdrawn
+     * @param delegator Address of the delegator
+     * @param tokens Amount of tokens withdrawn
      */
     event StakeDelegatedWithdrawn(address indexed indexer, address indexed delegator, uint256 tokens);
 
     /**
-     * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
+     * @notice Emitted when `indexer` was slashed for a total of `tokens` amount.
      * Tracks `reward` amount of tokens given to `beneficiary`.
+     * @param indexer Address of the indexer that was slashed
+     * @param tokens Total amount of tokens slashed
+     * @param reward Amount of tokens given as reward
+     * @param beneficiary Address receiving the reward
      */
     event StakeSlashed(address indexed indexer, uint256 tokens, uint256 reward, address beneficiary);
 
     /**
-     * @dev Emitted when `caller` set `slasher` address as `allowed` to slash stakes.
+     * @notice Emitted when `caller` set `slasher` address as `allowed` to slash stakes.
+     * @param caller Address that updated the slasher status
+     * @param slasher Address of the slasher
+     * @param allowed Whether the slasher is allowed to slash
      */
     event SlasherUpdate(address indexed caller, address indexed slasher, bool allowed);
 
@@ -114,6 +143,7 @@ interface IStakingExtension is IStakingData {
      * re-delegate to a new indexer.
      * @param _indexer Withdraw available tokens delegated to indexer
      * @param _newIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
+     * @return Amount of tokens withdrawn
      */
     function withdrawDelegated(address _indexer, address _newIndexer) external returns (uint256);
 

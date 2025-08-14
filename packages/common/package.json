@@ -21,32 +21,27 @@
   "license": "GPL-2.0-or-later",
   "scripts": {
     "clean": "rm -rf build cache types artifacts",
-    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json",
     "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
-    "lint:natspec": "cd ../.. && node scripts/filter-natspec.js --include 'packages/common/contracts/**/*.sol'",
     "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
-    "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
-    "build": "hardhat compile",
-    "build:contracts": "hardhat compile",
-    "build:clean": "pnpm clean && pnpm build"
+    "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'"
   },
   "dependencies": {
     "dotenv": "^16.3.1"
   },
   "devDependencies": {
-    "@defi-wonderland/natspec-smells": "^1.1.6",
+    "@openzeppelin/contracts": "^5.3.0",
+    "@openzeppelin/contracts-upgradeable": "^5.3.0",
     "@types/node": "^20.17.50",
-    "eslint": "^9.28.0",
-    "eslint-config-prettier": "^10.1.5",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
     "globals": "^16.1.0",
-    "hardhat": "^2.24.0",
-    "markdownlint-cli": "^0.45.0",
-    "prettier": "^3.5.3",
-    "prettier-plugin-solidity": "^2.0.0",
-    "solhint": "5.1.0",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.33.1"
+    "markdownlint-cli": "catalog:",
+    "prettier": "catalog:",
+    "solhint": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
   }
 }

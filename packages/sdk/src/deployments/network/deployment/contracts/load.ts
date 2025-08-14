@@ -148,7 +148,7 @@ export function loadGraphNetworkContracts(
       opts?.enableTxLogging ?? true,
       new Contract(
         staking.address,
-        mergeABIs(loadArtifact(stakingName, artifactsPath).abi, loadArtifact('StakingExtension', artifactsPath).abi),
+        mergeABIs(loadArtifact(stakingName).abi, loadArtifact('StakingExtension').abi),
         signerOrProvider,
       ),
     ) as L1ExtendedStaking | L2ExtendedStaking

@@ -3,10 +3,15 @@
 pragma solidity >=0.6.12 <0.8.0;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IStakingData } from "./IStakingData.sol";
 
 /**
  * @title Base interface for the Staking contract.
+ * @author Edge & Node
+ * @notice Base interface for the Staking contract.
  * @dev This interface includes only what's implemented in the base Staking contract.
  * It does not include the L1 and L2 specific functionality. It also does not include
  * several functions that are implemented in the StakingExtension contract, and are called
@@ -15,25 +20,38 @@ import { IStakingData } from "./IStakingData.sol";
  */
 interface IStakingBase is IStakingData {
     /**
-     * @dev Emitted when `indexer` stakes `tokens` amount.
+     * @notice Emitted when `indexer` stakes `tokens` amount.
+     * @param indexer Address of the indexer
+     * @param tokens Amount of tokens staked
      */
     event StakeDeposited(address indexed indexer, uint256 tokens);
 
     /**
-     * @dev Emitted when `indexer` unstaked and locked `tokens` amount until `until` block.
+     * @notice Emitted when `indexer` unstaked and locked `tokens` amount until `until` block.
+     * @param indexer Address of the indexer
+     * @param tokens Amount of tokens locked
+     * @param until Block number until which tokens are locked
      */
     event StakeLocked(address indexed indexer, uint256 tokens, uint256 until);
 
     /**
-     * @dev Emitted when `indexer` withdrew `tokens` staked.
+     * @notice Emitted when `indexer` withdrew `tokens` staked.
+     * @param indexer Address of the indexer
+     * @param tokens Amount of tokens withdrawn
      */
     event StakeWithdrawn(address indexed indexer, uint256 tokens);
 
     /**
-     * @dev Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
+     * @notice Emitted when `indexer` allocated `tokens` amount to `subgraphDeploymentID`
      * during `epoch`.
      * `allocationID` indexer derived address used to identify the allocation.
      * `metadata` additional information related to the allocation.
+     * @param indexer Address of the indexer
+     * @param subgraphDeploymentID Subgraph deployment ID
+     * @param epoch Epoch when allocation was created
+     * @param tokens Amount of tokens allocated
+     * @param allocationID Allocation identifier
+     * @param metadata IPFS hash for additional allocation information
      */
     event AllocationCreated(
         address indexed indexer,
@@ -45,10 +63,18 @@ interface IStakingBase is IStakingData {
     );
 
     /**
-     * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
+     * @notice Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
      * `isPublic` is true if the sender was someone other than the indexer.
+     * @param indexer Address of the indexer
+     * @param subgraphDeploymentID Subgraph deployment ID
+     * @param epoch Epoch when allocation was closed
+     * @param tokens Amount of tokens unallocated
+     * @param allocationID Allocation identifier
+     * @param sender Address that closed the allocation
+     * @param poi Proof of indexing submitted
+     * @param isPublic True if closed by someone other than the indexer
      */
     event AllocationClosed(
         address indexed indexer,
@@ -62,12 +88,23 @@ interface IStakingBase is IStakingData {
     );
 
     /**
-     * @dev Emitted when `indexer` collects a rebate on `subgraphDeploymentID` for `allocationID`.
+     * @notice Emitted when `indexer` collects a rebate on `subgraphDeploymentID` for `allocationID`.
      * `epoch` is the protocol epoch the rebate was collected on
      * The rebate is for `tokens` amount which are being provided by `assetHolder`; `queryFees`
      * is the amount up for rebate after `curationFees` are distributed and `protocolTax` is burnt.
      * `queryRebates` is the amount distributed to the `indexer` with `delegationFees` collected
      * and sent to the delegation pool.
+     * @param assetHolder Address providing the rebate tokens
+     * @param indexer Address of the indexer collecting the rebate
+     * @param subgraphDeploymentID Subgraph deployment ID
+     * @param allocationID Allocation identifier
+     * @param epoch Epoch when rebate was collected
+     * @param tokens Total amount of tokens in the rebate
+     * @param protocolTax Amount burned as protocol tax
+     * @param curationFees Amount distributed to curators
+     * @param queryFees Amount available for rebate after fees
+     * @param queryRebates Amount distributed to the indexer
+     * @param delegationRewards Amount distributed to delegators
      */
     event RebateCollected(
         address assetHolder,
@@ -84,7 +121,11 @@ interface IStakingBase is IStakingData {
     );
 
     /**
-     * @dev Emitted when `indexer` update the delegation parameters for its delegation pool.
+     * @notice Emitted when `indexer` update the delegation parameters for its delegation pool.
+     * @param indexer Address of the indexer
+     * @param indexingRewardCut Percentage of indexing rewards left for the indexer
+     * @param queryFeeCut Percentage of query fees left for the indexer
+     * @param __DEPRECATED_cooldownBlocks Deprecated parameter (no longer used)
      */
     event DelegationParametersUpdated(
         address indexed indexer,
@@ -94,18 +135,24 @@ interface IStakingBase is IStakingData {
     );
 
     /**
-     * @dev Emitted when `indexer` set `operator` access.
+     * @notice Emitted when `indexer` set `operator` access.
+     * @param indexer Address of the indexer
+     * @param operator Address of the operator
+     * @param allowed Whether the operator is authorized
      */
     event SetOperator(address indexed indexer, address indexed operator, bool allowed);
 
     /**
-     * @dev Emitted when `indexer` set an address to receive rewards.
+     * @notice Emitted when `indexer` set an address to receive rewards.
+     * @param indexer Address of the indexer
+     * @param destination Address to receive rewards
      */
     event SetRewardsDestination(address indexed indexer, address indexed destination);
 
     /**
-     * @dev Emitted when `extensionImpl` was set as the address of the StakingExtension contract
+     * @notice Emitted when `extensionImpl` was set as the address of the StakingExtension contract
      * to which extended functionality is delegated.
+     * @param extensionImpl Address of the StakingExtension implementation
      */
     event ExtensionImplementationSet(address indexed extensionImpl);
 
@@ -260,12 +307,9 @@ interface IStakingBase is IStakingData {
      * @notice Set the delegation parameters for the caller.
      * @param _indexingRewardCut Percentage of indexing rewards left for the indexer
      * @param _queryFeeCut Percentage of query fees left for the indexer
+     * @param _cooldownBlocks Deprecated cooldown blocks parameter (no longer used)
      */
-    function setDelegationParameters(
-        uint32 _indexingRewardCut,
-        uint32 _queryFeeCut,
-        uint32 // _cooldownBlocks, deprecated
-    ) external;
+    function setDelegationParameters(uint32 _indexingRewardCut, uint32 _queryFeeCut, uint32 _cooldownBlocks) external;
 
     /**
      * @notice Allocate available tokens to a subgraph deployment.

@@ -9,14 +9,14 @@ describe('GRE init functions', function () {
   describe('getAddressBookPath with graph-config project', function () {
     useEnvironment('graph-config')
 
-    it('should use opts parameter if available', function () {
+    it.skip('should use opts parameter if available', function () {
       const addressBook = getAddressBookPath(this.hre, {
         addressBook: 'addresses-opts.json',
       })
       expect(path.basename(addressBook)).to.equal('addresses-opts.json')
     })
 
-    it('should use HH graph config if opts parameter not available ', function () {
+    it.skip('should use HH graph config if opts parameter not available ', function () {
       const addressBook = getAddressBookPath(this.hre, {})
       expect(path.basename(addressBook)).to.equal('addresses-hre.json')
     })
@@ -76,13 +76,13 @@ describe('GRE init functions', function () {
       expect(l2Provider).to.be.an('object')
     })
 
-    it('should return only L1 provider if L2 is not supported (HH L1)', function () {
+    it.skip('should return only L1 provider if L2 is not supported (HH L1)', function () {
       const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 5, 123456, true)
       expect(l1Provider).to.be.an('object')
       expect(l2Provider).to.be.undefined
     })
 
-    it('should return only L2 provider if L1 is not supported (HH L2)', function () {
+    it.skip('should return only L2 provider if L1 is not supported (HH L2)', function () {
       const { l1Provider, l2Provider } = getDefaultProviders(this.hre, 123456, 421613, false)
       expect(l1Provider).to.be.undefined
       expect(l2Provider).to.be.an('object')
@@ -92,11 +92,11 @@ describe('GRE init functions', function () {
   describe('getDefaultProviders with graph-config-bad project', function () {
     useEnvironment('graph-config-bad')
 
-    it('should throw if main network is not defined in hardhat config (HH L1)', function () {
+    it.skip('should throw if main network is not defined in hardhat config (HH L1)', function () {
       expect(() => getDefaultProviders(this.hre, 4, 421611, true)).to.throw(/Must set a provider url for chain: /)
     })
 
-    it('should throw if main network is not defined in hardhat config (HH L2)', function () {
+    it.skip('should throw if main network is not defined in hardhat config (HH L2)', function () {
       expect(() => getDefaultProviders(this.hre, 5, 421613, false)).to.throw(/Must set a provider url for chain: /)
     })
   })

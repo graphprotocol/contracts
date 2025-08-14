@@ -2,10 +2,13 @@
 
 pragma solidity ^0.7.6 || ^0.8.0;
 
+// Solhint linting fails for 0.8.0.
+// solhint-disable-next-line import-path-check
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IGraphToken
+ * @author Edge & Node
  * @notice Interface for the Graph Token contract
  * @dev Extends IERC20 with additional functionality for minting, burning, and permit
  */

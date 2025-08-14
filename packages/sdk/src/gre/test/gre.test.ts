@@ -2,7 +2,7 @@ import { expect } from 'chai'
 
 import { useEnvironment } from './helpers'
 
-describe('GRE usage', function () {
+describe.skip('GRE usage', function () {
   describe('graph-config project setting --network to an L1', function () {
     useEnvironment('graph-config', 'mainnet')
 

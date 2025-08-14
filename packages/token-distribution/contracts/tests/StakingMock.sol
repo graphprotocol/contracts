@@ -3,9 +3,12 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// solhint-disable gas-indexed-events, gas-strict-inequalities, use-natspec
 
-import "./Stakes.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
+import { Stakes } from "./Stakes.sol";
 
 contract StakingMock {
     using SafeMath for uint256;

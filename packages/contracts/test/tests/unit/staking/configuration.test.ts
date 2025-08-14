@@ -13,7 +13,7 @@ const { AddressZero } = constants
 
 const MAX_PPM = toBN('1000000')
 
-describe.skip('Staking:Config', () => {
+describe('Staking:Config', () => {
   const graph = hre.graph()
 
   let me: SignerWithAddress
@@ -197,10 +197,10 @@ describe.skip('Staking:Config', () => {
   })
 
   describe('Staking and StakingExtension', function () {
-    it.skip('does not allow calling the fallback from the Staking implementation', async function () {
+    it('does not allow calling the fallback from the Staking implementation', async function () {
       const impl = await proxyAdmin.getProxyImplementation(staking.address)
 
-      const factory = await ethers.getContractFactory('StakingExtension')
+      const factory = await ethers.getContractFactory('contracts/staking/StakingExtension.sol:StakingExtension')
       const implAsStaking = factory.attach(impl) as IStaking
       const tx = implAsStaking.connect(other).setDelegationRatio(50)
       await expect(tx).revertedWith('only through proxy')

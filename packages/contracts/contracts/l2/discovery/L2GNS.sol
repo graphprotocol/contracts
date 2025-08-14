@@ -3,6 +3,9 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events, gas-small-strings, gas-strict-inequalities
+
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { GNS } from "../../discovery/GNS.sol";
@@ -14,7 +17,8 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
 
 /**
  * @title L2GNS
- * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
+ * @author Edge & Node
+ * @notice The Graph Name System contract provides a decentralized naming system for subgraphs
  * used in the scope of the Graph Network. It translates Subgraphs into Subgraph Versions.
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
  * human-readable names. All human readable names emitted in events.
@@ -26,35 +30,47 @@ import { IL2Curation } from "../curation/IL2Curation.sol";
 contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     using SafeMathUpgradeable for uint256;
 
-    /// Offset added to an L1 subgraph ID to compute the L2 subgraph ID alias
+    /// @notice Offset added to an L1 subgraph ID to compute the L2 subgraph ID alias
     uint256 public constant SUBGRAPH_ID_ALIAS_OFFSET =
         uint256(0x1111000000000000000000000000000000000000000000000000000000001111);
 
-    /// Maximum rounding error when receiving signal tokens from L1, in parts-per-million.
-    /// If the error from minting signal is above this, tokens will be sent back to the curator.
+    /// @notice Maximum rounding error when receiving signal tokens from L1, in parts-per-million
+    /// @dev If the error from minting signal is above this, tokens will be sent back to the curator
     uint256 public constant MAX_ROUNDING_ERROR = 1000;
 
     /// @dev 100% expressed in parts-per-million
     uint256 private constant MAX_PPM = 1000000;
 
-    /// @dev Emitted when a subgraph is received from L1 through the bridge
+    /// @notice Emitted when a subgraph is received from L1 through the bridge
+    /// @param _l1SubgraphID Subgraph ID on L1
+    /// @param _l2SubgraphID Subgraph ID on L2 (aliased)
+    /// @param _owner Address of the subgraph owner
+    /// @param _tokens Amount of tokens transferred with the subgraph
     event SubgraphReceivedFromL1(
         uint256 indexed _l1SubgraphID,
         uint256 indexed _l2SubgraphID,
         address indexed _owner,
         uint256 _tokens
     );
-    /// @dev Emitted when a subgraph transfer from L1 is finalized, so the subgraph is published on L2
+    /// @notice Emitted when a subgraph transfer from L1 is finalized, so the subgraph is published on L2
+    /// @param _l2SubgraphID Subgraph ID on L2
     event SubgraphL2TransferFinalized(uint256 indexed _l2SubgraphID);
-    /// @dev Emitted when the L1 balance for a curator has been claimed
+    /// @notice Emitted when the L1 balance for a curator has been claimed
+    /// @param _l1SubgraphId Subgraph ID on L1
+    /// @param _l2SubgraphID Subgraph ID on L2 (aliased)
+    /// @param _l2Curator Address of the curator on L2
+    /// @param _tokens Amount of tokens received
     event CuratorBalanceReceived(
         uint256 indexed _l1SubgraphId,
         uint256 indexed _l2SubgraphID,
         address indexed _l2Curator,
         uint256 _tokens
     );
-    /// @dev Emitted when the L1 balance for a curator has been returned to the beneficiary.
+    /// @notice Emitted when the L1 balance for a curator has been returned to the beneficiary.
     /// This can happen if the subgraph transfer was not finished when the curator's tokens arrived.
+    /// @param _l1SubgraphID Subgraph ID on L1
+    /// @param _l2Curator Address of the curator on L2
+    /// @param _tokens Amount of tokens returned
     event CuratorBalanceReturnedToBeneficiary(
         uint256 indexed _l1SubgraphID,
         address indexed _l2Curator,
@@ -103,13 +119,7 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @notice Finish a subgraph transfer from L1.
-     * The subgraph must have been previously sent through the bridge
-     * using the sendSubgraphToL2 function on L1GNS.
-     * @param _l2SubgraphID Subgraph ID (aliased from the L1 subgraph ID)
-     * @param _subgraphDeploymentID Latest subgraph deployment to assign to the subgraph
-     * @param _subgraphMetadata IPFS hash of the subgraph metadata
-     * @param _versionMetadata IPFS hash of the version metadata
+     * @inheritdoc IL2GNS
      */
     function finishSubgraphTransferFromL1(
         uint256 _l2SubgraphID,
@@ -220,25 +230,21 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @notice Return the aliased L2 subgraph ID from a transferred L1 subgraph ID
-     * @param _l1SubgraphID L1 subgraph ID
-     * @return L2 subgraph ID
+     * @inheritdoc IL2GNS
      */
     function getAliasedL2SubgraphID(uint256 _l1SubgraphID) public pure override returns (uint256) {
         return _l1SubgraphID + SUBGRAPH_ID_ALIAS_OFFSET;
     }
 
     /**
-     * @notice Return the unaliased L1 subgraph ID from a transferred L2 subgraph ID
-     * @param _l2SubgraphID L2 subgraph ID
-     * @return L1subgraph ID
+     * @inheritdoc IL2GNS
      */
     function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID) public pure override returns (uint256) {
         return _l2SubgraphID - SUBGRAPH_ID_ALIAS_OFFSET;
     }
 
     /**
-     * @dev Receive a subgraph from L1.
+     * @notice Receive a subgraph from L1.
      * This function will initialize a subgraph received through the bridge,
      * and store the transfer data so that it's finalized later using finishSubgraphTransferFromL1.
      * @param _l1SubgraphID Subgraph ID in L1 (will be aliased)
@@ -308,9 +314,9 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
     }
 
     /**
-     * @dev Get subgraph data.
-     * Since there are no legacy subgraphs in L2, we override the base
-     * GNS method to save us the step of checking for legacy subgraphs.
+     * @notice Get subgraph data
+     * @dev Since there are no legacy subgraphs in L2, we override the base
+     * GNS method to save us the step of checking for legacy subgraphs
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */

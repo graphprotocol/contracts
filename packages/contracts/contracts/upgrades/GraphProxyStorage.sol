@@ -2,9 +2,12 @@
 
 pragma solidity ^0.7.6;
 
+/* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
+
 /**
  * @title Graph Proxy Storage
- * @dev Contract functions related to getting and setting proxy storage.
+ * @author Edge & Node
+ * @notice Contract functions related to getting and setting proxy storage.
  * This contract does not actually define state variables managed by the compiler
  * but uses fixed slot locations.
  */
@@ -32,7 +35,9 @@ abstract contract GraphProxyStorage {
     bytes32 internal constant ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     /**
-     * @dev Emitted when pendingImplementation is changed.
+     * @notice Emitted when pendingImplementation is changed.
+     * @param oldPendingImplementation Address of the previous pending implementation
+     * @param newPendingImplementation Address of the new pending implementation
      */
     event PendingImplementationUpdated(
         address indexed oldPendingImplementation,
@@ -40,13 +45,17 @@ abstract contract GraphProxyStorage {
     );
 
     /**
-     * @dev Emitted when pendingImplementation is accepted,
+     * @notice Emitted when pendingImplementation is accepted,
      * which means contract implementation is updated.
+     * @param oldImplementation Address of the previous implementation
+     * @param newImplementation Address of the new implementation
      */
     event ImplementationUpdated(address indexed oldImplementation, address indexed newImplementation);
 
     /**
-     * @dev Emitted when the admin account has changed.
+     * @notice Emitted when the admin account has changed.
+     * @param oldAdmin Address of the previous admin
+     * @param newAdmin Address of the new admin
      */
     event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
 
@@ -59,6 +68,7 @@ abstract contract GraphProxyStorage {
     }
 
     /**
+     * @notice Returns the current admin address
      * @return adm The admin slot.
      */
     function _getAdmin() internal view returns (address adm) {
@@ -70,7 +80,7 @@ abstract contract GraphProxyStorage {
     }
 
     /**
-     * @dev Sets the address of the proxy admin.
+     * @notice Sets the address of the proxy admin.
      * @param _newAdmin Address of the new proxy admin
      */
     function _setAdmin(address _newAdmin) internal {
@@ -85,7 +95,7 @@ abstract contract GraphProxyStorage {
     }
 
     /**
-     * @dev Returns the current implementation.
+     * @notice Returns the current implementation.
      * @return impl Address of the current implementation
      */
     function _getImplementation() internal view returns (address impl) {
@@ -97,7 +107,7 @@ abstract contract GraphProxyStorage {
     }
 
     /**
-     * @dev Returns the current pending implementation.
+     * @notice Returns the current pending implementation.
      * @return impl Address of the current pending implementation
      */
     function _getPendingImplementation() internal view returns (address impl) {
@@ -109,7 +119,7 @@ abstract contract GraphProxyStorage {
     }
 
     /**
-     * @dev Sets the implementation address of the proxy.
+     * @notice Sets the implementation address of the proxy.
      * @param _newImplementation Address of the new implementation
      */
     function _setImplementation(address _newImplementation) internal {
@@ -125,7 +135,7 @@ abstract contract GraphProxyStorage {
     }
 
     /**
-     * @dev Sets the pending implementation address of the proxy.
+     * @notice Sets the pending implementation address of the proxy.
      * @param _newImplementation Address of the new pending implementation
      */
     function _setPendingImplementation(address _newImplementation) internal {

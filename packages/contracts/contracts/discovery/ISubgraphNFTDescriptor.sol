@@ -2,7 +2,11 @@
 
 pragma solidity ^0.7.6;
 
-/// @title Describes subgraph NFT tokens via URI
+/**
+ * @title Describes subgraph NFT tokens via URI
+ * @author Edge & Node
+ * @notice Interface for describing subgraph NFT tokens via URI
+ */
 interface ISubgraphNFTDescriptor {
     /// @notice Produces the URI describing a particular token ID for a Subgraph
     /// @dev Note this URI may be data: URI with the JSON contents directly inlined

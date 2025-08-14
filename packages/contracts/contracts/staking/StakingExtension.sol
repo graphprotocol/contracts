@@ -3,6 +3,9 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { StakingV4Storage } from "./StakingStorage.sol";
 import { IStakingExtension } from "./IStakingExtension.sol";
@@ -15,7 +18,8 @@ import { MathUtils } from "./libs/MathUtils.sol";
 
 /**
  * @title StakingExtension contract
- * @dev This contract provides the logic to manage delegations and other Staking
+ * @author Edge & Node
+ * @notice This contract provides the logic to manage delegations and other Staking
  * extension features (e.g. storage getters). It is meant to be called through delegatecall from the
  * Staking contract, and is only kept separate to keep the Staking contract size
  * within limits.
@@ -43,12 +47,14 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
      * initialize() function, so it uses the same access control check to ensure it is
      * being called by the Staking implementation as part of the proxy upgrade process.
      * @param _delegationUnbondingPeriod Delegation unbonding period in blocks
+     * @param _cooldownBlocks Deprecated parameter (no longer used)
      * @param _delegationRatio Delegation capacity multiplier (e.g. 10 means 10x the indexer stake)
      * @param _delegationTaxPercentage Percentage of delegated tokens to burn as delegation tax, expressed in parts per million
      */
     function initialize(
         uint32 _delegationUnbondingPeriod,
-        uint32, //_cooldownBlocks, deprecated
+        // solhint-disable-next-line no-unused-vars
+        uint32 _cooldownBlocks, // deprecated
         uint32 _delegationRatio,
         uint32 _delegationTaxPercentage
     ) external onlyImpl {
@@ -58,38 +64,28 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Set a delegation tax percentage to burn when delegated funds are deposited.
-     * @dev This function is only callable by the governor
-     * @param _percentage Percentage of delegated tokens to burn as delegation tax, expressed in parts per million
+     * @inheritdoc IStakingExtension
      */
     function setDelegationTaxPercentage(uint32 _percentage) external override onlyGovernor {
         _setDelegationTaxPercentage(_percentage);
     }
 
     /**
-     * @notice Set the delegation ratio.
-     * If set to 10 it means the indexer can use up to 10x the indexer staked amount
-     * from their delegated tokens
-     * @dev This function is only callable by the governor
-     * @param _delegationRatio Delegation capacity multiplier
+     * @inheritdoc IStakingExtension
      */
     function setDelegationRatio(uint32 _delegationRatio) external override onlyGovernor {
         _setDelegationRatio(_delegationRatio);
     }
 
     /**
-     * @notice Set the time, in epochs, a Delegator needs to wait to withdraw tokens after undelegating.
-     * @dev This function is only callable by the governor
-     * @param _delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
+     * @inheritdoc IStakingExtension
      */
     function setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) external override onlyGovernor {
         _setDelegationUnbondingPeriod(_delegationUnbondingPeriod);
     }
 
     /**
-     * @notice Set or unset an address as allowed slasher.
-     * @param _slasher Address of the party allowed to slash indexers
-     * @param _allowed True if slasher is allowed
+     * @inheritdoc IStakingExtension
      */
     function setSlasher(address _slasher, bool _allowed) external override onlyGovernor {
         require(_slasher != address(0), "!slasher");
@@ -98,10 +94,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Delegate tokens to an indexer.
-     * @param _indexer Address of the indexer to which tokens are delegated
-     * @param _tokens Amount of tokens to delegate
-     * @return Amount of shares issued from the delegation pool
+     * @inheritdoc IStakingExtension
      */
     function delegate(address _indexer, uint256 _tokens) external override notPartialPaused returns (uint256) {
         address delegator = msg.sender;
@@ -114,32 +107,21 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Undelegate tokens from an indexer. Tokens will be locked for the unbonding period.
-     * @param _indexer Address of the indexer to which tokens had been delegated
-     * @param _shares Amount of shares to return and undelegate tokens
-     * @return Amount of tokens returned for the shares of the delegation pool
+     * @inheritdoc IStakingExtension
      */
     function undelegate(address _indexer, uint256 _shares) external override notPartialPaused returns (uint256) {
         return _undelegate(msg.sender, _indexer, _shares);
     }
 
     /**
-     * @notice Withdraw undelegated tokens once the unbonding period has passed, and optionally
-     * re-delegate to a new indexer.
-     * @param _indexer Withdraw available tokens delegated to indexer
-     * @param _newIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
+     * @inheritdoc IStakingExtension
      */
     function withdrawDelegated(address _indexer, address _newIndexer) external override notPaused returns (uint256) {
         return _withdrawDelegated(msg.sender, _indexer, _newIndexer);
     }
 
     /**
-     * @notice Slash the indexer stake. Delegated tokens are not subject to slashing.
-     * @dev Can only be called by the slasher role.
-     * @param _indexer Address of indexer to slash
-     * @param _tokens Amount of tokens to slash from the indexer stake
-     * @param _reward Amount of reward tokens to send to a beneficiary
-     * @param _beneficiary Address of a beneficiary to receive a reward for the slashing
+     * @inheritdoc IStakingExtension
      */
     function slash(
         address _indexer,
@@ -187,48 +169,35 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Return the delegation from a delegator to an indexer.
-     * @param _indexer Address of the indexer where funds have been delegated
-     * @param _delegator Address of the delegator
-     * @return Delegation data
+     * @inheritdoc IStakingExtension
      */
     function getDelegation(address _indexer, address _delegator) external view override returns (Delegation memory) {
         return __delegationPools[_indexer].delegators[_delegator];
     }
 
     /**
-     * @notice Getter for the delegationRatio, i.e. the delegation capacity multiplier:
-     * If delegation ratio is 100, and an Indexer has staked 5 GRT,
-     * then they can use up to 500 GRT from the delegated stake
-     * @return Delegation ratio
+     * @inheritdoc IStakingExtension
      */
     function delegationRatio() external view override returns (uint32) {
         return __delegationRatio;
     }
 
     /**
-     * @notice Getter for delegationUnbondingPeriod:
-     * Time in epochs a delegator needs to wait to withdraw delegated stake
-     * @return Delegation unbonding period in epochs
+     * @inheritdoc IStakingExtension
      */
     function delegationUnbondingPeriod() external view override returns (uint32) {
         return __delegationUnbondingPeriod;
     }
 
     /**
-     * @notice Getter for delegationTaxPercentage:
-     * Percentage of tokens to tax a delegation deposit, expressed in parts per million
-     * @return Delegation tax percentage in parts per million
+     * @inheritdoc IStakingExtension
      */
     function delegationTaxPercentage() external view override returns (uint32) {
         return __delegationTaxPercentage;
     }
 
     /**
-     * @notice Getter for delegationPools[_indexer]:
-     * gets the delegation pool structure for a particular indexer.
-     * @param _indexer Address of the indexer for which to query the delegation pool
-     * @return Delegation pool as a DelegationPoolReturn struct
+     * @inheritdoc IStakingExtension
      */
     function delegationPools(address _indexer) external view override returns (DelegationPoolReturn memory) {
         DelegationPool storage pool = __delegationPools[_indexer];
@@ -244,159 +213,119 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @notice Getter for rewardsDestination[_indexer]:
-     * returns the address where the indexer's rewards are sent.
-     * @param _indexer The indexer address for which to query the rewards destination
-     * @return The address where the indexer's rewards are sent, zero if none is set in which case rewards are re-staked
+     * @inheritdoc IStakingExtension
      */
     function rewardsDestination(address _indexer) external view override returns (address) {
         return __rewardsDestination[_indexer];
     }
 
     /**
-     * @notice Getter for operatorAuth[_indexer][_maybeOperator]:
-     * returns true if the operator is authorized to operate on behalf of the indexer.
-     * @param _indexer The indexer address for which to query authorization
-     * @param _maybeOperator The address that may or may not be an operator
-     * @return True if the operator is authorized to operate on behalf of the indexer
+     * @inheritdoc IStakingExtension
      */
     function operatorAuth(address _indexer, address _maybeOperator) external view override returns (bool) {
         return __operatorAuth[_indexer][_maybeOperator];
     }
 
     /**
-     * @notice Getter for subgraphAllocations[_subgraphDeploymentId]:
-     * returns the amount of tokens allocated to a subgraph deployment.
-     * @param _subgraphDeploymentId The subgraph deployment for which to query the allocations
-     * @return The amount of tokens allocated to the subgraph deployment
+     * @inheritdoc IStakingExtension
      */
     function subgraphAllocations(bytes32 _subgraphDeploymentId) external view override returns (uint256) {
         return __subgraphAllocations[_subgraphDeploymentId];
     }
 
     /**
-     * @notice Getter for slashers[_maybeSlasher]:
-     * returns true if the address is a slasher, i.e. an entity that can slash indexers
-     * @param _maybeSlasher Address for which to check the slasher role
-     * @return True if the address is a slasher
+     * @inheritdoc IStakingExtension
      */
     function slashers(address _maybeSlasher) external view override returns (bool) {
         return __slashers[_maybeSlasher];
     }
 
     /**
-     * @notice Getter for minimumIndexerStake: the minimum
-     * amount of GRT that an indexer needs to stake.
-     * @return Minimum indexer stake in GRT
+     * @inheritdoc IStakingExtension
      */
     function minimumIndexerStake() external view override returns (uint256) {
         return __minimumIndexerStake;
     }
 
     /**
-     * @notice Getter for thawingPeriod: the time in blocks an
-     * indexer needs to wait to unstake tokens.
-     * @return Thawing period in blocks
+     * @inheritdoc IStakingExtension
      */
     function thawingPeriod() external view override returns (uint32) {
         return __thawingPeriod;
     }
 
     /**
-     * @notice Getter for curationPercentage: the percentage of
-     * query fees that are distributed to curators.
-     * @return Curation percentage in parts per million
+     * @inheritdoc IStakingExtension
      */
     function curationPercentage() external view override returns (uint32) {
         return __curationPercentage;
     }
 
     /**
-     * @notice Getter for protocolPercentage: the percentage of
-     * query fees that are burned as protocol fees.
-     * @return Protocol percentage in parts per million
+     * @inheritdoc IStakingExtension
      */
     function protocolPercentage() external view override returns (uint32) {
         return __protocolPercentage;
     }
 
     /**
-     * @notice Getter for maxAllocationEpochs: the maximum time in epochs
-     * that an allocation can be open before anyone is allowed to close it. This
-     * also caps the effective allocation when sending the allocation's query fees
-     * to the rebate pool.
-     * @return Maximum allocation period in epochs
+     * @inheritdoc IStakingExtension
      */
     function maxAllocationEpochs() external view override returns (uint32) {
         return __maxAllocationEpochs;
     }
 
     /**
-     * @notice Getter for the numerator of the rebates alpha parameter
-     * @return Alpha numerator
+     * @inheritdoc IStakingExtension
      */
     function alphaNumerator() external view override returns (uint32) {
         return __alphaNumerator;
     }
 
     /**
-     * @notice Getter for the denominator of the rebates alpha parameter
-     * @return Alpha denominator
+     * @inheritdoc IStakingExtension
      */
     function alphaDenominator() external view override returns (uint32) {
         return __alphaDenominator;
     }
 
     /**
-     * @notice Getter for the numerator of the rebates lambda parameter
-     * @return Lambda numerator
+     * @inheritdoc IStakingExtension
      */
     function lambdaNumerator() external view override returns (uint32) {
         return __lambdaNumerator;
     }
 
     /**
-     * @notice Getter for the denominator of the rebates lambda parameter
-     * @return Lambda denominator
+     * @inheritdoc IStakingExtension
      */
     function lambdaDenominator() external view override returns (uint32) {
         return __lambdaDenominator;
     }
 
     /**
-     * @notice Getter for stakes[_indexer]:
-     * gets the stake information for an indexer as a Stakes.Indexer struct.
-     * @param _indexer Indexer address for which to query the stake information
-     * @return Stake information for the specified indexer, as a Stakes.Indexer struct
+     * @inheritdoc IStakingExtension
      */
     function stakes(address _indexer) external view override returns (Stakes.Indexer memory) {
         return __stakes[_indexer];
     }
 
     /**
-     * @notice Getter for allocations[_allocationID]:
-     * gets an allocation's information as an IStakingData.Allocation struct.
-     * @param _allocationID Allocation ID for which to query the allocation information
-     * @return The specified allocation, as an IStakingData.Allocation struct
+     * @inheritdoc IStakingExtension
      */
     function allocations(address _allocationID) external view override returns (IStakingData.Allocation memory) {
         return __allocations[_allocationID];
     }
 
     /**
-     * @notice Return whether the delegator has delegated to the indexer.
-     * @param _indexer Address of the indexer where funds have been delegated
-     * @param _delegator Address of the delegator
-     * @return True if delegator has tokens delegated to the indexer
+     * @inheritdoc IStakingExtension
      */
     function isDelegator(address _indexer, address _delegator) public view override returns (bool) {
         return __delegationPools[_indexer].delegators[_delegator].shares > 0;
     }
 
     /**
-     * @notice Returns amount of delegated tokens ready to be withdrawn after unbonding period.
-     * @param _delegation Delegation of tokens from delegator to indexer
-     * @return Amount of tokens to withdraw
+     * @inheritdoc IStakingExtension
      */
     function getWithdraweableDelegatedTokens(Delegation memory _delegation) public view override returns (uint256) {
         // There must be locked tokens and period passed
@@ -408,7 +337,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @dev Internal: Set a delegation tax percentage to burn when delegated funds are deposited.
+     * @notice Internal: Set a delegation tax percentage to burn when delegated funds are deposited.
      * @param _percentage Percentage of delegated tokens to burn as delegation tax
      */
     function _setDelegationTaxPercentage(uint32 _percentage) private {
@@ -419,7 +348,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @dev Internal: Set the delegation ratio.
+     * @notice Internal: Set the delegation ratio.
      * If set to 10 it means the indexer can use up to 10x the indexer staked amount
      * from their delegated tokens
      * @param _delegationRatio Delegation capacity multiplier
@@ -430,7 +359,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @dev Internal: Set the period for undelegation of stake from indexer.
+     * @notice Internal: Set the period for undelegation of stake from indexer.
      * @param _delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
      */
     function _setDelegationUnbondingPeriod(uint32 _delegationUnbondingPeriod) private {
@@ -440,7 +369,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @dev Delegate tokens to an indexer.
+     * @notice Delegate tokens to an indexer.
      * @param _delegator Address of the delegator
      * @param _indexer Address of the indexer to delegate tokens to
      * @param _tokens Amount of tokens to delegate
@@ -479,7 +408,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @dev Undelegate tokens from an indexer.
+     * @notice Undelegate tokens from an indexer.
      * @param _delegator Address of the delegator
      * @param _indexer Address of the indexer where tokens had been delegated
      * @param _shares Amount of shares to return and undelegate tokens
@@ -530,7 +459,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @dev Withdraw delegated tokens once the unbonding period has passed.
+     * @notice Withdraw delegated tokens once the unbonding period has passed.
      * @param _delegator Delegator that is withdrawing tokens
      * @param _indexer Withdraw available tokens delegated to indexer
      * @param _delegateToIndexer Re-delegate to indexer address if non-zero, withdraw if zero address
@@ -569,7 +498,7 @@ contract StakingExtension is StakingV4Storage, GraphUpgradeable, IStakingExtensi
     }
 
     /**
-     * @dev Collect tax to burn for an amount of tokens.
+     * @notice Collect tax to burn for an amount of tokens.
      * @param _graphToken Token to burn
      * @param _tokens Total tokens received used to calculate the amount of tax to collect
      * @param _percentage Percentage of tokens to burn as tax
