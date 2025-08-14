@@ -162,6 +162,14 @@ describe('Rewards', () => {
   })
 
   describe('configuration', function () {
+    describe('initialize', function () {
+      it('should revert when called on implementation contract', async function () {
+        // Try to call initialize on the implementation contract (should revert with onlyImpl)
+        const tx = rewardsManager.connect(governor).initialize(contracts.Controller.address)
+        await expect(tx).revertedWith('Only implementation')
+      })
+    })
+
     describe('issuance per block update', function () {
       it('reject set issuance per block if unauthorized', async function () {
         const tx = rewardsManager.connect(indexer1).setIssuancePerBlock(toGRT('1.025'))
@@ -179,6 +187,82 @@ describe('Rewards', () => {
         await rewardsManager.connect(governor).setIssuancePerBlock(newIssuancePerBlock)
         expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
         expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(await helpers.latestBlock())
+      })
+    })
+
+    describe('service quality oracle', function () {
+      it('should reject setServiceQualityOracle if unauthorized', async function () {
+        const MockServiceQualityOracleFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockServiceQualityOracle.sol:MockServiceQualityOracle',
+        )
+        const mockOracle = await MockServiceQualityOracleFactory.deploy(true)
+        await mockOracle.deployed()
+        const tx = rewardsManager.connect(indexer1).setServiceQualityOracle(mockOracle.address)
+        await expect(tx).revertedWith('Only Controller governor')
+      })
+
+      it('should set service quality oracle if governor', async function () {
+        const MockServiceQualityOracleFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockServiceQualityOracle.sol:MockServiceQualityOracle',
+        )
+        const mockOracle = await MockServiceQualityOracleFactory.deploy(true)
+        await mockOracle.deployed()
+
+        const tx = rewardsManager.connect(governor).setServiceQualityOracle(mockOracle.address)
+        await expect(tx)
+          .emit(rewardsManager, 'ServiceQualityOracleSet')
+          .withArgs(constants.AddressZero, mockOracle.address)
+
+        expect(await rewardsManager.serviceQualityOracle()).eq(mockOracle.address)
+      })
+
+      it('should allow setting service quality oracle to zero address', async function () {
+        // First set an oracle
+        const MockServiceQualityOracleFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockServiceQualityOracle.sol:MockServiceQualityOracle',
+        )
+        const mockOracle = await MockServiceQualityOracleFactory.deploy(true)
+        await mockOracle.deployed()
+        await rewardsManager.connect(governor).setServiceQualityOracle(mockOracle.address)
+
+        // Then set to zero address to disable
+        const tx = rewardsManager.connect(governor).setServiceQualityOracle(constants.AddressZero)
+        await expect(tx)
+          .emit(rewardsManager, 'ServiceQualityOracleSet')
+          .withArgs(mockOracle.address, constants.AddressZero)
+
+        expect(await rewardsManager.serviceQualityOracle()).eq(constants.AddressZero)
+      })
+
+      it('should reject setting oracle that does not support interface', async function () {
+        // Try to set an EOA (externally owned account) as the service quality oracle
+        const tx = rewardsManager.connect(governor).setServiceQualityOracle(indexer1.address)
+        await expect(tx).revertedWith('function call to a non-contract account')
+      })
+
+      it('should reject setting oracle that does not support IServiceQualityOracle interface', async function () {
+        // Deploy a contract that doesn't support the IServiceQualityOracle interface
+        const MockERC165OnlyContractFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockERC165OnlyContract.sol:MockERC165OnlyContract',
+        )
+        const mockContract = await MockERC165OnlyContractFactory.deploy()
+        await mockContract.deployed()
+
+        const tx = rewardsManager.connect(governor).setServiceQualityOracle(mockContract.address)
+        await expect(tx).revertedWith('Contract does not support IServiceQualityOracle interface')
+      })
+
+      it('should not emit event when setting same oracle address', async function () {
+        const MockServiceQualityOracleFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockServiceQualityOracle.sol:MockServiceQualityOracle',
+        )
+        const mockOracle = await MockServiceQualityOracleFactory.deploy(true)
+        await mockOracle.deployed()
+        await rewardsManager.connect(governor).setServiceQualityOracle(mockOracle.address)
+
+        // Setting the same oracle again should not emit an event
+        const tx = rewardsManager.connect(governor).setServiceQualityOracle(mockOracle.address)
+        await expect(tx).to.not.emit(rewardsManager, 'ServiceQualityOracleSet')
       })
     })
 
@@ -811,6 +895,98 @@ describe('Rewards', () => {
         await expect(tx)
           .emit(rewardsManager, 'RewardsDenied')
           .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch())
+      })
+
+      it('should deny rewards due to service quality oracle', async function () {
+        // Setup service quality oracle that denies rewards for indexer1
+        const MockServiceQualityOracleFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockServiceQualityOracle.sol:MockServiceQualityOracle',
+        )
+        const mockOracle = await MockServiceQualityOracleFactory.deploy(false) // Default to deny
+        await mockOracle.deployed()
+
+        // Set the service quality oracle
+        await rewardsManager.connect(governor).setServiceQualityOracle(mockOracle.address)
+
+        // Align with the epoch boundary
+        await helpers.mineEpoch(epochManager)
+
+        // Setup allocation
+        await setupIndexerAllocation()
+
+        // Jump to next epoch
+        await helpers.mineEpoch(epochManager)
+
+        // Calculate expected rewards (for verification in the event)
+        const expectedIndexingRewards = toGRT('1400')
+
+        // Close allocation. At this point rewards should be denied due to service quality
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+        await expect(tx)
+          .emit(rewardsManager, 'RewardsDeniedDueToServiceQuality')
+          .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
+      })
+
+      it('should allow rewards when service quality oracle approves', async function () {
+        // Setup service quality oracle that allows rewards for indexer1
+        const MockServiceQualityOracleFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockServiceQualityOracle.sol:MockServiceQualityOracle',
+        )
+        const mockOracle = await MockServiceQualityOracleFactory.deploy(true) // Default to allow
+        await mockOracle.deployed()
+
+        // Set the service quality oracle
+        await rewardsManager.connect(governor).setServiceQualityOracle(mockOracle.address)
+
+        // Align with the epoch boundary
+        await helpers.mineEpoch(epochManager)
+
+        // Setup allocation
+        await setupIndexerAllocation()
+
+        // Jump to next epoch
+        await helpers.mineEpoch(epochManager)
+
+        // Calculate expected rewards
+        const expectedIndexingRewards = toGRT('1400')
+
+        // Close allocation. At this point rewards should be assigned normally
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+        await expect(tx)
+          .emit(rewardsManager, 'RewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), expectedIndexingRewards)
+      })
+
+      it('should handle zero rewards scenario correctly', async function () {
+        // Setup allocation with zero issuance to create zero rewards scenario
+        await rewardsManager.connect(governor).setIssuancePerBlock(0)
+
+        // Align with the epoch boundary
+        await helpers.mineEpoch(epochManager)
+
+        // Setup allocation
+        await setupIndexerAllocation()
+
+        // Jump to next epoch
+        await helpers.mineEpoch(epochManager)
+
+        // Before state
+        const beforeTokenSupply = await grt.totalSupply()
+        const beforeStakingBalance = await grt.balanceOf(staking.address)
+
+        // Close allocation. At this point rewards should be zero
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+        await expect(tx)
+          .emit(rewardsManager, 'RewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), 0)
+
+        // After state - should be unchanged since no rewards were minted
+        const afterTokenSupply = await grt.totalSupply()
+        const afterStakingBalance = await grt.balanceOf(staking.address)
+
+        // Check that no tokens were minted (rewards were 0)
+        expect(afterTokenSupply).eq(beforeTokenSupply)
+        expect(afterStakingBalance).eq(beforeStakingBalance)
       })
     })
   })

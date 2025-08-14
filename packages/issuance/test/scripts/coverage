@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Build dependencies first
+pnpm pnpm --filter @graphprotocol/contracts --filter @graphprotocol/issuance --filter @graphprotocol/sdk build 
+
+# Run coverage from the parent issuance directory where contracts are local
+cd ..
+npx hardhat coverage --config hardhat.coverage.config.ts --testfiles "test/tests/**/*.test.ts"

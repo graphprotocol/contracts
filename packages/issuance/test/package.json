@@ -1,0 +1,58 @@
+{
+  "name": "@graphprotocol/issuance-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test utilities for @graphprotocol/issuance",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@graphprotocol/issuance": "workspace:^",
+    "@graphprotocol/common": "workspace:^",
+    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/sdk": "workspace:^"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-foundry": "^1.1.1",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "5.0.0",
+    "@openzeppelin/contracts": "^5.3.0",
+    "@openzeppelin/contracts-upgradeable": "^5.3.0",
+    "@openzeppelin/foundry-upgrades": "0.4.0",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.17.50",
+    "chai": "^4.3.7",
+    "dotenv": "^16.5.0",
+    "eslint": "catalog:",
+    "eslint-plugin-no-only-tests": "catalog:",
+    "ethers": "^6.13.4",
+    "forge-std": "https://github.com/foundry-rs/forge-std/tarball/v1.9.7",
+    "glob": "^11.0.2",
+    "hardhat": "catalog:",
+    "hardhat-gas-reporter": "catalog:",
+    "prettier": "catalog:",
+    "solidity-coverage": "^0.8.0",
+    "ts-node": "^10.9.2",
+    "typescript": "catalog:"
+  },
+  "scripts": {
+    "build": "tsc --build && pnpm --filter @graphprotocol/issuance compile && pnpm generate:interfaces",
+    "generate:interfaces": "node scripts/generateInterfaceIds.js --silent",
+    "clean": "rm -rf build",
+    "test": "pnpm test:self",
+    "test:self": "pnpm test:hardhat",
+    "test:hardhat": "pnpm --filter @graphprotocol/contracts --filter @graphprotocol/issuance --filter @graphprotocol/sdk build && hardhat test tests/*.test.ts tests/**/*.test.ts",
+    "test:coverage": "scripts/coverage",
+    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
+  }
+}

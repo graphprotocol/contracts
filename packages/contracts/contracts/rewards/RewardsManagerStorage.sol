@@ -5,6 +5,8 @@
 pragma solidity 0.7.6;
 
 import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsIssuer } from "./IRewardsIssuer.sol";
+import { IServiceQualityOracle } from "@graphprotocol/common/contracts/quality/IServiceQualityOracle.sol";
 import { Managed } from "../governance/Managed.sol";
 
 /**
@@ -59,6 +61,17 @@ contract RewardsManagerV3Storage is RewardsManagerV2Storage {
  */
 contract RewardsManagerV4Storage is RewardsManagerV3Storage {
     /// @notice GRT issued for indexer rewards per block
-    /// @dev Only used when issuanceAllocator is zero address.
     uint256 public issuancePerBlock;
+}
+
+/**
+ * @title RewardsManagerV5Storage
+ * @author Edge & Node
+ * @notice Storage layout for RewardsManager V5
+ */
+contract RewardsManagerV5Storage is RewardsManagerV4Storage {
+    /// @notice Address of the subgraph service
+    IRewardsIssuer public subgraphService;
+    /// @notice Address of the service quality oracle contract
+    IServiceQualityOracle public serviceQualityOracle;
 }

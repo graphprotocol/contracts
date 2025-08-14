@@ -7,6 +7,7 @@ pragma abicoder v2;
 // solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
@@ -14,8 +15,9 @@ import { Managed } from "../governance/Managed.sol";
 import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
 import { IStaking, IStakingBase } from "../staking/IStaking.sol";
 
-import { RewardsManagerV4Storage } from "./RewardsManagerStorage.sol";
+import { RewardsManagerV5Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IServiceQualityOracle } from "@graphprotocol/common/contracts/quality/IServiceQualityOracle.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -37,7 +39,7 @@ import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IReward
  * until the actual takeRewards function is called.
  * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
-contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     /// @dev Fixed point scaling factor used for decimals in reward calculations
@@ -63,11 +65,26 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
     event RewardsDenied(address indexed indexer, address indexed allocationID, uint256 epoch);
 
     /**
+     * @notice Emitted when rewards are denied to an indexer due to service quality
+     * @param indexer Address of the indexer being denied rewards
+     * @param allocationID Address of the allocation being denied rewards
+     * @param amount Amount of rewards that would have been assigned
+     */
+    event RewardsDeniedDueToServiceQuality(address indexed indexer, address indexed allocationID, uint256 amount);
+
+    /**
      * @notice Emitted when a subgraph is denied for claiming rewards
      * @param subgraphDeploymentID Subgraph deployment ID being denied
      * @param sinceBlock Block number since when the subgraph is denied
      */
     event RewardsDenylistUpdated(bytes32 indexed subgraphDeploymentID, uint256 sinceBlock);
+
+    /**
+     * @notice Emitted when the service quality oracle contract is set
+     * @param oldServiceQualityOracle Previous service quality oracle address
+     * @param newServiceQualityOracle New service quality oracle address
+     */
+    event ServiceQualityOracleSet(address indexed oldServiceQualityOracle, address indexed newServiceQualityOracle);
 
     // -- Modifiers --
 
@@ -133,6 +150,28 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
         );
         minimumSubgraphSignal = _minimumSubgraphSignal;
         emit ParameterUpdated("minimumSubgraphSignal");
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev Note that the service quality oracle can be set to the zero address to disable use of an oracle, in
+     * which case no indexers will be denied rewards due to service quality.
+     */
+    function setServiceQualityOracle(address newServiceQualityOracle) external override onlyGovernor {
+        if (address(serviceQualityOracle) != newServiceQualityOracle) {
+            // Check that the contract supports the IServiceQualityOracle interface
+            // Allow zero address to disable the oracle
+            if (newServiceQualityOracle != address(0)) {
+                require(
+                    IERC165(newServiceQualityOracle).supportsInterface(type(IServiceQualityOracle).interfaceId),
+                    "Contract does not support IServiceQualityOracle interface"
+                );
+            }
+
+            address oldServiceQualityOracle = address(serviceQualityOracle);
+            serviceQualityOracle = IServiceQualityOracle(newServiceQualityOracle);
+            emit ServiceQualityOracleSet(oldServiceQualityOracle, newServiceQualityOracle);
+        }
     }
 
     // -- Denylist --
@@ -336,6 +375,13 @@ contract RewardsManager is RewardsManagerV4Storage, GraphUpgradeable, IRewardsMa
 
         // Calculate rewards accrued by this allocation
         uint256 rewards = _calcRewards(alloc.tokens, alloc.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
+
+        // Do not reward if indexer is not eligible based on service quality
+        if (address(serviceQualityOracle) != address(0) && !serviceQualityOracle.isAllowed(alloc.indexer)) {
+            emit RewardsDeniedDueToServiceQuality(alloc.indexer, _allocationID, rewards);
+            return 0;
+        }
+
         if (rewards > 0) {
             // Mint directly to staking contract for the reward amount
             // The staking contract will do bookkeeping of the reward and

@@ -1,0 +1,70 @@
+{
+  "name": "@graphprotocol/issuance",
+  "version": "1.0.0",
+  "description": "The Graph Issuance Contracts",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./artifacts/*": "./artifacts/*",
+    "./contracts/*": "./contracts/*",
+    "./types/*": "./types/*"
+  },
+  "scripts": {
+    "build": "npm run build:self",
+    "build:self": "pnpm compile; pnpm typechain",
+    "clean": "rm -rf build/ cache/ dist/ forge-artifacts/ cache_forge/",
+    "compile": "hardhat compile",
+    "test": "pnpm --filter @graphprotocol/issuance-test --filter @graphprotocol/issuance-deploy test",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "typechain": "hardhat typechain",
+    "verify": "hardhat verify",
+    "size": "hardhat size-contracts",
+    "forge:build": "forge build"
+  },
+  "files": [
+    "artifacts/**/*",
+    "types/**/*",
+    "contracts/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "author": "The Graph Team",
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {
+    "@graphprotocol/common": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
+    "@nomicfoundation/hardhat-verify": "catalog:",
+    "@openzeppelin/contracts": "^5.3.0",
+    "@openzeppelin/contracts-upgradeable": "^5.3.0",
+    "@openzeppelin/hardhat-upgrades": "^3.9.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "catalog:",
+    "@types/node": "^20.17.50",
+    "dotenv": "catalog:",
+    "eslint": "catalog:",
+    "ethers": "catalog:",
+    "glob": "^11.0.2",
+    "globals": "^16.1.0",
+    "hardhat": "catalog:",
+    "hardhat-contract-sizer": "catalog:",
+    "hardhat-secure-accounts": "catalog:",
+    "hardhat-storage-layout": "catalog:",
+    "lint-staged": "16.0.0",
+    "markdownlint-cli": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-solidity": "catalog:",
+    "solhint": "catalog:",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.0",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "yaml-lint": "^1.7.0"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.8.0"
+  }
+}
