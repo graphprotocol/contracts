@@ -3,7 +3,7 @@
 set -eo pipefail
 
 # Build dependencies first
-pnpm pnpm --filter @graphprotocol/contracts --filter @graphprotocol/issuance --filter @graphprotocol/sdk build 
+pnpm --filter @graphprotocol/contracts --filter @graphprotocol/issuance --filter @graphprotocol/sdk build 
 
 # Run coverage from the parent issuance directory where contracts are local
 cd ..
