@@ -97,18 +97,6 @@ describe('ServiceQualityOracle', () => {
     await resetOracleState()
   })
 
-  // // Test fixtures (kept for complex tests that need fresh deployments)
-  // async function setupServiceQualityOracle() {
-  //   // Deploy test GraphToken
-  //   const graphToken = await deployTestGraphToken()
-  //   const graphTokenAddress = await graphToken.getAddress()
-
-  //   // Deploy ServiceQualityOracle with proxy
-  //   const serviceQualityOracle = await deployServiceQualityOracle(graphTokenAddress, accounts.governor)
-
-  //   return { serviceQualityOracle, graphToken }
-  // }
-
   describe('Construction', () => {
     it('should revert when constructed with zero GraphToken address', async () => {
       const ServiceQualityOracleFactory = await ethers.getContractFactory('ServiceQualityOracle')

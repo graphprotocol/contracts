@@ -97,7 +97,7 @@ describe('Consolidated Access Control Tests', () => {
         contracts.serviceQualityOracle.connect(accounts.nonGovernor).unpause(),
       ).to.be.revertedWithCustomError(contracts.serviceQualityOracle, 'AccessControlUnauthorizedAccount')
 
-      // Pause role account should be allowed
+      // PAUSE_ROLE account should be allowed
       await expect(contracts.serviceQualityOracle.connect(accounts.governor).pause()).to.not.be.reverted
     })
 

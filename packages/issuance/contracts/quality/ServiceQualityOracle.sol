@@ -83,8 +83,7 @@ contract ServiceQualityOracle is BaseUpgradeable, IServiceQualityOracle {
     /// @notice Emitted when the allowed period is updated
     /// @param oldPeriod The previous allowed period in seconds
     /// @param newPeriod The new allowed period in seconds
-    event AllowedPeriodUpdated(uint256 oldPeriod, uint256 newPeriod); // solhint-disable-line gas-indexed-events
-    // Do not need to index period values
+    event AllowedPeriodUpdated(uint256 indexed oldPeriod, uint256 indexed newPeriod);
 
     /// @notice Emitted when quality checking is enabled or disabled
     /// @param active True if quality checking is enabled, false if disabled
@@ -93,7 +92,7 @@ contract ServiceQualityOracle is BaseUpgradeable, IServiceQualityOracle {
     /// @notice Emitted when the oracle update timeout is updated
     /// @param oldTimeout The previous timeout period in seconds
     /// @param newTimeout The new timeout period in seconds
-    event OracleUpdateTimeoutUpdated(uint256 indexed oldTimeout, uint256 newTimeout); // solhint-disable-line gas-indexed-events
+    event OracleUpdateTimeoutUpdated(uint256 indexed oldTimeout, uint256 indexed newTimeout);
 
     // -- Constructor --
 

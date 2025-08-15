@@ -1,6 +1,5 @@
-const fs = require('fs')
-
-const { ethers, upgrades } = require('hardhat')
+import * as fs from 'fs'
+import { ethers, upgrades } from 'hardhat'
 
 /**
  * Standard test accounts
