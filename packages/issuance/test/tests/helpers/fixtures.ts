@@ -87,7 +87,7 @@ async function deployServiceQualityOracle(
     await serviceQualityOracle.connect(governor).grantOperatorRole(governor.address)
     await serviceQualityOracle.connect(governor).setValidityPeriod(validityPeriod)
     // Now revoke the operator role from governor to ensure tests start with clean state
-    await serviceQualityOracle.connect(governor).revokeOperatorRole(governor.address)
+    await serviceQualityOracle.connect(governor).revokeRole(OPERATOR_ROLE, governor.address)
   }
 
   return serviceQualityOracle
