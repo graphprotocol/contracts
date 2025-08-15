@@ -214,7 +214,7 @@ contract ServiceQualityOracle is BaseUpgradeable, IServiceQualityOracle {
 
             if (indexer != address(0) && $.allowedIndexerTimestamps[indexer] < blockTimestamp) {
                 $.allowedIndexerTimestamps[indexer] = blockTimestamp;
-                emit IndexerAllowed(indexers[i], msg.sender);
+                emit IndexerAllowed(indexer, msg.sender);
                 ++updatedCount;
             }
         }
