@@ -87,7 +87,6 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
 
         // Check registered indexer data
         ISubgraphService.Indexer memory indexer = _getIndexer(_indexer);
-        assertEq(indexer.registeredAt, block.timestamp);
         assertEq(indexer.url, url);
         assertEq(indexer.geoHash, geohash);
 
@@ -197,7 +196,7 @@ abstract contract SubgraphServiceSharedTest is HorizonStakingSharedTest {
      */
 
     function _getIndexer(address _indexer) private view returns (ISubgraphService.Indexer memory) {
-        (uint256 registeredAt, string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
-        return ISubgraphService.Indexer({ registeredAt: registeredAt, url: url, geoHash: geoHash });
+        (string memory url, string memory geoHash) = subgraphService.indexers(_indexer);
+        return ISubgraphService.Indexer({ url: url, geoHash: geoHash });
     }
 }

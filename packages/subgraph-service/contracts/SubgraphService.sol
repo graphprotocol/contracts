@@ -13,9 +13,7 @@ import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {
-    DataServicePausableUpgradeable
-} from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
+import { DataServicePausableUpgradeable } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServicePausableUpgradeable.sol";
 import { DataService } from "@graphprotocol/horizon/contracts/data-service/DataService.sol";
 import { DataServiceFees } from "@graphprotocol/horizon/contracts/data-service/extensions/DataServiceFees.sol";
 import { Directory } from "./utilities/Directory.sol";
@@ -54,7 +52,7 @@ contract SubgraphService is
      * @param indexer The address of the indexer
      */
     modifier onlyRegisteredIndexer(address indexer) {
-        require(indexers[indexer].registeredAt != 0, SubgraphServiceIndexerNotRegistered(indexer));
+        require(bytes(indexers[indexer].url).length > 0, SubgraphServiceIndexerNotRegistered(indexer));
         _;
     }
 
@@ -98,7 +96,6 @@ contract SubgraphService is
      * @dev Implements {IDataService.register}
      *
      * Requirements:
-     * - The indexer must not be already registered
      * - The URL must not be empty
      * - The provision must be valid according to the subgraph service rules
      *
@@ -123,13 +120,10 @@ contract SubgraphService is
 
         require(bytes(url).length > 0, SubgraphServiceEmptyUrl());
         require(bytes(geohash).length > 0, SubgraphServiceEmptyGeohash());
-        require(indexers[indexer].registeredAt == 0, SubgraphServiceIndexerAlreadyRegistered());
 
         // Register the indexer
-        indexers[indexer] = Indexer({ registeredAt: block.timestamp, url: url, geoHash: geohash });
-        if (paymentsDestination_ != address(0)) {
-            _setPaymentsDestination(indexer, paymentsDestination_);
-        }
+        indexers[indexer] = Indexer({ url: url, geoHash: geohash });
+        _setPaymentsDestination(indexer, paymentsDestination_);
 
         emit ServiceProviderRegistered(indexer, data);
     }
