@@ -20,3 +20,13 @@ export type RAV = {
   valueAggregate: bigint
   metadata: BytesLike
 }
+
+export type Receipt = {
+  collection_id: string
+  payer: string
+  data_service: string
+  service_provider: string
+  timestamp_ns: bigint
+  nonce: bigint
+  value: bigint
+}
