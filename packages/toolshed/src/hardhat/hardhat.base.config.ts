@@ -36,6 +36,7 @@ interface EtherscanConfig {
 }
 
 // Hardhat variables
+const SEPOLIA = vars.get('SEPOLIA_RPC', 'https://sepolia.drpc.org')
 const ARBITRUM_ONE_RPC = vars.get('ARBITRUM_ONE_RPC', 'https://arb1.arbitrum.io/rpc')
 const ARBITRUM_SEPOLIA_RPC = vars.get('ARBITRUM_SEPOLIA_RPC', 'https://sepolia-rollup.arbitrum.io/rpc')
 const LOCAL_NETWORK_RPC = vars.get('LOCAL_NETWORK_RPC', 'http://chain:8545')
@@ -60,6 +61,7 @@ export const etherscanUserConfig: Partial<EtherscanConfig> = {
   apiKey: {
     ...(vars.has('ARBISCAN_API_KEY') && {
       arbitrumSepolia: vars.get('ARBISCAN_API_KEY'),
+      sepolia: vars.get('ETHERSCAN_API_KEY'),
     }),
   },
 }
@@ -136,6 +138,13 @@ export const networksUserConfig = function (callerRequire: typeof require): Base
     arbitrumSepolia: {
       chainId: 421614,
       url: ARBITRUM_SEPOLIA_RPC,
+      secureAccounts: {
+        enabled: true,
+      },
+    },
+    sepolia: {
+      chainId: 11155111,
+      url: SEPOLIA,
       secureAccounts: {
         enabled: true,
       },

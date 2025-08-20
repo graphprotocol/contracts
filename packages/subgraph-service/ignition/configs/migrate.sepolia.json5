@@ -1,0 +1,36 @@
+{
+  "$global": {
+    // Accounts already configured in the original Graph Protocol - Sepolia values
+    "governor": "0x4EBf30832eC2db76aE228D5d239083B59f530d1f",
+    "arbitrator": "0xd6ff9e98F0Fd99ccB658832F586e23F4D8Cb8Bad",
+    "pauseGuardian": "0x382688E15Cc894D04cf3313b26a4F2c93C8fDe06",
+
+    // Addresses for contracts deployed in the original Graph Protocol - Sepolia values
+    "controllerAddress": "0xf53B3910ecaeED1Aac4Bb5Ba9840d25E36e52b7C",
+    "curationProxyAddress": "0x77A6e5F2f13218B33A97Aec56d591dB18D60FFb1",
+    "curationImplementationAddress": "0x54C6639e45F9Eb5Ab55A370d4071e77e5f1b9FF6",
+    "gnsProxyAddress": "0x5461D48556B94e7fdD8ED5A8f865Ba4F1A3b5454",
+    "gnsImplementationAddress": "0x4Ac3832d773FE6B6dcC8EB6241B83212F1a55096",
+    "subgraphNFTAddress": "0x120005c38D2624Ef70185fEf3a051Dd57b27a491",
+
+    // Must be set for step 2 of the deployment
+    "disputeManagerProxyAddress": "",
+    "disputeManagerProxyAdminAddress": "",
+    "subgraphServiceProxyAddress": "",
+    "subgraphServiceProxyAdminAddress": "",
+    "graphTallyCollectorAddress": ""
+  },
+  "DisputeManager": {
+    "disputePeriod": 2419200,
+    "disputeDeposit": "10000000000000000000000n",
+    "fishermanRewardCut": 500000,
+    "maxSlashingCut": 1000000,
+  },
+  "SubgraphService": {
+    "minimumProvisionTokens": "100000000000000000000000n",
+    "maximumDelegationRatio": 16,
+    "stakeToFeesRatio": 2,
+    "maxPOIStaleness": 2419200, // 28 days = 2419200 seconds
+    "curationCut": 100000,
+  }
+}

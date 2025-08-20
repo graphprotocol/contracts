@@ -51,5 +51,17 @@
     "GraphTallyCollector": {
       "address": "0xB63bC33D13F73eFD14d32D2b9FC0B6116B6611CE"
     }
+  },
+  "11155111": {
+    "GraphPayments": {
+      "address": "0xD973335eE11F1Ea4fA48f7CBC3c88f95cc7aA3bf",
+      "proxy": "transparent",
+      "proxyAdmin": "0xD8CE30055b5a030C9b12539c749c1512F39c1b8a"
+    },
+    "PaymentsEscrow": {
+      "address": "0x6281D2D85a092daBB7C99447D7C95013992A1e1f",
+      "proxy": "transparent",
+      "proxyAdmin": "0x0E3A1C46517e6daf6D8927B0B4322b9d931db648"
+    }
   }
 }
