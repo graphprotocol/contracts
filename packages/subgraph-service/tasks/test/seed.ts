@@ -93,7 +93,7 @@ task('test:seed', 'Seed the test environment, must be run after deployment').set
 
     const indexerData = await subgraphService.indexers(indexerSigner.address)
 
-    console.log(`Indexer registered at: ${indexerData.registeredAt}`)
+    console.log(`Indexer registered at: ${indexerData.url} - ${indexerData.geoHash}`)
   }
 
   console.log('\n--- STEP 3: Start allocations ---')

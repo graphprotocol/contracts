@@ -110,7 +110,7 @@ async function main() {
   console.log('📝 Subgraph Service - registering...')
   for (const signer of signers) {
     const indexer = await SubgraphService.indexers(signer.address)
-    const isRegistered = indexer.registeredAt !== 0n
+    const isRegistered = indexer.url.length > 0
     if (!isRegistered) {
       const paymentsDestination = Math.random() < 0.5 ? signer.address : ethers.ZeroAddress
       const data = abi.encode(['string', 'string', 'address'], ['http://indexer.xyz', '69y7mznpp', paymentsDestination])
