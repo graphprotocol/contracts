@@ -61,6 +61,8 @@ export const etherscanUserConfig: Partial<EtherscanConfig> = {
   apiKey: {
     ...(vars.has('ARBISCAN_API_KEY') && {
       arbitrumSepolia: vars.get('ARBISCAN_API_KEY'),
+    }),
+    ...(vars.has('ETHERSCAN_API_KEY') && {
       sepolia: vars.get('ETHERSCAN_API_KEY'),
     }),
   },
