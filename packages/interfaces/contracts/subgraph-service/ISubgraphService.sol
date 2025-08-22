@@ -20,12 +20,10 @@ import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
 interface ISubgraphService is IDataServiceFees {
     /**
      * @notice Indexer details
-     * @param registeredAt The timestamp when the indexer registered
      * @param url The URL where the indexer can be reached at for queries
      * @param geoHash The indexer's geo location, expressed as a geo hash
      */
     struct Indexer {
-        uint256 registeredAt;
         string url;
         string geoHash;
     }
@@ -82,11 +80,6 @@ interface ISubgraphService is IDataServiceFees {
      * @notice Thrown when an indexer tries to register with an empty geohash
      */
     error SubgraphServiceEmptyGeohash();
-
-    /**
-     * @notice Thrown when an indexer tries to register but they are already registered
-     */
-    error SubgraphServiceIndexerAlreadyRegistered();
 
     /**
      * @notice Thrown when an indexer tries to perform an operation but they are not registered

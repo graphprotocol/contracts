@@ -27,13 +27,10 @@ interface ISubgraphServiceToolshed is
      * @dev Note that this storage getter actually returns a ISubgraphService.Indexer struct, but ethers v6 is not
      *      good at dealing with dynamic types on return values.
      * @param indexer The address of the indexer
-     * @return registeredAt The timestamp when the indexer registered
      * @return url The URL where the indexer can be reached at for queries
      * @return geoHash The indexer's geo location, expressed as a geo hash
      */
-    function indexers(
-        address indexer
-    ) external view returns (uint256 registeredAt, string memory url, string memory geoHash);
+    function indexers(address indexer) external view returns (string memory url, string memory geoHash);
 
     /**
      * @notice Gets the allocation provision tracker

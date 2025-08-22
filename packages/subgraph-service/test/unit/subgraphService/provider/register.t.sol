@@ -19,12 +19,18 @@ contract SubgraphServiceProviderRegisterTest is SubgraphServiceTest {
         _register(users.indexer, data);
     }
 
-    function test_SubgraphService_Provider_Register_RevertIf_AlreadyRegistered(
+    function test_SubgraphService_Provider_Register_MultipleTimes(
         uint256 tokens
     ) public useIndexer useAllocation(tokens) {
-        vm.expectRevert(abi.encodeWithSelector(ISubgraphService.SubgraphServiceIndexerAlreadyRegistered.selector));
         bytes memory data = abi.encode("url", "geoHash", users.rewardsDestination);
-        subgraphService.register(users.indexer, data);
+        _register(users.indexer, data);
+
+        bytes memory data2 = abi.encode("url2", "geoHash2", users.rewardsDestination);
+        _register(users.indexer, data2);
+
+        (string memory url, string memory geoHash) = subgraphService.indexers(users.indexer);
+        assertEq(url, "url2");
+        assertEq(geoHash, "geoHash2");
     }
 
     function test_SubgraphService_Provider_Register_RevertWhen_InvalidProvision() public useIndexer {
