@@ -53,6 +53,43 @@
     }
   },
   "11155111": {
+    "Controller": {
+      "address": "0xf53B3910ecaeED1Aac4Bb5Ba9840d25E36e52b7C"
+    },
+    "EpochManager": {
+      "address": "0x3C39036a76104D7c6D3eF13a21477C0fE23A3Aa2",
+      "proxy": "graph",
+      "implementation": "0xA1af9300209cc60de6Ce39752d57F04AB7E29432"
+    },
+    "L2Curation": {
+      "address": "0x77A6e5F2f13218B33A97Aec56d591dB18D60FFb1",
+      "proxy": "graph",
+      "implementation": "0x54C6639e45F9Eb5Ab55A370d4071e77e5f1b9FF6"
+    },
+    "RewardsManager": {
+      "address": "0x175f483AfAB4Fc52A6E07F9e9d46C90eB95941b5",
+      "proxy": "graph",
+      "implementation": "0x3a7382e41d56f6085fcdE56546884ecfcCe8e949"
+    },
+    "L2GraphTokenGateway": {
+      "address": "0x549DCB0b510Ee7C8d6E8e346ab9aC75E22DD78B3",
+      "proxy": "graph",
+      "implementation": "0xF1De736CcBb1a37591f7fCA4CA415932a4a8d632"
+    },
+
+    "L2GraphToken": {
+      "address": "0xCA59cCeb39bE1808d7aA607153f4A5062daF3a83",
+      "proxy": "graph",
+      "implementation": "0x0000000000000000000000000000000000000000"
+    },
+    "GraphProxyAdmin": {
+      "address": "0xe2011488ea6B02692Ee58717698aecDdfBf4756F"
+    },
+    "HorizonStaking": {
+      "address": "0x14e9B07Dc56A0B03ac8A58453B5cCCB289d6ec90",
+      "proxy": "graph",
+      "implementation": "0x88aec82f14002a56014819f4e23a22eB32F528b1"
+    },
     "GraphPayments": {
       "address": "0xD973335eE11F1Ea4fA48f7CBC3c88f95cc7aA3bf",
       "proxy": "transparent",
@@ -62,6 +99,9 @@
       "address": "0x6281D2D85a092daBB7C99447D7C95013992A1e1f",
       "proxy": "transparent",
       "proxyAdmin": "0x0E3A1C46517e6daf6D8927B0B4322b9d931db648"
+    },
+    "GraphTallyCollector": {
+      "address": "0x0000000000000000000000000000000000000000"
     }
   }
 }

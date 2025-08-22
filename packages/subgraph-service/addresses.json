@@ -33,6 +33,25 @@
     }
   },
   "11155111": {
+    "L2Curation": {
+      "address": "0x77A6e5F2f13218B33A97Aec56d591dB18D60FFb1",
+      "proxy": "graph",
+      "implementation": "0x54C6639e45F9Eb5Ab55A370d4071e77e5f1b9FF6"
+    },
+    "L2GNS": {
+      "address": "0x5461D48556B94e7fdD8ED5A8f865Ba4F1A3b5454",
+      "proxy": "graph",
+      "implementation": "0x4Ac3832d773FE6B6dcC8EB6241B83212F1a55096"
+    },
+    "SubgraphNFT": {
+      "address": "0x120005c38D2624Ef70185fEf3a051Dd57b27a491"
+    },
+    "LegacyDisputeManager": {
+      "address": "0x1Da0DF3435cde4199650D35690E3B0885dfc38B1"
+    },
+    "LegacyServiceRegistry": {
+      "address": "0x0Ee47634c94E6606f67301b3A868319073CB0FC2"
+    },
     "SubgraphService": {
       "address": "0xECC99E4865088325d5D13c29186B45dF540349A6",
       "proxy": "transparent",
