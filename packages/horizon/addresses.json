@@ -72,7 +72,7 @@
       "implementation": "0x02FDf66A0E701481ccf1955cAF8790aaFeB79799"
     },
     "L2GraphTokenGateway": {
-      "address": "0xCA59cCeb39bE1808d7aA607153f4A5062daF3a83",
+      "address": "0x549DCB0b510Ee7C8d6E8e346ab9aC75E22DD78B3",
       "proxy": "graph",
       "implementation": "0xF1De736CcBb1a37591f7fCA4CA415932a4a8d632"
     },
