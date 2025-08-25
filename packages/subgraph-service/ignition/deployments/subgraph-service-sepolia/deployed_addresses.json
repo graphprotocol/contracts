@@ -6,5 +6,18 @@
   "SubgraphServiceProxies#DisputeManager_ProxyWithABI": "0x1808bbc1D8A8E83cB2260De2a09388Ad03D34c41",
   "SubgraphServiceProxies#SubgraphService_ProxyWithABI": "0xECC99E4865088325d5D13c29186B45dF540349A6",
   "SubgraphServiceProxies#ProxyAdmin_DisputeManager": "0x2B62Bd22BF08807c6c36A519a4C1FE5bc64aA0DF",
-  "SubgraphServiceProxies#ProxyAdmin_SubgraphService": "0x6FFA698A2bfCc51ac461E90311fd3d5CCda3fDfC"
+  "SubgraphServiceProxies#ProxyAdmin_SubgraphService": "0x6FFA698A2bfCc51ac461E90311fd3d5CCda3fDfC",
+  "DisputeManager#DisputeManagerProxy": "0x1808bbc1D8A8E83cB2260De2a09388Ad03D34c41",
+  "DisputeManager#ProxyAdmin": "0x2B62Bd22BF08807c6c36A519a4C1FE5bc64aA0DF",
+  "L2Curation#L2CurationAddressBook": "0x77A6e5F2f13218B33A97Aec56d591dB18D60FFb1",
+  "L2Curation#L2CurationImplementationAddressBook": "0x54C6639e45F9Eb5Ab55A370d4071e77e5f1b9FF6",
+  "L2GNS#L2GNSAddressBook": "0x5461D48556B94e7fdD8ED5A8f865Ba4F1A3b5454",
+  "L2GNS#L2GNSImplementationAddressBook": "0x4Ac3832d773FE6B6dcC8EB6241B83212F1a55096",
+  "L2GNS#SubgraphNFTAddressBook": "0x120005c38D2624Ef70185fEf3a051Dd57b27a491",
+  "SubgraphService#ProxyAdmin": "0x6FFA698A2bfCc51ac461E90311fd3d5CCda3fDfC",
+  "SubgraphService#SubgraphServiceProxy": "0xECC99E4865088325d5D13c29186B45dF540349A6",
+  "DisputeManager#DisputeManager": "0x3A0bF447e030Af9dd2C763b9f01543c65236BcAE",
+  "SubgraphService#SubgraphService": "0x304e7593a93DdDD510AD464E4679F4D0e44C8422",
+  "DisputeManager#DisputeManager_ProxyWithABI": "0x1808bbc1D8A8E83cB2260De2a09388Ad03D34c41",
+  "SubgraphService#SubgraphService_ProxyWithABI": "0xECC99E4865088325d5D13c29186B45dF540349A6"
 }

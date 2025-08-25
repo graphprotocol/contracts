@@ -55,12 +55,14 @@
     "SubgraphService": {
       "address": "0xECC99E4865088325d5D13c29186B45dF540349A6",
       "proxy": "transparent",
-      "proxyAdmin": "0x6FFA698A2bfCc51ac461E90311fd3d5CCda3fDfC"
+      "proxyAdmin": "0x6FFA698A2bfCc51ac461E90311fd3d5CCda3fDfC",
+      "implementation": "0x304e7593a93DdDD510AD464E4679F4D0e44C8422"
     },
     "DisputeManager": {
       "address": "0x1808bbc1D8A8E83cB2260De2a09388Ad03D34c41",
       "proxy": "transparent",
-      "proxyAdmin": "0x2B62Bd22BF08807c6c36A519a4C1FE5bc64aA0DF"
+      "proxyAdmin": "0x2B62Bd22BF08807c6c36A519a4C1FE5bc64aA0DF",
+      "implementation": "0x3A0bF447e030Af9dd2C763b9f01543c65236BcAE"
     }
   }
 }

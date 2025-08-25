@@ -14,11 +14,11 @@
     "subgraphNFTAddress": "0x120005c38D2624Ef70185fEf3a051Dd57b27a491",
 
     // Must be set for step 2 of the deployment
-    "disputeManagerProxyAddress": "",
-    "disputeManagerProxyAdminAddress": "",
-    "subgraphServiceProxyAddress": "",
-    "subgraphServiceProxyAdminAddress": "",
-    "graphTallyCollectorAddress": ""
+    "disputeManagerProxyAddress": "0x1808bbc1D8A8E83cB2260De2a09388Ad03D34c41",
+    "disputeManagerProxyAdminAddress": "0x2B62Bd22BF08807c6c36A519a4C1FE5bc64aA0DF",
+    "subgraphServiceProxyAddress": "0xECC99E4865088325d5D13c29186B45dF540349A6",
+    "subgraphServiceProxyAdminAddress": "0x6FFA698A2bfCc51ac461E90311fd3d5CCda3fDfC",
+    "graphTallyCollectorAddress": "0x1ca8D6C862dcAb3c4B3E256228E1468Bed92f4bF"
   },
   "DisputeManager": {
     "disputePeriod": 2419200,
