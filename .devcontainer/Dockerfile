@@ -35,8 +35,6 @@ RUN pipx install solc-select && \
     cp /root/.local/bin/solc-select /usr/local/bin/solc-select && \
     chmod 755 /usr/local/bin/solc && \
     chmod 755 /usr/local/bin/solc-select && \
-    # Make sure pipx directory is accessible
-    chmod -R a+rx /root/.local/pipx && \
     # Set up for vscode user
     mkdir -p /home/vscode/.solc-select && \
     cp -r /root/.solc-select/* /home/vscode/.solc-select/ && \

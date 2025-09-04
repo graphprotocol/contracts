@@ -28,8 +28,7 @@ services:
 
       # pnpm cache is safe to share due to content-addressable storage
       - PNPM_HOME=/home/vscode/.local/share/pnpm
-      - PNPM_CACHE_DIR=/home/vscode/.cache/pnpm
-
+      - PNPM_STORE_DIR=/home/vscode/.cache/pnpm/store
       # Note: NPM, Foundry, and Solidity caches are intentionally not set
       # to avoid cross-branch contamination. Tools will use their default locations.
     volumes:
@@ -45,7 +44,6 @@ services:
       - vscode-bin:/home/vscode/.local/bin
 
       # Shared pnpm cache (safe due to content-addressable storage)
-      - pnpm-store:/home/vscode/.local/share/pnpm
       - pnpm-cache:/home/vscode/.cache/pnpm
 
 volumes:
@@ -53,5 +51,4 @@ volumes:
   vscode-config:
   vscode-data:
   vscode-bin:
-  pnpm-store:
   pnpm-cache:
