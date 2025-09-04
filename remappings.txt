@@ -1,2 +1,0 @@
-@graphprotocol/common/=packages/common/
-@openzeppelin/=node_modules/@openzeppelin/
