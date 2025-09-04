@@ -4,9 +4,8 @@ import { ethers } from 'hardhat'
 
 import { shouldSupportERC165Interface } from '../../utils/testPatterns'
 import { deployServiceQualityOracle, deployTestGraphToken, getTestAccounts } from '../helpers/fixtures'
-
 // Import generated interface IDs
-const interfaceIds = require('../helpers/interfaceIds')
+import interfaceIds from '../helpers/interfaceIds'
 
 /**
  * Consolidated ERC-165 Interface Compliance Tests

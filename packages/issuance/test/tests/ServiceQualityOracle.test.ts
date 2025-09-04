@@ -1,9 +1,9 @@
-const { time } = require('@nomicfoundation/hardhat-network-helpers')
-const { expect } = require('chai')
-const { ethers, upgrades } = require('hardhat')
+import { time } from '@nomicfoundation/hardhat-network-helpers'
+import { expect } from 'chai'
+import { ethers, upgrades } from 'hardhat'
 
-const { getTestAccounts, deployTestGraphToken, deployServiceQualityOracle } = require('./helpers/fixtures')
-const { SHARED_CONSTANTS } = require('./helpers/sharedFixtures')
+import { deployServiceQualityOracle, deployTestGraphToken, getTestAccounts } from './helpers/fixtures'
+import { SHARED_CONSTANTS } from './helpers/sharedFixtures'
 
 // Role constants
 const GOVERNOR_ROLE = SHARED_CONSTANTS.GOVERNOR_ROLE

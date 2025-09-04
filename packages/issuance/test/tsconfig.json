@@ -4,13 +4,6 @@
     "outDir": "./build",
     "rootDir": "."
   },
-  "include": [
-    "tests/**/*",
-    "utils/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "build",
-    "scripts/**/*"
-  ]
+  "include": ["tests/**/*", "utils/**/*"],
+  "exclude": ["node_modules", "build", "scripts/**/*"]
 }

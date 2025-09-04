@@ -1,25 +1,24 @@
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import * as fs from 'fs'
-import { ethers, upgrades } from 'hardhat'
 
-/**
- * Standard test accounts
- */
-// TestAccounts interface converted to JSDoc for CommonJS
-/**
- * @typedef {Object} TestAccounts
- * @property {SignerWithAddress} governor
- * @property {SignerWithAddress} nonGovernor
- * @property {SignerWithAddress} operator
- * @property {SignerWithAddress} user
- * @property {SignerWithAddress} indexer1
- * @property {SignerWithAddress} indexer2
- */
+const { ethers, upgrades } = require('hardhat')
+const { SHARED_CONSTANTS } = require('./sharedFixtures')
+const { OPERATOR_ROLE } = SHARED_CONSTANTS
+
+// Types
+export interface TestAccounts {
+  governor: HardhatEthersSigner
+  nonGovernor: HardhatEthersSigner
+  operator: HardhatEthersSigner
+  user: HardhatEthersSigner
+  indexer1: HardhatEthersSigner
+  indexer2: HardhatEthersSigner
+}
 
 /**
  * Get standard test accounts
- * @returns {Promise<TestAccounts>}
  */
-async function getTestAccounts() {
+export async function getTestAccounts(): Promise<TestAccounts> {
   const [governor, nonGovernor, operator, user, indexer1, indexer2] = await ethers.getSigners()
 
   return {
@@ -35,9 +34,9 @@ async function getTestAccounts() {
 /**
  * Deploy a test GraphToken for testing
  * This uses the real GraphToken contract
- * @returns {Promise<Contract>}
  */
-async function deployTestGraphToken() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function deployTestGraphToken(): Promise<any> {
   // Get the governor account
   const [governor] = await ethers.getSigners()
 
@@ -59,16 +58,16 @@ async function deployTestGraphToken() {
 
 /**
  * Deploy the ServiceQualityOracle contract with proxy using OpenZeppelin's upgrades library
- * @param {string} graphToken
- * @param {HardhatEthersSigner} governor
- * @param {number} [validityPeriod=7 * 24 * 60 * 60] The validity period in seconds (default: 7 days)
- * @returns {Promise<ServiceQualityOracle>}
+ * @param graphToken The Graph Token contract address
+ * @param governor The governor signer
+ * @param validityPeriod The validity period in seconds (default: 7 days)
  */
-async function deployServiceQualityOracle(
-  graphToken,
-  governor,
-  validityPeriod = 7 * 24 * 60 * 60, // 7 days in seconds
-) {
+export async function deployServiceQualityOracle(
+  graphToken: string,
+  governor: HardhatEthersSigner,
+  validityPeriod: number = 7 * 24 * 60 * 60, // 7 days in seconds
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
   // Deploy implementation and proxy using OpenZeppelin's upgrades library
   const ServiceQualityOracleFactory = await ethers.getContractFactory('ServiceQualityOracle')
 
@@ -91,11 +90,4 @@ async function deployServiceQualityOracle(
   }
 
   return serviceQualityOracle
-}
-
-// Export all functions and constants
-module.exports = {
-  getTestAccounts,
-  deployTestGraphToken,
-  deployServiceQualityOracle,
 }
