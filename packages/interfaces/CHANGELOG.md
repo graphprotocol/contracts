@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.6.0
+
+### Minor Changes
+
+- Updated indexer struct and function signature
+
 ## 0.5.2
 
 ### Patch Changes

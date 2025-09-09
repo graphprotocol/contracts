@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 0.5.0
+
+### Minor Changes
+
+- Updated indexer struct and function signature
+
 ## 0.4.1
 
 ### Patch Changes
