@@ -379,7 +379,7 @@ async function main() {
         gateway.address,
         signer.address,
         SubgraphService.target as string,
-        0,
+        0n,
         tokensCollected + ONE_THOUSAND,
         ethers.toUtf8Bytes(''),
         gatewaySigner.privateKey,

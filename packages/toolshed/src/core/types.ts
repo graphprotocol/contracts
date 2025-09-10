@@ -16,7 +16,7 @@ export type RAV = {
   payer: string
   serviceProvider: string
   dataService: string
-  timestampNs: number
+  timestampNs: bigint
   valueAggregate: bigint
   metadata: BytesLike
 }
