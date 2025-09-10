@@ -1,5 +1,11 @@
 # @graphprotocol/toolshed
 
+## 0.6.13
+
+### Patch Changes
+
+- Use bigint for RAV timestamp
+
 ## 0.6.12
 
 ### Patch Changes
