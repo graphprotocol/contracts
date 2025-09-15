@@ -66,8 +66,7 @@ contract DataServiceFeesTest is HorizonStakingSharedTest {
         // tryna lock some more
         uint256 additionalTokens = 10000;
         uint256 tokensRequired = dataService.feesProvisionTracker(users.indexer) +
-            additionalTokens *
-            dataService.STAKE_TO_FEES_RATIO();
+            additionalTokens * dataService.STAKE_TO_FEES_RATIO();
         uint256 tokensAvailable = staking.getTokensAvailable(users.indexer, address(dataService), 0);
         vm.expectRevert(
             abi.encodeWithSelector(

@@ -9,7 +9,6 @@ import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Managed } from "../governance/Managed.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
-import { IStaking, IStakingBase } from "../staking/IStaking.sol";
 
 import { RewardsManagerV5Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsManager } from "./IRewardsManager.sol";

@@ -5,9 +5,7 @@ import "forge-std/Test.sol";
 
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
-import {
-    IHorizonStakingExtension
-} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";

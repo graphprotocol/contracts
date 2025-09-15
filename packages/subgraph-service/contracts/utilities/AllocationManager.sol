@@ -230,8 +230,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
         // Update total allocated tokens for the subgraph deployment
         _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] +
-            allocation.tokens;
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] + allocation.tokens;
 
         emit AllocationCreated(_indexer, _allocationId, _subgraphDeploymentId, allocation.tokens, currentEpoch);
     }
@@ -424,8 +423,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
         // Update total allocated tokens for the subgraph deployment
         _subgraphAllocatedTokens[allocation.subgraphDeploymentId] =
-            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] -
-            allocation.tokens;
+            _subgraphAllocatedTokens[allocation.subgraphDeploymentId] - allocation.tokens;
 
         emit AllocationClosed(
             allocation.indexer,

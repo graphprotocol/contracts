@@ -3,9 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Test.sol";
 
-import {
-    IHorizonStakingExtension
-} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 

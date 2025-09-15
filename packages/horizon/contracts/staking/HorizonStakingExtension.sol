@@ -4,9 +4,7 @@ pragma solidity 0.8.27;
 
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import {
-    IHorizonStakingExtension
-} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 
 import { TokenUtils } from "@graphprotocol/contracts/contracts/utils/TokenUtils.sol";
@@ -366,14 +364,12 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
 
             // Free allocated tokens from use
             _serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated =
-                _serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated -
-                alloc.tokens;
+                _serviceProviders[alloc.indexer].__DEPRECATED_tokensAllocated - alloc.tokens;
 
             // Track total allocations per subgraph
             // Used for rewards calculations
             __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] =
-                __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] -
-                alloc.tokens;
+                __DEPRECATED_subgraphAllocations[alloc.subgraphDeploymentID] - alloc.tokens;
         }
 
         // Close the allocation

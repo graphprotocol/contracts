@@ -4,9 +4,7 @@ pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
-import {
-    IHorizonStakingExtension
-} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
@@ -460,11 +458,9 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
             // Service provider accounting
             _serviceProviders[serviceProvider].tokensProvisioned =
-                _serviceProviders[serviceProvider].tokensProvisioned -
-                providerTokensSlashed;
+                _serviceProviders[serviceProvider].tokensProvisioned - providerTokensSlashed;
             _serviceProviders[serviceProvider].tokensStaked =
-                _serviceProviders[serviceProvider].tokensStaked -
-                providerTokensSlashed;
+                _serviceProviders[serviceProvider].tokensStaked - providerTokensSlashed;
 
             emit ProvisionSlashed(serviceProvider, verifier, providerTokensSlashed);
         }
@@ -747,8 +743,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
         prov.tokens = prov.tokens + _tokens;
         _serviceProviders[_serviceProvider].tokensProvisioned =
-            _serviceProviders[_serviceProvider].tokensProvisioned +
-            _tokens;
+            _serviceProviders[_serviceProvider].tokensProvisioned + _tokens;
         emit ProvisionIncreased(_serviceProvider, _verifier, _tokens);
     }
 

@@ -21,14 +21,12 @@ The dev container provides a consistent development environment with caching to 
 The container uses a conservative caching approach to prevent cache corruption issues:
 
 1. **Local Cache Directories**: Each container instance maintains its own cache directories
-
    - `vscode-cache` → `/home/vscode/.cache` (VS Code cache)
    - `vscode-config` → `/home/vscode/.config` (VS Code configuration)
    - `vscode-data` → `/home/vscode/.local/share` (VS Code data)
    - `vscode-bin` → `/home/vscode/.local/bin` (User binaries)
 
 2. **Safe Caches Only**: Only caches that won't cause cross-branch issues are configured
-
    - GitHub CLI: `/home/vscode/.cache/github`
    - Python packages: `/home/vscode/.cache/pip`
 

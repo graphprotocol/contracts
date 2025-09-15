@@ -7,9 +7,7 @@ import { GraphBaseTest } from "../../GraphBase.t.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IHorizonStakingBase } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingBase.sol";
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
-import {
-    IHorizonStakingExtension
-} from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
+import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
@@ -1049,14 +1047,12 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         // calc
         CalcValues_Undelegate memory calcValues;
         calcValues.tokens =
-            ((beforeValues.pool.tokens - beforeValues.pool.tokensThawing) * shares) /
-            beforeValues.pool.shares;
+            ((beforeValues.pool.tokens - beforeValues.pool.tokensThawing) * shares) / beforeValues.pool.shares;
         calcValues.thawingShares = beforeValues.pool.tokensThawing == 0
             ? calcValues.tokens
             : (beforeValues.pool.sharesThawing * calcValues.tokens) / beforeValues.pool.tokensThawing;
         calcValues.thawingUntil =
-            staking.getProvision(serviceProvider, verifier).thawingPeriod +
-            uint64(block.timestamp);
+            staking.getProvision(serviceProvider, verifier).thawingPeriod + uint64(block.timestamp);
         calcValues.thawRequestId = keccak256(
             abi.encodePacked(serviceProvider, verifier, beneficiary, beforeValues.thawRequestList.nonce)
         );
@@ -1675,8 +1671,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
             indexerRewards: 0
         });
         calcValues.indexerRewards =
-            ALLOCATIONS_REWARD_CUT -
-            (beforeValues.pool.tokens > 0 ? calcValues.delegatorRewards : 0);
+            ALLOCATIONS_REWARD_CUT - (beforeValues.pool.tokens > 0 ? calcValues.delegatorRewards : 0);
 
         // closeAllocation
         vm.expectEmit(address(staking));
@@ -1850,8 +1845,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         calcValues.delegationFeeCut = 0;
         if (beforeValues.pool.tokens > 0) {
             calcValues.delegationFeeCut =
-                calcValues.payment -
-                calcValues.payment.mulPPM(beforeValues.pool.__DEPRECATED_queryFeeCut);
+                calcValues.payment - calcValues.payment.mulPPM(beforeValues.pool.__DEPRECATED_queryFeeCut);
             calcValues.payment -= calcValues.delegationFeeCut;
         }
 
