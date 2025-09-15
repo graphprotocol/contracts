@@ -62,7 +62,7 @@
   },
   "scripts": {
     "build": "tsc --build",
-    "clean": "rm -rf build",
+    "clean": "rm -rf build types",
     "deploy": "hardhat migrate",
     "deploy-localhost": "hardhat migrate --force --skip-confirmation --disable-secure-accounts --network localhost --graph-config config/graph.localhost.yml --address-book addresses-local.json",
     "verify": "hardhat verify",

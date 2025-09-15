@@ -1,7 +1,0 @@
-{
-  "extends": ["solhint:recommended", "./../../.solhint.json"],
-  "rules": {
-    "graph/leading-underscore": "off",
-    "named-parameters-mapping": "off"
-  }
-}

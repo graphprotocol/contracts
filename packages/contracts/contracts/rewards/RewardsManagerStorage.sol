@@ -2,9 +2,9 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
-import "./IRewardsManager.sol";
-import "../governance/Managed.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
+import { Managed } from "../governance/Managed.sol";
 
 contract RewardsManagerV1Storage is Managed {
     // -- State --

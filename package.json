@@ -9,13 +9,13 @@
   "scripts": {
     "postinstall": "husky",
     "clean": "pnpm -r run clean",
-    "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules",
+    "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules packages/*/*/node_modules",
     "build": "pnpm -r run build",
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'packages/*/contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
     "lint:natspec": "node scripts/filter-natspec.js",
-    "lint:md": "markdownlint --fix '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:md": "markdownlint --fix --ignore-path .gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn '**/*.{yml,yaml}'",
     "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
@@ -49,7 +49,6 @@
     "prettier-plugin-solidity": "^1.0.0",
     "pretty-quick": "^4.1.1",
     "solhint": "^5.1.0",
-    "solhint-plugin-graph": "workspace:*",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1",
     "yaml-lint": "^1.7.0"

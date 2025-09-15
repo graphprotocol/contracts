@@ -23,7 +23,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Build all packages
-        run: pnpm build
+        run: pnpm -r --sequential run build
 
       - name: Test all packages
         run: pnpm -r --sequential run test

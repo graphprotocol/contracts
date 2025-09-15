@@ -8,6 +8,7 @@ node_modules/
 
 # Third-party libraries in lib directories
 **/lib/
+forge-std/
 
 # Build outputs (from .gitignore)
 **/build/

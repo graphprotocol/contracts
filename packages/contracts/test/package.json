@@ -59,6 +59,7 @@
   },
   "scripts": {
     "postinstall": "scripts/setup-symlinks",
+    "clean": "rm -rf artifacts/ cache/ reports/ types/",
     "test": "scripts/test",
     "test:e2e": "scripts/e2e",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",

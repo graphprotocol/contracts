@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "prepack": "pnpm build",
-    "clean": "rm -rf artifacts/ cache/ types/ abis/",
+    "clean": "rm -rf artifacts/ cache/ types/ abis/ build/ dist/ contracts/hardhat-dependency-compiler/",
     "build": "pnpm compile",
     "compile": "hardhat compile",
     "deploy": "pnpm predeploy && pnpm build",

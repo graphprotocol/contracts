@@ -32,18 +32,17 @@
 ## Packages
 
 This repository is a pnpm workspaces monorepo containing the following packages:
-This repository is a pnpm workspaces monorepo containing the following packages:
 
-| Package                                                 | Latest version                                                                                                                                   | Description                                                                                       |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| [contracts](./packages/contracts)                       | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts)                   | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
-| [eslint-graph-config](./packages/eslint-graph-config)   | -                                                                                                                                                | Shared linting and formatting rules for TypeScript projects.                                      |
-| [horizon](./packages/horizon)                           | -                                                                                                                                                | Contracts for Graph Horizon, the next iteration of The Graph protocol.                            |
-| [sdk](./packages/sdk)                                   | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsdk.svg)](https://badge.fury.io/js/@graphprotocol%2Fsdk)                               | TypeScript based SDK to interact with the protocol contracts                                      |
-| [solhint-graph-config](./packages/solhint-graph-config) | -                                                                                                                                                | Shared linting and formatting rules for Solidity projects.                                        |
-| [solhint-plugin-graph](./packages/solhint-plugin-graph) | -                                                                                                                                                | Plugin for Solhint with specific Graph linting rules.                                             |
-| [subgraph-service](./packages/subgraph-service)         | -                                                                                                                                                | Contracts for the Subgraph data service in Graph Horizon.                                         |
-| [token-distribution](./packages/token-distribution)     | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution) | Contracts managing token locks for network participants                                           |
+| Package                                                 | Latest version                                                                                                                                         | Description                                                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [contracts](./packages/contracts)                       | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fcontracts.svg)](https://badge.fury.io/js/@graphprotocol%2Fcontracts)                         | Contracts enabling the open and permissionless decentralized network known as The Graph protocol. |
+| [data-edge](./packages/data-edge)                       | -                        | Data edge testing and utilities for The Graph protocol.                                           |
+| [hardhat-graph-protocol](./packages/hardhat-graph-protocol) | [![npm version](https://badge.fury.io/js/hardhat-graph-protocol.svg)](https://badge.fury.io/js/hardhat-graph-protocol) | A Hardhat plugin that extends the runtime environment with functionality for The Graph protocol.  |
+| [horizon](./packages/horizon)                           | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fhorizon.svg)](https://badge.fury.io/js/@graphprotocol%2Fhorizon)                             | Contracts for Graph Horizon, the next iteration of The Graph protocol.                            |
+| [interfaces](./packages/interfaces)                     | [![npm version](https://badge.fury.io/js/@graphprotocol%2Finterfaces.svg)](https://badge.fury.io/js/@graphprotocol%2Finterfaces)                       | Contract interfaces for The Graph protocol contracts.                                             |
+| [subgraph-service](./packages/subgraph-service)         | [![npm version](https://badge.fury.io/js/@graphprotocol%2Fsubgraph-service.svg)](https://badge.fury.io/js/@graphprotocol%2Fsubgraph-service)           | Contracts for the Subgraph data service in Graph Horizon.                                         |
+| [token-distribution](./packages/token-distribution)     | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoken-distribution)       | Contracts managing token locks for network participants.                                          |
+| [toolshed](./packages/toolshed)                         | [![npm version](https://badge.fury.io/js/@graphprotocol%2Ftoolshed.svg)](https://badge.fury.io/js/@graphprotocol%2Ftoolshed)                           | A collection of tools and utilities for the Graph Protocol TypeScript components.                 |
 
 ## Development
 
@@ -54,6 +53,9 @@ To set up this project you'll need [git](https://git-scm.com) and [pnpm](https:/
 From your command line:
 
 ```bash
+corepack enable
+pnpm set version stable
+
 # Clone this repository
 $ git clone https://github.com/graphprotocol/contracts
 
@@ -108,10 +110,10 @@ Packages are published and distributed via NPM. To publish a package, run the fo
 
 ```bash
 # Publish the packages
-$ pnpm changeset publish
+pnpm changeset publish
 
 # Alternatively use
-$ pnpm publish --recursive
+pnpm publish --recursive
 ```
 
 Alternatively, there is a GitHub action that can be manually triggered to publish a package.
