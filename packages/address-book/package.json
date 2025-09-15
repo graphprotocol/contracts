@@ -1,0 +1,36 @@
+{
+  "name": "@graphprotocol/address-book",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Contract addresses for The Graph Protocol",
+  "author": "The Graph core devs",
+  "license": "GPL-2.0-or-later",
+  "exports": {
+    "./horizon/addresses.json": "./src/horizon/addresses.json",
+    "./subgraph-service/addresses.json": "./src/subgraph-service/addresses.json"
+  },
+  "files": [
+    "src/**/*.json",
+    "README.md"
+  ],
+  "scripts": {
+    "lint": "prettier -w --cache --log-level warn '**/*.json'",
+    "restore-symlinks": "node scripts/restore-symlinks.js",
+    "prepublishOnly": "node scripts/copy-addresses-for-publish.js",
+    "postpublish": "node scripts/restore-symlinks.js"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "graph",
+    "graph-protocol",
+    "horizon",
+    "subgraph-service",
+    "address-book"
+  ]
+}

@@ -3,7 +3,7 @@
 pragma solidity ^0.7.6;
 
 import { Governed } from "../governance/Governed.sol";
-import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
 
 /**
  * @title Subgraph Availability Manager

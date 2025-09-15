@@ -1,4 +1,4 @@
 packages:
   - 'packages/*'
-  - 'packages/*/test'
-  - 'packages/*/task'
+  - 'packages/contracts/test'
+  - 'packages/contracts/task'

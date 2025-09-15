@@ -68,3 +68,16 @@ abstract contract CurationV1Storage is Managed, ICuration {
 abstract contract CurationV2Storage is CurationV1Storage, Initializable {
     // Nothing here, just adding Initializable
 }
+
+/**
+ * @title Curation Storage version 3
+ * @dev This contract holds the third version of the storage variables
+ * for the Curation and L2Curation contracts.
+ * It adds a new variable subgraphService to the storage.
+ * When adding new variables, create a new version that inherits this and update
+ * the contracts to use the new version instead.
+ */
+abstract contract CurationV3Storage is CurationV2Storage {
+    // Address of the subgraph service
+    address public subgraphService;
+}

@@ -9,10 +9,10 @@ import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/Clo
 
 import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../../utils/TokenUtils.sol";
-import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
 import { Managed } from "../../governance/Managed.sol";
-import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
-import { CurationV2Storage } from "../../curation/CurationStorage.sol";
+import { IGraphToken } from "../../token/IGraphToken.sol";
+import { CurationV3Storage } from "../../curation/CurationStorage.sol";
 import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
 import { IL2Curation } from "./IL2Curation.sol";
 
@@ -28,7 +28,7 @@ import { IL2Curation } from "./IL2Curation.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
+contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
     using SafeMathUpgradeable for uint256;
 
     /// @dev 100% in parts per million
@@ -66,6 +66,11 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * distributed by an indexer from query fees received from state channels.
      */
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
+
+    /**
+     * @dev Emitted when the subgraph service is set.
+     */
+    event SubgraphServiceSet(address indexed newSubgraphService);
 
     /**
      * @dev Modifier for functions that can only be called by the GNS contract
@@ -132,15 +137,27 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
     }
 
     /**
+     * @notice Set the subgraph service address
+     * @param _subgraphService Address of the subgraph service contract
+     */
+    function setSubgraphService(address _subgraphService) external override onlyGovernor {
+        subgraphService = _subgraphService;
+        emit SubgraphServiceSet(_subgraphService);
+    }
+
+    /**
      * @notice Assign Graph Tokens collected as curation fees to the curation pool reserve.
-     * @dev This function can only be called by the Staking contract and will do the bookeeping of
+     * @dev This function can only be called by the Staking contract and will do the Bookkeeping of
      * transferred tokens into this contract.
      * @param _subgraphDeploymentID SubgraphDeployment where funds should be allocated as reserves
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
-        // Only Staking contract is authorized as caller
-        require(msg.sender == address(staking()), "Caller must be the staking contract");
+        // Only SubgraphService or Staking contract are authorized as caller
+        require(
+            msg.sender == subgraphService || msg.sender == address(staking()),
+            "Caller must be the subgraph service or staking contract"
+        );
 
         // Must be curated to accept tokens
         require(isCurated(_subgraphDeploymentID), "Subgraph deployment must be curated to collect fees");
@@ -312,7 +329,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
 
     /**
      * @notice Get the amount of token reserves in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of token reserves in the curation pool
      */
     function getCurationPoolTokens(bytes32 _subgraphDeploymentID) external view override returns (uint256) {
@@ -341,7 +358,7 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
 
     /**
      * @notice Get the amount of signal in a curation pool.
-     * @param _subgraphDeploymentID Subgraph deployment curation poool
+     * @param _subgraphDeploymentID Subgraph deployment curation pool
      * @return Amount of signal minted for the subgraph deployment
      */
     function getCurationPoolSignal(bytes32 _subgraphDeploymentID) public view override returns (uint256) {

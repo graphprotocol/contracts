@@ -1,0 +1,9 @@
+[profile.default]
+src = 'contracts'
+out = 'build'
+libs = ["node_modules"]
+test = 'test'
+cache_path  = 'cache_forge'
+fs_permissions = [{ access = "read", path = "./"}]
+optimizer = true
+optimizer_runs = 100

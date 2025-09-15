@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 import { IController } from "./IController.sol";
 import { IManaged } from "./IManaged.sol";
@@ -89,10 +89,10 @@ contract Controller is Governed, Pausable, IController {
     /**
      * @notice Change the partial paused state of the contract
      * Partial pause is intended as a partial pause of the protocol
-     * @param _toPause True if the contracts should be (partially) paused, false otherwise
+     * @param _toPartialPause True if the contracts should be (partially) paused, false otherwise
      */
-    function setPartialPaused(bool _toPause) external override onlyGovernorOrGuardian {
-        _setPartialPaused(_toPause);
+    function setPartialPaused(bool _toPartialPause) external override onlyGovernorOrGuardian {
+        _setPartialPaused(_toPartialPause);
     }
 
     /**

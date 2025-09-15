@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity >=0.6.12 <0.8.0;
+pragma solidity >=0.6.12 <0.8.0 || 0.8.27;
 pragma abicoder v2;
 
 import { IStakingData } from "./IStakingData.sol";
@@ -360,6 +360,22 @@ interface IStakingBase is IStakingData {
      * @return Allocation data
      */
     function getAllocation(address _allocationID) external view returns (Allocation memory);
+
+    /**
+     * @dev New function to get the allocation data for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function getAllocationData(
+        address _allocationID
+    ) external view returns (bool, address, bytes32, uint256, uint256, uint256);
+
+    /**
+     * @dev New function to get the allocation active status for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function isActiveAllocation(address _allocationID) external view returns (bool);
 
     /**
      * @notice Return the current state of an allocation

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 abstract contract Pausable {
     /**
@@ -14,7 +14,7 @@ abstract contract Pausable {
     bool internal _paused;
 
     /// Timestamp for the last time the partial pause was set
-    uint256 public lastPausePartialTime;
+    uint256 public lastPartialPauseTime;
     /// Timestamp for the last time the full pause was set
     uint256 public lastPauseTime;
 
@@ -31,15 +31,15 @@ abstract contract Pausable {
 
     /**
      * @dev Change the partial paused state of the contract
-     * @param _toPause New value for the partial pause state (true means the contracts will be partially paused)
+     * @param _toPartialPause New value for the partial pause state (true means the contracts will be partially paused)
      */
-    function _setPartialPaused(bool _toPause) internal {
-        if (_toPause == _partialPaused) {
+    function _setPartialPaused(bool _toPartialPause) internal {
+        if (_toPartialPause == _partialPaused) {
             return;
         }
-        _partialPaused = _toPause;
+        _partialPaused = _toPartialPause;
         if (_partialPaused) {
-            lastPausePartialTime = block.timestamp;
+            lastPartialPauseTime = block.timestamp;
         }
         emit PartialPauseChanged(_partialPaused);
     }
@@ -66,6 +66,6 @@ abstract contract Pausable {
     function _setPauseGuardian(address newPauseGuardian) internal {
         address oldPauseGuardian = pauseGuardian;
         pauseGuardian = newPauseGuardian;
-        emit NewPauseGuardian(oldPauseGuardian, pauseGuardian);
+        emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
     }
 }

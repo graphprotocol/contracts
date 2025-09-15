@@ -11,7 +11,12 @@
 
 /** @type {import('@defi-wonderland/natspec-smells').Config} */
 module.exports = {
-  include: ['packages/issuance/contracts/**/*.sol', 'packages/common/contracts/**/*.sol'],
+  include: [
+    'packages/issuance/contracts/**/*.sol',
+    'packages/interfaces/contracts/**/*.sol',
+    'packages/horizon/contracts/**/*.sol',
+    'packages/subgraph-service/contracts/**/*.sol',
+  ],
 
   root: './',
 

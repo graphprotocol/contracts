@@ -8,7 +8,7 @@
     "prepare": "cd ../.. && husky install packages/contracts/.husky",
     "prepublishOnly": "scripts/prepublish",
     "build": "scripts/build",
-    "clean": "rm -rf build/ cache/ dist/",
+    "clean": "rm -rf build/ cache/ dist/ reports/ artifacts/",
     "compile": "hardhat compile",
     "test": "scripts/test",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",

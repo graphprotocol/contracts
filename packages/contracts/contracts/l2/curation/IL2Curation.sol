@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 /**
  * @title Interface of the L2 Curation contract.
  */
 interface IL2Curation {
+    /**
+     * @notice Set the subgraph service address.
+     * @param _subgraphService Address of the SubgraphService contract
+     */
+    function setSubgraphService(address _subgraphService) external;
+
     /**
      * @notice Deposit Graph Tokens in exchange for signal of a SubgraphDeployment curation pool.
      * @dev This function charges no tax and can only be called by GNS in specific scenarios (for now

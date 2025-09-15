@@ -1,0 +1,90 @@
+{
+  "name": "@graphprotocol/horizon",
+  "version": "0.4.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "",
+  "author": "The Graph core devs",
+  "license": "GPL-2.0-or-later",
+  "types": "typechain-types/index.ts",
+  "exports": {
+    "./artifacts/*": "./build/contracts/*",
+    "./addresses*": "./addresses*",
+    "./ignition": "./ignition/modules/index.ts",
+    "./tasks/*": "./tasks/*"
+  },
+  "files": [
+    "build/contracts/**/*",
+    "typechain-types/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:natspec; pnpm lint:json",
+    "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:sol": "solhint --config ../../.solhint.json --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn '**/*.sol'",
+    "lint:natspec": "natspec-smells --config natspec-smells.config.js",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "clean": "rm -rf build dist cache cache_forge typechain-types",
+    "build": "hardhat compile",
+    "test": "forge test",
+    "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",
+    "test:integration": "./scripts/integration",
+    "prepublishOnly": "pnpm run build"
+  },
+  "devDependencies": {
+    "@defi-wonderland/natspec-smells": "^1.1.6",
+    "@graphprotocol/contracts": "workspace:^",
+    "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/toolshed": "workspace:^",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "3.0.8",
+    "@nomicfoundation/hardhat-foundry": "^1.1.1",
+    "@nomicfoundation/hardhat-ignition": "^0.15.9",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.9",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.10",
+    "@nomicfoundation/ignition-core": "^0.15.9",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "@openzeppelin/foundry-upgrades": "0.4.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.2.0",
+    "@types/mocha": ">=9.1.0",
+    "@types/node": ">=16.0.0",
+    "chai": "^4.2.0",
+    "eslint": "^8.56.0",
+    "ethers": "6.13.7",
+    "forge-std": "https://github.com/foundry-rs/forge-std/tarball/v1.9.7",
+    "glob": "^11.0.1",
+    "hardhat": "^2.22.18",
+    "hardhat-contract-sizer": "^2.10.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-graph-protocol": "workspace:^",
+    "hardhat-secure-accounts": "^1.0.5",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.3.1",
+    "solhint": "^5.1.0",
+    "solidity-coverage": "^0.8.0",
+    "ts-node": ">=8.0.0",
+    "typechain": "^8.3.0",
+    "typescript": "^5.6.3"
+  },
+  "lint-staged": {
+    "contracts/**/*.sol": [
+      "pnpm lint:sol"
+    ],
+    "**/*.ts": [
+      "pnpm lint:ts"
+    ],
+    "**/*.js": [
+      "pnpm lint:ts"
+    ],
+    "**/*.json": [
+      "pnpm lint:ts"
+    ]
+  }
+}

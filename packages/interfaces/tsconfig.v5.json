@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-v5",
+    "baseUrl": ".",
+    "paths": {
+      "ethers": ["node_modules/ethers-v5"],
+      "ethers/*": ["node_modules/ethers-v5/*"],
+      "@ethersproject/abi": ["node_modules/@ethersproject/abi"],
+      "@ethersproject/providers": ["node_modules/@ethersproject/providers"],
+      "@ethersproject/*": ["node_modules/@ethersproject/*"]
+    }
+  },
+  "include": ["types-v5/**/*.ts"]
+}

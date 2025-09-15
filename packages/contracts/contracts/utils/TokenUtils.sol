@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
-import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
+/**
+ * @title TokenUtils library
+ * @notice This library contains utility functions for handling tokens (transfers and burns).
+ * It is specifically adapted for the GraphToken, so does not need to handle edge cases
+ * for other tokens.
+ */
 library TokenUtils {
     /**
      * @dev Pull tokens from an address to this contract.

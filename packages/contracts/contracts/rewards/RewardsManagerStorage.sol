@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-/* solhint-disable one-contract-per-file */
+pragma solidity ^0.7.6 || 0.8.27;
 
-pragma solidity 0.7.6;
-
-import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsIssuer } from "./IRewardsIssuer.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
 import { Managed } from "../governance/Managed.sol";
 
 contract RewardsManagerV1Storage is Managed {
@@ -37,4 +36,9 @@ contract RewardsManagerV3Storage is RewardsManagerV2Storage {
 contract RewardsManagerV4Storage is RewardsManagerV3Storage {
     // GRT issued for indexer rewards per block
     uint256 public issuancePerBlock;
+}
+
+contract RewardsManagerV5Storage is RewardsManagerV4Storage {
+    // Address of the subgraph service
+    IRewardsIssuer public subgraphService;
 }

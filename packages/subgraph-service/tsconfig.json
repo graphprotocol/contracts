@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": [
+    "hardhat.config.ts",
+    "types/**/*.ts",
+    "scripts/**/*.ts",
+    "tasks/**/*.ts",
+    "test/**/*.ts",
+    "ignition/**/*.ts",
+    "natspec-smells.config.js"
+  ]
+}

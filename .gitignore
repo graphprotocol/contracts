@@ -28,7 +28,13 @@ packages/*/.eslintcache
 
 # Build artifacts
 dist/
+dist-v5/
 build/
+typechain/
+typechain-types/
+types/
+types-v5/
+wagmi/
 types/
 deployments/hardhat/
 
@@ -51,12 +57,11 @@ lcov.info
 hardhat-dependency-compiler/
 
 # Local test files
-addresses-local.json
 localNetwork.json
 arbitrum-addresses-local.json
-tx-*.log
 addresses-fork.json
 addresses-hardhat.json
+addresses-local*.json
 addresses-local-network.json
 
 # Keys
@@ -71,10 +76,16 @@ packages/issuance/lib/forge-std/
 # Graph client
 .graphclient
 
+# Tx builder and logger
+tx-*.log
 tx-builder-*.json
 !tx-builder-template.json
 
 # Hardhat Ignition
+**/ignition/deployments/*-localhost/
+**/ignition/deployments/*-hardhat/
+**/ignition/deployments/*-31337/
+**/ignition/deployments/*-1337/
 **/chain-31337/
 **/chain-1377/
 **/horizon-localhost/
