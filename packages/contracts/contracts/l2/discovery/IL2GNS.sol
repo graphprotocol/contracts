@@ -53,4 +53,20 @@ interface IL2GNS is ICallhookReceiver {
      * @return L1subgraph ID
      */
     function getUnaliasedL1SubgraphID(uint256 _l2SubgraphID) external pure returns (uint256);
+
+    /**
+     * @notice Publish a new version of an existing subgraph.
+     * @dev This function includes slippage protection to prevent front-running attacks
+     * where an attacker could inflate the curation pool before the upgrade transaction.
+     * @param _subgraphID Subgraph ID
+     * @param _subgraphDeploymentID Subgraph deployment ID of the new version
+     * @param _versionMetadata IPFS hash for the subgraph version metadata
+     * @param _signalOutMin Minimum signal expected when minting on the new deployment (slippage protection)
+     */
+    function publishNewVersion(
+        uint256 _subgraphID,
+        bytes32 _subgraphDeploymentID,
+        bytes32 _versionMetadata,
+        uint256 _signalOutMin
+    ) external;
 }

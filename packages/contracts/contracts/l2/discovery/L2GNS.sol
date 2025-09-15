@@ -169,11 +169,13 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
      * @param _subgraphID Subgraph ID
      * @param _subgraphDeploymentID Subgraph deployment ID of the new version
      * @param _versionMetadata IPFS hash for the subgraph version metadata
+     * @param _signalOutMin Minimum signal expected when minting on the new deployment (slippage protection)
      */
     function publishNewVersion(
         uint256 _subgraphID,
         bytes32 _subgraphDeploymentID,
-        bytes32 _versionMetadata
+        bytes32 _versionMetadata,
+        uint256 _signalOutMin
     ) external override notPaused onlySubgraphAuth(_subgraphID) {
         // Perform the upgrade from the current subgraph deployment to the new one.
         // This involves burning all signal from the old deployment and using the funds to buy
@@ -206,9 +208,9 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
             address subgraphOwner = msg.sender;
             uint256 tokensWithTax = _chargeOwnerTax(tokens, subgraphOwner, curation.curationTaxPercentage());
 
-            // Update pool: constant nSignal, vSignal can change (w/no slippage protection)
+            // Update pool: constant nSignal, vSignal can change (with slippage protection)
             // Buy all signal from the new deployment
-            (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, 0);
+            (subgraphData.vSignal, ) = curation.mint(_subgraphDeploymentID, tokensWithTax, _signalOutMin);
 
             emit SubgraphUpgraded(_subgraphID, subgraphData.vSignal, tokensWithTax, _subgraphDeploymentID);
         }
