@@ -73,14 +73,15 @@ export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) 
   )
   const { Controller } = m.useModule(MigrateControllerDeployerModule)
   const { GraphProxyAdmin } = m.useModule(MigrateGraphProxyAdminModule)
-  const { EpochManager } = m.useModule(MigrateEpochManagerModule)
-  const { L2GraphToken } = m.useModule(MigrateGraphTokenModule)
-  const { L2GraphTokenGateway } = m.useModule(MigrateGraphTokenGatewayModule)
+  const { EpochManager, EpochManagerImplementation } = m.useModule(MigrateEpochManagerModule)
+  const { L2GraphToken, L2GraphTokenImplementation } = m.useModule(MigrateGraphTokenModule)
+  const { L2GraphTokenGateway, L2GraphTokenGatewayImplementation } = m.useModule(MigrateGraphTokenGatewayModule)
 
   // Load these contracts so they are available in the address book
   return {
     Controller,
     EpochManager,
+    EpochManagerImplementation,
     L2Curation,
     L2CurationImplementation,
     L2GNS,
@@ -88,7 +89,9 @@ export const MigratePeripheryModule = buildModule('GraphHorizon_Periphery', (m) 
     SubgraphNFT,
     GraphProxyAdmin,
     L2GraphToken,
+    L2GraphTokenImplementation,
     L2GraphTokenGateway,
+    L2GraphTokenGatewayImplementation,
     RewardsManager,
     RewardsManagerImplementation,
   }

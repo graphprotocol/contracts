@@ -27,8 +27,14 @@ export default buildModule('L2GraphTokenGateway', (m) => {
 
 export const MigrateGraphTokenGatewayModule = buildModule('L2GraphTokenGateway', (m) => {
   const graphTokenGatewayAddress = m.getParameter('graphTokenGatewayAddress')
+  const graphTokenGatewayImplementationAddress = m.getParameter('graphTokenGatewayImplementationAddress')
 
   const L2GraphTokenGateway = m.contractAt('L2GraphTokenGateway', GraphTokenGatewayArtifact, graphTokenGatewayAddress)
+  const L2GraphTokenGatewayImplementation = m.contractAt(
+    'L2GraphTokenGatewayAddressBook',
+    GraphTokenGatewayArtifact,
+    graphTokenGatewayImplementationAddress,
+  )
 
-  return { L2GraphTokenGateway }
+  return { L2GraphTokenGateway, L2GraphTokenGatewayImplementation }
 })
