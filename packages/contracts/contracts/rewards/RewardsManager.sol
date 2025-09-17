@@ -17,7 +17,7 @@ import { IStaking, IStakingBase } from "../staking/IStaking.sol";
 
 import { RewardsManagerV5Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
-import { IServiceQualityOracle } from "@graphprotocol/common/contracts/quality/IServiceQualityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -65,12 +65,12 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     event RewardsDenied(address indexed indexer, address indexed allocationID, uint256 epoch);
 
     /**
-     * @notice Emitted when rewards are denied to an indexer due to service quality
+     * @notice Emitted when rewards are denied to an indexer due to eligibility
      * @param indexer Address of the indexer being denied rewards
      * @param allocationID Address of the allocation being denied rewards
      * @param amount Amount of rewards that would have been assigned
      */
-    event RewardsDeniedDueToServiceQuality(address indexed indexer, address indexed allocationID, uint256 amount);
+    event RewardsDeniedDueToEligibility(address indexed indexer, address indexed allocationID, uint256 amount);
 
     /**
      * @notice Emitted when a subgraph is denied for claiming rewards
@@ -80,11 +80,14 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     event RewardsDenylistUpdated(bytes32 indexed subgraphDeploymentID, uint256 sinceBlock);
 
     /**
-     * @notice Emitted when the service quality oracle contract is set
-     * @param oldServiceQualityOracle Previous service quality oracle address
-     * @param newServiceQualityOracle New service quality oracle address
+     * @notice Emitted when the rewards eligibility oracle contract is set
+     * @param oldRewardsEligibilityOracle Previous rewards eligibility oracle address
+     * @param newRewardsEligibilityOracle New rewards eligibility oracle address
      */
-    event ServiceQualityOracleSet(address indexed oldServiceQualityOracle, address indexed newServiceQualityOracle);
+    event RewardsEligibilityOracleSet(
+        address indexed oldRewardsEligibilityOracle,
+        address indexed newRewardsEligibilityOracle
+    );
 
     // -- Modifiers --
 
@@ -154,23 +157,23 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev Note that the service quality oracle can be set to the zero address to disable use of an oracle, in
-     * which case no indexers will be denied rewards due to service quality.
+     * @dev Note that the rewards eligibility oracle can be set to the zero address to disable use of an oracle, in
+     * which case no indexers will be denied rewards due to eligibility.
      */
-    function setServiceQualityOracle(address newServiceQualityOracle) external override onlyGovernor {
-        if (address(serviceQualityOracle) != newServiceQualityOracle) {
-            // Check that the contract supports the IServiceQualityOracle interface
+    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external override onlyGovernor {
+        if (address(rewardsEligibilityOracle) != newRewardsEligibilityOracle) {
+            // Check that the contract supports the IRewardsEligibilityOracle interface
             // Allow zero address to disable the oracle
-            if (newServiceQualityOracle != address(0)) {
+            if (newRewardsEligibilityOracle != address(0)) {
                 require(
-                    IERC165(newServiceQualityOracle).supportsInterface(type(IServiceQualityOracle).interfaceId),
-                    "Contract does not support IServiceQualityOracle interface"
+                    IERC165(newRewardsEligibilityOracle).supportsInterface(type(IRewardsEligibilityOracle).interfaceId),
+                    "Contract does not support IRewardsEligibilityOracle interface"
                 );
             }
 
-            address oldServiceQualityOracle = address(serviceQualityOracle);
-            serviceQualityOracle = IServiceQualityOracle(newServiceQualityOracle);
-            emit ServiceQualityOracleSet(oldServiceQualityOracle, newServiceQualityOracle);
+            address oldRewardsEligibilityOracle = address(rewardsEligibilityOracle);
+            rewardsEligibilityOracle = IRewardsEligibilityOracle(newRewardsEligibilityOracle);
+            emit RewardsEligibilityOracleSet(oldRewardsEligibilityOracle, newRewardsEligibilityOracle);
         }
     }
 
@@ -376,9 +379,9 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
         // Calculate rewards accrued by this allocation
         uint256 rewards = _calcRewards(alloc.tokens, alloc.accRewardsPerAllocatedToken, accRewardsPerAllocatedToken);
 
-        // Do not reward if indexer is not eligible based on service quality
-        if (address(serviceQualityOracle) != address(0) && !serviceQualityOracle.isAllowed(alloc.indexer)) {
-            emit RewardsDeniedDueToServiceQuality(alloc.indexer, _allocationID, rewards);
+        // Do not reward if indexer is not eligible based on rewards eligibility
+        if (address(rewardsEligibilityOracle) != address(0) && !rewardsEligibilityOracle.isEligible(alloc.indexer)) {
+            emit RewardsDeniedDueToEligibility(alloc.indexer, _allocationID, rewards);
             return 0;
         }
 

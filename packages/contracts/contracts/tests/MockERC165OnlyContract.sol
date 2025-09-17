@@ -7,7 +7,7 @@ import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
 /**
  * @title MockERC165OnlyContract
  * @author Edge & Node
- * @notice A mock contract that supports ERC-165 but not IServiceQualityOracle
+ * @notice A mock contract that supports ERC-165 but not IRewardsEligibilityOracle
  * @dev Used for testing ERC-165 interface checking in RewardsManager
  */
 contract MockERC165OnlyContract is ERC165 {

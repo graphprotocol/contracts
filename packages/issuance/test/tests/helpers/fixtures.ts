@@ -57,37 +57,41 @@ export async function deployTestGraphToken(): Promise<any> {
 }
 
 /**
- * Deploy the ServiceQualityOracle contract with proxy using OpenZeppelin's upgrades library
+ * Deploy the RewardsEligibilityOracle contract with proxy using OpenZeppelin's upgrades library
  * @param graphToken The Graph Token contract address
  * @param governor The governor signer
  * @param validityPeriod The validity period in seconds (default: 7 days)
  */
-export async function deployServiceQualityOracle(
+export async function deployRewardsEligibilityOracle(
   graphToken: string,
   governor: HardhatEthersSigner,
   validityPeriod: number = 7 * 24 * 60 * 60, // 7 days in seconds
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
   // Deploy implementation and proxy using OpenZeppelin's upgrades library
-  const ServiceQualityOracleFactory = await ethers.getContractFactory('ServiceQualityOracle')
+  const RewardsEligibilityOracleFactory = await ethers.getContractFactory('RewardsEligibilityOracle')
 
   // Deploy proxy with implementation
-  const serviceQualityOracleContract = await upgrades.deployProxy(ServiceQualityOracleFactory, [governor.address], {
-    constructorArgs: [graphToken],
-    initializer: 'initialize',
-  })
+  const rewardsEligibilityOracleContract = await upgrades.deployProxy(
+    RewardsEligibilityOracleFactory,
+    [governor.address],
+    {
+      constructorArgs: [graphToken],
+      initializer: 'initialize',
+    },
+  )
 
   // Get the contract instance
-  const serviceQualityOracle = serviceQualityOracleContract
+  const rewardsEligibilityOracle = rewardsEligibilityOracleContract
 
   // Set the validity period if it's different from the default
   if (validityPeriod !== 7 * 24 * 60 * 60) {
     // First grant operator role to governor so they can set the validity period
-    await serviceQualityOracle.connect(governor).grantOperatorRole(governor.address)
-    await serviceQualityOracle.connect(governor).setValidityPeriod(validityPeriod)
+    await rewardsEligibilityOracle.connect(governor).grantOperatorRole(governor.address)
+    await rewardsEligibilityOracle.connect(governor).setValidityPeriod(validityPeriod)
     // Now revoke the operator role from governor to ensure tests start with clean state
-    await serviceQualityOracle.connect(governor).revokeRole(OPERATOR_ROLE, governor.address)
+    await rewardsEligibilityOracle.connect(governor).revokeRole(OPERATOR_ROLE, governor.address)
   }
 
-  return serviceQualityOracle
+  return rewardsEligibilityOracle
 }

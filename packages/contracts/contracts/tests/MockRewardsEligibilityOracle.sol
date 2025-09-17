@@ -2,18 +2,18 @@
 
 pragma solidity 0.7.6;
 
-import { IServiceQualityOracle } from "@graphprotocol/common/contracts/quality/IServiceQualityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
 import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
 
 /**
- * @title MockServiceQualityOracle
+ * @title MockRewardsEligibilityOracle
  * @author Edge & Node
- * @notice A simple mock contract for the ServiceQualityOracle interface
- * @dev A simple mock contract for the ServiceQualityOracle interface
+ * @notice A simple mock contract for the RewardsEligibilityOracle interface
+ * @dev A simple mock contract for the RewardsEligibilityOracle interface
  */
-contract MockServiceQualityOracle is IServiceQualityOracle, ERC165 {
-    /// @dev Mapping to store allowed status for each indexer
-    mapping(address => bool) private _allowed;
+contract MockRewardsEligibilityOracle is IRewardsEligibilityOracle, ERC165 {
+    /// @dev Mapping to store eligibility status for each indexer
+    mapping(address => bool) private _eligible;
 
     /// @dev Mapping to track which indexers have been explicitly set
     mapping(address => bool) private _isSet;
@@ -23,19 +23,20 @@ contract MockServiceQualityOracle is IServiceQualityOracle, ERC165 {
 
     /**
      * @notice Constructor
-     * @param defaultResponse Default response for isAllowed
+     * @param defaultResponse Default response for isEligible
      */
     constructor(bool defaultResponse) {
         _defaultResponse = defaultResponse;
     }
 
     /**
-     * @notice Set whether a specific indexer is allowed
+     * @notice Set whether a specific indexer is eligible
      * @param indexer The indexer address
-     * @param allowed Whether the indexer is allowed
+     * @param eligible Whether the indexer is eligible
      */
-    function setIndexerAllowed(address indexer, bool allowed) external {
-        _allowed[indexer] = allowed;
+    function setIndexerEligible(address indexer, bool eligible) external {
+        _eligible[indexer] = eligible;
+        _isSet[indexer] = true;
     }
 
     /**
@@ -47,12 +48,12 @@ contract MockServiceQualityOracle is IServiceQualityOracle, ERC165 {
     }
 
     /**
-     * @inheritdoc IServiceQualityOracle
+     * @inheritdoc IRewardsEligibilityOracle
      */
-    function isAllowed(address indexer) external view override returns (bool) {
+    function isEligible(address indexer) external view override returns (bool) {
         // If the indexer has been explicitly set, return that value
         if (_isSet[indexer]) {
-            return _allowed[indexer];
+            return _eligible[indexer];
         }
 
         // Otherwise return the default response
@@ -63,6 +64,6 @@ contract MockServiceQualityOracle is IServiceQualityOracle, ERC165 {
      * @inheritdoc ERC165
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IServiceQualityOracle).interfaceId || super.supportsInterface(interfaceId);
+        return interfaceId == type(IRewardsEligibilityOracle).interfaceId || super.supportsInterface(interfaceId);
     }
 }

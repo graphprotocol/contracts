@@ -1,4 +1,4 @@
 // Auto-generated interface IDs from Solidity compilation
 module.exports = {
-  IServiceQualityOracle: '0xbabcc539',
+  IRewardsEligibilityOracle: '0x66e305fd',
 }

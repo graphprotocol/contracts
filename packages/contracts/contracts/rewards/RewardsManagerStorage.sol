@@ -6,7 +6,7 @@ pragma solidity 0.7.6;
 
 import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
-import { IServiceQualityOracle } from "@graphprotocol/common/contracts/quality/IServiceQualityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
 import { Managed } from "../governance/Managed.sol";
 
 /**
@@ -72,6 +72,6 @@ contract RewardsManagerV4Storage is RewardsManagerV3Storage {
 contract RewardsManagerV5Storage is RewardsManagerV4Storage {
     /// @notice Address of the subgraph service
     IRewardsIssuer public subgraphService;
-    /// @notice Address of the service quality oracle contract
-    IServiceQualityOracle public serviceQualityOracle;
+    /// @notice Address of the rewards eligibility oracle contract
+    IRewardsEligibilityOracle public rewardsEligibilityOracle;
 }

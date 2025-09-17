@@ -1,17 +1,17 @@
-# ServiceQualityOracle
+# RewardsEligibilityOracle
 
-The ServiceQualityOracle is a smart contract that manages indexer eligibility for receiving rewards based on service quality assessments. It implements a time-based allowlist system where indexers must be explicitly approved by authorized oracles to receive rewards.
+The RewardsEligibilityOracle is a smart contract that manages indexer eligibility for receiving rewards. It implements a time-based eligibility system where indexers must be explicitly marked as eligible by authorized oracles to receive rewards.
 
 ## Overview
 
-The contract operates on a "deny by default" principle - all indexers are initially ineligible for rewards until they are explicitly allowed by an authorized oracle. Once allowed, indexers remain eligible for a configurable period before their eligibility expires and they need to be re-approved.
+The contract operates on a "deny by default" principle - all indexers are initially ineligible for rewards until their eligibility is explicitly renewed by an authorized oracle. Once eligibility is renewed, indexers remain eligible for a configurable period before their eligibility expires and needs to be renewed again.
 
 ## Key Features
 
-- **Time-based Eligibility**: Indexers are allowed for a configurable period (default: 14 days)
-- **Oracle-based Approval**: Only authorized oracles can approve indexers
-- **Global Toggle**: Quality checking can be globally enabled/disabled
-- **Timeout Mechanism**: If oracles don't update for too long, all indexers are automatically allowed
+- **Time-based Eligibility**: Indexers are eligible for a configurable period (default: 14 days)
+- **Oracle-based Renewal**: Only authorized oracles can renew indexer eligibility
+- **Global Toggle**: Eligibility validation can be globally enabled/disabled
+- **Timeout Mechanism**: If oracles don't update for too long, all indexers are automatically eligible
 - **Role-based Access Control**: Uses hierarchical roles for governance and operations
 
 ## Architecture
@@ -29,10 +29,10 @@ The contract uses four main roles:
 
 The contract uses ERC-7201 namespaced storage to prevent storage collisions in upgradeable contracts:
 
-- `allowedIndexerTimestamps`: Maps indexer addresses to their last approval timestamp
-- `allowedPeriod`: Duration (in seconds) for which approval lasts (default: 14 days)
-- `checkingActive`: Global flag to enable/disable quality checking (default: false, to be enabled by operator when ready)
-- `oracleUpdateTimeout`: Timeout after which all indexers are automatically allowed (default: 7 days)
+- `eligibleIndexerTimestamps`: Maps indexer addresses to their last eligibility timestamp
+- `eligibilityPeriod`: Duration (in seconds) for which eligibility lasts (default: 14 days)
+- `eligibilityValidationEnabled`: Global flag to enable/disable eligibility validation (default: false, to be enabled by operator when ready)
+- `oracleUpdateTimeout`: Timeout after which all indexers are automatically eligible (default: 7 days)
 - `lastOracleUpdateTime`: Timestamp of the last oracle update
 
 ## Core Functions
@@ -49,43 +49,43 @@ The `ORACLE_ROLE` constant can be used as the role parameter for these functions
 
 ### Configuration
 
-#### `setAllowedPeriod(uint256 allowedPeriod) → bool`
+#### `setEligibilityPeriod(uint256 eligibilityPeriod) → bool`
 
 - **Access**: OPERATOR_ROLE only
-- **Purpose**: Set how long indexer approvals last
-- **Parameters**: `allowedPeriod` - Duration in seconds
+- **Purpose**: Set how long indexer eligibility lasts
+- **Parameters**: `eligibilityPeriod` - Duration in seconds
 - **Returns**: Always true for current implementation
-- **Events**: Emits `AllowedPeriodUpdated` if value changes
+- **Events**: Emits `EligibilityPeriodUpdated` if value changes
 
 #### `setOracleUpdateTimeout(uint256 oracleUpdateTimeout) → bool`
 
 - **Access**: OPERATOR_ROLE only
-- **Purpose**: Set timeout after which all indexers are automatically allowed
+- **Purpose**: Set timeout after which all indexers are automatically eligible
 - **Parameters**: `oracleUpdateTimeout` - Timeout duration in seconds
 - **Returns**: Always true for current implementation
 - **Events**: Emits `OracleUpdateTimeoutUpdated` if value changes
 
-#### `setQualityChecking(bool enabled) → bool`
+#### `setEligibilityValidation(bool enabled) → bool`
 
 - **Access**: OPERATOR_ROLE only
-- **Purpose**: Enable or disable quality checking globally
+- **Purpose**: Enable or disable eligibility validation globally
 - **Parameters**: `enabled` - True to enable, false to disable
 - **Returns**: Always true for current implementation
-- **Events**: Emits `QualityCheckingUpdated` if state changes
+- **Events**: Emits `EligibilityValidationUpdated` if state changes
 
 ### Indexer Management
 
-#### `allowIndexers(address[] calldata indexers, bytes calldata data) → uint256`
+#### `renewIndexerEligibility(address[] calldata indexers, bytes calldata data) → uint256`
 
 - **Access**: ORACLE_ROLE only
-- **Purpose**: Approve indexers for rewards
+- **Purpose**: Renew eligibility for indexers to receive rewards
 - **Parameters**:
   - `indexers` - Array of indexer addresses (zero addresses ignored)
   - `data` - Arbitrary calldata for future extensions
-- **Returns**: Number of indexers whose timestamp was updated
+- **Returns**: Number of indexers whose eligibility renewal timestamp was updated
 - **Events**:
-  - Emits `IndexerQualityData` with oracle and data
-  - Emits `IndexerAllowed` for each newly allowed indexer
+  - Emits `IndexerEligibilityData` with oracle and data
+  - Emits `IndexerEligibilityRenewed` for each indexer whose eligibility was renewed
 - **Notes**:
   - Updates `lastOracleUpdateTime` to current block timestamp
   - Only updates timestamp if less than current block timestamp
@@ -93,28 +93,28 @@ The `ORACLE_ROLE` constant can be used as the role parameter for these functions
 
 ### View Functions
 
-#### `isAllowed(address indexer) → bool`
+#### `isEligible(address indexer) → bool`
 
 - **Purpose**: Check if an indexer is eligible for rewards
 - **Logic**:
-  1. If quality checking is disabled → return true
+  1. If eligibility validation is disabled → return true
   2. If oracle timeout exceeded → return true
-  3. Otherwise → check if indexer's approval is still valid
-- **Returns**: True if indexer is allowed, false otherwise
+  3. Otherwise → check if indexer's eligibility is still valid
+- **Returns**: True if indexer is eligible, false otherwise
 
 #### `isAuthorizedOracle(address oracle) → bool`
 
 - **Purpose**: Check if an address has oracle privileges
 - **Returns**: True if address has ORACLE_ROLE
 
-#### `getLastAllowedTime(address indexer) → uint256`
+#### `getEligibilityRenewalTime(address indexer) → uint256`
 
-- **Purpose**: Get the timestamp when indexer was last approved
-- **Returns**: Timestamp or 0 if never approved
+- **Purpose**: Get the timestamp when indexer's eligibility was last renewed
+- **Returns**: Timestamp or 0 if eligibility was never renewed
 
-#### `getAllowedPeriod() → uint256`
+#### `getEligibilityPeriod() → uint256`
 
-- **Purpose**: Get the current allowed period
+- **Purpose**: Get the current eligibility period
 - **Returns**: Duration in seconds
 
 #### `getOracleUpdateTimeout() → uint256`
@@ -127,24 +127,24 @@ The `ORACLE_ROLE` constant can be used as the role parameter for these functions
 - **Purpose**: Get when oracles last updated
 - **Returns**: Timestamp of last oracle update
 
-#### `isQualityCheckingActive() → bool`
+#### `getEligibilityValidation() → bool`
 
-- **Purpose**: Check if quality checking is enabled
-- **Returns**: True if active, false if disabled
+- **Purpose**: Get eligibility validation state
+- **Returns**: True if enabled, false if disabled
 
 ## Eligibility Logic
 
-An indexer is considered allowed if ANY of the following conditions are met:
+An indexer is considered eligible if ANY of the following conditions are met:
 
-1. **Valid approval** (`block.timestamp <= allowedIndexerTimestamps[indexer] + allowedPeriod`)
+1. **Valid eligibility** (`block.timestamp <= indexerEligibilityTimestamps[indexer] + eligibilityPeriod`)
 2. **Oracle timeout exceeded** (`lastOracleUpdateTime + oracleUpdateTimeout < block.timestamp`)
-3. **Quality checking is disabled** (`checkingActive = false`)
+3. **Eligibility validation is disabled** (`eligibilityValidationEnabled = false`)
 
 This design ensures that:
 
 - The system fails open if oracles stop updating
-- Operators can disable quality checking entirely if needed
-- Individual indexer approvals have time limits
+- Operators can disable eligibility validation entirely if needed
+- Individual indexer eligibility has time limits
 
 In normal operation, the first condition is expected to be the only one that applies. The other two conditions provide fail-safes for oracle failures, or in extreme cases an operator override. For normal operational failure of oracles, the system gracefully degrades into a "allow all" mode. This mechanism is not perfect in that oracles could still be updating but allowing far fewer indexers than they should. However this is regarded as simple mechanism that is good enough to start with and provide a foundation for future improvements and decentralization.
 
@@ -157,21 +157,21 @@ In general to be rewarded for providing service on The Graph, there is expected 
 ## Events
 
 ```solidity
-event IndexerQualityData(address indexed oracle, bytes data);
-event IndexerAllowed(address indexed indexer, address indexed oracle);
-event AllowedPeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
-event QualityCheckingUpdated(bool active);
+event IndexerEligibilityData(address indexed oracle, bytes data);
+event IndexerEligibilityRenewed(address indexed indexer, address indexed oracle);
+event EligibilityPeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
+event EligibilityValidationUpdated(bool enabled);
 event OracleUpdateTimeoutUpdated(uint256 oldTimeout, uint256 newTimeout);
 ```
 
 ## Default Configuration
 
-- **Allowed Period**: 14 days (1,209,600 seconds)
+- **Eligibility Period**: 14 days (1,209,600 seconds)
 - **Oracle Update Timeout**: 7 days (604,800 seconds)
-- **Quality Checking**: Disabled (false)
+- **Eligibility Validation**: Disabled (false)
 - **Last Oracle Update Time**: 0 (never updated)
 
-The system is deployed with reasonable defaults but can be adjusted as required. Quality checking is disabled by default as the expectation is to first see oracles successfully allowing indexers and having suitably established allowed indexers before enabling.
+The system is deployed with reasonable defaults but can be adjusted as required. Eligibility validation is disabled by default as the expectation is to first see oracles successfully marking indexers as eligible and having suitably established eligible indexers before enabling.
 
 ## Usage Patterns
 
@@ -181,22 +181,22 @@ The system is deployed with reasonable defaults but can be adjusted as required.
 2. Initialize with governor address
 3. Governor grants OPERATOR_ROLE to operational accounts
 4. Operators grant ORACLE_ROLE to oracle services using `grantRole(ORACLE_ROLE, oracleAddress)`
-5. Configure allowed period and timeout as needed
-6. After demonstration of successful oracle operation and having established a set of allowed indexers, quality checking is enabled
+5. Configure eligibility period and timeout as needed
+6. After demonstration of successful oracle operation and having established indexers with renewed eligibility, eligibility checking is enabled
 
 ### Normal Operation
 
-1. Oracles periodically call `allowIndexers()` with quality-approved indexers
-2. Reward systems call `isAllowed()` to check indexer eligibility
+1. Oracles periodically call `renewIndexerEligibility()` to renew eligibility for indexers
+2. Reward systems call `isEligible()` to check indexer eligibility
 3. Operators adjust parameters as needed via configuration functions
 4. The operation of the system is monitored and adjusted as needed
 
 ### Emergency Scenarios
 
-- **Oracle failure**: System automatically allows all indexers after timeout
-- **Quality issues**: Operators can disable quality checking globally
+- **Oracle failure**: System automatically reports all indexers as eligible after timeout
+- **Eligibility issues**: Operators can disable eligibility checking globally
 - **Parameter changes**: Operators can adjust periods and timeouts
 
 ## Integration
 
-The contract implements the `IServiceQualityOracle` interface and can be integrated with any system that needs to verify indexer quality status. The primary integration point is the `isAllowed(address)` function which returns a simple boolean indicating eligibility.
+The contract implements the `IRewardsEligibilityOracle` interface and can be integrated with any system that needs to verify indexer eligibility status. The primary integration point is the `isAllowed(address)` function which returns a simple boolean indicating eligibility.

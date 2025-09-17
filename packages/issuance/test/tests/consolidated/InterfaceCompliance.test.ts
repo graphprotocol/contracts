@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 
 import { shouldSupportERC165Interface } from '../../utils/testPatterns'
-import { deployServiceQualityOracle, deployTestGraphToken, getTestAccounts } from '../helpers/fixtures'
+import { deployRewardsEligibilityOracle, deployTestGraphToken, getTestAccounts } from '../helpers/fixtures'
 // Import generated interface IDs
 import interfaceIds from '../helpers/interfaceIds'
 
@@ -22,19 +22,19 @@ describe('ERC-165 Interface Compliance', () => {
     const graphToken = await deployTestGraphToken()
     const graphTokenAddress = await graphToken.getAddress()
 
-    const serviceQualityOracle = await deployServiceQualityOracle(graphTokenAddress, accounts.governor)
+    const rewardsEligibilityOracle = await deployRewardsEligibilityOracle(graphTokenAddress, accounts.governor)
 
     contracts = {
-      serviceQualityOracle,
+      rewardsEligibilityOracle,
     }
   })
 
   describe(
-    'ServiceQualityOracle Interface Compliance',
+    'RewardsEligibilityOracle Interface Compliance',
     shouldSupportERC165Interface(
-      () => contracts.serviceQualityOracle,
-      interfaceIds.IServiceQualityOracle,
-      'IServiceQualityOracle',
+      () => contracts.rewardsEligibilityOracle,
+      interfaceIds.IRewardsEligibilityOracle,
+      'IRewardsEligibilityOracle',
     ),
   )
 
@@ -43,11 +43,11 @@ describe('ERC-165 Interface Compliance', () => {
       const InterfaceIdExtractorFactory = await ethers.getContractFactory('InterfaceIdExtractor')
       const extractor = await InterfaceIdExtractorFactory.deploy()
 
-      expect(await extractor.getIServiceQualityOracleId()).to.equal(interfaceIds.IServiceQualityOracle)
+      expect(await extractor.getIRewardsEligibilityOracleId()).to.equal(interfaceIds.IRewardsEligibilityOracle)
     })
 
     it('should have valid interface IDs (not zero)', () => {
-      expect(interfaceIds.IServiceQualityOracle).to.not.equal('0x00000000')
+      expect(interfaceIds.IRewardsEligibilityOracle).to.not.equal('0x00000000')
     })
   })
 })

@@ -28,7 +28,7 @@ async function main() {
   await extractor.waitForDeployment()
   
   const results = {
-    IServiceQualityOracle: await extractor.getIServiceQualityOracleId(),
+    IRewardsEligibilityOracle: await extractor.getIRewardsEligibilityOracleId(),
   }
   
   console.log(JSON.stringify(results))

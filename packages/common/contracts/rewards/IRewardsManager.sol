@@ -38,10 +38,10 @@ interface IRewardsManager {
     function setMinimumSubgraphSignal(uint256 _minimumSubgraphSignal) external;
 
     /**
-     * @notice Set the service quality oracle address
-     * @param newServiceQualityOracle The address of the service quality oracle
+     * @notice Set the rewards eligibility oracle address
+     * @param newRewardsEligibilityOracle The address of the rewards eligibility oracle
      */
-    function setServiceQualityOracle(address newServiceQualityOracle) external;
+    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
 
     // -- Denylist --
 

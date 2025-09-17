@@ -6,7 +6,7 @@
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 
 const { ethers } = require('hardhat')
-const { getTestAccounts, deployTestGraphToken, deployServiceQualityOracle } = require('./fixtures')
+const { getTestAccounts, deployTestGraphToken, deployRewardsEligibilityOracle } = require('./fixtures')
 
 // Shared test constants
 export const SHARED_CONSTANTS = {
@@ -38,12 +38,12 @@ export interface SharedContracts {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   graphToken: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  serviceQualityOracle: any
+  rewardsEligibilityOracle: any
 }
 
 export interface SharedAddresses {
   graphToken: string
-  serviceQualityOracle: string
+  rewardsEligibilityOracle: string
 }
 
 export interface SharedFixtures {
@@ -62,12 +62,12 @@ export async function deploySharedContracts(): Promise<SharedFixtures> {
   const graphToken = await deployTestGraphToken()
   const graphTokenAddress = await graphToken.getAddress()
 
-  const serviceQualityOracle = await deployServiceQualityOracle(graphTokenAddress, accounts.governor)
+  const rewardsEligibilityOracle = await deployRewardsEligibilityOracle(graphTokenAddress, accounts.governor)
 
   // Cache addresses
   const addresses: SharedAddresses = {
     graphToken: graphTokenAddress,
-    serviceQualityOracle: await serviceQualityOracle.getAddress(),
+    rewardsEligibilityOracle: await rewardsEligibilityOracle.getAddress(),
   }
 
   // Create helper
@@ -75,7 +75,7 @@ export async function deploySharedContracts(): Promise<SharedFixtures> {
     accounts,
     contracts: {
       graphToken,
-      serviceQualityOracle,
+      rewardsEligibilityOracle,
     },
     addresses,
   }
@@ -86,19 +86,19 @@ export async function deploySharedContracts(): Promise<SharedFixtures> {
  * Optimized to avoid redeployment while ensuring clean state
  */
 export async function resetContractState(contracts: SharedContracts, accounts: TestAccounts): Promise<void> {
-  const { serviceQualityOracle } = contracts
+  const { rewardsEligibilityOracle } = contracts
 
-  // Reset ServiceQualityOracle state
+  // Reset RewardsEligibilityOracle state
   try {
-    if (await serviceQualityOracle.paused()) {
-      await serviceQualityOracle.connect(accounts.governor).unpause()
+    if (await rewardsEligibilityOracle.paused()) {
+      await rewardsEligibilityOracle.connect(accounts.governor).unpause()
     }
 
-    // Reset quality checking to default (disabled)
-    if (await serviceQualityOracle.isQualityCheckingActive()) {
-      await serviceQualityOracle.connect(accounts.governor).disableQualityChecking()
+    // Reset eligibility validation to default (disabled)
+    if (await rewardsEligibilityOracle.getEligibilityValidation()) {
+      await rewardsEligibilityOracle.connect(accounts.governor).setEligibilityValidation(false)
     }
   } catch (error) {
-    console.warn('ServiceQualityOracle state reset failed:', error instanceof Error ? error.message : String(error))
+    console.warn('RewardsEligibilityOracle state reset failed:', error instanceof Error ? error.message : String(error))
   }
 }
