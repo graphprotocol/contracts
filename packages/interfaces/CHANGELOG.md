@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.6.1
+
+### Patch Changes
+
+- Add ServiceRegistered to LegacyServiceRegistry interface
+
 ## 0.6.0
 
 ### Minor Changes
