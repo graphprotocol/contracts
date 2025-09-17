@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.6.2
+
+### Patch Changes
+
+- Ensure ServiceRegistry loads the correct interface
+
 ## 0.6.1
 
 ### Patch Changes
