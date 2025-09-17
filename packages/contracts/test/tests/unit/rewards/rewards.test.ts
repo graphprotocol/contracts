@@ -920,7 +920,7 @@ describe('Rewards', () => {
         // Calculate expected rewards (for verification in the event)
         const expectedIndexingRewards = toGRT('1400')
 
-        // Close allocation. At this point rewards should be denied due to service quality
+        // Close allocation. At this point rewards should be denied due to eligibility
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
           .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
