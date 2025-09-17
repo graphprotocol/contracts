@@ -11,6 +11,26 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 echo "Script directory: $SCRIPT_DIR"
 echo "Repository root: $REPO_ROOT"
 
+# Ensure pnpm cache directory exists with correct permissions
+echo "Setting up pnpm cache directory..."
+# Fix ownership if the directory exists but is owned by root
+if [ -d ~/.cache/pnpm ] && [ "$(stat -c %U ~/.cache/pnpm 2>/dev/null || echo 'vscode')" = "root" ]; then
+  echo "Fixing pnpm cache directory ownership..."
+  sudo chown -R vscode:vscode ~/.cache/pnpm
+fi
+# Create the directory structure with proper permissions
+if mkdir -p ~/.cache/pnpm/store 2>/dev/null || sudo mkdir -p ~/.cache/pnpm/store; then
+  # Ensure the directory is writable by the vscode user (use sudo if needed)
+  if [ "$(stat -c %U ~/.cache/pnpm 2>/dev/null || echo 'vscode')" = "root" ]; then
+    sudo chown -R vscode:vscode ~/.cache/pnpm
+  fi
+  chmod -R 755 ~/.cache/pnpm
+  echo "✓ pnpm cache directory created successfully"
+else
+  echo "❌ Failed to create pnpm cache directory"
+  exit 1
+fi
+
 # Install project dependencies
 echo "Installing project dependencies..."
 if [ -f "$REPO_ROOT/package.json" ]; then

@@ -27,19 +27,8 @@ for volume in "${GLOBAL_VOLUMES[@]}"; do
 done
 
 echo ""
-echo "Setting up proper ownership for cache volumes..."
-# The vscode user in devcontainers typically has UID 1000 and GID 1000
-# We need to ensure the volumes have the correct ownership
-for volume in "${GLOBAL_VOLUMES[@]}"; do
-  echo "Setting ownership for $volume..."
-  # Create a temporary container to fix ownership
-  docker run --rm \
-    -v "$volume":/volume \
-    --user root \
-    mcr.microsoft.com/devcontainers/base:debian \
-    chown -R 1000:1000 /volume
-  echo "✓ $volume ownership set to vscode user (1000:1000)"
-done
+echo "Cache volumes created successfully!"
+echo "Note: Permissions will be set automatically when the dev container starts."
 
 echo ""
 echo "Global cache volumes setup completed!"

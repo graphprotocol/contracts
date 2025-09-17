@@ -26,7 +26,7 @@ services:
       - PIP_CACHE_DIR=/home/vscode/.cache/pip
 
       # pnpm cache is safe to share due to content-addressable storage
-      - PNPM_HOME=/home/vscode/.local/share/pnpm
+      # PNPM_HOME is for global packages and should be user-specific (uses default)
       - PNPM_STORE_DIR=/home/vscode/.cache/pnpm/store
       # Note: NPM, Foundry, and Solidity caches are intentionally not set
       # to avoid cross-branch contamination. Tools will use their default locations.
@@ -39,6 +39,7 @@ services:
       - vscode-data:/home/vscode/.local/share
       - vscode-bin:/home/vscode/.local/bin
       - vscode-cache:/home/vscode/.cache
+      # Global pnpm store (content-addressable cache only)
       - global-pnpm-cache:/home/vscode/.cache/pnpm
 
 volumes:
