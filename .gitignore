@@ -92,4 +92,6 @@ tx-builder-*.json
 **/horizon-hardhat/
 **/subgraph-service-localhost/
 **/subgraph-service-hardhat/
+**/horizon-localNetwork/
+**/subgraph-service-localNetwork/
 !**/ignition/**/artifacts/
