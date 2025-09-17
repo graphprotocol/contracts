@@ -12,6 +12,8 @@
     "gnsProxyAddress": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
     "gnsImplementationAddress": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
     "subgraphNFTAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+    "legacyDisputeManagerAddress": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
+    "legacyServiceRegistryAddress": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
 
     // Must be set for step 2 of the deployment
     "disputeManagerProxyAddress": "",
