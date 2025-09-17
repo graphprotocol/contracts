@@ -2,7 +2,7 @@
 
 pragma solidity 0.7.6;
 
-import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/eligibility/IRewardsEligibilityOracle.sol";
 import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
 
 /**

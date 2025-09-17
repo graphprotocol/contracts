@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.27;
 
-import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/eligibility/IRewardsEligibilityOracle.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 
 /**

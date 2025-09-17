@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/eligibility/IRewardsEligibilityOracle.sol";
 
 /**
  * @title InterfaceIdExtractor

@@ -6,7 +6,7 @@ pragma solidity 0.7.6;
 
 import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
-import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/eligibility/IRewardsEligibilityOracle.sol";
 import { Managed } from "../governance/Managed.sol";
 
 /**

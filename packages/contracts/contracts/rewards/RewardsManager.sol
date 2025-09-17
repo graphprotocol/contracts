@@ -17,7 +17,7 @@ import { IStaking, IStakingBase } from "../staking/IStaking.sol";
 
 import { RewardsManagerV5Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
-import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/quality/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/eligibility/IRewardsEligibilityOracle.sol";
 
 /**
  * @title Rewards Manager Contract
