@@ -1,5 +1,11 @@
 # @graphprotocol/toolshed
 
+## 0.6.14
+
+### Patch Changes
+
+- Update to latest interfaces package
+
 ## 0.6.13
 
 ### Patch Changes
