@@ -1,48 +1,51 @@
 #!/usr/bin/env bash
-# Host setup script for Graph Protocol Contracts dev container
-# Run this script on the host before starting the dev container
-# Usage: sudo .devcontainer/host-setup.sh
+# Host setup script for creating global cache volumes
+# Run this script to create shared cache volumes across all dev containers
+# Usage: .devcontainer/host-setup.sh
 
 set -euo pipefail
 
-echo "Setting up host environment for Graph Protocol Contracts dev container..."
+echo "Setting up global cache volumes for dev containers..."
 
-# Check if running as root
-if [ "$(id -u)" -ne 0 ]; then
-  echo "Error: This script must be run as root (sudo)" >&2
-  exit 1
-fi
-
-CACHE_DIRS=(
-  "/cache/vscode-cache"
-  "/cache/vscode-config"
-  "/cache/vscode-data"
-  "/cache/vscode-bin"
-  "/cache/hardhat"
-  "/cache/npm"
-  "/cache/yarn"
-  "/cache/pip"
-  "/cache/pycache"
-  "/cache/solidity"
-  "/cache/foundry"
-  "/cache/github"
-  "/cache/apt"
-  "/cache/apt-lib"
+# Global cache volumes that should be shared across all projects
+GLOBAL_VOLUMES=(
+  "global-pnpm-cache"
+  # Add other global caches here as needed
+  # "global-pip-cache"
+  # "global-npm-cache"
 )
 
-echo "Creating cache directories..."
-for dir in "${CACHE_DIRS[@]}"; do
-  if [ ! -d "$dir" ]; then
-    echo "Creating $dir"
-    mkdir -p "$dir"
-    chmod 777 "$dir"
+echo "Creating global cache volumes..."
+for volume in "${GLOBAL_VOLUMES[@]}"; do
+  if docker volume inspect "$volume" >/dev/null 2>&1; then
+    echo "✓ $volume already exists"
   else
-    echo "$dir already exists"
+    echo "Creating $volume..."
+    docker volume create "$volume"
+    echo "✓ $volume created"
   fi
 done
 
-# Note: Package-specific directories will be created by the project-setup.sh script
-# inside the container, as they are tied to the project structure
+echo ""
+echo "Setting up proper ownership for cache volumes..."
+# The vscode user in devcontainers typically has UID 1000 and GID 1000
+# We need to ensure the volumes have the correct ownership
+for volume in "${GLOBAL_VOLUMES[@]}"; do
+  echo "Setting ownership for $volume..."
+  # Create a temporary container to fix ownership
+  docker run --rm \
+    -v "$volume":/volume \
+    --user root \
+    mcr.microsoft.com/devcontainers/base:debian \
+    chown -R 1000:1000 /volume
+  echo "✓ $volume ownership set to vscode user (1000:1000)"
+done
 
-echo "Host setup completed successfully!"
-echo "You can now start or rebuild your dev container."
+echo ""
+echo "Global cache volumes setup completed!"
+echo "These volumes will be shared across all dev containers that reference them."
+echo ""
+echo "Created volumes:"
+for volume in "${GLOBAL_VOLUMES[@]}"; do
+  echo "  - $volume"
+done

@@ -1,5 +1,4 @@
 {
-  "name": "graph contracts",
   "dockerComposeFile": ["docker-compose.yml"],
   "service": "dev-graph-contracts",
   "features": {
@@ -8,7 +7,7 @@
       "gitCredentialHelper": "cache"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/common-utils:2.5.3": {},
+    "ghcr.io/devcontainers/features/common-utils:2.5.4": {},
     "ghcr.io/devcontainers/features/node:1": {
       "version": "20"
     },
@@ -16,14 +15,14 @@
       "moby": false
     }
   },
+  "workspaceFolder": "/work/${localWorkspaceFolderBasename}",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/work/${localWorkspaceFolderBasename},type=bind,consistency=cached"
+  ],
   "postCreateCommand": ".devcontainer/project-setup.sh",
   "remoteUser": "vscode",
-  "workspaceFolder": "/work",
   "customizations": {
     "vscode": {
-      "settings": {
-        "terminal.integrated.cwd": "/work"
-      },
       "extensions": [
         "rust-lang.rust-analyzer",
         "tamasfe.even-better-toml",

@@ -39,7 +39,25 @@ The container uses a conservative caching approach to prevent cache corruption i
 
 ## Setup Instructions
 
-### Start the Dev Container
+### Setup Instructions
+
+#### First-Time Setup (Required)
+
+**IMPORTANT**: Before starting any dev container, you must run the host setup script on your host machine:
+
+```bash
+.devcontainer/host-setup.sh
+```
+
+This script:
+
+- Creates global Docker volumes like `global-pnpm-cache` that are shared across all dev containers
+- Sets proper ownership (UID 1000:1000) for the vscode user inside containers
+- Prevents permission denied errors when tools try to write to cache directories
+
+**Without running this script first, the dev container will fail with permission errors.**
+
+#### Start the Dev Container
 
 To start the dev container:
 
@@ -52,6 +70,8 @@ When the container starts, the `project-setup.sh` script will automatically run 
 - Install project dependencies using pnpm
 - Configure Git to use SSH signing with your forwarded SSH key
 - Source shell customizations if available in PATH
+
+**Note**: The `host-setup.sh` script is required to create the global pnpm cache volume with proper permissions. Without it, the dev container will fail with permission denied errors when pnpm tries to write to its cache directory.
 
 ## Environment Variables
 
@@ -74,11 +94,28 @@ These environment variables are needed for Git commit signing to work properly. 
 
 ## Troubleshooting
 
+### Permission Issues
+
+If you encounter "permission denied" errors when the dev container starts (especially with pnpm cache):
+
+1. **Run host setup first**: Make sure you've run `.devcontainer/host-setup.sh` on your host machine
+2. **Fix existing volumes**: If you already have volumes with wrong permissions, run:
+
+   ```bash
+   # Remove the problematic volume
+   docker volume rm global-pnpm-cache
+
+   # Run host setup to recreate it with correct permissions
+   .devcontainer/host-setup.sh
+   ```
+
+3. **Rebuild container**: After fixing volumes, rebuild your dev container
+
 ### Cache Issues
 
 If you encounter build or compilation issues that seem related to cached artifacts:
 
-1. **Rebuild the container**: This will start with fresh local caches
+1. **Rebuild the container**: This rebuilds the container image but preserves Docker volume caches
 2. **Clean project caches**: Run `pnpm clean` to clear project-specific build artifacts
 3. **Clear node modules**: Delete `node_modules` and run `pnpm install` again
 

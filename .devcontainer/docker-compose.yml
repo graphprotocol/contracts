@@ -4,7 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
     user: vscode
-    working_dir: /work
     env_file:
       - /opt/configs/graphprotocol/contracts.env
     environment:
@@ -32,23 +31,20 @@ services:
       # Note: NPM, Foundry, and Solidity caches are intentionally not set
       # to avoid cross-branch contamination. Tools will use their default locations.
     volumes:
-      - ..:/work
-
       # Git repo root
       - /git:/git
 
-      # Local directories for user data (keep local to container)
-      - vscode-cache:/home/vscode/.cache
+      # Cached directories
       - vscode-config:/home/vscode/.config
       - vscode-data:/home/vscode/.local/share
       - vscode-bin:/home/vscode/.local/bin
-
-      # Shared pnpm cache (safe due to content-addressable storage)
-      - pnpm-cache:/home/vscode/.cache/pnpm
+      - vscode-cache:/home/vscode/.cache
+      - global-pnpm-cache:/home/vscode/.cache/pnpm
 
 volumes:
   vscode-cache:
   vscode-config:
   vscode-data:
   vscode-bin:
-  pnpm-cache:
+  global-pnpm-cache:
+    external: true
