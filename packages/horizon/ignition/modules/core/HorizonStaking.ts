@@ -44,6 +44,7 @@ export default buildModule('HorizonStaking', (m) => {
     artifact: HorizonStakingArtifact,
   })
   m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod])
+  m.call(HorizonStaking, 'setAllowedLockedVerifier', [subgraphServiceAddress, true])
 
   return { HorizonStaking, HorizonStakingImplementation }
 })
