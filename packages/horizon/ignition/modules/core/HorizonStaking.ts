@@ -44,6 +44,7 @@ export default buildModule('HorizonStaking', (m) => {
     artifact: HorizonStakingArtifact,
   })
   m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod])
+  m.call(HorizonStaking, 'setAllowedLockedVerifier', [subgraphServiceAddress, true])
 
   return { HorizonStaking, HorizonStakingImplementation }
 })
@@ -88,6 +89,7 @@ export const MigrateHorizonStakingGovernorModule = buildModule('HorizonStakingGo
   const graphProxyAdminAddress = m.getParameter('graphProxyAdminAddress')
   const horizonStakingAddress = m.getParameter('horizonStakingAddress')
   const horizonStakingImplementationAddress = m.getParameter('horizonStakingImplementationAddress')
+  const subgraphServiceAddress = m.getParameter('subgraphServiceAddress')
 
   const HorizonStakingImplementation = m.contractAt(
     'HorizonStakingImplementation',
@@ -103,6 +105,7 @@ export const MigrateHorizonStakingGovernorModule = buildModule('HorizonStakingGo
     artifact: HorizonStakingArtifact,
   })
   m.call(HorizonStaking, 'setMaxThawingPeriod', [maxThawingPeriod])
+  m.call(HorizonStaking, 'setAllowedLockedVerifier', [subgraphServiceAddress, true])
 
   return { HorizonStaking, HorizonStakingImplementation }
 })
