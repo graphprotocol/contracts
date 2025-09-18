@@ -5,7 +5,7 @@ pragma solidity 0.8.27;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/token/IGraphToken.sol";
 
 /**
  * @title BaseUpgradeable

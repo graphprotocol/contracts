@@ -13,9 +13,8 @@
   },
   "dependencies": {
     "@graphprotocol/issuance": "workspace:^",
-    "@graphprotocol/common": "workspace:^",
-    "@graphprotocol/contracts": "workspace:^",
-    "@graphprotocol/sdk": "workspace:^"
+    "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/contracts": "workspace:^"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -49,7 +48,7 @@
     "clean": "rm -rf build",
     "test": "pnpm test:self",
     "test:self": "pnpm test:hardhat",
-    "test:hardhat": "pnpm --filter @graphprotocol/contracts --filter @graphprotocol/issuance --filter @graphprotocol/sdk build && hardhat test tests/*.test.ts tests/**/*.test.ts",
+    "test:hardhat": "pnpm --filter @graphprotocol/contracts --filter @graphprotocol/issuance build && hardhat test tests/*.test.ts tests/**/*.test.ts",
     "test:coverage": "scripts/coverage",
     "lint": "pnpm lint:ts; pnpm lint:json",
     "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",

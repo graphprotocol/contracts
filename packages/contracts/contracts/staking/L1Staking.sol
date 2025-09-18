@@ -11,13 +11,14 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
 import { Staking } from "./Staking.sol";
 import { Stakes } from "./libs/Stakes.sol";
+import { IStakes } from "./libs/IStakes.sol";
 import { IStakingData } from "./IStakingData.sol";
-import { IL2Staking } from "../l2/staking/IL2Staking.sol";
 import { L1StakingV1Storage } from "./L1StakingStorage.sol";
-import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 import { IL1StakingBase } from "./IL1StakingBase.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";
+import { IL2StakingTypes } from "../l2/staking/IL2StakingTypes.sol";
 
 /**
  * @title L1Staking contract
@@ -26,7 +27,7 @@ import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.s
  * to send an indexer's stake to L2, and to send delegation to L2 as well.
  */
 contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
-    using Stakes for Stakes.Indexer;
+    using Stakes for IStakes.Indexer;
     using SafeMath for uint256;
 
     /**
@@ -172,7 +173,7 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         uint256 _maxSubmissionCost,
         uint256 _ethAmount
     ) internal {
-        Stakes.Indexer storage indexerStake = __stakes[_indexer];
+        IStakes.Indexer storage indexerStake = __stakes[_indexer];
         require(indexerStake.tokensStaked != 0, "tokensStaked == 0");
         // Indexers shouldn't be trying to withdraw tokens before transferring to L2.
         // Allowing this would complicate our accounting so we require that they have no
@@ -208,11 +209,11 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
             );
         }
 
-        IL2Staking.ReceiveIndexerStakeData memory functionData;
+        IL2StakingTypes.ReceiveIndexerStakeData memory functionData;
         functionData.indexer = _l2Beneficiary;
 
         bytes memory extraData = abi.encode(
-            uint8(IL2Staking.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE),
+            uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_INDEXER_STAKE_CODE),
             abi.encode(functionData)
         );
 
@@ -266,10 +267,13 @@ contract L1Staking is Staking, L1StakingV1Storage, IL1StakingBase {
         delegation.shares = 0;
         bytes memory extraData;
         {
-            IL2Staking.ReceiveDelegationData memory functionData;
+            IL2StakingTypes.ReceiveDelegationData memory functionData;
             functionData.indexer = indexerTransferredToL2[_indexer];
             functionData.delegator = _l2Beneficiary;
-            extraData = abi.encode(uint8(IL2Staking.L1MessageCodes.RECEIVE_DELEGATION_CODE), abi.encode(functionData));
+            extraData = abi.encode(
+                uint8(IL2StakingTypes.L1MessageCodes.RECEIVE_DELEGATION_CODE),
+                abi.encode(functionData)
+            );
         }
 
         _sendTokensAndMessageToL2Staking(

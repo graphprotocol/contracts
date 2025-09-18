@@ -20,6 +20,7 @@ import './ops/delete'
 import './ops/info'
 import './ops/manager'
 import './ops/beneficiary'
+import './ops/update-auth-functions-horizon'
 
 // Networks
 

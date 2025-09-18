@@ -12,10 +12,10 @@ import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/Clo
 
 import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../../utils/TokenUtils.sol";
-import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManager } from "../../rewards/IRewardsManager.sol";
 import { Managed } from "../../governance/Managed.sol";
-import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
-import { CurationV2Storage } from "../../curation/CurationStorage.sol";
+import { IGraphToken } from "../../token/IGraphToken.sol";
+import { CurationV3Storage } from "../../curation/CurationStorage.sol";
 import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
 import { IL2Curation } from "./IL2Curation.sol";
 
@@ -32,7 +32,7 @@ import { IL2Curation } from "./IL2Curation.sol";
  * Holders can burn GCS using this contract to get GRT tokens back according to the
  * bonding curve.
  */
-contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
+contract L2Curation is CurationV3Storage, GraphUpgradeable, IL2Curation {
     using SafeMathUpgradeable for uint256;
 
     /// @dev 100% in parts per million
@@ -82,6 +82,11 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param tokens Amount of tokens collected as fees
      */
     event Collected(bytes32 indexed subgraphDeploymentID, uint256 tokens);
+
+    /**
+     * @dev Emitted when the subgraph service is set.
+     */
+    event SubgraphServiceSet(address indexed newSubgraphService);
 
     /**
      * @dev Modifier for functions that can only be called by the GNS contract
@@ -149,6 +154,15 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
     }
 
     /**
+     * @notice Set the subgraph service address
+     * @param _subgraphService Address of the subgraph service contract
+     */
+    function setSubgraphService(address _subgraphService) external override onlyGovernor {
+        subgraphService = _subgraphService;
+        emit SubgraphServiceSet(_subgraphService);
+    }
+
+    /**
      * @notice Assign Graph Tokens collected as curation fees to the curation pool reserve.
      * @dev This function can only be called by the Staking contract and will do the bookeeping of
      * transferred tokens into this contract.
@@ -156,8 +170,11 @@ contract L2Curation is CurationV2Storage, GraphUpgradeable, IL2Curation {
      * @param _tokens Amount of Graph Tokens to add to reserves
      */
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external override {
-        // Only Staking contract is authorized as caller
-        require(msg.sender == address(staking()), "Caller must be the staking contract");
+        // Only SubgraphService and Staking contract are authorized as callers
+        require(
+            msg.sender == subgraphService || msg.sender == address(staking()),
+            "Caller must be the subgraph service or staking contract"
+        );
 
         // Must be curated to accept tokens
         require(isCurated(_subgraphDeploymentID), "Subgraph deployment must be curated to collect fees");

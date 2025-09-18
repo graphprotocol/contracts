@@ -8,10 +8,9 @@ pragma abicoder v2;
 
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-
 import { Governed } from "../governance/Governed.sol";
 import { IStaking } from "../staking/IStaking.sol";
-import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 
 /**
  * @title Allocation Exchange

@@ -1,6 +1,6 @@
 {
   "name": "@graphprotocol/contracts",
-  "version": "7.1.2",
+  "version": "7.3.0",
   "publishConfig": {
     "access": "public"
   },
@@ -34,8 +34,8 @@
     "index.d.ts"
   ],
   "scripts": {
-    "prepack": "scripts/build",
-    "clean": "rm -rf artifacts/ cache/ types/ abis/",
+    "prepack": "pnpm build",
+    "clean": "rm -rf artifacts/ cache/ types/ abis/ build/ dist/ contracts/hardhat-dependency-compiler/",
     "build": "pnpm build:self",
     "build:self": "pnpm compile",
     "compile": "hardhat compile",
@@ -63,8 +63,8 @@
     "@ethersproject/abstract-signer": "^5.8.0",
     "@ethersproject/bytes": "^5.8.0",
     "@ethersproject/providers": "^5.8.0",
-    "@graphprotocol/common": "workspace:^",
     "@graphprotocol/common-ts": "^1.8.3",
+    "@graphprotocol/interfaces": "workspace:^",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",

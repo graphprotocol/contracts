@@ -1,5 +1,23 @@
 # @graphprotocol/contracts
 
+## 7.3.0
+
+### Minor Changes
+
+- Extracted contract interfaces into its own package
+
+## 7.2.1
+
+### Patch Changes
+
+- Fix prepack script
+
+## 7.2.0
+
+### Minor Changes
+
+- Sub-packages for contracts package
+
 ## 7.1.2
 
 ### Patch Changes

@@ -12,14 +12,15 @@ import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { Multicall } from "../base/Multicall.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IGraphToken } from "@graphprotocol/common/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "../token/IGraphToken.sol";
 import { IStakingBase } from "./IStakingBase.sol";
 import { StakingV4Storage } from "./StakingStorage.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 import { Stakes } from "./libs/Stakes.sol";
+import { IStakes } from "./libs/IStakes.sol";
 import { Managed } from "../governance/Managed.sol";
 import { ICuration } from "../curation/ICuration.sol";
-import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManager } from "../rewards/IRewardsManager.sol";
 import { StakingExtension } from "./StakingExtension.sol";
 import { LibExponential } from "./libs/Exponential.sol";
 
@@ -36,7 +37,7 @@ import { LibExponential } from "./libs/Exponential.sol";
  */
 abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, Multicall {
     using SafeMath for uint256;
-    using Stakes for Stakes.Indexer;
+    using Stakes for IStakes.Indexer;
 
     /// @dev 100% in parts per million
     uint32 internal constant MAX_PPM = 1000000;
@@ -222,7 +223,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      */
     function unstake(uint256 _tokens) external override notPartialPaused {
         address indexer = msg.sender;
-        Stakes.Indexer storage indexerStake = __stakes[indexer];
+        IStakes.Indexer storage indexerStake = __stakes[indexer];
 
         require(indexerStake.tokensStaked > 0, "!stake");
 
@@ -426,6 +427,36 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
+     * @dev New function to get the allocation data for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function getAllocationData(
+        address _allocationID
+    ) external view override returns (bool, address, bytes32, uint256, uint256, uint256) {
+        Allocation memory alloc = __allocations[_allocationID];
+        bool isActive = _getAllocationState(_allocationID) == AllocationState.Active;
+
+        return (
+            isActive,
+            alloc.indexer,
+            alloc.subgraphDeploymentID,
+            alloc.tokens,
+            alloc.accRewardsPerAllocatedToken,
+            0
+        );
+    }
+
+    /**
+     * @dev New function to get the allocation active status for the rewards manager
+     * @dev Note that this is only to make tests pass, as the staking contract with
+     * this changes will never get deployed. HorizonStaking is taking it's place.
+     */
+    function isActiveAllocation(address _allocationID) external view override returns (bool) {
+        return _getAllocationState(_allocationID) == AllocationState.Active;
+    }
+
+    /**
      * @inheritdoc IStakingBase
      */
     function getAllocationState(address _allocationID) external view override returns (AllocationState) {
@@ -474,7 +505,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @inheritdoc IStakingBase
      */
     function getIndexerCapacity(address _indexer) public view override returns (uint256) {
-        Stakes.Indexer memory indexerStake = __stakes[_indexer];
+        IStakes.Indexer storage indexerStake = __stakes[_indexer];
         uint256 tokensDelegated = __delegationPools[_indexer].tokens;
 
         uint256 tokensDelegatedCap = indexerStake.tokensSecureStake().mul(uint256(__delegationRatio));
@@ -725,9 +756,6 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             require(isIndexerOrOperator, "!auth");
         }
 
-        // Close the allocation
-        __allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
-
         // -- Rewards Distribution --
 
         // Process non-zero-allocation rewards tracking
@@ -750,6 +778,11 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
                 alloc.tokens
             );
         }
+
+        // Close the allocation
+        // Note that this breaks CEI pattern. We update after the rewards distribution logic as it expects the allocation
+        // to still be active. There shouldn't be reentrancy risk here as all internal calls are to trusted contracts.
+        __allocations[_allocationID].closedAtEpoch = alloc.closedAtEpoch;
 
         emit AllocationClosed(
             alloc.indexer,

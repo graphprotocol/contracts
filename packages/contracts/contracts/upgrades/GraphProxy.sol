@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
-
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+pragma solidity ^0.7.6 || 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-small-strings
@@ -156,7 +154,6 @@ contract GraphProxy is GraphProxyStorage, IGraphProxy {
      */
     function _acceptUpgrade() internal {
         address _pendingImplementation = _getPendingImplementation();
-        require(Address.isContract(_pendingImplementation), "Impl must be a contract");
         require(_pendingImplementation != address(0), "Impl cannot be zero address");
         require(msg.sender == _pendingImplementation, "Only pending implementation");
 

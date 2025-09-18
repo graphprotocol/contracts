@@ -6,7 +6,7 @@ pragma solidity ^0.7.6;
 // solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
 import { Governed } from "../governance/Governed.sol";
-import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
 
 /**
  * @title Subgraph Availability Manager

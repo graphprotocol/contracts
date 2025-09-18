@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 /* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
 

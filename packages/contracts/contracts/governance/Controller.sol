@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-indexed-events, gas-small-strings
@@ -93,8 +93,8 @@ contract Controller is Governed, Pausable, IController {
      * @inheritdoc IController
      * @dev Partial pause is intended as a partial pause of the protocol
      */
-    function setPartialPaused(bool _toPause) external override onlyGovernorOrGuardian {
-        _setPartialPaused(_toPause);
+    function setPartialPaused(bool _toPartialPause) external override onlyGovernorOrGuardian {
+        _setPartialPaused(_toPartialPause);
     }
 
     /**

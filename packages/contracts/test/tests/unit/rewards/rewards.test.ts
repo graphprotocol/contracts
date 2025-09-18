@@ -534,7 +534,7 @@ describe('Rewards', () => {
         await helpers.mine(ISSUANCE_RATE_PERIODS)
 
         // Rewards
-        const contractRewards = await rewardsManager.getRewards(allocationID1)
+        const contractRewards = await rewardsManager.getRewards(staking.address, allocationID1)
 
         // We trust using this function in the test because we tested it
         // standalone in a previous test
@@ -570,12 +570,12 @@ describe('Rewards', () => {
         await staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
         // Rewards
-        const contractRewards = await rewardsManager.getRewards(allocationID1)
+        const contractRewards = await rewardsManager.getRewards(staking.address, allocationID1)
         expect(contractRewards).eq(BigNumber.from(0))
       })
       it('rewards should be zero if the allocation does not exist', async function () {
         // Rewards
-        const contractRewards = await rewardsManager.getRewards(allocationIDNull)
+        const contractRewards = await rewardsManager.getRewards(staking.address, allocationIDNull)
         expect(contractRewards).eq(BigNumber.from(0))
       })
     })
@@ -700,7 +700,6 @@ describe('Rewards', () => {
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
         expect(event.allocationID).eq(allocationID1)
-        expect(event.epoch).eq(await epochManager.currentEpoch())
         expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
         // After state
@@ -736,8 +735,8 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
-          .emit(rewardsManager, 'RewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+          .emit(rewardsManager, 'HorizonRewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
       it('does not revert with an underflow if the minimum signal changes, and signal came after allocation', async function () {
@@ -754,8 +753,8 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx)
-          .emit(rewardsManager, 'RewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+          .emit(rewardsManager, 'HorizonRewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
       it('does not revert if signal was already under minimum', async function () {
@@ -771,8 +770,8 @@ describe('Rewards', () => {
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
 
         await expect(tx)
-          .emit(rewardsManager, 'RewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch(), toBN(0))
+          .emit(rewardsManager, 'HorizonRewardsAssigned')
+          .withArgs(indexer1.address, allocationID1, toBN(0))
       })
 
       it('should distribute rewards on closed allocation and send to destination', async function () {
@@ -806,7 +805,6 @@ describe('Rewards', () => {
         const event = rewardsManager.interface.parseLog(receipt.logs[1]).args
         expect(event.indexer).eq(indexer1.address)
         expect(event.allocationID).eq(allocationID1)
-        expect(event.epoch).eq(await epochManager.currentEpoch())
         expect(toRound(event.amount)).eq(toRound(expectedIndexingRewards))
 
         // After state
@@ -892,9 +890,7 @@ describe('Rewards', () => {
 
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx)
-          .emit(rewardsManager, 'RewardsDenied')
-          .withArgs(indexer1.address, allocationID1, await epochManager.currentEpoch())
+        await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
       })
 
       it('should deny rewards due to rewards eligibility oracle', async function () {
@@ -1174,7 +1170,7 @@ describe('Rewards', () => {
       await staking.connect(assetHolder).collect(tokensToCollect, allocationID1)
 
       // check rewards diff
-      await rewardsManager.getRewards(allocationID1).then(formatGRT)
+      await rewardsManager.getRewards(staking.address, allocationID1).then(formatGRT)
 
       await helpers.mine()
       const accrual = await getRewardsAccrual(subgraphs)

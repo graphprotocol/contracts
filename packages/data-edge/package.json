@@ -9,7 +9,7 @@
     "prepublishOnly": "scripts/prepublish",
     "build": "npm run build:self",
     "build:self": "scripts/build",
-    "clean": "rm -rf build/ cache/ dist/",
+    "clean": "rm -rf build/ cache/ dist/ reports/ artifacts/",
     "compile": "hardhat compile",
     "test": "pnpm test:self",
     "test:self": "scripts/test",

@@ -1,0 +1,66 @@
+{
+  "name": "hardhat-graph-protocol",
+  "version": "0.2.5",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "A hardhat plugin that extends the runtime environment to inject additional functionality related to the usage of the Graph Protocol.",
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "hardhat-plugin",
+    "graph",
+    "graph-protocol",
+    "horizon"
+  ],
+  "author": "Tomás Migone <tomas@edgeandnode.com>",
+  "license": "MIT",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:clean": "pnpm clean && pnpm build",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "test": "mocha --exit --recursive 'test/**/*.test.ts'",
+    "prepublishOnly": "pnpm run build"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "dependencies": {
+    "@graphprotocol/toolshed": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "3.0.8",
+    "debug": "^4.3.7",
+    "json5": "^2.2.3"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-verify": "^2.0.12",
+    "@types/chai": "^4.0.0",
+    "@types/debug": "^4.1.12",
+    "@types/mocha": "^10.0.9",
+    "chai": "^4.0.0",
+    "eslint": "^8.56.0",
+    "ethers": "6.13.7",
+    "hardhat": "^2.22.16",
+    "hardhat-secure-accounts": "^1.0.4",
+    "mocha": "^10.8.2",
+    "ts-node": "^8.0.0",
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "ethers": "6.13.7",
+    "hardhat": "^2.22.16"
+  }
+}

@@ -2,11 +2,13 @@
 
 /* solhint-disable one-contract-per-file */
 
-pragma solidity 0.7.6;
+pragma solidity ^0.7.6 || 0.8.27;
 
-import { IRewardsManager } from "@graphprotocol/common/contracts/rewards/IRewardsManager.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
-import { IRewardsEligibilityOracle } from "@graphprotocol/common/contracts/eligibility/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/eligibility/IRewardsEligibilityOracle.sol";
+import { IRewardsIssuer } from "./IRewardsIssuer.sol";
+import { IRewardsManager } from "./IRewardsManager.sol";
 import { Managed } from "../governance/Managed.sol";
 
 /**
@@ -72,6 +74,9 @@ contract RewardsManagerV4Storage is RewardsManagerV3Storage {
 contract RewardsManagerV5Storage is RewardsManagerV4Storage {
     /// @notice Address of the subgraph service
     IRewardsIssuer public subgraphService;
+}
+
+contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @notice Address of the rewards eligibility oracle contract
     IRewardsEligibilityOracle public rewardsEligibilityOracle;
 }
