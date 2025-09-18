@@ -13,6 +13,11 @@
     "gnsImplementationAddress": "",
     "subgraphNFTAddress": "",
 
+    // These do not exist in the protocol deployment, but are needed by ignition modules
+    // so we set them to 0x00...00
+    "legacyDisputeManagerAddress": "0x0000000000000000000000000000000000000000",
+    "legacyServiceRegistryAddress": "0x0000000000000000000000000000000000000000",
+
     // Must be set for step 2 of the deployment
     "disputeManagerProxyAddress": "",
     "disputeManagerProxyAdminAddress": "",
