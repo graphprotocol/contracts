@@ -1,5 +1,19 @@
 # @graphprotocol/toolshed
 
+## 0.6.15
+
+### Patch Changes
+
+- Ensure ServiceRegistry loads the correct interface
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.2
+
+## 0.6.14
+
+### Patch Changes
+
+- Update to latest interfaces package
+
 ## 0.6.13
 
 ### Patch Changes

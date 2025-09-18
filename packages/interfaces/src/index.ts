@@ -79,13 +79,9 @@ function collectFactoriesMap(obj: unknown): Record<string, ContractFactoryStatic
   const factoriesMap: Record<string, ContractFactoryStatic> = {}
 
   // For factory name 'x', use contract name 'y'
+  // This is necessary because DisputeManager name collision, its the name of the contract in both the contracts and subgraph-service packages
   const factoryNameOverrides: Record<string, string> = {
     'contracts.contracts.disputes.IDisputeManager__factory': 'ILegacyDisputeManager',
-  }
-
-  // For contract name 'x', also create an entry for alias 'y' in the factory map
-  const factoryNameAliases: Record<string, string> = {
-    IServiceRegistry: 'ILegacyServiceRegistry',
   }
 
   function recurse(value: unknown, path: string[] = []) {
@@ -116,19 +112,6 @@ function collectFactoriesMap(obj: unknown): Record<string, ContractFactoryStatic
 
         // Add main entry
         factoriesMap[contractName] = factory as ContractFactoryStatic
-
-        // If alias exists, add alias entry too
-        if (factoryNameAliases[contractName]) {
-          const aliasName = factoryNameAliases[contractName]
-
-          if (factoriesMap[aliasName]) {
-            console.log(
-              `⚠️  Duplicate factory for alias "${aliasName}" derived from "${contractName}". Keeping the first occurrence.`,
-            )
-          } else {
-            factoriesMap[aliasName] = factory as ContractFactoryStatic
-          }
-        }
       } else if (typeof val === 'object' && val !== null) {
         recurse(val, currentPath)
       }
@@ -143,7 +126,7 @@ function collectFactoriesMap(obj: unknown): Record<string, ContractFactoryStatic
 /**
  * Gets alternative names for a contract to handle interface naming conventions
  * For any given value passed to it, returns `ContractName` and `IContractName`
- * Note that this function will apply toolshed overrides, this returns a more complete interface
+ * Note that this function will apply toolshed overrides if available as they are more complete interfaces
  * @param {string} contractName - The original contract name
  * @returns {string[]} Array of possible contract names including interface variants
  * @private
@@ -160,21 +143,18 @@ function getContractNameAlternatives(contractName: string): string[] {
     L2Curation: 'L2CurationToolshed',
     PaymentsEscrow: 'PaymentsEscrowToolshed',
     RewardsManager: 'RewardsManagerToolshed',
-    ServiceRegistry: 'ServiceRegistryToolshed',
     SubgraphService: 'SubgraphServiceToolshed',
+    ServiceRegistry: 'ServiceRegistryToolshed',
+    LegacyServiceRegistry: 'ServiceRegistryToolshed',
   }
 
+  // override with toolshed alternative if available
   if (nameOverrides[contractName]) {
     contractName = nameOverrides[contractName]
   }
 
   const alternatives: string[] = [contractName]
-
-  if (contractName.startsWith('I')) {
-    alternatives.push(contractName.replace('I', ''))
-  } else {
-    alternatives.push(`I${contractName}`)
-  }
+  alternatives.push(contractName.startsWith('I') ? contractName.replace('I', '') : `I${contractName}`)
 
   return alternatives
 }

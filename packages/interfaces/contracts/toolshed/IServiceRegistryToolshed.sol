@@ -4,6 +4,8 @@ pragma solidity ^0.7.6 || 0.8.27;
 import { IServiceRegistry } from "../contracts/discovery/IServiceRegistry.sol";
 
 interface IServiceRegistryToolshed is IServiceRegistry {
+    event ServiceRegistered(address indexed indexer, string url, string geohash);
+
     /**
      * @notice Gets the indexer registrationdetails
      * @dev Note that this storage getter actually returns a ISubgraphService.IndexerService struct, but ethers v6 is not
