@@ -21,6 +21,28 @@ sudo chmod -R 755 /home/vscode/.cache /home/vscode/.config /home/vscode/.local
 
 echo "User directories set up with proper permissions"
 
+# Install Solidity compiler (moved from Dockerfile since Python/pipx is now available)
+echo "Installing Solidity compiler..."
+pipx install solc-select
+pipx ensurepath
+solc-select install 0.8.27
+solc-select use 0.8.27
+
+# Upgrade npm to latest version for better compatibility and security
+echo "Upgrading npm to latest version..."
+npm install -g npm@latest
+
+npm install -g ethers@6.13.4 cloc @anthropic-ai/claude-code
+
+# Set up pnpm with correct version (matching package.json)
+echo "Setting up pnpm..."
+corepack enable
+corepack prepare pnpm@10.17.0 --activate
+
+# Verify pnpm is working
+echo "Verifying pnpm installation..."
+pnpm --version
+
 # Install project dependencies
 echo "Installing project dependencies..."
 if [ -f "$REPO_ROOT/package.json" ]; then
@@ -72,11 +94,18 @@ else
   echo "Shell customizations not found in PATH, skipping..."
 fi
 
-# Set up Git SSH signing
-if [ -f "$SCRIPT_DIR/setup-git-signing.sh" ]; then
-  "$SCRIPT_DIR/setup-git-signing.sh"
+# Set up basic Git configuration (user.name and user.email from environment)
+echo "Setting up basic Git configuration..."
+if [[ -n "${GIT_USER_NAME:-}" && -n "${GIT_USER_EMAIL:-}" ]]; then
+  echo "Setting Git user.name: $GIT_USER_NAME"
+  git config --global user.name "$GIT_USER_NAME"
+  echo "Setting Git user.email: $GIT_USER_EMAIL"
+  git config --global user.email "$GIT_USER_EMAIL"
+  echo "Git user configuration complete"
 else
-  echo "WARNING: setup-git-signing.sh not found, skipping Git SSH signing setup"
+  echo "GIT_USER_NAME and/or GIT_USER_EMAIL not set - skipping Git user configuration"
+  echo "You can set these manually with: git config --global user.name 'Your Name'"
+  echo "and: git config --global user.email 'your.email@example.com'"
 fi
 
 echo "Project-specific setup completed"

@@ -1,5 +1,4 @@
 {
-  "name": "graph contracts",
   "dockerComposeFile": ["docker-compose.yml"],
   "service": "dev-graph-contracts",
   "features": {
@@ -12,11 +11,16 @@
     "ghcr.io/devcontainers/features/node:1": {
       "version": "20"
     },
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
   },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/work/${localWorkspaceFolderBasename},type=bind,consistency=cached"
+  ],
   "postCreateCommand": ".devcontainer/project-setup.sh",
   "remoteUser": "vscode",
-  "workspaceFolder": "${localWorkspaceFolder}",
+  "workspaceFolder": "/work/${localWorkspaceFolderBasename}",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -28,14 +32,14 @@
         "shd101wyy.markdown-preview-enhanced",
         "bierner.markdown-preview-github-styles",
         "Gruntfuggly.todo-tree",
-        "ms-azuretools.vscode-docker",
         "donjayamanne.githistory",
         "eamodio.gitlens",
         "fill-labs.dependi",
         "streetsidesoftware.code-spell-checker",
         "Augment.vscode-augment",
         "NomicFoundation.hardhat-solidity",
-        "foundry-rs.foundry-vscode"
+        "foundry-rs.foundry-vscode",
+        "esbenp.prettier-vscode"
       ]
     }
   }
