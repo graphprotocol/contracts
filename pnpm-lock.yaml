@@ -507,9 +507,6 @@ importers:
       hardhat-contract-sizer:
         specifier: ^2.10.0
         version: 2.10.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.2))(typescript@5.9.2)(utf-8-validate@5.0.10))
-      hardhat-dependency-compiler:
-        specifier: ^1.2.1
-        version: 1.2.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.2))(typescript@5.9.2)(utf-8-validate@5.0.10))
       hardhat-gas-reporter:
         specifier: ^1.0.8
         version: 1.0.10(bufferutil@4.0.9)(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.2))(typescript@5.9.2)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
@@ -7247,12 +7244,6 @@ packages:
 
   hardhat-contract-sizer@2.10.1:
     resolution: {integrity: sha512-/PPQQbUMgW6ERzk8M0/DA8/v2TEM9xRRAnF9qKPNMYF6FX5DFWcnxBsQvtp8uBz+vy7rmLyV9Elti2wmmhgkbg==}
-    peerDependencies:
-      hardhat: ^2.0.0
-
-  hardhat-dependency-compiler@1.2.1:
-    resolution: {integrity: sha512-xG5iwbspTtxOEiP5UsPngEYQ1Hg+fjTjliapIjdTQmwGkCPofrsDhQDV2O/dopcYzcR68nTx2X8xTewYHgA2rQ==}
-    engines: {node: '>=14.14.0'}
     peerDependencies:
       hardhat: ^2.0.0
 
@@ -21859,10 +21850,6 @@ snapshots:
       cli-table3: 0.6.5
       hardhat: 2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.2))(typescript@5.9.2)(utf-8-validate@5.0.10)
       strip-ansi: 6.0.1
-
-  hardhat-dependency-compiler@1.2.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.2))(typescript@5.9.2)(utf-8-validate@5.0.10)):
-    dependencies:
-      hardhat: 2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.2))(typescript@5.9.2)(utf-8-validate@5.0.10)
 
   hardhat-deploy@0.11.45(bufferutil@4.0.9)(utf-8-validate@5.0.10):
     dependencies:

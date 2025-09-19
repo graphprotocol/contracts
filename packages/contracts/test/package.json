@@ -42,7 +42,6 @@
     "hardhat": "^2.24.0",
     "hardhat-abi-exporter": "^2.11.0",
     "hardhat-contract-sizer": "^2.10.0",
-    "hardhat-dependency-compiler": "^1.2.1",
     "hardhat-gas-reporter": "^1.0.8",
     "hardhat-secure-accounts": "0.0.6",
     "hardhat-storage-layout": "^0.1.7",
