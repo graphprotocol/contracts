@@ -49,6 +49,9 @@ deployments/hardhat/
 # Ignore solc bin output
 bin/
 
+# PNPM store (project-local)
+.pnpm-store/
+
 # Others
 .env
 .DS_Store
