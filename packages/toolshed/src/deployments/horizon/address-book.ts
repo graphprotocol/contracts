@@ -1,4 +1,4 @@
-import type { LegacyStaking } from '@graphprotocol/interfaces'
+import type { LegacyRewardsManager, LegacyStaking } from '@graphprotocol/interfaces'
 import { getInterface } from '@graphprotocol/interfaces'
 import { Provider, Signer } from 'ethers'
 import { Contract } from 'ethers'
@@ -33,6 +33,14 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
       contracts.LegacyStaking = (enableTxLogging
         ? wrapTransactionCalls(contract, 'LegacyStaking')
         : contract) as unknown as LegacyStaking
+    }
+
+    if (contracts.RewardsManager) {
+      // add LegacyRewardsManager alias using old ILegacyRewardsManager abi
+      const contract = new Contract(contracts.RewardsManager.target, getInterface('ILegacyRewardsManager'), signerOrProvider)
+      contracts.LegacyRewardsManager = (enableTxLogging
+        ? wrapTransactionCalls(contract, 'LegacyRewardsManager')
+        : contract) as unknown as LegacyRewardsManager
     }
 
     return contracts

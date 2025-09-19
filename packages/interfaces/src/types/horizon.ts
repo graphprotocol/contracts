@@ -12,6 +12,7 @@ import type {
   IRewardsManagerToolshed,
   IStaking,
   ISubgraphNFT,
+  ILegacyRewardsManager,
 } from '../../types'
 
 export {
@@ -28,4 +29,5 @@ export {
   IPaymentsEscrowToolshed as PaymentsEscrow,
   IRewardsManagerToolshed as RewardsManager,
   ISubgraphNFT as SubgraphNFT,
+  ILegacyRewardsManager as LegacyRewardsManager,
 }
