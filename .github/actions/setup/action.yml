@@ -21,7 +21,7 @@ runs:
         cache: 'pnpm'
     - name: Set up pnpm via Corepack
       shell: bash
-      run: corepack prepare pnpm@9.0.6 --activate
+      run: corepack prepare pnpm@10.17.0 --activate
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
