@@ -8,6 +8,7 @@ import type {
   L2Curation,
   L2GNS,
   L2GraphToken,
+  LegacyRewardsManager,
   LegacyStaking,
   PaymentsEscrow,
   RewardsManager,
@@ -61,6 +62,7 @@ export interface GraphHorizonContracts extends ContractList<GraphHorizonContract
   Curation: L2Curation
   GNS: L2GNS
   LegacyStaking: LegacyStaking
+  LegacyRewardsManager: LegacyRewardsManager
 }
 
 export type GraphHorizonContractName = (typeof GraphHorizonContractNameList)[number]
