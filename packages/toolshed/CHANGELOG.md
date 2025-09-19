@@ -1,5 +1,13 @@
 # @graphprotocol/toolshed
 
+## 0.6.16
+
+### Patch Changes
+
+- Add LegacyRewardsManager interface
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.3
+
 ## 0.6.15
 
 ### Patch Changes
