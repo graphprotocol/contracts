@@ -1,42 +1,27 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
 {
-  "name": "graph contracts",
-  "dockerComposeFile": ["docker-compose.yml"],
-  "service": "dev-graph-contracts",
-  "features": {
-    "ghcr.io/devcontainers/features/git:1": {
-      "configureGitHubCLI": true,
-      "gitCredentialHelper": "cache"
-    },
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/common-utils:2.5.3": {},
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
-    },
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-  },
-  "postCreateCommand": ".devcontainer/project-setup.sh",
-  "remoteUser": "vscode",
-  "workspaceFolder": "${localWorkspaceFolder}",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "rust-lang.rust-analyzer",
-        "tamasfe.even-better-toml",
-        "usernamehw.errorlens",
-        "yzhang.markdown-all-in-one",
-        "DavidAnson.vscode-markdownlint",
-        "shd101wyy.markdown-preview-enhanced",
-        "bierner.markdown-preview-github-styles",
-        "Gruntfuggly.todo-tree",
-        "ms-azuretools.vscode-docker",
-        "donjayamanne.githistory",
-        "eamodio.gitlens",
-        "fill-labs.dependi",
-        "streetsidesoftware.code-spell-checker",
-        "Augment.vscode-augment",
-        "NomicFoundation.hardhat-solidity",
-        "foundry-rs.foundry-vscode"
-      ]
-    }
-  }
+	"name": "Debian",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"nodeGypDependencies": true,
+			"version": "22",
+			"pnpmVersion": "latest",
+			"nvmVersion": "latest"
+		}
+	}
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
 }

@@ -93,3 +93,7 @@ tx-builder-*.json
 **/subgraph-service-localhost/
 **/subgraph-service-hardhat/
 !**/ignition/**/artifacts/
+
+# pnpm
+
+.pnpm-store
