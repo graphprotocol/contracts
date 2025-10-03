@@ -267,6 +267,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
      * @param unauthorizedDataService The address of the unauthorized data service
      */
     error RecurringCollectorDataServiceNotAuthorized(bytes16 agreementId, address unauthorizedDataService);
+
     /**
      * @notice Thrown when the data service is not authorized for the service provider
      * @param dataService The address of the unauthorized data service
@@ -331,7 +332,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorAgreementElapsedEndsAt(uint256 currentTimestamp, uint64 endsAt);
 
     /**
-     * @notice Thrown when accepting or upgrading an agreement with an elapsed endsAt
+     * @notice Thrown when accepting or upgrading an agreement with an invalid collection window
      * @param allowedMinCollectionWindow The allowed minimum collection window
      * @param minSecondsPerCollection The minimum seconds per collection
      * @param maxSecondsPerCollection The maximum seconds per collection
@@ -350,7 +351,7 @@ interface IRecurringCollector is IAuthorizable, IPaymentsCollector {
     error RecurringCollectorAgreementInvalidDuration(uint32 requiredMinDuration, uint256 invalidDuration);
 
     /**
-     * @notice Thrown when calling collect() with a zero collection seconds
+     * @notice Thrown when calling collect() with zero collection seconds
      * @param agreementId The agreement ID
      * @param currentTimestamp The current timestamp
      * @param lastCollectionAt The timestamp when the last collection was done
