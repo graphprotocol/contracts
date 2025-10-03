@@ -321,6 +321,39 @@ describe('L2GNS', () => {
         .emit(gns, 'SubgraphVersionUpdated')
         .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
     })
+
+    it('should succeed using L1 version (3-param) when deployment is NOT pre-curated', async function () {
+      // Use the 3-parameter version (inherited from GNS)
+      const tx = gns
+        .connect(me)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32)'
+        ](
+          subgraph.id,
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      await expect(tx)
+        .emit(gns, 'SubgraphVersionUpdated')
+        .withArgs(subgraph.id, newSubgraph1.subgraphDeploymentID, newSubgraph1.versionMetadata)
+    })
+
+    it('should revert using L1 version (3-param) when deployment IS pre-curated', async function () {
+      // Pre-curate the new deployment
+      await curation.connect(me).mint(newSubgraph1.subgraphDeploymentID, tokens1000, 0)
+
+      // Use the 3-parameter version (inherited from GNS) - should revert due to pre-curation check
+      const tx = gns
+        .connect(me)
+        [
+          'publishNewVersion(uint256,bytes32,bytes32)'
+        ](
+          subgraph.id,
+          newSubgraph1.subgraphDeploymentID,
+          newSubgraph1.versionMetadata,
+        )
+      await expect(tx).revertedWith('GNS: Owner cannot point to a subgraphID that has been pre-curated')
+    })
   })
 
   describe('receiving a subgraph from L1 (onTokenTransfer)', function () {
