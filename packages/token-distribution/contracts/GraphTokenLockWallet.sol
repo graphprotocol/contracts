@@ -35,7 +35,6 @@ contract GraphTokenLockWallet is GraphTokenLock {
     // -- State --
 
     IGraphTokenLockManager public manager;
-    uint256 public __DEPRECATED_usedAmount;
 
     // -- Events --
 
