@@ -9,6 +9,9 @@
       "address": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
       "proxy": "transparent",
       "proxyAdmin": "0x36dFE73C38e0340C8925BA6a68aE706b74340156"
+    },
+    "Controller": {
+      "address": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695"
     }
   }
 }
