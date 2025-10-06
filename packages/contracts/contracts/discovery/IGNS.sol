@@ -4,6 +4,8 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 /**
  * @title Interface for GNS
+ * @author Edge & Node
+ * @notice Interface for the Graph Name System (GNS) contract
  */
 interface IGNS {
     // -- Pool --
@@ -12,6 +14,13 @@ interface IGNS {
      * @dev The SubgraphData struct holds information about subgraphs
      * and their signal; both nSignal (i.e. name signal at the GNS level)
      * and vSignal (i.e. version signal at the Curation contract level)
+     * @param vSignal The token of the subgraph-deployment bonding curve
+     * @param nSignal The token of the subgraph bonding curve
+     * @param curatorNSignal Mapping of curator addresses to their name signal amounts
+     * @param subgraphDeploymentID The deployment ID this subgraph points to
+     * @param __DEPRECATED_reserveRatio Deprecated reserve ratio field
+     * @param disabled Whether the subgraph is disabled/deprecated
+     * @param withdrawableGRT Amount of GRT available for withdrawal after deprecation
      */
     struct SubgraphData {
         uint256 vSignal; // The token of the subgraph-deployment bonding curve
@@ -26,6 +35,8 @@ interface IGNS {
     /**
      * @dev The LegacySubgraphKey struct holds the account and sequence ID
      * used to generate subgraph IDs in legacy subgraphs.
+     * @param account The account that created the legacy subgraph
+     * @param accountSeqID The sequence ID for the account's subgraphs
      */
     struct LegacySubgraphKey {
         address account;
@@ -158,7 +169,9 @@ interface IGNS {
      * @notice Calculate subgraph signal to be returned for an amount of tokens.
      * @param _subgraphID Subgraph ID
      * @param _tokensIn Tokens being exchanged for subgraph signal
-     * @return Amount of subgraph signal and curation tax
+     * @return Amount of subgraph signal that can be bought
+     * @return Amount of version signal that can be bought
+     * @return Amount of curation tax
      */
     function tokensToNSignal(uint256 _subgraphID, uint256 _tokensIn) external view returns (uint256, uint256, uint256);
 
@@ -167,6 +180,7 @@ interface IGNS {
      * @param _subgraphID Subgraph ID
      * @param _nSignalIn Subgraph signal being exchanged for tokens
      * @return Amount of tokens returned for an amount of subgraph signal
+     * @return Amount of version signal returned
      */
     function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn) external view returns (uint256, uint256);
 

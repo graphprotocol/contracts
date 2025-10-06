@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
+// solhint-disable use-natspec
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 /// @title IOwnable
 /// @notice Interface for Ownable contracts
 interface IOwnable {

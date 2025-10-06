@@ -2,8 +2,12 @@
 
 pragma solidity ^0.7.3;
 
-import "./arbitrum/IInbox.sol";
-import "./arbitrum/AddressAliasHelper.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
+import { IInbox } from "./arbitrum/IInbox.sol";
+import { AddressAliasHelper } from "./arbitrum/AddressAliasHelper.sol";
+import { IBridge } from "./arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Inbox mock contract

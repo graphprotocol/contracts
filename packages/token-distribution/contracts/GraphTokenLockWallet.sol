@@ -3,12 +3,15 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec, gas-increment-by-one, gas-strict-inequalities, gas-small-strings
 
-import "./GraphTokenLock.sol";
-import "./IGraphTokenLockManager.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
+import { GraphTokenLock, MathUtils } from "./GraphTokenLock.sol";
+import { IGraphTokenLock } from "./IGraphTokenLock.sol";
+import { IGraphTokenLockManager } from "./IGraphTokenLockManager.sol";
 
 /**
  * @title GraphTokenLockWallet
@@ -55,7 +58,7 @@ contract GraphTokenLockWallet is GraphTokenLock {
         uint256 _periods,
         uint256 _releaseStartTime,
         uint256 _vestingCliffTime,
-        Revocability _revocable
+        IGraphTokenLock.Revocability _revocable
     ) external {
         _initialize(
             _owner,
@@ -130,7 +133,7 @@ contract GraphTokenLockWallet is GraphTokenLock {
      * @return Amount of tokens ready to be released
      */
     function releasableAmount() public view override returns (uint256) {
-        if (revocable == Revocability.Disabled) {
+        if (revocable == IGraphTokenLock.Revocability.Disabled) {
             return super.releasableAmount();
         }
 
@@ -146,7 +149,11 @@ contract GraphTokenLockWallet is GraphTokenLock {
 
         // Vesting cliff is activated and it has not passed means nothing is vested yet
         // so funds cannot be released
-        if (revocable == Revocability.Enabled && vestingCliffTime > 0 && currentTime() < vestingCliffTime) {
+        if (
+            revocable == IGraphTokenLock.Revocability.Enabled &&
+            vestingCliffTime > 0 &&
+            currentTime() < vestingCliffTime
+        ) {
             return 0;
         }
 
@@ -179,7 +186,7 @@ contract GraphTokenLockWallet is GraphTokenLock {
         // Tracked used tokens in the protocol
         // We do this check after balances were updated by the forwarded call
         // Check is only enforced for revocable contracts to save some gas
-        if (revocable == Revocability.Enabled) {
+        if (revocable == IGraphTokenLock.Revocability.Enabled) {
             // Track contract balance change
             uint256 newBalance = currentBalance();
             if (newBalance < oldBalance) {

@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable named-parameters-mapping
+// solhint-disable gas-strict-inequalities
+// solhint-disable function-max-lines
+
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
@@ -21,7 +26,8 @@ import { AttestationManager } from "./utilities/AttestationManager.sol";
 
 /**
  * @title DisputeManager
- * @notice Provides a way to permissionlessly create disputes for incorrect behavior in the Subgraph Service.
+ * @author Edge & Node
+ * @notice Provides a way to permissionlessly create disputes for incorrect behavior in the Subgraph Service
  *
  * There are two types of disputes that can be created: Query disputes and Indexing disputes.
  *
