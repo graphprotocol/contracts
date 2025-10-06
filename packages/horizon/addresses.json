@@ -1,1 +1,14 @@
-{}
+{
+  "421614": {
+    "GraphPayments": {
+      "address": "0x57E70eC8905E26341d40aF60Dca56cDBA8C166E5",
+      "proxy": "transparent",
+      "proxyAdmin": "0x2Bc9A9a48cf2C2F8d187C23bDEb62bC2eC045bF7"
+    },
+    "PaymentsEscrow": {
+      "address": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
+      "proxy": "transparent",
+      "proxyAdmin": "0x36dFE73C38e0340C8925BA6a68aE706b74340156"
+    }
+  }
+}
