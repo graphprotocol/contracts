@@ -1,1 +1,14 @@
-{}
+{
+  "421614": {
+    "SubgraphService": {
+      "address": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
+      "proxy": "transparent",
+      "proxyAdmin": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098"
+    },
+    "DisputeManager": {
+      "address": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
+      "proxy": "transparent",
+      "proxyAdmin": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527"
+    }
+  }
+}
