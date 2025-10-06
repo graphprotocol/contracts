@@ -2,8 +2,6 @@
 
 set -eo pipefail
 
-pnpm --filter @graphprotocol/contracts --filter @graphprotocol/sdk build
-
 echo {} > addresses-local.json
 
 DISABLE_SECURE_ACCOUNTS=true \

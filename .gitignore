@@ -9,8 +9,7 @@ core.*
 
 # Dependency directories
 node_modules/
-forge-std/
-**/lib/forge-std/
+.pnpm-store/
 
 # Yarn
 .yarn/*
@@ -41,6 +40,8 @@ types-v5/
 wagmi/
 types/
 deployments/hardhat/
+*.js.map
+*.d.ts.map
 
 # TypeScript incremental compilation cache
 **/tsconfig.tsbuildinfo
@@ -69,7 +70,6 @@ arbitrum-addresses-local.json
 addresses-fork.json
 addresses-hardhat.json
 addresses-local*.json
-addresses-local-network.json
 
 # Keys
 .keystore
@@ -78,7 +78,6 @@ addresses-local-network.json
 cache_forge
 forge-artifacts/
 out/
-packages/issuance/lib/forge-std/
 
 # Graph client
 .graphclient

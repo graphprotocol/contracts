@@ -71,8 +71,8 @@ export class NetworkFixture {
   constructor(public provider: providers.Provider) {}
 
   async load(deployer: SignerWithAddress, l2Deploy?: boolean): Promise<GraphNetworkContracts> {
-    // Use instrumented artifacts when running coverage tests
-    const artifactsDir = process.env.SOLIDITY_COVERAGE ? './artifacts' : undefined
+    // Use instrumented artifacts when running coverage tests, otherwise use local artifacts
+    const artifactsDir = process.env.SOLIDITY_COVERAGE ? './artifacts' : '../artifacts'
 
     const contracts = await deployGraphNetwork(
       'addresses-local.json',

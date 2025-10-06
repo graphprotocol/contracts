@@ -26,10 +26,10 @@ jobs:
         run: pnpm -r --sequential run build
 
       - name: Test all packages
-        run: pnpm -r --sequential run test
+        run: pnpm -r --sequential run test:self
 
       - name: Test with coverage
-        run: pnpm -r --sequential run test:coverage
+        run: pnpm -r --sequential run test:coverage:self
 
       - name: Find coverage files
         id: coverage_files
@@ -47,4 +47,4 @@ jobs:
           files: ${{ steps.coverage_files.outputs.files }}
           flags: unittests
           name: graphprotocol-contracts
-          fail_ci_if_error: true
+          fail_ci_if_error: false

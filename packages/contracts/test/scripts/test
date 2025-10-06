@@ -5,9 +5,7 @@ source $(pwd)/scripts/evm
 
 ### Setup EVM
 
-# Ensure we compiled sources and dependencies
-
-pnpm --filter @graphprotocol/contracts build
+# Ensure we compiled sources and dependencies (build should be done by caller)
 
 ### Cleanup
 function cleanup() {
