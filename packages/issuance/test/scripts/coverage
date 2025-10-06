@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Run coverage from the parent issuance directory where contracts are local
+cd ..
+npx hardhat coverage --config hardhat.coverage.config.ts --testfiles "test/tests/**/*.test.ts"

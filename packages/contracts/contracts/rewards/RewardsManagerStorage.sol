@@ -7,6 +7,7 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
+import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { Managed } from "../governance/Managed.sol";
@@ -74,4 +75,14 @@ contract RewardsManagerV4Storage is RewardsManagerV3Storage {
 contract RewardsManagerV5Storage is RewardsManagerV4Storage {
     /// @notice Address of the subgraph service
     IRewardsIssuer public subgraphService;
+}
+
+/**
+ * @title RewardsManagerV5Storage
+ * @author Edge & Node
+ * @notice Storage layout for RewardsManager V6
+ */
+contract RewardsManagerV6Storage is RewardsManagerV5Storage {
+    /// @notice Address of the rewards eligibility oracle contract
+    IRewardsEligibilityOracle public rewardsEligibilityOracle;
 }

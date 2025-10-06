@@ -7,15 +7,17 @@ pragma abicoder v2;
 // solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Managed } from "../governance/Managed.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 
-import { RewardsManagerV5Storage } from "./RewardsManagerStorage.sol";
+import { RewardsManagerV6Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
+import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -37,7 +39,7 @@ import { IRewardsIssuer } from "./IRewardsIssuer.sol";
  * until the actual takeRewards function is called.
  * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
-contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsManager {
     using SafeMath for uint256;
 
     /// @dev Fixed point scaling factor used for decimals in reward calculations
@@ -62,6 +64,14 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     event RewardsDenied(address indexed indexer, address indexed allocationID);
 
     /**
+     * @notice Emitted when rewards are denied to an indexer due to eligibility
+     * @param indexer Address of the indexer being denied rewards
+     * @param allocationID Address of the allocation being denied rewards
+     * @param amount Amount of rewards that would have been assigned
+     */
+    event RewardsDeniedDueToEligibility(address indexed indexer, address indexed allocationID, uint256 amount);
+
+    /**
      * @notice Emitted when a subgraph is denied for claiming rewards
      * @param subgraphDeploymentID Subgraph deployment ID being denied
      * @param sinceBlock Block number since when the subgraph is denied
@@ -74,6 +84,16 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
      * @param newSubgraphService New subgraph service address
      */
     event SubgraphServiceSet(address indexed oldSubgraphService, address indexed newSubgraphService);
+
+    /**
+     * @notice Emitted when the rewards eligibility oracle contract is set
+     * @param oldRewardsEligibilityOracle Previous rewards eligibility oracle address
+     * @param newRewardsEligibilityOracle New rewards eligibility oracle address
+     */
+    event RewardsEligibilityOracleSet(
+        address indexed oldRewardsEligibilityOracle,
+        address indexed newRewardsEligibilityOracle
+    );
 
     // -- Modifiers --
 
@@ -149,6 +169,28 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
         address oldSubgraphService = address(subgraphService);
         subgraphService = IRewardsIssuer(_subgraphService);
         emit SubgraphServiceSet(oldSubgraphService, _subgraphService);
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev Note that the rewards eligibility oracle can be set to the zero address to disable use of an oracle, in
+     * which case no indexers will be denied rewards due to eligibility.
+     */
+    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external override onlyGovernor {
+        if (address(rewardsEligibilityOracle) != newRewardsEligibilityOracle) {
+            // Check that the contract supports the IRewardsEligibilityOracle interface
+            // Allow zero address to disable the oracle
+            if (newRewardsEligibilityOracle != address(0)) {
+                require(
+                    IERC165(newRewardsEligibilityOracle).supportsInterface(type(IRewardsEligibilityOracle).interfaceId),
+                    "Contract does not support IRewardsEligibilityOracle interface"
+                );
+            }
+
+            address oldRewardsEligibilityOracle = address(rewardsEligibilityOracle);
+            rewardsEligibilityOracle = IRewardsEligibilityOracle(newRewardsEligibilityOracle);
+            emit RewardsEligibilityOracleSet(oldRewardsEligibilityOracle, newRewardsEligibilityOracle);
+        }
     }
 
     // -- Denylist --
@@ -404,6 +446,13 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
             rewards = accRewardsPending.add(
                 _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
             );
+
+            // Do not reward if indexer is not eligible based on rewards eligibility
+            if (address(rewardsEligibilityOracle) != address(0) && !rewardsEligibilityOracle.isEligible(indexer)) {
+                emit RewardsDeniedDueToEligibility(indexer, _allocationID, rewards);
+                return 0;
+            }
+
             if (rewards > 0) {
                 // Mint directly to rewards issuer for the reward amount
                 // The rewards issuer contract will do bookkeeping of the reward and

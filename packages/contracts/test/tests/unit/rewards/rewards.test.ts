@@ -190,7 +190,7 @@ describe('Rewards', () => {
       })
     })
 
-    describe.skip('rewards eligibility oracle', function () {
+    describe('rewards eligibility oracle', function () {
       it('should reject setRewardsEligibilityOracle if unauthorized', async function () {
         const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
           'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
@@ -893,7 +893,7 @@ describe('Rewards', () => {
         await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
       })
 
-      it.skip('should deny rewards due to rewards eligibility oracle', async function () {
+      it('should deny rewards due to rewards eligibility oracle', async function () {
         // Setup rewards eligibility oracle that denies rewards for indexer1
         const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
           'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
@@ -923,7 +923,7 @@ describe('Rewards', () => {
           .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
       })
 
-      it.skip('should allow rewards when rewards eligibility oracle approves', async function () {
+      it('should allow rewards when rewards eligibility oracle approves', async function () {
         // Setup rewards eligibility oracle that allows rewards for indexer1
         const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
           'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
