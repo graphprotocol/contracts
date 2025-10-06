@@ -758,7 +758,7 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0(319f36fa853933d46d380da2276493de)
       '@nomicfoundation/hardhat-verify':
-        specifier: ^2.0.10
+        specifier: ^2.1.1
         version: 2.1.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.2))(typescript@5.9.2)(utf-8-validate@5.0.10))
       '@nomicfoundation/ignition-core':
         specifier: ^0.15.9
