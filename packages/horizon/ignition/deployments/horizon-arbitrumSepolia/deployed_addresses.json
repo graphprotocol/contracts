@@ -6,5 +6,6 @@
   "HorizonProxiesDeployer#GraphPayments_ProxyWithABI": "0x57E70eC8905E26341d40aF60Dca56cDBA8C166E5",
   "HorizonProxiesDeployer#PaymentsEscrow_ProxyWithABI": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
   "HorizonProxiesDeployer#ProxyAdmin_GraphPayments": "0x2Bc9A9a48cf2C2F8d187C23bDEb62bC2eC045bF7",
-  "HorizonProxiesDeployer#ProxyAdmin_PaymentsEscrow": "0x36dFE73C38e0340C8925BA6a68aE706b74340156"
+  "HorizonProxiesDeployer#ProxyAdmin_PaymentsEscrow": "0x36dFE73C38e0340C8925BA6a68aE706b74340156",
+  "ControllerDeployer#Controller": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695"
 }

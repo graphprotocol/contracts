@@ -20,11 +20,11 @@
     "subgraphNFTAddress": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A",
 
     // Must be set for step 2 of the migration
-    "graphPaymentsAddress": "",
-    "paymentsEscrowAddress": "",
+    "graphPaymentsAddress": "0x57E70eC8905E26341d40aF60Dca56cDBA8C166E5",
+    "paymentsEscrowAddress": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
 
     // Must be set for step 3 and 4 of the migration
-    "subgraphServiceAddress": "",
+    "subgraphServiceAddress": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
 
     // Must be set for step 4 of the migration
     "horizonStakingImplementationAddress": "",
