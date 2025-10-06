@@ -515,9 +515,9 @@ contract DisputeManager is DisputeManagerV1Storage, GraphUpgradeable, IDisputeMa
         address _fisherman,
         uint256 _deposit,
         address _allocationID
-    ) private returns (bytes32 disputeID) {
+    ) private returns (bytes32) {
         // Create a disputeID
-        disputeID = keccak256(abi.encodePacked(_allocationID));
+        bytes32 disputeID = keccak256(abi.encodePacked(_allocationID));
 
         // Only one dispute for an allocationID at a time
         require(!isDisputeCreated(disputeID), "Dispute already created");
