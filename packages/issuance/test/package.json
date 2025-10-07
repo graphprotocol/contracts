@@ -49,7 +49,7 @@
     "generate:interfaces": "node scripts/generateInterfaceIds.js --silent",
     "clean": "rm -rf build",
     "test": "pnpm build && pnpm test:self",
-    "test:self": "hardhat test tests/*.test.ts tests/**/*.test.ts",
+    "test:self": "cd .. && hardhat test test/tests/*.test.ts test/tests/**/*.test.ts",
     "test:coverage": "pnpm build && pnpm test:coverage:self",
     "test:coverage:self": "scripts/coverage",
     "lint": "pnpm lint:ts; pnpm lint:json",
