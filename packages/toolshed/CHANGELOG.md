@@ -1,5 +1,24 @@
 # @graphprotocol/toolshed
 
+## 1.0.1
+
+### Patch Changes
+
+- Fix L2Curation implementation address in subgraph service address book.
+- Updated dependencies
+  - @graphprotocol/address-book@1.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- Deploy horizon to testnet
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/address-book@1.0.0
+
 ## 0.6.16
 
 ### Patch Changes

@@ -56,8 +56,9 @@ const networkConfigs: NetworkConfig[] = [
   },
 ]
 
+const DEFAULT_MNEMONIC = 'test test test test test test test test test test test junk'
 function getAccountMnemonic() {
-  return process.env.MNEMONIC || ''
+  return process.env.MNEMONIC || DEFAULT_MNEMONIC
 }
 
 function getDefaultProviderURL(network: string) {

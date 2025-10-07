@@ -37,11 +37,12 @@ task('update-auth-functions-horizon', 'Update authorized functions for Horizon u
     const subgraphServiceFunctionsToAdd = ['setPaymentsDestination(address)']
 
     // Functions to REMOVE for old Staking contract
-    const functionsToRemove = [
-      'setDelegationParameters(uint32,uint32,uint32)',
-      'setOperator(address,bool)',
-      'setRewardsDestination(address)',
-    ]
+    // const functionsToRemove = [
+    //   'setDelegationParameters(uint32,uint32,uint32)',
+    //   'setOperator(address,bool)',
+    //   'setRewardsDestination(address)',
+    // ]
+    const functionsToRemove: Array<string> = []
 
     logger.info('\n=== Functions to be ADDED ===')
     logger.info('For HorizonStaking:')

@@ -23,7 +23,7 @@ type GraphRuntimeEnvironmentOptions = {
 }
 
 interface EtherscanConfig {
-  apiKey: string | Record<string, string>
+  apiKey: string
   customChains: {
     network: string
     chainId: number
@@ -57,11 +57,7 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
 }
 
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
-  apiKey: {
-    ...(vars.has('ARBISCAN_API_KEY') && {
-      arbitrumSepolia: vars.get('ARBISCAN_API_KEY'),
-    }),
-  },
+  apiKey: vars.get('ETHERSCAN_API_KEY'),
 }
 
 // In general:

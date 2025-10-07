@@ -1,0 +1,456 @@
+{
+  "id": "d2c890c7c513627af1e9d08406395053",
+  "_format": "hh-sol-build-info-1",
+  "solcVersion": "0.7.6",
+  "solcLongVersion": "0.7.6+commit.7338295f",
+  "input": {
+    "language": "Solidity",
+    "sources": {
+      "contracts/tests/arbitrum/ArbSysMock.sol": {
+        "content": "// SPDX-License-Identifier: GPL-2.0-or-later\n\npragma solidity ^0.7.6;\n\n/**\n * @title ArbSys Mock Contract\n * @dev This is a mock implementation of the ArbSys precompiled contract used in Arbitrum\n * It's used for testing the L2GraphTokenGateway contract\n */\ncontract ArbSysMock {\n    event L2ToL1Tx(address indexed from, address indexed to, uint256 indexed id, bytes data);\n\n    /**\n     * @notice Send a transaction to L1\n     * @param destination The address on L1 to send the transaction to\n     * @param calldataForL1 The calldata for the transaction\n     * @return A unique identifier for this L2-to-L1 transaction\n     */\n    function sendTxToL1(address destination, bytes calldata calldataForL1) external returns (uint256) {\n        uint256 id = 1; // Always return 1 for testing\n        emit L2ToL1Tx(msg.sender, destination, id, calldataForL1);\n        return id;\n    }\n}\n"
+      }
+    },
+    "settings": {
+      "optimizer": { "enabled": true, "runs": 200 },
+      "outputSelection": {
+        "*": { "*": ["abi", "evm.bytecode", "evm.deployedBytecode", "evm.methodIdentifiers", "metadata"], "": ["ast"] }
+      }
+    }
+  },
+  "output": {
+    "sources": {
+      "contracts/tests/arbitrum/ArbSysMock.sol": {
+        "ast": {
+          "absolutePath": "contracts/tests/arbitrum/ArbSysMock.sol",
+          "exportedSymbols": { "ArbSysMock": [38] },
+          "id": 39,
+          "license": "GPL-2.0-or-later",
+          "nodeType": "SourceUnit",
+          "nodes": [
+            { "id": 1, "literals": ["solidity", "^", "0.7", ".6"], "nodeType": "PragmaDirective", "src": "46:23:0" },
+            {
+              "abstract": false,
+              "baseContracts": [],
+              "contractDependencies": [],
+              "contractKind": "contract",
+              "documentation": {
+                "id": 2,
+                "nodeType": "StructuredDocumentation",
+                "src": "71:186:0",
+                "text": " @title ArbSys Mock Contract\n @dev This is a mock implementation of the ArbSys precompiled contract used in Arbitrum\n It's used for testing the L2GraphTokenGateway contract"
+              },
+              "fullyImplemented": true,
+              "id": 38,
+              "linearizedBaseContracts": [38],
+              "name": "ArbSysMock",
+              "nodeType": "ContractDefinition",
+              "nodes": [
+                {
+                  "anonymous": false,
+                  "id": 12,
+                  "name": "L2ToL1Tx",
+                  "nodeType": "EventDefinition",
+                  "parameters": {
+                    "id": 11,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 4,
+                        "indexed": true,
+                        "mutability": "mutable",
+                        "name": "from",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 12,
+                        "src": "299:20:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": { "typeIdentifier": "t_address", "typeString": "address" },
+                        "typeName": {
+                          "id": 3,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "299:7:0",
+                          "stateMutability": "nonpayable",
+                          "typeDescriptions": { "typeIdentifier": "t_address", "typeString": "address" }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 6,
+                        "indexed": true,
+                        "mutability": "mutable",
+                        "name": "to",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 12,
+                        "src": "321:18:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": { "typeIdentifier": "t_address", "typeString": "address" },
+                        "typeName": {
+                          "id": 5,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "321:7:0",
+                          "stateMutability": "nonpayable",
+                          "typeDescriptions": { "typeIdentifier": "t_address", "typeString": "address" }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 8,
+                        "indexed": true,
+                        "mutability": "mutable",
+                        "name": "id",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 12,
+                        "src": "341:18:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" },
+                        "typeName": {
+                          "id": 7,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "341:7:0",
+                          "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 10,
+                        "indexed": false,
+                        "mutability": "mutable",
+                        "name": "data",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 12,
+                        "src": "361:10:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": { "typeIdentifier": "t_bytes_memory_ptr", "typeString": "bytes" },
+                        "typeName": {
+                          "id": 9,
+                          "name": "bytes",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "361:5:0",
+                          "typeDescriptions": { "typeIdentifier": "t_bytes_storage_ptr", "typeString": "bytes" }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "298:74:0"
+                  },
+                  "src": "284:89:0"
+                },
+                {
+                  "body": {
+                    "id": 36,
+                    "nodeType": "Block",
+                    "src": "730:148:0",
+                    "statements": [
+                      {
+                        "assignments": [23],
+                        "declarations": [
+                          {
+                            "constant": false,
+                            "id": 23,
+                            "mutability": "mutable",
+                            "name": "id",
+                            "nodeType": "VariableDeclaration",
+                            "scope": 36,
+                            "src": "740:10:0",
+                            "stateVariable": false,
+                            "storageLocation": "default",
+                            "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" },
+                            "typeName": {
+                              "id": 22,
+                              "name": "uint256",
+                              "nodeType": "ElementaryTypeName",
+                              "src": "740:7:0",
+                              "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" }
+                            },
+                            "visibility": "internal"
+                          }
+                        ],
+                        "id": 25,
+                        "initialValue": {
+                          "hexValue": "31",
+                          "id": 24,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "kind": "number",
+                          "lValueRequested": false,
+                          "nodeType": "Literal",
+                          "src": "753:1:0",
+                          "typeDescriptions": { "typeIdentifier": "t_rational_1_by_1", "typeString": "int_const 1" },
+                          "value": "1"
+                        },
+                        "nodeType": "VariableDeclarationStatement",
+                        "src": "740:14:0"
+                      },
+                      {
+                        "eventCall": {
+                          "arguments": [
+                            {
+                              "expression": {
+                                "id": 27,
+                                "name": "msg",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": -15,
+                                "src": "809:3:0",
+                                "typeDescriptions": { "typeIdentifier": "t_magic_message", "typeString": "msg" }
+                              },
+                              "id": 28,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "memberName": "sender",
+                              "nodeType": "MemberAccess",
+                              "src": "809:10:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_address_payable",
+                                "typeString": "address payable"
+                              }
+                            },
+                            {
+                              "id": 29,
+                              "name": "destination",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 15,
+                              "src": "821:11:0",
+                              "typeDescriptions": { "typeIdentifier": "t_address", "typeString": "address" }
+                            },
+                            {
+                              "id": 30,
+                              "name": "id",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 23,
+                              "src": "834:2:0",
+                              "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" }
+                            },
+                            {
+                              "id": 31,
+                              "name": "calldataForL1",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 17,
+                              "src": "838:13:0",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_bytes_calldata_ptr",
+                                "typeString": "bytes calldata"
+                              }
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              { "typeIdentifier": "t_address_payable", "typeString": "address payable" },
+                              { "typeIdentifier": "t_address", "typeString": "address" },
+                              { "typeIdentifier": "t_uint256", "typeString": "uint256" },
+                              { "typeIdentifier": "t_bytes_calldata_ptr", "typeString": "bytes calldata" }
+                            ],
+                            "id": 26,
+                            "name": "L2ToL1Tx",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 12,
+                            "src": "800:8:0",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_event_nonpayable$_t_address_$_t_address_$_t_uint256_$_t_bytes_memory_ptr_$returns$__$",
+                              "typeString": "function (address,address,uint256,bytes memory)"
+                            }
+                          },
+                          "id": 32,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "800:52:0",
+                          "tryCall": false,
+                          "typeDescriptions": { "typeIdentifier": "t_tuple$__$", "typeString": "tuple()" }
+                        },
+                        "id": 33,
+                        "nodeType": "EmitStatement",
+                        "src": "795:57:0"
+                      },
+                      {
+                        "expression": {
+                          "id": 34,
+                          "name": "id",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 23,
+                          "src": "869:2:0",
+                          "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" }
+                        },
+                        "functionReturnParameters": 21,
+                        "id": 35,
+                        "nodeType": "Return",
+                        "src": "862:9:0"
+                      }
+                    ]
+                  },
+                  "documentation": {
+                    "id": 13,
+                    "nodeType": "StructuredDocumentation",
+                    "src": "379:248:0",
+                    "text": " @notice Send a transaction to L1\n @param destination The address on L1 to send the transaction to\n @param calldataForL1 The calldata for the transaction\n @return A unique identifier for this L2-to-L1 transaction"
+                  },
+                  "functionSelector": "928c169a",
+                  "id": 37,
+                  "implemented": true,
+                  "kind": "function",
+                  "modifiers": [],
+                  "name": "sendTxToL1",
+                  "nodeType": "FunctionDefinition",
+                  "parameters": {
+                    "id": 18,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 15,
+                        "mutability": "mutable",
+                        "name": "destination",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 37,
+                        "src": "652:19:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": { "typeIdentifier": "t_address", "typeString": "address" },
+                        "typeName": {
+                          "id": 14,
+                          "name": "address",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "652:7:0",
+                          "stateMutability": "nonpayable",
+                          "typeDescriptions": { "typeIdentifier": "t_address", "typeString": "address" }
+                        },
+                        "visibility": "internal"
+                      },
+                      {
+                        "constant": false,
+                        "id": 17,
+                        "mutability": "mutable",
+                        "name": "calldataForL1",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 37,
+                        "src": "673:28:0",
+                        "stateVariable": false,
+                        "storageLocation": "calldata",
+                        "typeDescriptions": { "typeIdentifier": "t_bytes_calldata_ptr", "typeString": "bytes" },
+                        "typeName": {
+                          "id": 16,
+                          "name": "bytes",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "673:5:0",
+                          "typeDescriptions": { "typeIdentifier": "t_bytes_storage_ptr", "typeString": "bytes" }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "651:51:0"
+                  },
+                  "returnParameters": {
+                    "id": 21,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                      {
+                        "constant": false,
+                        "id": 20,
+                        "mutability": "mutable",
+                        "name": "",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 37,
+                        "src": "721:7:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" },
+                        "typeName": {
+                          "id": 19,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "721:7:0",
+                          "typeDescriptions": { "typeIdentifier": "t_uint256", "typeString": "uint256" }
+                        },
+                        "visibility": "internal"
+                      }
+                    ],
+                    "src": "720:9:0"
+                  },
+                  "scope": 38,
+                  "src": "632:246:0",
+                  "stateMutability": "nonpayable",
+                  "virtual": false,
+                  "visibility": "external"
+                }
+              ],
+              "scope": 39,
+              "src": "258:622:0"
+            }
+          ],
+          "src": "46:835:0"
+        },
+        "id": 0
+      }
+    },
+    "contracts": {
+      "contracts/tests/arbitrum/ArbSysMock.sol": {
+        "ArbSysMock": {
+          "abi": [
+            {
+              "anonymous": false,
+              "inputs": [
+                { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
+                { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
+                { "indexed": true, "internalType": "uint256", "name": "id", "type": "uint256" },
+                { "indexed": false, "internalType": "bytes", "name": "data", "type": "bytes" }
+              ],
+              "name": "L2ToL1Tx",
+              "type": "event"
+            },
+            {
+              "inputs": [
+                { "internalType": "address", "name": "destination", "type": "address" },
+                { "internalType": "bytes", "name": "calldataForL1", "type": "bytes" }
+              ],
+              "name": "sendTxToL1",
+              "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            }
+          ],
+          "evm": {
+            "bytecode": {
+              "generatedSources": [],
+              "linkReferences": {},
+              "object": "608060405234801561001057600080fd5b5061017c806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063928c169a14610030575b600080fd5b6100b06004803603604081101561004657600080fd5b6001600160a01b03823516919081019060408101602082013564010000000081111561007157600080fd5b82018360208201111561008357600080fd5b803590602001918460018302840111640100000000831117156100a557600080fd5b5090925090506100c2565b60408051918252519081900360200190f35b6000806001905080856001600160a01b0316336001600160a01b03167ff72ab6922d1f99274ba44fd3c0b22c8c3a9526235a962f52ed197f0795fd8677878760405180806020018281038252848482818152602001925080828437600083820152604051601f909101601f19169092018290039550909350505050a494935050505056fea2646970667358221220728bdf67e8e4a1b14e96eec7c7396b88b8465d9d616aa43bf50b282d39fc7fb864736f6c63430007060033",
+              "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH2 0x17C DUP1 PUSH2 0x20 PUSH1 0x0 CODECOPY PUSH1 0x0 RETURN INVALID PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH2 0x2B JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0x928C169A EQ PUSH2 0x30 JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH2 0xB0 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x40 DUP2 LT ISZERO PUSH2 0x46 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB DUP3 CALLDATALOAD AND SWAP2 SWAP1 DUP2 ADD SWAP1 PUSH1 0x40 DUP2 ADD PUSH1 0x20 DUP3 ADD CALLDATALOAD PUSH5 0x100000000 DUP2 GT ISZERO PUSH2 0x71 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 ADD DUP4 PUSH1 0x20 DUP3 ADD GT ISZERO PUSH2 0x83 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP2 DUP5 PUSH1 0x1 DUP4 MUL DUP5 ADD GT PUSH5 0x100000000 DUP4 GT OR ISZERO PUSH2 0xA5 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP SWAP1 SWAP3 POP SWAP1 POP PUSH2 0xC2 JUMP JUMPDEST PUSH1 0x40 DUP1 MLOAD SWAP2 DUP3 MSTORE MLOAD SWAP1 DUP2 SWAP1 SUB PUSH1 0x20 ADD SWAP1 RETURN JUMPDEST PUSH1 0x0 DUP1 PUSH1 0x1 SWAP1 POP DUP1 DUP6 PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB AND CALLER PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB AND PUSH32 0xF72AB6922D1F99274BA44FD3C0B22C8C3A9526235A962F52ED197F0795FD8677 DUP8 DUP8 PUSH1 0x40 MLOAD DUP1 DUP1 PUSH1 0x20 ADD DUP3 DUP2 SUB DUP3 MSTORE DUP5 DUP5 DUP3 DUP2 DUP2 MSTORE PUSH1 0x20 ADD SWAP3 POP DUP1 DUP3 DUP5 CALLDATACOPY PUSH1 0x0 DUP4 DUP3 ADD MSTORE PUSH1 0x40 MLOAD PUSH1 0x1F SWAP1 SWAP2 ADD PUSH1 0x1F NOT AND SWAP1 SWAP3 ADD DUP3 SWAP1 SUB SWAP6 POP SWAP1 SWAP4 POP POP POP POP LOG4 SWAP5 SWAP4 POP POP POP POP JUMP INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 PUSH19 0x8BDF67E8E4A1B14E96EEC7C7396B88B8465D9D PUSH2 0x6AA4 EXTCODESIZE CREATE2 SIGNEXTEND 0x28 0x2D CODECOPY 0xFC PUSH32 0xB864736F6C634300070600330000000000000000000000000000000000000000 ",
+              "sourceMap": "258:622:0:-:0;;;;;;;;;;;;;;;;;;;"
+            },
+            "deployedBytecode": {
+              "generatedSources": [],
+              "immutableReferences": {},
+              "linkReferences": {},
+              "object": "608060405234801561001057600080fd5b506004361061002b5760003560e01c8063928c169a14610030575b600080fd5b6100b06004803603604081101561004657600080fd5b6001600160a01b03823516919081019060408101602082013564010000000081111561007157600080fd5b82018360208201111561008357600080fd5b803590602001918460018302840111640100000000831117156100a557600080fd5b5090925090506100c2565b60408051918252519081900360200190f35b6000806001905080856001600160a01b0316336001600160a01b03167ff72ab6922d1f99274ba44fd3c0b22c8c3a9526235a962f52ed197f0795fd8677878760405180806020018281038252848482818152602001925080828437600083820152604051601f909101601f19169092018290039550909350505050a494935050505056fea2646970667358221220728bdf67e8e4a1b14e96eec7c7396b88b8465d9d616aa43bf50b282d39fc7fb864736f6c63430007060033",
+              "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH2 0x10 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH2 0x2B JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0x928C169A EQ PUSH2 0x30 JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH2 0xB0 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x40 DUP2 LT ISZERO PUSH2 0x46 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB DUP3 CALLDATALOAD AND SWAP2 SWAP1 DUP2 ADD SWAP1 PUSH1 0x40 DUP2 ADD PUSH1 0x20 DUP3 ADD CALLDATALOAD PUSH5 0x100000000 DUP2 GT ISZERO PUSH2 0x71 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP3 ADD DUP4 PUSH1 0x20 DUP3 ADD GT ISZERO PUSH2 0x83 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP2 DUP5 PUSH1 0x1 DUP4 MUL DUP5 ADD GT PUSH5 0x100000000 DUP4 GT OR ISZERO PUSH2 0xA5 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP SWAP1 SWAP3 POP SWAP1 POP PUSH2 0xC2 JUMP JUMPDEST PUSH1 0x40 DUP1 MLOAD SWAP2 DUP3 MSTORE MLOAD SWAP1 DUP2 SWAP1 SUB PUSH1 0x20 ADD SWAP1 RETURN JUMPDEST PUSH1 0x0 DUP1 PUSH1 0x1 SWAP1 POP DUP1 DUP6 PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB AND CALLER PUSH1 0x1 PUSH1 0x1 PUSH1 0xA0 SHL SUB AND PUSH32 0xF72AB6922D1F99274BA44FD3C0B22C8C3A9526235A962F52ED197F0795FD8677 DUP8 DUP8 PUSH1 0x40 MLOAD DUP1 DUP1 PUSH1 0x20 ADD DUP3 DUP2 SUB DUP3 MSTORE DUP5 DUP5 DUP3 DUP2 DUP2 MSTORE PUSH1 0x20 ADD SWAP3 POP DUP1 DUP3 DUP5 CALLDATACOPY PUSH1 0x0 DUP4 DUP3 ADD MSTORE PUSH1 0x40 MLOAD PUSH1 0x1F SWAP1 SWAP2 ADD PUSH1 0x1F NOT AND SWAP1 SWAP3 ADD DUP3 SWAP1 SUB SWAP6 POP SWAP1 SWAP4 POP POP POP POP LOG4 SWAP5 SWAP4 POP POP POP POP JUMP INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 PUSH19 0x8BDF67E8E4A1B14E96EEC7C7396B88B8465D9D PUSH2 0x6AA4 EXTCODESIZE CREATE2 SIGNEXTEND 0x28 0x2D CODECOPY 0xFC PUSH32 0xB864736F6C634300070600330000000000000000000000000000000000000000 ",
+              "sourceMap": "258:622:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;632:246;;;;;;;;;;;;;;;;-1:-1:-1;;;;;632:246:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;632:246:0;;-1:-1:-1;632:246:0;-1:-1:-1;632:246:0;:::i;:::-;;;;;;;;;;;;;;;;;721:7;740:10;753:1;740:14;;834:2;821:11;-1:-1:-1;;;;;800:52:0;809:10;-1:-1:-1;;;;;800:52:0;;838:13;;800:52;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;800:52:0;;;;;;;;-1:-1:-1;800:52:0;;-1:-1:-1;;;;800:52:0;869:2;632:246;-1:-1:-1;;;;632:246:0:o"
+            },
+            "methodIdentifiers": { "sendTxToL1(address,bytes)": "928c169a" }
+          },
+          "metadata": "{\"compiler\":{\"version\":\"0.7.6+commit.7338295f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"L2ToL1Tx\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"destination\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"calldataForL1\",\"type\":\"bytes\"}],\"name\":\"sendTxToL1\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"This is a mock implementation of the ArbSys precompiled contract used in Arbitrum It's used for testing the L2GraphTokenGateway contract\",\"kind\":\"dev\",\"methods\":{\"sendTxToL1(address,bytes)\":{\"params\":{\"calldataForL1\":\"The calldata for the transaction\",\"destination\":\"The address on L1 to send the transaction to\"},\"returns\":{\"_0\":\"A unique identifier for this L2-to-L1 transaction\"}}},\"title\":\"ArbSys Mock Contract\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"sendTxToL1(address,bytes)\":{\"notice\":\"Send a transaction to L1\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/tests/arbitrum/ArbSysMock.sol\":\"ArbSysMock\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/tests/arbitrum/ArbSysMock.sol\":{\"keccak256\":\"0xb606740ebcec696c3e952c7ad1d568645e06850928a448c7a07275e024dbb330\",\"license\":\"GPL-2.0-or-later\",\"urls\":[\"bzz-raw://a1370dcc26108aee8090b27383e02632fa6c217de4f2b9d50d1f4ccbd5bc80b9\",\"dweb:/ipfs/QmP5yLuFMcGYVL4znG6CDyX4eRJgq3Vq88D4JsRzDi1q6J\"]}},\"version\":1}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: ./flatten-verify contracts/payments/GraphPayments.sol
+
+SRC="$1"
+OUT_DIR="build/flattened"
+OUT_BASE="$(basename "$SRC" .sol)"
+OUT_FLAT="${OUT_DIR}/${OUT_BASE}.flattened.sol"
+OUT_CLEAN="${OUT_DIR}/${OUT_BASE}.for-verify.sol"
+
+mkdir -p "$OUT_DIR"
+
+echo "🔹 Flattening $SRC → $OUT_FLAT"
+npx hardhat flatten "$SRC" > "$OUT_FLAT"
+
+echo "🔹 Cleaning SPDX & pragma duplicates → $OUT_CLEAN"
+awk 'BEGIN{spdx=0;pragma=0}
+  /^\/\/ SPDX-License-Identifier:/ { if (spdx++) next }
+  /^pragma solidity/               { if (pragma++) next }
+  { print }' "$OUT_FLAT" > "$OUT_CLEAN"
+
+echo "✅ Done."
+echo "Flattened file: $OUT_FLAT"
+echo "Cleaned verify file: $OUT_CLEAN"

@@ -86,5 +86,5 @@ export const MigrateHorizonProxiesGovernorModule = buildModule('HorizonProxiesGo
     { id: 'setContractProxy_PaymentsEscrow' },
   )
 
-  return {}
+  return { Controller }
 })
