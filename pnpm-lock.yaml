@@ -13864,7 +13864,7 @@ snapshots:
 
   '@ethersproject/abi@5.6.0':
     dependencies:
-      '@ethersproject/address': 5.6.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.6.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
@@ -14058,7 +14058,7 @@ snapshots:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.6.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.6.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
@@ -14071,7 +14071,7 @@ snapshots:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.7.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.7.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.7.0
@@ -14116,7 +14116,7 @@ snapshots:
   '@ethersproject/hash@5.6.0':
     dependencies:
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.6.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.6.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/keccak256': 5.6.0
@@ -14127,7 +14127,7 @@ snapshots:
   '@ethersproject/hash@5.7.0':
     dependencies:
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.7.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/base64': 5.7.0
       '@ethersproject/bignumber': 5.7.0
       '@ethersproject/bytes': 5.8.0
@@ -14196,7 +14196,7 @@ snapshots:
   '@ethersproject/json-wallets@5.6.0':
     dependencies:
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.6.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hdnode': 5.6.0
       '@ethersproject/keccak256': 5.6.0
@@ -14212,7 +14212,7 @@ snapshots:
   '@ethersproject/json-wallets@5.7.0':
     dependencies:
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.7.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hdnode': 5.7.0
       '@ethersproject/keccak256': 5.7.0
@@ -14309,7 +14309,7 @@ snapshots:
     dependencies:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.6.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/basex': 5.6.0
       '@ethersproject/bignumber': 5.6.0
       '@ethersproject/bytes': 5.8.0
@@ -14334,7 +14334,7 @@ snapshots:
     dependencies:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.7.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/base64': 5.7.0
       '@ethersproject/basex': 5.7.0
       '@ethersproject/bignumber': 5.7.0
@@ -14530,7 +14530,7 @@ snapshots:
 
   '@ethersproject/transactions@5.6.0':
     dependencies:
-      '@ethersproject/address': 5.6.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.6.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
@@ -14542,7 +14542,7 @@ snapshots:
 
   '@ethersproject/transactions@5.7.0':
     dependencies:
-      '@ethersproject/address': 5.7.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.7.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.7.0
@@ -14586,7 +14586,7 @@ snapshots:
     dependencies:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.6.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.6.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hash': 5.6.0
@@ -14604,7 +14604,7 @@ snapshots:
     dependencies:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
-      '@ethersproject/address': 5.7.0
+      '@ethersproject/address': 5.8.0
       '@ethersproject/bignumber': 5.7.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hash': 5.7.0
@@ -27763,7 +27763,7 @@ snapshots:
 
   wide-align@1.1.5:
     dependencies:
-      string-width: 1.0.2
+      string-width: 4.2.3
     optional: true
 
   widest-line@3.1.0:
