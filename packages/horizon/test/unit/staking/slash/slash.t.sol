@@ -172,6 +172,8 @@ contract HorizonStakingSlashTest is HorizonStakingTest {
         vm.assume(delegationTokensToSlash <= delegationTokens);
         vm.assume(delegationTokensToUndelegate <= delegationTokens);
         vm.assume(delegationTokensToUndelegate > 0);
+        // Ensure that after undelegating, either we undelegate everything or leave at least MIN_DELEGATION
+        vm.assume(delegationTokensToUndelegate == delegationTokens || delegationTokens - delegationTokensToUndelegate >= MIN_DELEGATION);
 
         resetPrank(users.delegator);
         _delegate(users.indexer, subgraphDataServiceAddress, delegationTokens, 0);
