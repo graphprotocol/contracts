@@ -13259,7 +13259,7 @@ snapshots:
   '@ethereumjs/common@2.6.0':
     dependencies:
       crc-32: 1.2.2
-      ethereumjs-util: 7.1.3
+      ethereumjs-util: 7.1.5
 
   '@ethereumjs/common@2.6.5':
     dependencies:
@@ -13281,7 +13281,7 @@ snapshots:
   '@ethereumjs/tx@3.4.0':
     dependencies:
       '@ethereumjs/common': 2.6.0
-      ethereumjs-util: 7.1.3
+      ethereumjs-util: 7.1.5
 
   '@ethereumjs/tx@3.5.2':
     dependencies:
@@ -13308,7 +13308,7 @@ snapshots:
       async-eventemitter: 0.2.4
       core-js-pure: 3.45.1
       debug: 2.6.9
-      ethereumjs-util: 7.1.3
+      ethereumjs-util: 7.1.5
       functional-red-black-tree: 1.0.1
       mcl-wasm: 0.7.9
       merkle-patricia-tree: 4.2.4
