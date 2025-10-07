@@ -33,6 +33,7 @@
     "build:self": "pnpm compile",
     "compile": "hardhat compile",
     "test": "pnpm --filter @graphprotocol/contracts-tests test",
+    "test:coverage": "pnpm --filter @graphprotocol/contracts-tests run test:coverage",
     "deploy": "pnpm predeploy && pnpm build",
     "deploy-localhost": "pnpm build",
     "predeploy": "scripts/predeploy",
