@@ -4,6 +4,7 @@ import '@nomiclabs/hardhat-waffle'
 import 'hardhat-contract-sizer' // for size-contracts script
 import 'solidity-coverage' // for coverage script
 import 'dotenv/config'
+import '@nomicfoundation/hardhat-verify'
 
 import { HardhatUserConfig } from 'hardhat/config'
 
@@ -39,6 +40,16 @@ const config: HardhatUserConfig = {
         mnemonic: DEFAULT_TEST_MNEMONIC,
       },
     },
+    arbitrumSepolia: {
+      chainId: 421614,
+      url: process.env.ARBITRUM_SEPOLIA_URL,
+      accounts: {
+        mnemonic: DEFAULT_TEST_MNEMONIC,
+      },
+    },
+  },
+  etherscan: {
+    apiKey: process.env.ARBISCAN_API_KEY,
   },
   typechain: {
     outDir: 'types',
