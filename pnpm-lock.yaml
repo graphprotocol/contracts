@@ -959,6 +959,9 @@ importers:
       '@graphprotocol/interfaces':
         specifier: workspace:^
         version: link:../interfaces
+      '@graphprotocol/toolshed':
+        specifier: workspace:^
+        version: link:../toolshed
       '@nomicfoundation/hardhat-ethers':
         specifier: 'catalog:'
         version: 3.1.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
