@@ -5,7 +5,7 @@
  */
 
 const { expect } = require('chai')
-const { deploySharedContracts, resetContractState, SHARED_CONSTANTS } = require('../helpers/sharedFixtures')
+const { deploySharedContracts, resetContractState, SHARED_CONSTANTS } = require('../helpers/fixtures')
 
 describe('Consolidated Access Control Tests', () => {
   let accounts: any

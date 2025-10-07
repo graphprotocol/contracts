@@ -78,7 +78,7 @@ contract RewardsManagerV5Storage is RewardsManagerV4Storage {
 }
 
 /**
- * @title RewardsManagerV5Storage
+ * @title RewardsManagerV6Storage
  * @author Edge & Node
  * @notice Storage layout for RewardsManager V6
  */

@@ -10,9 +10,9 @@ import {
   deployRewardsEligibilityOracle,
   deployTestGraphToken,
   getTestAccounts,
+  SHARED_CONSTANTS,
   type TestAccounts,
 } from './helpers/fixtures'
-import { SHARED_CONSTANTS } from './helpers/sharedFixtures'
 
 // Role constants
 const GOVERNOR_ROLE = SHARED_CONSTANTS.GOVERNOR_ROLE
