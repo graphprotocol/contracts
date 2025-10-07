@@ -221,8 +221,8 @@ importers:
         specifier: ^2.0.6
         version: 2.0.6(@nomiclabs/hardhat-ethers@2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(@types/sinon-chai@3.2.12)(ethereum-waffle@4.0.10(@ensdomains/ens@0.4.5)(@ensdomains/resolver@0.2.4)(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(encoding@0.1.13)(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typescript@5.9.3))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts':
-        specifier: ^3.4.1
-        version: 3.4.1
+        specifier: 3.4.2
+        version: 3.4.2
       '@openzeppelin/contracts-upgradeable':
         specifier: 3.4.2
         version: 3.4.2
@@ -369,8 +369,8 @@ importers:
         specifier: ^3.1.0
         version: 3.1.8(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts':
-        specifier: ^3.4.1
-        version: 3.4.1
+        specifier: 3.4.2
+        version: 3.4.2
       '@openzeppelin/contracts-upgradeable':
         specifier: 3.4.2
         version: 3.4.2
@@ -502,8 +502,8 @@ importers:
         specifier: ^2.0.6
         version: 2.0.6(@nomiclabs/hardhat-ethers@2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(@types/sinon-chai@3.2.12)(ethereum-waffle@4.0.10(@ensdomains/ens@0.4.5)(@ensdomains/resolver@0.2.4)(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(encoding@0.1.13)(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typescript@5.9.3))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts':
-        specifier: ^3.4.1
-        version: 3.4.1
+        specifier: 3.4.2
+        version: 3.4.2
       '@openzeppelin/contracts-upgradeable':
         specifier: 3.4.2
         version: 3.4.2
@@ -899,8 +899,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0(6b332ee552128839aebadf34f365d923)
       '@openzeppelin/contracts':
-        specifier: 3.4.1
-        version: 3.4.1
+        specifier: 3.4.2
+        version: 3.4.2
       '@openzeppelin/contracts-upgradeable':
         specifier: 3.4.2
         version: 3.4.2
@@ -1104,8 +1104,8 @@ importers:
         specifier: ^2.0.6
         version: 2.0.6(@nomiclabs/hardhat-ethers@2.2.3(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(@types/sinon-chai@3.2.12)(ethereum-waffle@4.0.10(@ensdomains/ens@0.4.5)(@ensdomains/resolver@0.2.4)(@ethersproject/abi@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(encoding@0.1.13)(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typescript@5.9.3))(ethers@5.8.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts':
-        specifier: ^3.4.1
-        version: 3.4.1
+        specifier: 3.4.2
+        version: 3.4.2
       '@openzeppelin/contracts-upgradeable':
         specifier: 3.4.2
         version: 3.4.2
@@ -3428,8 +3428,8 @@ packages:
     peerDependencies:
       '@openzeppelin/contracts': 5.4.0
 
-  '@openzeppelin/contracts@3.4.1':
-    resolution: {integrity: sha512-cUriqMauq1ylzP2TxePNdPqkwI7Le3Annh4K9rrpvKfSBB/bdW+Iu1ihBaTIABTAAJ85LmKL5SSPPL9ry8d1gQ==}
+  '@openzeppelin/contracts@3.4.2':
+    resolution: {integrity: sha512-z0zMCjyhhp4y7XKAcDAi3Vgms4T2PstwBdahiO0+9NaGICQKjynK3wduSRplTgk4LXmoO1yfDGO5RbjKYxtuxA==}
 
   '@openzeppelin/contracts@4.9.6':
     resolution: {integrity: sha512-xSmezSupL+y9VkHZJGDoCBpmnB2ogM13ccaYDWqJTfS3dbuHkgjuwDFUmaFauBCboQMGB/S5UqUl2y54X99BmA==}
@@ -15731,7 +15731,7 @@ snapshots:
     dependencies:
       '@openzeppelin/contracts': 5.4.0
 
-  '@openzeppelin/contracts@3.4.1': {}
+  '@openzeppelin/contracts@3.4.2': {}
 
   '@openzeppelin/contracts@4.9.6': {}
 
