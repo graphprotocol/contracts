@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 1.0.1
+
+### Patch Changes
+
+- Fix L2Curation implementation address in subgraph service address book.
+
 ## 1.0.0
 
 ### Major Changes
