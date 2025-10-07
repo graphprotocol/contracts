@@ -8,7 +8,6 @@
     // Addresses for contracts deployed in the original Graph Protocol
     "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
     "curationProxyAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
-    "curationImplementationAddress": "0xd90022aB67920212D0F902F5c427DE82732DE136",
     "gnsProxyAddress": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
     "gnsImplementationAddress": "0x00CBF5024d454255577Bf2b0fB6A43328a6828c9",
     "subgraphNFTAddress": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A",
@@ -20,7 +19,8 @@
     "disputeManagerProxyAdminAddress": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527",
     "subgraphServiceProxyAddress": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
     "subgraphServiceProxyAdminAddress": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098",
-    "graphTallyCollectorAddress": "0x382863e7B662027117449bd2c49285582bbBd21B"
+    "graphTallyCollectorAddress": "0x382863e7B662027117449bd2c49285582bbBd21B",
+    "curationImplementationAddress": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA",
   },
   "DisputeManager": {
     "disputePeriod": 28800,

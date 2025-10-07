@@ -15,7 +15,7 @@
     "L2Curation": {
       "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
       "proxy": "graph",
-      "implementation": "0xd90022aB67920212D0F902F5c427DE82732DE136"
+      "implementation": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA"
     },
     "L2GNS": {
       "address": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
