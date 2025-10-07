@@ -2,7 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 
 // Minimal GraphClient for offline builds - contains only what ops/info.ts uses
-const { gql } = require('@graphql-mesh/utils');
+// Simple gql template literal function (replacement for @graphql-mesh/utils)
+const gql = (strings, ...values) => {
+  let result = strings[0];
+  for (let i = 0; i < values.length; i++) {
+    result += values[i] + strings[i + 1];
+  }
+  return result;
+};
 
 // Mock execute function
 const execute = () => {
