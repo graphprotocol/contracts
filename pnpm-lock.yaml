@@ -969,10 +969,10 @@ importers:
         specifier: 'catalog:'
         version: 2.1.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
       '@openzeppelin/contracts':
-        specifier: ^5.3.0
+        specifier: ^5.4.0
         version: 5.4.0
       '@openzeppelin/contracts-upgradeable':
-        specifier: ^5.3.0
+        specifier: ^5.4.0
         version: 5.4.0(@openzeppelin/contracts@5.4.0)
       '@openzeppelin/hardhat-upgrades':
         specifier: ^3.9.0
@@ -1072,10 +1072,10 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(2132343380e0584d85bc36e173d91a88)
       '@openzeppelin/contracts':
-        specifier: ^5.3.0
+        specifier: ^5.4.0
         version: 5.4.0
       '@openzeppelin/contracts-upgradeable':
-        specifier: ^5.3.0
+        specifier: ^5.4.0
         version: 5.4.0(@openzeppelin/contracts@5.4.0)
       '@openzeppelin/foundry-upgrades':
         specifier: 0.4.0
