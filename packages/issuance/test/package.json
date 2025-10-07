@@ -45,7 +45,7 @@
   "scripts": {
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/issuance-test^...' run build:self",
-    "build:self": "tsc --build && pnpm --filter @graphprotocol/issuance compile && pnpm generate:interfaces",
+    "build:self": "tsc --build && pnpm generate:interfaces",
     "generate:interfaces": "node scripts/generateInterfaceIds.js --silent",
     "clean": "rm -rf build",
     "test": "pnpm build && pnpm test:self",
