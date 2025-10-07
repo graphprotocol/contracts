@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 1.0.0
+
+### Major Changes
+
+- Deploy horizon to testnet
+
 ## 0.5.0
 
 ### Minor Changes
