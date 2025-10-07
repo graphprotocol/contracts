@@ -3,12 +3,33 @@
     "SubgraphService": {
       "address": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
       "proxy": "transparent",
-      "proxyAdmin": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098"
+      "proxyAdmin": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098",
+      "implementation": "0xEc11f71070503D29098149195f95FEb1B1CeF93E"
     },
     "DisputeManager": {
       "address": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
       "proxy": "transparent",
-      "proxyAdmin": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527"
+      "proxyAdmin": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527",
+      "implementation": "0x28A0cFDE10e8Ea5C7f3E80981728E3eA1228D338"
+    },
+    "L2Curation": {
+      "address": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+      "proxy": "graph",
+      "implementation": "0xd90022aB67920212D0F902F5c427DE82732DE136"
+    },
+    "L2GNS": {
+      "address": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
+      "proxy": "graph",
+      "implementation": "0x00CBF5024d454255577Bf2b0fB6A43328a6828c9"
+    },
+    "SubgraphNFT": {
+      "address": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A"
+    },
+    "LegacyDisputeManager": {
+      "address": "0x7C9B82717f9433932507dF6EdA93A9678b258698"
+    },
+    "LegacyServiceRegistry": {
+      "address": "0x888541878CbDDEd880Cd58c728f1Af5C47343F86"
     }
   }
 }

@@ -16,11 +16,11 @@
     "legacyServiceRegistryAddress": "0x888541878CbDDEd880Cd58c728f1Af5C47343F86",
 
     // Must be set for step 2 of the deployment
-    "disputeManagerProxyAddress": "",
-    "disputeManagerProxyAdminAddress": "",
-    "subgraphServiceProxyAddress": "",
-    "subgraphServiceProxyAdminAddress": "",
-    "graphTallyCollectorAddress": ""
+    "disputeManagerProxyAddress": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
+    "disputeManagerProxyAdminAddress": "0x154a73CB6ebB5717a15f203d6E160E6F41ecC527",
+    "subgraphServiceProxyAddress": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
+    "subgraphServiceProxyAdminAddress": "0x15737D9f8635cAcd43e110327c930bd5EC1fe098",
+    "graphTallyCollectorAddress": "0x382863e7B662027117449bd2c49285582bbBd21B"
   },
   "DisputeManager": {
     "disputePeriod": 28800,
