@@ -4,8 +4,9 @@
  * Tests access control patterns across all contracts to reduce duplication
  */
 
-const { expect } = require('chai')
-const { deploySharedContracts, resetContractState, SHARED_CONSTANTS } = require('../helpers/fixtures')
+import { expect } from 'chai'
+
+import { deploySharedContracts, resetContractState, SHARED_CONSTANTS } from '../helpers/fixtures'
 
 describe('Consolidated Access Control Tests', () => {
   let accounts: any

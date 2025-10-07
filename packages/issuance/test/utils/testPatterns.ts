@@ -3,7 +3,7 @@
  * Shared test patterns and utilities to reduce duplication across test files
  */
 
-const { expect } = require('chai')
+import { expect } from 'chai'
 
 // Test constants - centralized to avoid magic numbers
 export const TestConstants = {

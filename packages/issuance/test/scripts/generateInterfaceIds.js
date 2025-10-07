@@ -66,7 +66,7 @@ main().catch((error) => {
       try {
         fs.unlinkSync(tempScript)
       } catch {
-        // Ignore cleanup errors
+        // Ignore cleanup errors - temp file may not exist
       }
 
       if (code === 0) {
@@ -80,7 +80,7 @@ main().catch((error) => {
               return
             }
           } catch {
-            // Not JSON, continue
+            // Not JSON, continue - this is expected for non-JSON output lines
           }
         }
         reject(new Error('Could not parse interface IDs from output'))

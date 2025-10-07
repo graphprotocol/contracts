@@ -5,8 +5,9 @@
 
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import * as fs from 'fs'
+import { ethers } from 'hardhat'
 
-const { ethers, upgrades } = require('hardhat')
+const { upgrades } = require('hardhat')
 
 // Shared test constants
 export const SHARED_CONSTANTS = {
@@ -180,6 +181,10 @@ export async function resetContractState(contracts: SharedContracts, accounts: T
       await rewardsEligibilityOracle.connect(accounts.governor).setEligibilityValidation(false)
     }
   } catch (error) {
-    console.warn('RewardsEligibilityOracle state reset failed:', error instanceof Error ? error.message : String(error))
+    console.error(
+      'RewardsEligibilityOracle state reset failed:',
+      error instanceof Error ? error.message : String(error),
+    )
+    throw error
   }
 }

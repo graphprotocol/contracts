@@ -2,8 +2,9 @@ import '@nomicfoundation/hardhat-chai-matchers'
 
 import { time } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
+import { ethers } from 'hardhat'
 
-const { ethers, upgrades } = require('hardhat')
+const { upgrades } = require('hardhat')
 
 import type { IGraphToken, RewardsEligibilityOracle } from '../../types'
 import {
@@ -75,7 +76,8 @@ describe('RewardsEligibilityOracle', () => {
         await rewardsEligibilityOracle.connect(accounts.governor).revokeRole(OPERATOR_ROLE, accounts.governor.address)
       }
     } catch {
-      // Ignore role management errors during reset
+      // Role management errors during reset are non-fatal and may occur if roles are already revoked or not present.
+      // These errors are expected and can be safely ignored.
     }
 
     // Reset to default values

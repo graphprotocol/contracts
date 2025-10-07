@@ -13,12 +13,6 @@ const dotenv = require('dotenv')
 dotenv.config()
 
 const config = {
-  // paths: {
-  //   sources: './contracts',
-  //   tests: './test',
-  //   artifacts: './build/contracts',
-  //   cache: './cache',
-  // },
   solidity: {
     compilers: [
       {
@@ -84,6 +78,10 @@ const config = {
     showTimeSpent: true,
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
+  },
+  mocha: {
+    reporter: 'spec',
+    timeout: 60000,
   },
   typechain: {
     outDir: 'types',

@@ -16,6 +16,7 @@
     "clean": "rm -rf build/ cache/ dist/ forge-artifacts/ cache_forge/",
     "compile": "hardhat compile",
     "test": "pnpm --filter @graphprotocol/issuance-test test",
+    "test:coverage": "pnpm --filter @graphprotocol/issuance-test run test:coverage",
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json",
     "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
