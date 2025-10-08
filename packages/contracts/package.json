@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "prepack": "pnpm build",
-    "clean": "rm -rf artifacts/ cache/ types/ abis/ build/ dist/",
+    "clean": "rm -rf artifacts/ cache/ types/ abis/ build/ dist/ coverage/",
     "build": "pnpm build:self",
     "build:self": "pnpm compile",
     "compile": "hardhat compile",

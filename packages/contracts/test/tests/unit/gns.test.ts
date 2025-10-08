@@ -27,6 +27,7 @@ import { BigNumber, ContractTransaction, ethers, Event } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
 import hre from 'hardhat'
 
+import { isRunningUnderCoverage } from '../../utils/coverage'
 import { NetworkFixture } from './lib/fixtures'
 import {
   AccountDefaultName,
@@ -787,16 +788,9 @@ describe.skip('L1GNS @skip-on-coverage', () => {
       const tx = gns.connect(me).multicall([bogusPayload, tx2.data])
 
       // Under coverage, the error message may be different due to instrumentation
-      const isRunningUnderCoverage =
-        hre.network.name === 'coverage' ||
-        process.env.SOLIDITY_COVERAGE === 'true' ||
-        process.env.npm_lifecycle_event === 'test:coverage'
-
-      if (isRunningUnderCoverage) {
-        // Under coverage, the transaction should still revert, but the message might be empty
+      if (isRunningUnderCoverage()) {
         await expect(tx).to.be.reverted
       } else {
-        // Normal test run should have the specific error message
         await expect(tx).revertedWith("function selector was not recognized and there's no fallback function")
       }
     })
@@ -1295,14 +1289,8 @@ describe.skip('L1GNS @skip-on-coverage', () => {
         await expect(tx2).revertedWith('NO_SIGNAL')
       })
       it('sets the curator signal to zero so they cannot withdraw', async function () {
-        // Check if we're running under coverage
-        const isRunningUnderCoverage =
-          hre.network.name === 'coverage' ||
-          process.env.SOLIDITY_COVERAGE === 'true' ||
-          process.env.npm_lifecycle_event === 'test:coverage'
-
-        if (isRunningUnderCoverage) {
-          // Under coverage, skip this test as it has issues with BigNumber values
+        // Under coverage, skip this test as it has issues with BigNumber values
+        if (isRunningUnderCoverage()) {
           this.skip()
           return
         }
@@ -1328,14 +1316,8 @@ describe.skip('L1GNS @skip-on-coverage', () => {
         await expect(tx).revertedWith('GNS: No signal to withdraw GRT')
       })
       it('gives each curator an amount of tokens proportional to their nSignal', async function () {
-        // Check if we're running under coverage
-        const isRunningUnderCoverage =
-          hre.network.name === 'coverage' ||
-          process.env.SOLIDITY_COVERAGE === 'true' ||
-          process.env.npm_lifecycle_event === 'test:coverage'
-
-        if (isRunningUnderCoverage) {
-          // Under coverage, skip this test as it has issues with BigNumber values
+        // Under coverage, skip this test as it has issues with BigNumber values
+        if (isRunningUnderCoverage()) {
           this.skip()
           return
         }
