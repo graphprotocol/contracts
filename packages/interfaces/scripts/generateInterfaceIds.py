@@ -26,14 +26,14 @@ const hre = require('hardhat')
 async function main() {
   const InterfaceIdExtractor = await hre.ethers.getContractFactory('InterfaceIdExtractor')
   const extractor = await InterfaceIdExtractor.deploy()
-  await extractor.deployed()
-  
+  await extractor.waitForDeployment()
+
   const results = {
     IRewardsManager: await extractor.getIRewardsManagerId(),
     IIssuanceTarget: await extractor.getIIssuanceTargetId(),
     IERC165: await extractor.getIERC165Id(),
   }
-  
+
   console.log(JSON.stringify(results))
 }
 
@@ -44,7 +44,7 @@ main().catch((error) => {
 """
 
     script_dir = Path(__file__).parent
-    project_dir = script_dir.parent.parent
+    project_dir = script_dir.parent
 
     # Write temporary script
     with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as temp_file:
@@ -62,7 +62,8 @@ main().catch((error) => {
         )
 
         if result.returncode != 0:
-            raise RuntimeError(f"Hardhat script failed with code {result.returncode}: {result.stderr}")
+            raise RuntimeError(
+                f"Hardhat script failed with code {result.returncode}: {result.stderr}")
 
         # Extract JSON from output
         for line in result.stdout.split('\n'):
@@ -90,7 +91,8 @@ main().catch((error) => {
 def extract_interface_ids():
     """Extract interface IDs using the InterfaceIdExtractor contract"""
     script_dir = Path(__file__).parent
-    extractor_path = script_dir.parent.parent / "artifacts" / "contracts" / "tests" / "InterfaceIdExtractor.sol" / "InterfaceIdExtractor.json"
+    extractor_path = script_dir.parent / "artifacts" / "contracts" / \
+        "utils" / "InterfaceIdExtractor.sol" / "InterfaceIdExtractor.json"
 
     if not extractor_path.exists():
         print("❌ InterfaceIdExtractor artifact not found")
@@ -137,14 +139,11 @@ export const INTERFACE_IDS = {{
 
     # Write to output file
     script_dir = Path(__file__).parent
-    output_file = script_dir.parent / "helpers" / "interfaceIds.ts"
-    
-    # Create helpers directory if it doesn't exist
-    output_file.parent.mkdir(exist_ok=True)
-    
+    output_file = script_dir.parent / "src" / "types" / "interfaceIds.ts"
+
     with open(output_file, 'w') as f:
         f.write(content)
-    
+
     log(f"✅ Generated {output_file}")
 
 

@@ -139,7 +139,10 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
      * @inheritdoc IIssuanceAllocator
      * @dev Mock implementation that forces notification and returns current block
      */
-    function forceTargetNoChangeNotificationBlock(address target, uint256 blockNumber) external override returns (uint256) {
+    function forceTargetNoChangeNotificationBlock(
+        address target,
+        uint256 blockNumber
+    ) external override returns (uint256) {
         require(!_shouldRevert, "MockIssuanceAllocator: reverted");
         if (_allocatedTargets[target]) {
             IIssuanceTarget(target).beforeIssuanceAllocationChange();

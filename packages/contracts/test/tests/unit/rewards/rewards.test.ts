@@ -186,23 +186,10 @@ describe('Rewards', () => {
       })
 
       it('should support IRewardsManager interface', async function () {
-        // Use the auto-generated interface ID from Solidity compilation
-        const { IRewardsManager } = require('../../../helpers/interfaceIds')
+        // Use the auto-generated interface ID from the interfaces package
+        const { IRewardsManager } = require('@graphprotocol/interfaces')
         const supports = await rewardsManager.supportsInterface(IRewardsManager)
         expect(supports).to.be.true
-      })
-
-      it('should have consistent interface IDs with Solidity calculations', async function () {
-        const InterfaceIdExtractorFactory = await hre.ethers.getContractFactory('InterfaceIdExtractor')
-        const extractor = await InterfaceIdExtractorFactory.deploy()
-        await extractor.deployed()
-
-        const { IRewardsManager, IIssuanceTarget, IERC165 } = require('../../../helpers/interfaceIds')
-
-        // Verify each interface ID matches what Solidity calculates
-        expect(await extractor.getIRewardsManagerId()).to.equal(IRewardsManager)
-        expect(await extractor.getIIssuanceTargetId()).to.equal(IIssuanceTarget)
-        expect(await extractor.getIERC165Id()).to.equal(IERC165)
       })
 
       it('should support IERC165 interface', async function () {

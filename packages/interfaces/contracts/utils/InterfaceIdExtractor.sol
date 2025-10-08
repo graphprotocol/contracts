@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.7.6;
 
-import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
-import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
+import { IRewardsManager } from "../contracts/rewards/IRewardsManager.sol";
+import { IIssuanceTarget } from "../issuance/allocate/IIssuanceTarget.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 /**
