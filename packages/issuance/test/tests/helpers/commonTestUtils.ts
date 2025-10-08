@@ -4,6 +4,8 @@
 
 import type { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { expect } from 'chai'
+import type { Contract } from 'ethers'
+
 /**
  * Test multiple access control methods on a contract
  * @param contract - The contract to test
@@ -11,7 +13,6 @@ import { expect } from 'chai'
  * @param authorizedAccount - Account that should have access
  * @param unauthorizedAccount - Account that should not have access
  */
-import type { Contract } from 'ethers'
 
 export async function testMultipleAccessControl(
   contract: Contract,

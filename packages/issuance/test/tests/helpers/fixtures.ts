@@ -1,8 +1,10 @@
+import '@nomicfoundation/hardhat-chai-matchers'
+
 import fs from 'fs'
 import hre from 'hardhat'
+
 const { ethers } = hre
 const { upgrades } = require('hardhat')
-import '@nomicfoundation/hardhat-chai-matchers'
 
 import type { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 

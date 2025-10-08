@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat')
+import { ethers } from 'hardhat'
 
 /**
  * Shared calculation utilities for issuance tests.
@@ -156,7 +156,7 @@ export function parseEther(value: string): bigint {
 /**
  * Helper to format wei bigint to ETH string for debugging.
  */
-function formatEther(value: bigint): string {
+export function formatEther(value: bigint): string {
   return ethers.formatEther(value)
 }
 
@@ -168,17 +168,6 @@ function formatEther(value: bigint): string {
  * @param endBlock - Ending block number
  * @returns Number of blocks for accumulation calculation
  */
-function calculateBlockDifference(startBlock: number, endBlock: number): bigint {
+export function calculateBlockDifference(startBlock: number, endBlock: number): bigint {
   return BigInt(Math.max(0, endBlock - startBlock))
-}
-
-module.exports = {
-  calculateExpectedAccumulation,
-  calculateProportionalDistribution,
-  calculateExpectedTargetIssuance,
-  calculateMultiTargetIssuance,
-  verifyTotalDistribution,
-  parseEther,
-  formatEther,
-  calculateBlockDifference,
 }

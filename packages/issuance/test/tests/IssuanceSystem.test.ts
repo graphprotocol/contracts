@@ -3,10 +3,10 @@
  * Reduced from 149 lines to ~80 lines using shared utilities
  */
 
-const { expect } = require('chai')
+import { expect } from 'chai'
 
-const { setupOptimizedIssuanceSystem } = require('../utils/optimizedFixtures')
-const { TestConstants, mineBlocks, expectRatioToEqual } = require('../utils/testPatterns')
+import { setupOptimizedIssuanceSystem } from '../utils/optimizedFixtures'
+import { expectRatioToEqual, mineBlocks, TestConstants } from '../utils/testPatterns'
 
 describe('Issuance System', () => {
   let system: any

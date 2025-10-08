@@ -1,10 +1,9 @@
-import { expect } from 'chai'
-const { ethers } = require('hardhat')
-
-const { shouldSupportERC165Interface } = require('../../utils/testPatterns')
 // Import generated interface IDs from the interfaces package
 import { IIssuanceAllocator, IIssuanceTarget, IRewardsEligibilityOracle } from '@graphprotocol/interfaces'
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
 
+import { shouldSupportERC165Interface } from '../../utils/testPatterns'
 import {
   deployDirectAllocation,
   deployIssuanceAllocator,

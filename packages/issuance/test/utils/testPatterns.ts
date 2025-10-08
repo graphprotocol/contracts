@@ -2,8 +2,8 @@
  * Shared test patterns and utilities to reduce duplication across test files
  */
 
-const { expect } = require('chai')
-const { ethers } = require('hardhat')
+import { expect } from 'chai'
+import { ethers } from 'hardhat'
 
 // Type definitions for test utilities
 export interface TestAccounts {
@@ -71,7 +71,7 @@ export function shouldEnforceGovernorRole<T>(
 
       await expect(
         (contract as any).connect(testAccounts.nonGovernor)[methodName](...methodArgs),
-      ).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount')
+      ).to.be.revertedWithCustomError(contract as any, 'AccessControlUnauthorizedAccount')
     })
 
     it(`should allow governor to call ${methodName}`, async function () {
@@ -100,7 +100,7 @@ export function shouldEnforceRoleAccess<T>(
 
       await expect(
         (contract as any).connect(testAccounts.nonGovernor)[methodName](...methodArgs),
-      ).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount')
+      ).to.be.revertedWithCustomError(contract as any, 'AccessControlUnauthorizedAccount')
     })
   }
 }
@@ -161,6 +161,7 @@ export function shouldInitializeCorrectly<T>(contractGetter: () => T, expectedVa
     Object.entries(expectedValues).forEach(([property, expectedValue]) => {
       it(`should set ${property} correctly during initialization`, async function () {
         const contract = contractGetter()
+        // Type assertion is necessary here since we're accessing dynamic properties
         const actualValue = await (contract as any)[property]()
         expect(actualValue).to.equal(expectedValue)
       })
@@ -171,7 +172,7 @@ export function shouldInitializeCorrectly<T>(contractGetter: () => T, expectedVa
       const accounts = this.parent.ctx.accounts
 
       await expect((contract as any).initialize(accounts.governor.address)).to.be.revertedWithCustomError(
-        contract,
+        contract as any,
         'InvalidInitialization',
       )
     })
@@ -278,7 +279,7 @@ export function shouldEnforceAccessControl<T>(
           const contract = contractGetter()
           await expect(
             (contract as any).connect(accounts.nonGovernor)[method.name](...method.args),
-          ).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount')
+          ).to.be.revertedWithCustomError(contract as any, 'AccessControlUnauthorizedAccount')
         })
 
         allowedRoles.forEach((role) => {
@@ -335,7 +336,7 @@ export function shouldInitializeProperly<T>(
           const contract = contractGetter()
           await expect(
             (contract as any)[reinitializationTest.method](...reinitializationTest.args),
-          ).to.be.revertedWithCustomError(contract, reinitializationTest.expectedError)
+          ).to.be.revertedWithCustomError(contract as any, reinitializationTest.expectedError)
         })
       }
     })
@@ -377,7 +378,7 @@ export function shouldHandlePausability<T>(
       it('should revert when non-PAUSE_ROLE tries to pause', async function () {
         const contract = contractGetter()
         await expect((contract as any).connect(accounts.nonGovernor).pause()).to.be.revertedWithCustomError(
-          contract,
+          contract as any,
           'AccessControlUnauthorizedAccount',
         )
       })
@@ -400,7 +401,7 @@ export function shouldHandlePausability<T>(
 
           await expect(
             (contract as any).connect(caller)[operation.name](...operation.args),
-          ).to.be.revertedWithCustomError(contract, 'EnforcedPause')
+          ).to.be.revertedWithCustomError(contract as any, 'EnforcedPause')
         })
       })
     })
@@ -455,7 +456,7 @@ export function shouldManageRoles<T>(
             const contract = contractGetter()
             await expect(
               (contract as any).connect(accounts.nonGovernor).grantRole(roleConfig.role, accounts.user.address),
-            ).to.be.revertedWithCustomError(contract, 'AccessControlUnauthorizedAccount')
+            ).to.be.revertedWithCustomError(contract as any, 'AccessControlUnauthorizedAccount')
           })
         })
       })
@@ -520,7 +521,7 @@ export function shouldValidateInputs<T>(
             test.caller === 'operator' ? accounts.operator : test.caller === 'user' ? accounts.user : accounts.governor
 
           await expect((contract as any).connect(caller)[test.method](...test.args)).to.be.revertedWithCustomError(
-            contract,
+            contract as any,
             test.expectedError,
           )
         })

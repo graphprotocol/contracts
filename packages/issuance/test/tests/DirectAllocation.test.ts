@@ -1,6 +1,8 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
+
 const { ethers } = hre
+
 const { upgrades } = require('hardhat')
 
 import { deployDirectAllocation, deployTestGraphToken, getTestAccounts, SHARED_CONSTANTS } from './helpers/fixtures'
