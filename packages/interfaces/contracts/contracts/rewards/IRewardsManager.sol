@@ -43,6 +43,12 @@ interface IRewardsManager {
      */
     function setSubgraphService(address subgraphService) external;
 
+    /**
+     * @notice Set the rewards eligibility oracle address
+     * @param newRewardsEligibilityOracle The address of the rewards eligibility oracle
+     */
+    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
+
     // -- Denylist --
 
     /**

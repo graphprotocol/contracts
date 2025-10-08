@@ -36,4 +36,7 @@ interface IRewardsManagerToolshed is IRewardsManager {
     event SubgraphServiceSet(address indexed oldSubgraphService, address indexed newSubgraphService);
 
     function subgraphService() external view returns (address);
+
+    /// @inheritdoc IRewardsManager
+    function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
 }
