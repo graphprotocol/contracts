@@ -35,7 +35,7 @@ jobs:
         id: coverage_files
         run: |
           # Find all coverage-final.json files
-          COVERAGE_FILES=$(find ./packages -name "coverage-final.json" -path "*/reports/coverage/*" | tr '\n' ',' | sed 's/,$//')
+          COVERAGE_FILES=$(find ./packages -name "coverage-final.json" -path "*/coverage/*" | tr '\n' ',' | sed 's/,$//')
           echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
           echo "Found coverage files: $COVERAGE_FILES"
 
