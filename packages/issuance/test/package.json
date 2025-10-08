@@ -45,10 +45,9 @@
   "scripts": {
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/issuance-test^...' run build:self",
-    "build:self": "tsc --build && pnpm generate:interfaces",
+    "build:self": "tsc --build",
     "build:coverage": "pnpm build:dep:coverage && pnpm build:self",
     "build:dep:coverage": "pnpm --filter '@graphprotocol/issuance-test^...' run build:coverage",
-    "generate:interfaces": "python3 scripts/generateInterfaceIds.py --silent",
     "clean": "rm -rf .eslintcache artifacts/",
     "test": "pnpm build && pnpm test:self",
     "test:self": "cd .. && hardhat test test/tests/*.test.ts test/tests/**/*.test.ts",

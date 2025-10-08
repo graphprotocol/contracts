@@ -3,6 +3,8 @@ pragma solidity 0.7.6;
 
 import { IRewardsManager } from "../contracts/rewards/IRewardsManager.sol";
 import { IIssuanceTarget } from "../issuance/allocate/IIssuanceTarget.sol";
+import { IIssuanceAllocator } from "../issuance/allocate/IIssuanceAllocator.sol";
+import { IRewardsEligibilityOracle } from "../issuance/eligibility/IRewardsEligibilityOracle.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 /**
@@ -28,6 +30,22 @@ contract InterfaceIdExtractor {
      */
     function getIIssuanceTargetId() external pure returns (bytes4) {
         return type(IIssuanceTarget).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IIssuanceAllocator
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIIssuanceAllocatorId() external pure returns (bytes4) {
+        return type(IIssuanceAllocator).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IRewardsEligibilityOracle
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIRewardsEligibilityOracleId() external pure returns (bytes4) {
+        return type(IRewardsEligibilityOracle).interfaceId;
     }
 
     /**

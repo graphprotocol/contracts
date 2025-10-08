@@ -2,6 +2,9 @@ import { expect } from 'chai'
 const { ethers } = require('hardhat')
 
 const { shouldSupportERC165Interface } = require('../../utils/testPatterns')
+// Import generated interface IDs from the interfaces package
+import { IIssuanceAllocator, IIssuanceTarget, IRewardsEligibilityOracle } from '@graphprotocol/interfaces'
+
 import {
   deployDirectAllocation,
   deployIssuanceAllocator,
@@ -9,8 +12,6 @@ import {
   deployTestGraphToken,
   getTestAccounts,
 } from '../helpers/fixtures'
-// Import generated interface IDs
-import { IIssuanceAllocator, IIssuanceTarget, IRewardsEligibilityOracle } from '../helpers/interfaceIds'
 
 /**
  * Consolidated ERC-165 Interface Compliance Tests
@@ -62,17 +63,7 @@ describe('ERC-165 Interface Compliance', () => {
     ),
   )
 
-  describe('Interface ID Consistency', () => {
-    it('should have consistent interface IDs with Solidity calculations', async () => {
-      const InterfaceIdExtractorFactory = await ethers.getContractFactory('InterfaceIdExtractor')
-      const extractor = await InterfaceIdExtractorFactory.deploy()
-
-      // Verify each interface ID matches what Solidity calculates
-      expect(await extractor.getIIssuanceAllocatorId()).to.equal(IIssuanceAllocator)
-      expect(await extractor.getIRewardsEligibilityOracleId()).to.equal(IRewardsEligibilityOracle)
-      expect(await extractor.getIIssuanceTargetId()).to.equal(IIssuanceTarget)
-    })
-
+  describe('Interface ID Validation', () => {
     it('should have valid interface IDs (not zero)', () => {
       expect(IIssuanceAllocator).to.not.equal('0x00000000')
       expect(IRewardsEligibilityOracle).to.not.equal('0x00000000')

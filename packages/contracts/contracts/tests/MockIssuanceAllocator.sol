@@ -3,8 +3,7 @@
 pragma solidity 0.7.6;
 pragma abicoder v2;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, use-natspec
+// solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, use-natspec, named-parameters-mapping
 
 import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
 import {

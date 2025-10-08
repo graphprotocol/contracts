@@ -31,6 +31,8 @@ async function main() {
   const results = {
     IRewardsManager: await extractor.getIRewardsManagerId(),
     IIssuanceTarget: await extractor.getIIssuanceTargetId(),
+    IIssuanceAllocator: await extractor.getIIssuanceAllocatorId(),
+    IRewardsEligibilityOracle: await extractor.getIRewardsEligibilityOracleId(),
     IERC165: await extractor.getIERC165Id(),
   }
 
