@@ -74,6 +74,13 @@ interface IRewardsManager {
     // -- Getters --
 
     /**
+     * @notice Gets the effective issuance per block for rewards
+     * @dev Takes into account the issuance allocator if set
+     * @return The effective issuance per block
+     */
+    function getRewardsIssuancePerBlock() external view returns (uint256);
+
+    /**
      * @notice Gets the issuance of rewards per signal since last updated
      * @return newly accrued rewards per signal since last update
      */

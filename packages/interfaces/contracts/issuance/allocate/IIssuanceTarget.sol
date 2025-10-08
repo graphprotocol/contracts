@@ -21,7 +21,7 @@ interface IIssuanceTarget {
      * @notice Sets the issuance allocator for this target
      * @dev This function facilitates upgrades by providing a standard way for targets
      * to change their allocator. Implementations can define their own access control.
-     * @param issuanceAllocator Address of the issuance allocator
+     * @param newIssuanceAllocator Address of the issuance allocator
      */
-    function setIssuanceAllocator(address issuanceAllocator) external;
+    function setIssuanceAllocator(address newIssuanceAllocator) external;
 }

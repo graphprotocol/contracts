@@ -7,6 +7,7 @@ pragma abicoder v2;
 // solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
@@ -14,9 +15,11 @@ import { Managed } from "../governance/Managed.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 
-import { RewardsManagerV6Storage } from "./RewardsManagerStorage.sol";
-import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { RewardsManagerV7Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
+import { IIssuanceAllocator } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocator.sol";
+import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
 
 /**
@@ -29,6 +32,10 @@ import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/i
  * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
  * that Subgraph.
  *
+ * @dev If an `issuanceAllocator` is set, it is used to determine the amount of GRT to be issued per block.
+ * Otherwise, the `issuancePerBlock` variable is used. In relation to the IssuanceAllocator, this contract
+ * is a self-minting target responsible for directly minting allocated GRT.
+ *
  * Note:
  * The contract provides getter functions to query the state of accrued rewards:
  * - getAccRewardsPerSignal
@@ -39,7 +46,7 @@ import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/i
  * until the actual takeRewards function is called.
  * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
-contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsManager {
+contract RewardsManager is RewardsManagerV7Storage, GraphUpgradeable, ERC165, IRewardsManager, IIssuanceTarget {
     using SafeMath for uint256;
 
     /// @dev Fixed point scaling factor used for decimals in reward calculations
@@ -86,6 +93,13 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsMa
     event SubgraphServiceSet(address indexed oldSubgraphService, address indexed newSubgraphService);
 
     /**
+     * @notice Emitted when the issuance allocator is set
+     * @param oldIssuanceAllocator Previous issuance allocator address
+     * @param newIssuanceAllocator New issuance allocator address
+     */
+    event IssuanceAllocatorSet(address indexed oldIssuanceAllocator, address indexed newIssuanceAllocator);
+
+    /**
      * @notice Emitted when the rewards eligibility oracle contract is set
      * @param oldRewardsEligibilityOracle Previous rewards eligibility oracle address
      * @param newRewardsEligibilityOracle New rewards eligibility oracle address
@@ -117,7 +131,10 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev The issuance is defined as a fixed amount of rewards per block in GRT.
+     * @dev When an IssuanceAllocator is set, the effective issuance will be determined by the allocator,
+     * but this local value can still be updated for cases when the allocator is later removed.
+     *
+     * The issuance is defined as a fixed amount of rewards per block in GRT.
      * Whenever this function is called in layer 2, the updateL2MintAllowance function
      * _must_ be called on the L1GraphTokenGateway in L1, to ensure the bridge can mint the
      * right amount of tokens.
@@ -172,6 +189,52 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsMa
     }
 
     /**
+     * @inheritdoc IIssuanceTarget
+     * @dev This function facilitates upgrades by providing a standard way for targets
+     * to change their allocator. Only the governor can call this function.
+     * Note that the IssuanceAllocator can be set to the zero address to disable use of an allocator, and
+     * use the local `issuancePerBlock` variable instead to control issuance.
+     */
+    function setIssuanceAllocator(address newIssuanceAllocator) external override onlyGovernor {
+        if (address(issuanceAllocator) != newIssuanceAllocator) {
+            // Update rewards calculation before changing the issuance allocator
+            updateAccRewardsPerSignal();
+
+            // Check that the contract supports the IIssuanceAllocator interface
+            // Allow zero address to disable the allocator
+            if (newIssuanceAllocator != address(0)) {
+                require(
+                    IERC165(newIssuanceAllocator).supportsInterface(type(IIssuanceAllocator).interfaceId),
+                    "Contract does not support IIssuanceAllocator interface"
+                );
+            }
+
+            address oldIssuanceAllocator = address(issuanceAllocator);
+            issuanceAllocator = IIssuanceAllocator(newIssuanceAllocator);
+            emit IssuanceAllocatorSet(oldIssuanceAllocator, newIssuanceAllocator);
+        }
+    }
+
+    /**
+     * @inheritdoc IIssuanceTarget
+     * @dev Ensures that all reward calculations are up-to-date with the current block
+     * before any allocation changes take effect.
+     *
+     * The IssuanceAllocator calls this function before changing a target's allocation to ensure
+     * all issuance is properly accounted for with the current issuance rate before applying an
+     * issuance allocation change.
+     *
+     * Only the IssuanceAllocator can call this function to ensure proper access control
+     * for any future changes that might require this level of restriction.
+     */
+    function beforeIssuanceAllocationChange() external override {
+        require(msg.sender == address(issuanceAllocator), "Caller must be IssuanceAllocator");
+
+        // Update rewards calculation with the current issuance rate
+        updateAccRewardsPerSignal();
+    }
+
+    /**
      * @inheritdoc IRewardsManager
      * @dev Note that the rewards eligibility oracle can be set to the zero address to disable use of an oracle, in
      * which case no indexers will be denied rewards due to eligibility.
@@ -191,6 +254,17 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsMa
             rewardsEligibilityOracle = IRewardsEligibilityOracle(newRewardsEligibilityOracle);
             emit RewardsEligibilityOracleSet(oldRewardsEligibilityOracle, newRewardsEligibilityOracle);
         }
+    }
+
+    /**
+     * @inheritdoc ERC165
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return
+            interfaceId == type(IIssuanceTarget).interfaceId ||
+            interfaceId == type(IRewardsManager).interfaceId ||
+            interfaceId == type(IERC165).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     // -- Denylist --
@@ -223,6 +297,17 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @inheritdoc IRewardsManager
+     * @dev Gets the effective issuance per block, taking into account the IssuanceAllocator if set
+     */
+    function getRewardsIssuancePerBlock() public view override returns (uint256) {
+        if (address(issuanceAllocator) != address(0)) {
+            return issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuancePerBlock;
+        }
+        return issuancePerBlock;
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
      * @dev Linear formula: `x = r * t`
      *
      * Notation:
@@ -238,8 +323,10 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsMa
         if (t == 0) {
             return 0;
         }
-        // ...or if issuance is zero
-        if (issuancePerBlock == 0) {
+
+        uint256 rewardsIssuancePerBlock = getRewardsIssuancePerBlock();
+
+        if (rewardsIssuancePerBlock == 0) {
             return 0;
         }
 
@@ -250,7 +337,7 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IRewardsMa
             return 0;
         }
 
-        uint256 x = issuancePerBlock.mul(t);
+        uint256 x = rewardsIssuancePerBlock.mul(t);
 
         // Get the new issuance per signalled token
         // We multiply the decimals to keep the precision as fixed-point number

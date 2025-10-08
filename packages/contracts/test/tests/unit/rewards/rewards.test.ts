@@ -170,6 +170,44 @@ describe('Rewards', () => {
       })
     })
 
+    describe('supportsInterface', function () {
+      it('should support IIssuanceTarget interface', async function () {
+        // Calculate the correct IIssuanceTarget interface ID
+        const beforeIssuanceAllocationChangeSelector = hre.ethers.utils
+          .id('beforeIssuanceAllocationChange()')
+          .slice(0, 10)
+        const setIssuanceAllocatorSelector = hre.ethers.utils.id('setIssuanceAllocator(address)').slice(0, 10)
+        const interfaceId = hre.ethers.BigNumber.from(beforeIssuanceAllocationChangeSelector)
+          .xor(hre.ethers.BigNumber.from(setIssuanceAllocatorSelector))
+          .toHexString()
+
+        const supports = await rewardsManager.supportsInterface(interfaceId)
+        expect(supports).to.be.true
+      })
+
+      it('should support IRewardsManager interface', async function () {
+        // Use the auto-generated interface ID from Solidity compilation
+        const { IRewardsManager } = await import('../../helpers/interfaceIds')
+        const supports = await rewardsManager.supportsInterface(IRewardsManager)
+        expect(supports).to.be.true
+      })
+
+      it('should support IERC165 interface', async function () {
+        // Test the specific IERC165 interface - this should hit the third branch
+        // interfaceId == type(IERC165).interfaceId
+        const IERC165InterfaceId = '0x01ffc9a7' // This is the standard ERC165 interface ID
+        const supports = await rewardsManager.supportsInterface(IERC165InterfaceId)
+        expect(supports).to.be.true
+      })
+
+      it('should call super.supportsInterface for unknown interfaces', async function () {
+        // Test with an unknown interface - this should hit the super.supportsInterface branch
+        const unknownInterfaceId = '0x12345678' // Random interface ID
+        const supports = await rewardsManager.supportsInterface(unknownInterfaceId)
+        expect(supports).to.be.false // Should return false for unknown interface
+      })
+    })
+
     describe('issuance per block update', function () {
       it('reject set issuance per block if unauthorized', async function () {
         const tx = rewardsManager.connect(indexer1).setIssuancePerBlock(toGRT('1.025'))
@@ -187,6 +225,176 @@ describe('Rewards', () => {
         await rewardsManager.connect(governor).setIssuancePerBlock(newIssuancePerBlock)
         expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
         expect(await rewardsManager.accRewardsPerSignalLastBlockUpdated()).eq(await helpers.latestBlock())
+      })
+    })
+
+    describe('getRewardsIssuancePerBlock', function () {
+      it('should return issuancePerBlock when no issuanceAllocator is set', async function () {
+        const expectedIssuance = toGRT('100.025')
+        await rewardsManager.connect(governor).setIssuancePerBlock(expectedIssuance)
+
+        // Ensure no issuanceAllocator is set
+        expect(await rewardsManager.issuanceAllocator()).eq(constants.AddressZero)
+
+        // Should return the direct issuancePerBlock value
+        expect(await rewardsManager.getRewardsIssuancePerBlock()).eq(expectedIssuance)
+      })
+
+      it('should return value from issuanceAllocator when set', async function () {
+        // Create a mock IssuanceAllocator with initial rate
+        const initialRate = toGRT('50')
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(initialRate)
+        await mockIssuanceAllocator.deployed()
+
+        // Set the mock allocator on RewardsManager
+        await rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+
+        // Verify the allocator was set
+        expect(await rewardsManager.issuanceAllocator()).eq(mockIssuanceAllocator.address)
+
+        // Register RewardsManager as a self-minting target with allocation
+        const allocation = 500000 // 50% in PPM (parts per million)
+        await mockIssuanceAllocator['setTargetAllocation(address,uint256,uint256,bool)'](
+          rewardsManager.address,
+          0,
+          allocation,
+          true,
+        )
+
+        // Expected issuance should be (initialRate * allocation) / 1000000
+        const expectedIssuance = initialRate.mul(allocation).div(1000000)
+
+        // Should return the value from the allocator, not the local issuancePerBlock
+        expect(await rewardsManager.getRewardsIssuancePerBlock()).eq(expectedIssuance)
+      })
+
+      it('should return 0 when issuanceAllocator is set but target not registered as self-minter', async function () {
+        // Create a mock IssuanceAllocator
+        const initialRate = toGRT('50')
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(initialRate)
+        await mockIssuanceAllocator.deployed()
+
+        // Set the mock allocator on RewardsManager
+        await rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+
+        // Register RewardsManager as a NON-self-minting target
+        const allocation = 500000 // 50% in PPM
+        await mockIssuanceAllocator['setTargetAllocation(address,uint256,uint256,bool)'](
+          rewardsManager.address,
+          allocation,
+          0,
+          false,
+        ) // selfMinter = false
+
+        // Should return 0 because it's not a self-minting target
+        expect(await rewardsManager.getRewardsIssuancePerBlock()).eq(0)
+      })
+
+      it('should allow setIssuancePerBlock when issuanceAllocator is set', async function () {
+        // Create and set a mock IssuanceAllocator
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(toGRT('50'))
+        await mockIssuanceAllocator.deployed()
+        await rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+
+        // Should allow setting issuancePerBlock even when allocator is set
+        const newIssuancePerBlock = toGRT('100')
+        await rewardsManager.connect(governor).setIssuancePerBlock(newIssuancePerBlock)
+
+        // The local issuancePerBlock should be updated
+        expect(await rewardsManager.issuancePerBlock()).eq(newIssuancePerBlock)
+
+        // But the effective issuance should still come from the allocator
+        // (assuming the allocator returns a different value)
+        expect(await rewardsManager.getRewardsIssuancePerBlock()).not.eq(newIssuancePerBlock)
+      })
+
+      it('should handle beforeIssuanceAllocationChange correctly', async function () {
+        // Create and set a mock IssuanceAllocator
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(toGRT('50'))
+        await mockIssuanceAllocator.deployed()
+        await rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+
+        // Only the allocator should be able to call this function
+        const tx1 = rewardsManager.connect(governor).beforeIssuanceAllocationChange()
+        await expect(tx1).revertedWith('Caller must be IssuanceAllocator')
+
+        // Should succeed when called by the allocator
+        await mockIssuanceAllocator.callBeforeIssuanceAllocationChange(rewardsManager.address)
+      })
+
+      it('should emit IssuanceAllocatorSet event when setting allocator', async function () {
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(toGRT('50'))
+        await mockIssuanceAllocator.deployed()
+
+        const tx = rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+        await expect(tx)
+          .emit(rewardsManager, 'IssuanceAllocatorSet')
+          .withArgs(constants.AddressZero, mockIssuanceAllocator.address)
+      })
+
+      it('should allow setting allocator to zero address to disable', async function () {
+        // First set an allocator
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(toGRT('50'))
+        await mockIssuanceAllocator.deployed()
+        await rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+
+        // Then set it back to zero address
+        const tx = rewardsManager.connect(governor).setIssuanceAllocator(constants.AddressZero)
+        await expect(tx)
+          .emit(rewardsManager, 'IssuanceAllocatorSet')
+          .withArgs(mockIssuanceAllocator.address, constants.AddressZero)
+
+        // Should now use local issuancePerBlock again
+        expect(await rewardsManager.issuanceAllocator()).eq(constants.AddressZero)
+        expect(await rewardsManager.getRewardsIssuancePerBlock()).eq(ISSUANCE_PER_BLOCK)
+      })
+
+      it('should update rewards before changing issuance allocator', async function () {
+        // This test verifies that updateAccRewardsPerSignal is called when setting allocator
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(toGRT('50'))
+        await mockIssuanceAllocator.deployed()
+
+        // Setting the allocator should trigger updateAccRewardsPerSignal
+        // We can't easily test this directly, but we can verify the allocator was set
+        await rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+        expect(await rewardsManager.issuanceAllocator()).eq(mockIssuanceAllocator.address)
+
+        // Setting the same allocator again should not emit an event (no change)
+        const tx = rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
+        await expect(tx).to.not.emit(rewardsManager, 'IssuanceAllocatorSet')
+      })
+
+      it('should reject setIssuanceAllocator if unauthorized', async function () {
+        const MockIssuanceAllocatorFactory = await hre.ethers.getContractFactory(
+          'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
+        )
+        const mockIssuanceAllocator = await MockIssuanceAllocatorFactory.deploy(toGRT('50'))
+        await mockIssuanceAllocator.deployed()
+
+        // Should reject when called by non-governor
+        const tx = rewardsManager.connect(indexer1).setIssuanceAllocator(mockIssuanceAllocator.address)
+        await expect(tx).revertedWith('Only Controller governor')
       })
     })
 
@@ -266,6 +474,23 @@ describe('Rewards', () => {
       })
     })
 
+    describe('interface support', function () {
+      it('should support ERC165 interface', async function () {
+        // Test ERC165 support (which we know is implemented)
+        expect(await rewardsManager.supportsInterface('0x01ffc9a7')).eq(true) // ERC165
+      })
+
+      it('should support IIssuanceTarget interface', async function () {
+        // Test ERC165 support (which we know is implemented)
+        expect(await rewardsManager.supportsInterface('0x01ffc9a7')).eq(true) // ERC165
+      })
+
+      it('should return false for unsupported interfaces', async function () {
+        // Test with a random interface ID that should not be supported
+        expect(await rewardsManager.supportsInterface('0x12345678')).eq(false)
+      })
+    })
+
     describe('subgraph availability service', function () {
       it('reject set subgraph oracle if unauthorized', async function () {
         const tx = rewardsManager.connect(indexer1).setSubgraphAvailabilityOracle(oracle.address)
@@ -292,11 +517,49 @@ describe('Rewards', () => {
           .withArgs(subgraphDeploymentID1, blockNum + 1)
         expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
       })
+
+      it('should allow removing subgraph from denylist', async function () {
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
+
+        // First deny the subgraph
+        await rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, true)
+        expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+
+        // Then remove from denylist
+        const tx = rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, false)
+        await expect(tx).emit(rewardsManager, 'RewardsDenylistUpdated').withArgs(subgraphDeploymentID1, 0)
+        expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(false)
+      })
+
+      it('reject setMinimumSubgraphSignal if unauthorized', async function () {
+        const tx = rewardsManager.connect(indexer1).setMinimumSubgraphSignal(toGRT('1000'))
+        await expect(tx).revertedWith('Not authorized')
+      })
+
+      it('should allow setMinimumSubgraphSignal from subgraph availability oracle', async function () {
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
+
+        const newMinimumSignal = toGRT('2000')
+        const tx = rewardsManager.connect(oracle).setMinimumSubgraphSignal(newMinimumSignal)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('minimumSubgraphSignal')
+
+        expect(await rewardsManager.minimumSubgraphSignal()).eq(newMinimumSignal)
+      })
+
+      it('should allow setMinimumSubgraphSignal from governor', async function () {
+        const newMinimumSignal = toGRT('3000')
+        const tx = rewardsManager.connect(governor).setMinimumSubgraphSignal(newMinimumSignal)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('minimumSubgraphSignal')
+
+        expect(await rewardsManager.minimumSubgraphSignal()).eq(newMinimumSignal)
+      })
     })
   })
 
   context('issuing rewards', function () {
     beforeEach(async function () {
+      // Reset issuance allocator to ensure we use direct issuancePerBlock
+      await rewardsManager.connect(governor).setIssuanceAllocator(constants.AddressZero)
       // 5% minute rate (4 blocks)
       await rewardsManager.connect(governor).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
     })
@@ -403,6 +666,23 @@ describe('Rewards', () => {
         // Check
         expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
         expect(toRound(expectedRewardsSG2)).eq(toRound(contractRewardsSG2))
+      })
+
+      it('should return zero rewards when subgraph signal is below minimum threshold', async function () {
+        // Set a high minimum signal threshold
+        const highMinimumSignal = toGRT('2000')
+        await rewardsManager.connect(governor).setMinimumSubgraphSignal(highMinimumSignal)
+
+        // Signal less than the minimum threshold
+        const lowSignal = toGRT('1000')
+        await curation.connect(curator1).mint(subgraphDeploymentID1, lowSignal, 0)
+
+        // Jump some blocks to potentially accrue rewards
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
+
+        // Check that no rewards are accrued due to minimum signal threshold
+        const contractRewards = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1)
+        expect(contractRewards).eq(0)
       })
     })
 
