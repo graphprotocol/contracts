@@ -46,7 +46,7 @@
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/issuance-test^...' run build:self",
     "build:self": "tsc --build && pnpm generate:interfaces",
-    "generate:interfaces": "node scripts/generateInterfaceIds.js --silent",
+    "generate:interfaces": "python3 scripts/generateInterfaceIds.py --silent",
     "clean": "rm -rf .eslintcache artifacts/",
     "test": "pnpm build && pnpm test:self",
     "test:self": "cd .. && hardhat test test/tests/*.test.ts test/tests/**/*.test.ts",

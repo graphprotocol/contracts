@@ -60,7 +60,6 @@ const config: HardhatUserConfig = {
       // Graph Protocol extensions
       graphConfig: path.join(configDir, 'graph.hardhat.yml'),
       addressBook: process.env.ADDRESS_BOOK || 'addresses.json',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any,
     localhost: {
       chainId: 1337,
@@ -75,7 +74,6 @@ const config: HardhatUserConfig = {
     currency: 'USD',
     outputFile: 'reports/gas-report.log',
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any
 
 export default config

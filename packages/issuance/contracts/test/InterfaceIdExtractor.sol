@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
+import { IIssuanceAllocator } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocator.sol";
+import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
 
 /**
@@ -12,6 +14,22 @@ import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/i
  * interface implementations.
  */
 contract InterfaceIdExtractor {
+    /**
+     * @notice Returns the ERC-165 interface ID for IIssuanceAllocator
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIIssuanceAllocatorId() external pure returns (bytes4) {
+        return type(IIssuanceAllocator).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IIssuanceTarget
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIIssuanceTargetId() external pure returns (bytes4) {
+        return type(IIssuanceTarget).interfaceId;
+    }
+
     /**
      * @notice Returns the ERC-165 interface ID for IRewardsEligibilityOracle
      * @return The interface ID as calculated by Solidity
