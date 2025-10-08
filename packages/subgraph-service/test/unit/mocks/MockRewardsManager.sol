@@ -71,6 +71,8 @@ contract MockRewardsManager is IRewardsManager {
 
     function calcRewards(uint256, uint256) external pure returns (uint256) {}
 
+    function getRewardsIssuancePerBlock() external view returns (uint256) {}
+
     // -- Setters --
 
     function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external {}
