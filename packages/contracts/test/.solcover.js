@@ -6,20 +6,12 @@ module.exports = {
     network_id: 1337,
   },
   skipFiles,
-  // Use default istanbulFolder: './coverage'
+  istanbulFolder: '../coverage',
   // Remove 'html' reporter to avoid duplicates, keep lcov for lcov.info
   istanbulReporter: ['lcov', 'text', 'json'],
   configureYulOptimizer: true,
   mocha: {
     grep: '@skip-on-coverage',
     invert: true,
-  },
-  onCompileComplete: async function (/* config */) {
-    // Set environment variable to indicate we're running under coverage
-    process.env.SOLIDITY_COVERAGE = 'true'
-  },
-  onIstanbulComplete: async function (/* config */) {
-    // Clean up environment variable
-    delete process.env.SOLIDITY_COVERAGE
   },
 }

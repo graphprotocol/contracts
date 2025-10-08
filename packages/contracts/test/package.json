@@ -56,7 +56,7 @@
   },
   "scripts": {
     "postinstall": "scripts/setup-symlinks",
-    "clean": "rm -rf artifacts/ cache/ reports/ types/",
+    "clean": "rm -rf artifacts/ cache/ types/",
     "build": "pnpm build:dep",
     "build:dep": "pnpm --filter '@graphprotocol/contracts-tests^...' run build:self",
     "test": "pnpm build && pnpm test:self",
