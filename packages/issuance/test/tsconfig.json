@@ -1,7 +1,7 @@
 {
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "./build"
+    "outDir": "./artifacts"
   },
   "include": ["tests/**/*", "utils/**/*", "../types/**/*"],
   "exclude": ["node_modules", "build", "scripts/**/*"]

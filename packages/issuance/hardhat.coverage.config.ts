@@ -11,12 +11,11 @@ import { issuanceBaseConfig } from './hardhat.base.config'
 
 const config: HardhatUserConfig = {
   ...issuanceBaseConfig,
-  // Coverage-specific paths
   paths: {
     sources: './contracts',
     tests: './test/tests',
-    artifacts: './artifacts',
-    cache: './cache',
+    artifacts: './coverage/artifacts',
+    cache: './coverage/cache',
   },
 } as HardhatUserConfig
 

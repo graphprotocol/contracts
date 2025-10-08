@@ -15,6 +15,12 @@ const config: HardhatUserConfig = {
     outDir: 'types',
     target: 'ethers-v6',
   },
+  paths: {
+    sources: './contracts',
+    tests: './test/tests',
+    artifacts: './artifacts',
+    cache: './cache',
+  },
 }
 
 export default config

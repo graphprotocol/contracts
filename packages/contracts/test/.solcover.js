@@ -6,7 +6,9 @@ module.exports = {
     network_id: 1337,
   },
   skipFiles,
-  istanbulFolder: './reports/coverage',
+  // Use default istanbulFolder: './coverage'
+  // Remove 'html' reporter to avoid duplicates, keep lcov for lcov.info
+  istanbulReporter: ['lcov', 'text', 'json'],
   configureYulOptimizer: true,
   mocha: {
     grep: '@skip-on-coverage',

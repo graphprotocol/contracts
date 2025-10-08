@@ -13,7 +13,7 @@
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/issuance^...' run build:self",
     "build:self": "pnpm compile; pnpm typechain",
-    "clean": "rm -rf build/ cache/ dist/ forge-artifacts/ cache_forge/",
+    "clean": "rm -rf artifacts/ types/ forge-artifacts/ cache_forge/ coverage/ cache/ .eslintcache",
     "compile": "hardhat compile",
     "test": "pnpm --filter @graphprotocol/issuance-test test",
     "test:coverage": "pnpm --filter @graphprotocol/issuance-test run test:coverage",
