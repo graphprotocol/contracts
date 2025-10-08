@@ -8,8 +8,9 @@ import { GraphDirectory } from "../../utilities/GraphDirectory.sol";
 
 /**
  * @title Graph Managed contract
- * @dev The Managed contract provides an interface to interact with the Controller.
- * For Graph Horizon this contract is mostly a shell that uses {GraphDirectory}, however since the {HorizonStaking}
+ * @author Edge & Node
+ * @notice The Managed contract provides an interface to interact with the Controller
+ * @dev For Graph Horizon this contract is mostly a shell that uses {GraphDirectory}, however since the {HorizonStaking}
  * contract uses it we need to preserve the storage layout.
  * Inspired by Livepeer: https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
@@ -59,8 +60,8 @@ abstract contract Managed is GraphDirectory {
     }
 
     /**
-     * @dev Initialize the contract
-     * @param controller_ The address of the Graph controller contract.
+     * @notice Initialize the contract
+     * @param controller_ The address of the Graph controller contract
      */
     constructor(address controller_) GraphDirectory(controller_) {}
 }

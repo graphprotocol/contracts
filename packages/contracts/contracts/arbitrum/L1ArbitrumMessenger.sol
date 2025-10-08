@@ -25,20 +25,49 @@
 
 pragma solidity ^0.7.6;
 
-import "./IInbox.sol";
-import "./IOutbox.sol";
+import { IInbox } from "./IInbox.sol";
+import { IOutbox } from "./IOutbox.sol";
+import { IBridge } from "./IBridge.sol";
 
-/// @notice L1 utility contract to assist with L1 <=> L2 interactions
-/// @dev this is an abstract contract instead of library so the functions can be easily overridden when testing
+/**
+ * @title L1 Arbitrum Messenger
+ * @author Edge & Node
+ * @notice L1 utility contract to assist with L1 <=> L2 interactions
+ * @dev this is an abstract contract instead of library so the functions can be easily overridden when testing
+ */
 abstract contract L1ArbitrumMessenger {
+    /**
+     * @notice Emitted when a transaction is sent to L2
+     * @param _from Address sending the transaction
+     * @param _to Address receiving the transaction on L2
+     * @param _seqNum Sequence number of the retryable ticket
+     * @param _data Transaction data
+     */
     event TxToL2(address indexed _from, address indexed _to, uint256 indexed _seqNum, bytes _data);
 
+    /**
+     * @dev Parameters for L2 gas configuration
+     * @param _maxSubmissionCost Maximum cost for submitting the transaction
+     * @param _maxGas Maximum gas for the L2 transaction
+     * @param _gasPriceBid Gas price bid for the L2 transaction
+     */
     struct L2GasParams {
         uint256 _maxSubmissionCost;
         uint256 _maxGas;
         uint256 _gasPriceBid;
     }
 
+    /**
+     * @notice Send a transaction to L2 using gas parameters struct
+     * @param _inbox Address of the inbox contract
+     * @param _to Destination address on L2
+     * @param _user Address that will be credited as the sender
+     * @param _l1CallValue ETH value to send with the L1 transaction
+     * @param _l2CallValue ETH value to send with the L2 transaction
+     * @param _l2GasParams Gas parameters for the L2 transaction
+     * @param _data Calldata for the L2 transaction
+     * @return Sequence number of the retryable ticket
+     */
     function sendTxToL2(
         address _inbox,
         address _to,
@@ -63,6 +92,19 @@ abstract contract L1ArbitrumMessenger {
             );
     }
 
+    /**
+     * @notice Send a transaction to L2 with individual gas parameters
+     * @param _inbox Address of the inbox contract
+     * @param _to Destination address on L2
+     * @param _user Address that will be credited as the sender
+     * @param _l1CallValue ETH value to send with the L1 transaction
+     * @param _l2CallValue ETH value to send with the L2 transaction
+     * @param _maxSubmissionCost Maximum cost for submitting the transaction
+     * @param _maxGas Maximum gas for the L2 transaction
+     * @param _gasPriceBid Gas price bid for the L2 transaction
+     * @param _data Calldata for the L2 transaction
+     * @return Sequence number of the retryable ticket
+     */
     function sendTxToL2(
         address _inbox,
         address _to,
@@ -88,11 +130,21 @@ abstract contract L1ArbitrumMessenger {
         return seqNum;
     }
 
+    /**
+     * @notice Get the bridge contract from an inbox
+     * @param _inbox Address of the inbox contract
+     * @return Bridge contract interface
+     */
     function getBridge(address _inbox) internal view virtual returns (IBridge) {
         return IInbox(_inbox).bridge();
     }
 
-    /// @dev the l2ToL1Sender behaves as the tx.origin, the msg.sender should be validated to protect against reentrancies
+    /**
+     * @notice Get the L2 to L1 sender address from the outbox
+     * @dev the l2ToL1Sender behaves as the tx.origin, the msg.sender should be validated to protect against reentrancies
+     * @param _inbox Address of the inbox contract
+     * @return Address of the L2 to L1 sender
+     */
     function getL2ToL1Sender(address _inbox) internal view virtual returns (address) {
         IOutbox outbox = IOutbox(getBridge(_inbox).activeOutbox());
         address l2ToL1Sender = outbox.l2ToL1Sender();

@@ -3,7 +3,8 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
 
 interface IGraphTokenLock {
     enum Revocability {

@@ -2,7 +2,7 @@
 
 A Hardhat plugin for integrating with The Graph Protocol, providing easy access to deployment addresses and configuration for Graph Protocol contracts.
 
-### Features
+## Features
 
 - **Protocol deployments** - Provides a simple interface to interact with protocol contracts without having to configure contract addresses or ABIs.
 - **Transaction logging** - Transactions made via the plugin are automatically awaited and logged.
@@ -44,7 +44,7 @@ export default config // or just "export default hardhatBaseConfig"
 
 To manually configure target networks:
 
-**Hardhat: Network config**
+#### Hardhat: Network config
 
 ```ts
   networks: {
@@ -59,7 +59,7 @@ To manually configure target networks:
   }
 ```
 
-**Hardhat: Graph config**
+#### Hardhat: Graph config
 
 Additionally, the plugin adds a new config field to hardhat's config file: `graph`. This can be used used to define defaults for all networks:
 
@@ -85,14 +85,14 @@ This plugin exposes functionality via a simple API:
 const graph = hre.graph()
 ```
 
-The interface for the graph object can be found [here](src/types.ts), it's expanded version lookg like this:
+See [types.ts](src/types.ts) for graph object interface, expanded version looks like this:
 
 ```ts
 export type GraphRuntimeEnvironment = {
   [deploymentName]: {
     contracts: DeploymentContractsType
     addressBook: DeploymentAddressBookType
-    actions: DeplyomentActionsType
+    actions: DeploymentActionsType
   }
   provider: HardhatEthersProvider
   chainId: number
@@ -119,7 +119,7 @@ Each deployment will be of the form:
   [deploymentName]: {
     contracts: DeploymentContractsType,
     addressBook: DeploymentAddressBookType,
-    actions: DeplyomentActionsType
+    actions: DeploymentActionsType
   },
 ```
 
@@ -129,7 +129,7 @@ Where:
 - `addressBook`: an object allowing read and write access to the deployment's address book.
 - `actions`: (optional) an object with helper functions to perform common actions in the associated deployment.
 
-**Transaction logging**
+### Transaction logging
 
 Any transactions made using the `contracts` object will be automatically logged both to the console and to a file:
 
@@ -139,7 +139,7 @@ Any transactions made using the `contracts` object will be automatically logged 
 Note that this does not apply to getter functions (`view` or `pure`) as those are not state modifying calls.
 An example log output:
 
-```
+```text
 [2025-04-10T20:32:37.182Z] > Sending transaction: HorizonStaking.addToProvision
 [2025-04-10T20:32:37.182Z]    = Sender: 0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E
 [2025-04-10T20:32:37.182Z]    = Contract: 0x865365C425f3A593Ffe698D9c4E6707D14d51e08
@@ -156,7 +156,7 @@ An example log output:
 
 **Note** Transaction logging requires using js Proxy which strips down some type definitions from contract methods. This means that when transaction logging is enabled `contract.functionName.estimateGas` for example will not be available.
 
-**Transaction auto-awaiting**
+### Transaction auto-awaiting
 
 Any transactions made using the `contracts` object will be automatically awaited:
 
@@ -170,7 +170,7 @@ const tx = await graph.horizon.contracts.GraphToken.approve('0xDEADBEEF', 100)
 await tx.wait(10)
 ```
 
-**Examples**
+### Examples
 
 ```js
 const graph = hre.graph()

@@ -3,13 +3,22 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 /**
  * @title IGoverned
- * @dev Interface for the Governed contract.
+ * @author Edge & Node
+ * @notice Interface for governed contracts
  */
 interface IGoverned {
     // -- State getters --
 
+    /**
+     * @notice Get the current governor address
+     * @return The address of the current governor
+     */
     function governor() external view returns (address);
 
+    /**
+     * @notice Get the pending governor address
+     * @return The address of the pending governor
+     */
     function pendingGovernor() external view returns (address);
 
     // -- External functions --
@@ -27,7 +36,17 @@ interface IGoverned {
 
     // -- Events --
 
+    /**
+     * @notice Emitted when a new pending governor is set
+     * @param from The address of the current governor
+     * @param to The address of the new pending governor
+     */
     event NewPendingOwnership(address indexed from, address indexed to);
 
+    /**
+     * @notice Emitted when governance is transferred to a new governor
+     * @param from The address of the previous governor
+     * @param to The address of the new governor
+     */
     event NewOwnership(address indexed from, address indexed to);
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// solhint-disable use-natspec
+
 import { ISubgraphService } from "../subgraph-service/ISubgraphService.sol";
 import { IOwnable } from "./internal/IOwnable.sol";
 import { IPausable } from "./internal/IPausable.sol";

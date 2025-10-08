@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-small-strings
+
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 
 import { AttestationManagerV1Storage } from "./AttestationManagerStorage.sol";
@@ -10,7 +13,8 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 
 /**
  * @title AttestationManager contract
- * @notice A helper contract implementing attestation verification.
+ * @author Edge & Node
+ * @notice A helper contract implementing attestation verification
  * Uses a custom implementation of EIP712 for backwards compatibility with attestations.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -34,18 +38,18 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
     bytes32 private constant DOMAIN_SALT = 0xa070ffb1cd7409649bf77822cce74495468e06dbfaef09556838bf188679b9c2;
 
     /**
-     * @dev Initialize the AttestationManager contract and parent contracts
+     * @notice Initialize the AttestationManager contract and parent contracts
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __AttestationManager_init() internal onlyInitializing {
+        // solhint-disable-previous-line func-name-mixedcase
         __AttestationManager_init_unchained();
     }
 
     /**
-     * @dev Initialize the AttestationManager contract
+     * @notice Initialize the AttestationManager contract
      */
-    // solhint-disable-next-line func-name-mixedcase
     function __AttestationManager_init_unchained() internal onlyInitializing {
+        // solhint-disable-previous-line func-name-mixedcase
         _domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_TYPE_HASH,
@@ -59,7 +63,7 @@ abstract contract AttestationManager is Initializable, AttestationManagerV1Stora
     }
 
     /**
-     * @dev Recover the signer address of the `_attestation`.
+     * @notice Recover the signer address of the `_attestation`
      * @param _attestation The attestation struct
      * @return Signer address
      */

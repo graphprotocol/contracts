@@ -8,7 +8,6 @@ node_modules/
 
 # Third-party libraries in lib directories
 **/lib/
-forge-std/
 
 # Build outputs (from .gitignore)
 **/build/
@@ -36,9 +35,7 @@ lcov.info
 packages/*/.eslintcache
 deployments/hardhat/
 .graphclient
-**/chain-31337/
-**/chain-1377/
-**/horizon-localhost/
-**/horizon-hardhat/
-**/subgraph-service-localhost/
-**/subgraph-service-hardhat/
+**/.graphclient-extracted/
+**/chain-*/
+**/*-localhost/
+**/*-hardhat/

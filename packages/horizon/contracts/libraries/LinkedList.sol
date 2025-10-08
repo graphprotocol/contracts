@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+// solhint-disable gas-increment-by-one
+// solhint-disable function-max-lines
+
 pragma solidity 0.8.27;
 
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
 /**
  * @title LinkedList library
+ * @author Edge & Node
  * @notice A library to manage singly linked lists.
  *
  * The library makes no assumptions about the contents of the items, the only

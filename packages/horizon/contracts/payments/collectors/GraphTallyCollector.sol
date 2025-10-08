@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-small-strings
+// solhint-disable gas-strict-inequalities
+// solhint-disable function-max-lines
+
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphTallyCollector } from "@graphprotocol/interfaces/contracts/horizon/IGraphTallyCollector.sol";
 import { IPaymentsCollector } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsCollector.sol";
@@ -14,6 +19,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**
  * @title GraphTallyCollector contract
+ * @author Edge & Node
  * @dev Implements the {IGraphTallyCollector}, {IPaymentCollector} and {IAuthorizable} interfaces.
  * @notice A payments collector contract that can be used to collect payments using a GraphTally RAV (Receipt Aggregate Voucher).
  * @dev Note that the contract expects the RAV aggregate value to be monotonically increasing, each successive RAV for the same
@@ -185,9 +191,9 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
     }
 
     /**
-     * @dev Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
-     * @param _signedRAV The SignedRAV containing the RAV and its signature.
-     * @return The address of the signer.
+     * @notice Recovers the signer address of a signed ReceiptAggregateVoucher (RAV)
+     * @param _signedRAV The SignedRAV containing the RAV and its signature
+     * @return The address of the signer
      */
     function _recoverRAVSigner(SignedRAV memory _signedRAV) private view returns (address) {
         bytes32 messageHash = _encodeRAV(_signedRAV.rav);
@@ -195,9 +201,9 @@ contract GraphTallyCollector is EIP712, GraphDirectory, Authorizable, IGraphTall
     }
 
     /**
-     * @dev Computes the hash of a ReceiptAggregateVoucher (RAV).
-     * @param _rav The RAV for which to compute the hash.
-     * @return The hash of the RAV.
+     * @notice Computes the hash of a ReceiptAggregateVoucher (RAV)
+     * @param _rav The RAV for which to compute the hash
+     * @return The hash of the RAV
      */
     function _encodeRAV(ReceiptAggregateVoucher memory _rav) private view returns (bytes32) {
         return

@@ -8,7 +8,7 @@ import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import PQueue from 'p-queue'
 
-import * as GraphClient from '../.graphclient'
+import * as GraphClient from '../.graphclient-extracted'
 import {
   CuratorWalletsDocument,
   CuratorWalletsQuery,
@@ -19,7 +19,7 @@ import {
   GraphNetworkQuery,
   TokenLockWalletsDocument,
   TokenLockWalletsQuery,
-} from '../.graphclient'
+} from '../.graphclient-extracted'
 
 const CoinGeckoClient = new CoinGecko()
 const RPC_CONCURRENCY = 10

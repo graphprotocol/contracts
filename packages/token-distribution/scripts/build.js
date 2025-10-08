@@ -98,8 +98,28 @@ async function getDirModTime(dirPath) {
   }
 }
 
+// Check if required API keys are available
+function hasRequiredApiKeys() {
+  // Check for Studio API key (required for GraphClient)
+  const studioApiKey = process.env.STUDIO_API_KEY || process.env.GRAPH_API_KEY
+  return !!studioApiKey
+}
+
+// Check if extracted GraphClient artifacts exist
+function hasExtractedArtifacts() {
+  const extractedDir = '.graphclient-extracted'
+  const extractedIndex = path.join(extractedDir, 'index.js')
+  const extractedTypes = path.join(extractedDir, 'index.d.ts')
+  return fileExists(extractedIndex) && fileExists(extractedTypes)
+}
+
 // Check if GraphClient build is needed
 async function needsGraphClientBuild() {
+  // If we have extracted artifacts and no API keys, we don't need a full build
+  if (!hasRequiredApiKeys() && hasExtractedArtifacts()) {
+    return false
+  }
+
   // If GraphClient output doesn't exist, build is needed
   if (!fileExists(graphClientSchema) || !fileExists(graphClientIndex)) {
     return true
@@ -126,28 +146,49 @@ async function needsContractCompilation() {
   return contractsSrcTime > artifactsTime
 }
 
-// Main build function
-async function build() {
+// Setup GraphClient artifacts for compilation
+async function setupGraphClient() {
+  const hasApiKeys = hasRequiredApiKeys()
+  const hasExtracted = hasExtractedArtifacts()
   const graphClientBuildNeeded = await needsGraphClientBuild()
-  const contractCompilationNeeded = await needsContractCompilation()
 
-  // If no build is needed, exit early
-  if (!graphClientBuildNeeded && !contractCompilationNeeded) {
-    console.log('All build targets are up to date.')
+  // If no API keys but we have extracted artifacts, use those instead of trying to build
+  if (!hasApiKeys && hasExtracted) {
+    console.log('📦 Using cached GraphClient artifacts (no API key)')
+    console.warn('⚠️  Schemas might be outdated - set STUDIO_API_KEY or GRAPH_API_KEY to refresh')
     return
   }
 
-  // Build GraphClient if needed
   if (graphClientBuildNeeded) {
-    console.log('Building GraphClient...')
-    execSync('pnpm graphclient build --fileType json', { stdio: 'inherit' })
-  } else {
-    console.log('GraphClient is up to date.')
-  }
+    if (hasApiKeys) {
+      // Stage 1: Download with API key - fail if download fails
+      console.log('📥 Downloading GraphClient schemas...')
+      execSync('pnpm graphclient build --fileType json', { stdio: 'inherit' })
 
-  // Compile contracts if needed
+      // Stage 2: Extract essential artifacts for future offline builds
+      console.log('📦 Extracting essential artifacts...')
+      execSync('node scripts/extract-graphclient.js', { stdio: 'inherit' })
+    } else {
+      // No API key and no cached artifacts - cannot proceed
+      // To fix: Set STUDIO_API_KEY or GRAPH_API_KEY environment variable
+      console.error('❌ No API key or cached GraphClient artifacts available')
+      process.exit(1)
+    }
+  } else {
+    console.log('📦 GraphClient up to date')
+  }
+}
+
+// Main build function
+async function build() {
+  const contractCompilationNeeded = await needsContractCompilation()
+
+  // Stage 1 & 2: Setup GraphClient (download + extract, or use extracted)
+  await setupGraphClient()
+
+  // Stage 3: Compile contracts if needed
   if (contractCompilationNeeded) {
-    console.log('Compiling contracts...')
+    console.log('🔨 Compiling contracts...')
 
     // // Copy working TypeChain modules from contracts package to fix compatibility
     // console.log('Copying TypeChain modules from contracts package...')
@@ -160,7 +201,7 @@ async function build() {
     console.log('Contracts are up to date.')
   }
 
-  console.log('Build completed successfully.')
+  console.log('✅ Build completed successfully.')
 }
 
 // Run the build

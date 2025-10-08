@@ -3,23 +3,39 @@
 pragma solidity ^0.7.6 || 0.8.27;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";
 
 /**
  * @title Base interface for the L1Staking contract.
+ * @author Edge & Node
  * @notice This interface is used to define the transfer tools that are implemented in L1Staking.
  * @dev Note it includes only the L1-specific functionality, not the full IStaking interface.
  */
 interface IL1StakingBase {
-    /// @dev Emitted when an indexer transfers their stake to L2.
-    /// This can happen several times as indexers can transfer partial stake.
+    /**
+     * @notice Emitted when an indexer transfers their stake to L2.
+     * This can happen several times as indexers can transfer partial stake.
+     * @param indexer Address of the indexer on L1
+     * @param l2Indexer Address of the indexer on L2
+     * @param transferredStakeTokens Amount of stake tokens transferred
+     */
     event IndexerStakeTransferredToL2(
         address indexed indexer,
         address indexed l2Indexer,
         uint256 transferredStakeTokens
     );
 
-    /// @dev Emitted when a delegator transfers their delegation to L2
+    /**
+     * @notice Emitted when a delegator transfers their delegation to L2
+     * @param delegator Address of the delegator on L1
+     * @param l2Delegator Address of the delegator on L2
+     * @param indexer Address of the indexer on L1
+     * @param l2Indexer Address of the indexer on L2
+     * @param transferredDelegationTokens Amount of delegation tokens transferred
+     */
     event DelegationTransferredToL2(
         address indexed delegator,
         address indexed l2Delegator,
@@ -28,10 +44,17 @@ interface IL1StakingBase {
         uint256 transferredDelegationTokens
     );
 
-    /// @dev Emitted when the L1GraphTokenLockTransferTool is set
+    /**
+     * @notice Emitted when the L1GraphTokenLockTransferTool is set
+     * @param l1GraphTokenLockTransferTool Address of the L1GraphTokenLockTransferTool contract
+     */
     event L1GraphTokenLockTransferToolSet(address l1GraphTokenLockTransferTool);
 
-    /// @dev Emitted when a delegator unlocks their tokens ahead of time because the indexer has transferred to L2
+    /**
+     * @notice Emitted when a delegator unlocks their tokens ahead of time because the indexer has transferred to L2
+     * @param indexer Address of the indexer that transferred to L2
+     * @param delegator Address of the delegator unlocking their tokens
+     */
     event StakeDelegatedUnlockedDueToL2Transfer(address indexed indexer, address indexed delegator);
 
     /**

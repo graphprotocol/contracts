@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IDataService } from "./IDataService.sol";
 
 /**
  * @title Interface for the {IDataServicePausable} contract.
+ * @author Edge & Node
  * @notice Extension for the {IDataService} contract, adds the ability to rescue
  * any ERC20 token or ETH from the contract, controlled by a rescuer privileged role.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any

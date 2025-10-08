@@ -39,6 +39,7 @@ const config: HardhatUserConfig = {
     tests: './tests/unit',
     cache: './cache',
     graph: '..',
+    artifacts: './artifacts',
   },
   typechain: {
     outDir: 'types',

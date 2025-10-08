@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable named-parameters-mapping
+
 import { ISubgraphService } from "@graphprotocol/interfaces/contracts/subgraph-service/ISubgraphService.sol";
 
 /**
  * @title SubgraphServiceStorage
- * @notice This contract holds all the storage variables for the Subgraph Service contract.
+ * @author Edge & Node
+ * @notice This contract holds all the storage variables for the Subgraph Service contract
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */

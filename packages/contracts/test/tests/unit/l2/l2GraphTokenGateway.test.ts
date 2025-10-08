@@ -6,6 +6,7 @@ import { expect, use } from 'chai'
 import { constants, ContractTransaction, Signer, utils, Wallet } from 'ethers'
 import hre from 'hardhat'
 
+import { isRunningUnderCoverage } from '../../../utils/coverage'
 import { NetworkFixture } from '../lib/fixtures'
 
 use(smock.matchers)
@@ -80,21 +81,11 @@ describe('L2GraphTokenGateway', () => {
     await fixture.setUp()
     // Thanks to Livepeer: https://github.com/livepeer/arbitrum-lpt-bridge/blob/main/test/unit/L2/l2LPTGateway.test.ts#L86
     // Skip smock setup when running under coverage due to provider compatibility issues
-    const isRunningUnderCoverage =
-      hre.network.name === 'coverage' ||
-      process.env.SOLIDITY_COVERAGE === 'true' ||
-      process.env.npm_lifecycle_event === 'test:coverage'
-
-    if (!isRunningUnderCoverage) {
-      try {
-        arbSysMock = await smock.fake('IArbSys', {
-          address: '0x0000000000000000000000000000000000000064',
-        })
-        arbSysMock.sendTxToL1.returns(1)
-      } catch {
-        // Skip smock setup if IArbSys artifact is not found
-        console.log('Skipping ArbSys mock setup due to artifact not found')
-      }
+    if (!isRunningUnderCoverage()) {
+      arbSysMock = await smock.fake('ArbSys', {
+        address: '0x0000000000000000000000000000000000000064',
+      })
+      arbSysMock.sendTxToL1.returns(1)
     }
   })
 
@@ -242,12 +233,7 @@ describe('L2GraphTokenGateway', () => {
       // expect(arbSysMock.sendTxToL1).to.have.been.calledOnce
 
       // Only check smock expectations when not running under coverage
-      const isRunningUnderCoverage =
-        hre.network.name === 'coverage' ||
-        process.env.SOLIDITY_COVERAGE === 'true' ||
-        process.env.npm_lifecycle_event === 'test:coverage'
-
-      if (!isRunningUnderCoverage && arbSysMock) {
+      if (!isRunningUnderCoverage() && arbSysMock) {
         expect(arbSysMock.sendTxToL1).to.have.been.calledWith(l1GRTGatewayMock.address, calldata)
       }
       const senderBalance = await grt.balanceOf(tokenSender.address)
@@ -275,15 +261,9 @@ describe('L2GraphTokenGateway', () => {
           ](tokenSender.address, l1Receiver.address, toGRT('10'), defaultData)
         await expect(tx).revertedWith('TOKEN_NOT_GRT')
       })
-      it.skip('burns tokens and triggers an L1 call', async function () {
-        // Check if we're running under coverage
-        const isRunningUnderCoverage =
-          hre.network.name === 'coverage' ||
-          process.env.SOLIDITY_COVERAGE === 'true' ||
-          process.env.npm_lifecycle_event === 'test:coverage'
-
-        if (isRunningUnderCoverage) {
-          // Skip this test under coverage due to complex instrumentation issues
+      it('burns tokens and triggers an L1 call', async function () {
+        // Skip this test under coverage due to complex instrumentation issues
+        if (isRunningUnderCoverage()) {
           this.skip()
           return
         }
@@ -291,15 +271,9 @@ describe('L2GraphTokenGateway', () => {
         await grt.connect(tokenSender).approve(l2GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(tokenSender, defaultData)
       })
-      it.skip('decodes the sender address from messages sent by the router', async function () {
-        // Check if we're running under coverage
-        const isRunningUnderCoverage =
-          hre.network.name === 'coverage' ||
-          process.env.SOLIDITY_COVERAGE === 'true' ||
-          process.env.npm_lifecycle_event === 'test:coverage'
-
-        if (isRunningUnderCoverage) {
-          // Skip this test under coverage due to complex instrumentation issues
+      it('decodes the sender address from messages sent by the router', async function () {
+        // Skip this test under coverage due to complex instrumentation issues
+        if (isRunningUnderCoverage()) {
           this.skip()
           return
         }

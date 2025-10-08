@@ -37,7 +37,11 @@ export class GraphHorizonAddressBook extends AddressBook<number, GraphHorizonCon
 
     if (contracts.RewardsManager) {
       // add LegacyRewardsManager alias using old ILegacyRewardsManager abi
-      const contract = new Contract(contracts.RewardsManager.target, getInterface('ILegacyRewardsManager'), signerOrProvider)
+      const contract = new Contract(
+        contracts.RewardsManager.target,
+        getInterface('ILegacyRewardsManager'),
+        signerOrProvider,
+      )
       contracts.LegacyRewardsManager = (enableTxLogging
         ? wrapTransactionCalls(contract, 'LegacyRewardsManager')
         : contract) as unknown as LegacyRewardsManager
