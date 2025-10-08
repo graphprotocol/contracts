@@ -58,7 +58,6 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
 
     /// @notice ERC-7201 storage location for IssuanceAllocator
     bytes32 private constant ISSUANCE_ALLOCATOR_STORAGE_LOCATION =
-        // TODO: Consider optimizing string length for gas efficiency in future version
         // solhint-disable-next-line gas-small-strings
         keccak256(abi.encode(uint256(keccak256("graphprotocol.storage.IssuanceAllocator")) - 1)) &
             ~bytes32(uint256(0xff));
@@ -203,9 +202,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         $.lastAccumulationBlock = block.number;
 
         if (0 < newIssuance) {
-            // TODO: Use ++i for gas optimization in future version
-            // solhint-disable-next-line gas-increment-by-one
-            for (uint256 i = 0; i < $.targetAddresses.length; i++) {
+            for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
                 address target = $.targetAddresses[i];
                 AllocationTarget storage targetData = $.allocationTargets[target];
 
@@ -267,7 +264,6 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         AllocationTarget storage targetData = $.allocationTargets[target];
 
         // Check-effects-interactions pattern: check if already notified this block
-        // TODO: Use strict inequality for gas optimization in future version
         // solhint-disable-next-line gas-strict-inequalities
         if (block.number <= targetData.lastChangeNotifiedBlock) return true;
 
@@ -288,9 +284,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     function notifyAllTargets() private {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
-        // TODO: Use ++i for gas optimization in future version
-        // solhint-disable-next-line gas-increment-by-one
-        for (uint256 i = 0; i < $.targetAddresses.length; i++) {
+        for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
             _notifyTarget($.targetAddresses[i]);
         }
     }
@@ -375,8 +369,6 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         return _setTargetAllocation(target, allocatorMintingPPM, selfMintingPPM, evenIfDistributionPending);
     }
 
-    // solhint-disable function-max-lines
-    // TODO: Refactor this function to reduce complexity in future version
     /**
      * @notice Internal implementation for setting target allocation
      * @param target Address of the target to update
@@ -391,33 +383,91 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         uint256 selfMintingPPM,
         bool evenIfDistributionPending
     ) internal returns (bool) {
+        if (!_validateTargetAllocation(target, allocatorMintingPPM, selfMintingPPM))
+            return true; // No change needed
+
+        if (!_handleDistributionBeforeAllocation(target, selfMintingPPM, evenIfDistributionPending))
+            return false; // Distribution pending and not forced
+
+        _notifyTarget(target);
+
+        _validateAndUpdateTotalAllocations(target, allocatorMintingPPM, selfMintingPPM);
+
+        _updateTargetAllocationData(target, allocatorMintingPPM, selfMintingPPM);
+
+        emit TargetAllocationUpdated(target, allocatorMintingPPM, selfMintingPPM);
+        return true;
+    }
+
+    /**
+     * @notice Validates target address and interface support, returns false if allocation is unchanged
+     * @param target Address of the target to validate
+     * @param allocatorMintingPPM Allocator-minting allocation for the target (in PPM)
+     * @param selfMintingPPM Self-minting allocation for the target (in PPM)
+     * @return True if validation passes and allocation change is needed, false if allocation is already set to these values
+     */
+    function _validateTargetAllocation(
+        address target,
+        uint256 allocatorMintingPPM,
+        uint256 selfMintingPPM
+    ) private view returns (bool) {
         require(target != address(0), TargetAddressCannotBeZero());
 
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
         AllocationTarget storage targetData = $.allocationTargets[target];
 
         if (targetData.allocatorMintingPPM == allocatorMintingPPM && targetData.selfMintingPPM == selfMintingPPM)
-            return true;
+            return false; // No change needed
 
-        if (allocatorMintingPPM != 0 || selfMintingPPM != 0) {
+        if (allocatorMintingPPM != 0 || selfMintingPPM != 0)
             require(
                 IERC165(target).supportsInterface(type(IIssuanceTarget).interfaceId),
                 TargetDoesNotSupportIIssuanceTarget()
             );
-        }
 
+        return true;
+    }
+
+    /**
+     * @notice Distributes current issuance and handles accumulation for self-minting changes
+     * @param target Address of the target being updated
+     * @param selfMintingPPM New self-minting allocation for the target (in PPM)
+     * @param evenIfDistributionPending Whether to force the allocation change even if issuance distribution is behind
+     * @return True if allocation change should proceed, false if distribution is behind and not forced
+     */
+    function _handleDistributionBeforeAllocation(
+        address target,
+        uint256 selfMintingPPM,
+        bool evenIfDistributionPending
+    ) private returns (bool) {
         if (_distributeIssuance() < block.number) {
             if (!evenIfDistributionPending)
                 return false;
 
-                // A change in self-minting allocation changes the accumulation rate for pending allocator-minting.
-                // So for a self-minting change, accumulate pending issuance prior to the rate change.
-            else if (selfMintingPPM != targetData.selfMintingPPM) accumulatePendingIssuance();
+            // A change in self-minting allocation changes the accumulation rate for pending allocator-minting.
+            // So for a self-minting change, accumulate pending issuance prior to the rate change.
+            IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+            AllocationTarget storage targetData = $.allocationTargets[target];
+            if (selfMintingPPM != targetData.selfMintingPPM)
+                accumulatePendingIssuance();
         }
 
-        // Notification needs to be sent before the allocation is updated so that the
-        // target can query the current allocation.
-        _notifyTarget(target);
+        return true;
+    }
+
+    /**
+     * @notice Updates global allocation totals and validates they don't exceed maximum
+     * @param target Address of the target being updated
+     * @param allocatorMintingPPM New allocator-minting allocation for the target (in PPM)
+     * @param selfMintingPPM New self-minting allocation for the target (in PPM)
+     */
+    function _validateAndUpdateTotalAllocations(
+        address target,
+        uint256 allocatorMintingPPM,
+        uint256 selfMintingPPM
+    ) private {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+        AllocationTarget storage targetData = $.allocationTargets[target];
 
         // Total allocation calculation and check is delayed until after notifications.
         // Distributing and notifying unecessarily is harmless, but we need to prevent
@@ -426,10 +476,25 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         // make a call to set target allocation, but better to be paranoid.)
         $.totalAllocatorMintingPPM = $.totalAllocatorMintingPPM - targetData.allocatorMintingPPM + allocatorMintingPPM;
         $.totalSelfMintingPPM = $.totalSelfMintingPPM - targetData.selfMintingPPM + selfMintingPPM;
+
         // Ensure the new total allocation doesn't exceed MILLION as in PPM.
-        // TODO: Use strict inequality for gas optimization in future version
         // solhint-disable-next-line gas-strict-inequalities
         require(($.totalAllocatorMintingPPM + $.totalSelfMintingPPM) <= MILLION, InsufficientAllocationAvailable());
+    }
+
+    /**
+     * @notice Sets target allocation values and adds/removes target from active list
+     * @param target Address of the target being updated
+     * @param allocatorMintingPPM New allocator-minting allocation for the target (in PPM)
+     * @param selfMintingPPM New self-minting allocation for the target (in PPM)
+     */
+    function _updateTargetAllocationData(
+        address target,
+        uint256 allocatorMintingPPM,
+        uint256 selfMintingPPM
+    ) private {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+        AllocationTarget storage targetData = $.allocationTargets[target];
 
         // Internal design invariants:
         // - targetAddresses contains all targets with non-zero allocation.
@@ -444,29 +509,34 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         // - Delete allocationTargets mapping entry when removing a target from targetAddresses.
         // - Do not set lastChangeNotifiedBlock in this function.
         if (allocatorMintingPPM != 0 || selfMintingPPM != 0) {
-            if (targetData.allocatorMintingPPM == 0 && targetData.selfMintingPPM == 0) $.targetAddresses.push(target);
+            // Add to list if previously had no allocation
+            if (targetData.allocatorMintingPPM == 0 && targetData.selfMintingPPM == 0)
+                $.targetAddresses.push(target);
 
             targetData.allocatorMintingPPM = allocatorMintingPPM;
             targetData.selfMintingPPM = selfMintingPPM;
         } else {
-            // TODO: Use ++i for gas optimization in future version
-            // solhint-disable-next-line gas-increment-by-one
-            for (uint256 i = 0; i < $.targetAddresses.length; i++) {
-                if ($.targetAddresses[i] == target) {
-                    $.targetAddresses[i] = $.targetAddresses[$.targetAddresses.length - 1];
-                    $.targetAddresses.pop();
-                    break;
-                }
-            }
-
+            // Remove from list and delete mapping
+            _removeTargetFromList(target);
             delete $.allocationTargets[target];
         }
-
-        emit TargetAllocationUpdated(target, allocatorMintingPPM, selfMintingPPM);
-
-        return true;
     }
-    // solhint-enable function-max-lines
+
+    /**
+     * @notice Removes target from targetAddresses array using swap-and-pop for gas efficiency
+     * @param target Address of the target to remove
+     */
+    function _removeTargetFromList(address target) private {
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+
+        for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
+            if ($.targetAddresses[i] == target) {
+                $.targetAddresses[i] = $.targetAddresses[$.targetAddresses.length - 1];
+                $.targetAddresses.pop();
+                break;
+            }
+        }
+    }
 
     /**
      * @inheritdoc IIssuanceAllocator
@@ -510,15 +580,13 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
 
         if ($.totalAllocatorMintingPPM == 0) return $.lastDistributionBlock;
 
-        // TODO: Use ++i for gas optimization in future version
-        // solhint-disable-next-line gas-increment-by-one
-        for (uint256 i = 0; i < $.targetAddresses.length; i++) {
+        for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
             address target = $.targetAddresses[i];
             AllocationTarget storage targetData = $.allocationTargets[target];
 
             if (0 < targetData.allocatorMintingPPM) {
                 // There can be a small rounding loss here. This is acceptable.
-                // Pending issuance is distributed in proportion to non-self-minting portion of total available allocation.
+                // Pending issuance is distributed in proportion to allocator-minting portion of total available allocation.
                 uint256 targetIssuance = (pendingAmount * targetData.allocatorMintingPPM) /
                     (MILLION - $.totalSelfMintingPPM);
                 GRAPH_TOKEN.mint(target, targetIssuance);
@@ -547,7 +615,6 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     function accumulatePendingIssuance(uint256 toBlockNumber) private returns (uint256) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
 
-        // TODO: Use strict inequalities for gas optimization in future version
         // solhint-disable-next-line gas-strict-inequalities
         require($.lastAccumulationBlock <= toBlockNumber && toBlockNumber <= block.number, ToBlockOutOfRange());
 

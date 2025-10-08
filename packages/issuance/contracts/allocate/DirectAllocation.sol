@@ -14,7 +14,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * @notice A simple contract that receives tokens from the IssuanceAllocator and allows
  * an authorized operator to withdraw them.
  *
- * @dev This contract is designed to be a non-self-minting target in the IssuanceAllocator.
+ * @dev This contract is designed to be an allocator-minting target in the IssuanceAllocator.
  * The IssuanceAllocator will mint tokens directly to this contract, and the authorized
  * operator can send them to individual addresses as needed.
  *
@@ -22,12 +22,20 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
 contract DirectAllocation is BaseUpgradeable, IIssuanceTarget {
+
+    // -- Custom Errors --
+
+    /// @notice Thrown when token transfer fails
+    /// @param to The address that the transfer was attempted to
+    /// @param amount The amount of tokens that failed to transfer
+    error SendTokensFailed(address to, uint256 amount);
+
     // -- Events --
 
     /// @notice Emitted when tokens are sent
     /// @param to The address that received the tokens
     /// @param amount The amount of tokens sent
-    event TokensSent(address indexed to, uint256 amount); // solhint-disable-line gas-indexed-events
+    event TokensSent(address indexed to, uint256 indexed amount);
     // Do not need to index amount, ignoring gas-indexed-events warning.
 
     /// @notice Emitted before the issuance allocation changes
@@ -72,9 +80,7 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget {
      * @param amount Amount of tokens to send
      */
     function sendTokens(address to, uint256 amount) external onlyRole(OPERATOR_ROLE) whenNotPaused {
-        // TODO: missed for audit, should change to custom error in furture
-        // solhint-disable-next-line gas-custom-errors
-        require(GRAPH_TOKEN.transfer(to, amount), "!transfer");
+        require(GRAPH_TOKEN.transfer(to, amount), SendTokensFailed(to, amount));
         emit TokensSent(to, amount);
     }
 
@@ -88,10 +94,8 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget {
     }
 
     /**
+     * @dev No-op for DirectAllocation; issuanceAllocator is not stored.
      * @inheritdoc IIssuanceTarget
      */
-    function setIssuanceAllocator(address issuanceAllocator) external virtual override onlyRole(GOVERNOR_ROLE) {
-        // No-op for DirectAllocation
-        // This contract doesn't need to store the issuance allocator
-    }
+    function setIssuanceAllocator(address issuanceAllocator) external virtual override onlyRole(GOVERNOR_ROLE) { }
 }

@@ -1,6 +1,6 @@
 # IssuanceAllocator
 
-The IssuanceAllocator is a smart contract responsible for allocating token issuance to different components of The Graph protocol. It calculates issuance for all targets based on their configured proportions and handles minting for non-self-minting targets.
+The IssuanceAllocator is a smart contract responsible for allocating token issuance to different components of The Graph protocol. It calculates issuance for all targets based on their configured proportions and handles minting for allocator-minting targets.
 
 ## Overview
 
@@ -35,7 +35,7 @@ When the contract is paused:
 
 - **Distribution stops**: `distributeIssuance()` returns early without minting any tokens, returning the last block when issuance was distributed.
 - **Accumulation begins**: Issuance for allocator-minting targets accumulates in `pendingAccumulatedAllocatorIssuance` and will be distributed when the contract is unpaused (or in the interim via `distributePendingIssuance()`) according to their configured proportions at the time of distribution.
-- **Self-minting continues**: Self-minting targets can still query their allocation, but should check the `blockAppliedTo` fields to respect pause state. Because RewardsManager does not check `blockAppliedTo` and will mint tokens even when the allocator is paused, the initial implementation does not pause self-minting targets. (This behavior is subject to change in future versions, and new targets should not check `blockAppliedTo`.) Note that RewardsManager is indepently pausable.
+- **Self-minting continues**: Self-minting targets can still query their allocation, but should check the `blockAppliedTo` fields to respect pause state. Because RewardsManager does not check `blockAppliedTo` and will mint tokens even when the allocator is paused, the initial implementation does not pause self-minting targets. (This behavior is subject to change in future versions, and new targets should check `blockAppliedTo`.) Note that RewardsManager is independently pausable.
 - **Configuration allowed**: Governance functions like `setIssuancePerBlock()` and `setTargetAllocation()` still work. However, unlike changes made while unpaused, changes made will be applied from lastIssuanceDistributionBlock rather than the current block.
 - **Notifications continue**: Targets are still notified of allocation changes, and should check the `blockAppliedTo` fields to correctly apply changes.
 
@@ -45,7 +45,8 @@ During pause periods, the contract tracks:
 
 - `lastIssuanceAccumulationBlock`: Updated to current block whenever accumulation occurs
 - `pendingAccumulatedAllocatorIssuance`: Accumulates issuance intended for allocator-minting targets
-- Calculation: `(issuancePerBlock * blocksSinceLastAccumulation * totalAllocatorMintingAllocationPPM) / MILLION`
+- Calculation: `(issuancePerBlock * blocksSinceLastAccumulation * (MILLION - totalSelfMintingAllocationPPM)) / MILLION`
+- **Internal accumulation**: The contract uses private `accumulatePendingIssuance()` functions to handle accumulation logic, which can be triggered automatically during rate changes or manually via the public `distributePendingIssuance(uint256)` function
 
 #### Recovery Process
 
@@ -83,7 +84,9 @@ The contract uses ERC-7201 namespaced storage to prevent storage collisions in u
 
 ### Constants
 
-The contract inherits the following constant from `BaseUpgradeable`.
+The contract inherits the following constant from `BaseUpgradeable`:
+
+- **MILLION**: `1,000,000` - Used as the denominator for Parts Per Million (PPM) calculations. For example, 50% allocation would be represented as 500,000 PPM.
 
 ## Core Functions
 
@@ -188,6 +191,19 @@ The contract provides multiple overloaded functions for setting target allocatio
   - Distributes issuance that accumulated while paused
   - Can be called even when the contract is paused
   - No-op if there is no pending issuance or all targets are self-minting
+
+#### `distributePendingIssuance(uint256 toBlockNumber) → uint256`
+
+- **Access**: GOVERNOR_ROLE only
+- **Purpose**: Accumulate pending issuance up to a specific block, then distribute all accumulated issuance
+- **Parameters**:
+  - `toBlockNumber` - Block number to accumulate to (must be >= lastIssuanceAccumulationBlock and <= current block)
+- **Returns**: Block number up to which issuance has been distributed
+- **Notes**:
+  - First accumulates pending issuance up to the specified block
+  - Then distributes all accumulated issuance to allocator-minting targets
+  - Can be called even when the contract is paused
+  - Will revert with `ToBlockOutOfRange()` if toBlockNumber is invalid
 
 ### View Functions
 
@@ -305,9 +321,6 @@ Before any allocation changes, targets are notified via the `IIssuanceTarget.bef
 - Failed notifications cause the entire transaction to revert
 - Use `forceTargetNoChangeNotificationBlock()` to skip notification for broken targets before removing them
 - Notifications cannot be skipped (the `evenIfDistributionPending` parameter only affects distribution requirements)
-- Failed notifications cause the entire transaction to revert
-- Use `forceNoChangeNotificationBlock()` to skip notification for malfunctioning targets before removing them
-- Notifications cannot be skipped (the `force` parameter only affects distribution requirements)
 - Manual notification is available for gas limit recovery via `notifyTarget()`
 
 ## Gas Limit Recovery
@@ -340,10 +353,18 @@ event IssuancePerBlockUpdated(uint256 oldIssuancePerBlock, uint256 newIssuancePe
 ## Error Conditions
 
 ```solidity
-error IssuanceAllocatorTargetAddressCannotBeZero();
-error IssuanceAllocatorInsufficientAllocationAvailable();
-error IssuanceAllocatorTargetDoesNotSupportIIssuanceTarget();
+error TargetAddressCannotBeZero();
+error InsufficientAllocationAvailable();
+error TargetDoesNotSupportIIssuanceTarget();
+error ToBlockOutOfRange();
 ```
+
+### Error Descriptions
+
+- **TargetAddressCannotBeZero**: Thrown when attempting to set allocation for the zero address
+- **InsufficientAllocationAvailable**: Thrown when the total allocation would exceed 1,000,000 PPM (100%)
+- **TargetDoesNotSupportIIssuanceTarget**: Thrown when a target contract does not implement the required IIssuanceTarget interface
+- **ToBlockOutOfRange**: Thrown when the `toBlockNumber` parameter in `distributePendingIssuance(uint256)` is outside the valid range (must be >= lastIssuanceAccumulationBlock and <= current block)
 
 ## Usage Patterns
 

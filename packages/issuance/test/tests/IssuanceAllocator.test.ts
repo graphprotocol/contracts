@@ -443,7 +443,7 @@ describe('IssuanceAllocator', () => {
       // Add targets with different self-minter flags and set allocations
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%, non-self-minting
+        ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 300000, 0, false) // 30%, allocator-minting
       await issuanceAllocator
         .connect(accounts.governor)
         ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target2, 0, 400000, false) // 40%, self-minting
@@ -464,7 +464,7 @@ describe('IssuanceAllocator', () => {
       const finalBalance1 = await (graphToken as any).balanceOf(addresses.target1)
       const finalBalance2 = await (graphToken as any).balanceOf(addresses.target2)
 
-      // Non-self-minting target should have received more tokens after the additional distribution
+      // Allocator-minting target should have received more tokens after the additional distribution
       expect(finalBalance1).to.be.gt(balanceAfterAllocation1)
 
       // Self-minting target should not have received any tokens (should still be the same as after allocation)
@@ -536,10 +536,10 @@ describe('IssuanceAllocator', () => {
 
       // Minter role already granted in shared setup
 
-      // Add target as non-self-minting with 30% allocation
+      // Add target as allocator-minting with 30% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%, non-self-minting
+        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%, allocator-minting
 
       // Verify initial state
       const initialAllocation = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
@@ -563,7 +563,7 @@ describe('IssuanceAllocator', () => {
       expect(updatedAllocation.selfMintingPPM).to.be.gt(0)
     })
 
-    it('should update selfMinter flag when changing from self-minting to non-self-minting', async () => {
+    it('should update selfMinter flag when changing from self-minting to allocator-minting', async () => {
       await resetIssuanceAllocatorState()
       const { issuanceAllocator, target1 } = sharedContracts
 
@@ -578,10 +578,10 @@ describe('IssuanceAllocator', () => {
       const initialAllocation2 = await issuanceAllocator.getTargetAllocation(await target1.getAddress())
       expect(initialAllocation2.selfMintingPPM).to.be.gt(0)
 
-      // Change to non-self-minting with same allocation - this should NOT return early
+      // Change to allocator-minting with same allocation - this should NOT return early
       const result = await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target1.getAddress(), 300000, 0, false) // Same allocation, but now non-self-minting
+        ['setTargetAllocation(address,uint256,uint256,bool)'].staticCall(await target1.getAddress(), 300000, 0, false) // Same allocation, but now allocator-minting
 
       // Should return true (indicating change was made)
       expect(result).to.be.true
@@ -619,10 +619,10 @@ describe('IssuanceAllocator', () => {
         expect(totalAlloc.selfMintingPPM).to.equal(300000)
       }
 
-      // Add non-self-minting target with 20% allocation (200000 PPM)
+      // Add allocator-minting target with 20% allocation (200000 PPM)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 200000, 0, false) // 20%, non-self-minting
+        ['setTargetAllocation(address,uint256,uint256,bool)'](await target2.getAddress(), 200000, 0, false) // 20%, allocator-minting
 
       // totalActiveSelfMintingAllocation should remain the same (still 300000 PPM)
       {
@@ -641,10 +641,10 @@ describe('IssuanceAllocator', () => {
         expect(totalAlloc.selfMintingPPM).to.equal(400000)
       }
 
-      // Change target1 from self-minting to non-self-minting (same allocation)
+      // Change target1 from self-minting to allocator-minting (same allocation)
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%, non-self-minting
+        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 300000, 0, false) // 30%, allocator-minting
 
       // Should now be 100000 PPM (400000 - 300000)
       {
@@ -2397,7 +2397,7 @@ describe('IssuanceAllocator', () => {
       expect(result.selfIssuanceBlockAppliedTo).to.equal(await ethers.provider.getBlockNumber())
       expect(result.allocatorIssuanceBlockAppliedTo).to.equal(await issuanceAllocator.lastIssuanceDistributionBlock())
 
-      // Test non-self-minting target with 40% allocation (reset target1 first)
+      // Test allocator-minting target with 40% allocation (reset target1 first)
       await issuanceAllocator
         .connect(accounts.governor)
         ['setTargetAllocation(address,uint256,uint256,bool)'](addresses.target1, 400000, 0, false)
@@ -2447,10 +2447,10 @@ describe('IssuanceAllocator', () => {
       // Grant minter role to issuanceAllocator (needed for distributeIssuance calls)
       await (graphToken as any).addMinter(await issuanceAllocator.getAddress())
 
-      // Add target as non-self-minter with 50% allocation
+      // Add target as allocator-minter with 50% allocation
       await issuanceAllocator
         .connect(accounts.governor)
-        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%, non-self-minter
+        ['setTargetAllocation(address,uint256,uint256,bool)'](await target1.getAddress(), 500000, 0, false) // 50%, allocator-minter
 
       // allocatorIssuanceBlockAppliedTo should be current block since setTargetAllocation triggers distribution
       let result = await issuanceAllocator.getTargetIssuancePerBlock(await target1.getAddress())
@@ -3112,7 +3112,7 @@ describe('IssuanceAllocator', () => {
       }
 
       // Total distributed should equal the allocator-minting portion of pending
-      // With 25% total allocator-minting out of 50% non-self-minting space:
+      // With 25% total allocator-minting out of 50% allocator-minting space:
       // Each target gets: (targetPPM / (MILLION - selfMintingPPM)) * pendingAmount
       // Target1: (150000 / 500000) * pendingAmount = 30% of pending
       // Target2: (100000 / 500000) * pendingAmount = 20% of pending
