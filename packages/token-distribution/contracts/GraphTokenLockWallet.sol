@@ -127,41 +127,6 @@ contract GraphTokenLockWallet is GraphTokenLock {
     }
 
     /**
-     * @notice Gets tokens currently available for release
-     * @dev Considers the schedule, takes into account already released tokens and used amount
-     * @return Amount of tokens ready to be released
-     */
-    function releasableAmount() public view override returns (uint256) {
-        if (revocable == IGraphTokenLock.Revocability.Disabled) {
-            return super.releasableAmount();
-        }
-
-        // -- Revocability enabled logic
-        // This needs to deal with additional considerations for when tokens are used in the protocol
-
-        // If a release start time is set no tokens are available for release before this date
-        // If not set it follows the default schedule and tokens are available on
-        // the first period passed
-        if (releaseStartTime > 0 && currentTime() < releaseStartTime) {
-            return 0;
-        }
-
-        // Vesting cliff is activated and it has not passed means nothing is vested yet
-        // so funds cannot be released
-        if (
-            revocable == IGraphTokenLock.Revocability.Enabled &&
-            vestingCliffTime > 0 &&
-            currentTime() < vestingCliffTime
-        ) {
-            return 0;
-        }
-
-        // A beneficiary can never have more releasable tokens than the contract balance
-        uint256 releasable = availableAmount().sub(releasedAmount);
-        return MathUtils.min(currentBalance(), releasable);
-    }
-
-    /**
      * @notice Forward authorized contract calls to protocol contracts
      * @dev Fallback function can be called by the beneficiary only if function call is allowed
      */
