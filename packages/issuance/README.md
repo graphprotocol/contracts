@@ -6,6 +6,12 @@ This package contains smart contracts for The Graph's issuance functionality.
 
 The issuance contracts handle token issuance mechanisms for The Graph protocol.
 
+### Contracts
+
+- **[IssuanceAllocator](contracts/allocate/IssuanceAllocator.md)** - Central distribution hub for token issuance, allocating tokens to different protocol components based on configured proportions
+- **[RewardsEligibilityOracle](contracts/eligibility/RewardsEligibilityOracle.md)** - Oracle-based eligibility system for indexer rewards with time-based expiration
+- **DirectAllocation** - Simple target contract for receiving and distributing allocated tokens
+
 ## Development
 
 ### Setup
