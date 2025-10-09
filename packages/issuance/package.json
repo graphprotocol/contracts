@@ -33,8 +33,7 @@
     "artifacts/**/*",
     "types/**/*",
     "contracts/**/*",
-    "README.md",
-    "LICENSE"
+    "README.md"
   ],
   "author": "The Graph Team",
   "license": "GPL-2.0-or-later",
