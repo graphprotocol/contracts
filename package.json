@@ -20,7 +20,7 @@
     "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn '**/*.{yml,yaml}'",
     "format": "prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx,json,md,yaml,yml}'",
     "test": "pnpm build && pnpm -r run test:self",
-    "test:coverage": "pnpm build && pnpm -r run test:coverage:self"
+    "test:coverage": "pnpm build && pnpm -r run build:self:coverage && pnpm -r run test:coverage:self"
   },
   "devDependencies": {
     "@changesets/cli": "catalog:",
