@@ -163,7 +163,8 @@ contract L2GNS is GNS, L2GNSV1Storage, IL2GNS {
 
     /**
      * @notice Publish a new version of an existing subgraph.
-     * @dev This is similar to the one in the base GNS, but includes slippage protection
+     * @dev This is similar to the one in the base GNS, but skips the check for
+     * a subgraph to be pre-curated and includes slippage protection
      * via the _signalOutMin parameter to protect against inflation attacks.
      * @param _subgraphID Subgraph ID
      * @param _subgraphDeploymentID Subgraph deployment ID of the new version
