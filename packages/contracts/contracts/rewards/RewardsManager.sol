@@ -220,16 +220,12 @@ contract RewardsManager is RewardsManagerV7Storage, GraphUpgradeable, ERC165, IR
      * @dev Ensures that all reward calculations are up-to-date with the current block
      * before any allocation changes take effect.
      *
+     * This function can be called by anyone to update the rewards calculation state.
      * The IssuanceAllocator calls this function before changing a target's allocation to ensure
      * all issuance is properly accounted for with the current issuance rate before applying an
      * issuance allocation change.
-     *
-     * Only the IssuanceAllocator can call this function to ensure proper access control
-     * for any future changes that might require this level of restriction.
      */
     function beforeIssuanceAllocationChange() external override {
-        require(msg.sender == address(issuanceAllocator), "Caller must be IssuanceAllocator");
-
         // Update rewards calculation with the current issuance rate
         updateAccRewardsPerSignal();
     }

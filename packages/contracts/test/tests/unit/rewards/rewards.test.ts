@@ -326,11 +326,10 @@ describe('Rewards', () => {
         await mockIssuanceAllocator.deployed()
         await rewardsManager.connect(governor).setIssuanceAllocator(mockIssuanceAllocator.address)
 
-        // Only the allocator should be able to call this function
-        const tx1 = rewardsManager.connect(governor).beforeIssuanceAllocationChange()
-        await expect(tx1).revertedWith('Caller must be IssuanceAllocator')
+        // Anyone should be able to call this function
+        await rewardsManager.connect(governor).beforeIssuanceAllocationChange()
 
-        // Should succeed when called by the allocator
+        // Should also succeed when called by the allocator
         await mockIssuanceAllocator.callBeforeIssuanceAllocationChange(rewardsManager.address)
       })
 
