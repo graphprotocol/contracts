@@ -869,18 +869,9 @@ describe('IssuanceAllocator', () => {
       // Accumulation should happen from lastIssuanceDistributionBlock to current block
       const blockAfterAccumulation = await ethers.provider.getBlockNumber()
 
-      // Debug: Check the actual values when accumulation occurs
       const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
       const lastDistributionBlock = await issuanceAllocator.lastIssuanceDistributionBlock()
-      // const lastAccumulationBlock = await issuanceAllocator.lastIssuanceAccumulationBlock()
       const allocation = await issuanceAllocator.getTotalAllocation()
-
-      // console.log('=== ACCUMULATION DEBUG ON BLOCK', blockAfterAccumulation, '===')
-      // console.log('lastIssuanceDistributionBlock:', lastDistributionBlock.toString())
-      // console.log('lastIssuanceAccumulationBlock:', lastAccumulationBlock.toString())
-      // console.log('blockAfterAccumulation:', blockAfterAccumulation)
-      // console.log('allocatorMintingPPM:', allocation.allocatorMintingPPM.toString())
-      // console.log('actualPendingAmount:', formatEther(pendingAmount), 'ETH')
 
       // Calculate what accumulation SHOULD be from lastDistributionBlock
       const blocksFromDistribution = BigInt(blockAfterAccumulation) - BigInt(lastDistributionBlock)
@@ -889,24 +880,6 @@ describe('IssuanceAllocator', () => {
         blocksFromDistribution,
         allocation.allocatorMintingPPM,
       )
-      // console.log('expectedFromDistribution (' + blocksFromDistribution + ' blocks):', formatEther(expectedFromDistribution), 'ETH')
-
-      // // Calculate what accumulation would be from lastAccumulationBlock
-      // const blocksFromAccumulation = BigInt(blockAfterAccumulation) - BigInt(lastAccumulationBlock)
-      // const expectedFromAccumulation = calculateExpectedAccumulation(
-      //   parseEther('100'),
-      //   blocksFromAccumulation,
-      //   allocation.allocatorMintingPPM
-      // )
-      // console.log('expectedFromAccumulation (' + blocksFromAccumulation + ' blocks):', formatEther(expectedFromAccumulation), 'ETH')
-
-      // // Calculate what accumulation would be from block 0
-      // const expectedFromZero = calculateExpectedAccumulation(
-      //   parseEther('100'),
-      //   BigInt(blockAfterAccumulation),
-      //   allocation.allocatorMintingPPM
-      // )
-      // console.log('expectedFromZero (' + blockAfterAccumulation + ' blocks):', formatEther(expectedFromZero), 'ETH')
 
       // This will fail, but we can see which calculation matches the actual result
       expect(pendingAmount).to.equal(expectedFromDistribution)
@@ -1346,12 +1319,12 @@ describe('IssuanceAllocator', () => {
       const pendingAmount = await issuanceAllocator.pendingAccumulatedAllocatorIssuance()
       expect(pendingAmount).to.be.gt(0)
 
-      // Calculate expected accumulation manually:
+      // Expected accumulation from multiple phases with rate and allocation changes:
       // Phase 1: 2 blocks * 1000 * (1000000 - 500000) / 1000000 = 2000 * 0.5 = 1000
       // Phase 3: 1 block * 2000 * (1000000 - 500000) / 1000000 = 2000 * 0.5 = 1000
       // Phase 8: 1 block * 2000 * (1000000 - 410000) / 1000000 = 2000 * 0.59 = 1180
       // Phase 10: 1 block * 3000 * (1000000 - 410000) / 1000000 = 3000 * 0.59 = 1770
-      // Note: Actual values may differ due to double accumulation behavior
+      // Accumulation occurs at each self-minting allocation change during pause
 
       // Get initial balances for new targets
       const initialBalance3 = await (graphToken as any).balanceOf(await target3.getAddress())

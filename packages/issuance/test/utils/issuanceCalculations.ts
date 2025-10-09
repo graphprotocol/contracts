@@ -152,22 +152,3 @@ export function ppmToPercentage(ppm: bigint | number): number {
 export function parseEther(value: string): bigint {
   return ethers.parseEther(value)
 }
-
-/**
- * Helper to format wei bigint to ETH string for debugging.
- */
-export function formatEther(value: bigint): string {
-  return ethers.formatEther(value)
-}
-
-/**
- * Calculate expected block difference for accumulation tests.
- * This accounts for the actual blocks mined during test execution.
- *
- * @param startBlock - Starting block number
- * @param endBlock - Ending block number
- * @returns Number of blocks for accumulation calculation
- */
-export function calculateBlockDifference(startBlock: number, endBlock: number): bigint {
-  return BigInt(Math.max(0, endBlock - startBlock))
-}
