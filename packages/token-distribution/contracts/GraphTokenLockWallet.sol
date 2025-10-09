@@ -131,10 +131,9 @@ contract GraphTokenLockWallet is GraphTokenLock {
      * @dev Fallback function can be called by the beneficiary only if function call is allowed
      */
     // solhint-disable-next-line no-complex-fallback
-    fallback() external payable {
+    fallback() external {
         // Only beneficiary can forward calls
         require(msg.sender == beneficiary, "Unauthorized caller");
-        require(msg.value == 0, "ETH transfers not supported");
 
         // Only non-revocable contracts can forward calls
         require(revocable == Revocability.Disabled, "Revocable contracts cannot forward calls");
@@ -145,13 +144,5 @@ contract GraphTokenLockWallet is GraphTokenLock {
 
         // Call function with data
         Address.functionCall(_target, msg.data);
-    }
-
-    /**
-     * @notice Receive function that always reverts.
-     * @dev Only included to supress warnings, see https://github.com/ethereum/solidity/issues/10159
-     */
-    receive() external payable {
-        revert("Bad call");
     }
 }
