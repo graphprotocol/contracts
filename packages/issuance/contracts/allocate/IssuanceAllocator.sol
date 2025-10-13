@@ -10,6 +10,7 @@ import {
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceAllocationAdministration } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationAdministration.sol";
 import { IIssuanceAllocationStatus } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationStatus.sol";
+import { IIssuanceAllocationData } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationData.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -59,7 +60,8 @@ contract IssuanceAllocator is
     BaseUpgradeable,
     IIssuanceAllocationDistribution,
     IIssuanceAllocationAdministration,
-    IIssuanceAllocationStatus
+    IIssuanceAllocationStatus,
+    IIssuanceAllocationData
 {
     // -- Namespaced Storage --
 
@@ -166,13 +168,14 @@ contract IssuanceAllocator is
 
     /**
      * @inheritdoc ERC165Upgradeable
-     * @dev Supports the three IssuanceAllocator sub-interfaces
+     * @dev Supports the four IssuanceAllocator sub-interfaces
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return
             interfaceId == type(IIssuanceAllocationDistribution).interfaceId ||
             interfaceId == type(IIssuanceAllocationAdministration).interfaceId ||
             interfaceId == type(IIssuanceAllocationStatus).interfaceId ||
+            interfaceId == type(IIssuanceAllocationData).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -686,12 +689,9 @@ contract IssuanceAllocator is
     }
 
     /**
-     * @notice Get target data for a specific target (implementation-specific)
-     * @dev This function exposes internal AllocationTarget struct for operator use
-     * @param target Address of the target
-     * @return AllocationTarget struct containing target information including lastChangeNotifiedBlock
+     * @inheritdoc IIssuanceAllocationData
      */
-    function getTargetData(address target) external view returns (AllocationTarget memory) {
+    function getTargetData(address target) external view override returns (AllocationTarget memory) {
         return _getIssuanceAllocatorStorage().allocationTargets[target];
     }
 

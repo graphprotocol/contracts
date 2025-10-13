@@ -12,26 +12,34 @@
  */
 
 export const INTERFACE_IDS = {
+  IAccessControl: '0x7965db0b',
   IERC165: '0x01ffc9a7',
   IIssuanceAllocationAdministration: '0x36759695',
+  IIssuanceAllocationData: '0x48c3c62e',
   IIssuanceAllocationDistribution: '0x79da37fc',
   IIssuanceAllocationStatus: '0xc0ba8a55',
   IIssuanceTarget: '0xaee4dc43',
+  IPausableControl: '0xe78a39d8',
   IRewardsEligibilityAdministration: '0x9a69f6aa',
   IRewardsEligibility: '0x66e305fd',
   IRewardsEligibilityReporting: '0x38b7c077',
   IRewardsEligibilityStatus: '0x53740f19',
   IRewardsManager: '0xa31d8306',
+  ISendTokens: '0x05ab421d',
 } as const
 
 // Individual exports for convenience
+export const IAccessControl = INTERFACE_IDS.IAccessControl
 export const IERC165 = INTERFACE_IDS.IERC165
 export const IIssuanceAllocationAdministration = INTERFACE_IDS.IIssuanceAllocationAdministration
+export const IIssuanceAllocationData = INTERFACE_IDS.IIssuanceAllocationData
 export const IIssuanceAllocationDistribution = INTERFACE_IDS.IIssuanceAllocationDistribution
 export const IIssuanceAllocationStatus = INTERFACE_IDS.IIssuanceAllocationStatus
 export const IIssuanceTarget = INTERFACE_IDS.IIssuanceTarget
+export const IPausableControl = INTERFACE_IDS.IPausableControl
 export const IRewardsEligibilityAdministration = INTERFACE_IDS.IRewardsEligibilityAdministration
 export const IRewardsEligibility = INTERFACE_IDS.IRewardsEligibility
 export const IRewardsEligibilityReporting = INTERFACE_IDS.IRewardsEligibilityReporting
 export const IRewardsEligibilityStatus = INTERFACE_IDS.IRewardsEligibilityStatus
 export const IRewardsManager = INTERFACE_IDS.IRewardsManager
+export const ISendTokens = INTERFACE_IDS.ISendTokens

@@ -6,10 +6,13 @@ import { IIssuanceTarget } from "../issuance/allocate/IIssuanceTarget.sol";
 import { IIssuanceAllocationDistribution } from "../issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceAllocationAdministration } from "../issuance/allocate/IIssuanceAllocationAdministration.sol";
 import { IIssuanceAllocationStatus } from "../issuance/allocate/IIssuanceAllocationStatus.sol";
+import { IIssuanceAllocationData } from "../issuance/allocate/IIssuanceAllocationData.sol";
+import { ISendTokens } from "../issuance/allocate/ISendTokens.sol";
 import { IRewardsEligibility } from "../issuance/eligibility/IRewardsEligibility.sol";
 import { IRewardsEligibilityAdministration } from "../issuance/eligibility/IRewardsEligibilityAdministration.sol";
 import { IRewardsEligibilityReporting } from "../issuance/eligibility/IRewardsEligibilityReporting.sol";
 import { IRewardsEligibilityStatus } from "../issuance/eligibility/IRewardsEligibilityStatus.sol";
+import { IPausableControl } from "../issuance/common/IPausableControl.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 /**
@@ -94,10 +97,45 @@ contract InterfaceIdExtractor {
     }
 
     /**
+     * @notice Returns the ERC-165 interface ID for IIssuanceAllocationData
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIIssuanceAllocationDataId() external pure returns (bytes4) {
+        return type(IIssuanceAllocationData).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for ISendTokens
+     * @return The interface ID as calculated by Solidity
+     */
+    function getISendTokensId() external pure returns (bytes4) {
+        return type(ISendTokens).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IPausableControl
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIPausableControlId() external pure returns (bytes4) {
+        return type(IPausableControl).interfaceId;
+    }
+
+    /**
      * @notice Returns the ERC-165 interface ID for IERC165
      * @return The interface ID as calculated by Solidity
      */
     function getIERC165Id() external pure returns (bytes4) {
         return type(IERC165).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IAccessControl
+     * @dev IAccessControl is from OpenZeppelin Contracts v5. This package uses v3 which doesn't
+     * have a separate IAccessControl interface file, so we use the hardcoded value which is
+     * standard across OpenZeppelin versions.
+     * @return The interface ID for OpenZeppelin's IAccessControl (0x7965db0b)
+     */
+    function getIAccessControlId() external pure returns (bytes4) {
+        return 0x7965db0b;
     }
 }

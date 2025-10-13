@@ -3,6 +3,7 @@
 pragma solidity 0.8.27;
 
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
+import { ISendTokens } from "@graphprotocol/interfaces/contracts/issuance/allocate/ISendTokens.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 
 // solhint-disable-next-line no-unused-import
@@ -21,7 +22,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * This contract is pausable by the PAUSE_ROLE. When paused, tokens cannot be sent.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
-contract DirectAllocation is BaseUpgradeable, IIssuanceTarget {
+contract DirectAllocation is BaseUpgradeable, IIssuanceTarget, ISendTokens {
     // -- Custom Errors --
 
     /// @notice Thrown when token transfer fails
@@ -67,18 +68,18 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget {
      * @inheritdoc ERC165Upgradeable
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IIssuanceTarget).interfaceId || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IIssuanceTarget).interfaceId ||
+            interfaceId == type(ISendTokens).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     // -- External Functions --
 
     /**
-     * @notice Send tokens to a specified address
-     * @dev This function can only be called by accounts with the OPERATOR_ROLE
-     * @param to Address to send tokens to
-     * @param amount Amount of tokens to send
+     * @inheritdoc ISendTokens
      */
-    function sendTokens(address to, uint256 amount) external onlyRole(OPERATOR_ROLE) whenNotPaused {
+    function sendTokens(address to, uint256 amount) external override onlyRole(OPERATOR_ROLE) whenNotPaused {
         require(GRAPH_TOKEN.transfer(to, amount), SendTokensFailed(to, amount));
         emit TokensSent(to, amount);
     }
