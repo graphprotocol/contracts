@@ -22,7 +22,6 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
 contract DirectAllocation is BaseUpgradeable, IIssuanceTarget {
-
     // -- Custom Errors --
 
     /// @notice Thrown when token transfer fails
@@ -97,5 +96,5 @@ contract DirectAllocation is BaseUpgradeable, IIssuanceTarget {
      * @dev No-op for DirectAllocation; issuanceAllocator is not stored.
      * @inheritdoc IIssuanceTarget
      */
-    function setIssuanceAllocator(address issuanceAllocator) external virtual override onlyRole(GOVERNOR_ROLE) { }
+    function setIssuanceAllocator(address issuanceAllocator) external virtual override onlyRole(GOVERNOR_ROLE) {}
 }

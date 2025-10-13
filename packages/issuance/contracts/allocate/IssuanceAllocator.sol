@@ -383,11 +383,9 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         uint256 selfMintingPPM,
         bool evenIfDistributionPending
     ) internal returns (bool) {
-        if (!_validateTargetAllocation(target, allocatorMintingPPM, selfMintingPPM))
-            return true; // No change needed
+        if (!_validateTargetAllocation(target, allocatorMintingPPM, selfMintingPPM)) return true; // No change needed
 
-        if (!_handleDistributionBeforeAllocation(target, selfMintingPPM, evenIfDistributionPending))
-            return false; // Distribution pending and not forced
+        if (!_handleDistributionBeforeAllocation(target, selfMintingPPM, evenIfDistributionPending)) return false; // Distribution pending and not forced
 
         _notifyTarget(target);
 
@@ -441,15 +439,13 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         bool evenIfDistributionPending
     ) private returns (bool) {
         if (_distributeIssuance() < block.number) {
-            if (!evenIfDistributionPending)
-                return false;
+            if (!evenIfDistributionPending) return false;
 
             // A change in self-minting allocation changes the accumulation rate for pending allocator-minting.
             // So for a self-minting change, accumulate pending issuance prior to the rate change.
             IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
             AllocationTarget storage targetData = $.allocationTargets[target];
-            if (selfMintingPPM != targetData.selfMintingPPM)
-                accumulatePendingIssuance();
+            if (selfMintingPPM != targetData.selfMintingPPM) accumulatePendingIssuance();
         }
 
         return true;
@@ -488,11 +484,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
      * @param allocatorMintingPPM New allocator-minting allocation for the target (in PPM)
      * @param selfMintingPPM New self-minting allocation for the target (in PPM)
      */
-    function _updateTargetAllocationData(
-        address target,
-        uint256 allocatorMintingPPM,
-        uint256 selfMintingPPM
-    ) private {
+    function _updateTargetAllocationData(address target, uint256 allocatorMintingPPM, uint256 selfMintingPPM) private {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
         AllocationTarget storage targetData = $.allocationTargets[target];
 
@@ -510,8 +502,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
         // - Do not set lastChangeNotifiedBlock in this function.
         if (allocatorMintingPPM != 0 || selfMintingPPM != 0) {
             // Add to list if previously had no allocation
-            if (targetData.allocatorMintingPPM == 0 && targetData.selfMintingPPM == 0)
-                $.targetAddresses.push(target);
+            if (targetData.allocatorMintingPPM == 0 && targetData.selfMintingPPM == 0) $.targetAddresses.push(target);
 
             targetData.allocatorMintingPPM = allocatorMintingPPM;
             targetData.selfMintingPPM = selfMintingPPM;
