@@ -32,14 +32,14 @@ describe('RewardsManager setIssuanceAllocator ERC-165', () => {
 
   describe('setIssuanceAllocator with ERC-165 checking', function () {
     it('should successfully set an issuance allocator that supports the interface', async function () {
-      // Deploy a mock issuance allocator that supports ERC-165 and IIssuanceAllocator
+      // Deploy a mock issuance allocator that supports ERC-165 and IIssuanceAllocationDistribution
       const MockIssuanceAllocatorFactory = await ethers.getContractFactory(
         'contracts/tests/MockIssuanceAllocator.sol:MockIssuanceAllocator',
       )
       const mockAllocator = await MockIssuanceAllocatorFactory.deploy(ethers.utils.parseEther('50'))
       await mockAllocator.deployed()
 
-      // Should succeed because MockIssuanceAllocator supports IIssuanceAllocator
+      // Should succeed because MockIssuanceAllocator supports IIssuanceAllocationDistribution
       await expect(rewardsManager.connect(governor).setIssuanceAllocator(mockAllocator.address))
         .to.emit(rewardsManager, 'IssuanceAllocatorSet')
         .withArgs(ethers.constants.AddressZero, mockAllocator.address)
@@ -74,18 +74,18 @@ describe('RewardsManager setIssuanceAllocator ERC-165', () => {
       await expect(rewardsManager.connect(governor).setIssuanceAllocator(eoaAddress)).to.be.reverted
     })
 
-    it('should revert when setting to contract that does not support IIssuanceAllocator', async function () {
-      // Deploy a contract that supports ERC-165 but not IIssuanceAllocator
+    it('should revert when setting to contract that does not support IIssuanceAllocationDistribution', async function () {
+      // Deploy a contract that supports ERC-165 but not IIssuanceAllocationDistribution
       const MockERC165OnlyFactory = await ethers.getContractFactory(
         'contracts/tests/MockERC165OnlyContract.sol:MockERC165OnlyContract',
       )
       const erc165OnlyContract = await MockERC165OnlyFactory.deploy()
       await erc165OnlyContract.deployed()
 
-      // Should revert because the contract doesn't support IIssuanceAllocator
+      // Should revert because the contract doesn't support IIssuanceAllocationDistribution
       await expect(
         rewardsManager.connect(governor).setIssuanceAllocator(erc165OnlyContract.address),
-      ).to.be.revertedWith('Contract does not support IIssuanceAllocator interface')
+      ).to.be.revertedWith('Contract does not support IIssuanceAllocationDistribution interface')
     })
 
     it('should not emit event when setting to same allocator address', async function () {
@@ -123,7 +123,7 @@ describe('RewardsManager setIssuanceAllocator ERC-165', () => {
 
     it('should validate interface before updating rewards calculation', async function () {
       // This test ensures that ERC165 validation happens before updateAccRewardsPerSignal
-      // Deploy a contract that doesn't support IIssuanceAllocator
+      // Deploy a contract that doesn't support IIssuanceAllocationDistribution
       const MockERC165OnlyFactory = await ethers.getContractFactory(
         'contracts/tests/MockERC165OnlyContract.sol:MockERC165OnlyContract',
       )
@@ -133,7 +133,7 @@ describe('RewardsManager setIssuanceAllocator ERC-165', () => {
       // Should revert with interface error, not with any rewards calculation error
       await expect(
         rewardsManager.connect(governor).setIssuanceAllocator(erc165OnlyContract.address),
-      ).to.be.revertedWith('Contract does not support IIssuanceAllocator interface')
+      ).to.be.revertedWith('Contract does not support IIssuanceAllocationDistribution interface')
     })
   })
 })

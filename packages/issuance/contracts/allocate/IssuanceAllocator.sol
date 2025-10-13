@@ -2,12 +2,10 @@
 
 pragma solidity 0.8.27;
 
-import {
-    IIssuanceAllocator,
-    TargetIssuancePerBlock,
-    Allocation,
-    AllocationTarget
-} from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocator.sol";
+import { TargetIssuancePerBlock, Allocation, AllocationTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocatorTypes.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
+import { IIssuanceAllocationAdministration } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationAdministration.sol";
+import { IIssuanceAllocationStatus } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationStatus.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -53,7 +51,12 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * which targets are notified of changes and when.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
-contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
+contract IssuanceAllocator is
+    BaseUpgradeable,
+    IIssuanceAllocationDistribution,
+    IIssuanceAllocationAdministration,
+    IIssuanceAllocationStatus
+{
     // -- Namespaced Storage --
 
     /// @notice ERC-7201 storage location for IssuanceAllocator
@@ -159,13 +162,18 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
 
     /**
      * @inheritdoc ERC165Upgradeable
+     * @dev Supports the three IssuanceAllocator sub-interfaces
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IIssuanceAllocator).interfaceId || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IIssuanceAllocationDistribution).interfaceId ||
+            interfaceId == type(IIssuanceAllocationAdministration).interfaceId ||
+            interfaceId == type(IIssuanceAllocationStatus).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationDistribution
      * @dev Implementation details:
      * - For allocator-minting portions, tokens are minted and transferred directly to targets based on their allocation
      * - For self-minting portions (like the legacy RewardsManager), it does not mint tokens directly. Instead, these contracts are expected to handle minting themselves
@@ -220,7 +228,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Implementation details:
      * - `distributeIssuance` will be called before changing the rate *unless the contract is paused and evenIfDistributionPending is false*
      * - `beforeIssuanceAllocationChange` will be called on all targets before changing the rate, even when the contract is paused
@@ -290,7 +298,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Implementation details:
      * - The target will be notified at most once per block to prevent reentrancy looping
      * - Will revert if target notification reverts
@@ -300,7 +308,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Implementation details:
      * - This can be used to enable notification to be sent again (by setting to a past block) or to prevent notification until a future block (by setting to current or future block)
      * - Returns the block number that was set, always equal to blockNumber in current implementation
@@ -320,7 +328,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Delegates to _setTargetAllocation with selfMintingPPM=0 and evenIfDistributionPending=false
      */
     function setTargetAllocation(
@@ -331,7 +339,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Delegates to _setTargetAllocation with evenIfDistributionPending=false
      */
     function setTargetAllocation(
@@ -343,7 +351,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Implementation details:
      * - If the new allocations are the same as the current allocations, this function is a no-op
      * - If both allocations are 0 and the target doesn't exist, this function is a no-op
@@ -530,7 +538,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Implementation details:
      * - This function can only be called by Governor role
      * - Distributes pending issuance that has accumulated while paused
@@ -543,7 +551,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Implementation details:
      * - This function can only be called by Governor role
      * - Accumulates pending issuance up to the specified block, then distributes all accumulated issuance
@@ -623,49 +631,49 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     // -- View Functions --
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function issuancePerBlock() external view override returns (uint256) {
         return _getIssuanceAllocatorStorage().issuancePerBlock;
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function lastIssuanceDistributionBlock() external view override returns (uint256) {
         return _getIssuanceAllocatorStorage().lastDistributionBlock;
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function lastIssuanceAccumulationBlock() external view override returns (uint256) {
         return _getIssuanceAllocatorStorage().lastAccumulationBlock;
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function pendingAccumulatedAllocatorIssuance() external view override returns (uint256) {
         return _getIssuanceAllocatorStorage().pendingAccumulatedAllocatorIssuance;
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTargetCount() external view override returns (uint256) {
         return _getIssuanceAllocatorStorage().targetAddresses.length;
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTargets() external view override returns (address[] memory) {
         return _getIssuanceAllocatorStorage().targetAddresses;
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTargetAt(uint256 index) external view override returns (address) {
         return _getIssuanceAllocatorStorage().targetAddresses[index];
@@ -682,7 +690,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTargetAllocation(address target) external view override returns (Allocation memory) {
         AllocationTarget storage targetData = _getIssuanceAllocatorStorage().allocationTargets[target];
@@ -695,7 +703,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationDistribution
      */
     function getTargetIssuancePerBlock(address target) external view override returns (TargetIssuancePerBlock memory) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
@@ -712,7 +720,7 @@ contract IssuanceAllocator is BaseUpgradeable, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTotalAllocation() external view override returns (Allocation memory) {
         IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();

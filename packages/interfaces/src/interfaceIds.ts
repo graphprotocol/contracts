@@ -13,7 +13,9 @@
 
 export const INTERFACE_IDS = {
   IERC165: '0x01ffc9a7',
-  IIssuanceAllocator: '0x8f152b3c',
+  IIssuanceAllocationAdministration: '0x36759695',
+  IIssuanceAllocationDistribution: '0x79da37fc',
+  IIssuanceAllocationStatus: '0xc0ba8a55',
   IIssuanceTarget: '0xaee4dc43',
   IRewardsEligibilityOracle: '0x66e305fd',
   IRewardsManager: '0xa31d8306',
@@ -21,7 +23,9 @@ export const INTERFACE_IDS = {
 
 // Individual exports for convenience
 export const IERC165 = INTERFACE_IDS.IERC165
-export const IIssuanceAllocator = INTERFACE_IDS.IIssuanceAllocator
+export const IIssuanceAllocationAdministration = INTERFACE_IDS.IIssuanceAllocationAdministration
+export const IIssuanceAllocationDistribution = INTERFACE_IDS.IIssuanceAllocationDistribution
+export const IIssuanceAllocationStatus = INTERFACE_IDS.IIssuanceAllocationStatus
 export const IIssuanceTarget = INTERFACE_IDS.IIssuanceTarget
 export const IRewardsEligibilityOracle = INTERFACE_IDS.IRewardsEligibilityOracle
 export const IRewardsManager = INTERFACE_IDS.IRewardsManager

@@ -15,10 +15,10 @@ import { Managed } from "../governance/Managed.sol";
 import { MathUtils } from "../staking/libs/MathUtils.sol";
 import { IGraphToken } from "../token/IGraphToken.sol";
 
-import { RewardsManagerV7Storage } from "./RewardsManagerStorage.sol";
+import { RewardsManagerV6Storage } from "./RewardsManagerStorage.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
-import { IIssuanceAllocator } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocator.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
 
@@ -46,7 +46,7 @@ import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/i
  * until the actual takeRewards function is called.
  * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
-contract RewardsManager is RewardsManagerV7Storage, GraphUpgradeable, ERC165, IRewardsManager, IIssuanceTarget {
+contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, ERC165, IRewardsManager, IIssuanceTarget {
     using SafeMath for uint256;
 
     /// @dev Fixed point scaling factor used for decimals in reward calculations
@@ -200,17 +200,17 @@ contract RewardsManager is RewardsManagerV7Storage, GraphUpgradeable, ERC165, IR
             // Update rewards calculation before changing the issuance allocator
             updateAccRewardsPerSignal();
 
-            // Check that the contract supports the IIssuanceAllocator interface
+            // Check that the contract supports the IIssuanceAllocationDistribution interface
             // Allow zero address to disable the allocator
             if (newIssuanceAllocator != address(0)) {
                 require(
-                    IERC165(newIssuanceAllocator).supportsInterface(type(IIssuanceAllocator).interfaceId),
-                    "Contract does not support IIssuanceAllocator interface"
+                    IERC165(newIssuanceAllocator).supportsInterface(type(IIssuanceAllocationDistribution).interfaceId),
+                    "Contract does not support IIssuanceAllocationDistribution interface"
                 );
             }
 
             address oldIssuanceAllocator = address(issuanceAllocator);
-            issuanceAllocator = IIssuanceAllocator(newIssuanceAllocator);
+            issuanceAllocator = IIssuanceAllocationDistribution(newIssuanceAllocator);
             emit IssuanceAllocatorSet(oldIssuanceAllocator, newIssuanceAllocator);
         }
     }

@@ -6,18 +6,22 @@ pragma abicoder v2;
 // solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, use-natspec, named-parameters-mapping
 
 import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
-import {
-    IIssuanceAllocator,
-    TargetIssuancePerBlock,
-    Allocation
-} from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocator.sol";
+import { TargetIssuancePerBlock, Allocation } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocatorTypes.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
+import { IIssuanceAllocationAdministration } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationAdministration.sol";
+import { IIssuanceAllocationStatus } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationStatus.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
 
 /**
  * @title MockIssuanceAllocator
- * @dev A simple mock contract for the IssuanceAllocator interface
+ * @dev A simple mock contract for the IssuanceAllocator interfaces
  */
-contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
+contract MockIssuanceAllocator is
+    ERC165,
+    IIssuanceAllocationDistribution,
+    IIssuanceAllocationAdministration,
+    IIssuanceAllocationStatus
+{
     /// @dev The issuance rate to return
     uint256 private _issuanceRate;
 
@@ -78,7 +82,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationDistribution
      * @dev Mock always returns current block as both blockAppliedTo fields
      */
     function getTargetIssuancePerBlock(address target) external view override returns (TargetIssuancePerBlock memory) {
@@ -104,7 +108,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationDistribution
      * @dev Mock always returns current block number
      */
     function distributeIssuance() external view override returns (uint256) {
@@ -113,7 +117,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock always returns true
      */
     function setIssuancePerBlock(uint256 _issuancePerBlock, bool /* _forced */) external override returns (bool) {
@@ -123,7 +127,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock implementation that notifies target and returns true
      */
     function notifyTarget(address target) external override returns (bool) {
@@ -135,7 +139,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock implementation that forces notification and returns current block
      */
     function forceTargetNoChangeNotificationBlock(
@@ -150,7 +154,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      * @dev Mock implementation that returns target at index
      */
     function getTargetAt(uint256 index) external view override returns (address) {
@@ -160,7 +164,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      * @dev Mock implementation that returns target count
      */
     function getTargetCount() external view override returns (uint256) {
@@ -169,7 +173,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock overloaded function that sets selfMinting to 0 and force to false
      */
     function setTargetAllocation(address target, uint256 allocatorMinting) external override returns (bool) {
@@ -177,7 +181,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock overloaded function that sets force to false
      */
     function setTargetAllocation(
@@ -189,7 +193,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock always returns true
      */
     function setTargetAllocation(
@@ -236,7 +240,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTargetAllocation(address _target) external view override returns (Allocation memory) {
         require(!_shouldRevert, "MockIssuanceAllocator: reverted");
@@ -251,7 +255,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTotalAllocation() external view override returns (Allocation memory) {
         require(!_shouldRevert, "MockIssuanceAllocator: reverted");
@@ -275,7 +279,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function getTargets() external view override returns (address[] memory) {
         require(!_shouldRevert, "MockIssuanceAllocator: reverted");
@@ -283,7 +287,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      */
     function issuancePerBlock() external view override returns (uint256) {
         require(!_shouldRevert, "MockIssuanceAllocator: reverted");
@@ -291,7 +295,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      * @dev Mock returns current block
      */
     function lastIssuanceDistributionBlock() external view override returns (uint256) {
@@ -300,7 +304,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      * @dev Mock returns current block
      */
     function lastIssuanceAccumulationBlock() external view override returns (uint256) {
@@ -309,7 +313,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationStatus
      * @dev Mock always returns 0
      */
     function pendingAccumulatedAllocatorIssuance() external view override returns (uint256) {
@@ -318,7 +322,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock always returns current block
      */
     function distributePendingIssuance() external view override returns (uint256) {
@@ -327,7 +331,7 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
     }
 
     /**
-     * @inheritdoc IIssuanceAllocator
+     * @inheritdoc IIssuanceAllocationAdministration
      * @dev Mock always returns current block
      */
     function distributePendingIssuance(uint256 /* toBlockNumber */) external view override returns (uint256) {
@@ -339,6 +343,10 @@ contract MockIssuanceAllocator is ERC165, IIssuanceAllocator {
      * @inheritdoc ERC165
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IIssuanceAllocator).interfaceId || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IIssuanceAllocationDistribution).interfaceId ||
+            interfaceId == type(IIssuanceAllocationAdministration).interfaceId ||
+            interfaceId == type(IIssuanceAllocationStatus).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

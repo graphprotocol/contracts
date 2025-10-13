@@ -7,7 +7,7 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
-import { IIssuanceAllocator } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocator.sol";
+import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
 import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
@@ -83,18 +83,11 @@ contract RewardsManagerV5Storage is RewardsManagerV4Storage {
  * @title RewardsManagerV6Storage
  * @author Edge & Node
  * @notice Storage layout for RewardsManager V6
+ * Includes support for Rewards Eligibility Oracle and Issuance Allocator. 
  */
 contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @notice Address of the rewards eligibility oracle contract
     IRewardsEligibilityOracle public rewardsEligibilityOracle;
-}
-
-/**
- * @title RewardsManagerV7Storage
- * @author Edge & Node
- * @notice Storage layout for RewardsManager V7
- */
-contract RewardsManagerV7Storage is RewardsManagerV6Storage {
     /// @notice Address of the issuance allocator
-    IIssuanceAllocator public issuanceAllocator;
+    IIssuanceAllocationDistribution public issuanceAllocator;
 }

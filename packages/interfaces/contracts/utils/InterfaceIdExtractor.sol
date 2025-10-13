@@ -3,7 +3,9 @@ pragma solidity 0.7.6;
 
 import { IRewardsManager } from "../contracts/rewards/IRewardsManager.sol";
 import { IIssuanceTarget } from "../issuance/allocate/IIssuanceTarget.sol";
-import { IIssuanceAllocator } from "../issuance/allocate/IIssuanceAllocator.sol";
+import { IIssuanceAllocationDistribution } from "../issuance/allocate/IIssuanceAllocationDistribution.sol";
+import { IIssuanceAllocationAdministration } from "../issuance/allocate/IIssuanceAllocationAdministration.sol";
+import { IIssuanceAllocationStatus } from "../issuance/allocate/IIssuanceAllocationStatus.sol";
 import { IRewardsEligibilityOracle } from "../issuance/eligibility/IRewardsEligibilityOracle.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
@@ -33,11 +35,27 @@ contract InterfaceIdExtractor {
     }
 
     /**
-     * @notice Returns the ERC-165 interface ID for IIssuanceAllocator
+     * @notice Returns the ERC-165 interface ID for IIssuanceAllocationDistribution
      * @return The interface ID as calculated by Solidity
      */
-    function getIIssuanceAllocatorId() external pure returns (bytes4) {
-        return type(IIssuanceAllocator).interfaceId;
+    function getIIssuanceAllocationDistributionId() external pure returns (bytes4) {
+        return type(IIssuanceAllocationDistribution).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IIssuanceAllocationAdministration
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIIssuanceAllocationAdministrationId() external pure returns (bytes4) {
+        return type(IIssuanceAllocationAdministration).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IIssuanceAllocationStatus
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIIssuanceAllocationStatusId() external pure returns (bytes4) {
+        return type(IIssuanceAllocationStatus).interfaceId;
     }
 
     /**
