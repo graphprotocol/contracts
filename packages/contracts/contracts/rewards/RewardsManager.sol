@@ -20,7 +20,7 @@ import { IRewardsIssuer } from "./IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceTarget } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceTarget.sol";
-import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
 
 /**
  * @title Rewards Manager Contract
@@ -237,17 +237,17 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, ERC165, IR
      */
     function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external override onlyGovernor {
         if (address(rewardsEligibilityOracle) != newRewardsEligibilityOracle) {
-            // Check that the contract supports the IRewardsEligibilityOracle interface
+            // Check that the contract supports the IRewardsEligibility interface
             // Allow zero address to disable the oracle
             if (newRewardsEligibilityOracle != address(0)) {
                 require(
-                    IERC165(newRewardsEligibilityOracle).supportsInterface(type(IRewardsEligibilityOracle).interfaceId),
-                    "Contract does not support IRewardsEligibilityOracle interface"
+                    IERC165(newRewardsEligibilityOracle).supportsInterface(type(IRewardsEligibility).interfaceId),
+                    "Contract does not support IRewardsEligibility interface"
                 );
             }
 
             address oldRewardsEligibilityOracle = address(rewardsEligibilityOracle);
-            rewardsEligibilityOracle = IRewardsEligibilityOracle(newRewardsEligibilityOracle);
+            rewardsEligibilityOracle = IRewardsEligibility(newRewardsEligibilityOracle);
             emit RewardsEligibilityOracleSet(oldRewardsEligibilityOracle, newRewardsEligibilityOracle);
         }
     }

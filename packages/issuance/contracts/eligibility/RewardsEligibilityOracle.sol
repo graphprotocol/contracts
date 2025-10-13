@@ -2,7 +2,10 @@
 
 pragma solidity 0.8.27;
 
-import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IRewardsEligibilityAdministration } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityAdministration.sol";
+import { IRewardsEligibilityReporting } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityReporting.sol";
+import { IRewardsEligibilityStatus } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityStatus.sol";
 import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
 
 /**
@@ -14,7 +17,13 @@ import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
  * The contract also includes a global eligibility check toggle and an oracle update timeout mechanism.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
-contract RewardsEligibilityOracle is BaseUpgradeable, IRewardsEligibilityOracle {
+contract RewardsEligibilityOracle is
+    BaseUpgradeable,
+    IRewardsEligibility,
+    IRewardsEligibilityAdministration,
+    IRewardsEligibilityReporting,
+    IRewardsEligibilityStatus
+{
     // -- Role Constants --
 
     /**
@@ -68,32 +77,6 @@ contract RewardsEligibilityOracle is BaseUpgradeable, IRewardsEligibilityOracle 
         }
     }
 
-    // -- Events --
-
-    /// @notice Emitted when an oracle submits eligibility data
-    /// @param oracle The address of the oracle that submitted the data
-    /// @param data The eligibility data submitted by the oracle
-    event IndexerEligibilityData(address indexed oracle, bytes data);
-
-    /// @notice Emitted when an indexer's eligibility is renewed by an oracle
-    /// @param indexer The address of the indexer whose eligibility was renewed
-    /// @param oracle The address of the oracle that renewed the indexer's eligibility
-    event IndexerEligibilityRenewed(address indexed indexer, address indexed oracle);
-
-    /// @notice Emitted when the eligibility period is updated
-    /// @param oldPeriod The previous eligibility period in seconds
-    /// @param newPeriod The new eligibility period in seconds
-    event EligibilityPeriodUpdated(uint256 indexed oldPeriod, uint256 indexed newPeriod);
-
-    /// @notice Emitted when eligibility validation is enabled or disabled
-    /// @param enabled True if eligibility validation is enabled, false if disabled
-    event EligibilityValidationUpdated(bool indexed enabled); // solhint-disable-line gas-indexed-events
-
-    /// @notice Emitted when the oracle update timeout is updated
-    /// @param oldTimeout The previous timeout period in seconds
-    /// @param newTimeout The new timeout period in seconds
-    event OracleUpdateTimeoutUpdated(uint256 indexed oldTimeout, uint256 indexed newTimeout);
-
     // -- Constructor --
 
     /**
@@ -132,7 +115,12 @@ contract RewardsEligibilityOracle is BaseUpgradeable, IRewardsEligibilityOracle 
      * @return True if the contract supports the interface, false otherwise
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IRewardsEligibilityOracle).interfaceId || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IRewardsEligibility).interfaceId ||
+            interfaceId == type(IRewardsEligibilityAdministration).interfaceId ||
+            interfaceId == type(IRewardsEligibilityReporting).interfaceId ||
+            interfaceId == type(IRewardsEligibilityStatus).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     // -- Governance Functions --
@@ -225,7 +213,7 @@ contract RewardsEligibilityOracle is BaseUpgradeable, IRewardsEligibilityOracle 
     // -- View Functions --
 
     /**
-     * @inheritdoc IRewardsEligibilityOracle
+     * @inheritdoc IRewardsEligibility
      */
     function isEligible(address indexer) external view override returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();

@@ -4,7 +4,10 @@
 
 pragma solidity 0.7.6;
 
-import { IRewardsEligibilityOracle } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibility.sol";
+import { IRewardsEligibilityAdministration } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityAdministration.sol";
+import { IRewardsEligibilityReporting } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityReporting.sol";
+import { IRewardsEligibilityStatus } from "@graphprotocol/interfaces/contracts/issuance/eligibility/IRewardsEligibilityStatus.sol";
 import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
 
 /**
@@ -13,7 +16,13 @@ import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
  * @notice A simple mock contract for the RewardsEligibilityOracle interface
  * @dev A simple mock contract for the RewardsEligibilityOracle interface
  */
-contract MockRewardsEligibilityOracle is IRewardsEligibilityOracle, ERC165 {
+contract MockRewardsEligibilityOracle is
+    IRewardsEligibility,
+    IRewardsEligibilityAdministration,
+    IRewardsEligibilityReporting,
+    IRewardsEligibilityStatus,
+    ERC165
+{
     /// @dev Mapping to store eligibility status for each indexer
     mapping(address => bool) private eligible;
 
@@ -50,7 +59,7 @@ contract MockRewardsEligibilityOracle is IRewardsEligibilityOracle, ERC165 {
     }
 
     /**
-     * @inheritdoc IRewardsEligibilityOracle
+     * @inheritdoc IRewardsEligibility
      */
     function isEligible(address indexer) external view override returns (bool) {
         // If the indexer has been explicitly set, return that value
@@ -62,10 +71,80 @@ contract MockRewardsEligibilityOracle is IRewardsEligibilityOracle, ERC165 {
         return defaultResponse;
     }
 
+    // Stub implementations for interfaces not used in tests
+
+    /**
+     * @inheritdoc IRewardsEligibilityAdministration
+     */
+    function setEligibilityPeriod(uint256) external pure override returns (bool) {
+        return true;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityAdministration
+     */
+    function setOracleUpdateTimeout(uint256) external pure override returns (bool) {
+        return true;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityAdministration
+     */
+    function setEligibilityValidation(bool) external pure override returns (bool) {
+        return true;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityReporting
+     */
+    function renewIndexerEligibility(address[] calldata, bytes calldata) external pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityStatus
+     */
+    function getEligibilityRenewalTime(address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityStatus
+     */
+    function getEligibilityPeriod() external pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityStatus
+     */
+    function getOracleUpdateTimeout() external pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityStatus
+     */
+    function getLastOracleUpdateTime() external pure override returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc IRewardsEligibilityStatus
+     */
+    function getEligibilityValidation() external pure override returns (bool) {
+        return false;
+    }
+
     /**
      * @inheritdoc ERC165
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IRewardsEligibilityOracle).interfaceId || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IRewardsEligibility).interfaceId ||
+            interfaceId == type(IRewardsEligibilityAdministration).interfaceId ||
+            interfaceId == type(IRewardsEligibilityReporting).interfaceId ||
+            interfaceId == type(IRewardsEligibilityStatus).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

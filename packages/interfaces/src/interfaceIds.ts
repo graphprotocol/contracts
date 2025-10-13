@@ -17,7 +17,10 @@ export const INTERFACE_IDS = {
   IIssuanceAllocationDistribution: '0x79da37fc',
   IIssuanceAllocationStatus: '0xc0ba8a55',
   IIssuanceTarget: '0xaee4dc43',
-  IRewardsEligibilityOracle: '0x66e305fd',
+  IRewardsEligibilityAdministration: '0x9a69f6aa',
+  IRewardsEligibility: '0x66e305fd',
+  IRewardsEligibilityReporting: '0x38b7c077',
+  IRewardsEligibilityStatus: '0x53740f19',
   IRewardsManager: '0xa31d8306',
 } as const
 
@@ -27,5 +30,8 @@ export const IIssuanceAllocationAdministration = INTERFACE_IDS.IIssuanceAllocati
 export const IIssuanceAllocationDistribution = INTERFACE_IDS.IIssuanceAllocationDistribution
 export const IIssuanceAllocationStatus = INTERFACE_IDS.IIssuanceAllocationStatus
 export const IIssuanceTarget = INTERFACE_IDS.IIssuanceTarget
-export const IRewardsEligibilityOracle = INTERFACE_IDS.IRewardsEligibilityOracle
+export const IRewardsEligibilityAdministration = INTERFACE_IDS.IRewardsEligibilityAdministration
+export const IRewardsEligibility = INTERFACE_IDS.IRewardsEligibility
+export const IRewardsEligibilityReporting = INTERFACE_IDS.IRewardsEligibilityReporting
+export const IRewardsEligibilityStatus = INTERFACE_IDS.IRewardsEligibilityStatus
 export const IRewardsManager = INTERFACE_IDS.IRewardsManager

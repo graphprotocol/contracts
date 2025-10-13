@@ -6,7 +6,10 @@ import { IIssuanceTarget } from "../issuance/allocate/IIssuanceTarget.sol";
 import { IIssuanceAllocationDistribution } from "../issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceAllocationAdministration } from "../issuance/allocate/IIssuanceAllocationAdministration.sol";
 import { IIssuanceAllocationStatus } from "../issuance/allocate/IIssuanceAllocationStatus.sol";
-import { IRewardsEligibilityOracle } from "../issuance/eligibility/IRewardsEligibilityOracle.sol";
+import { IRewardsEligibility } from "../issuance/eligibility/IRewardsEligibility.sol";
+import { IRewardsEligibilityAdministration } from "../issuance/eligibility/IRewardsEligibilityAdministration.sol";
+import { IRewardsEligibilityReporting } from "../issuance/eligibility/IRewardsEligibilityReporting.sol";
+import { IRewardsEligibilityStatus } from "../issuance/eligibility/IRewardsEligibilityStatus.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 /**
@@ -59,11 +62,35 @@ contract InterfaceIdExtractor {
     }
 
     /**
-     * @notice Returns the ERC-165 interface ID for IRewardsEligibilityOracle
+     * @notice Returns the ERC-165 interface ID for IRewardsEligibility
      * @return The interface ID as calculated by Solidity
      */
-    function getIRewardsEligibilityOracleId() external pure returns (bytes4) {
-        return type(IRewardsEligibilityOracle).interfaceId;
+    function getIRewardsEligibilityId() external pure returns (bytes4) {
+        return type(IRewardsEligibility).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IRewardsEligibilityAdministration
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIRewardsEligibilityAdministrationId() external pure returns (bytes4) {
+        return type(IRewardsEligibilityAdministration).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IRewardsEligibilityReporting
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIRewardsEligibilityReportingId() external pure returns (bytes4) {
+        return type(IRewardsEligibilityReporting).interfaceId;
+    }
+
+    /**
+     * @notice Returns the ERC-165 interface ID for IRewardsEligibilityStatus
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIRewardsEligibilityStatusId() external pure returns (bytes4) {
+        return type(IRewardsEligibilityStatus).interfaceId;
     }
 
     /**

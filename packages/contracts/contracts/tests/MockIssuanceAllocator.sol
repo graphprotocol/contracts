@@ -6,7 +6,10 @@ pragma abicoder v2;
 // solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, use-natspec, named-parameters-mapping
 
 import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
-import { TargetIssuancePerBlock, Allocation } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocatorTypes.sol";
+import {
+    TargetIssuancePerBlock,
+    Allocation
+} from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocatorTypes.sol";
 import { IIssuanceAllocationDistribution } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationDistribution.sol";
 import { IIssuanceAllocationAdministration } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationAdministration.sol";
 import { IIssuanceAllocationStatus } from "@graphprotocol/interfaces/contracts/issuance/allocate/IIssuanceAllocationStatus.sol";

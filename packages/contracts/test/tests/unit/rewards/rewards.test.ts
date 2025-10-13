@@ -447,8 +447,8 @@ describe('Rewards', () => {
         await expect(tx).revertedWith('function call to a non-contract account')
       })
 
-      it('should reject setting oracle that does not support IRewardsEligibilityOracle interface', async function () {
-        // Deploy a contract that doesn't support the IRewardsEligibilityOracle interface
+      it('should reject setting oracle that does not support IRewardsEligibility interface', async function () {
+        // Deploy a contract that doesn't support the IRewardsEligibility interface
         const MockERC165OnlyContractFactory = await hre.ethers.getContractFactory(
           'contracts/tests/MockERC165OnlyContract.sol:MockERC165OnlyContract',
         )
@@ -456,7 +456,7 @@ describe('Rewards', () => {
         await mockContract.deployed()
 
         const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(mockContract.address)
-        await expect(tx).revertedWith('Contract does not support IRewardsEligibilityOracle interface')
+        await expect(tx).revertedWith('Contract does not support IRewardsEligibility interface')
       })
 
       it('should not emit event when setting same oracle address', async function () {

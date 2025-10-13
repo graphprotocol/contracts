@@ -1,10 +1,13 @@
 // Import generated interface IDs from the interfaces package
 import {
-  IIssuanceAllocationDistribution,
   IIssuanceAllocationAdministration,
+  IIssuanceAllocationDistribution,
   IIssuanceAllocationStatus,
   IIssuanceTarget,
-  IRewardsEligibilityOracle,
+  IRewardsEligibility,
+  IRewardsEligibilityAdministration,
+  IRewardsEligibilityReporting,
+  IRewardsEligibilityStatus,
 } from '@graphprotocol/interfaces'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
@@ -86,21 +89,53 @@ describe('ERC-165 Interface Compliance', () => {
     shouldSupportERC165Interface(() => contracts.directAllocation, IIssuanceTarget, 'IIssuanceTarget'),
   )
 
-  describe(
-    'RewardsEligibilityOracle Interface Compliance',
-    shouldSupportERC165Interface(
-      () => contracts.rewardsEligibilityOracle,
-      IRewardsEligibilityOracle,
-      'IRewardsEligibilityOracle',
-    ),
-  )
+  describe('RewardsEligibilityOracle Interface Compliance', () => {
+    it('should support IRewardsEligibility interface', async () => {
+      const oracle = contracts.rewardsEligibilityOracle
+      const supported = await oracle.supportsInterface(IRewardsEligibility)
+      expect(supported).to.be.true
+    })
+
+    it('should support IRewardsEligibilityAdministration interface', async () => {
+      const oracle = contracts.rewardsEligibilityOracle
+      const supported = await oracle.supportsInterface(IRewardsEligibilityAdministration)
+      expect(supported).to.be.true
+    })
+
+    it('should support IRewardsEligibilityReporting interface', async () => {
+      const oracle = contracts.rewardsEligibilityOracle
+      const supported = await oracle.supportsInterface(IRewardsEligibilityReporting)
+      expect(supported).to.be.true
+    })
+
+    it('should support IRewardsEligibilityStatus interface', async () => {
+      const oracle = contracts.rewardsEligibilityOracle
+      const supported = await oracle.supportsInterface(IRewardsEligibilityStatus)
+      expect(supported).to.be.true
+    })
+
+    it('should support ERC-165 interface', async () => {
+      const oracle = contracts.rewardsEligibilityOracle
+      const supported = await oracle.supportsInterface('0x01ffc9a7')
+      expect(supported).to.be.true
+    })
+
+    it('should not support random interface', async () => {
+      const oracle = contracts.rewardsEligibilityOracle
+      const supported = await oracle.supportsInterface('0xffffffff')
+      expect(supported).to.be.false
+    })
+  })
 
   describe('Interface ID Validation', () => {
     it('should have valid interface IDs (not zero)', () => {
       expect(IIssuanceAllocationDistribution).to.not.equal('0x00000000')
       expect(IIssuanceAllocationAdministration).to.not.equal('0x00000000')
       expect(IIssuanceAllocationStatus).to.not.equal('0x00000000')
-      expect(IRewardsEligibilityOracle).to.not.equal('0x00000000')
+      expect(IRewardsEligibility).to.not.equal('0x00000000')
+      expect(IRewardsEligibilityAdministration).to.not.equal('0x00000000')
+      expect(IRewardsEligibilityReporting).to.not.equal('0x00000000')
+      expect(IRewardsEligibilityStatus).to.not.equal('0x00000000')
       expect(IIssuanceTarget).to.not.equal('0x00000000')
     })
 
@@ -109,7 +144,10 @@ describe('ERC-165 Interface Compliance', () => {
         IIssuanceAllocationDistribution,
         IIssuanceAllocationAdministration,
         IIssuanceAllocationStatus,
-        IRewardsEligibilityOracle,
+        IRewardsEligibility,
+        IRewardsEligibilityAdministration,
+        IRewardsEligibilityReporting,
+        IRewardsEligibilityStatus,
         IIssuanceTarget,
       ]
 
