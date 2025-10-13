@@ -131,7 +131,7 @@ contract RewardsEligibilityOracle is
      * @param eligibilityPeriod New eligibility period in seconds
      * @return True if the state is as requested (eligibility period is set to the specified value)
      */
-    function setEligibilityPeriod(uint256 eligibilityPeriod) external onlyRole(OPERATOR_ROLE) returns (bool) {
+    function setEligibilityPeriod(uint256 eligibilityPeriod) external override onlyRole(OPERATOR_ROLE) returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();
         uint256 oldEligibilityPeriod = $.eligibilityPeriod;
 
@@ -149,7 +149,9 @@ contract RewardsEligibilityOracle is
      * @param oracleUpdateTimeout New timeout period in seconds
      * @return True if the state is as requested (timeout is set to the specified value)
      */
-    function setOracleUpdateTimeout(uint256 oracleUpdateTimeout) external onlyRole(OPERATOR_ROLE) returns (bool) {
+    function setOracleUpdateTimeout(
+        uint256 oracleUpdateTimeout
+    ) external override onlyRole(OPERATOR_ROLE) returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();
         uint256 oldTimeout = $.oracleUpdateTimeout;
 
@@ -167,7 +169,7 @@ contract RewardsEligibilityOracle is
      * @param enabled True to enable eligibility validation, false to disable
      * @return True if successfully set (always the case for current code)
      */
-    function setEligibilityValidation(bool enabled) external onlyRole(OPERATOR_ROLE) returns (bool) {
+    function setEligibilityValidation(bool enabled) external override onlyRole(OPERATOR_ROLE) returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();
 
         if ($.eligibilityValidationEnabled != enabled) {
@@ -187,7 +189,7 @@ contract RewardsEligibilityOracle is
     function renewIndexerEligibility(
         address[] calldata indexers,
         bytes calldata data
-    ) external onlyRole(ORACLE_ROLE) returns (uint256) {
+    ) external override onlyRole(ORACLE_ROLE) returns (uint256) {
         emit IndexerEligibilityData(msg.sender, data);
 
         uint256 updatedCount = 0;
@@ -232,7 +234,7 @@ contract RewardsEligibilityOracle is
      * @param indexer Address of the indexer
      * @return The last eligibility renewal timestamp, or 0 if the indexer's eligibility has never been renewed
      */
-    function getEligibilityRenewalTime(address indexer) external view returns (uint256) {
+    function getEligibilityRenewalTime(address indexer) external view override returns (uint256) {
         return _getRewardsEligibilityOracleStorage().indexerEligibilityTimestamps[indexer];
     }
 
@@ -240,7 +242,7 @@ contract RewardsEligibilityOracle is
      * @notice Get the eligibility period
      * @return The current eligibility period in seconds
      */
-    function getEligibilityPeriod() external view returns (uint256) {
+    function getEligibilityPeriod() external view override returns (uint256) {
         return _getRewardsEligibilityOracleStorage().eligibilityPeriod;
     }
 
@@ -248,7 +250,7 @@ contract RewardsEligibilityOracle is
      * @notice Get the oracle update timeout
      * @return The current oracle update timeout in seconds
      */
-    function getOracleUpdateTimeout() external view returns (uint256) {
+    function getOracleUpdateTimeout() external view override returns (uint256) {
         return _getRewardsEligibilityOracleStorage().oracleUpdateTimeout;
     }
 
@@ -256,7 +258,7 @@ contract RewardsEligibilityOracle is
      * @notice Get the last oracle update time
      * @return The timestamp of the last oracle update
      */
-    function getLastOracleUpdateTime() external view returns (uint256) {
+    function getLastOracleUpdateTime() external view override returns (uint256) {
         return _getRewardsEligibilityOracleStorage().lastOracleUpdateTime;
     }
 
@@ -264,7 +266,7 @@ contract RewardsEligibilityOracle is
      * @notice Get eligibility validation state
      * @return True if eligibility validation is enabled, false otherwise
      */
-    function getEligibilityValidation() external view returns (bool) {
+    function getEligibilityValidation() external view override returns (bool) {
         return _getRewardsEligibilityOracleStorage().eligibilityValidationEnabled;
     }
 }

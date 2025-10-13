@@ -307,7 +307,7 @@ contract IssuanceAllocator is
      * - The target will be notified at most once per block to prevent reentrancy looping
      * - Will revert if target notification reverts
      */
-    function notifyTarget(address target) external onlyRole(GOVERNOR_ROLE) returns (bool) {
+    function notifyTarget(address target) external override onlyRole(GOVERNOR_ROLE) returns (bool) {
         return _notifyTarget(target);
     }
 
@@ -550,7 +550,7 @@ contract IssuanceAllocator is
      * - If there is no pending issuance, this function is a no-op
      * - If allocatorMintingAllowance is 0 (all targets are self-minting), pending issuance will be lost
      */
-    function distributePendingIssuance() external onlyRole(GOVERNOR_ROLE) returns (uint256) {
+    function distributePendingIssuance() external override onlyRole(GOVERNOR_ROLE) returns (uint256) {
         return _distributePendingIssuance();
     }
 
@@ -562,7 +562,9 @@ contract IssuanceAllocator is
      * - This function can be called even when the contract is paused
      * - If allocatorMintingAllowance is 0 (all targets are self-minting), pending issuance will be lost
      */
-    function distributePendingIssuance(uint256 toBlockNumber) external onlyRole(GOVERNOR_ROLE) returns (uint256) {
+    function distributePendingIssuance(
+        uint256 toBlockNumber
+    ) external override onlyRole(GOVERNOR_ROLE) returns (uint256) {
         accumulatePendingIssuance(toBlockNumber);
         return _distributePendingIssuance();
     }
