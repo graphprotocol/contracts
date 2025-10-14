@@ -9,7 +9,6 @@
     "scripts/**/*.ts",
     "tasks/**/*.ts",
     "test/**/*.ts",
-    "ignition/**/*.ts",
-    "natspec-smells.config.js"
+    "ignition/**/*.ts"
   ]
 }

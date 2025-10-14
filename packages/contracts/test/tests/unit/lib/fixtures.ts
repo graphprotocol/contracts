@@ -28,6 +28,8 @@ import {
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { providers, Wallet } from 'ethers'
 
+import { isRunningUnderCoverage } from '../../../utils/coverage'
+
 export interface L1FixtureContracts {
   controller: Controller
   disputeManager: DisputeManager
@@ -71,8 +73,8 @@ export class NetworkFixture {
   constructor(public provider: providers.Provider) {}
 
   async load(deployer: SignerWithAddress, l2Deploy?: boolean): Promise<GraphNetworkContracts> {
-    // Use instrumented artifacts when running coverage tests
-    const artifactsDir = process.env.SOLIDITY_COVERAGE ? './artifacts' : undefined
+    // Use instrumented artifacts when running coverage tests, otherwise use local artifacts
+    const artifactsDir = isRunningUnderCoverage() ? './artifacts' : '../artifacts'
 
     const contracts = await deployGraphNetwork(
       'addresses-local.json',

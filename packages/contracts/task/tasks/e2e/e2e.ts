@@ -1,7 +1,7 @@
 import { isGraphL1ChainId } from '@graphprotocol/sdk'
 import { greTask } from '@graphprotocol/sdk/gre'
 import fs from 'fs'
-import glob from 'glob'
+import { globSync } from 'glob'
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 import { runScriptWithHardhat } from 'hardhat/internal/util/scripts-runner'
 import { HardhatRuntimeEnvironment, TaskArguments } from 'hardhat/types'
@@ -29,7 +29,7 @@ const setGraphConfig = (args: TaskArguments, hre: HardhatRuntimeEnvironment) => 
 greTask('e2e', 'Run all e2e tests')
   .addFlag('skipBridge', 'Skip bridge tests')
   .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
-    let testFiles = [...new glob.GlobSync(CONFIG_TESTS).found, ...new glob.GlobSync(INIT_TESTS).found]
+    let testFiles = [...globSync(CONFIG_TESTS), ...globSync(INIT_TESTS)]
 
     if (args.skipBridge) {
       testFiles = testFiles.filter((file) => !/l1|l2/.test(file))
@@ -46,7 +46,7 @@ greTask('e2e', 'Run all e2e tests')
 
 greTask('e2e:config', 'Run deployment configuration e2e tests').setAction(
   async (args, hre: HardhatRuntimeEnvironment) => {
-    const files = new glob.GlobSync(CONFIG_TESTS).found
+    const files = globSync(CONFIG_TESTS)
 
     // Disable secure accounts, we don't need them for this task
     hre.config.graph.disableSecureAccounts = true
@@ -60,7 +60,7 @@ greTask('e2e:config', 'Run deployment configuration e2e tests').setAction(
 
 greTask('e2e:init', 'Run deployment initialization e2e tests').setAction(
   async (args, hre: HardhatRuntimeEnvironment) => {
-    const files = new glob.GlobSync(INIT_TESTS).found
+    const files = globSync(INIT_TESTS)
 
     // Disable secure accounts, we don't need them for this task
     hre.config.graph.disableSecureAccounts = true

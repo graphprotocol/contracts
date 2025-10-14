@@ -5,7 +5,7 @@
     "access": "public"
   },
   "description": "Contract addresses for The Graph Protocol",
-  "author": "The Graph core devs",
+  "author": "Edge & Node",
   "license": "GPL-2.0-or-later",
   "exports": {
     "./horizon/addresses.json": "./src/horizon/addresses.json",
@@ -16,13 +16,15 @@
     "README.md"
   ],
   "scripts": {
-    "lint": "prettier -w --cache --log-level warn '**/*.json'",
+    "lint": "pnpm lint:md; pnpm lint:json",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "restore-symlinks": "node scripts/restore-symlinks.js",
     "prepublishOnly": "node scripts/copy-addresses-for-publish.js",
     "postpublish": "node scripts/restore-symlinks.js"
   },
   "devDependencies": {
-    "prettier": "^3.0.0"
+    "prettier": "catalog:"
   },
   "keywords": [
     "ethereum",

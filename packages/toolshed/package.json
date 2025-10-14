@@ -32,10 +32,13 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/toolshed^...' run build:self",
+    "build:self": "tsc",
     "watch": "tsc --watch",
-    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint": "pnpm lint:ts; pnpm lint:md; pnpm lint:json",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "clean": "rm -rf dist",
     "prepublishOnly": "pnpm run build"
@@ -52,17 +55,17 @@
   "dependencies": {
     "@graphprotocol/address-book": "workspace:^",
     "@graphprotocol/interfaces": "workspace:^",
-    "@nomicfoundation/hardhat-ethers": "3.0.8",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
     "debug": "^4.4.0",
-    "ethers": "6.13.7",
+    "ethers": "catalog:",
     "glob": "^11.0.1",
-    "hardhat": "^2.22.16",
+    "hardhat": "catalog:",
     "json5": "^2.2.3"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
     "@types/json5": "^2.2.0",
-    "eslint": "^8.56.0",
-    "typescript": "^5.0.0"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }
