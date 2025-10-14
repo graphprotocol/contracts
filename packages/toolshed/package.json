@@ -5,7 +5,7 @@
     "access": "public"
   },
   "description": "A collection of tools and utilities for the Graph Protocol Typescript components",
-  "author": "Edge & Node",
+  "author": "Tomás Migone <tomas@edgeandnode.com>",
   "license": "MIT",
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",
