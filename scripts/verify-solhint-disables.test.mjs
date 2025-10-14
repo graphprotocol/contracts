@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Unit tests for verify-solhint-disables.js
+ * Unit tests for verify-solhint-disables.mjs
  *
  * Tests the extractDisabledRulesFromContent function with various file structures
  */
 
-const { extractDisabledRulesFromContent, fixDisabledRulesInContent } = require('./verify-solhint-disables.js')
+import { extractDisabledRulesFromContent, fixDisabledRulesInContent } from './verify-solhint-disables.mjs'
 
 // Test helper
 function assertArrayEquals(actual, expected, testName) {

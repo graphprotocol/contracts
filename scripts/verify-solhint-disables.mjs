@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
-const fs = require('fs')
-const { execSync } = require('child_process')
+import { execSync } from 'child_process'
+import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'fs'
+import { dirname, join, relative, resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 /**
  * Extract solhint-disable rules from file content
@@ -39,7 +44,7 @@ const { execSync } = require('child_process')
  *
  * Note: This does NOT collect from solhint-disable-next-line comments.
  */
-function extractDisabledRulesFromContent(content) {
+export function extractDisabledRulesFromContent(content) {
   const lines = content.split('\n')
 
   let todoLineIndex = -1
@@ -103,7 +108,7 @@ function extractDisabledRulesFromContent(content) {
  * Wrapper around extractDisabledRulesFromContent that reads the file
  */
 function extractDisabledRules(filePath) {
-  const content = fs.readFileSync(filePath, 'utf8')
+  const content = readFileSync(filePath, 'utf8')
   return extractDisabledRulesFromContent(content)
 }
 
@@ -112,10 +117,8 @@ function extractDisabledRules(filePath) {
  * This gives us the complete list of issues that need to be disabled
  */
 function getActualIssues(filePath) {
-  const path = require('path')
-
   try {
-    const content = fs.readFileSync(filePath, 'utf8')
+    const content = readFileSync(filePath, 'utf8')
 
     // Remove all solhint-disable lines to get the full list of actual issues
     const cleanedLines = []
@@ -131,39 +134,36 @@ function getActualIssues(filePath) {
     const cleanedContent = cleanedLines.join('\n')
 
     // Create temp file in same directory as original to maintain import resolution context
-    const absolutePath = path.resolve(filePath)
+    const absolutePath = resolve(filePath)
     const tempFile = absolutePath.replace('.sol', '.temp.sol')
-    const fileDir = path.dirname(absolutePath)
+    const fileDir = dirname(absolutePath)
 
     // Find the package root (directory containing node_modules or package.json)
     let packageRoot = fileDir
-    while (packageRoot !== path.dirname(packageRoot)) {
-      if (
-        fs.existsSync(path.join(packageRoot, 'package.json')) ||
-        fs.existsSync(path.join(packageRoot, 'node_modules'))
-      ) {
+    while (packageRoot !== dirname(packageRoot)) {
+      if (existsSync(join(packageRoot, 'package.json')) || existsSync(join(packageRoot, 'node_modules'))) {
         break
       }
-      packageRoot = path.dirname(packageRoot)
+      packageRoot = dirname(packageRoot)
     }
 
-    fs.writeFileSync(tempFile, cleanedContent)
+    writeFileSync(tempFile, cleanedContent)
 
     try {
       // Find the root .solhint.json config
       let configPath = null
       let searchDir = packageRoot
-      while (searchDir !== path.dirname(searchDir)) {
-        const configFile = path.join(searchDir, '.solhint.json')
-        if (fs.existsSync(configFile)) {
+      while (searchDir !== dirname(searchDir)) {
+        const configFile = join(searchDir, '.solhint.json')
+        if (existsSync(configFile)) {
           configPath = configFile
           break
         }
-        searchDir = path.dirname(searchDir)
+        searchDir = dirname(searchDir)
       }
 
       // Run solhint from the package root with the config to ensure consistent behavior
-      const relativeTempFile = path.relative(packageRoot, tempFile)
+      const relativeTempFile = relative(packageRoot, tempFile)
       const configArg = configPath ? `--config "${configPath}"` : ''
       const result = execSync(`npx solhint ${configArg} "${relativeTempFile}" -f json`, {
         cwd: packageRoot,
@@ -171,7 +171,7 @@ function getActualIssues(filePath) {
         stdio: ['pipe', 'pipe', 'pipe'],
       })
 
-      fs.unlinkSync(tempFile) // Clean up temp file
+      unlinkSync(tempFile) // Clean up temp file
 
       const issues = JSON.parse(result)
       const ruleIds = [...new Set(issues.map((issue) => issue.ruleId).filter((id) => id && id.trim()))].sort()
@@ -179,8 +179,8 @@ function getActualIssues(filePath) {
       return ruleIds
     } catch (error) {
       // Clean up temp file if it exists
-      if (fs.existsSync(tempFile)) {
-        fs.unlinkSync(tempFile)
+      if (existsSync(tempFile)) {
+        unlinkSync(tempFile)
       }
       console.error(`Error processing ${filePath}:`, error.message)
       return []
@@ -200,7 +200,7 @@ function getActualIssues(filePath) {
  * @param {string[]} preTodoRules - Array of rules currently in pre-TODO disables
  * @returns {string} Fixed content
  */
-function fixDisabledRulesInContent(content, actualIssues, preTodoRules) {
+export function fixDisabledRulesInContent(content, actualIssues, preTodoRules) {
   const lines = content.split('\n')
 
   // Calculate which pre-TODO rules to keep (only the ones actually needed)
@@ -323,9 +323,9 @@ function fixFile(filePath, actualIssues) {
     return // Rules match exactly - no change needed
   }
 
-  const content = fs.readFileSync(filePath, 'utf8')
+  const content = readFileSync(filePath, 'utf8')
   const fixedContent = fixDisabledRulesInContent(content, actualIssues, preTodoRules)
-  fs.writeFileSync(filePath, fixedContent)
+  writeFileSync(filePath, fixedContent)
 }
 
 /**
@@ -333,22 +333,21 @@ function fixFile(filePath, actualIssues) {
  * Returns an array of directories containing Solidity files
  */
 function findContractDirs() {
-  const path = require('path')
   const currentDir = process.cwd()
   const contractDirs = []
 
   // Check if current directory has a contracts subdirectory
-  if (fs.existsSync(path.join(currentDir, 'contracts'))) {
-    contractDirs.push(path.join(currentDir, 'contracts'))
+  if (existsSync(join(currentDir, 'contracts'))) {
+    contractDirs.push(join(currentDir, 'contracts'))
   }
 
   // If we're in a monorepo, look for packages/*/contracts
-  const packagesDir = path.join(currentDir, 'packages')
-  if (fs.existsSync(packagesDir)) {
-    const packages = fs.readdirSync(packagesDir)
+  const packagesDir = join(currentDir, 'packages')
+  if (existsSync(packagesDir)) {
+    const packages = readdirSync(packagesDir)
     for (const pkg of packages) {
-      const pkgContractsDir = path.join(packagesDir, pkg, 'contracts')
-      if (fs.existsSync(pkgContractsDir)) {
+      const pkgContractsDir = join(packagesDir, pkg, 'contracts')
+      if (existsSync(pkgContractsDir)) {
         contractDirs.push(pkgContractsDir)
       }
     }
@@ -366,7 +365,7 @@ function findSolidityFiles(targets) {
   const files = []
 
   for (const target of targets) {
-    const stat = fs.statSync(target)
+    const stat = statSync(target)
 
     if (stat.isFile() && target.endsWith('.sol')) {
       files.push(target)
@@ -513,7 +512,7 @@ function main() {
   const targets = args.filter((arg) => !arg.startsWith('--'))
 
   if (args.includes('--help') || args.includes('-h')) {
-    console.log(`Usage: verify-solhint-disables.js [options] [files/directories...]
+    console.log(`Usage: verify-solhint-disables.mjs [options] [files/directories...]
 
 Options:
   --fix           Automatically fix incorrect solhint-disable rules
@@ -527,19 +526,19 @@ Arguments:
 
 Examples:
   # Check all contracts in current package
-  verify-solhint-disables.js
+  verify-solhint-disables.mjs
 
   # Check all contracts in monorepo (from root)
-  verify-solhint-disables.js
+  verify-solhint-disables.mjs
 
   # Check specific file
-  verify-solhint-disables.js contracts/staking/Staking.sol
+  verify-solhint-disables.mjs contracts/staking/Staking.sol
 
   # Check specific directory
-  verify-solhint-disables.js contracts/staking
+  verify-solhint-disables.mjs contracts/staking
 
   # Auto-fix issues
-  verify-solhint-disables.js --fix
+  verify-solhint-disables.mjs --fix
 `)
     return
   }
@@ -553,9 +552,7 @@ Examples:
   processAllFiles(targets.length > 0 ? targets : null, shouldFix)
 }
 
-if (require.main === module) {
+// Run main if this is the entry point
+if (import.meta.url === `file://${process.argv[1]}`) {
   main()
 }
-
-// Export for testing
-module.exports = { extractDisabledRulesFromContent, fixDisabledRulesInContent }
