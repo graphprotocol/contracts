@@ -11,10 +11,11 @@
     "clean": "pnpm -r run clean",
     "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules packages/*/*/node_modules",
     "build": "pnpm -r run build:self",
+    "todo": "scripts/check_todos.py",
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
-    "lint:staged": "lint-staged",
+    "lint:staged": "lint-staged; pnpm todo",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
-    "lint:sol": "scripts/check-todos.sh; pnpm -r run lint:sol; prettier -w --cache --log-level warn '**/*.sol'",
+    "lint:sol": "pnpm -r run lint:sol; prettier -w --cache --log-level warn '**/*.sol'; pnpm todo",
     "lint:md": "markdownlint --fix --ignore-path .gitignore --ignore-path .markdownlintignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
     "lint:yaml": "npx yaml-lint .github/**/*.{yml,yaml} packages/contracts/task/config/*.yml; prettier -w --cache --log-level warn '**/*.{yml,yaml}'",
@@ -60,7 +61,6 @@
       "scripts/lint-staged-run.sh 'prettier -w --cache --log-level warn'"
     ],
     "*.sol": [
-      "scripts/check-todos.sh",
       "solhint --fix --noPrompt --noPoster",
       "prettier -w --cache --log-level warn"
     ],
