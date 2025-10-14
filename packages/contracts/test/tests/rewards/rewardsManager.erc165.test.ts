@@ -25,8 +25,23 @@ describe('RewardsManager ERC-165', () => {
   })
 
   describe('supportsInterface', function () {
-    it('should support ERC-165 interface', async function () {
+    it('should support ERC-165 interface (registered during deployment)', async function () {
       const IERC165_INTERFACE_ID = '0x01ffc9a7' // bytes4(keccak256('supportsInterface(bytes4)'))
+      // For fresh deployments, initialize() registers all interfaces including IERC165
+      expect(await rewardsManager.supportsInterface(IERC165_INTERFACE_ID)).to.be.true
+    })
+
+    it('completeUpgrade should be callable multiple times (idempotent)', async function () {
+      const [governor] = await ethers.getSigners()
+      const IERC165_INTERFACE_ID = '0x01ffc9a7'
+
+      // Call it multiple times - should not revert
+      // This completes the upgrade by initializing new features (like ERC165)
+      await rewardsManager.connect(governor).completeUpgrade()
+      await rewardsManager.connect(governor).completeUpgrade()
+      await rewardsManager.connect(governor).completeUpgrade()
+
+      // Should still work
       expect(await rewardsManager.supportsInterface(IERC165_INTERFACE_ID)).to.be.true
     })
 
