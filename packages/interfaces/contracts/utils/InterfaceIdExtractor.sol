@@ -25,6 +25,14 @@ import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
  */
 contract InterfaceIdExtractor {
     /**
+     * @notice Returns the ERC-165 interface ID for IERC165
+     * @return The interface ID as calculated by Solidity
+     */
+    function getIERC165Id() external pure returns (bytes4) {
+        return type(IERC165).interfaceId;
+    }
+
+    /**
      * @notice Returns the ERC-165 interface ID for IRewardsManager
      * @return The interface ID as calculated by Solidity
      */
@@ -118,14 +126,6 @@ contract InterfaceIdExtractor {
      */
     function getIPausableControlId() external pure returns (bytes4) {
         return type(IPausableControl).interfaceId;
-    }
-
-    /**
-     * @notice Returns the ERC-165 interface ID for IERC165
-     * @return The interface ID as calculated by Solidity
-     */
-    function getIERC165Id() external pure returns (bytes4) {
-        return type(IERC165).interfaceId;
     }
 
     /**
