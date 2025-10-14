@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+// solhint-disable gas-increment-by-one, gas-indexed-events, named-parameters-mapping, use-natspec
+
 pragma solidity 0.7.6;
 pragma abicoder v2;
-
-// solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, use-natspec, named-parameters-mapping
 
 import { ERC165 } from "@openzeppelin/contracts/introspection/ERC165.sol";
 import {
