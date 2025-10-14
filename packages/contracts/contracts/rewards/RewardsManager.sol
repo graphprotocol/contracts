@@ -7,7 +7,6 @@ pragma abicoder v2;
 // solhint-disable gas-increment-by-one, gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/introspection/ERC165Upgradeable.sol";
 import { IERC165 } from "@openzeppelin/contracts/introspection/IERC165.sol";
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
@@ -46,7 +45,7 @@ import { IRewardsEligibility } from "@graphprotocol/interfaces/contracts/issuanc
  * until the actual takeRewards function is called.
  * custom:security-contact Please email security+contracts@ thegraph.com (remove space) if you find any bugs. We might have an active bug bounty program.
  */
-contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, ERC165Upgradeable, IRewardsManager, IIssuanceTarget {
+contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, IRewardsManager, IIssuanceTarget {
     using SafeMath for uint256;
 
     /// @dev Fixed point scaling factor used for decimals in reward calculations
@@ -125,30 +124,19 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, ERC165Upgr
      */
     function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
-        __ERC165_init_unchained();
-        _registerInterfaces();
     }
 
     /**
-     * @notice Complete the upgrade by initializing new features
-     * @dev This function should be called by the governor after upgrading the contract implementation.
-     * It registers ERC165 interface support which is needed for interface detection.
-     * For fresh deployments, _registerInterfaces() is called directly by initialize().
-     * This function can be called multiple times safely (it's idempotent).
-     * Future upgrades can extend this function to initialize additional features.
+     * @inheritdoc IERC165
+     * @dev Implements ERC165 interface detection
+     * Returns true if this contract implements the interface defined by interfaceId.
+     * See: https://eips.ethereum.org/EIPS/eip-165
      */
-    function completeUpgrade() external onlyGovernor {
-        _registerInterfaces();
-    }
-
-    /**
-     * @dev Register all supported interfaces with ERC165
-     * This is called by initialize() for new deployments and by completeUpgrade() for upgrades
-     */
-    function _registerInterfaces() private {
-        _registerInterface(type(IERC165).interfaceId);
-        _registerInterface(type(IIssuanceTarget).interfaceId);
-        _registerInterface(type(IRewardsManager).interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return
+            interfaceId == type(IERC165).interfaceId ||
+            interfaceId == type(IIssuanceTarget).interfaceId ||
+            interfaceId == type(IRewardsManager).interfaceId;
     }
 
     // -- Config --
