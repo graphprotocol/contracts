@@ -42,8 +42,6 @@ fi
 
 mkdir -p reports
 
-# Build should be done by caller (test script calls build before test:self)
-
 if [ "$RUN_EVM" = true ]; then
   # Run using the standalone evm instance
   npx hardhat test --network ganache

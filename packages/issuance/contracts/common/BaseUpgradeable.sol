@@ -6,6 +6,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IPausableControl } from "@graphprotocol/interfaces/contracts/issuance/common/IPausableControl.sol";
 
 /**
  * @title BaseUpgradeable
@@ -18,7 +19,7 @@ import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token
  * This contract is abstract and meant to be inherited by other contracts.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
-abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, PausableUpgradeable {
+abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, PausableUpgradeable, IPausableControl {
     // -- Constants --
 
     /// @notice One million - used as the denominator for values provided as Parts Per Million (PPM)
@@ -126,18 +127,33 @@ abstract contract BaseUpgradeable is Initializable, AccessControlUpgradeable, Pa
     // -- External Functions --
 
     /**
-     * @notice Pause the contract
-     * @dev Only callable by accounts with the PAUSE_ROLE
+     * @inheritdoc IPausableControl
      */
-    function pause() external onlyRole(PAUSE_ROLE) {
+    function pause() external override onlyRole(PAUSE_ROLE) {
         _pause();
     }
 
     /**
-     * @notice Unpause the contract
-     * @dev Only callable by accounts with the PAUSE_ROLE
+     * @inheritdoc IPausableControl
      */
-    function unpause() external onlyRole(PAUSE_ROLE) {
+    function unpause() external override onlyRole(PAUSE_ROLE) {
         _unpause();
+    }
+
+    /**
+     * @inheritdoc IPausableControl
+     */
+    function paused() public view virtual override(PausableUpgradeable, IPausableControl) returns (bool) {
+        return super.paused();
+    }
+
+    /**
+     * @notice Check if this contract supports a given interface
+     * @dev Adds support for IPausableControl interface
+     * @param interfaceId The interface identifier to check
+     * @return True if the contract supports the interface, false otherwise
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IPausableControl).interfaceId || super.supportsInterface(interfaceId);
     }
 }

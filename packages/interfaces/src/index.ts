@@ -2,6 +2,7 @@ import { ContractRunner, Interface } from 'ethers'
 
 import { factories } from '../types'
 
+export * from './interfaceIds'
 export * from './types/horizon'
 export * from './types/subgraph-service'
 

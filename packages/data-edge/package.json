@@ -1,8 +1,10 @@
 {
   "name": "@graphprotocol/data-edge",
-  "private": true,
   "version": "0.3.0",
+  "private": true,
   "description": "The Graph Data Edge",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
   "main": "index.js",
   "scripts": {
     "prepare": "cd ../.. && husky install packages/contracts/.husky",
@@ -21,9 +23,6 @@
     "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
     "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
-    "prettier": "pnpm prettier:ts && pnpm prettier:sol",
-    "prettier:ts": "prettier --write 'test/**/*.ts'",
-    "prettier:sol": "prettier --write 'contracts/**/*.sol'",
     "security": "scripts/security",
     "flatten": "scripts/flatten",
     "verify": "hardhat verify",
@@ -35,8 +34,6 @@
     "README.md",
     "LICENSE"
   ],
-  "author": "The Graph Team",
-  "license": "GPL-2.0-or-later",
   "devDependencies": {
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/bytes": "^5.7.0",

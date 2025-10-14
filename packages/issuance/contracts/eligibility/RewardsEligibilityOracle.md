@@ -194,4 +194,4 @@ The system is deployed with reasonable defaults but can be adjusted as required.
 
 ## Integration
 
-The contract implements the `IRewardsEligibilityOracle` interface and can be integrated with any system that needs to verify indexer eligibility status. The primary integration point is the `isEligible(address)` function which returns a simple boolean indicating eligibility.
+The contract implements four focused interfaces (`IRewardsEligibility`, `IRewardsEligibilityAdministration`, `IRewardsEligibilityReporting`, and `IRewardsEligibilityStatus`) and can be integrated with any system that needs to verify indexer eligibility status. The primary integration point is the `isEligible(address)` function which returns a simple boolean indicating eligibility.

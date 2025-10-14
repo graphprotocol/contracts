@@ -3,11 +3,13 @@
 pragma solidity ^0.7.6 || ^0.8.0;
 
 /**
- * @title IRewardsEligibilityOracle
+ * @title IRewardsEligibility
  * @author Edge & Node
- * @notice Interface to check if an indexer is eligible to receive rewards
+ * @notice Minimal interface for checking indexer rewards eligibility
+ * @dev This is the interface that consumers (e.g., RewardsManager) need to check
+ * if an indexer is eligible to receive rewards
  */
-interface IRewardsEligibilityOracle {
+interface IRewardsEligibility {
     /**
      * @notice Check if an indexer is eligible to receive rewards
      * @param indexer Address of the indexer

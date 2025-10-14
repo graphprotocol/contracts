@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-strict-inequalities
-// solhint-disable gas-increment-by-one
-// solhint-disable function-max-lines
-
 pragma solidity 0.8.27;
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-increment-by-one, gas-strict-inequalities
 
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 

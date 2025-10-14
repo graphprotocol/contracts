@@ -41,6 +41,9 @@ find_files() {
 echo "📦 Compiling contracts with Hardhat..."
 pnpm hardhat compile
 
+# Step 1.5: Generate interface IDs
+pnpm hardhat run scripts/generateInterfaceIds.js --network hardhat
+
 # Step 2: Generate types (only if needed)
 echo "🏗️  Checking type definitions..."
 

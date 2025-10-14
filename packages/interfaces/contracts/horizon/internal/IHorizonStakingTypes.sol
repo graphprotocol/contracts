@@ -2,9 +2,6 @@
 
 pragma solidity 0.8.27;
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-indexed-events
-
 /**
  * @title Defines the data types used in the Horizon staking contract
  * @author Edge & Node

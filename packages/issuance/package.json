@@ -1,7 +1,12 @@
 {
   "name": "@graphprotocol/issuance",
   "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "The Graph Issuance Contracts",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
@@ -13,6 +18,8 @@
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/issuance^...' run build:self",
     "build:self": "pnpm compile; pnpm typechain",
+    "build:coverage": "pnpm build:dep && pnpm build:self:coverage",
+    "build:self:coverage": "npx hardhat compile --config hardhat.coverage.config.ts && pnpm typechain",
     "clean": "rm -rf artifacts/ types/ forge-artifacts/ cache_forge/ coverage/ cache/ .eslintcache",
     "compile": "hardhat compile",
     "test": "pnpm --filter @graphprotocol/issuance-test test",
@@ -31,11 +38,8 @@
     "artifacts/**/*",
     "types/**/*",
     "contracts/**/*",
-    "README.md",
-    "LICENSE"
+    "README.md"
   ],
-  "author": "The Graph Team",
-  "license": "GPL-2.0-or-later",
   "devDependencies": {
     "@graphprotocol/interfaces": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",

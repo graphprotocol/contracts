@@ -225,6 +225,10 @@ const eslintConfig = [
         ...globals.mocha,
       },
     },
+    rules: {
+      // Allow 'any' types in test files where they're often necessary for testing edge cases
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
   },
 
   // Add Hardhat globals for hardhat config files

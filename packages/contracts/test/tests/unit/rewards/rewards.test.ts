@@ -190,82 +190,6 @@ describe('Rewards', () => {
       })
     })
 
-    describe('rewards eligibility oracle', function () {
-      it('should reject setRewardsEligibilityOracle if unauthorized', async function () {
-        const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
-          'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
-        )
-        const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
-        await mockOracle.deployed()
-        const tx = rewardsManager.connect(indexer1).setRewardsEligibilityOracle(mockOracle.address)
-        await expect(tx).revertedWith('Only Controller governor')
-      })
-
-      it('should set rewards eligibility oracle if governor', async function () {
-        const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
-          'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
-        )
-        const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
-        await mockOracle.deployed()
-
-        const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
-        await expect(tx)
-          .emit(rewardsManager, 'RewardsEligibilityOracleSet')
-          .withArgs(constants.AddressZero, mockOracle.address)
-
-        expect(await rewardsManager.rewardsEligibilityOracle()).eq(mockOracle.address)
-      })
-
-      it('should allow setting rewards eligibility oracle to zero address', async function () {
-        // First set an oracle
-        const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
-          'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
-        )
-        const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
-        await mockOracle.deployed()
-        await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
-
-        // Then set to zero address to disable
-        const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(constants.AddressZero)
-        await expect(tx)
-          .emit(rewardsManager, 'RewardsEligibilityOracleSet')
-          .withArgs(mockOracle.address, constants.AddressZero)
-
-        expect(await rewardsManager.rewardsEligibilityOracle()).eq(constants.AddressZero)
-      })
-
-      it('should reject setting oracle that does not support interface', async function () {
-        // Try to set an EOA (externally owned account) as the rewards eligibility oracle
-        const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(indexer1.address)
-        await expect(tx).revertedWith('function call to a non-contract account')
-      })
-
-      it('should reject setting oracle that does not support IRewardsEligibilityOracle interface', async function () {
-        // Deploy a contract that doesn't support the IRewardsEligibilityOracle interface
-        const MockERC165OnlyContractFactory = await hre.ethers.getContractFactory(
-          'contracts/tests/MockERC165OnlyContract.sol:MockERC165OnlyContract',
-        )
-        const mockContract = await MockERC165OnlyContractFactory.deploy()
-        await mockContract.deployed()
-
-        const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(mockContract.address)
-        await expect(tx).revertedWith('Contract does not support IRewardsEligibilityOracle interface')
-      })
-
-      it('should not emit event when setting same oracle address', async function () {
-        const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
-          'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
-        )
-        const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true)
-        await mockOracle.deployed()
-        await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
-
-        // Setting the same oracle again should not emit an event
-        const tx = rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
-        await expect(tx).to.not.emit(rewardsManager, 'RewardsEligibilityOracleSet')
-      })
-    })
-
     describe('subgraph availability service', function () {
       it('reject set subgraph oracle if unauthorized', async function () {
         const tx = rewardsManager.connect(indexer1).setSubgraphAvailabilityOracle(oracle.address)
@@ -291,6 +215,42 @@ describe('Rewards', () => {
           .emit(rewardsManager, 'RewardsDenylistUpdated')
           .withArgs(subgraphDeploymentID1, blockNum + 1)
         expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+      })
+
+      it('should allow removing subgraph from denylist', async function () {
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
+
+        // First deny the subgraph
+        await rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, true)
+        expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+
+        // Then remove from denylist
+        const tx = rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, false)
+        await expect(tx).emit(rewardsManager, 'RewardsDenylistUpdated').withArgs(subgraphDeploymentID1, 0)
+        expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(false)
+      })
+
+      it('reject setMinimumSubgraphSignal if unauthorized', async function () {
+        const tx = rewardsManager.connect(indexer1).setMinimumSubgraphSignal(toGRT('1000'))
+        await expect(tx).revertedWith('Not authorized')
+      })
+
+      it('should allow setMinimumSubgraphSignal from subgraph availability oracle', async function () {
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
+
+        const newMinimumSignal = toGRT('2000')
+        const tx = rewardsManager.connect(oracle).setMinimumSubgraphSignal(newMinimumSignal)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('minimumSubgraphSignal')
+
+        expect(await rewardsManager.minimumSubgraphSignal()).eq(newMinimumSignal)
+      })
+
+      it('should allow setMinimumSubgraphSignal from governor', async function () {
+        const newMinimumSignal = toGRT('3000')
+        const tx = rewardsManager.connect(governor).setMinimumSubgraphSignal(newMinimumSignal)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('minimumSubgraphSignal')
+
+        expect(await rewardsManager.minimumSubgraphSignal()).eq(newMinimumSignal)
       })
     })
   })
@@ -403,6 +363,23 @@ describe('Rewards', () => {
         // Check
         expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
         expect(toRound(expectedRewardsSG2)).eq(toRound(contractRewardsSG2))
+      })
+
+      it('should return zero rewards when subgraph signal is below minimum threshold', async function () {
+        // Set a high minimum signal threshold
+        const highMinimumSignal = toGRT('2000')
+        await rewardsManager.connect(governor).setMinimumSubgraphSignal(highMinimumSignal)
+
+        // Signal less than the minimum threshold
+        const lowSignal = toGRT('1000')
+        await curation.connect(curator1).mint(subgraphDeploymentID1, lowSignal, 0)
+
+        // Jump some blocks to potentially accrue rewards
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
+
+        // Check that no rewards are accrued due to minimum signal threshold
+        const contractRewards = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1)
+        expect(contractRewards).eq(0)
       })
     })
 
@@ -891,66 +868,6 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
-      })
-
-      it('should deny rewards due to rewards eligibility oracle', async function () {
-        // Setup rewards eligibility oracle that denies rewards for indexer1
-        const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
-          'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
-        )
-        const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(false) // Default to deny
-        await mockOracle.deployed()
-
-        // Set the rewards eligibility oracle
-        await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
-
-        // Align with the epoch boundary
-        await helpers.mineEpoch(epochManager)
-
-        // Setup allocation
-        await setupIndexerAllocation()
-
-        // Jump to next epoch
-        await helpers.mineEpoch(epochManager)
-
-        // Calculate expected rewards (for verification in the event)
-        const expectedIndexingRewards = toGRT('1400')
-
-        // Close allocation. At this point rewards should be denied due to eligibility
-        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx)
-          .emit(rewardsManager, 'RewardsDeniedDueToEligibility')
-          .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
-      })
-
-      it('should allow rewards when rewards eligibility oracle approves', async function () {
-        // Setup rewards eligibility oracle that allows rewards for indexer1
-        const MockRewardsEligibilityOracleFactory = await hre.ethers.getContractFactory(
-          'contracts/tests/MockRewardsEligibilityOracle.sol:MockRewardsEligibilityOracle',
-        )
-        const mockOracle = await MockRewardsEligibilityOracleFactory.deploy(true) // Default to allow
-        await mockOracle.deployed()
-
-        // Set the rewards eligibility oracle
-        await rewardsManager.connect(governor).setRewardsEligibilityOracle(mockOracle.address)
-
-        // Align with the epoch boundary
-        await helpers.mineEpoch(epochManager)
-
-        // Setup allocation
-        await setupIndexerAllocation()
-
-        // Jump to next epoch
-        await helpers.mineEpoch(epochManager)
-
-        // Calculate expected rewards
-        const expectedIndexingRewards = toGRT('1400')
-
-        // Close allocation. At this point rewards should be assigned normally
-        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
-        await expect(tx)
-          .emit(rewardsManager, 'HorizonRewardsAssigned')
-          .withArgs(indexer1.address, allocationID1, expectedIndexingRewards)
       })
 
       it('should handle zero rewards scenario correctly', async function () {

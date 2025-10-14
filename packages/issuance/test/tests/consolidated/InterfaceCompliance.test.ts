@@ -1,11 +1,28 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { expect } from 'chai'
+// Import generated interface IDs from the interfaces package
+import {
+  IAccessControl,
+  IIssuanceAllocationAdministration,
+  IIssuanceAllocationData,
+  IIssuanceAllocationDistribution,
+  IIssuanceAllocationStatus,
+  IIssuanceTarget,
+  IPausableControl,
+  IRewardsEligibility,
+  IRewardsEligibilityAdministration,
+  IRewardsEligibilityReporting,
+  IRewardsEligibilityStatus,
+  ISendTokens,
+} from '@graphprotocol/interfaces'
 import { ethers } from 'hardhat'
 
-import { shouldSupportERC165Interface } from '../../utils/testPatterns'
-import { deployRewardsEligibilityOracle, deployTestGraphToken, getTestAccounts } from '../helpers/fixtures'
-// Import generated interface IDs
-import interfaceIds from '../helpers/interfaceIds'
+import { shouldSupportInterfaces } from '../../utils/testPatterns'
+import {
+  deployDirectAllocation,
+  deployIssuanceAllocator,
+  deployRewardsEligibilityOracle,
+  deployTestGraphToken,
+  getTestAccounts,
+} from '../helpers/fixtures'
 
 /**
  * Consolidated ERC-165 Interface Compliance Tests
@@ -22,32 +39,62 @@ describe('ERC-165 Interface Compliance', () => {
     const graphToken = await deployTestGraphToken()
     const graphTokenAddress = await graphToken.getAddress()
 
+    const issuanceAllocator = await deployIssuanceAllocator(
+      graphTokenAddress,
+      accounts.governor,
+      ethers.parseEther('100'),
+    )
+
+    const directAllocation = await deployDirectAllocation(graphTokenAddress, accounts.governor)
     const rewardsEligibilityOracle = await deployRewardsEligibilityOracle(graphTokenAddress, accounts.governor)
 
     contracts = {
+      issuanceAllocator,
+      directAllocation,
       rewardsEligibilityOracle,
     }
   })
 
   describe(
-    'RewardsEligibilityOracle Interface Compliance',
-    shouldSupportERC165Interface(
-      () => contracts.rewardsEligibilityOracle,
-      interfaceIds.IRewardsEligibilityOracle,
-      'IRewardsEligibilityOracle',
+    'IssuanceAllocator Interface Compliance',
+    shouldSupportInterfaces(
+      () => contracts.issuanceAllocator,
+      [
+        { id: IIssuanceAllocationDistribution, name: 'IIssuanceAllocationDistribution' },
+        { id: IIssuanceAllocationAdministration, name: 'IIssuanceAllocationAdministration' },
+        { id: IIssuanceAllocationStatus, name: 'IIssuanceAllocationStatus' },
+        { id: IIssuanceAllocationData, name: 'IIssuanceAllocationData' },
+        { id: IPausableControl, name: 'IPausableControl' },
+        { id: IAccessControl, name: 'IAccessControl' },
+      ],
     ),
   )
 
-  describe('Interface ID Consistency', () => {
-    it('should have consistent interface IDs with Solidity calculations', async () => {
-      const InterfaceIdExtractorFactory = await ethers.getContractFactory('InterfaceIdExtractor')
-      const extractor = await InterfaceIdExtractorFactory.deploy()
+  describe(
+    'DirectAllocation Interface Compliance',
+    shouldSupportInterfaces(
+      () => contracts.directAllocation,
+      [
+        { id: IIssuanceTarget, name: 'IIssuanceTarget' },
+        { id: ISendTokens, name: 'ISendTokens' },
+        { id: IPausableControl, name: 'IPausableControl' },
+        { id: IAccessControl, name: 'IAccessControl' },
+      ],
+    ),
+  )
 
-      expect(await extractor.getIRewardsEligibilityOracleId()).to.equal(interfaceIds.IRewardsEligibilityOracle)
-    })
-
-    it('should have valid interface IDs (not zero)', () => {
-      expect(interfaceIds.IRewardsEligibilityOracle).to.not.equal('0x00000000')
-    })
-  })
+  describe(
+    'RewardsEligibilityOracle Interface Compliance',
+    shouldSupportInterfaces(
+      () => contracts.rewardsEligibilityOracle,
+      [
+        { id: IRewardsEligibility, name: 'IRewardsEligibility' },
+        { id: IRewardsEligibilityAdministration, name: 'IRewardsEligibilityAdministration' },
+        { id: IRewardsEligibilityReporting, name: 'IRewardsEligibilityReporting' },
+        { id: IRewardsEligibilityStatus, name: 'IRewardsEligibilityStatus' },
+        { id: IPausableControl, name: 'IPausableControl' },
+        { id: IAccessControl, name: 'IAccessControl' },
+      ],
+    ),
+  )
 })

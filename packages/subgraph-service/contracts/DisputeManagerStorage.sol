@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable named-parameters-mapping
-
 pragma solidity 0.8.27;
 
 import { IDisputeManager } from "@graphprotocol/interfaces/contracts/subgraph-service/IDisputeManager.sol";
