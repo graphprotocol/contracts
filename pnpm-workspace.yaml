@@ -23,14 +23,14 @@ catalog:
   '@types/debug': ^4.1.12
   '@types/json5': ^2.2.0
   '@types/node': ^20.17.50
-  '@typescript-eslint/eslint-plugin': ^8.45.0
-  '@typescript-eslint/parser': ^8.45.0
+  '@typescript-eslint/eslint-plugin': ^8.46.1
+  '@typescript-eslint/parser': ^8.46.1
   '@wagmi/cli': ^2.3.1
   chai: ^4.2.0
   debug: ^4.4.0
   dotenv: ^16.5.0
   eslint: ^9.37.0
-  eslint-config-prettier: ^10.1.5
+  eslint-config-prettier: ^10.1.8
   eslint-plugin-import: ^2.32.0
   eslint-plugin-no-only-tests: ^3.3.0
   eslint-plugin-simple-import-sort: ^12.1.1
@@ -46,15 +46,15 @@ catalog:
   hardhat-storage-layout: ^0.1.7
   husky: ^9.1.7
   json5: ^2.2.3
-  lint-staged: ^16.0.0
+  lint-staged: ^16.2.4
   markdownlint-cli: ^0.45.0
   mocha: ^11.7.1
   prettier: ^3.6.2
-  prettier-plugin-solidity: ^2.0.0
+  prettier-plugin-solidity: ^2.1.0
   solhint: ^6.0.1
   ts-node: ^10.9.2
   typechain: ^8.3.2
   typescript: ^5.9.3
-  typescript-eslint: ^8.45.0
+  typescript-eslint: ^8.46.1
   viem: ^2.31.7
   yaml-lint: ^1.7.0
