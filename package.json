@@ -11,7 +11,7 @@
     "clean": "pnpm -r run clean",
     "clean:all": "pnpm clean && rm -rf node_modules packages/*/node_modules packages/*/*/node_modules",
     "build": "pnpm -r run build:self",
-    "todo": "scripts/check_todos.py",
+    "todo": "node scripts/check-todos.mjs",
     "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json; pnpm lint:yaml",
     "lint:staged": "lint-staged; pnpm todo",
     "lint:ts": "eslint --fix --cache '**/*.{js,ts,cjs,mjs,jsx,tsx}'; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
