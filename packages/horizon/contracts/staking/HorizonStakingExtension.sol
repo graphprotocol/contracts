@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-// TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable gas-strict-inequalities
-// solhint-disable gas-increment-by-one
-// solhint-disable function-max-lines
-
 pragma solidity 0.8.27;
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-strict-inequalities
 
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";

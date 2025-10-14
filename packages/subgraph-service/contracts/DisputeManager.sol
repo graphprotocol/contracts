@@ -2,9 +2,7 @@
 pragma solidity 0.8.27;
 
 // TODO: Re-enable and fix issues when publishing a new version
-// solhint-disable named-parameters-mapping
-// solhint-disable gas-strict-inequalities
-// solhint-disable function-max-lines
+// solhint-disable function-max-lines, gas-strict-inequalities
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
