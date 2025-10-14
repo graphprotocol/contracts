@@ -30,7 +30,7 @@
     "wagmi/**/*",
     "README.md"
   ],
-  "author": "The Graph Team",
+  "author": "Edge & Node",
   "license": "GPL-2.0-or-later",
   "scripts": {
     "clean": "rm -rf dist dist-v5 cache artifacts types types-v5 wagmi",

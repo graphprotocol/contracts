@@ -1,7 +1,12 @@
 {
   "name": "@graphprotocol/issuance",
   "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "The Graph Issuance Contracts",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
@@ -35,8 +40,6 @@
     "contracts/**/*",
     "README.md"
   ],
-  "author": "The Graph Team",
-  "license": "GPL-2.0-or-later",
   "devDependencies": {
     "@graphprotocol/interfaces": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",

@@ -1,8 +1,10 @@
 {
   "name": "@graphprotocol/token-distribution",
-  "private": true,
   "version": "2.0.0",
+  "private": true,
   "description": "Graph Token Distribution",
+  "author": "Edge & Node",
+  "license": "MIT",
   "main": "index.js",
   "scripts": {
     "prepublishOnly": "scripts/prepublish",
@@ -36,8 +38,6 @@
     "README.md",
     "LICENSE"
   ],
-  "author": "The Graph Team",
-  "license": "MIT",
   "devDependencies": {
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/bytes": "^5.7.0",

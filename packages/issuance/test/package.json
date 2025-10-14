@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "Test utilities for @graphprotocol/issuance",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
@@ -10,6 +12,21 @@
       "default": "./src/index.ts",
       "types": "./src/index.ts"
     }
+  },
+  "scripts": {
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/issuance-test^...' run build:self",
+    "build:self": "tsc --build",
+    "build:coverage": "pnpm build:dep:coverage && pnpm build:self",
+    "build:dep:coverage": "pnpm --filter '@graphprotocol/issuance-test^...' run build:coverage",
+    "clean": "rm -rf .eslintcache artifacts/",
+    "test": "pnpm build && pnpm test:self",
+    "test:self": "cd .. && hardhat test test/tests/*.test.ts test/tests/**/*.test.ts",
+    "test:coverage": "pnpm build:coverage && pnpm test:coverage:self",
+    "test:coverage:self": "cd .. && npx hardhat coverage --config hardhat.coverage.config.ts --testfiles \"test/tests/**/*.test.ts\"",
+    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
   },
   "dependencies": {
     "@graphprotocol/issuance": "workspace:^",
@@ -41,20 +58,5 @@
     "solidity-coverage": "^0.8.0",
     "ts-node": "^10.9.2",
     "typescript": "catalog:"
-  },
-  "scripts": {
-    "build": "pnpm build:dep && pnpm build:self",
-    "build:dep": "pnpm --filter '@graphprotocol/issuance-test^...' run build:self",
-    "build:self": "tsc --build",
-    "build:coverage": "pnpm build:dep:coverage && pnpm build:self",
-    "build:dep:coverage": "pnpm --filter '@graphprotocol/issuance-test^...' run build:coverage",
-    "clean": "rm -rf .eslintcache artifacts/",
-    "test": "pnpm build && pnpm test:self",
-    "test:self": "cd .. && hardhat test test/tests/*.test.ts test/tests/**/*.test.ts",
-    "test:coverage": "pnpm build:coverage && pnpm test:coverage:self",
-    "test:coverage:self": "cd .. && npx hardhat coverage --config hardhat.coverage.config.ts --testfiles \"test/tests/**/*.test.ts\"",
-    "lint": "pnpm lint:ts; pnpm lint:json",
-    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
-    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
   }
 }

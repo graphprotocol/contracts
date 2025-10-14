@@ -3,6 +3,8 @@
   "version": "1.0.3",
   "private": true,
   "description": "Task utilities for @graphprotocol/contracts",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
@@ -10,6 +12,16 @@
       "default": "./src/index.ts",
       "types": "./src/index.ts"
     }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf build types",
+    "deploy": "hardhat migrate",
+    "deploy-localhost": "hardhat migrate --force --skip-confirmation --disable-secure-accounts --network localhost --graph-config config/graph.localhost.yml --address-book addresses-local.json",
+    "verify": "hardhat verify",
+    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
   },
   "dependencies": {
     "@graphprotocol/contracts": "workspace:^",
@@ -57,15 +69,5 @@
     "yaml": "^1.10.2",
     "yaml-lint": "catalog:",
     "yargs": "^17.0.0"
-  },
-  "scripts": {
-    "build": "tsc --build",
-    "clean": "rm -rf build types",
-    "deploy": "hardhat migrate",
-    "deploy-localhost": "hardhat migrate --force --skip-confirmation --disable-secure-accounts --network localhost --graph-config config/graph.localhost.yml --address-book addresses-local.json",
-    "verify": "hardhat verify",
-    "lint": "pnpm lint:ts; pnpm lint:json",
-    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
-    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
   }
 }

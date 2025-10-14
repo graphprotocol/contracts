@@ -10,22 +10,13 @@
     "type": "git",
     "url": "git+https://github.com/graphprotocol/contracts.git"
   },
-  "author": "The Graph Team",
+  "author": "Edge & Node",
   "license": "GPL-2.0-or-later",
   "bugs": {
     "url": "https://github.com/graphprotocol/contracts/issues"
   },
   "homepage": "https://github.com/graphprotocol/contracts#readme",
   "types": "index.d.ts",
-  "files": [
-    "artifacts/**/*",
-    "types/**/*",
-    "contracts/**/*",
-    "README.md",
-    "addresses.json",
-    "index.js",
-    "index.d.ts"
-  ],
   "scripts": {
     "prepack": "pnpm build",
     "clean": "rm -rf artifacts/ cache/ types/ abis/ build/ dist/ coverage/",
@@ -49,6 +40,15 @@
     "verify": "hardhat verify",
     "size": "hardhat size-contracts"
   },
+  "files": [
+    "artifacts/**/*",
+    "types/**/*",
+    "contracts/**/*",
+    "README.md",
+    "addresses.json",
+    "index.js",
+    "index.d.ts"
+  ],
   "devDependencies": {
     "@arbitrum/sdk": "~3.1.13",
     "@defi-wonderland/smock": "^2.4.1",

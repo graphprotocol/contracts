@@ -3,6 +3,24 @@
   "version": "1.0.3",
   "private": true,
   "description": "Tests for @graphprotocol/contracts",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "postinstall": "scripts/setup-symlinks",
+    "clean": "rm -rf artifacts/ cache/ types/",
+    "build": "pnpm build:dep",
+    "build:dep": "pnpm --filter '@graphprotocol/contracts-tests^...' run build:self",
+    "test": "pnpm build && pnpm test:self",
+    "test:self": "scripts/test",
+    "test:e2e": "scripts/e2e",
+    "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
+    "test:coverage": "pnpm build && pnpm test:coverage:self",
+    "test:coverage:self": "scripts/coverage",
+    "test:upgrade": "scripts/upgrade",
+    "lint": "pnpm lint:ts; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
+  },
   "dependencies": {
     "@graphprotocol/contracts": "workspace:^",
     "@graphprotocol/sdk": "0.6.0"
@@ -53,21 +71,5 @@
     "winston": "^3.3.3",
     "yaml": "^1.10.2",
     "yargs": "^17.0.0"
-  },
-  "scripts": {
-    "postinstall": "scripts/setup-symlinks",
-    "clean": "rm -rf artifacts/ cache/ types/",
-    "build": "pnpm build:dep",
-    "build:dep": "pnpm --filter '@graphprotocol/contracts-tests^...' run build:self",
-    "test": "pnpm build && pnpm test:self",
-    "test:self": "scripts/test",
-    "test:e2e": "scripts/e2e",
-    "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
-    "test:coverage": "pnpm build && pnpm test:coverage:self",
-    "test:coverage:self": "scripts/coverage",
-    "test:upgrade": "scripts/upgrade",
-    "lint": "pnpm lint:ts; pnpm lint:json",
-    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
-    "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
   }
 }
