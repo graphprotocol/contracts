@@ -21,9 +21,9 @@
     "build:dep:coverage": "pnpm --filter '@graphprotocol/issuance-test^...' run build:coverage",
     "clean": "rm -rf .eslintcache artifacts/",
     "test": "pnpm build && pnpm test:self",
-    "test:self": "cd .. && hardhat test test/tests/*.test.ts test/tests/**/*.test.ts",
+    "test:self": "cd .. && hardhat test",
     "test:coverage": "pnpm build:coverage && pnpm test:coverage:self",
-    "test:coverage:self": "cd .. && npx hardhat coverage --config hardhat.coverage.config.ts --testfiles \"test/tests/**/*.test.ts\"",
+    "test:coverage:self": "cd .. && npx hardhat coverage --config hardhat.coverage.config.ts",
     "lint": "pnpm lint:ts; pnpm lint:json",
     "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
     "lint:json": "prettier -w --cache --log-level warn '**/*.json'"
