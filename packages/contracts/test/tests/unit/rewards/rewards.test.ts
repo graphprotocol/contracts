@@ -1,3 +1,8 @@
+import { Curation } from '@graphprotocol/contracts'
+import { EpochManager } from '@graphprotocol/contracts'
+import { GraphToken } from '@graphprotocol/contracts'
+import { IStaking } from '@graphprotocol/contracts'
+import { RewardsManager } from '@graphprotocol/contracts'
 import {
   deriveChannelKey,
   formatGRT,
@@ -13,11 +18,6 @@ import { expect } from 'chai'
 import { BigNumber, constants } from 'ethers'
 import hre from 'hardhat'
 
-import { Curation } from '../../../build/types/Curation'
-import { EpochManager } from '../../../build/types/EpochManager'
-import { GraphToken } from '../../../build/types/GraphToken'
-import { IStaking } from '../../../build/types/IStaking'
-import { RewardsManager } from '../../../build/types/RewardsManager'
 import { NetworkFixture } from '../lib/fixtures'
 
 const MAX_PPM = 1000000
@@ -162,6 +162,14 @@ describe('Rewards', () => {
   })
 
   describe('configuration', function () {
+    describe('initialize', function () {
+      it('should revert when called on implementation contract', async function () {
+        // Try to call initialize on the implementation contract (should revert with onlyImpl)
+        const tx = rewardsManager.connect(governor).initialize(contracts.Controller.address)
+        await expect(tx).revertedWith('Only implementation')
+      })
+    })
+
     describe('issuance per block update', function () {
       it('reject set issuance per block if unauthorized', async function () {
         const tx = rewardsManager.connect(indexer1).setIssuancePerBlock(toGRT('1.025'))
@@ -207,6 +215,42 @@ describe('Rewards', () => {
           .emit(rewardsManager, 'RewardsDenylistUpdated')
           .withArgs(subgraphDeploymentID1, blockNum + 1)
         expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+      })
+
+      it('should allow removing subgraph from denylist', async function () {
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
+
+        // First deny the subgraph
+        await rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, true)
+        expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(true)
+
+        // Then remove from denylist
+        const tx = rewardsManager.connect(oracle).setDenied(subgraphDeploymentID1, false)
+        await expect(tx).emit(rewardsManager, 'RewardsDenylistUpdated').withArgs(subgraphDeploymentID1, 0)
+        expect(await rewardsManager.isDenied(subgraphDeploymentID1)).eq(false)
+      })
+
+      it('reject setMinimumSubgraphSignal if unauthorized', async function () {
+        const tx = rewardsManager.connect(indexer1).setMinimumSubgraphSignal(toGRT('1000'))
+        await expect(tx).revertedWith('Not authorized')
+      })
+
+      it('should allow setMinimumSubgraphSignal from subgraph availability oracle', async function () {
+        await rewardsManager.connect(governor).setSubgraphAvailabilityOracle(oracle.address)
+
+        const newMinimumSignal = toGRT('2000')
+        const tx = rewardsManager.connect(oracle).setMinimumSubgraphSignal(newMinimumSignal)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('minimumSubgraphSignal')
+
+        expect(await rewardsManager.minimumSubgraphSignal()).eq(newMinimumSignal)
+      })
+
+      it('should allow setMinimumSubgraphSignal from governor', async function () {
+        const newMinimumSignal = toGRT('3000')
+        const tx = rewardsManager.connect(governor).setMinimumSubgraphSignal(newMinimumSignal)
+        await expect(tx).emit(rewardsManager, 'ParameterUpdated').withArgs('minimumSubgraphSignal')
+
+        expect(await rewardsManager.minimumSubgraphSignal()).eq(newMinimumSignal)
       })
     })
   })
@@ -319,6 +363,23 @@ describe('Rewards', () => {
         // Check
         expect(toRound(expectedRewardsSG1)).eq(toRound(contractRewardsSG1))
         expect(toRound(expectedRewardsSG2)).eq(toRound(contractRewardsSG2))
+      })
+
+      it('should return zero rewards when subgraph signal is below minimum threshold', async function () {
+        // Set a high minimum signal threshold
+        const highMinimumSignal = toGRT('2000')
+        await rewardsManager.connect(governor).setMinimumSubgraphSignal(highMinimumSignal)
+
+        // Signal less than the minimum threshold
+        const lowSignal = toGRT('1000')
+        await curation.connect(curator1).mint(subgraphDeploymentID1, lowSignal, 0)
+
+        // Jump some blocks to potentially accrue rewards
+        await helpers.mine(ISSUANCE_RATE_PERIODS)
+
+        // Check that no rewards are accrued due to minimum signal threshold
+        const contractRewards = await rewardsManager.getAccRewardsForSubgraph(subgraphDeploymentID1)
+        expect(contractRewards).eq(0)
       })
     })
 
@@ -807,6 +868,36 @@ describe('Rewards', () => {
         // Close allocation. At this point rewards should be collected for that indexer
         const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
         await expect(tx).emit(rewardsManager, 'RewardsDenied').withArgs(indexer1.address, allocationID1)
+      })
+
+      it('should handle zero rewards scenario correctly', async function () {
+        // Setup allocation with zero issuance to create zero rewards scenario
+        await rewardsManager.connect(governor).setIssuancePerBlock(0)
+
+        // Align with the epoch boundary
+        await helpers.mineEpoch(epochManager)
+
+        // Setup allocation
+        await setupIndexerAllocation()
+
+        // Jump to next epoch
+        await helpers.mineEpoch(epochManager)
+
+        // Before state
+        const beforeTokenSupply = await grt.totalSupply()
+        const beforeStakingBalance = await grt.balanceOf(staking.address)
+
+        // Close allocation. At this point rewards should be zero
+        const tx = staking.connect(indexer1).closeAllocation(allocationID1, randomHexBytes())
+        await expect(tx).emit(rewardsManager, 'HorizonRewardsAssigned').withArgs(indexer1.address, allocationID1, 0)
+
+        // After state - should be unchanged since no rewards were minted
+        const afterTokenSupply = await grt.totalSupply()
+        const afterStakingBalance = await grt.balanceOf(staking.address)
+
+        // Check that no tokens were minted (rewards were 0)
+        expect(afterTokenSupply).eq(beforeTokenSupply)
+        expect(afterStakingBalance).eq(beforeStakingBalance)
       })
     })
   })

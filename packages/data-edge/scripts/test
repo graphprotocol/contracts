@@ -25,10 +25,6 @@ evm_kill() {
 
 ### Setup EVM
 
-# Ensure we compiled sources
-
-pnpm build
-
 # Gas reporter needs to run in its own evm instance
 if [ "$RUN_EVM" = true  ]; then
   evm_kill

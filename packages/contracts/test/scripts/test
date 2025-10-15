@@ -3,12 +3,6 @@
 set -eo pipefail
 source $(pwd)/scripts/evm
 
-### Setup EVM
-
-# Ensure we compiled sources and dependencies
-
-pnpm --filter @graphprotocol/contracts build
-
 ### Cleanup
 function cleanup() {
   if [ "$RUN_EVM" = true ]; then
