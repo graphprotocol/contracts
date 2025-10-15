@@ -1,67 +1,141 @@
 #!/usr/bin/env node
 
 /**
- * Generate interface ID constants by deploying and calling InterfaceIdExtractor contract
+ * Generate interface ID constants from compiled contract artifacts
+ *
+ * This script calculates ERC-165 interface IDs by:
+ * 1. Reading ABIs from compiled Hardhat artifacts
+ * 2. Extracting function signatures from the ABI
+ * 3. Computing function selectors (first 4 bytes of keccak256)
+ * 4. XORing all selectors together to get the interface ID
+ *
+ * No contract deployment needed - works directly with JSON artifacts.
  */
 
-// This script is designed to be run via `npx hardhat run` which handles the module loading
-const hre = require('hardhat')
 const fs = require('fs')
 const path = require('path')
+const { utils } = require('ethers-v5')
+
+/**
+ * Calculate function selector (first 4 bytes of keccak256 hash)
+ * @param {string} signature - Function signature like "transfer(address,uint256)"
+ * @returns {string} Function selector as hex string (e.g., "0xa9059cbb")
+ */
+function functionSelector(signature) {
+  const hash = utils.keccak256(utils.toUtf8Bytes(signature))
+  return '0x' + hash.slice(2, 10) // Take first 4 bytes (8 hex chars after 0x)
+}
+
+/**
+ * Calculate ERC-165 interface ID from function signatures
+ * @param {string[]} signatures - Array of function signatures
+ * @returns {string} Interface ID as hex string (e.g., "0x01ffc9a7")
+ */
+function calculateInterfaceId(signatures) {
+  if (signatures.length === 0) {
+    return '0x00000000'
+  }
+
+  // XOR all function selectors together
+  let interfaceId = 0n
+  for (const sig of signatures) {
+    interfaceId ^= BigInt(functionSelector(sig))
+  }
+
+  return '0x' + interfaceId.toString(16).padStart(8, '0')
+}
+
+/**
+ * Extract function signatures from a compiled Hardhat artifact
+ * @param {string} artifactPath - Path to the artifact JSON file
+ * @param {string} interfaceName - Name of the interface (for logging)
+ * @returns {string} Interface ID
+ */
+function extractInterfaceIdFromArtifact(artifactPath, interfaceName) {
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf-8'))
+  const abi = artifact.abi
+
+  // Extract function signatures (only functions, not events or errors)
+  const signatures = abi
+    .filter((item) => item.type === 'function')
+    .map((func) => {
+      const inputs = func.inputs.map((input) => input.type).join(',')
+      return `${func.name}(${inputs})`
+    })
+    .sort() // Sort for consistency
+
+  if (signatures.length === 0) {
+    console.warn(`Warning: ${interfaceName} has no functions`)
+    return '0x00000000'
+  }
+
+  return calculateInterfaceId(signatures)
+}
+
+/**
+ * Configuration: Interface names mapped to their artifact paths
+ * Path is relative to the package root (packages/interfaces/)
+ *
+ * To add a new interface:
+ * 1. Ensure the contract is compiled (run `pnpm hardhat compile`)
+ * 2. Add an entry: InterfaceName: 'artifacts/path/to/Interface.sol/InterfaceName.json'
+ * 3. Run this script
+ */
+const INTERFACES = {
+  IERC165: 'artifacts/@openzeppelin/contracts/introspection/IERC165.sol/IERC165.json',
+  IRewardsManager: 'artifacts/contracts/contracts/rewards/IRewardsManager.sol/IRewardsManager.json',
+}
 
 async function main() {
   const outputFile = path.join(__dirname, '..', 'src', 'interfaceIds.ts')
-  const extractorPath = path.join(__dirname, '..', 'contracts', 'utils', 'InterfaceIdExtractor.sol')
+  const packageRoot = path.join(__dirname, '..')
 
-  // Check if regeneration is needed
-  if (fs.existsSync(outputFile) && fs.existsSync(extractorPath)) {
+  // Check if regeneration is needed by comparing artifact modification times
+  let needsRegeneration = !fs.existsSync(outputFile)
+
+  if (!needsRegeneration) {
     const outputStat = fs.statSync(outputFile)
-    const extractorStat = fs.statSync(extractorPath)
-
-    if (outputStat.mtime > extractorStat.mtime) {
-      // Output is newer than source, no need to regenerate
-      return
-    }
-  }
-
-  // Deploy the InterfaceIdExtractor contract
-  const InterfaceIdExtractor = await hre.ethers.getContractFactory('InterfaceIdExtractor')
-  const extractor = await InterfaceIdExtractor.deploy()
-  await extractor.waitForDeployment()
-
-  // Automatically discover all getter methods that return interface IDs
-  const results = {}
-  const contractInterface = extractor.interface
-
-  // Find all functions that start with 'get' and end with 'Id' and are view/pure functions
-  for (const fragment of contractInterface.fragments) {
-    if (
-      fragment.type === 'function' &&
-      fragment.name.startsWith('get') &&
-      fragment.name.endsWith('Id') &&
-      (fragment.stateMutability === 'view' || fragment.stateMutability === 'pure') &&
-      fragment.inputs.length === 0 && // No parameters
-      fragment.outputs.length === 1 && // Single return value
-      fragment.outputs[0].type === 'bytes4'
-    ) {
-      // Returns bytes4
-
-      // Extract interface name from method name: getIRewardsManagerId -> IRewardsManager
-      const interfaceName = fragment.name.replace(/^get/, '').replace(/Id$/, '')
-
-      try {
-        const interfaceId = await extractor[fragment.name]()
-        results[interfaceName] = interfaceId
-      } catch (error) {
-        console.warn(`⚠️  Failed to call ${fragment.name}: ${error.message}`)
+    for (const artifactPath of Object.values(INTERFACES)) {
+      const fullPath = path.join(packageRoot, artifactPath)
+      if (fs.existsSync(fullPath)) {
+        const artifactStat = fs.statSync(fullPath)
+        if (artifactStat.mtime > outputStat.mtime) {
+          needsRegeneration = true
+          break
+        }
       }
     }
   }
 
-  // Convert to hex strings
-  const processed = {}
-  for (const [name, value] of Object.entries(results)) {
-    processed[name] = typeof value === 'string' ? value : `0x${BigInt(value).toString(16).padStart(8, '0')}`
+  if (!needsRegeneration) {
+    // Output is up to date
+    return
+  }
+
+  // Extract interface IDs
+  const results = {}
+  let errorCount = 0
+
+  for (const [interfaceName, artifactPath] of Object.entries(INTERFACES)) {
+    const fullPath = path.join(packageRoot, artifactPath)
+
+    if (!fs.existsSync(fullPath)) {
+      console.error(`Error: Artifact not found for ${interfaceName} - run 'pnpm hardhat compile' first`)
+      errorCount++
+      continue
+    }
+
+    try {
+      results[interfaceName] = extractInterfaceIdFromArtifact(fullPath, interfaceName)
+    } catch {
+      console.error(`Error: Failed to extract interface ID for ${interfaceName}`)
+      errorCount++
+    }
+  }
+
+  if (Object.keys(results).length === 0) {
+    console.error('Error: No interface IDs were successfully extracted')
+    process.exit(1)
   }
 
   // Generate TypeScript content
@@ -71,21 +145,22 @@ async function main() {
  * DO NOT EDIT THIS FILE MANUALLY!
  *
  * This file is automatically generated by running:
- * pnpm hardhat run scripts/generateInterfaceIds.js --network hardhat
+ * node scripts/generateInterfaceIds.js
  *
  * To add a new interface ID:
- * 1. Add the interface import and getter method to contracts/utils/InterfaceIdExtractor.sol
- * 2. Run the generation script above
+ * 1. Add the interface to the INTERFACES object in scripts/generateInterfaceIds.js
+ * 2. Ensure contracts are compiled: pnpm hardhat compile
+ * 3. Run the generation script above
  */
 
 export const INTERFACE_IDS = {
-${Object.entries(processed)
+${Object.entries(results)
   .map(([name, id]) => `  ${name}: '${id}',`)
   .join('\n')}
 } as const
 
 // Individual exports for convenience
-${Object.entries(processed)
+${Object.entries(results)
   .map(([name]) => `export const ${name} = INTERFACE_IDS.${name}`)
   .join('\n')}
 `
@@ -94,7 +169,8 @@ ${Object.entries(processed)
   fs.mkdirSync(path.dirname(outputFile), { recursive: true })
   fs.writeFileSync(outputFile, content)
 
-  console.log(`Generated interface IDs: ${Object.keys(processed).join(', ')}`)
+  const status = errorCount > 0 ? ` (${errorCount} error${errorCount > 1 ? 's' : ''})` : ''
+  console.log(`Generated ${Object.keys(results).length} interface ID(s)${status}`)
 }
 
 main().catch((error) => {

@@ -42,7 +42,7 @@ echo "📦 Compiling contracts with Hardhat..."
 pnpm hardhat compile
 
 # Step 1.5: Generate interface IDs
-pnpm hardhat run scripts/generateInterfaceIds.js --network hardhat
+node scripts/generateInterfaceIds.js
 
 # Step 2: Generate types (only if needed)
 echo "🏗️  Checking type definitions..."
