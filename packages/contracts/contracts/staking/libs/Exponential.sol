@@ -6,13 +6,14 @@ import { LibFixedMath } from "./LibFixedMath.sol";
 
 /**
  * @title LibExponential library
+ * @author Edge & Node
  * @notice A library to compute query fee rebates using an exponential formula
  */
 library LibExponential {
     /// @dev Maximum value of the exponent for which to compute the exponential before clamping to zero.
     uint32 private constant MAX_EXPONENT = 15;
 
-    /// @dev The exponential formula used to compute fee-based rewards for
+    /// @notice The exponential formula used to compute fee-based rewards for
     ///      staking pools in a given epoch. This function does not perform
     ///      bounds checking on the inputs, but the following conditions
     ///      need to be true:

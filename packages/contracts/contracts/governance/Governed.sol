@@ -2,23 +2,39 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
+/* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
+
 /**
  * @title Graph Governance contract
- * @dev All contracts that will be owned by a Governor entity should extend this contract.
+ * @author Edge & Node
+ * @notice All contracts that will be owned by a Governor entity should extend this contract.
  */
 abstract contract Governed {
     // -- State --
 
-    /// Address of the governor
+    /**
+     * @notice Address of the governor
+     */
     address public governor;
-    /// Address of the new governor that is pending acceptance
+    /**
+     * @notice Address of the new governor that is pending acceptance
+     */
     address public pendingGovernor;
 
     // -- Events --
 
-    /// Emitted when a new owner/governor has been set, but is pending acceptance
+    /**
+     * @notice Emitted when a new owner/governor has been set, but is pending acceptance
+     * @param from Previous pending governor address
+     * @param to New pending governor address
+     */
     event NewPendingOwnership(address indexed from, address indexed to);
-    /// Emitted when a new owner/governor has accepted their role
+
+    /**
+     * @notice Emitted when a new owner/governor has accepted their role
+     * @param from Previous governor address
+     * @param to New governor address
+     */
     event NewOwnership(address indexed from, address indexed to);
 
     /**
@@ -30,7 +46,7 @@ abstract contract Governed {
     }
 
     /**
-     * @dev Initialize the governor for this contract
+     * @notice Initialize the governor for this contract
      * @param _initGovernor Address of the governor
      */
     function _initialize(address _initGovernor) internal {

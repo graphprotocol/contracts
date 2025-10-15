@@ -2,30 +2,77 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
+/**
+ * @title Epoch Manager Interface
+ * @author Edge & Node
+ * @notice Interface for the Epoch Manager contract that handles protocol epochs
+ */
 interface IEpochManager {
     // -- Configuration --
 
+    /**
+     * @notice Set epoch length to `_epochLength` blocks
+     * @param _epochLength Epoch length in blocks
+     */
     function setEpochLength(uint256 _epochLength) external;
 
     // -- Epochs
 
+    /**
+     * @dev Run a new epoch, should be called once at the start of any epoch.
+     * @notice Perform state changes for the current epoch
+     */
     function runEpoch() external;
 
     // -- Getters --
 
+    /**
+     * @notice Check if the current epoch has been run
+     * @return True if current epoch has been run, false otherwise
+     */
     function isCurrentEpochRun() external view returns (bool);
 
+    /**
+     * @notice Get the current block number
+     * @return Current block number
+     */
     function blockNum() external view returns (uint256);
 
+    /**
+     * @notice Get the hash of a specific block
+     * @param _block Block number to get hash for
+     * @return Block hash
+     */
     function blockHash(uint256 _block) external view returns (bytes32);
 
+    /**
+     * @notice Get the current epoch number
+     * @return Current epoch number
+     */
     function currentEpoch() external view returns (uint256);
 
+    /**
+     * @notice Get the block number when the current epoch started
+     * @return Block number of current epoch start
+     */
     function currentEpochBlock() external view returns (uint256);
 
+    /**
+     * @notice Get the number of blocks since the current epoch started
+     * @return Number of blocks since current epoch start
+     */
     function currentEpochBlockSinceStart() external view returns (uint256);
 
+    /**
+     * @notice Get the number of epochs since a given epoch
+     * @param _epoch Epoch to calculate from
+     * @return Number of epochs since the given epoch
+     */
     function epochsSince(uint256 _epoch) external view returns (uint256);
 
+    /**
+     * @notice Get the number of epochs since the last epoch length update
+     * @return Number of epochs since last update
+     */
     function epochsSinceUpdate() external view returns (uint256);
 }

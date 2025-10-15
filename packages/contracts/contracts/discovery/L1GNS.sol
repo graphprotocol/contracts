@@ -14,7 +14,8 @@ import { L1GNSV1Storage } from "./L1GNSStorage.sol";
 
 /**
  * @title L1GNS
- * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
+ * @author Edge & Node
+ * @notice The Graph Name System contract provides a decentralized naming system for subgraphs
  * used in the scope of the Graph Network. It translates Subgraphs into Subgraph Versions.
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
  * human-readable names. All human readable names emitted in events.
@@ -25,7 +26,13 @@ import { L1GNSV1Storage } from "./L1GNSStorage.sol";
 contract L1GNS is GNS, L1GNSV1Storage {
     using SafeMathUpgradeable for uint256;
 
-    /// @dev Emitted when a subgraph was sent to L2 through the bridge
+    /**
+     * @notice Emitted when a subgraph was sent to L2 through the bridge
+     * @param _subgraphID ID of the subgraph being transferred
+     * @param _l1Owner Address of the subgraph owner on L1
+     * @param _l2Owner Address that will own the subgraph on L2
+     * @param _tokens Amount of tokens transferred with the subgraph
+     */
     event SubgraphSentToL2(
         uint256 indexed _subgraphID,
         address indexed _l1Owner,
@@ -33,7 +40,13 @@ contract L1GNS is GNS, L1GNSV1Storage {
         uint256 _tokens
     );
 
-    /// @dev Emitted when a curator's balance for a subgraph was sent to L2
+    /**
+     * @notice Emitted when a curator's balance for a subgraph was sent to L2
+     * @param _subgraphID ID of the subgraph
+     * @param _l1Curator Address of the curator on L1
+     * @param _l2Beneficiary Address that will receive the tokens on L2
+     * @param _tokens Amount of tokens transferred
+     */
     event CuratorBalanceSentToL2(
         uint256 indexed _subgraphID,
         address indexed _l1Curator,
@@ -42,10 +55,10 @@ contract L1GNS is GNS, L1GNSV1Storage {
     );
 
     /**
-     * @notice Send a subgraph's data and tokens to L2.
-     * Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
+     * @notice Send a subgraph's data and tokens to L2
+     * @dev Use the Arbitrum SDK to estimate the L2 retryable ticket parameters.
      * Note that any L2 gas/fee refunds will be lost, so the function only accepts
-     * the exact amount of ETH to cover _maxSubmissionCost + _maxGas * _gasPriceBid.
+     * the exact amount of ETH to cover _maxSubmissionCost + _maxGas * _gasPriceBid
      * @param _subgraphID Subgraph ID
      * @param _l2Owner Address that will own the subgraph in L2 (could be the L1 owner, but could be different if the L1 owner is an L1 contract)
      * @param _maxGas Max gas to use for the L2 retryable ticket

@@ -4,6 +4,8 @@ pragma solidity 0.8.27;
 
 /**
  * @title Defines the data types used in the Horizon staking contract
+ * @author Edge & Node
+ * @notice Interface defining data types and structures for Horizon staking
  * @dev In order to preserve storage compatibility some data structures keep deprecated fields.
  * These structures have then two representations, an internal one used by the contract storage and a public one.
  * Getter functions should retrieve internal representations, remove deprecated fields and return the public representation.

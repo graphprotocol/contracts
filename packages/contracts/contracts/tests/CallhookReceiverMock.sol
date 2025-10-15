@@ -2,21 +2,29 @@
 
 pragma solidity ^0.7.6;
 
-import "../gateway/ICallhookReceiver.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events, use-natspec
+
+import { ICallhookReceiver } from "../gateway/ICallhookReceiver.sol";
 
 /**
- * @title GovernedMock contract
+ * @title CallhookReceiverMock contract
+ * @dev Mock contract for testing callhook receiver functionality
  */
 contract CallhookReceiverMock is ICallhookReceiver {
+    /**
+     * @dev Emitted when a transfer is received
+     * @param from Address that sent the transfer
+     * @param amount Amount of tokens transferred
+     * @param foo First test parameter
+     * @param bar Second test parameter
+     */
     event TransferReceived(address from, uint256 amount, uint256 foo, uint256 bar);
 
     /**
-     * @dev Receive tokens with a callhook from the bridge
-     * Expects two uint256 values encoded in _data.
+     * @inheritdoc ICallhookReceiver
+     * @dev Expects two uint256 values encoded in _data.
      * Reverts if the first of these values is zero.
-     * @param _from Token sender in L1
-     * @param _amount Amount of tokens that were transferred
-     * @param _data ABI-encoded callhook data
      */
     function onTokenTransfer(address _from, uint256 _amount, bytes calldata _data) external override {
         uint256 foo;

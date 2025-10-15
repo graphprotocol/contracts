@@ -9,6 +9,7 @@ import { IL2StakingTypes } from "./IL2StakingTypes.sol";
 
 /**
  * @title Interface for the L2 Staking contract
+ * @author Edge & Node
  * @notice This is the interface that should be used when interacting with the L2 Staking contract.
  * It extends the IStaking interface with the functions that are specific to L2, adding the callhook receiver
  * to receive transferred stake and delegation from L1.
