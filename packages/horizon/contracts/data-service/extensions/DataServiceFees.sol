@@ -12,6 +12,7 @@ import { DataServiceFeesV1Storage } from "./DataServiceFeesStorage.sol";
 
 /**
  * @title DataServiceFees contract
+ * @author Edge & Node
  * @dev Implementation of the {IDataServiceFees} interface.
  * @notice Extension for the {IDataService} contract to handle payment collateralization
  * using a Horizon provision. See {IDataServiceFees} for more details.

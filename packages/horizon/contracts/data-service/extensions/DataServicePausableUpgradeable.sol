@@ -8,8 +8,9 @@ import { DataService } from "../DataService.sol";
 
 /**
  * @title DataServicePausableUpgradeable contract
+ * @author Edge & Node
+ * @notice Upgradeable version of the {DataServicePausable} contract.
  * @dev Implementation of the {IDataServicePausable} interface.
- * @dev Upgradeable version of the {DataServicePausable} contract.
  * @dev This contract inherits from {DataService} which needs to be initialized, please see
  * {DataService} for detailed instructions.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any

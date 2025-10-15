@@ -25,6 +25,9 @@
 
 pragma solidity ^0.7.3;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
 interface IMessageProvider {
     event InboxMessageDelivered(uint256 indexed messageNum, bytes data);
 

@@ -9,6 +9,7 @@ import { IHorizonStakingExtension } from "./internal/IHorizonStakingExtension.so
 
 /**
  * @title Complete interface for the Horizon Staking contract
+ * @author Edge & Node
  * @notice This interface exposes all functions implemented by the {HorizonStaking} contract and its extension
  * {HorizonStakingExtension} as well as the custom data types used by the contract.
  * @dev Use this interface to interact with the Horizon Staking contract.

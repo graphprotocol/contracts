@@ -2,35 +2,55 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-increment-by-one, gas-strict-inequalities
 
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
+/**
+ * @title Bancor Formula Contract
+ * @author Edge & Node
+ * @notice Contract implementing Bancor's bonding curve formula for token conversion
+ */
 contract BancorFormula {
     using SafeMath for uint256;
 
-    uint16 public constant version = 6;
+    /// @notice Version of the Bancor formula implementation
+    uint16 public constant version = 6; // solhint-disable-line const-name-snakecase
 
+    /// @dev Constant representing the value 1
     uint256 private constant ONE = 1;
+    /// @dev Maximum ratio value (100% in parts per million)
     uint32 private constant MAX_RATIO = 1000000;
+    /// @dev Minimum precision for calculations
     uint8 private constant MIN_PRECISION = 32;
+    /// @dev Maximum precision for calculations
     uint8 private constant MAX_PRECISION = 127;
 
     /**
      * @dev Auto-generated via 'PrintIntScalingFactors.py'
      */
+    /// @dev Fixed point representation of 1 (2^127)
     uint256 private constant FIXED_1 = 0x080000000000000000000000000000000;
+    /// @dev Fixed point representation of 2 (2^128)
     uint256 private constant FIXED_2 = 0x100000000000000000000000000000000;
+    /// @dev Maximum number for calculations (2^129)
     uint256 private constant MAX_NUM = 0x200000000000000000000000000000000;
 
     /**
      * @dev Auto-generated via 'PrintLn2ScalingFactors.py'
      */
+    /// @dev Natural logarithm of 2 numerator for fixed point calculations
     uint256 private constant LN2_NUMERATOR = 0x3f80fe03f80fe03f80fe03f80fe03f8;
+    /// @dev Natural logarithm of 2 denominator for fixed point calculations
     uint256 private constant LN2_DENOMINATOR = 0x5b9de1d10bf4103d647b0955897ba80;
 
     /**
      * @dev Auto-generated via 'PrintFunctionOptimalLog.py' and 'PrintFunctionOptimalExp.py'
      */
+    /// @dev Maximum value for optimal logarithm calculation
     uint256 private constant OPT_LOG_MAX_VAL = 0x15bf0a8b1457695355fb8ac404e7a79e3;
+    /// @dev Maximum value for optimal exponentiation calculation
     uint256 private constant OPT_EXP_MAX_VAL = 0x800000000000000000000000000000000;
 
     /**
@@ -38,6 +58,7 @@ contract BancorFormula {
      */
     uint256[128] private maxExpArray;
 
+    /// @notice Initialize the Bancor formula with maximum exponent array values
     constructor() {
         //  maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
         //  maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
@@ -170,7 +191,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev given a token supply, reserve balance, ratio and a deposit amount (in the reserve token),
+     * @notice Given a token supply, reserve balance, ratio and a deposit amount (in the reserve token),
      * calculates the return for a given conversion (in the main token)
      *
      * Formula:
@@ -210,7 +231,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev given a token supply, reserve balance, ratio and a sell amount (in the main token),
+     * @notice Given a token supply, reserve balance, ratio and a sell amount (in the main token),
      * calculates the return for a given conversion (in the reserve token)
      *
      * Formula:
@@ -258,7 +279,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev given two reserve balances/ratios and a sell amount (in the first reserve token),
+     * @notice Given two reserve balances/ratios and a sell amount (in the first reserve token),
      * calculates the return for a conversion from the first reserve token to the second reserve token (in the second reserve token)
      * note that prior to version 4, you should use 'calculateCrossConnectorReturn' instead
      *
@@ -304,7 +325,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev given a smart token supply, reserve balance, total ratio and an amount of requested smart tokens,
+     * @notice Given a smart token supply, reserve balance, total ratio and an amount of requested smart tokens,
      * calculates the amount of reserve tokens required for purchasing the given amount of smart tokens
      *
      * Formula:
@@ -341,7 +362,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev given a smart token supply, reserve balance, total ratio and an amount of smart tokens to liquidate,
+     * @notice Given a smart token supply, reserve balance, total ratio and an amount of smart tokens to liquidate,
      * calculates the amount of reserve tokens received for selling the given amount of smart tokens
      *
      * Formula:
@@ -384,7 +405,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev General Description:
+     * @notice General Description:
      *     Determine a value of precision.
      *     Calculate an integer approximation of (_baseN / _baseD) ^ (_expN / _expD) * 2 ^ precision.
      *     Return the result along with the precision used.
@@ -400,6 +421,12 @@ contract BancorFormula {
      *     This allows us to compute "base ^ exp" with maximum accuracy and without exceeding 256 bits in any of the intermediate computations.
      *     This functions assumes that "_expN < 2 ^ 256 / log(MAX_NUM - 1)", otherwise the multiplication should be replaced with a "safeMul".
      *     Since we rely on unsigned-integer arithmetic and "base < 1" ==> "log(base) < 0", this function does not support "_baseN < _baseD".
+     * @param _baseN Base numerator
+     * @param _baseD Base denominator
+     * @param _expN Exponent numerator
+     * @param _expD Exponent denominator
+     * @return result The computed power result
+     * @return precision The precision used in the calculation
      */
     function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal view returns (uint256, uint8) {
         require(_baseN < MAX_NUM);
@@ -422,8 +449,10 @@ contract BancorFormula {
     }
 
     /**
-     * @dev computes log(x / FIXED_1) * FIXED_1.
+     * @notice Computes log(x / FIXED_1) * FIXED_1.
      * This functions assumes that "x >= FIXED_1", because the output would be negative otherwise.
+     * @param x The input value (must be >= FIXED_1)
+     * @return The computed logarithm
      */
     function generalLog(uint256 x) internal pure returns (uint256) {
         uint256 res = 0;
@@ -450,7 +479,9 @@ contract BancorFormula {
     }
 
     /**
-     * @dev computes the largest integer smaller than or equal to the binary logarithm of the input.
+     * @notice Computes the largest integer smaller than or equal to the binary logarithm of the input.
+     * @param _n The input value
+     * @return The floor of the binary logarithm
      */
     function floorLog2(uint256 _n) internal pure returns (uint8) {
         uint8 res = 0;
@@ -475,9 +506,11 @@ contract BancorFormula {
     }
 
     /**
-     * @dev the global "maxExpArray" is sorted in descending order, and therefore the following statements are equivalent:
+     * @notice The global "maxExpArray" is sorted in descending order, and therefore the following statements are equivalent:
      * - This function finds the position of [the smallest value in "maxExpArray" larger than or equal to "x"]
      * - This function finds the highest position of [a value in "maxExpArray" larger than or equal to "x"]
+     * @param _x The value to find position for
+     * @return The position in the maxExpArray
      */
     function findPositionInMaxExpArray(uint256 _x) internal view returns (uint8) {
         uint8 lo = MIN_PRECISION;
@@ -497,11 +530,14 @@ contract BancorFormula {
     }
 
     /**
-     * @dev this function can be auto-generated by the script 'PrintFunctionGeneralExp.py'.
+     * @notice This function can be auto-generated by the script 'PrintFunctionGeneralExp.py'.
      * it approximates "e ^ x" via maclaurin summation: "(x^0)/0! + (x^1)/1! + ... + (x^n)/n!".
      * it returns "e ^ (x / 2 ^ precision) * 2 ^ precision", that is, the result is upshifted for accuracy.
      * the global "maxExpArray" maps each "precision" to "((maximumExponent + 1) << (MAX_PRECISION - precision)) - 1".
      * the maximum permitted value for "x" is therefore given by "maxExpArray[precision] >> (MAX_PRECISION - precision)".
+     * @param _x The exponent value
+     * @param _precision The precision to use
+     * @return The computed exponential result
      */
     function generalExp(uint256 _x, uint8 _precision) internal pure returns (uint256) {
         uint256 xi = _x;
@@ -576,7 +612,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev computes log(x / FIXED_1) * FIXED_1
+     * @notice Computes log(x / FIXED_1) * FIXED_1
      * Input range: FIXED_1 <= x <= LOG_EXP_MAX_VAL - 1
      * Auto-generated via 'PrintFunctionOptimalLog.py'
      * Detailed description:
@@ -585,6 +621,8 @@ contract BancorFormula {
      * - The natural logarithm of r is calculated via Taylor series for log(1 + x), where x = r - 1
      * - The natural logarithm of the input is calculated by summing up the intermediate results above
      * - For example: log(250) = log(e^4 * e^1 * e^0.5 * 1.021692859) = 4 + 1 + 0.5 + log(1 + 0.021692859)
+     * @param x The input value
+     * @return The computed logarithm
      */
     function optimalLog(uint256 x) internal pure returns (uint256) {
         uint256 res = 0;
@@ -648,7 +686,7 @@ contract BancorFormula {
     }
 
     /**
-     * @dev computes e ^ (x / FIXED_1) * FIXED_1
+     * @notice Computes e ^ (x / FIXED_1) * FIXED_1
      * input range: 0 <= x <= OPT_EXP_MAX_VAL - 1
      * auto-generated via 'PrintFunctionOptimalExp.py'
      * Detailed description:
@@ -657,6 +695,8 @@ contract BancorFormula {
      * - The exponentiation of r is calculated via Taylor series for e^x, where x = r
      * - The exponentiation of the input is calculated by multiplying the intermediate results above
      * - For example: e^5.521692859 = e^(4 + 1 + 0.5 + 0.021692859) = e^4 * e^1 * e^0.5 * e^0.021692859
+     * @param x The input value
+     * @return The computed exponential result
      */
     function optimalExp(uint256 x) internal pure returns (uint256) {
         uint256 res = 0;
@@ -724,7 +764,13 @@ contract BancorFormula {
     }
 
     /**
-     * @dev deprecated, backward compatibility
+     * @notice Deprecated function for backward compatibility
+     * @param _fromConnectorBalance input connector balance
+     * @param _fromConnectorWeight input connector weight
+     * @param _toConnectorBalance output connector balance
+     * @param _toConnectorWeight output connector weight
+     * @param _amount input connector amount
+     * @return output connector amount
      */
     function calculateCrossConnectorReturn(
         uint256 _fromConnectorBalance,

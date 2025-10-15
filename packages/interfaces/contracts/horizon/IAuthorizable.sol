@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+// solhint-disable gas-struct-packing
+
 /**
  * @title Interface for the {Authorizable} contract
+ * @author Edge & Node
  * @notice Implements an authorization scheme that allows authorizers to
  * authorize signers to sign on their behalf.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any

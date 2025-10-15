@@ -5,6 +5,7 @@ import { IGraphPayments } from "./IGraphPayments.sol";
 
 /**
  * @title Interface for the {PaymentsEscrow} contract
+ * @author Edge & Node
  * @notice This contract is part of the Graph Horizon payments protocol. It holds the funds (GRT)
  * for payments made through the payments protocol for services provided
  * via a Graph Horizon data service.

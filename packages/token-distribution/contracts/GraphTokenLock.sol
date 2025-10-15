@@ -2,13 +2,16 @@
 
 pragma solidity ^0.7.3;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec, gas-indexed-events, gas-strict-inequalities, gas-small-strings
+
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import { Ownable as OwnableInitializable } from "./Ownable.sol";
-import "./MathUtils.sol";
-import "./IGraphTokenLock.sol";
+import { MathUtils } from "./MathUtils.sol";
+import { IGraphTokenLock } from "./IGraphTokenLock.sol";
 
 /**
  * @title GraphTokenLock
@@ -54,7 +57,7 @@ abstract contract GraphTokenLock is OwnableInitializable, IGraphTokenLock {
     // A cliff set a date to which a beneficiary needs to get to vest
     // all preceding periods
     uint256 public vestingCliffTime;
-    Revocability public revocable; // Whether to use vesting for locked funds
+    IGraphTokenLock.Revocability public revocable; // Whether to use vesting for locked funds
 
     // State
 
@@ -103,7 +106,7 @@ abstract contract GraphTokenLock is OwnableInitializable, IGraphTokenLock {
         uint256 _periods,
         uint256 _releaseStartTime,
         uint256 _vestingCliffTime,
-        Revocability _revocable
+        IGraphTokenLock.Revocability _revocable
     ) internal {
         require(!isInitialized, "Already initialized");
         require(_owner != address(0), "Owner cannot be zero");
@@ -113,7 +116,7 @@ abstract contract GraphTokenLock is OwnableInitializable, IGraphTokenLock {
         require(_startTime != 0, "Start time must be set");
         require(_startTime < _endTime, "Start time > end time");
         require(_periods >= MIN_PERIOD, "Periods cannot be below minimum");
-        require(_revocable != Revocability.NotSet, "Must set a revocability option");
+        require(_revocable != IGraphTokenLock.Revocability.NotSet, "Must set a revocability option");
         require(_releaseStartTime < _endTime, "Release start time must be before end time");
         require(_vestingCliffTime < _endTime, "Cliff time must be before end time");
 
@@ -271,7 +274,7 @@ abstract contract GraphTokenLock is OwnableInitializable, IGraphTokenLock {
      */
     function vestedAmount() public view override returns (uint256) {
         // If non-revocable it is fully vested
-        if (revocable == Revocability.Disabled) {
+        if (revocable == IGraphTokenLock.Revocability.Disabled) {
             return managedAmount;
         }
 
@@ -298,7 +301,11 @@ abstract contract GraphTokenLock is OwnableInitializable, IGraphTokenLock {
 
         // Vesting cliff is activated and it has not passed means nothing is vested yet
         // so funds cannot be released
-        if (revocable == Revocability.Enabled && vestingCliffTime > 0 && currentTime() < vestingCliffTime) {
+        if (
+            revocable == IGraphTokenLock.Revocability.Enabled &&
+            vestingCliffTime > 0 &&
+            currentTime() < vestingCliffTime
+        ) {
             return 0;
         }
 
@@ -368,7 +375,7 @@ abstract contract GraphTokenLock is OwnableInitializable, IGraphTokenLock {
      * @dev Vesting schedule is always calculated based on managed tokens
      */
     function revoke() external override onlyOwner {
-        require(revocable == Revocability.Enabled, "Contract is non-revocable");
+        require(revocable == IGraphTokenLock.Revocability.Enabled, "Contract is non-revocable");
         require(isRevoked == false, "Already revoked");
 
         uint256 unvestedAmount = managedAmount.sub(vestedAmount());

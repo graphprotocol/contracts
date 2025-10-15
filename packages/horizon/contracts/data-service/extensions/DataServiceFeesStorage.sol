@@ -7,6 +7,8 @@ import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/interna
 
 /**
  * @title Storage layout for the {DataServiceFees} extension contract.
+ * @author Edge & Node
+ * @notice Storage layout for the DataServiceFees extension contract
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */

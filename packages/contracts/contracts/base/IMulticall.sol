@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 /**
  * @title Multicall interface
+ * @author Edge & Node
  * @notice Enables calling multiple methods in a single call to the contract
  */
 interface IMulticall {

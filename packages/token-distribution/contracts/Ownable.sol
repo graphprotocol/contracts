@@ -2,6 +2,9 @@
 
 pragma solidity ^0.7.3;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec, gas-small-strings
+
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to

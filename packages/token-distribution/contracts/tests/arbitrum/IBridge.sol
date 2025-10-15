@@ -25,6 +25,9 @@
 
 pragma solidity ^0.7.3;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec, gas-indexed-events
+
 interface IBridge {
     event MessageDelivered(
         uint256 indexed messageIndex,

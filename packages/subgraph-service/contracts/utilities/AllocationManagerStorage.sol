@@ -6,7 +6,8 @@ import { ILegacyAllocation } from "@graphprotocol/interfaces/contracts/subgraph-
 
 /**
  * @title AllocationManagerStorage
- * @notice This contract holds all the storage variables for the Allocation Manager contract.
+ * @author Edge & Node
+ * @notice This contract holds all the storage variables for the Allocation Manager contract
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */

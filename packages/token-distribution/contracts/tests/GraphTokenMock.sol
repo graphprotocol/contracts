@@ -2,8 +2,11 @@
 
 pragma solidity ^0.7.3;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Graph Token Mock contract.

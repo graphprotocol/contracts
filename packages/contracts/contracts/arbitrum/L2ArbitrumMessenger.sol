@@ -25,15 +25,35 @@
 
 pragma solidity ^0.7.6;
 
-import "arbos-precompiles/arbos/builtin/ArbSys.sol";
+import { ArbSys } from "arbos-precompiles/arbos/builtin/ArbSys.sol";
 
-/// @notice L2 utility contract to assist with L1 <=> L2 interactions
-/// @dev this is an abstract contract instead of library so the functions can be easily overridden when testing
+/**
+ * @title L2 Arbitrum Messenger
+ * @author Edge & Node
+ * @notice L2 utility contract to assist with L1 <=> L2 interactions
+ * @dev this is an abstract contract instead of library so the functions can be easily overridden when testing
+ */
 abstract contract L2ArbitrumMessenger {
+    /// @dev Address of the ArbSys precompile
     address internal constant ARB_SYS_ADDRESS = address(100);
 
+    /**
+     * @notice Emitted when a transaction is sent to L1
+     * @param _from Address sending the transaction
+     * @param _to Address receiving the transaction on L1
+     * @param _id ID of the L2 to L1 message
+     * @param _data Transaction data
+     */
     event TxToL1(address indexed _from, address indexed _to, uint256 indexed _id, bytes _data);
 
+    /**
+     * @notice Send a transaction from L2 to L1
+     * @param _l1CallValue ETH value to send with the L1 transaction
+     * @param _from Address that is sending the transaction
+     * @param _to Destination address on L1
+     * @param _data Calldata for the L1 transaction
+     * @return ID of the L2 to L1 message
+     */
     function sendTxToL1(
         uint256 _l1CallValue,
         address _from,

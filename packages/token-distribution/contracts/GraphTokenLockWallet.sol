@@ -3,12 +3,15 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec, gas-increment-by-one, gas-strict-inequalities, gas-small-strings
 
-import "./GraphTokenLock.sol";
-import "./IGraphTokenLockManager.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
+import { GraphTokenLock, MathUtils } from "./GraphTokenLock.sol";
+import { IGraphTokenLock } from "./IGraphTokenLock.sol";
+import { IGraphTokenLockManager } from "./IGraphTokenLockManager.sol";
 
 /**
  * @title GraphTokenLockWallet
@@ -54,7 +57,7 @@ contract GraphTokenLockWallet is GraphTokenLock {
         uint256 _periods,
         uint256 _releaseStartTime,
         uint256 _vestingCliffTime,
-        Revocability _revocable
+        IGraphTokenLock.Revocability _revocable
     ) external {
         _initialize(
             _owner,

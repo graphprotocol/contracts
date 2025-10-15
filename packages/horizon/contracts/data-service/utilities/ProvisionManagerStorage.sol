@@ -3,6 +3,8 @@ pragma solidity 0.8.27;
 
 /**
  * @title Storage layout for the {ProvisionManager} helper contract.
+ * @author Edge & Node
+ * @notice Storage layout for the ProvisionManager helper contract
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */

@@ -1,23 +1,29 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
 pragma solidity 0.8.27;
 
 /**
  * @title MathUtils Library
+ * @author Edge & Node
  * @notice A collection of functions to perform math operations
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
 library MathUtils {
     /**
-     * @dev Calculates the weighted average of two values pondering each of these
-     * values based on configured weights. The contribution of each value N is
+     * @notice Calculates the weighted average of two values pondering each of these
+     * values based on configured weights
+     * @dev The contribution of each value N is
      * weightN/(weightA + weightB). The calculation rounds up to ensure the result
      * is always equal or greater than the smallest of the two values.
      * @param valueA The amount for value A
      * @param weightA The weight to use for value A
      * @param valueB The amount for value B
      * @param weightB The weight to use for value B
+     * @return The weighted average result
      */
     function weightedAverageRoundingUp(
         uint256 valueA,
@@ -29,7 +35,7 @@ library MathUtils {
     }
 
     /**
-     * @dev Returns the minimum of two numbers.
+     * @notice Returns the minimum of two numbers
      * @param x The first number
      * @param y The second number
      * @return The minimum of the two numbers
@@ -39,7 +45,7 @@ library MathUtils {
     }
 
     /**
-     * @dev Returns the difference between two numbers or zero if negative.
+     * @notice Returns the difference between two numbers or zero if negative
      * @param x The first number
      * @param y The second number
      * @return The difference between the two numbers or zero if negative

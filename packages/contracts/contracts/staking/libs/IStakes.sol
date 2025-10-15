@@ -3,6 +3,11 @@
 pragma solidity ^0.7.6 || 0.8.27;
 pragma abicoder v2;
 
+/**
+ * @title Interface for staking data structures
+ * @author Edge & Node
+ * @notice Defines the data structures used for indexer staking
+ */
 interface IStakes {
     struct Indexer {
         uint256 tokensStaked; // Tokens on the indexer stake (staked by the indexer)
