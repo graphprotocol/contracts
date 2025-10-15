@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
 
 /**
  * @title Interface of the base {DataService} contract as defined by the Graph Horizon specification.
+ * @author Edge & Node
  * @notice This interface provides a guardrail for contracts that use the Data Service framework
  * to implement a data service on Graph Horizon. Much of the specification is intentionally loose
  * to allow for greater flexibility when designing a data service. It's not possible to guarantee that

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+// solhint-disable gas-strict-inequalities
+
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 
 import { UintRange } from "../../libraries/UintRange.sol";
@@ -12,6 +16,7 @@ import { ProvisionManagerV1Storage } from "./ProvisionManagerStorage.sol";
 
 /**
  * @title ProvisionManager contract
+ * @author Edge & Node
  * @notice A helper contract that implements several provision management functions.
  * @dev Provides utilities to verify provision parameters are within an acceptable range. Each
  * parameter has an overridable setter and getter for the validity range, and a checker that reverts

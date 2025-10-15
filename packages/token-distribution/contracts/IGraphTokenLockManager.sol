@@ -3,9 +3,12 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
 
-import "./IGraphTokenLock.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import { IGraphTokenLock } from "./IGraphTokenLock.sol";
 
 interface IGraphTokenLockManager {
     // -- Factory --

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines
+
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
@@ -14,6 +17,7 @@ import { GraphDirectory } from "../utilities/GraphDirectory.sol";
 
 /**
  * @title GraphPayments contract
+ * @author Edge & Node
  * @notice This contract is part of the Graph Horizon payments protocol. It's designed
  * to pull funds (GRT) from the {PaymentsEscrow} and distribute them according to a
  * set of pre established rules.

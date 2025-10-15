@@ -3,6 +3,9 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { GraphTokenLockWallet } from "./GraphTokenLockWallet.sol";

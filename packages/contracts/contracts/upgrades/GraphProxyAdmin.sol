@@ -2,6 +2,8 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
+/* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
+
 import { Governed } from "../governance/Governed.sol";
 
 import { IGraphProxy } from "./IGraphProxy.sol";
@@ -9,7 +11,8 @@ import { GraphUpgradeable } from "./GraphUpgradeable.sol";
 
 /**
  * @title GraphProxyAdmin
- * @dev This is the owner of upgradeable proxy contracts.
+ * @author Edge & Node
+ * @notice This is the owner of upgradeable proxy contracts.
  * Proxy contracts use a TransparentProxy pattern, any admin related call
  * like upgrading a contract or changing the admin needs to be send through
  * this contract.

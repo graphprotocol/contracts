@@ -8,6 +8,7 @@ import { DataService } from "../DataService.sol";
 
 /**
  * @title DataServicePausable contract
+ * @author Edge & Node
  * @dev Implementation of the {IDataServicePausable} interface.
  * @notice Extension for the {IDataService} contract, adds pausing functionality
  * to the data service. Pausing is controlled by privileged accounts called
