@@ -7,7 +7,8 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title Allocation library
- * @notice A library to handle Allocations.
+ * @author Edge & Node
+ * @notice A library to handle Allocations
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */

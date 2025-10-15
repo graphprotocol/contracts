@@ -17,6 +17,7 @@ import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curatio
 
 /**
  * @title GraphDirectory contract
+ * @author Edge & Node
  * @notice This contract is meant to be inherited by other contracts that
  * need to keep track of the addresses in Graph Horizon contracts.
  * It fetches the addresses from the Controller supplied during construction,

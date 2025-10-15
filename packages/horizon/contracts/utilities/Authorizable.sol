@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
 import { IAuthorizable } from "@graphprotocol/interfaces/contracts/horizon/IAuthorizable.sol";
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -8,6 +11,7 @@ import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/Mes
 
 /**
  * @title Authorizable contract
+ * @author Edge & Node
  * @dev Implements the {IAuthorizable} interface.
  * @notice A mechanism to authorize signers to sign messages on behalf of an authorizer.
  * Signers cannot be reused for different authorizers.

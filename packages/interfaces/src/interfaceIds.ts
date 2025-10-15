@@ -13,7 +13,7 @@
 
 export const INTERFACE_IDS = {
   IERC165: '0x01ffc9a7',
-  IRewardsManager: '0x0d63a8cd',
+  IRewardsManager: '0xa31d8306',
 } as const
 
 // Individual exports for convenience

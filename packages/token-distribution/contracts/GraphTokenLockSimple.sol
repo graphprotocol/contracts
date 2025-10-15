@@ -2,7 +2,12 @@
 
 pragma solidity ^0.7.3;
 
-import "./GraphTokenLock.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable use-natspec
+
+import { GraphTokenLock } from "./GraphTokenLock.sol";
+import { IGraphTokenLock } from "./IGraphTokenLock.sol";
+import { Ownable as OwnableInitializable } from "./Ownable.sol";
 
 /**
  * @title GraphTokenLockSimple
@@ -29,7 +34,7 @@ contract GraphTokenLockSimple is GraphTokenLock {
         uint256 _periods,
         uint256 _releaseStartTime,
         uint256 _vestingCliffTime,
-        Revocability _revocable
+        IGraphTokenLock.Revocability _revocable
     ) external onlyOwner {
         _initialize(
             _owner,
