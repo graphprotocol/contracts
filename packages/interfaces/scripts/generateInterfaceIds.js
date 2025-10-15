@@ -2,7 +2,6 @@
 
 /**
  * Generate interface ID constants by deploying and calling InterfaceIdExtractor contract
- * This replaces the Python script with a pure Node.js/Hardhat solution
  */
 
 // This script is designed to be run via `npx hardhat run` which handles the module loading
