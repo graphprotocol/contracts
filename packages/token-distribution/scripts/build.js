@@ -102,7 +102,7 @@ async function getDirModTime(dirPath) {
 function hasRequiredApiKeys() {
   // Check for Studio API key (required for GraphClient)
   const studioApiKey = process.env.STUDIO_API_KEY || process.env.GRAPH_API_KEY
-  return !!studioApiKey
+  return studioApiKey != null
 }
 
 // Check if extracted GraphClient artifacts exist

@@ -164,8 +164,12 @@ function getActualIssues(filePath) {
 
       // Run solhint from the package root with the config to ensure consistent behavior
       const relativeTempFile = relative(packageRoot, tempFile)
-      const configArg = configPath ? `--config "${configPath}"` : ''
-      const result = execSync(`npx solhint ${configArg} "${relativeTempFile}" -f json`, {
+      const args = []
+      if (configPath) {
+        args.push('--config', configPath)
+      }
+      args.push(relativeTempFile, '-f', 'json')
+      const result = execSync(`npx solhint ${args.map((arg) => `"${arg}"`).join(' ')}`, {
         cwd: packageRoot,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -357,6 +361,42 @@ function findContractDirs() {
 }
 
 /**
+ * Recursively walk a directory and find all .sol files
+ * @param {string} dir - Directory to walk
+ * @returns {string[]} Array of .sol file paths
+ */
+function walkDir(dir) {
+  const files = []
+
+  let entries
+  try {
+    entries = readdirSync(dir)
+  } catch (error) {
+    console.error(`Warning: Could not read directory ${dir}:`, error.message)
+    return files
+  }
+
+  for (const entry of entries) {
+    const fullPath = join(dir, entry)
+    let stat
+    try {
+      stat = statSync(fullPath)
+    } catch (error) {
+      console.error(`Warning: Could not stat ${fullPath}:`, error.message)
+      continue
+    }
+
+    if (stat.isFile() && fullPath.endsWith('.sol')) {
+      files.push(fullPath)
+    } else if (stat.isDirectory()) {
+      files.push(...walkDir(fullPath))
+    }
+  }
+
+  return files
+}
+
+/**
  * Find all Solidity files in the given directories or files
  * @param {string[]} targets - Array of file or directory paths to search
  * @returns {string[]} Array of .sol file paths
@@ -365,23 +405,18 @@ function findSolidityFiles(targets) {
   const files = []
 
   for (const target of targets) {
-    const stat = statSync(target)
+    let stat
+    try {
+      stat = statSync(target)
+    } catch (error) {
+      console.error(`Warning: Could not stat ${target}:`, error.message)
+      continue
+    }
 
     if (stat.isFile() && target.endsWith('.sol')) {
       files.push(target)
     } else if (stat.isDirectory()) {
-      try {
-        const result = execSync(`find "${target}" -name "*.sol" -type f`, {
-          encoding: 'utf8',
-        })
-        const foundFiles = result
-          .trim()
-          .split('\n')
-          .filter((f) => f)
-        files.push(...foundFiles)
-      } catch (error) {
-        console.error(`Warning: Could not search directory ${target}:`, error.message)
-      }
+      files.push(...walkDir(target))
     }
   }
 

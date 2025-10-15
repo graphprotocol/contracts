@@ -29,8 +29,8 @@ function stripMetadata(bytecode) {
     bytecode = bytecode.slice(2)
   }
 
-  // Remove metadata hash pattern
-  return bytecode.replace(/a264697066735822.*$/, '')
+  // Remove metadata hash pattern (ipfs marker + 32-byte hash + solc marker + version)
+  return bytecode.replace(/a264697066735822[a-fA-F0-9]{64}64736f6c63[a-fA-F0-9]+$/, '')
 }
 
 /**
