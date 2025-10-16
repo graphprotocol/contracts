@@ -75,7 +75,7 @@ export function calculateInterfaceId(abi: AbiItem[]): string | null {
  */
 export function addInterfaceIdToFactory(factoryPath: string): boolean {
   try {
-    let content = fs.readFileSync(factoryPath, 'utf-8')
+    const content = fs.readFileSync(factoryPath, 'utf-8')
 
     // Check if already has interface metadata
     if (content.includes('static readonly interfaceId') && content.includes('static readonly interfaceName')) {
@@ -88,9 +88,12 @@ export function addInterfaceIdToFactory(factoryPath: string): boolean {
       return false
     }
 
-    // Parse ABI using eval in a safe context
-    // The ABI is extracted from generated TypeScript code we control (Typechain output),
-    // so this is safe. We wrap it in a function to isolate the scope.
+    // Parse ABI from Typechain-generated code
+    // We use Function constructor here because:
+    // 1. The source is Typechain-generated code (not user input)
+    // 2. TypeScript syntax (trailing commas, unquoted keys) makes JSON.parse unsuitable
+    // 3. A full AST parser would be overkill for this build-time utility
+    // This is safe as it only runs during build on controlled, generated code.
     const abi = new Function(`return ${abiMatch[1]}`)() as AbiItem[]
 
     // Calculate interface ID
@@ -107,10 +110,19 @@ export function addInterfaceIdToFactory(factoryPath: string): boolean {
     const interfaceMetadata = `  // The following properties are automatically generated during the build process\n  static readonly interfaceId = "${interfaceId}" as const;\n  static readonly interfaceName = "${interfaceName}" as const;\n`
 
     // Insert after "static readonly abi"
-    content = content.replace(/(static readonly abi = _abi;)\n/, `$1\n${interfaceMetadata}`)
+    const replacementPattern = /(static readonly abi = _abi;)\n/
+    const newContent = content.replace(replacementPattern, `$1\n${interfaceMetadata}`)
+
+    // Validate that replacement succeeded
+    if (newContent === content) {
+      console.warn(
+        `Warning: Failed to inject interface metadata into ${path.basename(factoryPath)} - pattern not found`,
+      )
+      return false
+    }
 
     // Write back to file
-    fs.writeFileSync(factoryPath, content)
+    fs.writeFileSync(factoryPath, newContent)
 
     return true
   } catch (error) {
