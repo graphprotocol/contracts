@@ -41,8 +41,13 @@ find_files() {
 echo "📦 Compiling contracts with Hardhat..."
 pnpm hardhat compile
 
-# Step 1.5: Generate interface IDs
-node scripts/generateInterfaceIds.js
+# Step 1.5: Add interface IDs to generated factory files (only if needed)
+missing_ids=$(grep -rL "static readonly interfaceId" types/factories --include="*__factory.ts" 2>/dev/null | wc -l)
+
+if [[ $missing_ids -gt 0 ]]; then
+    # Slow operation, only run if needed
+    npx ts-node scripts/utils/addInterfaceIds.ts types/factories
+fi
 
 # Step 2: Generate types (only if needed)
 echo "🏗️  Checking type definitions..."
