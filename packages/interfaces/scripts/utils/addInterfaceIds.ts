@@ -24,6 +24,7 @@ const INTERFACE_ID_LENGTH = 8 // 8 hex characters (4 bytes)
 interface ProcessStats {
   processed: number
   skipped: number
+  failed: number
   total: number
 }
 
@@ -71,9 +72,9 @@ export function calculateInterfaceId(abi: AbiItem[]): string | null {
 /**
  * Add interface metadata to a single factory file
  * @param factoryPath - Absolute path to the factory file
- * @returns True if metadata was added, false if skipped
+ * @returns True if metadata was added, false if skipped, null if failed
  */
-export function addInterfaceIdToFactory(factoryPath: string): boolean {
+export function addInterfaceIdToFactory(factoryPath: string): boolean | null {
   try {
     const content = fs.readFileSync(factoryPath, 'utf-8')
 
@@ -106,8 +107,12 @@ export function addInterfaceIdToFactory(factoryPath: string): boolean {
     const fileName = path.basename(factoryPath)
     const interfaceName = fileName.replace(/__factory\.ts$/, '')
 
+    // Extract indentation from existing code to match file style
+    const indentMatch = content.match(/^(\s*)static readonly abi/m)
+    const indent = indentMatch ? indentMatch[1] : '  '
+
     // Add interface metadata as static properties after the ABI
-    const interfaceMetadata = `  // The following properties are automatically generated during the build process\n  static readonly interfaceId = "${interfaceId}" as const;\n  static readonly interfaceName = "${interfaceName}" as const;\n`
+    const interfaceMetadata = `${indent}static readonly interfaceId = "${interfaceId}" as const;\n${indent}static readonly interfaceName = "${interfaceName}" as const;\n`
 
     // Insert after "static readonly abi"
     const replacementPattern = /(static readonly abi = _abi;)\n/
@@ -115,10 +120,8 @@ export function addInterfaceIdToFactory(factoryPath: string): boolean {
 
     // Validate that replacement succeeded
     if (newContent === content) {
-      console.warn(
-        `Warning: Failed to inject interface metadata into ${path.basename(factoryPath)} - pattern not found`,
-      )
-      return false
+      console.error(`Failed to inject interface metadata into ${path.basename(factoryPath)} - pattern not found`)
+      return null
     }
 
     // Write back to file
@@ -128,7 +131,7 @@ export function addInterfaceIdToFactory(factoryPath: string): boolean {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error(`Error processing ${path.basename(factoryPath)}: ${message}`)
-    return false
+    return null
   }
 }
 
@@ -138,7 +141,7 @@ export function addInterfaceIdToFactory(factoryPath: string): boolean {
  * @returns Statistics about processing
  */
 function processDirectory(dir: string): ProcessStats {
-  const stats: ProcessStats = { processed: 0, skipped: 0, total: 0 }
+  const stats: ProcessStats = { processed: 0, skipped: 0, failed: 0, total: 0 }
 
   if (!fs.existsSync(dir)) {
     console.warn(`Directory does not exist: ${dir}`)
@@ -154,14 +157,17 @@ function processDirectory(dir: string): ProcessStats {
       const subStats = processDirectory(fullPath)
       stats.processed += subStats.processed
       stats.skipped += subStats.skipped
+      stats.failed += subStats.failed
       stats.total += subStats.total
     } else if (entry.name.endsWith('__factory.ts')) {
       stats.total++
-      const added = addInterfaceIdToFactory(fullPath)
-      if (added) {
+      const result = addInterfaceIdToFactory(fullPath)
+      if (result === true) {
         stats.processed++
-      } else {
+      } else if (result === false) {
         stats.skipped++
+      } else {
+        stats.failed++
       }
     }
   }
@@ -182,6 +188,10 @@ export function addInterfaceIds(factoriesDir: string): void {
     console.log('🔢 Factory files interface IDs: up to date')
   } else {
     console.log(`🔢 Factory files interface IDs: generated for ${stats.processed} files`)
+  }
+
+  if (stats.failed > 0) {
+    throw new Error(`Failed to process ${stats.failed} factory file(s)`)
   }
 }
 
