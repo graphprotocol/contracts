@@ -16,6 +16,11 @@ import { ethers } from 'ethers'
 import * as fs from 'fs'
 import * as path from 'path'
 
+// Constants for ERC-165 interface ID calculation
+const EMPTY_INTERFACE_ID = '0x00000000'
+const SELECTOR_LENGTH_WITH_PREFIX = 10 // '0x' + 8 hex characters
+const INTERFACE_ID_LENGTH = 8 // 8 hex characters (4 bytes)
+
 interface ProcessStats {
   processed: number
   skipped: number
@@ -39,7 +44,7 @@ export function calculateInterfaceId(abi: AbiItem[]): string | null {
     // Filter to only functions (not events, errors, etc.)
     const functions = abi.filter((item) => item.type === 'function')
 
-    if (functions.length === 0) return '0x00000000'
+    if (functions.length === 0) return EMPTY_INTERFACE_ID
 
     // XOR all function selectors together (ERC-165 standard)
     let interfaceId = BigInt(0)
@@ -50,12 +55,12 @@ export function calculateInterfaceId(abi: AbiItem[]): string | null {
 
       // Calculate selector (first 4 bytes of keccak256)
       const hash = ethers.id(signature)
-      const selector = hash.slice(0, 10) // '0x' + 8 hex chars
+      const selector = hash.slice(0, SELECTOR_LENGTH_WITH_PREFIX)
 
       interfaceId ^= BigInt(selector)
     }
 
-    return '0x' + interfaceId.toString(16).padStart(8, '0')
+    return '0x' + interfaceId.toString(16).padStart(INTERFACE_ID_LENGTH, '0')
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error(`Error calculating interface ID: ${message}`)
@@ -83,12 +88,10 @@ export function addInterfaceIdToFactory(factoryPath: string): boolean {
       return false
     }
 
-    // Parse ABI - handle TypeScript syntax (trailing commas, unquoted keys, etc.)
-    const abiString = abiMatch[1]
-      .replace(/,(\s*[\]}])/g, '$1') // Remove trailing commas
-      .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3') // Quote keys
-
-    const abi = JSON.parse(abiString)
+    // Parse ABI using eval in a safe context
+    // The ABI is extracted from generated TypeScript code we control (Typechain output),
+    // so this is safe. We wrap it in a function to isolate the scope.
+    const abi = new Function(`return ${abiMatch[1]}`)() as AbiItem[]
 
     // Calculate interface ID
     const interfaceId = calculateInterfaceId(abi)
