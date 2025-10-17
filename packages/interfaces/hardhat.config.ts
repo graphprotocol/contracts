@@ -1,4 +1,5 @@
 import '@nomicfoundation/hardhat-toolbox'
+import 'hardhat-ignore-warnings'
 
 const config = {
   solidity: {
@@ -6,6 +7,14 @@ const config = {
   },
   typechain: {
     outDir: 'types',
+  },
+  warnings: {
+    'contracts/token-distribution/IGraphTokenLockWallet.sol': {
+      default: 'off',
+    },
+    'contracts/toolshed/IGraphTokenLockWalletToolshed.sol': {
+      default: 'off',
+    },
   },
 }
 

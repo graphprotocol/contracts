@@ -152,7 +152,6 @@ async function setupGraphClient() {
   const hasExtracted = hasExtractedArtifacts()
   const graphClientBuildNeeded = await needsGraphClientBuild()
 
-  // If no API keys but we have extracted artifacts, use those instead of trying to build
   if (!hasApiKeys && hasExtracted) {
     console.log('📦 Using cached GraphClient artifacts (no API key)')
     console.warn('⚠️  Schemas might be outdated - set STUDIO_API_KEY or GRAPH_API_KEY to refresh')
@@ -161,47 +160,26 @@ async function setupGraphClient() {
 
   if (graphClientBuildNeeded) {
     if (hasApiKeys) {
-      // Stage 1: Download with API key - fail if download fails
       console.log('📥 Downloading GraphClient schemas...')
       execSync('pnpm graphclient build --fileType json', { stdio: 'inherit' })
 
-      // Stage 2: Extract essential artifacts for future offline builds
       console.log('📦 Extracting essential artifacts...')
       execSync('node scripts/extract-graphclient.js', { stdio: 'inherit' })
     } else {
-      // No API key and no cached artifacts - cannot proceed
-      // To fix: Set STUDIO_API_KEY or GRAPH_API_KEY environment variable
       console.error('❌ No API key or cached GraphClient artifacts available')
       process.exit(1)
     }
-  } else {
-    console.log('📦 GraphClient up to date')
   }
 }
 
-// Main build function
 async function build() {
   const contractCompilationNeeded = await needsContractCompilation()
 
-  // Stage 1 & 2: Setup GraphClient (download + extract, or use extracted)
   await setupGraphClient()
 
-  // Stage 3: Compile contracts if needed
   if (contractCompilationNeeded) {
-    console.log('🔨 Compiling contracts...')
-
-    // // Copy working TypeChain modules from contracts package to fix compatibility
-    // console.log('Copying TypeChain modules from contracts package...')
-    // execSync('cp -r ../contracts/node_modules/@typechain ../contracts/node_modules/typechain ./node_modules/', {
-    //   stdio: 'inherit',
-    // })
-
     execSync('pnpm run compile', { stdio: 'inherit' })
-  } else {
-    console.log('Contracts are up to date.')
   }
-
-  console.log('✅ Build completed successfully.')
 }
 
 // Run the build

@@ -5,10 +5,33 @@
 # 1. Hardhat compilation (generates artifacts and ethers-v6 types)
 # 2. Type generation (WAGMI and ethers-v5 types)
 # 3. TypeScript compilation (both v6 and v5 types)
+#
+# Usage:
+#   build.sh           - Minimal output (only shows actions taken, not skipped)
+#   build.sh --verbose - Full output (shows all details)
 
 set -e  # Exit on any error
 
-echo "🔨 Starting build process..."
+# Parse flags
+VERBOSE=false
+if [[ "$1" == "--verbose" ]]; then
+    VERBOSE=true
+fi
+
+# Logging helpers
+log_info() {
+    # Only show in verbose mode (headers, status, skipped items)
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo "$@"
+    fi
+}
+
+log_action() {
+    # Always show actions being taken
+    echo "$@"
+}
+
+log_info "🔨 Starting build process..."
 
 # Helper function to check if target is newer than sources
 is_newer() {
@@ -38,14 +61,14 @@ find_files() {
 }
 
 # Step 1: Hardhat compilation
-echo "📦 Compiling contracts with Hardhat..."
-pnpm hardhat compile
+log_info "📦 Compiling contracts with Hardhat..."
+pnpm hardhat compile $([[ "$VERBOSE" != "true" ]] && echo "--quiet")
 
 # Step 1.5: Generate interface IDs
 node scripts/generateInterfaceIds.js
 
 # Step 2: Generate types (only if needed)
-echo "🏗️  Checking type definitions..."
+log_info "🏗️  Checking type definitions..."
 
 # Check if WAGMI types need regeneration
 wagmi_sources=(
@@ -53,27 +76,27 @@ wagmi_sources=(
     $(find_files "./artifacts/contracts/**/!(*.dbg).json")
 )
 if ! is_newer "wagmi/generated.ts" "${wagmi_sources[@]}"; then
-    echo "  - Generating WAGMI types..."
+    log_action "  - Generating WAGMI types..."
     pnpm wagmi generate
 else
-    echo "  - WAGMI types are up to date"
+    log_info "  - WAGMI types are up to date"
 fi
 
 # Check if ethers-v5 types need regeneration
 v5_artifacts=($(find_files "./artifacts/contracts/**/!(*.dbg).json") $(find_files "./artifacts/@openzeppelin/**/!(*.dbg).json"))
 if ! is_newer "types-v5/index.ts" "${v5_artifacts[@]}"; then
-    echo "  - Generating ethers-v5 types..."
+    log_action "  - Generating ethers-v5 types..."
     pnpm typechain \
       --target ethers-v5 \
       --out-dir types-v5 \
       'artifacts/contracts/**/!(*.dbg).json' \
       'artifacts/@openzeppelin/**/!(*.dbg).json'
 else
-    echo "  - ethers-v5 types are up to date"
+    log_info "  - ethers-v5 types are up to date"
 fi
 
 # Step 3: TypeScript compilation (only if needed)
-echo "🔧 Checking TypeScript compilation..."
+log_info "🔧 Checking TypeScript compilation..."
 
 # Check if v6 types need compilation
 v6_sources=(
@@ -83,21 +106,21 @@ v6_sources=(
     $(find_files "./wagmi/**/*.ts")
 )
 if ! is_newer "dist/tsconfig.tsbuildinfo" "${v6_sources[@]}"; then
-    echo "  - Compiling ethers-v6 types..."
+    log_action "  - Compiling ethers-v6 types..."
     pnpm tsc
     touch dist/tsconfig.tsbuildinfo
 else
-    echo "  - ethers-v6 types are up to date"
+    log_info "  - ethers-v6 types are up to date"
 fi
 
 # Check if v5 types need compilation
 v5_sources=($(find_files "./types-v5/**/*.ts"))
 if ! is_newer "dist-v5/tsconfig.v5.tsbuildinfo" "${v5_sources[@]}"; then
-    echo "  - Compiling ethers-v5 types..."
+    log_action "  - Compiling ethers-v5 types..."
     pnpm tsc -p tsconfig.v5.json
     touch dist-v5/tsconfig.v5.tsbuildinfo
 else
-    echo "  - ethers-v5 types are up to date"
+    log_info "  - ethers-v5 types are up to date"
 fi
 
 # Step 4: Merge v5 types into dist directory (only if needed)
@@ -119,15 +142,15 @@ if [[ -d "dist-v5" ]]; then
 fi
 
 if [[ "$needs_copy" == "true" ]]; then
-    echo "📁 Organizing compiled types..."
+    log_action "📁 Organizing compiled types..."
     mkdir -p dist/types-v5
     cp -r dist-v5/* dist/types-v5/
 else
-    echo "📁 Compiled types organization is up to date"
+    log_info "📁 Compiled types organization is up to date"
 fi
 
-echo "✅ Build completed successfully!"
-echo "📄 Generated types:"
-echo "  - ethers-v6: dist/types/"
-echo "  - ethers-v5: dist/types-v5/"
-echo "  - wagmi: dist/wagmi/"
+log_info "✅ Build completed successfully!"
+log_info "📄 Generated types:"
+log_info "  - ethers-v6: dist/types/"
+log_info "  - ethers-v5: dist/types-v5/"
+log_info "  - wagmi: dist/wagmi/"

@@ -12,7 +12,7 @@
     "build": "pnpm build:self",
     "build:self": "scripts/build",
     "clean": "rm -rf build/ cache/ dist/ reports/ artifacts/",
-    "compile": "hardhat compile",
+    "compile": "hardhat compile --quiet",
     "test": "pnpm build && pnpm test:self",
     "test:self": "scripts/test",
     "test:gas": "RUN_EVM=true REPORT_GAS=true scripts/test",
