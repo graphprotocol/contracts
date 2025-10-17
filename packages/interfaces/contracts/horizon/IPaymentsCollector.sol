@@ -6,6 +6,7 @@ import { IGraphPayments } from "./IGraphPayments.sol";
 
 /**
  * @title Interface for a payments collector contract as defined by Graph Horizon payments protocol
+ * @author Edge & Node
  * @notice Contracts implementing this interface can be used with the payments protocol. First, a payer must
  * approve the collector to collect payments on their behalf. Only then can payment collection be initiated
  * using the collector contract.

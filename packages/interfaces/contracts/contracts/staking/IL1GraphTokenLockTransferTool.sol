@@ -5,7 +5,8 @@ pragma abicoder v2;
 
 /**
  * @title Interface for the L1GraphTokenLockTransferTool contract
- * @dev This interface defines the function to get the L2 wallet address for a given L1 token lock wallet.
+ * @author Edge & Node
+ * @notice This interface defines the function to get the L2 wallet address for a given L1 token lock wallet.
  * The Transfer Tool contract is implemented in the token-distribution repo: https://github.com/graphprotocol/token-distribution/pull/64
  * and is only included here to provide support in L1Staking for the transfer of stake and delegation
  * owned by token lock contracts. See GIP-0046 for details: https://forum.thegraph.com/t/4023

@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 /**
  * @title Interface for the {GraphPayments} contract
+ * @author Edge & Node
  * @notice This contract is part of the Graph Horizon payments protocol. It's designed
  * to pull funds (GRT) from the {PaymentsEscrow} and distribute them according to a
  * set of pre established rules.

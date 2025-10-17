@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+// solhint-disable gas-small-strings
+// solhint-disable function-max-lines
+
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
@@ -20,7 +25,8 @@ import { ProvisionTracker } from "@graphprotocol/horizon/contracts/data-service/
 
 /**
  * @title AllocationManager contract
- * @notice A helper contract implementing allocation lifecycle management.
+ * @author Edge & Node
+ * @notice A helper contract implementing allocation lifecycle management
  * Allows opening, resizing, and closing allocations, as well as collecting indexing rewards by presenting a Proof
  * of Indexing (POI).
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
@@ -63,8 +69,8 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
      * @param tokensIndexerRewards The amount of tokens collected for the indexer
      * @param tokensDelegationRewards The amount of tokens collected for delegators
      * @param poi The POI presented
-     * @param currentEpoch The current epoch
      * @param poiMetadata The metadata associated with the POI
+     * @param currentEpoch The current epoch
      */
     event IndexingRewardsCollected(
         address indexed indexer,
@@ -95,7 +101,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     );
 
     /**
-     * @dev Emitted when an indexer closes an allocation
+     * @notice Emitted when an indexer closes an allocation
      * @param indexer The address of the indexer
      * @param allocationId The id of the allocation
      * @param subgraphDeploymentId The id of the subgraph deployment

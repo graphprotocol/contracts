@@ -2,11 +2,15 @@
 
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IGraphPayments } from "../IGraphPayments.sol";
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 
 /**
  * @title Inferface for the {HorizonStaking} contract.
+ * @author Edge & Node
  * @notice Provides functions for managing stake, provisions, delegations, and slashing.
  * @dev Note that this interface only includes the functions implemented by {HorizonStaking} contract,
  * and not those implemented by {HorizonStakingExtension}.
@@ -110,7 +114,7 @@ interface IHorizonStakingMain {
     );
 
     /**
-     * @dev Emitted when an operator is allowed or denied by a service provider for a particular verifier
+     * @notice Emitted when an operator is allowed or denied by a service provider for a particular verifier
      * @param serviceProvider The address of the service provider
      * @param verifier The address of the verifier
      * @param operator The address of the operator
@@ -289,12 +293,12 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Emitted when a series of thaw requests are fulfilled.
+     * @param requestType The type of thaw request
      * @param serviceProvider The address of the service provider
      * @param verifier The address of the verifier
      * @param owner The address of the owner of the thaw requests
      * @param thawRequestsFulfilled The number of thaw requests fulfilled
      * @param tokens The total amount of tokens being released
-     * @param requestType The type of thaw request
      */
     event ThawRequestsFulfilled(
         IHorizonStakingTypes.ThawRequestType indexed requestType,

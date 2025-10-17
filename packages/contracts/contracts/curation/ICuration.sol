@@ -4,7 +4,8 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 /**
  * @title Curation Interface
- * @dev Interface for the Curation contract (and L2Curation too)
+ * @author Edge & Node
+ * @notice Interface for the Curation contract (and L2Curation too)
  */
 interface ICuration {
     // -- Configuration --

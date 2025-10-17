@@ -11,7 +11,8 @@ import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/interna
 
 /**
  * @title HorizonStakingV1Storage
- * @notice This contract holds all the storage variables for the Staking contract.
+ * @author Edge & Node
+ * @notice This contract holds all the storage variables for the Staking contract
  * @dev Deprecated variables are kept to support the transition to Horizon Staking.
  * They can eventually be collapsed into a single storage slot.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any

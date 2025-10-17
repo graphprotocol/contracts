@@ -2,18 +2,24 @@
 
 pragma solidity ^0.7.6;
 
-import "../governance/Managed.sol";
+import { Managed } from "../governance/Managed.sol";
 
+/**
+ * @title Epoch Manager Storage V1
+ * @author Edge & Node
+ * @notice Storage contract for the Epoch Manager
+ */
 contract EpochManagerV1Storage is Managed {
     // -- State --
 
-    // Epoch length in blocks
+    /// @notice Epoch length in blocks
     uint256 public epochLength;
 
-    // Epoch that was last run
+    /// @notice Epoch that was last run
     uint256 public lastRunEpoch;
 
-    // Block and epoch when epoch length was last updated
+    /// @notice Epoch when epoch length was last updated
     uint256 public lastLengthUpdateEpoch;
+    /// @notice Block when epoch length was last updated
     uint256 public lastLengthUpdateBlock;
 }

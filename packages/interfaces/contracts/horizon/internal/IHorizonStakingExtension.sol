@@ -2,10 +2,14 @@
 
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IRewardsIssuer } from "../../contracts/rewards/IRewardsIssuer.sol";
 
 /**
  * @title Interface for {HorizonStakingExtension} contract.
+ * @author Edge & Node
  * @notice Provides functions for managing legacy allocations.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -50,7 +54,7 @@ interface IHorizonStakingExtension is IRewardsIssuer {
     }
 
     /**
-     * @dev Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
+     * @notice Emitted when `indexer` close an allocation in `epoch` for `allocationID`.
      * An amount of `tokens` get unallocated from `subgraphDeploymentID`.
      * This event also emits the POI (proof of indexing) submitted by the indexer.
      * `isPublic` is true if the sender was someone other than the indexer.
@@ -75,7 +79,7 @@ interface IHorizonStakingExtension is IRewardsIssuer {
     );
 
     /**
-     * @dev Emitted when `indexer` collects a rebate on `subgraphDeploymentID` for `allocationID`.
+     * @notice Emitted when `indexer` collects a rebate on `subgraphDeploymentID` for `allocationID`.
      * `epoch` is the protocol epoch the rebate was collected on
      * The rebate is for `tokens` amount which are being provided by `assetHolder`; `queryFees`
      * is the amount up for rebate after `curationFees` are distributed and `protocolTax` is burnt.
@@ -108,7 +112,7 @@ interface IHorizonStakingExtension is IRewardsIssuer {
     );
 
     /**
-     * @dev Emitted when `indexer` was slashed for a total of `tokens` amount.
+     * @notice Emitted when `indexer` was slashed for a total of `tokens` amount.
      * Tracks `reward` amount of tokens given to `beneficiary`.
      * @param indexer The indexer address
      * @param tokens The amount of tokens slashed
@@ -128,7 +132,7 @@ interface IHorizonStakingExtension is IRewardsIssuer {
     function closeAllocation(address allocationID, bytes32 poi) external;
 
     /**
-     * @dev Collect and rebate query fees to the indexer
+     * @notice Collect and rebate query fees to the indexer
      * This function will accept calls with zero tokens.
      * We use an exponential rebate formula to calculate the amount of tokens to rebate to the indexer.
      * This implementation allows collecting multiple times on the same allocation, keeping track of the

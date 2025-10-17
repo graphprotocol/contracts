@@ -6,7 +6,8 @@ import { IController } from "./IController.sol";
 
 /**
  * @title Managed Interface
- * @dev Interface for contracts that can be managed by a controller.
+ * @author Edge & Node
+ * @notice Interface for contracts that can be managed by a controller.
  */
 interface IManaged {
     /**

@@ -2,10 +2,14 @@
 
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
+
 import { IAttestation } from "./internal/IAttestation.sol";
 
 /**
  * @title IDisputeManager
+ * @author Edge & Node
  * @notice Interface for the {Dispute Manager} contract.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -90,7 +94,7 @@ interface IDisputeManager {
     event SubgraphServiceSet(address indexed subgraphService);
 
     /**
-     * @dev Emitted when a query dispute is created for `subgraphDeploymentId` and `indexer`
+     * @notice Emitted when a query dispute is created for `subgraphDeploymentId` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman and `attestation` submitted.
      * @param disputeId The dispute id
@@ -99,8 +103,8 @@ interface IDisputeManager {
      * @param tokens The amount of tokens deposited by the fisherman
      * @param subgraphDeploymentId The subgraph deployment id
      * @param attestation The attestation
-     * @param cancellableAt The timestamp when the dispute can be cancelled
      * @param stakeSnapshot The stake snapshot of the indexer at the time of the dispute
+     * @param cancellableAt The timestamp when the dispute can be cancelled
      */
     event QueryDisputeCreated(
         bytes32 indexed disputeId,
@@ -114,7 +118,7 @@ interface IDisputeManager {
     );
 
     /**
-     * @dev Emitted when an indexing dispute is created for `allocationId` and `indexer`
+     * @notice Emitted when an indexing dispute is created for `allocationId` and `indexer`
      * by `fisherman`.
      * The event emits the amount of `tokens` deposited by the fisherman.
      * @param disputeId The dispute id
@@ -140,7 +144,7 @@ interface IDisputeManager {
     );
 
     /**
-     * @dev Emitted when a legacy dispute is created for `allocationId` and `fisherman`.
+     * @notice Emitted when a legacy dispute is created for `allocationId` and `fisherman`.
      * The event emits the amount of `tokensSlash` to slash and `tokensRewards` to reward the fisherman.
      * @param disputeId The dispute id
      * @param indexer The indexer address
@@ -159,7 +163,7 @@ interface IDisputeManager {
     );
 
     /**
-     * @dev Emitted when arbitrator accepts a `disputeId` to `indexer` created by `fisherman`.
+     * @notice Emitted when arbitrator accepts a `disputeId` to `indexer` created by `fisherman`.
      * The event emits the amount `tokens` transferred to the fisherman, the deposit plus reward.
      * @param disputeId The dispute id
      * @param indexer The indexer address
@@ -174,7 +178,7 @@ interface IDisputeManager {
     );
 
     /**
-     * @dev Emitted when arbitrator rejects a `disputeId` for `indexer` created by `fisherman`.
+     * @notice Emitted when arbitrator rejects a `disputeId` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` burned from the fisherman deposit.
      * @param disputeId The dispute id
      * @param indexer The indexer address
@@ -189,7 +193,7 @@ interface IDisputeManager {
     );
 
     /**
-     * @dev Emitted when arbitrator draw a `disputeId` for `indexer` created by `fisherman`.
+     * @notice Emitted when arbitrator draw a `disputeId` for `indexer` created by `fisherman`.
      * The event emits the amount `tokens` used as deposit and returned to the fisherman.
      * @param disputeId The dispute id
      * @param indexer The indexer address
@@ -199,7 +203,7 @@ interface IDisputeManager {
     event DisputeDrawn(bytes32 indexed disputeId, address indexed indexer, address indexed fisherman, uint256 tokens);
 
     /**
-     * @dev Emitted when two disputes are in conflict to link them.
+     * @notice Emitted when two disputes are in conflict to link them.
      * This event will be emitted after each DisputeCreated event is emitted
      * for each of the individual disputes.
      * @param disputeId1 The first dispute id
@@ -208,7 +212,7 @@ interface IDisputeManager {
     event DisputeLinked(bytes32 indexed disputeId1, bytes32 indexed disputeId2);
 
     /**
-     * @dev Emitted when a dispute is cancelled by the fisherman.
+     * @notice Emitted when a dispute is cancelled by the fisherman.
      * The event emits the amount `tokens` returned to the fisherman.
      * @param disputeId The dispute id
      * @param indexer The indexer address

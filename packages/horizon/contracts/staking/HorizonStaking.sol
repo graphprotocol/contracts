@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+// solhint-disable gas-increment-by-one
+// solhint-disable function-max-lines
+
 pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
@@ -17,6 +22,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 
 /**
  * @title HorizonStaking contract
+ * @author Edge & Node
  * @notice The {HorizonStaking} contract allows service providers to stake and provision tokens to verifiers to be used
  * as economic security for a service. It also allows delegators to delegate towards a service provider provision.
  * @dev Implements the {IHorizonStakingMain} interface.
@@ -69,11 +75,10 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /**
-     * @dev The staking contract is upgradeable however we still use the constructor to set
-     * a few immutable variables.
-     * @param controller The address of the Graph controller contract.
-     * @param stakingExtensionAddress The address of the staking extension contract.
-     * @param subgraphDataServiceAddress The address of the subgraph data service.
+     * @notice The staking contract is upgradeable however we still use the constructor to set a few immutable variables
+     * @param controller The address of the Graph controller contract
+     * @param stakingExtensionAddress The address of the staking extension contract
+     * @param subgraphDataServiceAddress The address of the subgraph data service
      */
     constructor(
         address controller,
@@ -88,8 +93,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev This function does not return to its internal call site, it will return directly to the
      * external caller.
      */
-    // solhint-disable-next-line payable-fallback, no-complex-fallback
     fallback() external {
+        // solhint-disable-previous-line payable-fallback, no-complex-fallback
         address extensionImpl = STAKING_EXTENSION_ADDRESS;
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -681,8 +686,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * @dev TRANSITION PERIOD: During the transition period, only the subgraph data service can be used as a verifier. This
      * prevents an escape hatch for legacy allocation stake.
      * @param _serviceProvider The service provider address
-     * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
      * @param _tokens The amount of tokens that will be locked and slashable
+     * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
      * @param _maxVerifierCut The maximum cut, expressed in PPM, that a verifier can transfer instead of burning when slashing
      * @param _thawingPeriod The period in seconds that the tokens will be thawing before they can be removed from the provision
      */
