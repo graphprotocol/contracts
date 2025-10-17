@@ -12,6 +12,10 @@
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"
     },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
     "./types-v5": {
       "types": "./dist/types-v5/index.d.ts",
       "default": "./dist/types-v5/index.js"
@@ -19,6 +23,10 @@
     "./wagmi": {
       "types": "./dist/wagmi/generated.d.ts",
       "default": "./dist/wagmi/generated.js"
+    },
+    "./utils": {
+      "types": "./dist/src/utils.d.ts",
+      "default": "./dist/src/utils.js"
     }
   },
   "files": [
@@ -47,6 +55,8 @@
     "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
+    "@ethersproject/abi": "5.7.0",
+    "@ethersproject/providers": "5.7.2",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "3.4.2",
     "@openzeppelin/contracts-upgradeable": "3.4.2",
@@ -54,14 +64,13 @@
     "@wagmi/cli": "^2.3.1",
     "ethers": "catalog:",
     "ethers-v5": "npm:ethers@5.7.2",
-    "@ethersproject/abi": "5.7.0",
-    "@ethersproject/providers": "5.7.2",
     "hardhat": "catalog:",
     "hardhat-ignore-warnings": "catalog:",
     "markdownlint-cli": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-solidity": "catalog:",
     "solhint": "catalog:",
+    "ts-node": "catalog:",
     "typechain": "^8.3.2",
     "viem": "^2.31.7"
   }
