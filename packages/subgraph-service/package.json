@@ -26,7 +26,7 @@
     "clean": "rm -rf build dist cache cache_forge typechain-types",
     "build": "pnpm build:dep && pnpm build:self",
     "build:dep": "pnpm --filter '@graphprotocol/subgraph-service^...' run build:self",
-    "build:self": "hardhat compile",
+    "build:self": "hardhat compile --quiet",
     "test": "pnpm build && pnpm test:self",
     "test:self": "forge test",
     "test:deployment": "SECURE_ACCOUNTS_DISABLE_PROVIDER=true hardhat test test/deployment/*.ts",

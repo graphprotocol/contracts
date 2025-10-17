@@ -57,6 +57,7 @@
     "@ethersproject/abi": "5.7.0",
     "@ethersproject/providers": "5.7.2",
     "hardhat": "catalog:",
+    "hardhat-ignore-warnings": "catalog:",
     "markdownlint-cli": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-solidity": "catalog:",
