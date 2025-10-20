@@ -27,7 +27,7 @@
  * @title Minimum expected interface for L2 token that interacts with the L2 token bridge (this is the interface necessary
  * for a custom token that interacts with the bridge, see TestArbCustomToken.sol for an example implementation).
  */
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
 /**
  * @title Arbitrum Token Interface

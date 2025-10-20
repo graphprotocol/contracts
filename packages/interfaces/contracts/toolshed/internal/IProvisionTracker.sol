@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // solhint-disable use-natspec
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
 
 interface IProvisionTracker {
     // Errors
