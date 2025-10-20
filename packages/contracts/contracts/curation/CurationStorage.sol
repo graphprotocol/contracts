@@ -8,8 +8,8 @@ pragma solidity ^0.7.6;
 
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
-import { ICuration } from "./ICuration.sol";
-import { IGraphCurationToken } from "./IGraphCurationToken.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
+import { IGraphCurationToken } from "@graphprotocol/interfaces/contracts/contracts/curation/IGraphCurationToken.sol";
 import { Managed } from "../governance/Managed.sol";
 
 /**

@@ -6,7 +6,7 @@ pragma abicoder v2;
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-increment-by-one
 
-import { IMulticall } from "./IMulticall.sol";
+import { IMulticall } from "@graphprotocol/interfaces/contracts/contracts/base/IMulticall.sol";
 
 // Inspired by https://github.com/Uniswap/uniswap-v3-periphery/blob/main/contracts/base/Multicall.sol
 // Note: Removed payable from the multicall

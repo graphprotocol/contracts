@@ -11,7 +11,7 @@ import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { Managed } from "../governance/Managed.sol";
 
 import { EpochManagerV1Storage } from "./EpochManagerStorage.sol";
-import { IEpochManager } from "./IEpochManager.sol";
+import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";
 
 /**
  * @title EpochManager contract

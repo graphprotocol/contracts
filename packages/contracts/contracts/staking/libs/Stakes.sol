@@ -6,7 +6,7 @@ pragma abicoder v2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { MathUtils } from "./MathUtils.sol";
-import { IStakes } from "./IStakes.sol";
+import { IStakes } from "@graphprotocol/interfaces/contracts/contracts/staking/libs/IStakes.sol";
 
 /**
  * @title A collection of data structures and functions to manage the Indexer Stake state.

@@ -4,7 +4,7 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 /* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
 
-import { IGraphProxy } from "./IGraphProxy.sol";
+import { IGraphProxy } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxy.sol";
 
 /**
  * @title Graph Upgradeable

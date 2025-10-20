@@ -3,7 +3,7 @@
 pragma solidity ^0.7.6;
 
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { Pausable } from "../governance/Pausable.sol";
 import { Managed } from "../governance/Managed.sol";
 

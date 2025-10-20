@@ -7,7 +7,7 @@ pragma solidity ^0.7.6;
 
 import { Managed } from "../governance/Managed.sol";
 
-import { IServiceRegistry } from "./IServiceRegistry.sol";
+import { IServiceRegistry } from "@graphprotocol/interfaces/contracts/contracts/discovery/IServiceRegistry.sol";
 
 /**
  * @title Service Registry Storage V1

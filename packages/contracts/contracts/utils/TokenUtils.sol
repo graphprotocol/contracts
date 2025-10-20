@@ -4,7 +4,7 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 /* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
 
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 
 /**
  * @title TokenUtils library

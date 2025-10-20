@@ -7,7 +7,7 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
-import { IRewardsIssuer } from "./IRewardsIssuer.sol";
+import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { Managed } from "../governance/Managed.sol";
 

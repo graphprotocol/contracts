@@ -8,8 +8,8 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 /* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
 
-import { IController } from "./IController.sol";
-import { IManaged } from "./IManaged.sol";
+import { IController } from "@graphprotocol/interfaces/contracts/contracts/governance/IController.sol";
+import { IManaged } from "@graphprotocol/interfaces/contracts/contracts/governance/IManaged.sol";
 import { Governed } from "./Governed.sol";
 import { Pausable } from "./Pausable.sol";
 

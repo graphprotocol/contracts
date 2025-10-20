@@ -9,11 +9,11 @@ pragma abicoder v2;
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { GNS } from "../../discovery/GNS.sol";
-import { ICuration } from "../../curation/ICuration.sol";
-import { IL2GNS } from "./IL2GNS.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
+import { IL2GNS } from "@graphprotocol/interfaces/contracts/contracts/l2/discovery/IL2GNS.sol";
 import { L2GNSV1Storage } from "./L2GNSStorage.sol";
 
-import { IL2Curation } from "../curation/IL2Curation.sol";
+import { IL2Curation } from "@graphprotocol/interfaces/contracts/contracts/l2/curation/IL2Curation.sol";
 
 /**
  * @title L2GNS
