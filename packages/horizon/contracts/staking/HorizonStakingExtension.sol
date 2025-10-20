@@ -6,7 +6,7 @@ pragma solidity 0.8.27;
 // solhint-disable function-max-lines, gas-strict-inequalities
 
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 

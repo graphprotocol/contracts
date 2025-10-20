@@ -9,8 +9,8 @@ pragma solidity ^0.7.6;
 
 import { Managed } from "../governance/Managed.sol";
 
-import { IStakingData } from "./IStakingData.sol";
-import { IStakes } from "./libs/IStakes.sol";
+import { IStakingData } from "@graphprotocol/interfaces/contracts/contracts/staking/IStakingData.sol";
+import { IStakes } from "@graphprotocol/interfaces/contracts/contracts/staking/libs/IStakes.sol";
 
 /**
  * @title StakingV1Storage

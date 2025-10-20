@@ -407,6 +407,7 @@ interface IStakingBase is IStakingData {
 
     /**
      * @notice Get the allocation data for the rewards manager
+     * @dev New function to get the allocation data for the rewards manager
      * @dev Note that this is only to make tests pass, as the staking contract with
      * this changes will never get deployed. HorizonStaking is taking it's place.
      * @param allocationID The allocation ID
@@ -423,10 +424,11 @@ interface IStakingBase is IStakingData {
 
     /**
      * @notice Get the allocation active status for the rewards manager
+     * @dev New function to get the allocation active status for the rewards manager
      * @dev Note that this is only to make tests pass, as the staking contract with
      * this changes will never get deployed. HorizonStaking is taking it's place.
-     * @param allocationID The allocation ID
-     * @return Whether the allocation is active
+     * @param allocationID The allocation identifier
+     * @return True if the allocation is active, false otherwise
      */
     function isActiveAllocation(address allocationID) external view returns (bool);
 

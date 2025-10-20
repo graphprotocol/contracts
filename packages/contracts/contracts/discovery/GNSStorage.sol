@@ -10,9 +10,9 @@ pragma abicoder v2;
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import { Managed } from "../governance/Managed.sol";
 
-import { IEthereumDIDRegistry } from "./erc1056/IEthereumDIDRegistry.sol";
-import { IGNS } from "./IGNS.sol";
-import { ISubgraphNFT } from "./ISubgraphNFT.sol";
+import { IEthereumDIDRegistry } from "@graphprotocol/interfaces/contracts/contracts/discovery/erc1056/IEthereumDIDRegistry.sol";
+import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";
+import { ISubgraphNFT } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFT.sol";
 
 /**
  * @title GNSV1Storage

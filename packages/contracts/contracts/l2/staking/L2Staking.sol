@@ -8,13 +8,13 @@ pragma abicoder v2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Staking } from "../../staking/Staking.sol";
-import { IL2StakingBase } from "./IL2StakingBase.sol";
+import { IL2StakingBase } from "@graphprotocol/interfaces/contracts/contracts/l2/staking/IL2StakingBase.sol";
 import { Stakes } from "../../staking/libs/Stakes.sol";
-import { IStakes } from "../../staking/libs/IStakes.sol";
-import { IL2StakingTypes } from "./IL2StakingTypes.sol";
+import { IStakes } from "@graphprotocol/interfaces/contracts/contracts/staking/libs/IStakes.sol";
+import { IL2StakingTypes } from "@graphprotocol/interfaces/contracts/contracts/l2/staking/IL2StakingTypes.sol";
 
 // solhint-disable-next-line no-unused-import
-import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol"; // Used by @inheritdoc
+import { ICallhookReceiver } from "@graphprotocol/interfaces/contracts/contracts/gateway/ICallhookReceiver.sol"; // Used by @inheritdoc
 
 /**
  * @title L2Staking contract

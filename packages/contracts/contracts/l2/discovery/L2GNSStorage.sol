@@ -6,7 +6,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { IL2GNS } from "./IL2GNS.sol";
+import { IL2GNS } from "@graphprotocol/interfaces/contracts/contracts/l2/discovery/IL2GNS.sol";
 
 /**
  * @title L2GNSV1Storage

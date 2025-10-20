@@ -14,10 +14,10 @@ import { GraphUpgradeable } from "../../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../../utils/TokenUtils.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { Managed } from "../../governance/Managed.sol";
-import { IGraphToken } from "../../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { CurationV3Storage } from "../../curation/CurationStorage.sol";
-import { IGraphCurationToken } from "../../curation/IGraphCurationToken.sol";
-import { IL2Curation } from "./IL2Curation.sol";
+import { IGraphCurationToken } from "@graphprotocol/interfaces/contracts/contracts/curation/IGraphCurationToken.sol";
+import { IL2Curation } from "@graphprotocol/interfaces/contracts/contracts/l2/curation/IL2Curation.sol";
 
 /**
  * @title L2Curation contract

@@ -12,10 +12,10 @@ import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 import { Managed } from "../governance/Managed.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IStaking } from "../staking/IStaking.sol";
+import { IStaking } from "@graphprotocol/interfaces/contracts/contracts/staking/IStaking.sol";
 
 import { DisputeManagerV1Storage } from "./DisputeManagerStorage.sol";
-import { IDisputeManager } from "./IDisputeManager.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/contracts/disputes/IDisputeManager.sol";
 
 /**
  * @title DisputeManager

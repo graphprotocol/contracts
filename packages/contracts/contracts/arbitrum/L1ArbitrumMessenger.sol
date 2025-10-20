@@ -25,9 +25,9 @@
 
 pragma solidity ^0.7.6;
 
-import { IInbox } from "./IInbox.sol";
-import { IOutbox } from "./IOutbox.sol";
-import { IBridge } from "./IBridge.sol";
+import { IInbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IInbox.sol";
+import { IOutbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IOutbox.sol";
+import { IBridge } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IBridge.sol";
 
 /**
  * @title L1 Arbitrum Messenger

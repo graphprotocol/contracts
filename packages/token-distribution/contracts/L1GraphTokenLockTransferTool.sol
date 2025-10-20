@@ -8,7 +8,7 @@ pragma experimental ABIEncoderV2;
 // solhint-disable named-parameters-mapping
 
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import { ITokenGateway } from "./arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { L2GraphTokenLockManager } from "./L2GraphTokenLockManager.sol";
 import { GraphTokenLockWallet } from "./GraphTokenLockWallet.sol";

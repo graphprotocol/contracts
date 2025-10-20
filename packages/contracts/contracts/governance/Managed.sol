@@ -6,17 +6,17 @@ pragma solidity ^0.7.6;
 // solhint-disable gas-indexed-events
 // solhint-disable named-parameters-mapping
 
-import { IController } from "./IController.sol";
+import { IController } from "@graphprotocol/interfaces/contracts/contracts/governance/IController.sol";
 
-import { ICuration } from "../curation/ICuration.sol";
-import { IEpochManager } from "../epochs/IEpochManager.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
+import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";
 import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
-import { IStaking } from "../staking/IStaking.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
-import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
-import { IGNS } from "../discovery/IGNS.sol";
+import { IStaking } from "@graphprotocol/interfaces/contracts/contracts/staking/IStaking.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
+import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";
 
-import { IManaged } from "./IManaged.sol";
+import { IManaged } from "@graphprotocol/interfaces/contracts/contracts/governance/IManaged.sol";
 
 /**
  * @title Graph Managed contract

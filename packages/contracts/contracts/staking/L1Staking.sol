@@ -8,17 +8,17 @@ pragma abicoder v2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { Staking } from "./Staking.sol";
 import { Stakes } from "./libs/Stakes.sol";
-import { IStakes } from "./libs/IStakes.sol";
-import { IStakingData } from "./IStakingData.sol";
+import { IStakes } from "@graphprotocol/interfaces/contracts/contracts/staking/libs/IStakes.sol";
+import { IStakingData } from "@graphprotocol/interfaces/contracts/contracts/staking/IStakingData.sol";
 import { L1StakingV1Storage } from "./L1StakingStorage.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
-import { IL1StakingBase } from "./IL1StakingBase.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IL1StakingBase } from "@graphprotocol/interfaces/contracts/contracts/staking/IL1StakingBase.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
-import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";
-import { IL2StakingTypes } from "../l2/staking/IL2StakingTypes.sol";
+import { IL1GraphTokenLockTransferTool } from "@graphprotocol/interfaces/contracts/contracts/staking/IL1GraphTokenLockTransferTool.sol";
+import { IL2StakingTypes } from "@graphprotocol/interfaces/contracts/contracts/l2/staking/IL2StakingTypes.sol";
 
 /**
  * @title L1Staking contract

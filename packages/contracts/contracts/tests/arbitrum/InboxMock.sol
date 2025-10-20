@@ -2,9 +2,9 @@
 
 pragma solidity ^0.7.6;
 
-import { IInbox } from "../../arbitrum/IInbox.sol";
+import { IInbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IInbox.sol";
 import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
-import { IBridge } from "../../arbitrum/IBridge.sol";
+import { IBridge } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Inbox mock contract
