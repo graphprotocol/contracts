@@ -5,9 +5,9 @@ pragma solidity ^0.7.3;
 // solhint-disable gas-increment-by-one, gas-indexed-events, use-natspec
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ITokenGateway } from "../arbitrum//ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { GraphTokenMock } from "./GraphTokenMock.sol";
-import { ICallhookReceiver } from "../ICallhookReceiver.sol";
+import { ICallhookReceiver } from "@graphprotocol/interfaces/contracts/contracts/gateway/ICallhookReceiver.sol";
 
 /**
  * @title L2 Token Gateway mock contract

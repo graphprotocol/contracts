@@ -8,13 +8,13 @@ pragma abicoder v2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { StakingV4Storage } from "./StakingStorage.sol";
-import { IStakingExtension } from "./IStakingExtension.sol";
+import { IStakingExtension } from "@graphprotocol/interfaces/contracts/contracts/staking/IStakingExtension.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
-import { IStakes } from "./libs/IStakes.sol";
+import { IStakes } from "@graphprotocol/interfaces/contracts/contracts/staking/libs/IStakes.sol";
 import { Stakes } from "./libs/Stakes.sol";
-import { IStakingData } from "./IStakingData.sol";
+import { IStakingData } from "@graphprotocol/interfaces/contracts/contracts/staking/IStakingData.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 
 /**

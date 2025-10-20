@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-indexed-events, use-natspec
 
-import { ICallhookReceiver } from "../gateway/ICallhookReceiver.sol";
+import { ICallhookReceiver } from "@graphprotocol/interfaces/contracts/contracts/gateway/ICallhookReceiver.sol";
 
 /**
  * @title CallhookReceiverMock contract

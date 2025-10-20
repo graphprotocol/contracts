@@ -7,7 +7,7 @@ pragma abicoder v2;
 // solhint-disable use-natspec
 
 import { L1GNS } from "../discovery/L1GNS.sol";
-import { IGNS } from "../discovery/IGNS.sol";
+import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";
 
 /**
  * @title LegacyGNSMock contract

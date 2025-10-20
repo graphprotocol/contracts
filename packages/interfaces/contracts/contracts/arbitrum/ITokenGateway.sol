@@ -23,7 +23,7 @@
  *
  */
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.3 || 0.8.27;
 
 /**
  * @title Token Gateway Interface

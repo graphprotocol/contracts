@@ -6,7 +6,7 @@ pragma solidity ^0.7.6;
 // solhint-disable gas-indexed-events
 
 import { GraphTokenUpgradeable } from "./GraphTokenUpgradeable.sol";
-import { IArbToken } from "../../arbitrum/IArbToken.sol";
+import { IArbToken } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IArbToken.sol";
 
 /**
  * @title L2 Graph Token Contract

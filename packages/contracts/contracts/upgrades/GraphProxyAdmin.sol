@@ -6,7 +6,7 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 import { Governed } from "../governance/Governed.sol";
 
-import { IGraphProxy } from "./IGraphProxy.sol";
+import { IGraphProxy } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxy.sol";
 import { GraphUpgradeable } from "./GraphUpgradeable.sol";
 
 /**

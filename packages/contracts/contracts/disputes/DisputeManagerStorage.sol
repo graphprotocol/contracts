@@ -7,7 +7,7 @@ pragma solidity ^0.7.6;
 
 import { Managed } from "../governance/Managed.sol";
 
-import { IDisputeManager } from "./IDisputeManager.sol";
+import { IDisputeManager } from "@graphprotocol/interfaces/contracts/contracts/disputes/IDisputeManager.sol";
 
 /**
  * @title Dispute Manager Storage V1

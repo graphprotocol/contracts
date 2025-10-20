@@ -10,7 +10,7 @@ pragma experimental ABIEncoderV2;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { ICallhookReceiver } from "./ICallhookReceiver.sol";
+import { ICallhookReceiver } from "@graphprotocol/interfaces/contracts/contracts/gateway/ICallhookReceiver.sol";
 import { GraphTokenLockManager } from "./GraphTokenLockManager.sol";
 import { L2GraphTokenLockWallet } from "./L2GraphTokenLockWallet.sol";
 

@@ -7,7 +7,7 @@ import { Managed } from "../governance/Managed.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 
 import { ServiceRegistryV1Storage } from "./ServiceRegistryStorage.sol";
-import { IServiceRegistry } from "./IServiceRegistry.sol";
+import { IServiceRegistry } from "@graphprotocol/interfaces/contracts/contracts/discovery/IServiceRegistry.sol";
 
 /**
  * @title ServiceRegistry contract

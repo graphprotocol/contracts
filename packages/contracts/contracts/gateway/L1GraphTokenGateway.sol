@@ -12,13 +12,13 @@ import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/Ad
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { L1ArbitrumMessenger } from "../arbitrum/L1ArbitrumMessenger.sol";
-import { IBridge } from "../arbitrum/IBridge.sol";
-import { IInbox } from "../arbitrum/IInbox.sol";
-import { IOutbox } from "../arbitrum/IOutbox.sol";
-import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { IBridge } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IBridge.sol";
+import { IInbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IInbox.sol";
+import { IOutbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IOutbox.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { Managed } from "../governance/Managed.sol";
 import { GraphTokenGateway } from "./GraphTokenGateway.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 
 /**
  * @title L1 Graph Token Gateway Contract

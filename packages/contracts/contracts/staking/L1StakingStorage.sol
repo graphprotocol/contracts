@@ -6,7 +6,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { IL1GraphTokenLockTransferTool } from "./IL1GraphTokenLockTransferTool.sol";
+import { IL1GraphTokenLockTransferTool } from "@graphprotocol/interfaces/contracts/contracts/staking/IL1GraphTokenLockTransferTool.sol";
 
 /**
  * @title L1StakingV1Storage

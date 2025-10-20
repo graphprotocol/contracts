@@ -1109,6 +1109,9 @@ importers:
       '@graphprotocol/contracts':
         specifier: workspace:^
         version: link:../contracts
+      '@graphprotocol/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
       '@graphql-yoga/plugin-persisted-operations':
         specifier: ^3.13.5
         version: 3.15.2(graphql-yoga@5.15.2(graphql@16.11.0))(graphql@16.11.0)

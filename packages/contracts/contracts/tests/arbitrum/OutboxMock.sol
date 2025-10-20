@@ -5,8 +5,8 @@ pragma solidity ^0.7.6;
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable use-natspec
 
-import { IOutbox } from "../../arbitrum/IOutbox.sol";
-import { IBridge } from "../../arbitrum/IBridge.sol";
+import { IOutbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IOutbox.sol";
+import { IBridge } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Outbox mock contract

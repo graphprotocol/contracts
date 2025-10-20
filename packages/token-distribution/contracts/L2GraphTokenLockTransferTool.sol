@@ -10,7 +10,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { L2GraphTokenLockManager } from "./L2GraphTokenLockManager.sol";
 import { L2GraphTokenLockWallet } from "./L2GraphTokenLockWallet.sol";
-import { ITokenGateway } from "./arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 
 /**
  * @title L2GraphTokenLockTransferTool contract

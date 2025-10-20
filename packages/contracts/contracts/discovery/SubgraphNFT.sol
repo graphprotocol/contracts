@@ -11,8 +11,8 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 import { Governed } from "../governance/Governed.sol";
 import { HexStrings } from "../libraries/HexStrings.sol";
-import { ISubgraphNFT } from "./ISubgraphNFT.sol";
-import { ISubgraphNFTDescriptor } from "./ISubgraphNFTDescriptor.sol";
+import { ISubgraphNFT } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFT.sol";
+import { ISubgraphNFTDescriptor } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFTDescriptor.sol";
 
 /**
  * @title NFT that represents ownership of a Subgraph

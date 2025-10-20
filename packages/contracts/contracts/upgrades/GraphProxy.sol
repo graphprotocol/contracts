@@ -9,7 +9,7 @@ pragma solidity ^0.7.6 || 0.8.27;
 
 import { GraphProxyStorage } from "./GraphProxyStorage.sol";
 
-import { IGraphProxy } from "./IGraphProxy.sol";
+import { IGraphProxy } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxy.sol";
 
 /**
  * @title Graph Proxy

@@ -11,10 +11,10 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 
 import { L2ArbitrumMessenger } from "../../arbitrum/L2ArbitrumMessenger.sol";
 import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
-import { ITokenGateway } from "../../arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { Managed } from "../../governance/Managed.sol";
 import { GraphTokenGateway } from "../../gateway/GraphTokenGateway.sol";
-import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
+import { ICallhookReceiver } from "@graphprotocol/interfaces/contracts/contracts/gateway/ICallhookReceiver.sol";
 import { L2GraphToken } from "../token/L2GraphToken.sol";
 
 /**
