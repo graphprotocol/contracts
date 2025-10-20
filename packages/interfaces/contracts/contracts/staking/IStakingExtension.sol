@@ -96,16 +96,16 @@ interface IStakingExtension is IStakingData {
      * If set to 10 it means the indexer can use up to 10x the indexer staked amount
      * from their delegated tokens
      * @dev This function is only callable by the governor
-     * @param delegationRatio Delegation capacity multiplier
+     * @param newDelegationRatio Delegation capacity multiplier
      */
-    function setDelegationRatio(uint32 delegationRatio) external;
+    function setDelegationRatio(uint32 newDelegationRatio) external;
 
     /**
      * @notice Set the time, in epochs, a Delegator needs to wait to withdraw tokens after undelegating.
      * @dev This function is only callable by the governor
-     * @param delegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
+     * @param newDelegationUnbondingPeriod Period in epochs to wait for token withdrawals after undelegating
      */
-    function setDelegationUnbondingPeriod(uint32 delegationUnbondingPeriod) external;
+    function setDelegationUnbondingPeriod(uint32 newDelegationUnbondingPeriod) external;
 
     /**
      * @notice Set a delegation tax percentage to burn when delegated funds are deposited.

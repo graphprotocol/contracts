@@ -48,16 +48,16 @@ interface IController {
     /**
      * @notice Change the partial paused state of the contract
      * Partial pause is intended as a partial pause of the protocol
-     * @param partialPaused True if the contracts should be (partially) paused, false otherwise
+     * @param partialPause True if the contracts should be (partially) paused, false otherwise
      */
-    function setPartialPaused(bool partialPaused) external;
+    function setPartialPaused(bool partialPause) external;
 
     /**
      * @notice Change the paused state of the contract
      * Full pause most of protocol functions
-     * @param paused True if the contracts should be paused, false otherwise
+     * @param pause True if the contracts should be paused, false otherwise
      */
-    function setPaused(bool paused) external;
+    function setPaused(bool pause) external;
 
     /**
      * @notice Change the Pause Guardian

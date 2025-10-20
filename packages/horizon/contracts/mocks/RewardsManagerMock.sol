@@ -29,26 +29,32 @@ contract RewardsManagerMock {
 
     /**
      * @notice Take rewards for an allocation
-     * @param allocationID The allocation ID (unused in mock)
+     * @param allocationID The allocation ID (unused in this mock)
      * @return The amount of rewards taken
      */
     function takeRewards(address allocationID) external returns (uint256) {
-        // solhint-disable-previous-line no-unused-vars
+        allocationID; // silence unused variable warning
         token.mint(msg.sender, _rewards);
         return _rewards;
     }
 
     /**
      * @notice Handle subgraph allocation update (mock implementation)
-     * @param subgraphDeploymentID The subgraph deployment ID
+     * @param subgraphDeploymentID The subgraph deployment ID (unused in this mock)
      * @return Always returns 0 in mock
      */
-    function onSubgraphAllocationUpdate(bytes32 subgraphDeploymentID) public returns (uint256) {}
+    function onSubgraphAllocationUpdate(bytes32 subgraphDeploymentID) public pure returns (uint256) {
+        subgraphDeploymentID; // silence unused variable warning
+        return 0;
+    }
 
     /**
      * @notice Handle subgraph signal update (mock implementation)
-     * @param subgraphDeploymentID The subgraph deployment ID
+     * @param subgraphDeploymentID The subgraph deployment ID (unused in this mock)
      * @return Always returns 0 in mock
      */
-    function onSubgraphSignalUpdate(bytes32 subgraphDeploymentID) external returns (uint256) {}
+    function onSubgraphSignalUpdate(bytes32 subgraphDeploymentID) external pure returns (uint256) {
+        subgraphDeploymentID; // silence unused variable warning
+        return 0;
+    }
 }

@@ -40,10 +40,10 @@ interface IEpochManager {
 
     /**
      * @notice Get the hash of a specific block
-     * @param block Block number to get hash for
+     * @param blockNumber Block number to get hash for
      * @return Block hash
      */
-    function blockHash(uint256 block) external view returns (bytes32);
+    function blockHash(uint256 blockNumber) external view returns (bytes32);
 
     /**
      * @notice Get the current epoch number
