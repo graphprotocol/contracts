@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
 
 // TODO: Re-enable and fix issues when publishing a new version
 // solhint-disable gas-indexed-events

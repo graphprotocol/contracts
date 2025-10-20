@@ -23,7 +23,7 @@
  *
  */
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
 import { IBridge } from "./IBridge.sol";
 import { IMessageProvider } from "./IMessageProvider.sol";
