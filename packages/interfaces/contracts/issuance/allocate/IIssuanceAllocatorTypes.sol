@@ -16,3 +16,27 @@ struct TargetIssuancePerBlock {
     uint256 selfIssuancePerBlock;
     uint256 selfIssuanceBlockAppliedTo;
 }
+
+/**
+ * @notice Allocation information
+ * @param totalAllocationPPM Total allocation in PPM (allocatorMintingAllocationPPM + selfMintingAllocationPPM)
+ * @param allocatorMintingPPM Allocator-minting allocation in PPM (Parts Per Million)
+ * @param selfMintingPPM Self-minting allocation in PPM (Parts Per Million)
+ */
+struct Allocation {
+    uint256 totalAllocationPPM;
+    uint256 allocatorMintingPPM;
+    uint256 selfMintingPPM;
+}
+
+/**
+ * @notice Allocation target information
+ * @param allocatorMintingPPM The allocator-minting allocation amount in PPM (Parts Per Million)
+ * @param selfMintingPPM The self-minting allocation amount in PPM (Parts Per Million)
+ * @param lastChangeNotifiedBlock Last block when this target was notified of changes
+ */
+struct AllocationTarget {
+    uint256 allocatorMintingPPM;
+    uint256 selfMintingPPM;
+    uint256 lastChangeNotifiedBlock;
+}
