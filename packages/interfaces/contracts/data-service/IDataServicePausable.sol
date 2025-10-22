@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
 
 import { IDataService } from "./IDataService.sol";
 
 /**
  * @title Interface for the {DataServicePausable} contract.
+ * @author Edge & Node
  * @notice Extension for the {IDataService} contract, adds pausing functionality
  * to the data service. Pausing is controlled by privileged accounts called
  * pause guardians.

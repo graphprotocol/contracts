@@ -7,22 +7,30 @@ import { IManaged } from "@graphprotocol/interfaces/contracts/contracts/governan
 
 /**
  * @title Graph Controller contract (mock)
+ * @author Edge & Node
+ * @notice Mock implementation of the Graph Controller contract for testing
  * @dev Controller is a registry of contracts for convenience. Inspired by Livepeer:
  * https://github.com/livepeer/protocol/blob/streamflow/contracts/Controller.sol
  */
 contract ControllerMock is IController {
     /// @dev Track contract ids to contract proxy address
     mapping(bytes32 contractName => address contractAddress) private _registry;
+
+    /// @notice Address of the governor
     address public governor;
     bool internal _paused;
     bool internal _partialPaused;
     address internal _pauseGuardian;
 
-    /// Emitted when the proxy address for a protocol contract has been set
-    event SetContractProxy(bytes32 indexed id, address contractAddress);
+    /**
+     * @notice Emitted when the proxy address for a protocol contract has been set
+     * @param id The contract identifier
+     * @param contractAddress The new contract address
+     */
+    event SetContractProxy(bytes32 indexed id, address indexed contractAddress);
 
     /**
-     * Constructor for the Controller mock
+     * @notice Constructor for the Controller mock
      * @param governor_ Address of the governor
      */
     constructor(address governor_) {

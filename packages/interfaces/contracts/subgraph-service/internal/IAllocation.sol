@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
 
 /**
  * @title Interface for the {Allocation} library contract.
+ * @author Edge & Node
+ * @notice Interface for managing allocation data and operations
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */

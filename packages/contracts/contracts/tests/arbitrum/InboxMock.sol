@@ -2,26 +2,28 @@
 
 pragma solidity ^0.7.6;
 
-import "../../arbitrum/IInbox.sol";
-import "../../arbitrum/AddressAliasHelper.sol";
+import { IInbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IInbox.sol";
+import { AddressAliasHelper } from "../../arbitrum/AddressAliasHelper.sol";
+import { IBridge } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IBridge.sol";
 
 /**
  * @title Arbitrum Inbox mock contract
- * @dev This contract implements (a subset of) Arbitrum's IInbox interface for testing purposes
+ * @author Edge & Node
+ * @notice This contract implements (a subset of) Arbitrum's IInbox interface for testing purposes
  */
 contract InboxMock is IInbox {
-    // Type indicator for a standard L2 message
+    /// @dev Type indicator for a standard L2 message
     uint8 internal constant L2_MSG = 3;
-    // Type indicator for a retryable ticket message
+    /// @dev Type indicator for a retryable ticket message
     // solhint-disable-next-line const-name-snakecase
     uint8 internal constant L1MessageType_submitRetryableTx = 9;
-    // Address of the Bridge (mock) contract
+    /**
+     * @inheritdoc IInbox
+     */
     IBridge public override bridge;
 
     /**
-     * @dev Send a message to L2 (by delivering it to the Bridge)
-     * @param _messageData Encoded data to send in the message
-     * @return message number returned by the inbox
+     * @inheritdoc IInbox
      */
     function sendL2Message(bytes calldata _messageData) external override returns (uint256) {
         uint256 msgNum = deliverToBridge(L2_MSG, msg.sender, keccak256(_messageData));
@@ -30,7 +32,7 @@ contract InboxMock is IInbox {
     }
 
     /**
-     * @dev Set the address of the (mock) bridge
+     * @notice Set the address of the (mock) bridge
      * @param _bridge Address of the bridge
      */
     function setBridge(address _bridge) external {
@@ -38,6 +40,7 @@ contract InboxMock is IInbox {
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function sendUnsignedTransaction(
@@ -52,6 +55,7 @@ contract InboxMock is IInbox {
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function sendContractTransaction(
@@ -65,6 +69,7 @@ contract InboxMock is IInbox {
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function sendL1FundedUnsignedTransaction(
@@ -78,6 +83,7 @@ contract InboxMock is IInbox {
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function sendL1FundedContractTransaction(
@@ -90,16 +96,7 @@ contract InboxMock is IInbox {
     }
 
     /**
-     * @dev Creates a retryable ticket for an L2 transaction
-     * @param _destAddr Address of the contract to call in L2
-     * @param _arbTxCallValue Callvalue to use in the L2 transaction
-     * @param _maxSubmissionCost Max cost of submitting the ticket, in Wei
-     * @param _submissionRefundAddress L2 address to refund for any remaining value from the submission cost
-     * @param _valueRefundAddress L2 address to refund if the ticket times out or gets cancelled
-     * @param _maxGas Max gas for the L2 transcation
-     * @param _gasPriceBid Gas price bid on L2
-     * @param _data Encoded calldata for the L2 transaction (including function selector)
-     * @return message number returned by the bridge
+     * @inheritdoc IInbox
      */
     function createRetryableTicket(
         address _destAddr,
@@ -132,11 +129,16 @@ contract InboxMock is IInbox {
             );
     }
 
+    /**
+     * @inheritdoc IInbox
+     * @dev Unimplemented in this mock
+     */
     function depositEth(uint256) external payable override returns (uint256) {
         revert("Unimplemented");
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function pauseCreateRetryables() external pure override {
@@ -144,6 +146,7 @@ contract InboxMock is IInbox {
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function unpauseCreateRetryables() external pure override {
@@ -151,6 +154,7 @@ contract InboxMock is IInbox {
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function startRewriteAddress() external pure override {
@@ -158,6 +162,7 @@ contract InboxMock is IInbox {
     }
 
     /**
+     * @inheritdoc IInbox
      * @dev Unimplemented in this mock
      */
     function stopRewriteAddress() external pure override {
@@ -165,7 +170,7 @@ contract InboxMock is IInbox {
     }
 
     /**
-     * @dev Deliver a message to the bridge
+     * @notice Deliver a message to the bridge
      * @param _kind Type of the message
      * @param _sender Address that is sending the message
      * @param _messageData Encoded message data
@@ -178,7 +183,7 @@ contract InboxMock is IInbox {
     }
 
     /**
-     * @dev Deliver a message to the bridge
+     * @notice Deliver a message to the bridge
      * @param _kind Type of the message
      * @param _sender Address that is sending the message
      * @param _messageDataHash keccak256 hash of the encoded message data

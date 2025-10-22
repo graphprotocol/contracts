@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+// solhint-disable use-natspec
+
+pragma solidity ^0.8.22;
 
 /// @title IOwnable
 /// @notice Interface for Ownable contracts

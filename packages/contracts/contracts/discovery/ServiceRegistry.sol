@@ -3,58 +3,68 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "../governance/Managed.sol";
-import "../upgrades/GraphUpgradeable.sol";
+import { Managed } from "../governance/Managed.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 
-import "./ServiceRegistryStorage.sol";
-import "./IServiceRegistry.sol";
+import { ServiceRegistryV1Storage } from "./ServiceRegistryStorage.sol";
+import { IServiceRegistry } from "@graphprotocol/interfaces/contracts/contracts/discovery/IServiceRegistry.sol";
 
 /**
  * @title ServiceRegistry contract
- * @dev This contract supports the service discovery process by allowing indexers to
+ * @author Edge & Node
+ * @notice This contract supports the service discovery process by allowing indexers to
  * register their service url and any other relevant information.
  */
 contract ServiceRegistry is ServiceRegistryV1Storage, GraphUpgradeable, IServiceRegistry {
     // -- Events --
 
+    /**
+     * @notice Emitted when an indexer registers their service
+     * @param indexer Address of the indexer
+     * @param url URL of the indexer service
+     * @param geohash Geohash of the indexer service location
+     */
     event ServiceRegistered(address indexed indexer, string url, string geohash);
+
+    /**
+     * @notice Emitted when an indexer unregisters their service
+     * @param indexer Address of the indexer
+     */
     event ServiceUnregistered(address indexed indexer);
 
     /**
-     * @dev Check if the caller is authorized (indexer or operator)
+     * @notice Check if the caller is authorized (indexer or operator)
+     * @param _indexer Address of the indexer to check authorization for
+     * @return True if the caller is authorized, false otherwise
      */
     function _isAuth(address _indexer) internal view returns (bool) {
         return msg.sender == _indexer || staking().isOperator(msg.sender, _indexer) == true;
     }
 
     /**
-     * @dev Initialize this contract.
+     * @notice Initialize this contract.
+     * @param _controller Address of the controller contract
      */
     function initialize(address _controller) external onlyImpl {
         Managed._initialize(_controller);
     }
 
     /**
-     * @dev Register an indexer service
-     * @param _url URL of the indexer service
-     * @param _geohash Geohash of the indexer service location
+     * @inheritdoc IServiceRegistry
      */
     function register(string calldata _url, string calldata _geohash) external override {
         _register(msg.sender, _url, _geohash);
     }
 
     /**
-     * @dev Register an indexer service
-     * @param _indexer Address of the indexer
-     * @param _url URL of the indexer service
-     * @param _geohash Geohash of the indexer service location
+     * @inheritdoc IServiceRegistry
      */
     function registerFor(address _indexer, string calldata _url, string calldata _geohash) external override {
         _register(_indexer, _url, _geohash);
     }
 
     /**
-     * @dev Internal: Register an indexer service
+     * @notice Internal: Register an indexer service
      * @param _indexer Address of the indexer
      * @param _url URL of the indexer service
      * @param _geohash Geohash of the indexer service location
@@ -69,22 +79,21 @@ contract ServiceRegistry is ServiceRegistryV1Storage, GraphUpgradeable, IService
     }
 
     /**
-     * @dev Unregister an indexer service
+     * @inheritdoc IServiceRegistry
      */
     function unregister() external override {
         _unregister(msg.sender);
     }
 
     /**
-     * @dev Unregister an indexer service
-     * @param _indexer Address of the indexer
+     * @inheritdoc IServiceRegistry
      */
     function unregisterFor(address _indexer) external override {
         _unregister(_indexer);
     }
 
     /**
-     * @dev Unregister an indexer service
+     * @notice Unregister an indexer service
      * @param _indexer Address of the indexer
      */
     function _unregister(address _indexer) private {
@@ -96,8 +105,7 @@ contract ServiceRegistry is ServiceRegistryV1Storage, GraphUpgradeable, IService
     }
 
     /**
-     * @dev Return the registration status of an indexer service
-     * @return True if the indexer service is registered
+     * @inheritdoc IServiceRegistry
      */
     function isRegistered(address _indexer) public view override returns (bool) {
         return bytes(services[_indexer].url).length > 0;
