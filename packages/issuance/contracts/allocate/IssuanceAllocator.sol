@@ -481,7 +481,7 @@ contract IssuanceAllocator is
         AllocationTarget storage targetData = $.allocationTargets[target];
 
         // Total allocation calculation and check is delayed until after notifications.
-        // Distributing and notifying unecessarily is harmless, but we need to prevent
+        // Distributing and notifying unnecessarily is harmless, but we need to prevent
         // reentrancy looping changing allocations mid-calculation.
         // (Would not be likely to be exploitable due to only governor being able to
         // make a call to set target allocation, but better to be paranoid.)
