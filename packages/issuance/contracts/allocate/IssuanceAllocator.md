@@ -66,7 +66,7 @@ This system enables:
 - **Rapid response**: Pause immediately during operational issues without losing track of issuance
 - **Investigation time**: Allow time to investigate and resolve issues while maintaining issuance accounting
 - **Gradual recovery**: Distribute accumulated issuance manually or automatically when ready
-- **Target changes**: Modify allocations during pause periods, with accumulated issuance distributed to according to updated allocations
+- **Target changes**: Modify allocations during pause periods, with accumulated issuance distributed according to updated allocations
 
 ### Storage
 
