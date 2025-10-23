@@ -12,8 +12,9 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 /**
  * @title Rescuable contract
- * @dev Allows a contract to have a function to rescue tokens sent by mistake.
- * The contract must implement the external rescueTokens function or similar,
+ * @author Edge & Node
+ * @notice Allows a contract to have a function to rescue tokens sent by mistake.
+ * @dev The contract must implement the external rescueTokens function or similar,
  * that calls this contract's _rescueTokens.
  * @dev Note that this extension does not provide an external function to set
  * rescuers. This should be implemented in the derived contract.
@@ -63,7 +64,7 @@ abstract contract DataServiceRescuable is DataService, IDataServiceRescuable {
     }
 
     /**
-     * @dev Allows rescuing tokens sent to this contract
+     * @notice Allows rescuing tokens sent to this contract
      * @param _to Destination address to send the tokens
      * @param _token Address of the token being rescued
      * @param _tokens Amount of tokens to pull

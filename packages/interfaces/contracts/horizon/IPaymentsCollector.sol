@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
 
 import { IGraphPayments } from "./IGraphPayments.sol";
 
 /**
  * @title Interface for a payments collector contract as defined by Graph Horizon payments protocol
+ * @author Edge & Node
  * @notice Contracts implementing this interface can be used with the payments protocol. First, a payer must
  * approve the collector to collect payments on their behalf. Only then can payment collection be initiated
  * using the collector contract.

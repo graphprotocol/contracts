@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
+/**
+ * @title Rewards Issuer Interface
+ * @author Edge & Node
+ * @notice Interface for contracts that issue rewards based on allocation data
+ */
 interface IRewardsIssuer {
     /**
-     * @dev Get allocation data to calculate rewards issuance
+     * @notice Get allocation data to calculate rewards issuance
      *
      * @param allocationId The allocation Id
      * @return isActive Whether the allocation is active or not

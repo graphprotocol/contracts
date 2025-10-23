@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
+
+// solhint-disable use-natspec
 
 import { IGraphTokenLockWallet } from "../token-distribution/IGraphTokenLockWallet.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
 
 /**
  * @title IGraphTokenLockWalletToolshed
+ * @author Edge & Node
  * @notice Extended interface for GraphTokenLockWallet that includes Horizon protocol interaction functions
  * @dev Functions included are based on the GraphTokenLockManager whitelist for vesting contracts on Horizon
  */

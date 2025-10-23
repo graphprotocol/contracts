@@ -3,27 +3,31 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-strict-inequalities
+
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 import { Multicall } from "../base/Multicall.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
-import { IStakingBase } from "./IStakingBase.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
+import { IStakingBase } from "@graphprotocol/interfaces/contracts/contracts/staking/IStakingBase.sol";
 import { StakingV4Storage } from "./StakingStorage.sol";
 import { MathUtils } from "./libs/MathUtils.sol";
 import { Stakes } from "./libs/Stakes.sol";
-import { IStakes } from "./libs/IStakes.sol";
+import { IStakes } from "@graphprotocol/interfaces/contracts/contracts/staking/libs/IStakes.sol";
 import { Managed } from "../governance/Managed.sol";
-import { ICuration } from "../curation/ICuration.sol";
-import { IRewardsManager } from "../rewards/IRewardsManager.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
+import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsManager.sol";
 import { StakingExtension } from "./StakingExtension.sol";
 import { LibExponential } from "./libs/Exponential.sol";
 
 /**
  * @title Base Staking contract
- * @dev The Staking contract allows Indexers to Stake on Subgraphs. Indexers Stake by creating
+ * @author Edge & Node
+ * @notice The Staking contract allows Indexers to Stake on Subgraphs. Indexers Stake by creating
  * Allocations on a Subgraph. It also allows Delegators to Delegate towards an Indexer. The
  * contract also has the slashing functionality.
  * The contract is abstract as the implementation that is deployed depends on each layer: L1Staking on mainnet
@@ -45,9 +49,11 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
      * @dev This function does not return to its internal call site, it will return directly to the
      * external caller.
      */
-    // solhint-disable-next-line payable-fallback, no-complex-fallback
     fallback() external {
+        // solhint-disable-previous-line payable-fallback, no-complex-fallback
+
         require(_implementation() != address(0), "only through proxy");
+
         // solhint-disable-next-line no-inline-assembly
         assembly {
             // (a) get free memory pointer
@@ -80,17 +86,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Initialize this contract.
-     * @param _controller Address of the controller that manages this contract
-     * @param _minimumIndexerStake Minimum amount of tokens that an indexer must stake
-     * @param _thawingPeriod Number of epochs that tokens get locked after unstaking
-     * @param _protocolPercentage Percentage of query fees that are burned as protocol fee (in PPM)
-     * @param _curationPercentage Percentage of query fees that are given to curators (in PPM)
-     * @param _maxAllocationEpochs The maximum number of epochs that an allocation can be active
-     * @param _delegationUnbondingPeriod The period in epochs that tokens get locked after undelegating
-     * @param _delegationRatio The ratio between an indexer's own stake and the delegation they can use
-     * @param _rebatesParameters Alpha and lambda parameters for rebates function
-     * @param _extensionImpl Address of the StakingExtension implementation
+     * @inheritdoc IStakingBase
      */
     function initialize(
         address _controller,
@@ -140,9 +136,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the address of the StakingExtension implementation.
-     * @dev This function can only be called by the governor.
-     * @param _extensionImpl Address of the StakingExtension implementation
+     * @inheritdoc IStakingBase
      */
     function setExtensionImpl(address _extensionImpl) external override onlyGovernor {
         extensionImpl = _extensionImpl;
@@ -150,9 +144,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the address of the counterpart (L1 or L2) staking contract.
-     * @dev This function can only be called by the governor.
-     * @param _counterpart Address of the counterpart staking contract in the other chain, without any aliasing.
+     * @inheritdoc IStakingBase
      */
     function setCounterpartStakingAddress(address _counterpart) external override onlyGovernor {
         counterpartStakingAddress = _counterpart;
@@ -160,52 +152,42 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the minimum stake required to be an indexer.
-     * @param _minimumIndexerStake Minimum indexer stake
+     * @inheritdoc IStakingBase
      */
     function setMinimumIndexerStake(uint256 _minimumIndexerStake) external override onlyGovernor {
         _setMinimumIndexerStake(_minimumIndexerStake);
     }
 
     /**
-     * @notice Set the thawing period for unstaking.
-     * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
+     * @inheritdoc IStakingBase
      */
     function setThawingPeriod(uint32 _thawingPeriod) external override onlyGovernor {
         _setThawingPeriod(_thawingPeriod);
     }
 
     /**
-     * @notice Set the curation percentage of query fees sent to curators.
-     * @param _percentage Percentage of query fees sent to curators
+     * @inheritdoc IStakingBase
      */
     function setCurationPercentage(uint32 _percentage) external override onlyGovernor {
         _setCurationPercentage(_percentage);
     }
 
     /**
-     * @notice Set a protocol percentage to burn when collecting query fees.
-     * @param _percentage Percentage of query fees to burn as protocol fee
+     * @inheritdoc IStakingBase
      */
     function setProtocolPercentage(uint32 _percentage) external override onlyGovernor {
         _setProtocolPercentage(_percentage);
     }
 
     /**
-     * @notice Set the max time allowed for indexers to allocate on a subgraph
-     * before others are allowed to close the allocation.
-     * @param _maxAllocationEpochs Allocation duration limit in epochs
+     * @inheritdoc IStakingBase
      */
     function setMaxAllocationEpochs(uint32 _maxAllocationEpochs) external override onlyGovernor {
         _setMaxAllocationEpochs(_maxAllocationEpochs);
     }
 
     /**
-     * @dev Set the rebate parameters.
-     * @param _alphaNumerator Numerator of `alpha` in the rebates function
-     * @param _alphaDenominator Denominator of `alpha` in the rebates function
-     * @param _lambdaNumerator Numerator of `lambda` in the rebates function
-     * @param _lambdaDenominator Denominator of `lambda` in the rebates function
+     * @inheritdoc IStakingBase
      */
     function setRebateParameters(
         uint32 _alphaNumerator,
@@ -217,9 +199,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Authorize or unauthorize an address to be an operator for the caller.
-     * @param _operator Address to authorize or unauthorize
-     * @param _allowed Whether the operator is authorized or not
+     * @inheritdoc IStakingBase
      */
     function setOperator(address _operator, bool _allowed) external override {
         require(_operator != msg.sender, "operator == sender");
@@ -228,21 +208,18 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Deposit tokens on the indexer's stake.
-     * The amount staked must be over the minimumIndexerStake.
-     * @param _tokens Amount of tokens to stake
+     * @inheritdoc IStakingBase
      */
     function stake(uint256 _tokens) external override {
         stakeTo(msg.sender, _tokens);
     }
 
     /**
-     * @notice Unstake tokens from the indexer stake, lock them until the thawing period expires.
+     * @inheritdoc IStakingBase
      * @dev NOTE: The function accepts an amount greater than the currently staked tokens.
      * If that happens, it will try to unstake the max amount of tokens it can.
      * The reason for this behaviour is to avoid time conditions while the transaction
      * is in flight.
-     * @param _tokens Amount of tokens to unstake
      */
     function unstake(uint256 _tokens) external override notPartialPaused {
         address indexer = msg.sender;
@@ -271,15 +248,14 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Withdraw indexer tokens once the thawing period has passed.
+     * @inheritdoc IStakingBase
      */
     function withdraw() external override notPaused {
         _withdraw(msg.sender);
     }
 
     /**
-     * @notice Set the destination where to send rewards for an indexer.
-     * @param _destination Rewards destination address. If set to zero, rewards will be restaked
+     * @inheritdoc IStakingBase
      */
     function setRewardsDestination(address _destination) external override {
         __rewardsDestination[msg.sender] = _destination;
@@ -287,12 +263,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Allocate available tokens to a subgraph deployment.
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
-     * @param _tokens Amount of tokens to allocate
-     * @param _allocationID The allocation identifier
-     * @param _metadata IPFS hash for additional information about the allocation
-     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
+     * @inheritdoc IStakingBase
      */
     function allocate(
         bytes32 _subgraphDeploymentID,
@@ -305,14 +276,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Allocate available tokens to a subgraph deployment from and indexer's stake.
-     * The caller must be the indexer or the indexer's operator.
-     * @param _indexer Indexer address to allocate funds from.
-     * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
-     * @param _tokens Amount of tokens to allocate
-     * @param _allocationID The allocation identifier
-     * @param _metadata IPFS hash for additional information about the allocation
-     * @param _proof A 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationID)`
+     * @inheritdoc IStakingBase
      */
     function allocateFrom(
         address _indexer,
@@ -326,25 +290,20 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Close an allocation and free the staked tokens.
-     * To be eligible for rewards a proof of indexing must be presented.
+     * @inheritdoc IStakingBase
+     * @dev To be eligible for rewards a proof of indexing must be presented.
      * Presenting a bad proof is subject to slashable condition.
      * To opt out of rewards set _poi to 0x0
-     * @param _allocationID The allocation identifier
-     * @param _poi Proof of indexing submitted for the allocated period
      */
     function closeAllocation(address _allocationID, bytes32 _poi) external override notPaused {
         _closeAllocation(_allocationID, _poi);
     }
 
     /**
-     * @dev Collect and rebate query fees from state channels to the indexer
-     * To avoid reverting on the withdrawal from channel flow this function will accept calls with zero tokens.
-     * We use an exponential rebate formula to calculate the amount of tokens to rebate to the indexer.
+     * @inheritdoc IStakingBase
+     * @dev We use an exponential rebate formula to calculate the amount of tokens to rebate to the indexer.
      * This implementation allows collecting multiple times on the same allocation, keeping track of the
      * total amount rebated, the total amount collected and compensating the indexer for the difference.
-     * @param _tokens Amount of tokens to collect
-     * @param _allocationID Allocation where the tokens will be assigned
      */
     function collect(uint256 _tokens, address _allocationID) external override {
         // Allocation identifier validation
@@ -447,36 +406,28 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Return if allocationID is used.
-     * @param _allocationID Address used as signer by the indexer for an allocation
-     * @return True if allocationID already used
+     * @inheritdoc IStakingBase
      */
     function isAllocation(address _allocationID) external view override returns (bool) {
         return _getAllocationState(_allocationID) != AllocationState.Null;
     }
 
     /**
-     * @notice Getter that returns if an indexer has any stake.
-     * @param _indexer Address of the indexer
-     * @return True if indexer has staked tokens
+     * @inheritdoc IStakingBase
      */
     function hasStake(address _indexer) external view override returns (bool) {
         return __stakes[_indexer].tokensStaked > 0;
     }
 
     /**
-     * @notice Return the allocation by ID.
-     * @param _allocationID Address used as allocation identifier
-     * @return Allocation data
+     * @inheritdoc IStakingBase
      */
     function getAllocation(address _allocationID) external view override returns (Allocation memory) {
         return __allocations[_allocationID];
     }
 
     /**
-     * @dev New function to get the allocation data for the rewards manager
-     * @dev Note that this is only to make tests pass, as the staking contract with
-     * this changes will never get deployed. HorizonStaking is taking it's place.
+     * @inheritdoc IStakingBase
      */
     function getAllocationData(
         address _allocationID
@@ -495,46 +446,35 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev New function to get the allocation active status for the rewards manager
-     * @dev Note that this is only to make tests pass, as the staking contract with
-     * this changes will never get deployed. HorizonStaking is taking it's place.
+     * @inheritdoc IStakingBase
      */
     function isActiveAllocation(address _allocationID) external view override returns (bool) {
         return _getAllocationState(_allocationID) == AllocationState.Active;
     }
 
     /**
-     * @notice Return the current state of an allocation
-     * @param _allocationID Allocation identifier
-     * @return AllocationState enum with the state of the allocation
+     * @inheritdoc IStakingBase
      */
     function getAllocationState(address _allocationID) external view override returns (AllocationState) {
         return _getAllocationState(_allocationID);
     }
 
     /**
-     * @notice Return the total amount of tokens allocated to subgraph.
-     * @param _subgraphDeploymentID Deployment ID for the subgraph
-     * @return Total tokens allocated to subgraph
+     * @inheritdoc IStakingBase
      */
     function getSubgraphAllocatedTokens(bytes32 _subgraphDeploymentID) external view override returns (uint256) {
         return __subgraphAllocations[_subgraphDeploymentID];
     }
 
     /**
-     * @notice Get the total amount of tokens staked by the indexer.
-     * @param _indexer Address of the indexer
-     * @return Amount of tokens staked by the indexer
+     * @inheritdoc IStakingBase
      */
     function getIndexerStakedTokens(address _indexer) external view override returns (uint256) {
         return __stakes[_indexer].tokensStaked;
     }
 
     /**
-     * @notice Deposit tokens on the Indexer stake, on behalf of the Indexer.
-     * The amount staked must be over the minimumIndexerStake.
-     * @param _indexer Address of the indexer
-     * @param _tokens Amount of tokens to stake
+     * @inheritdoc IStakingBase
      */
     function stakeTo(address _indexer, uint256 _tokens) public override notPartialPaused {
         require(_tokens > 0, "!tokens");
@@ -547,9 +487,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Set the delegation parameters for the caller.
-     * @param _indexingRewardCut Percentage of indexing rewards left for the indexer
-     * @param _queryFeeCut Percentage of query fees left for the indexer
+     * @inheritdoc IStakingBase
      */
     function setDelegationParameters(
         uint32 _indexingRewardCut,
@@ -560,10 +498,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Get the total amount of tokens available to use in allocations.
-     * This considers the indexer stake and delegated tokens according to delegation ratio
-     * @param _indexer Address of the indexer
-     * @return Amount of tokens available to allocate including delegation
+     * @inheritdoc IStakingBase
      */
     function getIndexerCapacity(address _indexer) public view override returns (uint256) {
         IStakes.Indexer memory indexerStake = __stakes[_indexer];
@@ -576,17 +511,14 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @notice Return true if operator is allowed for indexer.
-     * @param _operator Address of the operator
-     * @param _indexer Address of the indexer
-     * @return True if operator is allowed for indexer, false otherwise
+     * @inheritdoc IStakingBase
      */
     function isOperator(address _operator, address _indexer) public view override returns (bool) {
         return __operatorAuth[_indexer][_operator];
     }
 
     /**
-     * @dev Internal: Set the minimum indexer stake required.
+     * @notice Internal: Set the minimum indexer stake required.
      * @param _minimumIndexerStake Minimum indexer stake
      */
     function _setMinimumIndexerStake(uint256 _minimumIndexerStake) private {
@@ -596,7 +528,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Internal: Set the thawing period for unstaking.
+     * @notice Internal: Set the thawing period for unstaking.
      * @param _thawingPeriod Period in blocks to wait for token withdrawals after unstaking
      */
     function _setThawingPeriod(uint32 _thawingPeriod) private {
@@ -606,7 +538,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Internal: Set the curation percentage of query fees sent to curators.
+     * @notice Internal: Set the curation percentage of query fees sent to curators.
      * @param _percentage Percentage of query fees sent to curators
      */
     function _setCurationPercentage(uint32 _percentage) private {
@@ -617,7 +549,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Internal: Set a protocol percentage to burn when collecting query fees.
+     * @notice Internal: Set a protocol percentage to burn when collecting query fees.
      * @param _percentage Percentage of query fees to burn as protocol fee
      */
     function _setProtocolPercentage(uint32 _percentage) private {
@@ -628,7 +560,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Internal: Set the max time allowed for indexers stake on allocations.
+     * @notice Internal: Set the max time allowed for indexers stake on allocations.
      * @param _maxAllocationEpochs Allocation duration limit in epochs
      */
     function _setMaxAllocationEpochs(uint32 _maxAllocationEpochs) private {
@@ -637,7 +569,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Set the rebate parameters.
+     * @notice Set the rebate parameters.
      * @param _alphaNumerator Numerator of `alpha` in the rebates function
      * @param _alphaDenominator Denominator of `alpha` in the rebates function
      * @param _lambdaNumerator Numerator of `lambda` in the rebates function
@@ -660,7 +592,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Set the delegation parameters for a particular indexer.
+     * @notice Set the delegation parameters for a particular indexer.
      * @param _indexer Indexer to set delegation parameters
      * @param _indexingRewardCut Percentage of indexing rewards left for delegators
      * @param _queryFeeCut Percentage of query fees left for delegators
@@ -681,7 +613,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Stake tokens on the indexer.
+     * @notice Stake tokens on the indexer.
      * This function does not check minimum indexer stake requirement to allow
      * to be called by functions that increase the stake when collecting rewards
      * without reverting
@@ -704,7 +636,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Withdraw indexer tokens once the thawing period has passed.
+     * @notice Withdraw indexer tokens once the thawing period has passed.
      * @param _indexer Address of indexer to withdraw funds from
      */
     function _withdraw(address _indexer) private {
@@ -719,7 +651,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Allocate available tokens to a subgraph deployment.
+     * @notice Allocate available tokens to a subgraph deployment.
      * @param _indexer Indexer address to allocate funds from.
      * @param _subgraphDeploymentID ID of the SubgraphDeployment where tokens will be allocated
      * @param _tokens Amount of tokens to allocate
@@ -794,7 +726,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Close an allocation and free the staked tokens.
+     * @notice Close an allocation and free the staked tokens.
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
      */
@@ -861,7 +793,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Collect the delegation rewards for query fees.
+     * @notice Collect the delegation rewards for query fees.
      * This function will assign the collected fees to the delegation pool.
      * @param _indexer Indexer to which the tokens to distribute are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
@@ -879,7 +811,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Collect the delegation rewards for indexing.
+     * @notice Collect the delegation rewards for indexing.
      * This function will assign the collected fees to the delegation pool.
      * @param _indexer Indexer to which the tokens to distribute are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
@@ -897,7 +829,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Collect the curation fees for a subgraph deployment from an amount of tokens.
+     * @notice Collect the curation fees for a subgraph deployment from an amount of tokens.
      * This function transfer curation fees to the Curation contract by calling Curation.collect
      * @param _graphToken Token to collect
      * @param _subgraphDeploymentID Subgraph deployment to which the curation fees are related
@@ -926,7 +858,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
             if (curationFees > 0) {
                 // Transfer and call collect()
                 // This function transfer tokens to a trusted protocol contracts
-                // Then we call collect() to do the transfer Bookkeeping
+                // Then we call collect() to do the transfer bookkeeping
                 rewardsManager().onSubgraphSignalUpdate(_subgraphDeploymentID);
                 TokenUtils.pushTokens(_graphToken, address(curation), curationFees);
                 curation.collect(_subgraphDeploymentID, curationFees);
@@ -937,7 +869,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Collect tax to burn for an amount of tokens.
+     * @notice Collect tax to burn for an amount of tokens.
      * @param _graphToken Token to burn
      * @param _tokens Total tokens received used to calculate the amount of tax to collect
      * @param _percentage Percentage of tokens to burn as tax
@@ -953,7 +885,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Triggers an update of rewards due to a change in allocations.
+     * @notice Triggers an update of rewards due to a change in allocations.
      * @param _subgraphDeploymentID Subgraph deployment updated
      * @return Accumulated rewards per allocated token for the subgraph deployment
      */
@@ -966,7 +898,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Assign rewards for the closed allocation to indexer and delegators.
+     * @notice Assign rewards for the closed allocation to indexer and delegators.
      * @param _allocationID Allocation
      * @param _indexer Address of the indexer that did the allocation
      */
@@ -993,7 +925,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Send rewards to the appropriate destination.
+     * @notice Send rewards to the appropriate destination.
      * @param _graphToken Graph token
      * @param _amount Number of rewards tokens
      * @param _beneficiary Address of the beneficiary of rewards
@@ -1013,7 +945,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Check if the caller is authorized to operate on behalf of
+     * @notice Check if the caller is authorized to operate on behalf of
      * an indexer (i.e. the caller is the indexer or an operator)
      * @param _indexer Indexer address
      * @return True if the caller is authorized to operate on behalf of the indexer
@@ -1023,7 +955,7 @@ abstract contract Staking is StakingV4Storage, GraphUpgradeable, IStakingBase, M
     }
 
     /**
-     * @dev Return the current state of an allocation
+     * @notice Return the current state of an allocation
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
      */

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
 
 import { IDataServiceFees } from "../data-service/IDataServiceFees.sol";
 import { IGraphPayments } from "../horizon/IGraphPayments.sol";
@@ -9,6 +12,7 @@ import { ILegacyAllocation } from "./internal/ILegacyAllocation.sol";
 
 /**
  * @title Interface for the {SubgraphService} contract
+ * @author Edge & Node
  * @dev This interface extends {IDataServiceFees} and {IDataService}.
  * @notice The Subgraph Service is a data service built on top of Graph Horizon that supports the use case of
  * subgraph indexing and querying. The {SubgraphService} contract implements the flows described in the Data
