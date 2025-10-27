@@ -57,7 +57,7 @@ export const projectPathsUserConfig: ProjectPathsUserConfig = {
 }
 
 export const etherscanUserConfig: Partial<EtherscanConfig> = {
-  apiKey: vars.get('ETHERSCAN_API_KEY'),
+  apiKey: vars.has('ETHERSCAN_API_KEY') ? vars.get('ETHERSCAN_API_KEY') : '',
 }
 
 // In general:
