@@ -27,9 +27,9 @@
     "subgraphServiceAddress": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
 
     // Must be set for step 4 of the migration
-    "horizonStakingImplementationAddress": "",
-    "curationImplementationAddress": "",
-    "rewardsManagerImplementationAddress": "",
+    "horizonStakingImplementationAddress": "0x2AF6F51e119A79497C3A3FFf012B5889da489764",
+    "curationImplementationAddress": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA",
+    "rewardsManagerImplementationAddress": "0x856843F6409a8b3A0d4aaE67313037FED02bBBFf",
 
     // Global parameters
     "maxThawingPeriod": 2419200

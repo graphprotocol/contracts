@@ -42,7 +42,7 @@ const config: HardhatUserConfig = {
     },
     arbitrumSepolia: {
       chainId: 421614,
-      url: process.env.ARBITRUM_SEPOLIA_URL,
+      url: process.env.ARBITRUM_SEPOLIA_URL || 'https://sepolia-rollup.arbitrum.io/rpcblock',
       accounts: {
         mnemonic: DEFAULT_TEST_MNEMONIC,
       },

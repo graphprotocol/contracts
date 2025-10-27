@@ -30,5 +30,17 @@
   "HorizonStakingDeployer#HorizonStakingExtension": "0xae825098db3400ff8Cd6a239abbB2e15cCb5C3e3",
   "HorizonStakingDeployer#HorizonStaking": "0x2AF6F51e119A79497C3A3FFf012B5889da489764",
   "GraphPayments#GraphPayments_ProxyWithABI": "0x57E70eC8905E26341d40aF60Dca56cDBA8C166E5",
-  "PaymentsEscrow#PaymentsEscrow_ProxyWithABI": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681"
+  "PaymentsEscrow#PaymentsEscrow_ProxyWithABI": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
+  "HorizonStakingGovernor#GraphProxyAdmin": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+  "HorizonStakingGovernor#HorizonStakingImplementation": "0x2AF6F51e119A79497C3A3FFf012B5889da489764",
+  "HorizonStakingGovernor#HorizonStakingProxy": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
+  "L2CurationGovernor#GraphProxyAdmin": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+  "L2CurationGovernor#L2CurationImplementation": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA",
+  "L2CurationGovernor#L2CurationProxy": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+  "RewardsManagerGovernor#GraphProxyAdmin": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+  "RewardsManagerGovernor#RewardsManagerImplementation": "0x856843F6409a8b3A0d4aaE67313037FED02bBBFf",
+  "RewardsManagerGovernor#RewardsManagerProxy": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+  "HorizonStakingGovernor#HorizonStaking_ProxyWithABI": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
+  "L2CurationGovernor#L2Curation_ProxyWithABI": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+  "RewardsManagerGovernor#RewardsManager_ProxyWithABI": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79"
 }
