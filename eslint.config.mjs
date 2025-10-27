@@ -10,7 +10,6 @@ import eslint from '@eslint/js'
 import typescriptPlugin from '@typescript-eslint/eslint-plugin'
 import prettier from 'eslint-config-prettier'
 import importPlugin from 'eslint-plugin-import'
-import jsdocPlugin from 'eslint-plugin-jsdoc'
 import noOnlyTests from 'eslint-plugin-no-only-tests'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import unusedImportsPlugin from 'eslint-plugin-unused-imports'
@@ -155,28 +154,6 @@ const eslintConfig = [
     },
     rules: {
       'unused-imports/no-unused-imports': 'warn',
-      'unused-imports/no-unused-vars': [
-        'warn',
-        {
-          vars: 'all',
-          varsIgnorePattern: '^_',
-          args: 'after-used',
-          argsIgnorePattern: '^_',
-        },
-      ],
-    },
-  },
-
-  // JSDoc plugin configuration
-  {
-    plugins: {
-      jsdoc: jsdocPlugin,
-    },
-    rules: {
-      'jsdoc/require-jsdoc': 'off',
-      'jsdoc/require-param': 'off',
-      'jsdoc/require-returns': 'off',
-      'jsdoc/require-description': 'off',
     },
   },
 
@@ -247,6 +224,10 @@ const eslintConfig = [
       globals: {
         ...globals.mocha,
       },
+    },
+    rules: {
+      // Allow 'any' types in test files where they're often necessary for testing edge cases
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 

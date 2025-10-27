@@ -12,6 +12,7 @@ import 'hardhat-deploy'
 import 'hardhat-abi-exporter'
 import '@typechain/hardhat'
 import 'hardhat-gas-reporter'
+import 'hardhat-ignore-warnings'
 import '@openzeppelin/hardhat-upgrades'
 import 'solidity-coverage'
 // Tasks
@@ -188,6 +189,12 @@ const config = {
   },
   mocha: {
     timeout: 120000,
+  },
+  warnings: {
+    // Suppress warnings from legacy OpenZeppelin contracts
+    '@openzeppelin/contracts/**/*': {
+      default: 'off',
+    },
   },
 }
 

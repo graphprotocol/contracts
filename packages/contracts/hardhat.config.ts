@@ -2,6 +2,7 @@ import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-contract-sizer' // for size-contracts script
+import 'hardhat-ignore-warnings'
 import 'solidity-coverage' // for coverage script
 import 'dotenv/config'
 import '@nomicfoundation/hardhat-verify'
@@ -59,6 +60,18 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     runOnCompile: false,
     disambiguatePaths: false,
+  },
+  warnings: {
+    // Suppress warnings from legacy OpenZeppelin contracts and external dependencies
+    'arbos-precompiles/**/*': {
+      default: 'off',
+    },
+    '@openzeppelin/contracts/**/*': {
+      default: 'off',
+    },
+    'contracts/staking/StakingExtension.sol': {
+      5667: 'off', // Unused function parameter
+    },
   },
 }
 
