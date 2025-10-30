@@ -30,6 +30,7 @@
     "horizonStakingImplementationAddress": "",
     "curationImplementationAddress": "",
     "rewardsManagerImplementationAddress": "",
+    "disputeManagerAddress": "",
 
     // Global parameters
     "maxThawingPeriod": 2419200

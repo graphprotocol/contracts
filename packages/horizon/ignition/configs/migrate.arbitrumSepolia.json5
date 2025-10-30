@@ -30,7 +30,9 @@
     "horizonStakingImplementationAddress": "0x2AF6F51e119A79497C3A3FFf012B5889da489764",
     "curationImplementationAddress": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA",
     "rewardsManagerImplementationAddress": "0x856843F6409a8b3A0d4aaE67313037FED02bBBFf",
-
+    "disputeManagerAddress": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
+    
+    // Must be set for step 5 of the migration
     // Global parameters
     "maxThawingPeriod": 2419200
   },
