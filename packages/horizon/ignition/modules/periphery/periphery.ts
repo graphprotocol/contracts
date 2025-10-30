@@ -21,6 +21,8 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   const { L2GraphTokenGateway, L2GraphTokenGatewayImplementation } = m.useModule(GraphTokenGatewayModule)
   const { L2GraphToken, L2GraphTokenImplementation } = m.useModule(GraphTokenModule)
 
+  const disputeManagerAddress = m.getParameter('disputeManagerAddress')
+
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('EpochManager')), EpochManager], {
     id: 'setContractProxy_EpochManager',
   })
@@ -44,6 +46,9 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   })
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GNS')), L2GNS], {
     id: 'setContractProxy_L2GNS',
+  })
+  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('DisputeManager')), disputeManagerAddress], {
+    id: 'setContractProxy_DisputeManager',
   })
 
   return {

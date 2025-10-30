@@ -6,6 +6,7 @@
 
     // Placeholder address for a standalone Horizon deployment, see README.md for more details
     "subgraphServiceAddress": "0x0000000000000000000000000000000000000000",
+    "disputeManagerAddress": "0x0000000000000000000000000000000000000001",
 
     // Global parameters
     "maxThawingPeriod": 2419200
