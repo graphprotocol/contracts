@@ -1,4 +1,19 @@
 {
+  "42161": {
+    "Controller": {
+      "address": "0x0a8491544221dd212964fbb96487467291b2C97e"
+    },
+    "GraphPayments": {
+      "address": "0x7Aae8ae011927BC36Cb4d0d3e81f2E6E30daE06D",
+      "proxy": "transparent",
+      "proxyAdmin": "0x0D065CE83938Ea226c145e9c4a8C95b31aDA3613"
+    },
+    "PaymentsEscrow": {
+      "address": "0xf6Fcc27aAf1fcD8B254498c9794451d82afC673E",
+      "proxy": "transparent",
+      "proxyAdmin": "0x6465e08CD46669f8841641655186148b490B4b24"
+    }
+  },
   "421614": {
     "GraphPayments": {
       "address": "0x57E70eC8905E26341d40aF60Dca56cDBA8C166E5",

@@ -1,0 +1,10 @@
+{
+  "HorizonProxiesDeployer#OZProxyDummy_GraphPayments": "0x9b2Fe4f141886daFbaD0d3B0640E4b0e1a7415ea",
+  "HorizonProxiesDeployer#OZProxyDummy_PaymentsEscrow": "0xbc3ebE148288e6F2a15aA5Fb8BFfe1674ffFE011",
+  "HorizonProxiesDeployer#TransparentUpgradeableProxy_GraphPayments": "0x7Aae8ae011927BC36Cb4d0d3e81f2E6E30daE06D",
+  "HorizonProxiesDeployer#TransparentUpgradeableProxy_PaymentsEscrow": "0xf6Fcc27aAf1fcD8B254498c9794451d82afC673E",
+  "HorizonProxiesDeployer#GraphPayments_ProxyWithABI": "0x7Aae8ae011927BC36Cb4d0d3e81f2E6E30daE06D",
+  "HorizonProxiesDeployer#PaymentsEscrow_ProxyWithABI": "0xf6Fcc27aAf1fcD8B254498c9794451d82afC673E",
+  "HorizonProxiesDeployer#ProxyAdmin_GraphPayments": "0x0D065CE83938Ea226c145e9c4a8C95b31aDA3613",
+  "HorizonProxiesDeployer#ProxyAdmin_PaymentsEscrow": "0x6465e08CD46669f8841641655186148b490B4b24"
+}

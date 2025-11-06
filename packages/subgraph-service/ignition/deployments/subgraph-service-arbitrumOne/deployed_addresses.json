@@ -1,0 +1,10 @@
+{
+  "SubgraphServiceProxies#OZProxyDummy_DisputeManager": "0x7c09BB7862613953BD2C1d45255Df5D4f33F8898",
+  "SubgraphServiceProxies#OZProxyDummy_SubgraphService": "0x01E8A7a9bB397a920D2F565697ACE5c2F25D1aDA",
+  "SubgraphServiceProxies#TransparentUpgradeableProxy_DisputeManager": "0x2FE023a575449AcB698648eD21276293Fa176f96",
+  "SubgraphServiceProxies#TransparentUpgradeableProxy_SubgraphService": "0xb2Bb92d0DE618878E438b55D5846cfecD9301105",
+  "SubgraphServiceProxies#DisputeManager_ProxyWithABI": "0x2FE023a575449AcB698648eD21276293Fa176f96",
+  "SubgraphServiceProxies#SubgraphService_ProxyWithABI": "0xb2Bb92d0DE618878E438b55D5846cfecD9301105",
+  "SubgraphServiceProxies#ProxyAdmin_DisputeManager": "0x2cf40C92706943dCAE5E0Ba047a29563863C9d75",
+  "SubgraphServiceProxies#ProxyAdmin_SubgraphService": "0x49021Ada0806cabce24b73002EB4477fe4934215"
+}

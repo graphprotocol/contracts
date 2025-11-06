@@ -1,4 +1,16 @@
 {
+  "42161": {
+    "SubgraphService": {
+      "address": "0xb2Bb92d0DE618878E438b55D5846cfecD9301105",
+      "proxy": "transparent",
+      "proxyAdmin": "0x49021Ada0806cabce24b73002EB4477fe4934215"
+    },
+    "DisputeManager": {
+      "address": "0x2FE023a575449AcB698648eD21276293Fa176f96",
+      "proxy": "transparent",
+      "proxyAdmin": "0x2cf40C92706943dCAE5E0Ba047a29563863C9d75"
+    }
+  },
   "421614": {
     "SubgraphService": {
       "address": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",

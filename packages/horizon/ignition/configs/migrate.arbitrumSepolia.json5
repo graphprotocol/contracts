@@ -32,7 +32,6 @@
     "rewardsManagerImplementationAddress": "0x856843F6409a8b3A0d4aaE67313037FED02bBBFf",
     "disputeManagerAddress": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
     
-    // Must be set for step 5 of the migration
     // Global parameters
     "maxThawingPeriod": 2419200
   },
