@@ -1,5 +1,13 @@
 # @graphprotocol/toolshed
 
+## 1.0.2
+
+### Patch Changes
+
+- yAdd feesProvisionTracker to subgraph service interface
+- Updated dependencies
+  - @graphprotocol/interfaces@0.6.4
+
 ## 1.0.1
 
 ### Patch Changes
