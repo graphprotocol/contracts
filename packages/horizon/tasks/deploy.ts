@@ -167,7 +167,11 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
   // Dispute manager address book might exist if we are running horizon + subgraph service
   // or it might not exist if we are running horizon standalone
   function getDisputeManagerAddress() {
-    if (subgraphServiceAddressBook === undefined || !subgraphServiceAddressBook.entryExists('DisputeManager') || standalone) {
+    if (
+      subgraphServiceAddressBook === undefined ||
+      !subgraphServiceAddressBook.entryExists('DisputeManager') ||
+      standalone
+    ) {
       return ZERO_ADDRESS
     }
     return subgraphServiceAddressBook.getEntry('DisputeManager').address ?? ZERO_ADDRESS

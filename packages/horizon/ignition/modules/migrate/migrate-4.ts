@@ -15,9 +15,14 @@ export default buildModule('GraphHorizon_Migrate_4', (m) => {
   const disputeManagerAddress = m.getParameter('disputeManagerAddress')
   const controllerAddress = m.getParameter('controllerAddress')
   const Controller = m.contractAt('Controller', ControllerArtifact, controllerAddress)
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('DisputeManager')), disputeManagerAddress], {
-    id: 'setContractProxy_DisputeManager',
-  })
+  m.call(
+    Controller,
+    'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('DisputeManager')), disputeManagerAddress],
+    {
+      id: 'setContractProxy_DisputeManager',
+    },
+  )
 
   return {}
 })
