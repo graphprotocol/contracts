@@ -1,5 +1,11 @@
 # @graphprotocol/toolshed
 
+## 1.0.3
+
+### Patch Changes
+
+- Add fn to parse custom errors to toolshed package
+
 ## 1.0.2
 
 ### Patch Changes
