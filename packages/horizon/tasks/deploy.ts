@@ -163,6 +163,20 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
     return subgraphServiceAddressBook.getEntry('SubgraphService').address
   }
 
+  // Get the dispute manager address
+  // Dispute manager address book might exist if we are running horizon + subgraph service
+  // or it might not exist if we are running horizon standalone
+  function getDisputeManagerAddress() {
+    if (
+      subgraphServiceAddressBook === undefined ||
+      !subgraphServiceAddressBook.entryExists('DisputeManager') ||
+      standalone
+    ) {
+      return ZERO_ADDRESS
+    }
+    return subgraphServiceAddressBook.getEntry('DisputeManager').address ?? ZERO_ADDRESS
+  }
+
   switch (step) {
     case 2:
       const GraphPayments = horizonAddressBook.getEntry('GraphPayments')
@@ -188,6 +202,7 @@ function _patchStepConfig<ChainId extends number, ContractName extends string, H
       patchedConfig = patchConfig(patchedConfig, {
         $global: {
           subgraphServiceAddress: getSubgraphServiceAddress(),
+          disputeManagerAddress: getDisputeManagerAddress(),
           horizonStakingImplementationAddress: HorizonStaking.implementation ?? ZERO_ADDRESS,
           curationImplementationAddress: L2Curation.implementation ?? ZERO_ADDRESS,
           rewardsManagerImplementationAddress: RewardsManager.implementation ?? ZERO_ADDRESS,

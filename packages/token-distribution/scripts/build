@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source .env
+
 set -eo pipefail
 
 if [ -z "${STUDIO_API_KEY}" ]; then

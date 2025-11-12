@@ -1,0 +1,49 @@
+{
+  "$global": {
+    // Accounts already configured in the original Graph Protocol
+    "governor": "0x72ee30d43Fb5A90B3FE983156C5d2fBE6F6d07B3",
+
+    // Addresses for contracts deployed in the original Graph Protocol
+    "graphProxyAdminAddress": "0x7474a6cc5fAeDEc620Db0fa8E4da6eD58477042C",
+    "controllerAddress": "0x9DB3ee191681f092607035d9BDA6e59FbEaCa695",
+    "horizonStakingAddress": "0x865365C425f3A593Ffe698D9c4E6707D14d51e08",
+    "epochManagerAddress": "0x88b3C7f37253bAA1A9b95feAd69bD5320585826D",
+    "epochManagerImplementationAddress": "0x646627fa39ec6f6E757Cb4189bC54c92FFBb71da",
+    "graphTokenAddress": "0xf8c05dCF59E8B28BFD5eed176C562bEbcfc7Ac04",
+    "graphTokenImplementationAddress": "0x4cf968bA38b43dd10be114daa7959C1b369479e5",
+    "graphTokenGatewayAddress": "0xB24Ce0f8c18c4DdDa584A7EeC132F49C966813bb",
+    "graphTokenGatewayImplementationAddress": "0x3C2eB5E561f70c0573E5f6c92358e988E32cb5eC",
+    "rewardsManagerAddress": "0x1F49caE7669086c8ba53CC35d1E9f80176d67E79",
+    "curationAddress": "0xDe761f075200E75485F4358978FB4d1dC8644FD5",
+    "gnsAddress": "0x3133948342F35b8699d8F94aeE064AbB76eDe965",
+    "gnsImplementationAddress": "0x00CBF5024d454255577Bf2b0fB6A43328a6828c9",
+    "subgraphNFTAddress": "0xF21Df5BbA7EB9b54D8F60C560aFb9bA63e6aED1A",
+
+    // Must be set for step 2 of the migration
+    "graphPaymentsAddress": "0x57E70eC8905E26341d40aF60Dca56cDBA8C166E5",
+    "paymentsEscrowAddress": "0x4b5D3Da463F7E076bb7CDF5030960bf123245681",
+
+    // Must be set for step 3 and 4 of the migration
+    "subgraphServiceAddress": "0xc24A3dAC5d06d771f657A48B20cE1a671B78f26b",
+
+    // Must be set for step 4 of the migration
+    "horizonStakingImplementationAddress": "0x2AF6F51e119A79497C3A3FFf012B5889da489764",
+    "curationImplementationAddress": "0xbC8F4355f346e47eef8A0DBFF4a58616ACf7DaCA",
+    "rewardsManagerImplementationAddress": "0x856843F6409a8b3A0d4aaE67313037FED02bBBFf",
+    "disputeManagerAddress": "0x96e1b86b2739e8A3d59F40F2532caDF9cE8Da088",
+    
+    // Global parameters
+    "maxThawingPeriod": 2419200
+  },
+  "GraphPayments": {
+    "protocolPaymentCut": 10000
+  },
+  "PaymentsEscrow": {
+    "withdrawEscrowThawingPeriod": 10800
+  },
+  "GraphTallyCollector": {
+    "eip712Name": "GraphTallyCollector",
+    "eip712Version": "1",
+    "revokeSignerThawingPeriod": 10800
+  }
+}

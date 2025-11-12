@@ -3,10 +3,6 @@ yarn-debug.log*
 yarn-error.log*
 node.log
 
-# Core dumps
-core
-core.*
-
 # Dependency directories
 node_modules/
 .pnpm-store/

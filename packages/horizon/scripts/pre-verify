@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Move external artifacts
-cp -r ../contracts/build/contracts/contracts/* build/contracts/contracts
-cp -r ../contracts/build/contracts/build-info/* build/contracts/build-info
+cp -r ../contracts/artifacts/contracts/* build/contracts/contracts
+cp -r ../contracts/artifacts/build-info/* build/contracts/build-info
 cp -r build/contracts/@openzeppelin/contracts/proxy/transparent/* build/contracts/contracts
 
 # HardHat Ignition deployment ID

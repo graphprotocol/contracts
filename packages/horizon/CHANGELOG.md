@@ -1,5 +1,17 @@
 # @graphprotocol/horizon
 
+## 1.1.0
+
+### Minor Changes
+
+- Graph Horizon phase 3 mainnet deployment
+
+## 1.0.0
+
+### Major Changes
+
+- Deploy horizon to testnet
+
 ## 0.4.1
 
 ### Patch Changes
