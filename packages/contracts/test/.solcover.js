@@ -1,4 +1,4 @@
-const skipFiles = ['bancor', 'ens', 'erc1056', 'arbitrum', 'tests/arbitrum']
+const skipFiles = ['bancor', 'ens', 'erc1056', 'arbitrum', 'tests', '*Mock.sol']
 
 module.exports = {
   providerOptions: {

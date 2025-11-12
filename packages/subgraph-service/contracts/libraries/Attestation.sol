@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
 import { IAttestation } from "@graphprotocol/interfaces/contracts/subgraph-service/internal/IAttestation.sol";
 
 /**
  * @title Attestation library
- * @notice A library to handle Attestation.
+ * @author Edge & Node
+ * @notice A library to handle Attestation
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -44,8 +48,8 @@ library Attestation {
     uint256 private constant BYTES32_BYTE_LENGTH = 32;
 
     /**
-     * @dev Returns if two attestations are conflicting.
-     * Everything must match except for the responseId.
+     * @notice Returns if two attestations are conflicting
+     * @dev Everything must match except for the responseId
      * @param _attestation1 Attestation
      * @param _attestation2 Attestation
      * @return True if the two attestations are conflicting
@@ -60,7 +64,7 @@ library Attestation {
     }
 
     /**
-     * @dev Parse the bytes attestation into a struct from `_data`.
+     * @notice Parse the bytes attestation into a struct from `_data`
      * @param _data The bytes to parse
      * @return Attestation struct
      */
@@ -87,7 +91,7 @@ library Attestation {
     }
 
     /**
-     * @dev Parse a uint8 from `_bytes` starting at offset `_start`.
+     * @notice Parse a uint8 from `_bytes` starting at offset `_start`
      * @param _bytes The bytes to parse
      * @param _start The start offset
      * @return uint8 value
@@ -111,7 +115,7 @@ library Attestation {
     }
 
     /**
-     * @dev Parse a bytes32 from `_bytes` starting at offset `_start`.
+     * @notice Parse a bytes32 from `_bytes` starting at offset `_start`
      * @param _bytes The bytes to parse
      * @param _start The start offset
      * @return bytes32 value

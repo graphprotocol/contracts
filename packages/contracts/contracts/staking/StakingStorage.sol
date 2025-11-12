@@ -1,19 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+// solhint-disable one-contract-per-file
 
 pragma solidity ^0.7.6;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable one-contract-per-file, max-states-count
+// solhint-disable named-parameters-mapping
+
 import { Managed } from "../governance/Managed.sol";
 
-import { IStakingData } from "./IStakingData.sol";
-import { IStakes } from "./libs/IStakes.sol";
+import { IStakingData } from "@graphprotocol/interfaces/contracts/contracts/staking/IStakingData.sol";
+import { IStakes } from "@graphprotocol/interfaces/contracts/contracts/staking/libs/IStakes.sol";
 
 /**
  * @title StakingV1Storage
+ * @author Edge & Node
  * @notice This contract holds all the storage variables for the Staking contract, version 1
  * @dev Note that we use a double underscore prefix for variable names; this prefix identifies
  * variables that used to be public but are now internal, getters can be found on StakingExtension.sol.
  */
-// solhint-disable-next-line max-states-count
 contract StakingV1Storage is Managed {
     // -- Staking --
 
@@ -54,7 +59,7 @@ contract StakingV1Storage is Managed {
     /// @dev Subgraph Allocations: subgraphDeploymentID => tokens
     mapping(bytes32 => uint256) internal __subgraphAllocations;
 
-    // Rebate pools : epoch => Pool
+    /// @dev Deprecated rebate pools mapping (no longer used)
     mapping(uint256 => uint256) private __DEPRECATED_rebates; // solhint-disable-line var-name-mixedcase
 
     // -- Slashing --
@@ -95,6 +100,7 @@ contract StakingV1Storage is Managed {
 
 /**
  * @title StakingV2Storage
+ * @author Edge & Node
  * @notice This contract holds all the storage variables for the Staking contract, version 2
  * @dev Note that we use a double underscore prefix for variable names; this prefix identifies
  * variables that used to be public but are now internal, getters can be found on StakingExtension.sol.
@@ -106,6 +112,7 @@ contract StakingV2Storage is StakingV1Storage {
 
 /**
  * @title StakingV3Storage
+ * @author Edge & Node
  * @notice This contract holds all the storage variables for the base Staking contract, version 3.
  */
 contract StakingV3Storage is StakingV2Storage {
@@ -117,13 +124,15 @@ contract StakingV3Storage is StakingV2Storage {
 
 /**
  * @title StakingV4Storage
+ * @author Edge & Node
  * @notice This contract holds all the storage variables for the base Staking contract, version 4.
  * @dev Note that it includes a storage gap - if adding future versions, make sure to move the gap
  * to the new version and reduce the size of the gap accordingly.
  */
 contract StakingV4Storage is StakingV3Storage {
-    // Additional rebate parameters for exponential rebates
+    /// @dev Numerator for the lambda parameter in exponential rebate calculations
     uint32 internal __lambdaNumerator;
+    /// @dev Denominator for the lambda parameter in exponential rebate calculations
     uint32 internal __lambdaDenominator;
 
     /// @dev Gap to allow adding variables in future upgrades (since L1Staking and L2Staking can have their own storage as well)

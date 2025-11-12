@@ -27,20 +27,30 @@
  * @title Minimum expected interface for L2 token that interacts with the L2 token bridge (this is the interface necessary
  * for a custom token that interacts with the bridge, see TestArbCustomToken.sol for an example implementation).
  */
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
+/**
+ * @title Arbitrum Token Interface
+ * @author Edge & Node
+ * @notice Interface for tokens that can be minted and burned on Arbitrum L2
+ */
 interface IArbToken {
     /**
      * @notice should increase token supply by amount, and should (probably) only be callable by the L1 bridge.
+     * @param account Account to mint tokens to
+     * @param amount Amount of tokens to mint
      */
     function bridgeMint(address account, uint256 amount) external;
 
     /**
      * @notice should decrease token supply by amount, and should (probably) only be callable by the L1 bridge.
+     * @param account Account to burn tokens from
+     * @param amount Amount of tokens to burn
      */
     function bridgeBurn(address account, uint256 amount) external;
 
     /**
+     * @notice Get the L1 token address
      * @return address of layer 1 token
      */
     function l1Address() external view returns (address);

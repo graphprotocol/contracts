@@ -23,10 +23,24 @@
  *
  */
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
+/**
+ * @title Message Provider Interface
+ * @author Edge & Node
+ * @notice Interface for Arbitrum message providers
+ */
 interface IMessageProvider {
+    /**
+     * @notice Emitted when a message is delivered to the inbox
+     * @param messageNum Message number
+     * @param data Message data
+     */
     event InboxMessageDelivered(uint256 indexed messageNum, bytes data);
 
+    /**
+     * @notice Emitted when a message is delivered from origin
+     * @param messageNum Message number
+     */
     event InboxMessageDeliveredFromOrigin(uint256 indexed messageNum);
 }

@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
+/**
+ * @title IL2StakingTypes
+ * @author Edge & Node
+ * @notice Interface defining types and enums used by L2 staking contracts
+ */
 interface IL2StakingTypes {
     /// @dev Message codes for the L1 -> L2 bridge callhook
     enum L1MessageCodes {

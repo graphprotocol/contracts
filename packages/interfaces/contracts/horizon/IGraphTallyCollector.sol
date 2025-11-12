@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
 
 import { IPaymentsCollector } from "./IPaymentsCollector.sol";
 import { IGraphPayments } from "./IGraphPayments.sol";
@@ -7,6 +7,7 @@ import { IAuthorizable } from "./IAuthorizable.sol";
 
 /**
  * @title Interface for the {GraphTallyCollector} contract
+ * @author Edge & Node
  * @dev Implements the {IPaymentCollector} interface as defined by the Graph
  * Horizon payments protocol.
  * @notice Implements a payments collector contract that can be used to collect
@@ -49,8 +50,8 @@ interface IGraphTallyCollector is IPaymentsCollector, IAuthorizable {
      * @notice Emitted when a RAV is collected
      * @param collectionId The ID of the collection "bucket" the RAV belongs to.
      * @param payer The address of the payer
-     * @param dataService The address of the data service
      * @param serviceProvider The address of the service provider
+     * @param dataService The address of the data service
      * @param timestampNs The timestamp of the RAV
      * @param valueAggregate The total amount owed to the service provider
      * @param metadata Arbitrary metadata
@@ -122,14 +123,14 @@ interface IGraphTallyCollector is IPaymentsCollector, IAuthorizable {
     ) external returns (uint256);
 
     /**
-     * @dev Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
+     * @notice Recovers the signer address of a signed ReceiptAggregateVoucher (RAV).
      * @param signedRAV The SignedRAV containing the RAV and its signature.
      * @return The address of the signer.
      */
     function recoverRAVSigner(SignedRAV calldata signedRAV) external view returns (address);
 
     /**
-     * @dev Computes the hash of a ReceiptAggregateVoucher (RAV).
+     * @notice Computes the hash of a ReceiptAggregateVoucher (RAV).
      * @param rav The RAV for which to compute the hash.
      * @return The hash of the RAV.
      */

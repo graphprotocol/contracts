@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities
+
 pragma solidity 0.8.27;
 
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
@@ -17,6 +20,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
 
 /**
  * @title HorizonStakingBase contract
+ * @author Edge & Node
  * @notice This contract is the base staking contract implementing storage getters for both internal
  * and external use.
  * @dev Implementation of the {IHorizonStakingBase} interface.
@@ -42,10 +46,9 @@ abstract contract HorizonStakingBase is
     address internal immutable SUBGRAPH_DATA_SERVICE_ADDRESS;
 
     /**
-     * @dev The staking contract is upgradeable however we still use the constructor to set
-     * a few immutable variables.
-     * @param controller The address of the Graph controller contract.
-     * @param subgraphDataServiceAddress The address of the subgraph data service.
+     * @notice The staking contract is upgradeable however we still use the constructor to set a few immutable variables
+     * @param controller The address of the Graph controller contract
+     * @param subgraphDataServiceAddress The address of the subgraph data service
      */
     constructor(address controller, address subgraphDataServiceAddress) Managed(controller) {
         SUBGRAPH_DATA_SERVICE_ADDRESS = subgraphDataServiceAddress;

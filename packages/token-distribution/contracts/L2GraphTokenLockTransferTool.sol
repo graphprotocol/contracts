@@ -3,11 +3,14 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-strict-inequalities, use-natspec
+
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { L2GraphTokenLockManager } from "./L2GraphTokenLockManager.sol";
 import { L2GraphTokenLockWallet } from "./L2GraphTokenLockWallet.sol";
-import { ITokenGateway } from "./arbitrum/ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 
 /**
  * @title L2GraphTokenLockTransferTool contract
@@ -16,10 +19,13 @@ import { ITokenGateway } from "./arbitrum/ITokenGateway.sol";
  */
 contract L2GraphTokenLockTransferTool {
     /// Address of the L2 GRT token
+    // solhint-disable-next-line immutable-vars-naming
     IERC20 public immutable graphToken;
     /// Address of the L2GraphTokenGateway
+    // solhint-disable-next-line immutable-vars-naming
     ITokenGateway public immutable l2Gateway;
     /// Address of the L1 GRT token (in L1, no aliasing)
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable l1GraphToken;
 
     /// @dev Emitted when GRT is sent to L1 from a token lock

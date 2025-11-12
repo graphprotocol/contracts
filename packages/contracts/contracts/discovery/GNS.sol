@@ -3,22 +3,26 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-indexed-events, gas-small-strings, gas-strict-inequalities
+
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import { Multicall } from "../base/Multicall.sol";
 import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
 import { TokenUtils } from "../utils/TokenUtils.sol";
-import { ICuration } from "../curation/ICuration.sol";
+import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
 import { Managed } from "../governance/Managed.sol";
-import { ISubgraphNFT } from "./ISubgraphNFT.sol";
+import { ISubgraphNFT } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFT.sol";
 
-import { IGNS } from "./IGNS.sol";
+import { IGNS } from "@graphprotocol/interfaces/contracts/contracts/discovery/IGNS.sol";
 import { GNSV3Storage } from "./GNSStorage.sol";
 
 /**
  * @title GNS
- * @dev The Graph Name System contract provides a decentralized naming system for subgraphs
+ * @author Edge & Node
+ * @notice The Graph Name System contract provides a decentralized naming system for subgraphs
  * used in the scope of the Graph Network. It translates Subgraphs into Subgraph Versions.
  * Each version is associated with a Subgraph Deployment. The contract has no knowledge of
  * human-readable names. All human readable names emitted in events.
@@ -34,15 +38,21 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     uint32 private constant MAX_PPM = 1000000;
 
     /// @dev Equates to Connector weight on bancor formula to be CW = 1
+    // solhint-disable-next-line immutable-vars-naming
     uint32 internal immutable fixedReserveRatio = MAX_PPM;
 
     // -- Events --
 
-    /// @dev Emitted when the subgraph NFT contract is updated
+    /// @notice Emitted when the subgraph NFT contract is updated
+    /// @param subgraphNFT Address of the new subgraph NFT contract
     event SubgraphNFTUpdated(address subgraphNFT);
 
     /**
-     * @dev Emitted when graph account sets its default name
+     * @notice Emitted when graph account sets its default name
+     * @param graphAccount Address of the graph account
+     * @param nameSystem Name system identifier (only ENS for now)
+     * @param nameIdentifier Name identifier in the name system
+     * @param name Human-readable name
      */
     event SetDefaultName(
         address indexed graphAccount,
@@ -52,12 +62,17 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
-     * @dev Emitted when the subgraph metadata is updated.
+     * @notice Emitted when the subgraph metadata is updated.
+     * @param subgraphID ID of the subgraph
+     * @param subgraphMetadata IPFS hash of the subgraph metadata
      */
     event SubgraphMetadataUpdated(uint256 indexed subgraphID, bytes32 subgraphMetadata);
 
     /**
-     * @dev Emitted when a subgraph version is updated.
+     * @notice Emitted when a subgraph version is updated.
+     * @param subgraphID ID of the subgraph
+     * @param subgraphDeploymentID Subgraph deployment ID for the new version
+     * @param versionMetadata IPFS hash of the version metadata
      */
     event SubgraphVersionUpdated(
         uint256 indexed subgraphID,
@@ -66,7 +81,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
-     * @dev Emitted when a curator mints signal.
+     * @notice Emitted when a curator mints signal.
+     * @param subgraphID ID of the subgraph
+     * @param curator Address of the curator
+     * @param nSignalCreated Amount of name signal created
+     * @param vSignalCreated Amount of version signal created
+     * @param tokensDeposited Amount of tokens deposited
      */
     event SignalMinted(
         uint256 indexed subgraphID,
@@ -77,7 +97,12 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
-     * @dev Emitted when a curator burns signal.
+     * @notice Emitted when a curator burns signal.
+     * @param subgraphID ID of the subgraph
+     * @param curator Address of the curator
+     * @param nSignalBurnt Amount of name signal burned
+     * @param vSignalBurnt Amount of version signal burned
+     * @param tokensReceived Amount of tokens received
      */
     event SignalBurned(
         uint256 indexed subgraphID,
@@ -88,7 +113,11 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
-     * @dev Emitted when a curator transfers signal.
+     * @notice Emitted when a curator transfers signal.
+     * @param subgraphID ID of the subgraph
+     * @param from Address transferring the signal
+     * @param to Address receiving the signal
+     * @param nSignalTransferred Amount of name signal transferred
      */
     event SignalTransferred(
         uint256 indexed subgraphID,
@@ -98,14 +127,21 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
-     * @dev Emitted when a subgraph is created.
+     * @notice Emitted when a subgraph is created.
+     * @param subgraphID ID of the subgraph
+     * @param subgraphDeploymentID Subgraph deployment ID
+     * @param reserveRatio Reserve ratio for the bonding curve
      */
     event SubgraphPublished(uint256 indexed subgraphID, bytes32 indexed subgraphDeploymentID, uint32 reserveRatio);
 
     /**
-     * @dev Emitted when a subgraph is upgraded to point to a new
+     * @notice Emitted when a subgraph is upgraded to point to a new
      * subgraph deployment, burning all the old vSignal and depositing the GRT into the
      * new vSignal curve.
+     * @param subgraphID ID of the subgraph
+     * @param vSignalCreated Amount of version signal created in the new deployment
+     * @param tokensSignalled Amount of tokens signalled in the new deployment
+     * @param subgraphDeploymentID New subgraph deployment ID
      */
     event SubgraphUpgraded(
         uint256 indexed subgraphID,
@@ -115,29 +151,39 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     );
 
     /**
-     * @dev Emitted when a subgraph is deprecated.
+     * @notice Emitted when a subgraph is deprecated.
+     * @param subgraphID ID of the subgraph
+     * @param withdrawableGRT Amount of GRT available for withdrawal
      */
     event SubgraphDeprecated(uint256 indexed subgraphID, uint256 withdrawableGRT);
 
     /**
-     * @dev Emitted when a curator withdraws GRT from a deprecated subgraph
+     * @notice Emitted when a curator withdraws GRT from a deprecated subgraph
+     * @param subgraphID ID of the subgraph
+     * @param curator Address of the curator
+     * @param nSignalBurnt Amount of name signal burned
+     * @param withdrawnGRT Amount of GRT withdrawn
      */
     event GRTWithdrawn(uint256 indexed subgraphID, address indexed curator, uint256 nSignalBurnt, uint256 withdrawnGRT);
 
     /**
-     * @dev Emitted when the counterpart (L1/L2) GNS address is updated
+     * @notice Emitted when the counterpart (L1/L2) GNS address is updated
+     * @param _counterpart Address of the counterpart GNS contract
      */
     event CounterpartGNSAddressUpdated(address _counterpart);
 
     // -- Modifiers --
 
     /**
-     * @dev Emitted when a legacy subgraph is claimed
+     * @notice Emitted when a legacy subgraph is claimed
+     * @param graphAccount Address of the graph account that created the subgraph
+     * @param subgraphNumber Sequence number of the subgraph
      */
     event LegacySubgraphClaimed(address indexed graphAccount, uint256 subgraphNumber);
 
     /**
-     * @dev Modifier that allows only a subgraph operator to be the caller
+     * @notice Modifier that allows only a subgraph operator to be the caller
+     * @param _subgraphID ID of the subgraph to check authorization for
      */
     modifier onlySubgraphAuth(uint256 _subgraphID) {
         require(ownerOf(_subgraphID) == msg.sender, "GNS: Must be authorized");
@@ -160,7 +206,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Approve curation contract to pull funds.
+     * @inheritdoc IGNS
      */
     function approveAll() external override {
         graphToken().approve(address(curation()), type(uint256).max);
@@ -169,9 +215,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     // -- Config --
 
     /**
-     * @notice Set the owner fee percentage. This is used to prevent a subgraph owner to drain all
-     * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
-     * @param _ownerTaxPercentage Owner tax percentage
+     * @inheritdoc IGNS
      */
     function setOwnerTaxPercentage(uint32 _ownerTaxPercentage) external override onlyGovernor {
         _setOwnerTaxPercentage(_ownerTaxPercentage);
@@ -200,11 +244,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     // -- Actions --
 
     /**
-     * @notice Allows a graph account to set a default name
-     * @param _graphAccount Account that is setting its name
-     * @param _nameSystem Name system account already has ownership of a name in
-     * @param _nameIdentifier The unique identifier that is used to identify the name in the system
-     * @param _name The name being set as default
+     * @inheritdoc IGNS
      */
     function setDefaultName(
         address _graphAccount,
@@ -217,9 +257,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Allows a subgraph owner to update the metadata of a subgraph they have published
-     * @param _subgraphID Subgraph ID
-     * @param _subgraphMetadata IPFS hash for the subgraph metadata
+     * @inheritdoc IGNS
      */
     function updateSubgraphMetadata(
         uint256 _subgraphID,
@@ -229,10 +267,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Publish a new subgraph.
-     * @param _subgraphDeploymentID Subgraph deployment for the subgraph
-     * @param _versionMetadata IPFS hash for the subgraph version metadata
-     * @param _subgraphMetadata IPFS hash for the subgraph metadata
+     * @inheritdoc IGNS
      */
     function publishNewSubgraph(
         bytes32 _subgraphDeploymentID,
@@ -261,10 +296,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Publish a new version of an existing subgraph.
-     * @param _subgraphID Subgraph ID
-     * @param _subgraphDeploymentID Subgraph deployment ID of the new version
-     * @param _versionMetadata IPFS hash for the subgraph version metadata
+     * @inheritdoc IGNS
      */
     function publishNewVersion(
         uint256 _subgraphID,
@@ -322,10 +354,10 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Deprecate a subgraph. The bonding curve is destroyed, the vSignal is burned, and the GNS
+     * @inheritdoc IGNS
+     * @notice The bonding curve is destroyed, the vSignal is burned, and the GNS
      * contract holds the GRT from burning the vSignal, which all curators can withdraw manually.
      * Can only be done by the subgraph owner.
-     * @param _subgraphID Subgraph ID
      */
     function deprecateSubgraph(uint256 _subgraphID) external override notPaused onlySubgraphAuth(_subgraphID) {
         // Subgraph check
@@ -350,10 +382,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Deposit GRT into a subgraph and mint signal.
-     * @param _subgraphID Subgraph ID
-     * @param _tokensIn The amount of tokens the nameCurator wants to deposit
-     * @param _nSignalOutMin Expected minimum amount of name signal to receive
+     * @inheritdoc IGNS
      */
     function mintSignal(
         uint256 _subgraphID,
@@ -383,10 +412,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Burn signal for a subgraph and return the GRT.
-     * @param _subgraphID Subgraph ID
-     * @param _nSignal The amount of nSignal the nameCurator wants to burn
-     * @param _tokensOutMin Expected minimum amount of tokens to receive
+     * @inheritdoc IGNS
      */
     function burnSignal(
         uint256 _subgraphID,
@@ -543,7 +569,9 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @notice Calculate subgraph signal to be returned for an amount of tokens.
      * @param _subgraphID Subgraph ID
      * @param _tokensIn Tokens being exchanged for subgraph signal
-     * @return Amount of subgraph signal and curation tax
+     * @return nSignalOut Amount of name signal minted
+     * @return curationTax Amount of curation tax charged
+     * @return vSignalOut Amount of version signal minted
      */
     function tokensToNSignal(
         uint256 _subgraphID,
@@ -562,7 +590,8 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
      * @notice Calculate tokens returned for an amount of subgraph signal.
      * @param _subgraphID Subgraph ID
      * @param _nSignalIn Subgraph signal being exchanged for tokens
-     * @return Amount of tokens returned for an amount of subgraph signal
+     * @return vSignalOut Amount of version signal burned
+     * @return tokensOut Amount of tokens returned
      */
     function nSignalToTokens(uint256 _subgraphID, uint256 _nSignalIn) public view override returns (uint256, uint256) {
         // Get subgraph or revert if not published
@@ -574,10 +603,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Calculate subgraph signal to be returned for an amount of subgraph deployment signal.
-     * @param _subgraphID Subgraph ID
-     * @param _vSignalIn Amount of subgraph deployment signal to exchange for subgraph signal
-     * @return Amount of subgraph signal that can be bought
+     * @inheritdoc IGNS
      */
     function vSignalToNSignal(uint256 _subgraphID, uint256 _vSignalIn) public view override returns (uint256) {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
@@ -591,10 +617,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Calculate subgraph deployment signal to be returned for an amount of subgraph signal.
-     * @param _subgraphID Subgraph ID
-     * @param _nSignalIn Subgraph signal being exchanged for subgraph deployment signal
-     * @return Amount of subgraph deployment signal that can be returned
+     * @inheritdoc IGNS
      */
     function nSignalToVSignal(uint256 _subgraphID, uint256 _nSignalIn) public view override returns (uint256) {
         SubgraphData storage subgraphData = _getSubgraphData(_subgraphID);
@@ -602,29 +625,21 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Get the amount of subgraph signal a curator has.
-     * @param _subgraphID Subgraph ID
-     * @param _curator Curator address
-     * @return Amount of subgraph signal owned by a curator
+     * @inheritdoc IGNS
      */
     function getCuratorSignal(uint256 _subgraphID, address _curator) public view override returns (uint256) {
         return _getSubgraphData(_subgraphID).curatorNSignal[_curator];
     }
 
     /**
-     * @notice Return whether a subgraph is published.
-     * @param _subgraphID Subgraph ID
-     * @return Return true if subgraph is currently published
+     * @inheritdoc IGNS
      */
     function isPublished(uint256 _subgraphID) public view override returns (bool) {
         return _isPublished(_getSubgraphData(_subgraphID));
     }
 
     /**
-     * @notice Returns account and sequence ID for a legacy subgraph (created before subgraph NFTs).
-     * @param _subgraphID Subgraph ID
-     * @return account Account that created the subgraph (or 0 if it's not a legacy subgraph)
-     * @return seqID Sequence number for the subgraph
+     * @inheritdoc IGNS
      */
     function getLegacySubgraphKey(uint256 _subgraphID) public view override returns (address account, uint256 seqID) {
         LegacySubgraphKey storage legacySubgraphKey = legacySubgraphKeys[_subgraphID];
@@ -633,16 +648,14 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @notice Return the owner of a subgraph.
-     * @param _tokenID Subgraph ID
-     * @return Owner address
+     * @inheritdoc IGNS
      */
     function ownerOf(uint256 _tokenID) public view override returns (address) {
         return subgraphNFT.ownerOf(_tokenID);
     }
 
     /**
-     * @dev Calculate tax that owner will have to cover for upgrading or deprecating.
+     * @notice Calculate tax that owner will have to cover for upgrading or deprecating.
      * @param _tokens Tokens that were received from deprecating the old subgraph
      * @param _owner Subgraph owner
      * @param _curationTaxPercentage Tax percentage on curation deposits from Curation contract
@@ -689,8 +702,9 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Return the next subgraphID given the account that is creating the subgraph.
+     * @notice Return the next subgraphID given the account that is creating the subgraph.
      * NOTE: This function updates the sequence ID for the account
+     * @param _account The account creating the subgraph
      * @return Sequence ID for the account
      */
     function _nextSubgraphID(address _account) internal returns (uint256) {
@@ -698,8 +712,9 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Return a new consecutive sequence ID for an account and update to the next value.
+     * @notice Return a new consecutive sequence ID for an account and update to the next value.
      * NOTE: This function updates the sequence ID for the account
+     * @param _account The account to get the next sequence ID for
      * @return Sequence ID for the account
      */
     function _nextAccountSeqID(address _account) internal returns (uint256) {
@@ -709,7 +724,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Mint the NFT for the subgraph.
+     * @notice Mint the NFT for the subgraph.
      * @param _owner Owner address
      * @param _tokenID Subgraph ID
      */
@@ -718,7 +733,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Burn the NFT for the subgraph.
+     * @notice Burn the NFT for the subgraph.
      * @param _tokenID Subgraph ID
      */
     function _burnNFT(uint256 _tokenID) internal {
@@ -726,7 +741,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Set the subgraph metadata.
+     * @notice Set the subgraph metadata.
      * @param _tokenID Subgraph ID
      * @param _subgraphMetadata IPFS hash of the subgraph metadata
      */
@@ -739,7 +754,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Get subgraph data.
+     * @notice Get subgraph data.
      * This function will first look for a v1 subgraph and return it if found.
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
@@ -755,7 +770,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Return whether a subgraph is published.
+     * @notice Return whether a subgraph is published.
      * @param _subgraphData Subgraph Data
      * @return Return true if subgraph is currently published
      */
@@ -764,7 +779,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Return the subgraph data or revert if not published or deprecated.
+     * @notice Return the subgraph data or revert if not published or deprecated.
      * @param _subgraphID Subgraph ID
      * @return Subgraph Data
      */
@@ -775,9 +790,11 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
+     * @notice Build a subgraph ID based on the account creating it and a sequence number for that account.
      * Only used for legacy subgraphs being migrated, as new ones will also use the chainid.
      * Subgraph ID is the keccak hash of account+seqID
+     * @param _account The account creating the subgraph
+     * @param _seqID The sequence ID for the account
      * @return Subgraph ID
      */
     function _buildLegacySubgraphID(address _account, uint256 _seqID) internal pure returns (uint256) {
@@ -785,8 +802,10 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Build a subgraph ID based on the account creating it and a sequence number for that account.
+     * @notice Build a subgraph ID based on the account creating it and a sequence number for that account.
      * Subgraph ID is the keccak hash of account+seqID
+     * @param _account The account creating the subgraph
+     * @param _seqID The sequence ID for the account
      * @return Subgraph ID
      */
     function _buildSubgraphID(address _account, uint256 _seqID) internal pure returns (uint256) {
@@ -800,7 +819,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Internal: Set the owner tax percentage. This is used to prevent a subgraph owner to drain all
+     * @notice Internal: Set the owner tax percentage. This is used to prevent a subgraph owner to drain all
      * the name curators tokens while upgrading or deprecating and is configurable in parts per million.
      * @param _ownerTaxPercentage Owner tax percentage
      */
@@ -811,7 +830,7 @@ abstract contract GNS is GNSV3Storage, GraphUpgradeable, IGNS, Multicall {
     }
 
     /**
-     * @dev Internal: Set the NFT registry contract
+     * @notice Internal: Set the NFT registry contract
      * @param _subgraphNFT Address of the ERC721 contract
      */
     function _setSubgraphNFT(address _subgraphNFT) private {

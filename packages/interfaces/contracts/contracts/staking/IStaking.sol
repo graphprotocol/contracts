@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 pragma abicoder v2;
 
 import { IStakingBase } from "./IStakingBase.sol";
@@ -10,6 +10,7 @@ import { IManaged } from "../governance/IManaged.sol";
 
 /**
  * @title Interface for the Staking contract
+ * @author Edge & Node
  * @notice This is the interface that should be used when interacting with the Staking contract.
  * @dev Note that Staking doesn't actually inherit this interface. This is because of
  * the custom setup of the Staking contract where part of the functionality is implemented

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
 /**
  * @title Interface of the L2 Curation contract.
+ * @author Edge & Node
+ * @notice Interface for the L2 Curation contract that handles curation on Layer 2
  */
 interface IL2Curation {
     /**
