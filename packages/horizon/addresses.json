@@ -6,12 +6,58 @@
     "GraphPayments": {
       "address": "0x7Aae8ae011927BC36Cb4d0d3e81f2E6E30daE06D",
       "proxy": "transparent",
-      "proxyAdmin": "0x0D065CE83938Ea226c145e9c4a8C95b31aDA3613"
+      "proxyAdmin": "0x0D065CE83938Ea226c145e9c4a8C95b31aDA3613",
+      "implementation": "0x6BC86e5D64C6c4882670804ca7eE4919cCCca86a"
     },
     "PaymentsEscrow": {
       "address": "0xf6Fcc27aAf1fcD8B254498c9794451d82afC673E",
       "proxy": "transparent",
-      "proxyAdmin": "0x6465e08CD46669f8841641655186148b490B4b24"
+      "proxyAdmin": "0x6465e08CD46669f8841641655186148b490B4b24",
+      "implementation": "0xc493e8EBedE3d1cC61632736108d943693DA11F7"
+    },
+    "L2Curation": {
+      "address": "0x22d78fb4bc72e191C765807f8891B5e1785C8014",
+      "proxy": "graph",
+      "implementation": "0xc4Ce508c8fda35C597CC78e3604261110fc4c957"
+    },
+    "L2GNS": {
+      "address": "0xec9A7fb6CbC2E41926127929c2dcE6e9c5D33Bec",
+      "proxy": "graph",
+      "implementation": "0x9B81c7C5A21E65b849FD487540B0A82d3b97b2c7"
+    },
+    "SubgraphNFT": {
+      "address": "0x3FbD54f0cc17b7aE649008dEEA12ed7D2622B23f"
+    },
+    "RewardsManager": {
+      "address": "0x971B9d3d0Ae3ECa029CAB5eA1fB0F72c85e6a525",
+      "proxy": "graph",
+      "implementation": "0xBcD7a231eAB1f4667AAbFdb482026f244bfBf101"
+    },
+    "HorizonStaking": {
+      "address": "0x00669A4CF01450B64E8A2A20E9b1FCB71E61eF03",
+      "proxy": "graph",
+      "implementation": "0xaA3359434B534dE9964d4e72bE2782b076a1Eb5A"
+    },
+    "GraphTallyCollector": {
+      "address": "0x8f69F5C07477Ac46FBc491B1E6D91E2bb0111A9e"
+    },
+    "GraphProxyAdmin": {
+      "address": "0x2983936aC20202a6555993448E0d5654AC8Ca5fd"
+    },
+    "EpochManager": {
+      "address": "0x5A843145c43d328B9bB7a4401d94918f131bB281",
+      "proxy": "graph",
+      "implementation": "0xeEDEdb3660154f439D93bfF612f7902edf07b848"
+    },
+    "L2GraphToken": {
+      "address": "0x9623063377AD1B27544C965cCd7342f7EA7e88C7",
+      "proxy": "graph",
+      "implementation": "0xaFFCb96181D920FE8C0Af046C49B2c9eC98b28df"
+    },
+    "L2GraphTokenGateway": {
+      "address": "0x65E1a5e8946e7E87d9774f5288f41c30a99fD302",
+      "proxy": "graph",
+      "implementation": "0x6f37b2AF8A0Cc74f1bFddf2E9302Cb226710127F"
     }
   },
   "421614": {

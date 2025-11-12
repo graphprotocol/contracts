@@ -48,6 +48,13 @@ const config: HardhatUserConfig = {
         mnemonic: DEFAULT_TEST_MNEMONIC,
       },
     },
+    arbitrumOne: {
+      chainId: 42161,
+      url: process.env.ARBITRUM_ONE_URL || 'https://arb1.arbitrum.io/rpc',
+      accounts: {
+        mnemonic: DEFAULT_TEST_MNEMONIC,
+      },
+    },
   },
   etherscan: {
     apiKey: process.env.ARBISCAN_API_KEY,
