@@ -47,9 +47,14 @@ export default buildModule('GraphHorizon_Periphery', (m) => {
   m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('GNS')), L2GNS], {
     id: 'setContractProxy_L2GNS',
   })
-  m.call(Controller, 'setContractProxy', [ethers.keccak256(ethers.toUtf8Bytes('DisputeManager')), disputeManagerAddress], {
-    id: 'setContractProxy_DisputeManager',
-  })
+  m.call(
+    Controller,
+    'setContractProxy',
+    [ethers.keccak256(ethers.toUtf8Bytes('DisputeManager')), disputeManagerAddress],
+    {
+      id: 'setContractProxy_DisputeManager',
+    },
+  )
 
   return {
     Controller,
