@@ -1,5 +1,15 @@
 # @graphprotocol/toolshed
 
+## 1.1.0
+
+### Minor Changes
+
+- Graph Horizon phase 3 mainnet deployment
+
+### Patch Changes
+
+- Updated dependencies
+  - @graphprotocol/address-book@1.1.0
 ## 1.0.3
 
 ### Patch Changes
