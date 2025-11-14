@@ -114,19 +114,25 @@ jobs:
             for file in $(cat changed_sol.txt); do
               # Walk up to find package.json
               dir="$file"
+              found=false
               while [ "$dir" != "." ]; do
                 dir=$(dirname "$dir")
                 if [ -f "$dir/package.json" ]; then
                   relative_file="${file#$dir/}"
                   echo "  Checking $file"
                   (cd "$dir" && npx solhint --max-warnings=0 --noPrompt --noPoster "$relative_file")
+                  found=true
                   break
                 fi
               done
+              if [ "$found" = false ]; then
+                echo "::error::No package.json found for $file - workflow needs fixing"
+                exit 1
+              fi
             done
 
             # Check formatting with prettier
-            cat changed_sol.txt | xargs npx prettier --check --cache --log-level warn
+            cat changed_sol.txt | xargs -r npx prettier --check --cache --log-level warn
           fi
 
       - name: Lint TypeScript/JavaScript files
@@ -139,8 +145,8 @@ jobs:
             git ls-files '*.js' '*.ts' '*.cjs' '*.mjs' '*.jsx' '*.tsx' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           elif [ "${{ steps.changed_files.outputs.ts_js_count }}" -gt "0" ]; then
             echo "Linting changed TypeScript/JavaScript files..."
-            cat changed_ts_js.txt | xargs npx eslint --max-warnings=0 --no-warn-ignored
-            cat changed_ts_js.txt | xargs npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            cat changed_ts_js.txt | xargs -r npx eslint --max-warnings=0 --no-warn-ignored
+            cat changed_ts_js.txt | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           fi
 
       - name: Lint Markdown files
@@ -153,8 +159,8 @@ jobs:
             git ls-files '*.md' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           elif [ "${{ steps.changed_files.outputs.md_count }}" -gt "0" ]; then
             echo "Linting changed Markdown files..."
-            cat changed_md.txt | xargs npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
-            cat changed_md.txt | xargs npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            cat changed_md.txt | xargs -r npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
+            cat changed_md.txt | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           fi
 
       - name: Lint JSON files
@@ -164,10 +170,10 @@ jobs:
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all JSON files..."
             # Exclude Ignition deployment artifacts and other build artifacts
-            git ls-files '*.json' | grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            git ls-files '*.json' | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; } | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           elif [ "${{ steps.changed_files.outputs.json_count }}" -gt "0" ]; then
             echo "Linting changed JSON files..."
-            cat changed_json.txt | grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            cat changed_json.txt | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; } | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           fi
 
       - name: Lint YAML files
@@ -180,8 +186,8 @@ jobs:
             git ls-files '*.yml' '*.yaml' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           elif [ "${{ steps.changed_files.outputs.yaml_count }}" -gt "0" ]; then
             echo "Linting changed YAML files..."
-            cat changed_yaml.txt | xargs npx yaml-lint
-            cat changed_yaml.txt | xargs npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            cat changed_yaml.txt | xargs -r npx yaml-lint
+            cat changed_yaml.txt | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           fi
 
       - name: Check lint results
