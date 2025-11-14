@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
+
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events
 
 import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
 import { IGraphPayments } from "../IGraphPayments.sol";
@@ -9,6 +12,7 @@ import { ILinkedList } from "./ILinkedList.sol";
 
 /**
  * @title Interface for the {HorizonStakingBase} contract.
+ * @author Edge & Node
  * @notice Provides getters for {HorizonStaking} and {HorizonStakingExtension} storage variables.
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.

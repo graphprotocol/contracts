@@ -2,11 +2,14 @@
 
 pragma solidity ^0.7.6 || 0.8.27;
 
-import { IGraphProxy } from "./IGraphProxy.sol";
+/* solhint-disable gas-custom-errors */ // Cannot use custom errors with 0.7.6
+
+import { IGraphProxy } from "@graphprotocol/interfaces/contracts/contracts/upgrades/IGraphProxy.sol";
 
 /**
  * @title Graph Upgradeable
- * @dev This contract is intended to be inherited from upgradeable contracts.
+ * @author Edge & Node
+ * @notice This contract is intended to be inherited from upgradeable contracts.
  */
 abstract contract GraphUpgradeable {
     /**
@@ -18,6 +21,7 @@ abstract contract GraphUpgradeable {
 
     /**
      * @dev Check if the caller is the proxy admin.
+     * @param _proxy The proxy contract to check admin for
      */
     modifier onlyProxyAdmin(IGraphProxy _proxy) {
         require(msg.sender == _proxy.admin(), "Caller must be the proxy admin");
@@ -33,7 +37,7 @@ abstract contract GraphUpgradeable {
     }
 
     /**
-     * @dev Returns the current implementation.
+     * @notice Returns the current implementation.
      * @return impl Address of the current implementation
      */
     function _implementation() internal view returns (address impl) {

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
+
+// solhint-disable use-natspec
 
 import { IEpochManager } from "../contracts/epochs/IEpochManager.sol";
 

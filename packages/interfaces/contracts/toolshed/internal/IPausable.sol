@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
+
+// solhint-disable use-natspec
 
 /// @title IPausable
 /// @notice Interface for Pausable contract

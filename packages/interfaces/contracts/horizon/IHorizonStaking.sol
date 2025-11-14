@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity 0.8.27;
+pragma solidity ^0.8.22;
 
 import { IHorizonStakingTypes } from "./internal/IHorizonStakingTypes.sol";
 import { IHorizonStakingMain } from "./internal/IHorizonStakingMain.sol";
@@ -9,6 +9,7 @@ import { IHorizonStakingExtension } from "./internal/IHorizonStakingExtension.so
 
 /**
  * @title Complete interface for the Horizon Staking contract
+ * @author Edge & Node
  * @notice This interface exposes all functions implemented by the {HorizonStaking} contract and its extension
  * {HorizonStakingExtension} as well as the custom data types used by the contract.
  * @dev Use this interface to interact with the Horizon Staking contract.

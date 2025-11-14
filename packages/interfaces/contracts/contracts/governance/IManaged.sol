@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
 import { IController } from "./IController.sol";
 
 /**
  * @title Managed Interface
- * @dev Interface for contracts that can be managed by a controller.
+ * @author Edge & Node
+ * @notice Interface for contracts that can be managed by a controller.
  */
 interface IManaged {
     /**
      * @notice Set the controller that manages this contract
      * @dev Only the current controller can set a new controller
-     * @param controller Address of the new controller
+     * @param newController Address of the new controller
      */
-    function setController(address controller) external;
+    function setController(address newController) external;
 
     /**
      * @notice Sync protocol contract addresses from the Controller registry

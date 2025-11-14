@@ -2,8 +2,11 @@
 
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-strict-inequalities
+
 import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curation/ICuration.sol";
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IRewardsIssuer } from "@graphprotocol/interfaces/contracts/contracts/rewards/IRewardsIssuer.sol";
 
@@ -16,6 +19,7 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
 
 /**
  * @title Horizon Staking extension contract
+ * @author Edge & Node
  * @notice The {HorizonStakingExtension} contract implements the legacy functionality required to support the transition
  * to the Horizon Staking contract. It allows indexers to close allocations and collect pending query fees, but it
  * does not allow for the creation of new allocations. This should allow indexers to migrate to a subgraph data service
@@ -39,10 +43,9 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev The staking contract is upgradeable however we still use the constructor to set
-     * a few immutable variables.
-     * @param controller The address of the Graph controller contract.
-     * @param subgraphDataServiceAddress The address of the subgraph data service.
+     * @notice The staking contract is upgradeable however we still use the constructor to set a few immutable variables
+     * @param controller The address of the Graph controller contract
+     * @param subgraphDataServiceAddress The address of the subgraph data service
      */
     constructor(
         address controller,
@@ -265,7 +268,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Collect tax to burn for an amount of tokens.
+     * @notice Collect tax to burn for an amount of tokens
      * @param _tokens Total tokens received used to calculate the amount of tax to collect
      * @param _percentage Percentage of tokens to burn as tax
      * @return Amount of tax charged
@@ -277,7 +280,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Triggers an update of rewards due to a change in allocations.
+     * @notice Triggers an update of rewards due to a change in allocations
      * @param _subgraphDeploymentID Subgraph deployment updated
      */
     function _updateRewards(bytes32 _subgraphDeploymentID) private {
@@ -285,7 +288,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Assign rewards for the closed allocation to indexer and delegators.
+     * @notice Assign rewards for the closed allocation to indexer and delegators
      * @param _allocationID Allocation
      * @param _indexer Address of the indexer that did the allocation
      */
@@ -307,7 +310,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Send rewards to the appropriate destination.
+     * @notice Send rewards to the appropriate destination
      * @param _tokens Number of rewards tokens
      * @param _beneficiary Address of the beneficiary of rewards
      * @param _restake Whether to restake or not
@@ -326,7 +329,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Close an allocation and free the staked tokens.
+     * @notice Close an allocation and free the staked tokens
      * @param _allocationID The allocation identifier
      * @param _poi Proof of indexing submitted for the allocated period
      */
@@ -390,8 +393,8 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Collect the delegation rewards for query fees.
-     * This function will assign the collected fees to the delegation pool.
+     * @notice Collect the delegation rewards for query fees
+     * @dev This function will assign the collected fees to the delegation pool
      * @param _indexer Indexer to which the tokens to distribute are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of delegation rewards
@@ -408,8 +411,8 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Collect the delegation rewards for indexing.
-     * This function will assign the collected fees to the delegation pool.
+     * @notice Collect the delegation rewards for indexing
+     * @dev This function will assign the collected fees to the delegation pool
      * @param _indexer Indexer to which the tokens to distribute are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @return Amount of delegation rewards
@@ -426,8 +429,8 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Collect the curation fees for a subgraph deployment from an amount of tokens.
-     * This function transfer curation fees to the Curation contract by calling Curation.collect
+     * @notice Collect the curation fees for a subgraph deployment from an amount of tokens
+     * @dev This function transfer curation fees to the Curation contract by calling Curation.collect
      * @param _subgraphDeploymentID Subgraph deployment to which the curation fees are related
      * @param _tokens Total tokens received used to calculate the amount of fees to collect
      * @param _curationCut Percentage of tokens to collect as fees
@@ -461,7 +464,7 @@ contract HorizonStakingExtension is HorizonStakingBase, IHorizonStakingExtension
     }
 
     /**
-     * @dev Return the current state of an allocation
+     * @notice Return the current state of an allocation
      * @param _allocationID Allocation identifier
      * @return AllocationState enum with the state of the allocation
      */

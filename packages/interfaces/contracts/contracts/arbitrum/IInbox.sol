@@ -23,14 +23,34 @@
  *
  */
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
 import { IBridge } from "./IBridge.sol";
 import { IMessageProvider } from "./IMessageProvider.sol";
 
+/**
+ * @title Inbox Interface
+ * @author Edge & Node
+ * @notice Interface for the Arbitrum Inbox contract
+ */
 interface IInbox is IMessageProvider {
+    /**
+     * @notice Send a message to L2
+     * @param messageData Encoded data to send in the message
+     * @return Message number returned by the inbox
+     */
     function sendL2Message(bytes calldata messageData) external returns (uint256);
 
+    /**
+     * @notice Send an unsigned transaction to L2
+     * @param maxGas Maximum gas for the L2 transaction
+     * @param gasPriceBid Gas price bid for the L2 transaction
+     * @param nonce Nonce for the transaction
+     * @param destAddr Destination address on L2
+     * @param amount Amount of ETH to send
+     * @param data Transaction data
+     * @return Message number returned by the inbox
+     */
     function sendUnsignedTransaction(
         uint256 maxGas,
         uint256 gasPriceBid,
@@ -40,6 +60,15 @@ interface IInbox is IMessageProvider {
         bytes calldata data
     ) external returns (uint256);
 
+    /**
+     * @notice Send a contract transaction to L2
+     * @param maxGas Maximum gas for the L2 transaction
+     * @param gasPriceBid Gas price bid for the L2 transaction
+     * @param destAddr Destination address on L2
+     * @param amount Amount of ETH to send
+     * @param data Transaction data
+     * @return Message number returned by the inbox
+     */
     function sendContractTransaction(
         uint256 maxGas,
         uint256 gasPriceBid,
@@ -48,6 +77,15 @@ interface IInbox is IMessageProvider {
         bytes calldata data
     ) external returns (uint256);
 
+    /**
+     * @notice Send an L1-funded unsigned transaction to L2
+     * @param maxGas Maximum gas for the L2 transaction
+     * @param gasPriceBid Gas price bid for the L2 transaction
+     * @param nonce Nonce for the transaction
+     * @param destAddr Destination address on L2
+     * @param data Transaction data
+     * @return Message number returned by the inbox
+     */
     function sendL1FundedUnsignedTransaction(
         uint256 maxGas,
         uint256 gasPriceBid,
@@ -56,6 +94,14 @@ interface IInbox is IMessageProvider {
         bytes calldata data
     ) external payable returns (uint256);
 
+    /**
+     * @notice Send an L1-funded contract transaction to L2
+     * @param maxGas Maximum gas for the L2 transaction
+     * @param gasPriceBid Gas price bid for the L2 transaction
+     * @param destAddr Destination address on L2
+     * @param data Transaction data
+     * @return Message number returned by the inbox
+     */
     function sendL1FundedContractTransaction(
         uint256 maxGas,
         uint256 gasPriceBid,
@@ -63,6 +109,18 @@ interface IInbox is IMessageProvider {
         bytes calldata data
     ) external payable returns (uint256);
 
+    /**
+     * @notice Create a retryable ticket for an L2 transaction
+     * @param destAddr Destination address on L2
+     * @param arbTxCallValue Call value for the L2 transaction
+     * @param maxSubmissionCost Maximum cost for submitting the ticket
+     * @param submissionRefundAddress Address to refund submission cost to
+     * @param valueRefundAddress Address to refund excess value to
+     * @param maxGas Maximum gas for the L2 transaction
+     * @param gasPriceBid Gas price bid for the L2 transaction
+     * @param data Transaction data
+     * @return Message number returned by the inbox
+     */
     function createRetryableTicket(
         address destAddr,
         uint256 arbTxCallValue,
@@ -74,15 +132,36 @@ interface IInbox is IMessageProvider {
         bytes calldata data
     ) external payable returns (uint256);
 
+    /**
+     * @notice Deposit ETH to L2
+     * @param maxSubmissionCost Maximum cost for submitting the deposit
+     * @return Message number returned by the inbox
+     */
     function depositEth(uint256 maxSubmissionCost) external payable returns (uint256);
 
+    /**
+     * @notice Get the bridge contract
+     * @return The bridge contract address
+     */
     function bridge() external view returns (IBridge);
 
+    /**
+     * @notice Pause the creation of retryable tickets
+     */
     function pauseCreateRetryables() external;
 
+    /**
+     * @notice Unpause the creation of retryable tickets
+     */
     function unpauseCreateRetryables() external;
 
+    /**
+     * @notice Start rewriting addresses
+     */
     function startRewriteAddress() external;
 
+    /**
+     * @notice Stop rewriting addresses
+     */
     function stopRewriteAddress() external;
 }

@@ -20,8 +20,12 @@
 
 pragma solidity 0.8.27;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable function-max-lines, gas-strict-inequalities
+
 /**
  * @title LibFixedMath
+ * @author Edge & Node
  * @notice This library provides fixed-point arithmetic operations.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
@@ -36,12 +40,20 @@ library LibFixedMath {
     // -63.875
     int256 private constant EXP_MIN_VAL = -int256(0x0000000000000000000000000000001ff0000000000000000000000000000000);
 
-    /// @dev Get one as a fixed-point number.
+    /**
+     * @notice Get one as a fixed-point number
+     * @return f The fixed-point representation of one
+     */
     function one() internal pure returns (int256 f) {
         f = FIXED_1;
     }
 
-    /// @dev Returns the addition of two fixed point numbers, reverting on overflow.
+    /**
+     * @notice Returns the subtraction of two fixed point numbers, reverting on overflow
+     * @param a The first fixed point number
+     * @param b The second fixed point number to subtract
+     * @return c The result of a - b
+     */
     function sub(int256 a, int256 b) internal pure returns (int256 c) {
         if (b == MIN_FIXED_VAL) {
             revert("out-of-bounds");
@@ -49,19 +61,34 @@ library LibFixedMath {
         c = _add(a, -b);
     }
 
-    /// @dev Returns the multiplication of two fixed point numbers, reverting on overflow.
+    /**
+     * @notice Returns the multiplication of two fixed point numbers, reverting on overflow
+     * @param a The first fixed point number
+     * @param b The second fixed point number
+     * @return c The result of a * b
+     */
     function mul(int256 a, int256 b) internal pure returns (int256 c) {
         c = _mul(a, b) / FIXED_1;
     }
 
-    /// @dev Performs (a * n) / d, without scaling for precision.
+    /**
+     * @notice Performs (a * n) / d, without scaling for precision
+     * @param a The first fixed point number
+     * @param n The numerator
+     * @param d The denominator
+     * @return c The result of (a * n) / d
+     */
     function mulDiv(int256 a, int256 n, int256 d) internal pure returns (int256 c) {
         c = _div(_mul(a, n), d);
     }
 
-    /// @dev Returns the unsigned integer result of multiplying a fixed-point
-    ///      number with an integer, reverting if the multiplication overflows.
-    ///      Negative results are clamped to zero.
+    /**
+     * @notice Returns the unsigned integer result of multiplying a fixed-point number with an integer
+     * @dev Negative results are clamped to zero. Reverts if the multiplication overflows.
+     * @param f Fixed-point number
+     * @param u Unsigned integer
+     * @return Unsigned integer result, clamped to zero if negative
+     */
     function uintMul(int256 f, uint256 u) internal pure returns (uint256) {
         if (int256(u) < int256(0)) {
             revert("out-of-bounds");
@@ -73,17 +100,30 @@ library LibFixedMath {
         return uint256(uint256(c) >> 127);
     }
 
-    /// @dev Convert signed `n` / `d` to a fixed-point number.
+    /**
+     * @notice Convert signed `n` / `d` to a fixed-point number
+     * @param n Numerator
+     * @param d Denominator
+     * @return f Fixed-point representation of n/d
+     */
     function toFixed(int256 n, int256 d) internal pure returns (int256 f) {
         f = _div(_mul(n, FIXED_1), d);
     }
 
-    /// @dev Convert a fixed-point number to an integer.
+    /**
+     * @notice Convert a fixed-point number to an integer
+     * @param f Fixed-point number
+     * @return n Integer representation
+     */
     function toInteger(int256 f) internal pure returns (int256 n) {
         return f / FIXED_1;
     }
 
-    /// @dev Compute the natural exponent for a fixed-point number EXP_MIN_VAL <= `x` <= 1
+    /**
+     * @notice Compute the natural exponent for a fixed-point number EXP_MIN_VAL <= `x` <= 1
+     * @param x Fixed-point number to compute exponent for
+     * @return r The natural exponent of x
+     */
     function exp(int256 x) internal pure returns (int256 r) {
         if (x < EXP_MIN_VAL) {
             // Saturate to zero below EXP_MIN_VAL.
@@ -205,7 +245,12 @@ library LibFixedMath {
         }
     }
 
-    /// @dev Returns the multiplication two numbers, reverting on overflow.
+    /**
+     * @notice Returns the multiplication of two numbers, reverting on overflow
+     * @param a First number
+     * @param b Second number
+     * @return c The result of a * b
+     */
     function _mul(int256 a, int256 b) private pure returns (int256 c) {
         if (a == 0 || b == 0) {
             return 0;
@@ -218,7 +263,12 @@ library LibFixedMath {
         }
     }
 
-    /// @dev Returns the division of two numbers, reverting on division by zero.
+    /**
+     * @notice Returns the division of two numbers, reverting on division by zero
+     * @param a Dividend
+     * @param b Divisor
+     * @return c The result of a / b
+     */
     function _div(int256 a, int256 b) private pure returns (int256 c) {
         if (b == 0) {
             revert("overflow");
@@ -231,7 +281,12 @@ library LibFixedMath {
         }
     }
 
-    /// @dev Adds two numbers, reverting on overflow.
+    /**
+     * @notice Adds two numbers, reverting on overflow
+     * @param a First number
+     * @param b Second number
+     * @return c The result of a + b
+     */
     function _add(int256 a, int256 b) private pure returns (int256 c) {
         unchecked {
             c = a + b;

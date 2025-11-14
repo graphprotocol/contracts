@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.27;
 
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
@@ -17,6 +17,7 @@ import { ICuration } from "@graphprotocol/interfaces/contracts/contracts/curatio
 
 /**
  * @title GraphDirectory contract
+ * @author Edge & Node
  * @notice This contract is meant to be inherited by other contracts that
  * need to keep track of the addresses in Graph Horizon contracts.
  * It fetches the addresses from the Controller supplied during construction,

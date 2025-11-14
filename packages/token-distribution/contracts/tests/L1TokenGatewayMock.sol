@@ -2,10 +2,12 @@
 
 pragma solidity ^0.7.3;
 
+// solhint-disable gas-increment-by-one, gas-indexed-events, gas-strict-inequalities, use-natspec
+
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { ITokenGateway } from "../arbitrum//ITokenGateway.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 
 /**
  * @title L1 Token Gateway mock contract

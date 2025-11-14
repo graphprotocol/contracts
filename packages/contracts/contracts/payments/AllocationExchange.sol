@@ -3,16 +3,20 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-calldata-parameters, gas-increment-by-one, gas-indexed-events, gas-small-strings
+// solhint-disable named-parameters-mapping
 
-import "../governance/Governed.sol";
-import "../staking/IStaking.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { ECDSA } from "@openzeppelin/contracts/cryptography/ECDSA.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { Governed } from "../governance/Governed.sol";
+import { IStaking } from "@graphprotocol/interfaces/contracts/contracts/staking/IStaking.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 
 /**
  * @title Allocation Exchange
- * @dev This contract holds tokens that anyone with a voucher signed by the
+ * @author Edge & Node
+ * @notice This contract holds tokens that anyone with a voucher signed by the
  * authority can redeem. The contract validates if the voucher presented is valid
  * and then sends tokens to the Staking contract by calling the collect() function
  * passing the voucher allocationID. The contract enforces that only one voucher for
@@ -20,9 +24,14 @@ import { IGraphToken } from "../token/IGraphToken.sol";
  * Only governance can change the authority.
  */
 contract AllocationExchange is Governed {
-    // An allocation voucher represents a signed message that allows
-    // redeeming an amount of funds from this contract and collect
-    // them as part of an allocation
+    /**
+     * @dev An allocation voucher represents a signed message that allows
+     * redeeming an amount of funds from this contract and collect
+     * them as part of an allocation
+     * @param allocationID Address of the allocation
+     * @param amount Amount of tokens to redeem
+     * @param signature Signature from the authority (65 bytes)
+     */
     struct AllocationVoucher {
         address allocationID;
         uint256 amount;
@@ -31,20 +40,43 @@ contract AllocationExchange is Governed {
 
     // -- Constants --
 
+    /// @dev Maximum uint256 value used for unlimited token approvals
     uint256 private constant MAX_UINT256 = 2 ** 256 - 1;
+    /// @dev Expected length of ECDSA signatures
     uint256 private constant SIGNATURE_LENGTH = 65;
 
     // -- State --
 
-    IStaking private immutable staking;
-    IGraphToken private immutable graphToken;
+    /// @dev Reference to the Staking contract
+    IStaking private immutable STAKING;
+    /// @dev Reference to the Graph Token contract
+    IGraphToken private immutable GRAPH_TOKEN;
+    /// @notice Mapping of authorized accounts that can redeem allocations
     mapping(address => bool) public authority;
+    /// @notice Mapping of allocations that have been redeemed
     mapping(address => bool) public allocationsRedeemed;
 
     // -- Events
 
+    /**
+     * @notice Emitted when an authority is set or unset
+     * @param account Address of the authority
+     * @param authorized Whether the authority is authorized
+     */
     event AuthoritySet(address indexed account, bool authorized);
+
+    /**
+     * @notice Emitted when an allocation voucher is redeemed
+     * @param allocationID Address of the allocation
+     * @param amount Amount of tokens redeemed
+     */
     event AllocationRedeemed(address indexed allocationID, uint256 amount);
+
+    /**
+     * @notice Emitted when tokens are withdrawn from the contract
+     * @param to Address that received the tokens
+     * @param amount Amount of tokens withdrawn
+     */
     event TokensWithdrawn(address indexed to, uint256 amount);
 
     // -- Functions
@@ -60,8 +92,8 @@ contract AllocationExchange is Governed {
         require(_governor != address(0), "Exchange: governor must be set");
         Governed._initialize(_governor);
 
-        graphToken = _graphToken;
-        staking = _staking;
+        GRAPH_TOKEN = _graphToken;
+        STAKING = _staking;
         _setAuthority(_authority, true);
     }
 
@@ -70,7 +102,7 @@ contract AllocationExchange is Governed {
      * @dev Increased gas efficiency instead of approving on each voucher redeem
      */
     function approveAll() external {
-        graphToken.approve(address(staking), MAX_UINT256);
+        GRAPH_TOKEN.approve(address(STAKING), MAX_UINT256);
     }
 
     /**
@@ -82,7 +114,7 @@ contract AllocationExchange is Governed {
     function withdraw(address _to, uint256 _amount) external onlyGovernor {
         require(_to != address(0), "Exchange: empty destination");
         require(_amount != 0, "Exchange: empty amount");
-        require(graphToken.transfer(_to, _amount), "Exchange: cannot transfer");
+        require(GRAPH_TOKEN.transfer(_to, _amount), "Exchange: cannot transfer");
         emit TokensWithdrawn(_to, _amount);
     }
 
@@ -155,7 +187,7 @@ contract AllocationExchange is Governed {
 
         // Make the staking contract collect funds from this contract
         // The Staking contract will validate if the allocation is valid
-        staking.collect(_voucher.amount, _voucher.allocationID);
+        STAKING.collect(_voucher.amount, _voucher.allocationID);
 
         emit AllocationRedeemed(_voucher.allocationID, _voucher.amount);
     }

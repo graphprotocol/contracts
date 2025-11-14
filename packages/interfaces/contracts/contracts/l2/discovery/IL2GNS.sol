@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-pragma solidity ^0.7.6 || 0.8.27;
+pragma solidity ^0.7.6 || ^0.8.0;
 
 import { ICallhookReceiver } from "../../gateway/ICallhookReceiver.sol";
 
 /**
  * @title Interface for the L2GNS contract.
+ * @author Edge & Node
+ * @notice Interface for the L2 Graph Name System (GNS) contract
  */
 interface IL2GNS is ICallhookReceiver {
+    /**
+     * @dev Message codes for L1 to L2 communication
+     * @param RECEIVE_SUBGRAPH_CODE Code for receiving subgraph transfers
+     * @param RECEIVE_CURATOR_BALANCE_CODE Code for receiving curator balance transfers
+     */
     enum L1MessageCodes {
         RECEIVE_SUBGRAPH_CODE,
         RECEIVE_CURATOR_BALANCE_CODE
@@ -16,6 +23,10 @@ interface IL2GNS is ICallhookReceiver {
     /**
      * @dev The SubgraphL2TransferData struct holds information
      * about a subgraph related to its transfer from L1 to L2.
+     * @param tokens GRT that will be sent to L2 to mint signal
+     * @param curatorBalanceClaimed True for curators whose balance has been claimed in L2
+     * @param l2Done Transfer finished on L2 side
+     * @param subgraphReceivedOnL2BlockNumber Block number when the subgraph was received on L2
      */
     struct SubgraphL2TransferData {
         uint256 tokens; // GRT that will be sent to L2 to mint signal

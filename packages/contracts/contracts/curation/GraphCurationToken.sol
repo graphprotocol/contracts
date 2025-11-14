@@ -2,13 +2,14 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import "../governance/Governed.sol";
+import { Governed } from "../governance/Governed.sol";
 
 /**
  * @title GraphCurationToken contract
- * @dev This is the implementation of the Curation ERC20 token (GCS).
+ * @author Edge & Node
+ * @notice This is the implementation of the Curation ERC20 token (GCS).
  *
  * GCS are created for each subgraph deployment curated in the Curation contract.
  * The Curation contract is the owner of GCS tokens and the only one allowed to mint or
@@ -20,7 +21,7 @@ import "../governance/Governed.sol";
  */
 contract GraphCurationToken is ERC20Upgradeable, Governed {
     /**
-     * @dev Graph Curation Token Contract initializer.
+     * @notice Graph Curation Token Contract initializer.
      * @param _owner Address of the contract issuing this token
      */
     function initialize(address _owner) external initializer {
@@ -29,7 +30,7 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
     }
 
     /**
-     * @dev Mint new tokens.
+     * @notice Mint new tokens.
      * @param _to Address to send the newly minted tokens
      * @param _amount Amount of tokens to mint
      */
@@ -38,7 +39,7 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
     }
 
     /**
-     * @dev Burn tokens from an address.
+     * @notice Burn tokens from an address.
      * @param _account Address from where tokens will be burned
      * @param _amount Amount of tokens to burn
      */

@@ -3,22 +3,27 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events, gas-strict-inequalities
+// solhint-disable named-parameters-mapping
+
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import { AddressUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import { L1ArbitrumMessenger } from "../arbitrum/L1ArbitrumMessenger.sol";
-import { IBridge } from "../arbitrum/IBridge.sol";
-import { IInbox } from "../arbitrum/IInbox.sol";
-import { IOutbox } from "../arbitrum/IOutbox.sol";
-import { ITokenGateway } from "../arbitrum/ITokenGateway.sol";
+import { IBridge } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IBridge.sol";
+import { IInbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IInbox.sol";
+import { IOutbox } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/IOutbox.sol";
+import { ITokenGateway } from "@graphprotocol/interfaces/contracts/contracts/arbitrum/ITokenGateway.sol";
 import { Managed } from "../governance/Managed.sol";
 import { GraphTokenGateway } from "./GraphTokenGateway.sol";
-import { IGraphToken } from "../token/IGraphToken.sol";
+import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 
 /**
  * @title L1 Graph Token Gateway Contract
- * @dev Provides the L1 side of the Ethereum-Arbitrum GRT bridge. Sends GRT to the L2 chain
+ * @author Edge & Node
+ * @notice Provides the L1 side of the Ethereum-Arbitrum GRT bridge. Sends GRT to the L2 chain
  * by escrowing them and sending a message to the L2 gateway, and receives tokens from L2 by
  * releasing them from escrow.
  * Based on Offchain Labs' reference implementation and Livepeer's arbitrum-lpt-bridge
@@ -28,28 +33,35 @@ import { IGraphToken } from "../token/IGraphToken.sol";
 contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMessenger {
     using SafeMathUpgradeable for uint256;
 
-    /// Address of the Graph Token contract on L2
+    /// @notice Address of the Graph Token contract on L2
     address public l2GRT;
-    /// Address of the Arbitrum Inbox
+    /// @notice Address of the Arbitrum Inbox
     address public inbox;
-    /// Address of the Arbitrum Gateway Router on L1
+    /// @notice Address of the Arbitrum Gateway Router on L1
     address public l1Router;
-    /// Address of the L2GraphTokenGateway on L2 that is the counterpart of this gateway
+    /// @notice Address of the L2GraphTokenGateway on L2 that is the counterpart of this gateway
     address public l2Counterpart;
-    /// Address of the BridgeEscrow contract that holds the GRT in the bridge
+    /// @notice Address of the BridgeEscrow contract that holds the GRT in the bridge
     address public escrow;
-    /// Addresses for which this mapping is true are allowed to send callhooks in outbound transfers
+    /// @notice Addresses for which this mapping is true are allowed to send callhooks in outbound transfers
     mapping(address => bool) public callhookAllowlist;
-    /// Total amount minted from L2
+    /// @notice Total amount minted from L2
     uint256 public totalMintedFromL2;
-    /// Accumulated allowance for tokens minted from L2 at lastL2MintAllowanceUpdateBlock
+    /// @notice Accumulated allowance for tokens minted from L2 at lastL2MintAllowanceUpdateBlock
     uint256 public accumulatedL2MintAllowanceSnapshot;
-    /// Block at which new L2 allowance starts accumulating
+    /// @notice Block at which new L2 allowance starts accumulating
     uint256 public lastL2MintAllowanceUpdateBlock;
-    /// New L2 mint allowance per block
+    /// @notice New L2 mint allowance per block
     uint256 public l2MintAllowancePerBlock;
 
-    /// Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
+    /**
+     * @notice Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
+     * @param l1Token Address of the L1 token being transferred
+     * @param from Address sending the tokens on L1
+     * @param to Address receiving the tokens on L2
+     * @param sequenceNumber Sequence number of the retryable ticket
+     * @param amount Amount of tokens transferred
+     */
     event DepositInitiated(
         address l1Token,
         address indexed from,
@@ -58,7 +70,14 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         uint256 amount
     );
 
-    /// Emitted when an incoming transfer is finalized, i.e tokens are withdrawn from L2 to L1
+    /**
+     * @notice Emitted when an incoming transfer is finalized, i.e tokens are withdrawn from L2 to L1
+     * @param l1Token Address of the L1 token being transferred
+     * @param from Address sending the tokens on L2
+     * @param to Address receiving the tokens on L1
+     * @param exitNum Exit number (always 0 for this contract)
+     * @param amount Amount of tokens transferred
+     */
     event WithdrawalFinalized(
         address l1Token,
         address indexed from,
@@ -67,25 +86,58 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
         uint256 amount
     );
 
-    /// Emitted when the Arbitrum Inbox and Gateway Router addresses have been updated
+    /**
+     * @notice Emitted when the Arbitrum Inbox and Gateway Router addresses have been updated
+     * @param inbox Address of the Arbitrum Inbox
+     * @param l1Router Address of the L1 Gateway Router
+     */
     event ArbitrumAddressesSet(address inbox, address l1Router);
-    /// Emitted when the L2 GRT address has been updated
+
+    /**
+     * @notice Emitted when the L2 GRT address has been updated
+     * @param l2GRT Address of the L2 GRT contract
+     */
     event L2TokenAddressSet(address l2GRT);
-    /// Emitted when the counterpart L2GraphTokenGateway address has been updated
+
+    /**
+     * @notice Emitted when the counterpart L2GraphTokenGateway address has been updated
+     * @param l2Counterpart Address of the L2 counterpart gateway
+     */
     event L2CounterpartAddressSet(address l2Counterpart);
-    /// Emitted when the escrow address has been updated
+    /**
+     * @notice Emitted when the escrow address has been updated
+     * @param escrow Address of the escrow contract
+     */
     event EscrowAddressSet(address escrow);
-    /// Emitted when an address is added to the callhook allowlist
+
+    /**
+     * @notice Emitted when an address is added to the callhook allowlist
+     * @param newAllowlisted Address added to the allowlist
+     */
     event AddedToCallhookAllowlist(address newAllowlisted);
-    /// Emitted when an address is removed from the callhook allowlist
+
+    /**
+     * @notice Emitted when an address is removed from the callhook allowlist
+     * @param notAllowlisted Address removed from the allowlist
+     */
     event RemovedFromCallhookAllowlist(address notAllowlisted);
-    /// Emitted when the L2 mint allowance per block is updated
+
+    /**
+     * @notice Emitted when the L2 mint allowance per block is updated
+     * @param accumulatedL2MintAllowanceSnapshot Accumulated allowance snapshot at update block
+     * @param l2MintAllowancePerBlock New allowance per block
+     * @param lastL2MintAllowanceUpdateBlock Block number when allowance was updated
+     */
     event L2MintAllowanceUpdated(
         uint256 accumulatedL2MintAllowanceSnapshot,
         uint256 l2MintAllowancePerBlock,
         uint256 lastL2MintAllowanceUpdateBlock
     );
-    /// Emitted when tokens are minted due to an incoming transfer from L2
+
+    /**
+     * @notice Emitted when tokens are minted due to an incoming transfer from L2
+     * @param amount Amount of tokens minted
+     */
     event TokensMintedFromL2(uint256 amount);
 
     /**
@@ -199,7 +251,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Updates the L2 mint allowance per block
+     * @notice Updates the L2 mint allowance per block
      * It is meant to be called _after_ the issuancePerBlock is updated in L2.
      * The caller should provide the new issuance per block and the block at which it was updated,
      * the function will automatically compute the values so that the bridge's mint allowance
@@ -221,7 +273,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Manually sets the parameters used to compute the L2 mint allowance
+     * @notice Manually sets the parameters used to compute the L2 mint allowance
      * The use of this function is not recommended, use updateL2MintAllowance instead;
      * this one is only meant to be used as a backup recovery if a previous call to
      * updateL2MintAllowance was done with incorrect values.
@@ -246,10 +298,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Creates and sends a retryable ticket to transfer GRT to L2 using the Arbitrum Inbox.
-     * The tokens are escrowed by the gateway until they are withdrawn back to L1.
-     * The ticket must be redeemed on L2 to receive tokens at the specified address.
-     * Note that the caller must previously allow the gateway to spend the specified amount of GRT.
+     * @inheritdoc ITokenGateway
      * @dev maxGas and gasPriceBid must be set using Arbitrum's NodeInterface.estimateRetryableTicket method.
      * Also note that allowlisted senders (some protocol contracts) can include additional calldata
      * for a callhook to be executed on the L2 side when the tokens are received. In this case, the L2 transaction
@@ -257,13 +306,6 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
      * never succeeds. This requires extra care when adding contracts to the allowlist, but is necessary to ensure that
      * the tickets can be retried in the case of a temporary failure, and to ensure the atomicity of callhooks
      * with token transfers.
-     * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
-     * @param _to Recipient address on L2
-     * @param _amount Amount of tokens to transfer
-     * @param _maxGas Gas limit for L2 execution of the ticket
-     * @param _gasPriceBid Price per gas on L2
-     * @param _data Encoded maxSubmissionCost and sender address along with additional calldata
-     * @return Sequence number of the retryable ticket created by Inbox
      */
     function outboundTransfer(
         address _l1Token,
@@ -304,15 +346,10 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Receives withdrawn tokens from L2
-     * The equivalent tokens are released from escrow and sent to the destination.
+     * @inheritdoc ITokenGateway
      * @dev can only accept transactions coming from the L2 GRT Gateway.
      * The last parameter is unused but kept for compatibility with Arbitrum gateways,
      * and the encoded exitNum is assumed to be 0.
-     * @param _l1Token L1 Address of the GRT contract (needed for compatibility with Arbitrum Gateway Router)
-     * @param _from Address of the sender
-     * @param _to Recipient address on L1
-     * @param _amount Amount of tokens transferred
      */
     function finalizeInboundTransfer(
         address _l1Token,
@@ -335,10 +372,8 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @notice Calculate the L2 address of a bridged token
+     * @inheritdoc ITokenGateway
      * @dev In our case, this would only work for GRT.
-     * @param _l1ERC20 address of L1 GRT contract
-     * @return L2 address of the bridged GRT token
      */
     function calculateL2TokenAddress(address _l1ERC20) external view override returns (address) {
         IGraphToken token = graphToken();
@@ -387,10 +422,8 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
             );
     }
 
-    /**
-     * @dev Runs state validation before unpausing, reverts if
-     * something is not set properly
-     */
+    /// @inheritdoc GraphTokenGateway
+    // solhint-disable-next-line use-natspec
     function _checksBeforeUnpause() internal view override {
         require(inbox != address(0), "INBOX_NOT_SET");
         require(l1Router != address(0), "ROUTER_NOT_SET");
@@ -425,7 +458,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Get the accumulated L2 mint allowance at a particular block number
+     * @notice Get the accumulated L2 mint allowance at a particular block number
      * @param _blockNum Block at which allowance will be computed
      * @return The accumulated GRT amount that can be minted from L2 at the specified block
      */
@@ -438,7 +471,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Mint new L1 tokens coming  from L2
+     * @notice Mint new L1 tokens coming  from L2
      * This will check if the amount to mint is within the L2's mint allowance, and revert otherwise.
      * The tokens will be sent to the bridge escrow (from where they will then be sent to the destinatary
      * of the current inbound transfer).
@@ -454,7 +487,7 @@ contract L1GraphTokenGateway is Initializable, GraphTokenGateway, L1ArbitrumMess
     }
 
     /**
-     * @dev Check if minting a certain amount of tokens from L2 is within allowance
+     * @notice Check if minting a certain amount of tokens from L2 is within allowance
      * @param _amount Number of tokens that would be minted
      * @return true if minting those tokens is allowed, or false if it would be over allowance
      */

@@ -2,27 +2,45 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-indexed-events, gas-small-strings, gas-strict-inequalities
 
-import "../upgrades/GraphUpgradeable.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./EpochManagerStorage.sol";
-import "./IEpochManager.sol";
+import { GraphUpgradeable } from "../upgrades/GraphUpgradeable.sol";
+import { Managed } from "../governance/Managed.sol";
+
+import { EpochManagerV1Storage } from "./EpochManagerStorage.sol";
+import { IEpochManager } from "@graphprotocol/interfaces/contracts/contracts/epochs/IEpochManager.sol";
 
 /**
  * @title EpochManager contract
- * @dev Produce epochs based on a number of blocks to coordinate contracts in the protocol.
+ * @author Edge & Node
+ * @notice Produce epochs based on a number of blocks to coordinate contracts in the protocol.
  */
 contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager {
     using SafeMath for uint256;
 
     // -- Events --
 
+    /**
+     * @notice Emitted when an epoch is run
+     * @param epoch The epoch number that was run
+     * @param caller Address that called runEpoch()
+     */
     event EpochRun(uint256 indexed epoch, address caller);
+
+    /**
+     * @notice Emitted when the epoch length is updated
+     * @param epoch The epoch when the length was updated
+     * @param epochLength The new epoch length in blocks
+     */
     event EpochLengthUpdate(uint256 indexed epoch, uint256 epochLength);
 
     /**
-     * @dev Initialize this contract.
+     * @notice Initialize this contract.
+     * @param _controller Address of the Controller contract
+     * @param _epochLength Length of each epoch in blocks
      */
     function initialize(address _controller, uint256 _epochLength) external onlyImpl {
         require(_epochLength > 0, "Epoch length cannot be 0");
@@ -39,9 +57,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
     }
 
     /**
-     * @dev Set the epoch length.
-     * @notice Set epoch length to `_epochLength` blocks
-     * @param _epochLength Epoch length in blocks
+     * @inheritdoc IEpochManager
      */
     function setEpochLength(uint256 _epochLength) external override onlyGovernor {
         require(_epochLength > 0, "Epoch length cannot be 0");
@@ -55,8 +71,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
     }
 
     /**
-     * @dev Run a new epoch, should be called once at the start of any epoch.
-     * @notice Perform state changes for the current epoch
+     * @inheritdoc IEpochManager
      */
     function runEpoch() external override {
         // Check if already called for the current epoch
@@ -70,24 +85,21 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
     }
 
     /**
-     * @dev Return true if the current epoch has already run.
-     * @return Return true if current epoch is the last epoch that has run
+     * @inheritdoc IEpochManager
      */
     function isCurrentEpochRun() public view override returns (bool) {
         return lastRunEpoch == currentEpoch();
     }
 
     /**
-     * @dev Return current block number.
-     * @return Block number
+     * @inheritdoc IEpochManager
      */
     function blockNum() public view override returns (uint256) {
         return block.number;
     }
 
     /**
-     * @dev Return blockhash for a block.
-     * @return BlockHash for `_block` number
+     * @inheritdoc IEpochManager
      */
     function blockHash(uint256 _block) external view override returns (bytes32) {
         uint256 currentBlock = blockNum();
@@ -99,33 +111,28 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
     }
 
     /**
-     * @dev Return the current epoch, it may have not been run yet.
-     * @return The current epoch based on epoch length
+     * @inheritdoc IEpochManager
      */
     function currentEpoch() public view override returns (uint256) {
         return lastLengthUpdateEpoch.add(epochsSinceUpdate());
     }
 
     /**
-     * @dev Return block where the current epoch started.
-     * @return The block number when the current epoch started
+     * @inheritdoc IEpochManager
      */
     function currentEpochBlock() public view override returns (uint256) {
         return lastLengthUpdateBlock.add(epochsSinceUpdate().mul(epochLength));
     }
 
     /**
-     * @dev Return the number of blocks that passed since current epoch started.
-     * @return Blocks that passed since start of epoch
+     * @inheritdoc IEpochManager
      */
     function currentEpochBlockSinceStart() external view override returns (uint256) {
         return blockNum() - currentEpochBlock();
     }
 
     /**
-     * @dev Return the number of epoch that passed since another epoch.
-     * @param _epoch Epoch to use as since epoch value
-     * @return Number of epochs and current epoch
+     * @inheritdoc IEpochManager
      */
     function epochsSince(uint256 _epoch) external view override returns (uint256) {
         uint256 epoch = currentEpoch();
@@ -133,8 +140,7 @@ contract EpochManager is EpochManagerV1Storage, GraphUpgradeable, IEpochManager 
     }
 
     /**
-     * @dev Return number of epochs passed since last epoch length update.
-     * @return The number of epoch that passed since last epoch length update
+     * @inheritdoc IEpochManager
      */
     function epochsSinceUpdate() public view override returns (uint256) {
         return blockNum().sub(lastLengthUpdateBlock).div(epochLength);

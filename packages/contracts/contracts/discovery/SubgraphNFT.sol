@@ -2,35 +2,66 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+// TODO: Re-enable and fix issues when publishing a new version
+// solhint-disable gas-calldata-parameters, gas-indexed-events, gas-small-strings
+// solhint-disable named-parameters-mapping
 
-import "../governance/Governed.sol";
-import "../libraries/HexStrings.sol";
-import "./ISubgraphNFT.sol";
-import "./ISubgraphNFTDescriptor.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-/// @title NFT that represents ownership of a Subgraph
+import { Governed } from "../governance/Governed.sol";
+import { HexStrings } from "../libraries/HexStrings.sol";
+import { ISubgraphNFT } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFT.sol";
+import { ISubgraphNFTDescriptor } from "@graphprotocol/interfaces/contracts/contracts/discovery/ISubgraphNFTDescriptor.sol";
+
+/**
+ * @title NFT that represents ownership of a Subgraph
+ * @author Edge & Node
+ * @notice NFT that represents ownership of a Subgraph
+ */
 contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     // -- State --
 
+    /// @notice Address of the minter contract
     address public minter;
+    /// @notice Address of the token descriptor contract
     ISubgraphNFTDescriptor public tokenDescriptor;
+    /// @dev Mapping from token ID to subgraph metadata hash
     mapping(uint256 => bytes32) private _subgraphMetadataHashes;
 
     // -- Events --
 
+    /**
+     * @notice Emitted when the minter address is updated
+     * @param minter Address of the new minter
+     */
     event MinterUpdated(address minter);
+
+    /**
+     * @notice Emitted when the token descriptor is updated
+     * @param tokenDescriptor Address of the new token descriptor
+     */
     event TokenDescriptorUpdated(address tokenDescriptor);
+
+    /**
+     * @notice Emitted when subgraph metadata is updated
+     * @param tokenID ID of the token
+     * @param subgraphURI IPFS hash of the subgraph metadata
+     */
     event SubgraphMetadataUpdated(uint256 indexed tokenID, bytes32 subgraphURI);
 
     // -- Modifiers --
 
+    /// @dev Modifier to restrict access to minter only
     modifier onlyMinter() {
         require(msg.sender == minter, "Must be a minter");
         _;
     }
 
+    /**
+     * @notice Constructor for the SubgraphNFT contract
+     * @param _governor Address that will have governance privileges
+     */
     constructor(address _governor) ERC721("Subgraph", "SG") {
         _initialize(_governor);
     }
@@ -38,9 +69,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     // -- Config --
 
     /**
-     * @notice Set the minter allowed to perform actions on the NFT.
-     * @dev Minter can mint, burn and update the metadata
-     * @param _minter Address of the allowed minter
+     * @inheritdoc ISubgraphNFT
      */
     function setMinter(address _minter) external override onlyGovernor {
         _setMinter(_minter);
@@ -57,16 +86,14 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     }
 
     /**
-     * @notice Set the token descriptor contract.
-     * @dev Token descriptor can be zero. If set, it must be a contract.
-     * @param _tokenDescriptor Address of the contract that creates the NFT token URI
+     * @inheritdoc ISubgraphNFT
      */
     function setTokenDescriptor(address _tokenDescriptor) external override onlyGovernor {
         _setTokenDescriptor(_tokenDescriptor);
     }
 
     /**
-     * @dev Internal: Set the token descriptor contract used to create the ERC-721 metadata URI.
+     * @notice Internal: Set the token descriptor contract used to create the ERC-721 metadata URI.
      * @param _tokenDescriptor Address of the contract that creates the NFT token URI
      */
     function _setTokenDescriptor(address _tokenDescriptor) internal {
@@ -79,9 +106,7 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     }
 
     /**
-     * @notice Set the base URI.
-     * @dev Can be set to empty.
-     * @param _baseURI Base URI to use to build the token URI
+     * @inheritdoc ISubgraphNFT
      */
     function setBaseURI(string memory _baseURI) external override onlyGovernor {
         _setBaseURI(_baseURI);
@@ -90,29 +115,21 @@ contract SubgraphNFT is Governed, ERC721, ISubgraphNFT {
     // -- Minter actions --
 
     /**
-     * @notice Mint `_tokenId` and transfers it to `_to`.
-     * @dev `tokenId` must not exist and `to` cannot be the zero address.
-     * @param _to Address receiving the minted NFT
-     * @param _tokenId ID of the NFT
+     * @inheritdoc ISubgraphNFT
      */
     function mint(address _to, uint256 _tokenId) external override onlyMinter {
         _mint(_to, _tokenId);
     }
 
     /**
-     * @notice Burn `_tokenId`.
-     * @dev The approval is cleared when the token is burned.
-     * @param _tokenId ID of the NFT
+     * @inheritdoc ISubgraphNFT
      */
     function burn(uint256 _tokenId) external override onlyMinter {
         _burn(_tokenId);
     }
 
     /**
-     * @notice Set the metadata for a subgraph represented by `_tokenId`.
-     * @dev `_tokenId` must exist.
-     * @param _tokenId ID of the NFT
-     * @param _subgraphMetadata IPFS hash for the metadata
+     * @inheritdoc ISubgraphNFT
      */
     function setSubgraphMetadata(uint256 _tokenId, bytes32 _subgraphMetadata) external override onlyMinter {
         require(_exists(_tokenId), "ERC721Metadata: URI set of nonexistent token");

@@ -3,48 +3,71 @@
 pragma solidity ^0.7.3;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// solhint-disable named-parameters-mapping
+// solhint-disable gas-strict-inequalities
 
-import "./Stakes.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
+import { Stakes } from "./Stakes.sol";
+
+/**
+ * @title StakingMock contract
+ * @author Edge & Node
+ * @notice A mock contract for testing staking functionality
+ */
 contract StakingMock {
     using SafeMath for uint256;
     using Stakes for Stakes.Indexer;
 
     // -- State --
 
+    /// @notice Minimum stake required for indexers
     uint256 public minimumIndexerStake = 100e18;
+    /// @notice Thawing period in blocks
     uint256 public thawingPeriod = 10; // 10 blocks
+    /// @notice The token contract
     IERC20 public token;
 
-    // Indexer stakes : indexer => Stake
+    /// @notice Indexer stakes mapping
     mapping(address => Stakes.Indexer) public stakes;
 
     /**
-     * @dev Emitted when `indexer` stake `tokens` amount.
+     * @notice Emitted when indexer stakes tokens
+     * @param indexer The indexer address
+     * @param tokens The amount of tokens staked
      */
-    event StakeDeposited(address indexed indexer, uint256 tokens);
+    event StakeDeposited(address indexed indexer, uint256 indexed tokens);
 
     /**
-     * @dev Emitted when `indexer` unstaked and locked `tokens` amount `until` block.
+     * @notice Emitted when indexer unstakes and locks tokens
+     * @param indexer The indexer address
+     * @param tokens The amount of tokens locked
+     * @param until The block number until which tokens are locked
      */
-    event StakeLocked(address indexed indexer, uint256 tokens, uint256 until);
+    event StakeLocked(address indexed indexer, uint256 indexed tokens, uint256 indexed until);
 
     /**
-     * @dev Emitted when `indexer` withdrew `tokens` staked.
+     * @notice Emitted when indexer withdraws staked tokens
+     * @param indexer The indexer address
+     * @param tokens The amount of tokens withdrawn
      */
-    event StakeWithdrawn(address indexed indexer, uint256 tokens);
+    event StakeWithdrawn(address indexed indexer, uint256 indexed tokens);
 
-    // Contract constructor.
+    /**
+     * @notice Contract constructor
+     * @param _token The token contract address
+     */
     constructor(IERC20 _token) {
         require(address(_token) != address(0), "!token");
         token = _token;
     }
 
+    /// @notice Receive function to accept ETH
     receive() external payable {}
 
     /**
-     * @dev Deposit tokens on the indexer stake.
+     * @notice Deposit tokens on the indexer stake
      * @param _tokens Amount of tokens to stake
      */
     function stake(uint256 _tokens) external {
@@ -52,7 +75,7 @@ contract StakingMock {
     }
 
     /**
-     * @dev Deposit tokens on the indexer stake.
+     * @notice Deposit tokens on the indexer stake
      * @param _indexer Address of the indexer
      * @param _tokens Amount of tokens to stake
      */
@@ -70,7 +93,7 @@ contract StakingMock {
     }
 
     /**
-     * @dev Unstake tokens from the indexer stake, lock them until thawing period expires.
+     * @notice Unstake tokens from the indexer stake, lock them until thawing period expires
      * @param _tokens Amount of tokens to unstake
      */
     function unstake(uint256 _tokens) external {
@@ -97,12 +120,17 @@ contract StakingMock {
     }
 
     /**
-     * @dev Withdraw indexer tokens once the thawing period has passed.
+     * @notice Withdraw indexer tokens once the thawing period has passed
      */
     function withdraw() external {
         _withdraw(msg.sender);
     }
 
+    /**
+     * @notice Internal function to stake tokens for an indexer
+     * @param _indexer Address of the indexer
+     * @param _tokens Amount of tokens to stake
+     */
     function _stake(address _indexer, uint256 _tokens) internal {
         // Deposit tokens into the indexer stake
         Stakes.Indexer storage indexerStake = stakes[_indexer];
@@ -112,7 +140,7 @@ contract StakingMock {
     }
 
     /**
-     * @dev Withdraw indexer tokens once the thawing period has passed.
+     * @notice Withdraw indexer tokens once the thawing period has passed
      * @param _indexer Address of indexer to withdraw funds from
      */
     function _withdraw(address _indexer) private {

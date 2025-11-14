@@ -5,6 +5,7 @@ import '@nomiclabs/hardhat-waffle'
 import '@typechain/hardhat'
 import 'dotenv/config'
 import 'hardhat-gas-reporter'
+import 'hardhat-ignore-warnings'
 import 'solidity-coverage'
 // Test-specific tasks
 import './tasks/migrate/nitro'
@@ -43,6 +44,18 @@ const config: HardhatUserConfig = {
   },
   typechain: {
     outDir: 'types',
+  },
+  warnings: {
+    // Suppress warnings from legacy OpenZeppelin contracts and external dependencies
+    'arbos-precompiles/**/*': {
+      default: 'off',
+    },
+    '@openzeppelin/contracts/**/*': {
+      default: 'off',
+    },
+    'contracts/staking/StakingExtension.sol': {
+      5667: 'off', // Unused function parameter
+    },
   },
   defaultNetwork: 'hardhat',
   networks: {
