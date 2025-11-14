@@ -59,9 +59,24 @@ async function main() {
   await decode(argsData, artifact)
 }
 
-async function decode(argsData: string, artifact: any) {
-  const ctor = (artifact.abi as any[]).find((x) => x.type === 'constructor')
-  const types = ctor?.inputs?.map((i: any) => i.type) ?? []
+interface AbiInput {
+  type: string
+  name?: string
+}
+
+interface AbiConstructor {
+  type: string
+  inputs?: AbiInput[]
+}
+
+interface Artifact {
+  abi: AbiConstructor[]
+  bytecode: string
+}
+
+async function decode(argsData: string, artifact: Artifact) {
+  const ctor = artifact.abi.find((x) => x.type === 'constructor')
+  const types = ctor?.inputs?.map((i) => i.type) ?? []
   if (types.length === 0) {
     if (argsData === '0x' || argsData.length <= 2) {
       console.log('Constructor has no params. Args: []')
@@ -76,7 +91,7 @@ async function decode(argsData: string, artifact: any) {
   const coder = ethers.AbiCoder.defaultAbiCoder()
   const decoded = coder.decode(types, argsData)
   // Pretty-print as JSON array so you can reuse directly
-  const printable = decoded.map((v: any) => (typeof v === 'bigint' ? v.toString() : v))
+  const printable = decoded.map((v) => (typeof v === 'bigint' ? v.toString() : v))
   console.log('Constructor types:', types)
   console.log('Decoded args JSON:', JSON.stringify(printable))
 }
