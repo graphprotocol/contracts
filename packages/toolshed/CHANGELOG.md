@@ -1,5 +1,11 @@
 # @graphprotocol/toolshed
 
+## 1.1.1
+
+### Patch Changes
+
+- Re-release toolshed with parseCustomError
+
 ## 1.1.0
 
 ### Minor Changes
@@ -10,6 +16,7 @@
 
 - Updated dependencies
   - @graphprotocol/address-book@1.1.0
+
 ## 1.0.3
 
 ### Patch Changes
