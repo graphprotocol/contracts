@@ -97,3 +97,6 @@ tx-builder-*.json
 **/horizon-localNetwork/
 **/subgraph-service-localNetwork/
 !**/ignition/**/artifacts/
+
+# Claude AI settings
+.claude/
