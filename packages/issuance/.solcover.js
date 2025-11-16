@@ -1,13 +1,11 @@
-const skipFiles = ['bancor', 'ens', 'erc1056', 'arbitrum', 'tests', '*Mock.sol']
-
 module.exports = {
+  skipFiles: ['test/'],
   providerOptions: {
     mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
     network_id: 1337,
   },
-  skipFiles,
-  istanbulFolder: '../coverage',
-  // Remove 'html' reporter to avoid duplicates, keep lcov for lcov.info
+  // Use default istanbulFolder: './coverage'
+  // Exclude 'html' to avoid duplicate HTML files (lcov already generates HTML in lcov-report/)
   istanbulReporter: ['lcov', 'text', 'json'],
   configureYulOptimizer: true,
   mocha: {
