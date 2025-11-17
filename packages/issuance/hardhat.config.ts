@@ -1,4 +1,5 @@
 import '@nomicfoundation/hardhat-ethers'
+import '@nomicfoundation/hardhat-ignition-ethers'
 import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'

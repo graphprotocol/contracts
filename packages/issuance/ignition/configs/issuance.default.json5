@@ -1,0 +1,23 @@
+{
+  "$global": {
+    // Graph Token address - must be provided for deployment
+    // For local testing, this can be a mock token address
+    "graphTokenAddress": "0x0000000000000000000000000000000000000000"
+  },
+  "IssuanceAllocator": {
+    // Initial issuance per block (can be set to 0 and updated later)
+    "issuancePerBlock": "0"
+  },
+  "DirectAllocation": {
+    // No specific parameters needed for DirectAllocation
+  },
+  "RewardsEligibilityOracle": {
+    // Default eligibility period: 14 days (in seconds)
+    "eligibilityPeriod": 1209600,
+    // Default oracle update timeout: 7 days (in seconds)
+    "oracleUpdateTimeout": 604800,
+    // Start with eligibility validation disabled
+    "eligibilityValidationEnabled": false
+  }
+}
+

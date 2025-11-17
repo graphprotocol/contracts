@@ -1,0 +1,19 @@
+{
+  "$global": {
+    // For local network testing, use a placeholder address
+    // This should be replaced with actual deployed GraphToken address
+    "graphTokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  },
+  "IssuanceAllocator": {
+    // Test issuance per block for local network
+    "issuancePerBlock": "114155251141552511415n"
+  },
+  "DirectAllocation": {},
+  "RewardsEligibilityOracle": {
+    // Shorter periods for local testing
+    "eligibilityPeriod": 3600, // 1 hour
+    "oracleUpdateTimeout": 1800, // 30 minutes
+    "eligibilityValidationEnabled": false
+  }
+}
+

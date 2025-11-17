@@ -983,6 +983,12 @@ importers:
       '@nomicfoundation/hardhat-ethers':
         specifier: 'catalog:'
         version: 3.1.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
+      '@nomicfoundation/hardhat-ignition':
+        specifier: ^0.15.9
+        version: 0.15.13(@nomicfoundation/hardhat-verify@2.1.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(bufferutil@4.0.9)(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
+      '@nomicfoundation/hardhat-ignition-ethers':
+        specifier: ^0.15.9
+        version: 0.15.14(@nomicfoundation/hardhat-ethers@3.1.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-ignition@0.15.13(@nomicfoundation/hardhat-verify@2.1.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(bufferutil@4.0.9)(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10))(@nomicfoundation/ignition-core@0.15.13(bufferutil@4.0.9)(utf-8-validate@5.0.10))(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
       '@nomicfoundation/hardhat-verify':
         specifier: 'catalog:'
         version: 2.1.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
