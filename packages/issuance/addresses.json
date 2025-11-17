@@ -1,35 +1,62 @@
 {
-  "arbitrumOne": {
-    "IssuanceAllocator": "",
-    "IssuanceAllocatorImplementation": "",
-    "IssuanceAllocatorProxyAdmin": "",
-    "DirectAllocation": "",
-    "DirectAllocationImplementation": "",
-    "DirectAllocationProxyAdmin": "",
-    "RewardsEligibilityOracle": "",
-    "RewardsEligibilityOracleImplementation": "",
-    "RewardsEligibilityOracleProxyAdmin": ""
+  "42161": {
+    "IssuanceAllocator": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    },
+    "DirectAllocation": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    },
+    "RewardsEligibilityOracle": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    }
   },
-  "arbitrumSepolia": {
-    "IssuanceAllocator": "",
-    "IssuanceAllocatorImplementation": "",
-    "IssuanceAllocatorProxyAdmin": "",
-    "DirectAllocation": "",
-    "DirectAllocationImplementation": "",
-    "DirectAllocationProxyAdmin": "",
-    "RewardsEligibilityOracle": "",
-    "RewardsEligibilityOracleImplementation": "",
-    "RewardsEligibilityOracleProxyAdmin": ""
+  "421614": {
+    "IssuanceAllocator": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    },
+    "DirectAllocation": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    },
+    "RewardsEligibilityOracle": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    }
   },
-  "localNetwork": {
-    "IssuanceAllocator": "",
-    "IssuanceAllocatorImplementation": "",
-    "IssuanceAllocatorProxyAdmin": "",
-    "DirectAllocation": "",
-    "DirectAllocationImplementation": "",
-    "DirectAllocationProxyAdmin": "",
-    "RewardsEligibilityOracle": "",
-    "RewardsEligibilityOracleImplementation": "",
-    "RewardsEligibilityOracleProxyAdmin": ""
+  "31337": {
+    "IssuanceAllocator": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    },
+    "DirectAllocation": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    },
+    "RewardsEligibilityOracle": {
+      "address": "",
+      "proxy": "transparent",
+      "proxyAdmin": "",
+      "implementation": ""
+    }
   }
 }

@@ -160,17 +160,67 @@ Oracle-based eligibility system for indexer rewards.
 - `oracleUpdateTimeout` - Oracle timeout in seconds (default: 7 days)
 - `eligibilityValidationEnabled` - Enable/disable validation (default: false)
 
+## Address Book and Toolshed Integration
+
+### Address Book Format
+
+Contract addresses are stored in `addresses.json` using chain IDs (matching Horizon's format):
+
+```json
+{
+  "42161": {
+    "IssuanceAllocator": {
+      "address": "0x...",
+      "proxy": "transparent",
+      "proxyAdmin": "0x...",
+      "implementation": "0x..."
+    }
+  }
+}
+```
+
+### Syncing Deployment Addresses
+
+After deploying with Ignition, sync addresses to the main address book:
+
+```bash
+npx ts-node scripts/sync-addresses.ts <deployment-id> <chain-id>
+
+# Example:
+npx ts-node scripts/sync-addresses.ts issuance-arbitrumSepolia 421614
+```
+
+### Using Deployed Contracts via Toolshed
+
+The issuance package integrates with `@graphprotocol/toolshed` for easy contract loading:
+
+```typescript
+import { connectGraphIssuance } from '@graphprotocol/toolshed'
+import { ethers } from 'ethers'
+
+// Connect to deployed contracts
+const provider = new ethers.JsonRpcProvider('https://...')
+const contracts = connectGraphIssuance(42161, provider)
+
+// Use contracts
+const issuanceRate = await contracts.IssuanceAllocator.issuancePerBlock()
+```
+
 ## Integration with Other Packages
 
 The issuance package can be imported and used in other packages:
 
 ```typescript
+// Import Ignition modules
 import {
   GraphIssuanceModule,
   IssuanceAllocatorModule,
   DirectAllocationModule,
   RewardsEligibilityOracleModule,
 } from '@graphprotocol/issuance/ignition'
+
+// Import deployed contract instances via toolshed
+import { connectGraphIssuance } from '@graphprotocol/toolshed'
 ```
 
 ## Next Steps

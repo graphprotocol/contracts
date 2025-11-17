@@ -3,6 +3,7 @@ import { ContractRunner, Interface } from 'ethers'
 import { factories } from '../types'
 
 export * from './types/horizon'
+export * from './types/issuance'
 export * from './types/subgraph-service'
 
 /**
@@ -146,6 +147,7 @@ function getContractNameAlternatives(contractName: string): string[] {
     SubgraphService: 'SubgraphServiceToolshed',
     ServiceRegistry: 'ServiceRegistryToolshed',
     LegacyServiceRegistry: 'ServiceRegistryToolshed',
+    // Note: Issuance contracts don't need toolshed wrappers - they implement complete interfaces directly
   }
 
   // override with toolshed alternative if available
