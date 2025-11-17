@@ -164,6 +164,87 @@ Use these when you need to interact with already-deployed contracts.
 **Issue**: "Contract already deployed" errors
 **Solution**: Ignition deployments are idempotent; this usually means the deployment succeeded
 
+## Address Book Integration
+
+After deployment, contract addresses are stored in `addresses.json` using chain IDs as keys (matching Horizon's format):
+
+```json
+{
+  "42161": {
+    "IssuanceAllocator": {
+      "address": "0x...",
+      "proxy": "transparent",
+      "proxyAdmin": "0x...",
+      "implementation": "0x..."
+    }
+  }
+}
+```
+
+### Syncing Deployment Addresses
+
+After deploying with Ignition, sync the addresses to the main address book:
+
+```bash
+npx ts-node scripts/sync-addresses.ts <deployment-id> <chain-id>
+
+# Example:
+npx ts-node scripts/sync-addresses.ts issuance-arbitrumSepolia 421614
+```
+
+This script reads Ignition's `deployed_addresses.json` and updates the main `addresses.json` file.
+
+## Toolshed Integration
+
+The issuance package integrates with `@graphprotocol/toolshed` for easy contract loading:
+
+```typescript
+import { connectGraphIssuance } from '@graphprotocol/toolshed'
+import { ethers } from 'ethers'
+
+// Connect to deployed contracts
+const provider = new ethers.JsonRpcProvider('https://...')
+const contracts = connectGraphIssuance(42161, provider)
+
+// Use contracts
+const issuanceRate = await contracts.IssuanceAllocator.issuancePerBlock()
+```
+
+### In Hardhat Tasks
+
+```typescript
+import { loadGraphIssuance } from '@graphprotocol/toolshed'
+
+task('my-task', 'Do something with issuance contracts')
+  .setAction(async (_, hre) => {
+    const { contracts } = loadGraphIssuance(
+      'addresses.json',
+      hre.network.config.chainId!,
+      hre.ethers.provider
+    )
+
+    // Use contracts
+    await contracts.IssuanceAllocator.setIssuancePerBlock(newRate)
+  })
+```
+
+## Integration with Other Packages
+
+The issuance package can be imported and used in other packages:
+
+```typescript
+// Import Ignition modules
+import {
+  GraphIssuanceModule,
+  IssuanceAllocatorModule,
+  DirectAllocationModule,
+  RewardsEligibilityOracleModule
+} from '@graphprotocol/issuance/ignition'
+
+// Import deployed contract instances via toolshed
+import { connectGraphIssuance } from '@graphprotocol/toolshed'
+```
+
 ## Further Reading
 
 - [Hardhat Ignition Documentation](https://hardhat.org/ignition)
