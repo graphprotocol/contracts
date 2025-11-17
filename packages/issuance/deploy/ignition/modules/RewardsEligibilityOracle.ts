@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import RewardsEligibilityOracleArtifact from '../../artifacts/contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle.json'
+import RewardsEligibilityOracleArtifact from '../../../artifacts/contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle.json'
 import { deployImplementation } from './proxy/implementation'
 import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
 
@@ -48,3 +48,4 @@ export const MigrateRewardsEligibilityOracleModule = buildModule('RewardsEligibi
 
   return { RewardsEligibilityOracle }
 })
+

@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import IssuanceAllocatorArtifact from '../../artifacts/contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator.json'
+import IssuanceAllocatorArtifact from '../../../artifacts/contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator.json'
 import { deployImplementation } from './proxy/implementation'
 import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
 
@@ -42,3 +42,4 @@ export const MigrateIssuanceAllocatorModule = buildModule('IssuanceAllocatorMigr
 
   return { IssuanceAllocator }
 })
+

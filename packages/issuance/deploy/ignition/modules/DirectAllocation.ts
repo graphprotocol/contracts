@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import DirectAllocationArtifact from '../../artifacts/contracts/allocate/DirectAllocation.sol/DirectAllocation.json'
+import DirectAllocationArtifact from '../../../artifacts/contracts/allocate/DirectAllocation.sol/DirectAllocation.json'
 import { deployImplementation } from './proxy/implementation'
 import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
 
@@ -42,3 +42,4 @@ export const MigrateDirectAllocationModule = buildModule('DirectAllocationMigrat
 
   return { DirectAllocation }
 })
+

@@ -7,7 +7,7 @@
  * 3. Interacting with deployed contracts
  *
  * Usage:
- *   npx hardhat run ignition/examples/deploy-example.ts --network localhost
+ *   cd packages/issuance/deploy && npx hardhat run ignition/examples/deploy-example.ts --network localhost
  */
 
 import { ethers, ignition } from 'hardhat'
@@ -77,3 +77,4 @@ main()
     console.error(error)
     process.exit(1)
   })
+

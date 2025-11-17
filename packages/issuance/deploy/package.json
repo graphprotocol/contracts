@@ -1,0 +1,35 @@
+{
+  "name": "@graphprotocol/issuance-deploy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deployment and governance tooling for @graphprotocol/issuance",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build:self": "echo \"Nothing to build for @graphprotocol/issuance-deploy\"",
+    "build:self:coverage": "pnpm build:self",
+    "test:self": "echo \"No tests for @graphprotocol/issuance-deploy\"",
+    "test:coverage:self": "pnpm test:self",
+    "clean": "rm -rf .eslintcache"
+  },
+  "dependencies": {
+    "@graphprotocol/issuance": "workspace:^",
+    "@graphprotocol/toolshed": "workspace:^"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "catalog:",
+    "@nomicfoundation/hardhat-ignition": "^0.15.9",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.9",
+    "@nomicfoundation/hardhat-verify": "catalog:",
+    "@openzeppelin/hardhat-upgrades": "^3.9.0",
+    "@typechain/hardhat": "catalog:",
+    "@types/node": "^20.17.50",
+    "dotenv": "catalog:",
+    "ethers": "catalog:",
+    "hardhat": "catalog:",
+    "hardhat-contract-sizer": "catalog:",
+    "ts-node": "^10.9.2",
+    "typescript": "catalog:"
+  }
+}
+

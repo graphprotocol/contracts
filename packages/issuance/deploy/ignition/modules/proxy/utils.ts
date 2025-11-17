@@ -21,3 +21,4 @@ export function loadProxyWithABI(
   }
   return proxyWithABI
 }
+

@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "chainId": "42161",
+  "createdAt": 0,
+  "meta": {
+    "name": "Issuance Rewards Eligibility Upgrade",
+    "description": "Upgrade RewardsManager to V6 and wire RewardsEligibilityOracle / IssuanceAllocator.",
+    "txBuilderVersion": "1.11.1",
+    "createdFromSafeAddress": "",
+    "createdFromOwnerAddress": "",
+    "checksum": ""
+  },
+  "transactions": []
+}
+
