@@ -18,28 +18,28 @@ The issuance package now includes a complete Hardhat Ignition deployment system 
 
 ```
 packages/issuance/
-├── ignition/
-│   ├── modules/
-│   │   ├── proxy/
-│   │   │   ├── implementation.ts          # Implementation deployment utility
-│   │   │   ├── TransparentUpgradeableProxy.ts  # Proxy deployment utilities
-│   │   │   └── utils.ts                   # Helper functions
-│   │   ├── IssuanceAllocator.ts           # IssuanceAllocator deployment
-│   │   ├── DirectAllocation.ts            # DirectAllocation deployment
-│   │   ├── RewardsEligibilityOracle.ts    # RewardsEligibilityOracle deployment
-│   │   ├── deploy.ts                      # Main deployment module
-│   │   └── index.ts                       # Module exports
-│   ├── configs/
-│   │   ├── issuance.default.json5         # Default configuration
-│   │   ├── issuance.localNetwork.json5    # Local network config
-│   │   ├── issuance.arbitrumSepolia.json5 # Testnet config
-│   │   └── issuance.arbitrumOne.json5     # Mainnet config
-│   ├── examples/
-│   │   └── deploy-example.ts              # Example deployment script
-│   ├── deployments/                       # Deployment artifacts (generated)
-│   └── README.md                          # Detailed documentation
-├── addresses.json                         # Deployed contract addresses
-└── DEPLOYMENT.md                          # This file
+├── deploy/
+│   └── ignition/
+│       ├── modules/
+│       │   ├── proxy/
+│       │   │   ├── implementation.ts          # Implementation deployment utility
+│       │   │   ├── TransparentUpgradeableProxy.ts  # Proxy deployment utilities
+│       │   │   └── utils.ts                   # Helper functions
+│       │   ├── IssuanceAllocator.ts           # IssuanceAllocator deployment
+│       │   ├── DirectAllocation.ts            # DirectAllocation deployment
+│       │   ├── RewardsEligibilityOracle.ts    # RewardsEligibilityOracle deployment
+│       │   ├── deploy.ts                      # Main deployment module
+│       │   └── index.ts                       # Module exports
+│       ├── configs/
+│       │   ├── issuance.default.json5         # Default configuration
+│       │   ├── issuance.localNetwork.json5    # Local network config
+│       │   ├── issuance.arbitrumSepolia.json5 # Testnet config
+│       │   └── issuance.arbitrumOne.json5     # Mainnet config
+│       ├── examples/
+│       │   └── deploy-example.ts              # Example deployment script
+│       └── deployments/                       # Deployment artifacts (generated)
+├── addresses.json                             # Deployed contract addresses
+└── DEPLOYMENT.md                              # This file
 ```
 
 ### Key Features
@@ -67,7 +67,7 @@ pnpm compile
 
 ### 3. Configure Deployment
 
-Edit the appropriate config file in `ignition/configs/`:
+Edit the appropriate config file in `deploy/ignition/configs/`:
 
 ```json5
 {
@@ -80,18 +80,20 @@ Edit the appropriate config file in `ignition/configs/`:
 ### 4. Deploy
 
 ```bash
+cd packages/issuance
+
 # Deploy to local network
-npx hardhat ignition deploy ignition/modules/deploy.ts --network localhost
+npx hardhat ignition deploy deploy/ignition/modules/deploy.ts --network localhost
 
 # Deploy to testnet
-npx hardhat ignition deploy ignition/modules/deploy.ts \
+npx hardhat ignition deploy deploy/ignition/modules/deploy.ts \
   --network arbitrumSepolia \
-  --parameters ignition/configs/issuance.arbitrumSepolia.json5
+  --parameters deploy/ignition/configs/issuance.arbitrumSepolia.json5
 
 # Deploy to mainnet
-npx hardhat ignition deploy ignition/modules/deploy.ts \
+npx hardhat ignition deploy deploy/ignition/modules/deploy.ts \
   --network arbitrumOne \
-  --parameters ignition/configs/issuance.arbitrumOne.json5
+  --parameters deploy/ignition/configs/issuance.arbitrumOne.json5
 ```
 
 ### 5. Verify Contracts
@@ -106,7 +108,7 @@ npx hardhat ignition verify <deployment-id>
 
 Central distribution hub for token issuance.
 
-**Module**: `ignition/modules/IssuanceAllocator.ts`
+**Module**: `deploy/ignition/modules/IssuanceAllocator.ts`
 
 **Exports**:
 
@@ -120,7 +122,7 @@ Central distribution hub for token issuance.
 
 Simple target contract for receiving and distributing allocated tokens.
 
-**Module**: `ignition/modules/DirectAllocation.ts`
+**Module**: `deploy/ignition/modules/DirectAllocation.ts`
 
 **Exports**:
 
@@ -134,7 +136,7 @@ Simple target contract for receiving and distributing allocated tokens.
 
 Oracle-based eligibility system for indexer rewards.
 
-**Module**: `ignition/modules/RewardsEligibilityOracle.ts`
+**Module**: `deploy/ignition/modules/RewardsEligibilityOracle.ts`
 
 **Exports**:
 
@@ -233,6 +235,6 @@ import { connectGraphIssuance } from '@graphprotocol/toolshed'
 
 ## Additional Resources
 
-- [Ignition README](ignition/README.md) - Detailed Ignition documentation
-- [Example Script](ignition/examples/deploy-example.ts) - Programmatic deployment example
+- [Ignition README](deploy/ignition/README.md) - Detailed Ignition documentation
+- [Example Script](deploy/ignition/examples/deploy-example.ts) - Programmatic deployment example
 - [Hardhat Ignition Docs](https://hardhat.org/ignition) - Official documentation

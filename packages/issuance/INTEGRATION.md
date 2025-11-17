@@ -83,12 +83,14 @@ await contracts.IssuanceAllocator.setIssuancePerBlock(...)
 ### 1. Deploy with Ignition
 
 ```bash
-npx hardhat ignition deploy ignition/modules/deploy.ts \
+cd packages/issuance
+
+npx hardhat ignition deploy deploy/ignition/modules/deploy.ts \
   --network arbitrumSepolia \
-  --parameters ignition/configs/issuance.arbitrumSepolia.json5
+  --parameters deploy/ignition/configs/issuance.arbitrumSepolia.json5
 ```
 
-This creates: `ignition/deployments/<deployment-id>/deployed_addresses.json`
+This creates: `deploy/ignition/deployments/<deployment-id>/deployed_addresses.json`
 
 ### 2. Sync to Address Book
 
@@ -130,10 +132,11 @@ packages/horizon/
 ```
 packages/issuance/
 ├── addresses.json                    # Chain ID based ✅
-├── ignition/
-│   ├── modules/                      # Deployment modules ✅
-│   ├── configs/                      # Network configs ✅
-│   └── deployments/                  # Ignition artifacts ✅
+├── deploy/
+│   └── ignition/
+│       ├── modules/                  # Deployment modules ✅
+│       ├── configs/                  # Network configs ✅
+│       └── deployments/              # Ignition artifacts ✅
 ├── scripts/
 │   └── sync-addresses.ts             # Sync script ✅
 └── toolshed integration via:

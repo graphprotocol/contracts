@@ -14,7 +14,7 @@
     "./contracts/*": "./contracts/*",
     "./types": "./types/index.ts",
     "./types/*": "./types/*",
-    "./ignition": "./ignition/modules/index.ts",
+    "./ignition": "./deploy/ignition/modules/index.ts",
     "./addresses*": "./addresses*"
   },
   "scripts": {
