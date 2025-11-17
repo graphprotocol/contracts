@@ -1,0 +1,35 @@
+{
+  "arbitrumOne": {
+    "IssuanceAllocator": "",
+    "IssuanceAllocatorImplementation": "",
+    "IssuanceAllocatorProxyAdmin": "",
+    "DirectAllocation": "",
+    "DirectAllocationImplementation": "",
+    "DirectAllocationProxyAdmin": "",
+    "RewardsEligibilityOracle": "",
+    "RewardsEligibilityOracleImplementation": "",
+    "RewardsEligibilityOracleProxyAdmin": ""
+  },
+  "arbitrumSepolia": {
+    "IssuanceAllocator": "",
+    "IssuanceAllocatorImplementation": "",
+    "IssuanceAllocatorProxyAdmin": "",
+    "DirectAllocation": "",
+    "DirectAllocationImplementation": "",
+    "DirectAllocationProxyAdmin": "",
+    "RewardsEligibilityOracle": "",
+    "RewardsEligibilityOracleImplementation": "",
+    "RewardsEligibilityOracleProxyAdmin": ""
+  },
+  "localNetwork": {
+    "IssuanceAllocator": "",
+    "IssuanceAllocatorImplementation": "",
+    "IssuanceAllocatorProxyAdmin": "",
+    "DirectAllocation": "",
+    "DirectAllocationImplementation": "",
+    "DirectAllocationProxyAdmin": "",
+    "RewardsEligibilityOracle": "",
+    "RewardsEligibilityOracleImplementation": "",
+    "RewardsEligibilityOracleProxyAdmin": ""
+  }
+}

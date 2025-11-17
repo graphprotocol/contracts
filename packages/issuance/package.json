@@ -13,7 +13,9 @@
     "./artifacts/*": "./artifacts/*",
     "./contracts/*": "./contracts/*",
     "./types": "./types/index.ts",
-    "./types/*": "./types/*"
+    "./types/*": "./types/*",
+    "./ignition": "./ignition/modules/index.ts",
+    "./addresses*": "./addresses*"
   },
   "scripts": {
     "build": "pnpm build:dep && pnpm build:self",
@@ -46,6 +48,8 @@
     "@graphprotocol/interfaces": "workspace:^",
     "@graphprotocol/toolshed": "workspace:^",
     "@nomicfoundation/hardhat-ethers": "catalog:",
+    "@nomicfoundation/hardhat-ignition": "^0.15.9",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.9",
     "@nomicfoundation/hardhat-verify": "catalog:",
     "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
