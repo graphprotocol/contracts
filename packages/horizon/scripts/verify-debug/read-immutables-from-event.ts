@@ -43,7 +43,7 @@ async function main() {
     graphTokenGateway,
     graphProxyAdmin,
     graphCuration,
-  ] = ev.args as any[]
+  ] = ev.args as [string, string, string, string, string, string, string, string, string, string]
 
   console.log({
     address,

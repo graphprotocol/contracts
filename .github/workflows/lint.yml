@@ -2,14 +2,13 @@ name: Lint
 
 # This workflow runs linting on files in the repository
 # It can be configured to run on all files or just changed files
-# It will fail the build if there are errors, but only report warnings
+# It will fail the build if any linter fails
 
 env:
   CI: true
 
 on:
   pull_request:
-    branches: '*'
   workflow_dispatch:
     inputs:
       lint_mode:
@@ -99,278 +98,149 @@ jobs:
           echo "- JSON: $JSON_COUNT"
           echo "- YAML: $YAML_COUNT"
 
-      - name: Lint TypeScript/JavaScript files (ESLint)
-        id: lint_ts_eslint
+      - name: Lint Solidity files
+        id: lint_sol
         continue-on-error: true
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Running ESLint on all TypeScript/JavaScript files..."
-            npx eslint --max-warnings=0 '**/*.{js,ts,cjs,mjs,jsx,tsx}'
-            echo "ts_eslint_exit_code=$?" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.changed_files.outputs.ts_js_count }}" -gt "0" ]; then
-            echo "Running ESLint on changed TypeScript/JavaScript files..."
-            cat changed_ts_js.txt | xargs npx eslint --max-warnings=0
-            echo "ts_eslint_exit_code=$?" >> $GITHUB_OUTPUT
-          else
-            echo "No TypeScript/JavaScript files to lint with ESLint."
-            echo "ts_eslint_exit_code=0" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Lint TypeScript/JavaScript files (Prettier)
-        id: lint_ts_prettier
-        continue-on-error: true
-        run: |
-          if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Checking all TypeScript/JavaScript files with Prettier..."
-            npx prettier --check --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'
-            echo "ts_prettier_exit_code=$?" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.changed_files.outputs.ts_js_count }}" -gt "0" ]; then
-            echo "Checking changed TypeScript/JavaScript files with Prettier..."
-            cat changed_ts_js.txt | xargs npx prettier --check --cache --log-level warn
-            echo "ts_prettier_exit_code=$?" >> $GITHUB_OUTPUT
-          else
-            echo "No TypeScript/JavaScript files to check with Prettier."
-            echo "ts_prettier_exit_code=0" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Lint Solidity files (Solhint)
-        id: lint_sol_solhint
-        continue-on-error: true
-        run: |
-          if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Running Solhint on all Solidity files..."
-            npx solhint --max-warnings=0 --noPrompt --noPoster 'packages/*/contracts/**/*.sol'
-            echo "sol_solhint_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting all Solidity files in each package..."
+            # Run solhint in each workspace package that has contracts (check mode)
+            pnpm -r exec bash -c 'if [ -d "contracts" ]; then npx solhint --max-warnings=0 --noPrompt --noPoster "contracts/**/*.sol" 2>/dev/null || exit 1; fi'
+            # Check formatting with prettier
+            SOL_FILES=$(git ls-files '*.sol')
+            if [ -n "$SOL_FILES" ]; then
+              echo "$SOL_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn
+            else
+              echo "No Solidity files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.sol_count }}" -gt "0" ]; then
-            echo "Running Solhint on changed Solidity files..."
-            cat changed_sol.txt | xargs npx solhint --max-warnings=0 --noPrompt --noPoster
-            echo "sol_solhint_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting changed Solidity files..."
+            # Lint each changed file from its package directory
+            for file in $(cat changed_sol.txt); do
+              # Walk up to find package.json
+              dir="$file"
+              found=false
+              while [ "$dir" != "." ]; do
+                dir=$(dirname "$dir")
+                if [ -f "$dir/package.json" ]; then
+                  relative_file="${file#$dir/}"
+                  echo "  Checking $file"
+                  (cd "$dir" && npx solhint --max-warnings=0 --noPrompt --noPoster "$relative_file")
+                  found=true
+                  break
+                fi
+              done
+              if [ "$found" = false ]; then
+                echo "::error::No package.json found for $file - workflow needs fixing"
+                exit 1
+              fi
+            done
+
+            # Check formatting with prettier
+            cat changed_sol.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn
           else
-            echo "No Solidity files to lint with Solhint."
-            echo "sol_solhint_exit_code=0" >> $GITHUB_OUTPUT
+            echo "No Solidity files to lint"
           fi
 
-      - name: Lint Solidity files (Prettier)
-        id: lint_sol_prettier
+      - name: Lint TypeScript/JavaScript files
+        id: lint_ts
         continue-on-error: true
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Checking all Solidity files with Prettier..."
-            npx prettier --check --cache --log-level warn '**/*.sol'
-            echo "sol_prettier_exit_code=$?" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.changed_files.outputs.sol_count }}" -gt "0" ]; then
-            echo "Checking changed Solidity files with Prettier..."
-            cat changed_sol.txt | xargs npx prettier --check --cache --log-level warn
-            echo "sol_prettier_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting all TypeScript/JavaScript files..."
+            TS_FILES=$(git ls-files '*.js' '*.ts' '*.cjs' '*.mjs' '*.jsx' '*.tsx')
+            if [ -n "$TS_FILES" ]; then
+              echo "$TS_FILES" | tr '\n' '\0' | xargs -0 npx eslint --max-warnings=0 --no-warn-ignored
+              echo "$TS_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No TypeScript/JavaScript files found"
+            fi
+          elif [ "${{ steps.changed_files.outputs.ts_js_count }}" -gt "0" ]; then
+            echo "Linting changed TypeScript/JavaScript files..."
+            cat changed_ts_js.txt | tr '\n' '\0' | xargs -0 npx eslint --max-warnings=0 --no-warn-ignored
+            cat changed_ts_js.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           else
-            echo "No Solidity files to check with Prettier."
-            echo "sol_prettier_exit_code=0" >> $GITHUB_OUTPUT
+            echo "No TypeScript/JavaScript files to lint"
           fi
 
-      - name: Lint Markdown files (Markdownlint)
-        id: lint_md_markdownlint
+      - name: Lint Markdown files
+        id: lint_md
         continue-on-error: true
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Running Markdownlint on all Markdown files..."
-            npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore '**/*.md'
-            echo "md_markdownlint_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting all Markdown files..."
+            MD_FILES=$(git ls-files '*.md')
+            if [ -n "$MD_FILES" ]; then
+              echo "$MD_FILES" | tr '\n' '\0' | xargs -0 npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
+              echo "$MD_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No Markdown files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.md_count }}" -gt "0" ]; then
-            echo "Running Markdownlint on changed Markdown files..."
-            cat changed_md.txt | xargs npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
-            echo "md_markdownlint_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting changed Markdown files..."
+            cat changed_md.txt | tr '\n' '\0' | xargs -0 npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
+            cat changed_md.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           else
-            echo "No Markdown files to lint with Markdownlint."
-            echo "md_markdownlint_exit_code=0" >> $GITHUB_OUTPUT
+            echo "No Markdown files to lint"
           fi
 
-      - name: Lint Markdown files (Prettier)
-        id: lint_md_prettier
+      - name: Lint JSON files
+        id: lint_json
         continue-on-error: true
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Checking all Markdown files with Prettier..."
-            npx prettier --check --cache --log-level warn '**/*.md'
-            echo "md_prettier_exit_code=$?" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.changed_files.outputs.md_count }}" -gt "0" ]; then
-            echo "Checking changed Markdown files with Prettier..."
-            cat changed_md.txt | xargs npx prettier --check --cache --log-level warn
-            echo "md_prettier_exit_code=$?" >> $GITHUB_OUTPUT
-          else
-            echo "No Markdown files to check with Prettier."
-            echo "md_prettier_exit_code=0" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Lint JSON files (Prettier)
-        id: lint_json_prettier
-        continue-on-error: true
-        run: |
-          if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Checking all JSON files with Prettier..."
-            npx prettier --check --cache --log-level warn '**/*.json'
-            echo "json_prettier_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting all JSON files..."
+            # Exclude Ignition deployment artifacts and other build artifacts
+            JSON_FILES=$(git ls-files '*.json' | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; })
+            if [ -n "$JSON_FILES" ]; then
+              echo "$JSON_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No JSON files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.json_count }}" -gt "0" ]; then
-            echo "Checking changed JSON files with Prettier..."
-            cat changed_json.txt | xargs npx prettier --check --cache --log-level warn
-            echo "json_prettier_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting changed JSON files..."
+            JSON_FILES=$(cat changed_json.txt | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; })
+            if [ -n "$JSON_FILES" ]; then
+              echo "$JSON_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No JSON files to lint (after filtering build artifacts)"
+            fi
           else
-            echo "No JSON files to check with Prettier."
-            echo "json_prettier_exit_code=0" >> $GITHUB_OUTPUT
+            echo "No JSON files to lint"
           fi
 
-      - name: Lint YAML files (yaml-lint)
-        id: lint_yaml_yamllint
+      - name: Lint YAML files
+        id: lint_yaml
         continue-on-error: true
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Running yaml-lint on all YAML files..."
-            npx yaml-lint .github/**/*.{yml,yaml}
-            echo "yaml_yamllint_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting all YAML files..."
+            YAML_FILES=$(git ls-files '*.yml' '*.yaml')
+            if [ -n "$YAML_FILES" ]; then
+              echo "$YAML_FILES" | tr '\n' '\0' | xargs -0 npx yaml-lint
+              echo "$YAML_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No YAML files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.yaml_count }}" -gt "0" ]; then
-            echo "Running yaml-lint on changed YAML files..."
-            cat changed_yaml.txt | xargs npx yaml-lint
-            echo "yaml_yamllint_exit_code=$?" >> $GITHUB_OUTPUT
+            echo "Linting changed YAML files..."
+            cat changed_yaml.txt | tr '\n' '\0' | xargs -0 npx yaml-lint
+            cat changed_yaml.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
           else
-            echo "No YAML files to lint with yaml-lint."
-            echo "yaml_yamllint_exit_code=0" >> $GITHUB_OUTPUT
+            echo "No YAML files to lint"
           fi
 
-      - name: Lint YAML files (Prettier)
-        id: lint_yaml_prettier
-        continue-on-error: true
+      - name: Check lint results
+        if: always()
         run: |
-          if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
-            echo "Checking all YAML files with Prettier..."
-            npx prettier --check --cache --log-level warn '**/*.{yml,yaml}'
-            echo "yaml_prettier_exit_code=$?" >> $GITHUB_OUTPUT
-          elif [ "${{ steps.changed_files.outputs.yaml_count }}" -gt "0" ]; then
-            echo "Checking changed YAML files with Prettier..."
-            cat changed_yaml.txt | xargs npx prettier --check --cache --log-level warn
-            echo "yaml_prettier_exit_code=$?" >> $GITHUB_OUTPUT
-          else
-            echo "No YAML files to check with Prettier."
-            echo "yaml_prettier_exit_code=0" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Determine overall status
-        id: status
-        run: |
-          # Collect all exit codes
-          TS_ESLINT_EXIT_CODE="${{ steps.lint_ts_eslint.outputs.ts_eslint_exit_code }}"
-          TS_PRETTIER_EXIT_CODE="${{ steps.lint_ts_prettier.outputs.ts_prettier_exit_code }}"
-          SOL_SOLHINT_EXIT_CODE="${{ steps.lint_sol_solhint.outputs.sol_solhint_exit_code }}"
-          SOL_PRETTIER_EXIT_CODE="${{ steps.lint_sol_prettier.outputs.sol_prettier_exit_code }}"
-          SOL_NATSPEC_EXIT_CODE="${{ steps.lint_sol_natspec.outputs.sol_natspec_exit_code }}"
-          MD_MARKDOWNLINT_EXIT_CODE="${{ steps.lint_md_markdownlint.outputs.md_markdownlint_exit_code }}"
-          MD_PRETTIER_EXIT_CODE="${{ steps.lint_md_prettier.outputs.md_prettier_exit_code }}"
-          JSON_PRETTIER_EXIT_CODE="${{ steps.lint_json_prettier.outputs.json_prettier_exit_code }}"
-          YAML_YAMLLINT_EXIT_CODE="${{ steps.lint_yaml_yamllint.outputs.yaml_yamllint_exit_code }}"
-          YAML_PRETTIER_EXIT_CODE="${{ steps.lint_yaml_prettier.outputs.yaml_prettier_exit_code }}"
-
-          # Initialize counters
-          ERRORS=0
-          WARNINGS=0
-
-          # Check each exit code
-          # Exit code 1 typically indicates errors
-          # Exit code 2 or higher might indicate warnings or other issues
-
-          # TypeScript/JavaScript - ESLint
-          if [ "$TS_ESLINT_EXIT_CODE" = "1" ]; then
-            echo "::error::ESLint found errors in TypeScript/JavaScript files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$TS_ESLINT_EXIT_CODE" != "0" ]; then
-            echo "::warning::ESLint found warnings in TypeScript/JavaScript files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # TypeScript/JavaScript - Prettier
-          if [ "$TS_PRETTIER_EXIT_CODE" = "1" ]; then
-            echo "::error::Prettier found formatting issues in TypeScript/JavaScript files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$TS_PRETTIER_EXIT_CODE" != "0" ]; then
-            echo "::warning::Prettier found warnings in TypeScript/JavaScript files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # Solidity - Solhint
-          if [ "$SOL_SOLHINT_EXIT_CODE" = "1" ]; then
-            echo "::error::Solhint found errors in Solidity files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$SOL_SOLHINT_EXIT_CODE" != "0" ]; then
-            echo "::warning::Solhint found warnings in Solidity files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # Solidity - Prettier
-          if [ "$SOL_PRETTIER_EXIT_CODE" = "1" ]; then
-            echo "::error::Prettier found formatting issues in Solidity files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$SOL_PRETTIER_EXIT_CODE" != "0" ]; then
-            echo "::warning::Prettier found warnings in Solidity files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # Markdown - Markdownlint
-          if [ "$MD_MARKDOWNLINT_EXIT_CODE" = "1" ]; then
-            echo "::error::Markdownlint found errors in Markdown files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$MD_MARKDOWNLINT_EXIT_CODE" != "0" ]; then
-            echo "::warning::Markdownlint found warnings in Markdown files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # Markdown - Prettier
-          if [ "$MD_PRETTIER_EXIT_CODE" = "1" ]; then
-            echo "::error::Prettier found formatting issues in Markdown files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$MD_PRETTIER_EXIT_CODE" != "0" ]; then
-            echo "::warning::Prettier found warnings in Markdown files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # JSON - Prettier
-          if [ "$JSON_PRETTIER_EXIT_CODE" = "1" ]; then
-            echo "::error::Prettier found formatting issues in JSON files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$JSON_PRETTIER_EXIT_CODE" != "0" ]; then
-            echo "::warning::Prettier found warnings in JSON files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # YAML - yaml-lint
-          if [ "$YAML_YAMLLINT_EXIT_CODE" = "1" ]; then
-            echo "::error::yaml-lint found errors in YAML files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$YAML_YAMLLINT_EXIT_CODE" != "0" ]; then
-            echo "::warning::yaml-lint found warnings in YAML files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # YAML - Prettier
-          if [ "$YAML_PRETTIER_EXIT_CODE" = "1" ]; then
-            echo "::error::Prettier found formatting issues in YAML files"
-            ERRORS=$((ERRORS+1))
-          elif [ "$YAML_PRETTIER_EXIT_CODE" != "0" ]; then
-            echo "::warning::Prettier found warnings in YAML files"
-            WARNINGS=$((WARNINGS+1))
-          fi
-
-          # Create summary
-          LINT_MODE="${{ steps.lint_mode.outputs.mode }}"
-          if [ "$ERRORS" -gt 0 ]; then
-            echo "summary=❌ Linting ($LINT_MODE files) failed with $ERRORS error types and $WARNINGS warning types." >> $GITHUB_OUTPUT
-            echo "Linting failed with errors. CI build will fail."
+          # Check if any lint step failed
+          if [ "${{ steps.lint_sol.outcome }}" = "failure" ] || \
+             [ "${{ steps.lint_ts.outcome }}" = "failure" ] || \
+             [ "${{ steps.lint_md.outcome }}" = "failure" ] || \
+             [ "${{ steps.lint_json.outcome }}" = "failure" ] || \
+             [ "${{ steps.lint_yaml.outcome }}" = "failure" ]; then
+            echo "❌ One or more linters failed"
             exit 1
-          elif [ "$WARNINGS" -gt 0 ]; then
-            echo "summary=⚠️ Linting ($LINT_MODE files) passed with $WARNINGS warning types. CI build will continue." >> $GITHUB_OUTPUT
-            echo "Linting found warnings but no errors. CI build will continue."
-            exit 0
           else
-            echo "summary=✅ All linters ($LINT_MODE files) passed successfully with no errors or warnings." >> $GITHUB_OUTPUT
-            echo "All linters passed successfully."
-            exit 0
+            echo "✅ All linters passed"
           fi
-
-      - name: Post Summary
-        run: echo "${{ steps.status.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
