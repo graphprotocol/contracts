@@ -1,0 +1,79 @@
+{
+  "name": "@graphprotocol/issuance",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "The Graph Issuance Contracts",
+  "author": "Edge & Node",
+  "license": "GPL-2.0-or-later",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./artifacts/*": "./artifacts/*",
+    "./contracts/*": "./contracts/*",
+    "./types": "./types/index.ts",
+    "./types/*": "./types/*"
+  },
+  "scripts": {
+    "build": "pnpm build:dep && pnpm build:self",
+    "build:dep": "pnpm --filter '@graphprotocol/issuance^...' run build:self",
+    "build:self": "pnpm compile && pnpm build:self:typechain",
+    "build:coverage": "pnpm build:dep && pnpm build:self:coverage",
+    "build:self:coverage": "npx hardhat compile --config hardhat.coverage.config.ts && pnpm build:self:typechain",
+    "build:self:typechain": "bash -c 'missing=$(grep -rL \"static readonly interfaceId\" types/factories --include=\"*__factory.ts\" 2>/dev/null | wc -l); if [ $missing -gt 0 ]; then node -e \"require('\"'\"'@graphprotocol/interfaces/utils'\"'\"').addInterfaceIds('\"'\"'types/factories'\"'\"')\"; fi'",
+    "clean": "rm -rf artifacts/ types/ forge-artifacts/ cache_forge/ coverage/ cache/ .eslintcache",
+    "compile": "hardhat compile --quiet",
+    "test": "pnpm --filter @graphprotocol/issuance-test test",
+    "test:coverage": "pnpm --filter @graphprotocol/issuance-test run test:coverage",
+    "lint": "pnpm lint:ts; pnpm lint:sol; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:sol": "solhint --fix --noPrompt --noPoster 'contracts/**/*.sol'; prettier -w --cache --log-level warn 'contracts/**/*.sol'",
+    "lint:md": "markdownlint --fix --ignore-path ../../.gitignore '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.json'",
+    "typechain": "hardhat typechain",
+    "verify": "hardhat verify",
+    "size": "hardhat size-contracts",
+    "forge:build": "forge build"
+  },
+  "files": [
+    "artifacts/**/*",
+    "types/**/*",
+    "contracts/**/*",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@graphprotocol/interfaces": "workspace:^",
+    "@graphprotocol/toolshed": "workspace:^",
+    "@nomicfoundation/hardhat-ethers": "catalog:",
+    "@nomicfoundation/hardhat-verify": "catalog:",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "@openzeppelin/hardhat-upgrades": "^3.9.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "catalog:",
+    "@types/node": "^20.17.50",
+    "dotenv": "catalog:",
+    "eslint": "catalog:",
+    "ethers": "catalog:",
+    "glob": "catalog:",
+    "globals": "catalog:",
+    "hardhat": "catalog:",
+    "hardhat-contract-sizer": "catalog:",
+    "hardhat-secure-accounts": "catalog:",
+    "hardhat-storage-layout": "catalog:",
+    "lint-staged": "catalog:",
+    "markdownlint-cli": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-solidity": "catalog:",
+    "solhint": "catalog:",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.0",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "yaml-lint": "catalog:"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.8.0"
+  }
+}
