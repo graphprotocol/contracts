@@ -107,7 +107,12 @@ jobs:
             # Run solhint in each workspace package that has contracts (check mode)
             pnpm -r exec bash -c 'if [ -d "contracts" ]; then npx solhint --max-warnings=0 --noPrompt --noPoster "contracts/**/*.sol" 2>/dev/null || exit 1; fi'
             # Check formatting with prettier
-            git ls-files '*.sol' | xargs -r npx prettier --check --cache --log-level warn
+            SOL_FILES=$(git ls-files '*.sol')
+            if [ -n "$SOL_FILES" ]; then
+              echo "$SOL_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn
+            else
+              echo "No Solidity files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.sol_count }}" -gt "0" ]; then
             echo "Linting changed Solidity files..."
             # Lint each changed file from its package directory
@@ -132,7 +137,9 @@ jobs:
             done
 
             # Check formatting with prettier
-            cat changed_sol.txt | xargs -r npx prettier --check --cache --log-level warn
+            cat changed_sol.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn
+          else
+            echo "No Solidity files to lint"
           fi
 
       - name: Lint TypeScript/JavaScript files
@@ -141,12 +148,19 @@ jobs:
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all TypeScript/JavaScript files..."
-            git ls-files '*.js' '*.ts' '*.cjs' '*.mjs' '*.jsx' '*.tsx' | xargs -r npx eslint --max-warnings=0 --no-warn-ignored
-            git ls-files '*.js' '*.ts' '*.cjs' '*.mjs' '*.jsx' '*.tsx' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            TS_FILES=$(git ls-files '*.js' '*.ts' '*.cjs' '*.mjs' '*.jsx' '*.tsx')
+            if [ -n "$TS_FILES" ]; then
+              echo "$TS_FILES" | tr '\n' '\0' | xargs -0 npx eslint --max-warnings=0 --no-warn-ignored
+              echo "$TS_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No TypeScript/JavaScript files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.ts_js_count }}" -gt "0" ]; then
             echo "Linting changed TypeScript/JavaScript files..."
-            cat changed_ts_js.txt | xargs -r npx eslint --max-warnings=0 --no-warn-ignored
-            cat changed_ts_js.txt | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            cat changed_ts_js.txt | tr '\n' '\0' | xargs -0 npx eslint --max-warnings=0 --no-warn-ignored
+            cat changed_ts_js.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+          else
+            echo "No TypeScript/JavaScript files to lint"
           fi
 
       - name: Lint Markdown files
@@ -155,12 +169,19 @@ jobs:
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all Markdown files..."
-            git ls-files '*.md' | xargs -r npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
-            git ls-files '*.md' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            MD_FILES=$(git ls-files '*.md')
+            if [ -n "$MD_FILES" ]; then
+              echo "$MD_FILES" | tr '\n' '\0' | xargs -0 npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
+              echo "$MD_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No Markdown files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.md_count }}" -gt "0" ]; then
             echo "Linting changed Markdown files..."
-            cat changed_md.txt | xargs -r npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
-            cat changed_md.txt | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            cat changed_md.txt | tr '\n' '\0' | xargs -0 npx markdownlint --ignore-path .gitignore --ignore-path .markdownlintignore
+            cat changed_md.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+          else
+            echo "No Markdown files to lint"
           fi
 
       - name: Lint JSON files
@@ -170,10 +191,22 @@ jobs:
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all JSON files..."
             # Exclude Ignition deployment artifacts and other build artifacts
-            git ls-files '*.json' | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; } | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            JSON_FILES=$(git ls-files '*.json' | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; })
+            if [ -n "$JSON_FILES" ]; then
+              echo "$JSON_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No JSON files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.json_count }}" -gt "0" ]; then
             echo "Linting changed JSON files..."
-            cat changed_json.txt | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; } | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            JSON_FILES=$(cat changed_json.txt | { grep -v -E '(ignition/deployments/.*/artifacts/|ignition/deployments/.*/build-info/|/\.openzeppelin/|deployments/.*/solcInputs/)' || true; })
+            if [ -n "$JSON_FILES" ]; then
+              echo "$JSON_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No JSON files to lint (after filtering build artifacts)"
+            fi
+          else
+            echo "No JSON files to lint"
           fi
 
       - name: Lint YAML files
@@ -182,12 +215,19 @@ jobs:
         run: |
           if [ "${{ steps.lint_mode.outputs.mode }}" = "all" ]; then
             echo "Linting all YAML files..."
-            git ls-files '*.yml' '*.yaml' | xargs -r npx yaml-lint
-            git ls-files '*.yml' '*.yaml' | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            YAML_FILES=$(git ls-files '*.yml' '*.yaml')
+            if [ -n "$YAML_FILES" ]; then
+              echo "$YAML_FILES" | tr '\n' '\0' | xargs -0 npx yaml-lint
+              echo "$YAML_FILES" | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            else
+              echo "No YAML files found"
+            fi
           elif [ "${{ steps.changed_files.outputs.yaml_count }}" -gt "0" ]; then
             echo "Linting changed YAML files..."
-            cat changed_yaml.txt | xargs -r npx yaml-lint
-            cat changed_yaml.txt | xargs -r npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+            cat changed_yaml.txt | tr '\n' '\0' | xargs -0 npx yaml-lint
+            cat changed_yaml.txt | tr '\n' '\0' | xargs -0 npx prettier --check --cache --log-level warn --no-error-on-unmatched-pattern
+          else
+            echo "No YAML files to lint"
           fi
 
       - name: Check lint results
