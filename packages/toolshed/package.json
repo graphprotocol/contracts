@@ -58,7 +58,7 @@
     "@nomicfoundation/hardhat-ethers": "catalog:",
     "debug": "^4.4.0",
     "ethers": "catalog:",
-    "glob": "^11.0.1",
+    "glob": "^11.1.0",
     "hardhat": "catalog:",
     "json5": "^2.2.3"
   },
