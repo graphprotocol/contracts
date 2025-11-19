@@ -7,12 +7,11 @@
 
 ## Summary
 
-**15 files** remain in `legacy/packages/`:
+**7 files** remain in `legacy/packages/` - all test files for reference:
 
 1. **Fork test pattern** (1 file) - Reference for governance testing
 2. **Testing patterns** (5 files) - Test files to review
-3. **Configuration files** (7 files) - Reference only (addresses, settings)
-4. **Deployment scripts** (2 files) - Compare with current automation
+3. **Type definitions** (1 file) - Contract type definitions
 
 ---
 
@@ -23,6 +22,7 @@
 **File:** `packages/issuance/deploy/test-governance-workflow.ts`
 
 **What it does:**
+
 - Forks Arbitrum network
 - Impersonates governance Safe
 - Tests complete deployment → governance → verification workflow
@@ -36,15 +36,17 @@
 ### Testing Patterns (5 files)
 
 **Files:**
+
 - `packages/deploy/test/issuance-active.test.ts`
+- `packages/deploy/test/issuance-active-smoke.test.ts`
 - `packages/issuance/deploy/test/service-quality-oracle-deploy.test.ts`
 - `packages/issuance/deploy/test/issuance-state-verifier.test.ts`
 - `packages/issuance/deploy/test/deployment.test.js`
-- `packages/deploy/test/issuance-active-smoke.test.ts`
 
 **What they test:** Legacy checkpoint modules and deployment patterns
 
 **Work needed:**
+
 1. Review for test patterns to adapt
 2. Verify current tests cover equivalent functionality
 3. Delete after review
@@ -53,53 +55,14 @@
 
 ---
 
-### Configuration Files (7 files)
+### Type Definitions (1 file)
 
-**Files:**
-- `ignition/configs/issuance.arbitrumSepolia.json5`
-- `ignition/configs/issuance.arbitrumOne.json5`
-- `package.json`
-- `tsconfig.json`
-- `hardhat.config.ts`
-- Plus 2 more config files
+**File:** `src/contracts.ts`
 
-**What they contain:** Network settings, deployment addresses, configuration patterns
+**What it contains:** Contract type definitions and exports
 
 **Work needed:**
-1. Extract any useful addresses not in current configs
-2. Reference only - patterns already incorporated
-3. Delete after address extraction
 
-**Priority:** LOW - Reference only
-
----
-
-### Deployment Scripts (2 files)
-
-**Files:**
-- `scripts/deploy.ts`
-- `scripts/verify.ts`
-
-**What they do:** Legacy deployment and verification automation
-
-**Work needed:**
-1. Compare with current Ignition workflows
-2. Check verification patterns
-3. Delete after comparison
-
-**Priority:** LOW - Current automation is likely sufficient
-
----
-
-### Source Files (Reference)
-
-**Files:**
-- `src/contracts.ts`
-- `src/index.ts`
-
-**What they do:** Type definitions and exports
-
-**Work needed:**
 1. Check for useful type definitions
 2. Delete after review
 
@@ -109,16 +72,19 @@
 
 ## What Has Been Successfully Removed
 
-**Phase 1 & 2 (39 files removed):**
+**Phase 1, 2, & 2.5 (47 files removed):**
+
 - ✅ 9 checkpoint modules - Migrated to current codebase
 - ✅ 5 component modules - Superseded by current modules
 - ✅ 3 target modules - Patterns documented
 - ✅ 4 address book files - Pattern incorporated in EnhancedIssuanceAddressBook
 - ✅ 9 governance scripts - Patterns incorporated in orchestration tasks
 - ✅ 6 legacy governance modules - Deleted in Phase 2.5 cleanup
-- ✅ 3 deployment scripts - Patterns incorporated
+- ✅ 7 configuration files - Reviewed and removed
+- ✅ 3 deployment scripts - Patterns incorporated, files removed
+- ✅ 1 scripts README - Obsolete
 
-**Total removed:** 39 files
+**Total removed:** 47 files
 
 ---
 
@@ -131,18 +97,19 @@
 | Target Modules     | 0               | 3             | ✅ Complete       |
 | Address Book       | 0               | 4             | ✅ Phase 2.5      |
 | Governance Scripts | 0               | 15            | ✅ Phase 2.5      |
+| Configuration      | 0               | 7             | ✅ Removed        |
+| Deployment Scripts | 0               | 4             | ✅ Removed        |
 | Fork Test Pattern  | 1               | 0             | ⏳ Reference      |
 | Testing Patterns   | 5               | 0             | ⏳ Review needed  |
-| Configuration      | 7               | 0             | ⏳ Reference only |
-| Deployment Scripts | 2               | 3             | ⏳ Review needed  |
-| **Total**          | **15**          | **39**        | **72% cleaned**   |
+| Type Definitions   | 1               | 1             | ⏳ Reference only |
+| **Total**          | **7**           | **47**        | **87% cleaned**   |
 
 ---
 
 ## Timeline to Full Cleanup
 
-- **After Phase 2.5:** ✅ ~93% complete (orchestration + governance cleanup)
-- **After Phase 3:** ~97% complete (gradual migration patterns recreated)
+- **After Phase 2.5:** ✅ ~87% complete (7 files remaining, all test/reference files)
+- **After Phase 3:** ~95% complete (gradual migration patterns recreated)
 - **After Phase 4:** 100% complete (entire legacy/packages/ deletable)
 
 ---
@@ -150,15 +117,16 @@
 ## Next Actions
 
 **Phase 3 (IssuanceAllocator):**
+
 - Recreate gradual migration patterns when IA work begins
 - Reference ReplicatedAllocation pattern from documentation
 
 **Phase 4 (Final Cleanup):**
-1. Review remaining test files for useful patterns
-2. Extract any missing addresses from config files
-3. Compare deployment scripts with current automation
-4. Delete entire `legacy/packages/` directory
+
+1. Review remaining 6 test files for useful patterns
+2. Check contracts.ts for any unique type definitions
+3. Delete entire `legacy/packages/` directory
 
 ---
 
-**Status:** Legacy directory significantly reduced to 15 reference files. All critical patterns incorporated.
+**Status:** Legacy directory reduced to 7 reference/test files only. All implementation patterns incorporated.
