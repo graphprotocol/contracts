@@ -87,6 +87,7 @@ Current components (from `DEPLOYMENT.md` and Ignition modules):
 **1. Keep issuance deploy package component-only**
 
 `packages/issuance/deploy/ignition/modules/*` should focus on deploying and initializing:
+
 - `IssuanceAllocator` (with GraphToken address parameterized)
 - `DirectAllocation` instances
 - `RewardsEligibilityOracle` (with eligibility period/timeouts etc.)
@@ -96,6 +97,7 @@ They should not directly call into RewardsManager or GraphToken governance funct
 **2. Introduce (or reuse) an orchestration layer for "Active" states**
 
 Somewhere else (either a new `packages/deploy` or an existing Horizon/orchestration package), define targets/sequences that:
+
 - Upgrade RewardsManager implementation where needed
 - Call `RewardsManager.setIssuanceAllocator(IA)`
 - Call `RewardsManager.setServiceQualityOracle(Oracle)`
@@ -107,6 +109,7 @@ These are the steps that should be modelled as explicit Safe transactions and re
 **3. Make governance checkpoints explicit in tests**
 
 Fork-based Arbitrum tests should:
+
 - Run Ignition deploy modules for new components
 - Then impersonate governance and execute the exact sequence of transactions described in the legacy `DeploymentGuide.md` (adapted to the new contracts)
 - Then run assertion helpers that mirror the legacy `GovernanceAssertions` pattern
@@ -128,14 +131,17 @@ These can guide how we structure `deploy/ignition/configs/issuance.arbitrum*.jso
 When deciding what to adapt from the legacy packages, the highest-value items are:
 
 **Docs:**
+
 - `doc/Design.md` – for target model and governance phases
 - `doc/DeploymentGuide.md` – for the multi-phase (RewardsManager → ProxyAdmin → SQO → Allocator) sequencing
 
 **Ignition:**
+
 - `ignition/modules/contracts/*` – how they modeled component deployments and shared admin
 - `ignition/modules/targets/*` – patterns for "Active" targets as assertions
 
 **Scripts/tests:**
+
 - `scripts/deploy-upgrade-prep.js` & `deploy-governance-upgrade.js` – proposal and upgrade flows
 - `scripts/address-book.js` / `update-address-book.js` – how pending/active implementations are tracked
 - `test-governance-workflow.ts` – governance workflow encoding that we can adapt into Arbitrum fork tests
@@ -200,17 +206,20 @@ To be decided collaboratively:
 The 3-stage IssuanceAllocator migration pattern is **CRITICAL for mainnet safety**:
 
 **Stage 1 - Deploy with Zero Impact:**
+
 - Deploy IA configured to exactly replicate RewardsManager (100% allocation)
 - Not integrated yet - zero production impact
 - Comprehensive testing possible without risk
 
 **Stage 2 - Activate with No Distribution Change:**
+
 - Governance integrates IA with RewardsManager
 - Grant minting authority
 - **Still 100% to RM** - no economic change yet
 - Validates integration before changing distribution
 
 **Stage 3 - Gradual Allocation Adjustments:**
+
 - Deploy DirectAllocation targets as needed
 - Gradually adjust allocations (99%/1%, then 95%/5%, etc.)
 - Monitor each change before proceeding
@@ -235,21 +244,25 @@ This pattern should be adopted.
 The Prepare/Execute/Verify workflow is battle-tested:
 
 **Prepare (Permissionless):**
+
 - Anyone deploys implementations/contracts
 - Generate governance TX data
 - No production impact
 
 **Execute (Governance):**
+
 - Governance reviews and executes
 - State transitions happen
 - Production impact occurs here
 
 **Verify (Automated):**
+
 - Scripts verify expected state
 - Address book updated
 - Confirmation of governance execution
 
 This workflow enables:
+
 - Independent governance verification before execution
 - Clear separation of deployment from governance
 - Automated verification after governance
@@ -265,13 +278,13 @@ This workflow enables:
 
 The following design decisions were identified:
 
-| Decision | Recommendation | Priority |
-|----------|----------------|----------|
-| **Proxy Administration** | Keep standard pattern, document governance | LOW |
-| **Module Granularity** | Keep orchestrator, add governance modules later | MEDIUM |
-| **Pending Implementation** | Extend address book for upgrades | HIGH |
-| **Deployment Sequencing** | Environment-specific (simple for testnet, phased for mainnet) | HIGH |
-| **Gradual Migration** | **MUST adopt 3-stage migration** | **CRITICAL** |
+| Decision                   | Recommendation                                                | Priority     |
+| -------------------------- | ------------------------------------------------------------- | ------------ |
+| **Proxy Administration**   | Keep standard pattern, document governance                    | LOW          |
+| **Module Granularity**     | Keep orchestrator, add governance modules later               | MEDIUM       |
+| **Pending Implementation** | Extend address book for upgrades                              | HIGH         |
+| **Deployment Sequencing**  | Environment-specific (simple for testnet, phased for mainnet) | HIGH         |
+| **Gradual Migration**      | **MUST adopt 3-stage migration**                              | **CRITICAL** |
 
 See [Conflicts.md](./Conflicts.md) for detailed analysis of each decision.
 

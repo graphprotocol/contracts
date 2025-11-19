@@ -164,27 +164,33 @@ This document provides comprehensive verification checklists for each phase of R
 #### Deployment
 
 - [ ] **Deploy via Ignition**
+
   ```bash
   npx hardhat ignition deploy ignition/modules/RewardsEligibilityOracle.ts \
     --network <network> \
     --parameters ignition/configs/issuance.<network>.json5 \
     --deployment-id <deployment-id>
   ```
+
   - [ ] Deployment successful
   - [ ] Transaction hashes recorded
   - [ ] Gas costs recorded
 
 - [ ] **Sync addresses**
+
   ```bash
   npx ts-node scripts/sync-addresses.ts <deployment-id> <chain-id>
   ```
+
   - [ ] Addresses synced to `addresses.json`
   - [ ] Address book updated correctly
 
 - [ ] **Verify contracts**
+
   ```bash
   npx hardhat ignition verify <deployment-id>
   ```
+
   - [ ] Implementation verified
   - [ ] Proxy verified
   - [ ] Verification successful on block explorer
@@ -405,6 +411,7 @@ This document provides comprehensive verification checklists for each phase of R
   - [ ] Sign-off obtained
 
 - [ ] **Governance batch generated**
+
   ```bash
   npx hardhat issuance:build-rewards-eligibility-upgrade \
     --network <network> \
@@ -412,6 +419,7 @@ This document provides comprehensive verification checklists for each phase of R
     --rewardsEligibilityOracleAddress <address> \
     --outputDir ./governance-proposals
   ```
+
   - [ ] Safe transaction JSON generated
   - [ ] File location: `__________________`
 
@@ -750,28 +758,28 @@ This document provides comprehensive verification checklists for each phase of R
 
 ### Key Addresses
 
-**Network:** __________________
-**Chain ID:** __________________
+**Network:** ********\_\_********
+**Chain ID:** ********\_\_********
 
-| Component | Address |
-|-----------|---------|
-| GraphToken | __________________ |
-| RewardsManager Proxy | __________________ |
-| RewardsManager Implementation | __________________ |
-| GraphProxyAdmin | __________________ |
-| REO Proxy | __________________ |
-| REO Implementation | __________________ |
-| REO ProxyAdmin | __________________ |
-| Governance Multi-sig | __________________ |
-| OPERATOR Address | __________________ |
-| ORACLE Address | __________________ |
+| Component                     | Address              |
+| ----------------------------- | -------------------- |
+| GraphToken                    | ********\_\_******** |
+| RewardsManager Proxy          | ********\_\_******** |
+| RewardsManager Implementation | ********\_\_******** |
+| GraphProxyAdmin               | ********\_\_******** |
+| REO Proxy                     | ********\_\_******** |
+| REO Implementation            | ********\_\_******** |
+| REO ProxyAdmin                | ********\_\_******** |
+| Governance Multi-sig          | ********\_\_******** |
+| OPERATOR Address              | ********\_\_******** |
+| ORACLE Address                | ********\_\_******** |
 
 ### Key Parameters
 
-| Parameter | Value |
-|-----------|-------|
-| eligibilityPeriod | 1_209_600 (14 days) |
-| oracleUpdateTimeout | 604_800 (7 days) |
+| Parameter                    | Value                  |
+| ---------------------------- | ---------------------- |
+| eligibilityPeriod            | 1_209_600 (14 days)    |
+| oracleUpdateTimeout          | 604_800 (7 days)       |
 | eligibilityValidationEnabled | false → true (Phase 6) |
 
 ### Key Commands

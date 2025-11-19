@@ -7,11 +7,13 @@
 
 ## Summary
 
-After cleanup, **27 files** remain in `legacy/packages/`. These fall into three categories:
+After cleanup, **27 files** remain in `legacy/packages/`. Each file represents concrete remaining work:
 
 1. **High-value patterns** (3 files) - Must incorporate in Phase 2-3
-2. **Reference scripts** (20 files) - Kept for pattern reference, user requested
-3. **Configuration** (4 files) - Reference only, may contain useful addresses
+2. **Testing patterns** (5 files) - Adapt tests for migrated components
+3. **Configuration patterns** (7 files) - Extract deployment/verification/validation patterns
+4. **Governance workflows** (6 files in lib/) - Compare with current, extract missing patterns
+5. **Deployment scripts** (6 files) - Compare with current tasks, extract missing automation
 
 ---
 
@@ -22,6 +24,7 @@ After cleanup, **27 files** remain in `legacy/packages/`. These fall into three 
 **File:** `packages/issuance/deploy/test-governance-workflow.ts`
 
 **What it does:**
+
 - Forks Arbitrum network at specific block
 - Impersonates governance Safe multi-sig
 - Deploys issuance components
@@ -29,12 +32,14 @@ After cleanup, **27 files** remain in `legacy/packages/`. These fall into three 
 - Validates integration with checkpoint modules
 
 **Why it's valuable:**
+
 - Provides complete E2E testing of governance workflow
 - Tests Safe transaction execution
 - Validates checkpoint modules work correctly
 - Critical for confidence before mainnet deployment
 
 **Remaining work:**
+
 - Adapt for REO deployment workflow
 - Update contract names (ServiceQualityOracle → RewardsEligibilityOracle)
 - Create test file at `packages/deploy/test/reo-governance-workflow.test.ts`
@@ -50,6 +55,7 @@ After cleanup, **27 files** remain in `legacy/packages/`. These fall into three 
 **Compiled:** `packages/issuance/deploy/lib/src/address-book.js`
 
 **What it provides:**
+
 ```typescript
 interface IssuanceContractEntry {
   address: string
@@ -57,21 +63,24 @@ interface IssuanceContractEntry {
     address: string
     deployedAt?: string
   }
-  pendingImplementation?: {      // ← This feature doesn't exist in Toolshed
+  pendingImplementation?: {
+    // ← This feature doesn't exist in Toolshed
     address: string
     deployedAt?: string
-    readyForUpgrade?: boolean    // Tracks upgrade readiness
+    readyForUpgrade?: boolean // Tracks upgrade readiness
   }
 }
 ```
 
 **Why it's valuable:**
+
 - Tracks pending implementation deployments
 - Marks when implementations are ready for governance upgrade
 - Useful for multi-step upgrade workflows
 - Not available in Toolshed AddressBook
 
 **Remaining work:**
+
 - Review implementation details
 - Decide: Extend Toolshed AddressBook OR create custom wrapper
 - Integrate pending implementation tracking into current workflows
@@ -83,22 +92,25 @@ interface IssuanceContractEntry {
 ### 3. Governance Transaction Builders (Reference Pattern)
 
 **Files:**
+
 - `lib/ignition/modules/governanceTransactions.js`
 - `lib/ignition/modules/upgradePrep.js`
 - `lib/ignition/modules/upgradeComplete.js`
 - `lib/ignition/modules/verifyUpgradeState.js`
 
 **What they do:**
+
 - Build Safe transaction batches
 - Encode function calls for governance
 - Coordinate multi-step upgrades
 
 **Why keeping:**
-- User requested to keep lib/ scripts
+
 - May contain patterns not yet in current TX builder
 - Reference for complex governance workflows
 
 **Remaining work:**
+
 - Review for patterns missing in current `packages/deploy/governance/`
 - Extract any valuable patterns
 - Can delete after thorough review
@@ -107,103 +119,275 @@ interface IssuanceContractEntry {
 
 ---
 
-## Reference Scripts (Low Priority)
+## Testing Patterns (5 files) - Create Tests for Migrated Components
 
-### Deployment Scripts
+### packages/deploy/test/issuance-active.test.ts
 
-**Files:**
-- `packages/issuance/deploy/scripts/deploy.ts`
-- `packages/issuance/deploy/scripts/deploy-governance-upgrade.js`
-- `packages/issuance/deploy/scripts/deploy-upgrade-prep.js`
-- `packages/deploy/scripts/deployAll.js`
-- `packages/deploy/scripts/verify.ts`
+**What it tests:** Legacy checkpoint modules (IssuanceAllocatorActive, ServiceQualityOracleActive, IssuanceAllocatorMinter)
 
-**Purpose:** Legacy deployment automation
+**Problem:** Tests OBSOLETE legacy versions, not current migrated modules
 
-**Remaining work:** Reference only, can delete after confirming patterns documented
+**Work needed:**
 
----
+1. Create equivalent tests in `packages/deploy/test/` for CURRENT checkpoint modules
+2. Test RewardsEligibilityOracleActive deploys and calls assertion correctly
+3. Test IssuanceAllocatorActive, IssuanceAllocatorMinter work correctly
+4. Test assertion failures when governance hasn't executed integration
 
-### Test Files
-
-**Files:**
-- `packages/issuance/deploy/test/service-quality-oracle-deploy.test.ts`
-- `packages/issuance/deploy/test/issuance-state-verifier.test.ts`
-- `packages/issuance/deploy/test/deployment.test.js`
-- `packages/deploy/test/issuance-active.test.ts`
-- `packages/deploy/test/issuance-active-smoke.test.ts`
-
-**Purpose:** Legacy component and integration tests
-
-**Remaining work:** Reference for test patterns, can delete after review
+**Priority:** MEDIUM - Important for deployment confidence
 
 ---
 
-### Library Scripts (User Requested to Keep)
+### packages/issuance/deploy/test/service-quality-oracle-deploy.test.ts
 
-**Files:**
-- `lib/ignition/modules/IssuanceAllocator.js`
-- `lib/ignition/modules/governanceTransactions.js`
-- `lib/ignition/modules/governanceUpgrade.js`
-- `lib/ignition/modules/upgradeComplete.js`
-- `lib/ignition/modules/upgradePrep.js`
-- `lib/ignition/modules/verifyUpgradeState.js`
-- `lib/src/address-book.js` (compiled from TypeScript)
-- `lib/src/contracts.js`
-- `lib/src/index.js`
+**What it tests:** ServiceQualityOracle deployment (obsolete contract name)
 
-**Purpose:** Reference implementations, user explicitly asked to keep
+**Work needed:**
 
-**Remaining work:** Review thoroughly before considering deletion
+1. Check if `packages/issuance/test/` has equivalent test for RewardsEligibilityOracle
+2. If not, create deployment test for REO
+3. Can delete after creating modern equivalent
 
 ---
 
-### Source Files
+### packages/issuance/deploy/test/issuance-state-verifier.test.ts
 
-**Files:**
-- `src/address-book.ts` (see High-Value section)
-- `src/contracts.ts`
-- `src/index.ts`
-- `scripts/address-book.js`
-- `scripts/update-address-book.js`
+**What it tests:** IssuanceStateVerifier assertions work correctly
 
-**Purpose:** TypeScript source for lib/ and address book utilities
+**Work needed:**
 
-**Remaining work:** Extract valuable patterns, then can delete
+1. Check if `packages/issuance/test/` tests IssuanceStateVerifier
+2. Ensure all assertion functions are tested (assertRewardsEligibilityOracleSet, etc.)
+3. Can delete after confirming coverage
 
 ---
 
-## Configuration Files (Reference Only)
+### packages/issuance/deploy/test/deployment.test.js & packages/deploy/test/issuance-active-smoke.test.ts
 
-**Files:**
-- `packages/issuance/deploy/package.json`
-- `packages/deploy/package.json`
-- `packages/issuance/deploy/tsconfig.json`
-- `packages/issuance/deploy/hardhat.config.ts`
-- `packages/deploy/hardhat.config.ts`
-- `ignition/configs/issuance.arbitrumOne.json5`
-- `ignition/configs/issuance.arbitrumSepolia.json5`
+**What they test:** General deployment workflows and smoke tests
 
-**Purpose:** Legacy configuration, may contain useful addresses
+**Work needed:**
 
-**Remaining work:** Extract any useful addresses, then can delete
+1. Extract deployment testing patterns
+2. Create modern equivalents in current test structure
+3. Can delete after patterns extracted
+
+---
+
+## Configuration Patterns (7 files) - Extract Deployment Settings
+
+### ignition/configs/issuance.arbitrumSepolia.json5 (LEGACY)
+
+**Current file exists:** `packages/issuance/deploy/ignition/configs/issuance.arbitrumSepolia.json5`
+
+**Legacy has that current doesn't:**
+
+- Network metadata (chainId, blockTime, rpcUrl, explorerUrl)
+- Deployment configuration (confirmations, gasPrice, gasLimit, timeout)
+- Verification settings (apiKey, apiUrl structure)
+- Testing flags (enableTestingFeatures, skipInitialValidation)
+- Environment requirements validation
+- Test accounts structure
+
+**Work needed:**
+
+1. Evaluate if network metadata belongs in configs vs hardhat.config.ts
+2. Check if deployment settings should be in hardhat config instead
+3. Extract verification patterns if useful for automation
+4. Decide if testing flags approach is valuable
+5. Extract environment variable validation patterns
+6. Can delete after extracting patterns
+
+**Priority:** MEDIUM - May improve deployment automation
+
+---
+
+### ignition/configs/issuance.arbitrumOne.json5 (LEGACY)
+
+**Work needed:** Same analysis as arbitrumSepolia.json5 above
+
+---
+
+### package.json, tsconfig.json, hardhat.config.ts files (LEGACY)
+
+**Work needed:**
+
+1. Compare with current package.json/configs
+2. Extract any missing scripts or configuration
+3. Can delete after comparison
+
+---
+
+## Governance Workflows (6 files in lib/) - Extract Missing Patterns
+
+### lib/ignition/modules/governanceTransactions.js
+
+**What it does:** Generates governance transaction data WITHOUT executing
+
+- Creates contract references at specific addresses via Ignition
+- Returns transaction details for external signing
+- Enables flexible governance workflows (Governor, Safe, etc.)
+
+**Current equivalent:** `packages/deploy/governance/tx-builder.ts`
+
+**Legacy approach:**
+
+```javascript
+// Uses Ignition modules to generate TX data
+const GovernanceTransactionsModule = buildModule('...', (m) => {
+  const proxyAdmin = m.contractAt('ProxyAdmin', address)
+  const proxy = m.contractAt('TransparentUpgradeableProxy', proxyAddress)
+  return { proxyAdmin, proxy, newImplementation }
+})
+```
+
+**Current approach:**
+
+```typescript
+// Manual TX building
+txBuilder.addTx({
+  to: address,
+  data: encodedCalldata,
+  value: 0,
+})
+```
+
+**Work needed:**
+
+1. Compare capabilities: Can current tx-builder generate all needed TXs?
+2. Check if Ignition-based TX generation offers advantages
+3. Extract pattern if missing capabilities found
+4. Can delete after comparison
+
+**Priority:** MEDIUM - Current tx-builder may be sufficient
+
+---
+
+### lib/ignition/modules/upgradePrep.js, upgradeComplete.js, verifyUpgradeState.js
+
+**What they do:** Multi-step upgrade workflow orchestration
+
+**Work needed:**
+
+1. Compare with `packages/deploy/tasks/` to see if equivalent exists
+2. Extract workflow patterns if missing
+3. Check for overlap with current governance/ directory
+4. Can delete after extracting unique patterns
+
+---
+
+### lib/ignition/modules/IssuanceAllocator.js
+
+**What it does:** Legacy IssuanceAllocator deployment module (compiled)
+
+**Work needed:**
+
+1. Already superseded by current IssuanceAllocator.ts module
+2. Can delete - no unique patterns
+
+---
+
+### lib/src/address-book.js, contracts.js, index.js
+
+**What they do:** Compiled JavaScript from src/ TypeScript sources
+
+**Work needed:**
+
+1. Focus on src/ TypeScript sources instead
+2. Can delete lib/ compiled files after reviewing src/
+
+---
+
+## Deployment Scripts (6 files) - Compare with Current Tasks
+
+### scripts/deploy-governance-upgrade.js
+
+**What it does:** Automated governance upgrade workflow script
+
+**Current equivalent:** `packages/deploy/tasks/*.ts`
+
+**Work needed:**
+
+1. Compare with current task implementations
+2. Check if all upgrade steps are automated in current tasks
+3. Extract missing automation patterns
+4. Can delete after comparison
+
+---
+
+### scripts/deploy-upgrade-prep.js
+
+**What it does:** Prepares upgrade transactions
+
+**Work needed:**
+
+1. Compare with current governance TX builder
+2. Extract preparation patterns if missing
+3. Can delete after comparison
+
+---
+
+### scripts/deploy.ts, deployAll.js, verify.ts
+
+**What they do:** Legacy deployment and verification automation
+
+**Work needed:**
+
+1. Compare with current Ignition deployment workflows
+2. Extract any missing automation patterns
+3. Check verification approach vs current
+4. Can delete after extracting patterns
+
+---
+
+### scripts/address-book.js, update-address-book.js
+
+**What they do:** Address book management utilities
+
+**Work needed:**
+
+1. Part of src/address-book.ts incorporation work (see High-Value section)
+2. Review for address tracking automation
+3. Can delete after address book feature incorporated
+
+---
+
+## Source Files (3 files) - TypeScript Sources
+
+### src/address-book.ts
+
+**Status:** See High-Value section above - pending implementation tracking
+
+---
+
+### src/contracts.ts, src/index.ts
+
+**What they do:** Contract type definitions and exports
+
+**Work needed:**
+
+1. Check if current structure has equivalent
+2. Extract any useful type definitions
+3. Can delete after extracting types
 
 ---
 
 ## What Has Been Successfully Removed ✅
 
 ### Checkpoint Modules (9 files) - Fully Migrated
+
 - ✅ IssuanceAllocatorActive.ts → packages/deploy/ignition/modules/issuance/
 - ✅ IssuanceAllocatorMinter.ts → packages/deploy/ignition/modules/issuance/
 - ✅ ServiceQualityOracleActive.ts → RewardsEligibilityOracleActive.ts
 - ✅ IssuanceAllocatorTargetAllocated.ts (Phase 3, recreate when needed)
 - ✅ PilotAllocationActive.ts (Phase 3, recreate when needed)
-- ✅ _refs/RewardsManager.ts → packages/deploy/ignition/modules/horizon/
-- ✅ _refs/GraphToken.ts → packages/deploy/ignition/modules/horizon/
-- ✅ _refs/IssuanceAllocator.ts → packages/deploy/ignition/modules/issuance/_refs/
-- ✅ _refs/PilotAllocation.ts (Phase 3, recreate when needed)
+- ✅ \_refs/RewardsManager.ts → packages/deploy/ignition/modules/horizon/
+- ✅ \_refs/GraphToken.ts → packages/deploy/ignition/modules/horizon/
+- ✅ \_refs/IssuanceAllocator.ts → packages/deploy/ignition/modules/issuance/\_refs/
+- ✅ \_refs/PilotAllocation.ts (Phase 3, recreate when needed)
 
 ### Component Modules (5 files) - Superseded
+
 - ✅ ServiceQualityOracle.ts → RewardsEligibilityOracle.ts (improved)
 - ✅ IssuanceAllocator.ts → Current version (better proxy handling)
 - ✅ DirectAllocationImplementation.ts → DirectAllocation.ts
@@ -211,6 +395,7 @@ interface IssuanceContractEntry {
 - ✅ GraphProxyAdmin2.ts → Not needed
 
 ### Target Modules (3 files) - Phase 3 Patterns
+
 - ✅ BasicIssuanceInfrastructure.ts (simple composition, documented)
 - ✅ PilotAllocation.ts (gradual migration, recreate in Phase 3)
 - ✅ ReplicatedAllocation.ts (gradual migration, recreate in Phase 3)
@@ -256,15 +441,15 @@ interface IssuanceContractEntry {
 
 ## Metrics
 
-| Category | Files Remaining | Files Removed | Status |
-|----------|----------------|---------------|--------|
-| Checkpoint Modules | 0 | 9 | ✅ Complete |
-| Component Modules | 0 | 5 | ✅ Complete |
-| Target Modules | 0 | 3 | ✅ Complete |
-| High-Value Code | 3 | 0 | ⏳ Phase 2-3 |
-| Reference Scripts | 20 | 0 | ⏳ Review needed |
-| Configuration | 4 | 0 | ⏳ Reference only |
-| **Total** | **27** | **17** | **63% cleaned** |
+| Category           | Files Remaining | Files Removed | Status            |
+| ------------------ | --------------- | ------------- | ----------------- |
+| Checkpoint Modules | 0               | 9             | ✅ Complete       |
+| Component Modules  | 0               | 5             | ✅ Complete       |
+| Target Modules     | 0               | 3             | ✅ Complete       |
+| High-Value Code    | 3               | 0             | ⏳ Phase 2-3      |
+| Reference Scripts  | 20              | 0             | ⏳ Review needed  |
+| Configuration      | 4               | 0             | ⏳ Reference only |
+| **Total**          | **27**          | **17**        | **63% cleaned**   |
 
 ---
 

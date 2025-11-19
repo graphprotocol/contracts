@@ -19,6 +19,7 @@ Deployment is split across two packages:
 **Purpose:** Deploy issuance contract implementations and proxies
 
 **What it does:**
+
 - Deploy REO, IA, DirectAllocation contracts
 - Deploy TransparentUpgradeableProxy for each contract
 - Initialize contracts with safe defaults
@@ -33,6 +34,7 @@ Deployment is split across two packages:
 **Purpose:** Coordinate governance integration across Horizon and Issuance packages
 
 **What it does:**
+
 - Generate Safe transaction batches for governance
 - Integrate REO/IA with RewardsManager
 - Grant minter role to IssuanceAllocator
@@ -170,12 +172,14 @@ packages/deploy/
 **Priority:** Immediate
 
 **Component deployment:**
+
 ```bash
 cd packages/issuance/deploy
 npx hardhat ignition deploy ignition/modules/contracts/RewardsEligibilityOracle.ts
 ```
 
 **Governance integration:**
+
 - Upgrade RewardsManager implementation
 - Set REO address on RewardsManager
 - Verification via checkpoint module
@@ -187,12 +191,14 @@ npx hardhat ignition deploy ignition/modules/contracts/RewardsEligibilityOracle.
 **Priority:** Future (structure ready, not immediate deployment)
 
 **Component deployment:**
+
 ```bash
 cd packages/issuance/deploy
 npx hardhat ignition deploy ignition/modules/contracts/IssuanceAllocator.ts
 ```
 
 **Governance integration:**
+
 - 3-stage gradual migration (deploy → activate → adjust)
 - Grant minter role on GraphToken
 - Configure allocation targets
@@ -221,8 +227,8 @@ Located in `packages/issuance/deploy/ignition/configs/`:
 ```json5
 {
   $global: {
-    graphTokenAddress: '0x...',  // GraphToken address
-  }
+    graphTokenAddress: '0x...', // GraphToken address
+  },
 }
 ```
 
@@ -307,6 +313,7 @@ These modules **revert until governance executes**, providing programmatic verif
 ## Status
 
 ### Component Deployment (issuance/deploy/)
+
 - ✅ REO deployment module ready
 - ✅ IA deployment module ready
 - ✅ DirectAllocation deployment module ready
@@ -315,6 +322,7 @@ These modules **revert until governance executes**, providing programmatic verif
 - ✅ Production documentation complete
 
 ### Orchestration (packages/deploy/)
+
 - ✅ Orchestration package created
 - ✅ Governance TX builder ready
 - ✅ Checkpoint modules created
@@ -322,6 +330,7 @@ These modules **revert until governance executes**, providing programmatic verif
 - ⏳ Fork-based tests (planned)
 
 ### Convergence
+
 - ✅ Legacy analysis complete
 - ✅ Convergence strategy defined
 - ✅ Phase 1 (foundation merge) complete

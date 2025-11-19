@@ -31,6 +31,7 @@ This document outlines the deployment sequence for RewardsEligibilityOracle (REO
 **Purpose:** Add integration methods to RewardsManager
 
 **Prerequisites:**
+
 - [ ] New RewardsManager V6 implementation deployed
 - [ ] Implementation adds `setRewardsEligibilityOracle(address)` method
 - [ ] Implementation adds `setIssuanceAllocator(address)` method (for future IA integration)
@@ -38,12 +39,14 @@ This document outlines the deployment sequence for RewardsEligibilityOracle (REO
 - [ ] Governance approval obtained
 
 **Actions:**
+
 1. Deploy new RewardsManager V6 implementation
 2. Generate governance transaction batch (via existing tooling)
 3. Governance reviews and executes upgrade
 4. Verify upgrade successful
 
 **Verification:**
+
 - [ ] New implementation address recorded
 - [ ] Proxy upgraded successfully
 - [ ] New methods exist and are callable
@@ -51,6 +54,7 @@ This document outlines the deployment sequence for RewardsEligibilityOracle (REO
 - [ ] Events emitted correctly
 
 **Outputs:**
+
 - RewardsManager V6 implementation address
 - Transaction hash of upgrade
 - Verification results
@@ -66,6 +70,7 @@ This document outlines the deployment sequence for RewardsEligibilityOracle (REO
 #### Stage 2.1: Contract Deployment
 
 **Prerequisites:**
+
 - [ ] Phase 1 complete (RM upgraded)
 - [ ] REO implementation and proxy modules ready
 - [ ] Configuration parameters validated
@@ -75,6 +80,7 @@ This document outlines the deployment sequence for RewardsEligibilityOracle (REO
 **Deployment Steps:**
 
 1. **Deploy via Ignition:**
+
    ```bash
    cd packages/issuance/deploy
    npx hardhat ignition deploy ignition/modules/RewardsEligibilityOracle.ts \
@@ -84,6 +90,7 @@ This document outlines the deployment sequence for RewardsEligibilityOracle (REO
    ```
 
 2. **Sync addresses:**
+
    ```bash
    npx ts-node scripts/sync-addresses.ts \
      reo-arbitrum-sepolia-001 \
@@ -91,12 +98,14 @@ This document outlines the deployment sequence for RewardsEligibilityOracle (REO
    ```
 
 3. **Verify contracts:**
+
    ```bash
    # Block explorer verification
    npx hardhat ignition verify reo-arbitrum-sepolia-001
    ```
 
 **Verification:**
+
 - [ ] REO implementation deployed
 - [ ] REO proxy deployed
 - [ ] REO initialized with correct parameters
@@ -111,14 +120,14 @@ From `ignition/configs/issuance.<network>.json5`:
 
 ```json5
 {
-  "$global": {
-    "graphTokenAddress": "0x...", // GraphToken for this network
+  $global: {
+    graphTokenAddress: '0x...', // GraphToken for this network
   },
-  "RewardsEligibilityOracle": {
-    "eligibilityPeriod": 1_209_600,     // 14 days (from GIP-0079)
-    "oracleUpdateTimeout": 604_800,      // 7 days (safety mechanism)
-    "eligibilityValidationEnabled": false // Disabled initially, governance enables
-  }
+  RewardsEligibilityOracle: {
+    eligibilityPeriod: 1_209_600, // 14 days (from GIP-0079)
+    oracleUpdateTimeout: 604_800, // 7 days (safety mechanism)
+    eligibilityValidationEnabled: false, // Disabled initially, governance enables
+  },
 }
 ```
 
@@ -129,6 +138,7 @@ From `ignition/configs/issuance.<network>.json5`:
 **Purpose:** Configure roles for REO operation
 
 **Prerequisites:**
+
 - [ ] Stage 2.1 complete
 - [ ] OPERATOR addresses identified
 - [ ] ORACLE addresses identified
@@ -147,6 +157,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 ```
 
 **Verification:**
+
 - [ ] OPERATOR_ROLE granted to correct addresses
 - [ ] ORACLE_ROLE granted to correct addresses
 - [ ] Roles can be used (test transactions)
@@ -158,18 +169,21 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 **Purpose:** Set up off-chain systems for oracle operations
 
 **Prerequisites:**
+
 - [ ] Stage 2.2 complete
 - [ ] Oracle infrastructure ready
 - [ ] Quality assessment systems operational
 - [ ] Monitoring in place
 
 **Actions:**
+
 1. Deploy/configure oracle infrastructure
 2. Set up quality assessment pipeline
 3. Configure monitoring and alerting
 4. Test oracle data submission (dry-run)
 
 **Verification:**
+
 - [ ] Oracle can fetch indexer data
 - [ ] Quality assessment logic working
 - [ ] Can construct oracle data updates
@@ -184,6 +198,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 **Purpose:** Validate REO deployment before integration
 
 **Prerequisites:**
+
 - [ ] Phase 2 complete
 - [ ] Test plan prepared
 - [ ] Monitoring established
@@ -215,6 +230,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
    - [ ] Confirm validation initially disabled
 
 **Success Criteria:**
+
 - All tests passing
 - No critical issues found
 - Oracle operations functioning correctly
@@ -232,6 +248,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 #### Stage 4.1: Governance Preparation
 
 **Prerequisites:**
+
 - [ ] Phase 3 complete (testing successful)
 - [ ] Governance proposal prepared
 - [ ] Independent verification performed
@@ -274,6 +291,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 #### Stage 4.2: Governance Execution
 
 **Prerequisites:**
+
 - [ ] Stage 4.1 complete
 - [ ] Required governance signatures collected
 - [ ] Execution timing coordinated
@@ -285,6 +303,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 3. **Verify all transactions succeed**
 
 **Verification:**
+
 - [ ] Transaction executed successfully
 - [ ] RewardsManager.rewardsEligibilityOracle() returns REO address
 - [ ] Events emitted correctly
@@ -299,12 +318,14 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 **Purpose:** Monitor REO integration before enabling validation
 
 **Prerequisites:**
+
 - [ ] Phase 4 complete (integration successful)
 - [ ] Monitoring systems operational
 
 **Monitoring Activities:**
 
 **Immediate (First 24 Hours):**
+
 - [ ] Monitor oracle data updates (hourly)
 - [ ] Monitor RewardsManager queries to REO (hourly)
 - [ ] Monitor for reverts or errors (continuous)
@@ -312,18 +333,21 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 - [ ] Check for unexpected events
 
 **Ongoing (First Week):**
+
 - [ ] Daily oracle data review
 - [ ] Daily verification that eligibility checks working
 - [ ] Monitor RewardsManager rewards (should be unchanged while validation disabled)
 - [ ] User feedback monitoring
 
 **Medium-term (Weeks 2-8):**
+
 - [ ] Weekly oracle data quality review
 - [ ] Weekly system performance review
 - [ ] Monitor for any issues or concerns
 - [ ] Prepare for enabling validation
 
 **Metrics to Track:**
+
 - Oracle update frequency
 - Oracle data coverage (% of indexers assessed)
 - Eligibility percentages
@@ -332,6 +356,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 - Any errors or reverts
 
 **Success Criteria:**
+
 - Oracle operating reliably
 - Data quality acceptable
 - No system issues
@@ -346,6 +371,7 @@ reo.grantRole(ORACLE_ROLE, oracleAddress)
 **Purpose:** Enable eligibility validation (affects rewards distribution)
 
 **Prerequisites:**
+
 - [ ] Phase 5 complete (monitoring successful)
 - [ ] Oracle operation proven reliable
 - [ ] Data quality validated
@@ -361,6 +387,7 @@ reo.setEligibilityValidationEnabled(true)
 ```
 
 **Verification:**
+
 - [ ] Validation enabled successfully
 - [ ] RewardsManager now enforcing eligibility
 - [ ] Eligible indexers receive rewards
@@ -368,6 +395,7 @@ reo.setEligibilityValidationEnabled(true)
 - [ ] System operating as expected
 
 **Monitoring:**
+
 - [ ] Monitor rewards distribution changes
 - [ ] Monitor for any disputes or issues
 - [ ] Track eligibility percentages
@@ -409,16 +437,19 @@ Enable Validation (Phase 6) - Governance Required
 ## Rollback Procedures
 
 ### Before Integration (Phases 1-3)
+
 - **No rollback needed** - REO not integrated, zero production impact
 - Can redeploy REO if issues found
 - Can extend testing period indefinitely
 
 ### After Integration (Phases 4-5)
+
 - **Rollback:** Governance sets `rewardsManager.setRewardsEligibilityOracle(address(0))`
 - **Result:** RewardsManager reverts to previous behavior
 - **Impact:** No rewards disruption, validation simply not enforced
 
 ### After Enabling Validation (Phase 6)
+
 - **Rollback:** Governance calls `reo.setEligibilityValidationEnabled(false)`
 - **Result:** Validation disabled, all indexers treated as eligible
 - **Impact:** Rewards continue, but without quality enforcement
@@ -428,16 +459,19 @@ Enable Validation (Phase 6) - Governance Required
 ## Risk Mitigation
 
 ### Deployment Risks
+
 - **Mitigation:** Zero-impact deployment (Phase 2) - not integrated until Phase 4
 - **Mitigation:** Comprehensive testing period (Phase 3)
 - **Mitigation:** Independent verification before governance execution
 
 ### Integration Risks
+
 - **Mitigation:** Validation disabled initially (Phase 4-5)
 - **Mitigation:** Monitoring period before enabling enforcement (Phase 5)
 - **Mitigation:** Clear rollback procedure at each stage
 
 ### Oracle Operation Risks
+
 - **Mitigation:** Oracle timeout safety mechanism (7 days)
 - **Mitigation:** OPERATOR role can update configuration
 - **Mitigation:** Validation can be disabled by governance if issues arise
@@ -449,11 +483,13 @@ Enable Validation (Phase 6) - Governance Required
 ### Arbitrum Sepolia (Testnet)
 
 **Advantages:**
+
 - Lower stakes, can test thoroughly
 - Faster iteration
 - Lower gas costs
 
 **Deployment Strategy:**
+
 - Full phased rollout recommended
 - Use for validating procedures
 - Test governance workflow end-to-end
@@ -461,10 +497,12 @@ Enable Validation (Phase 6) - Governance Required
 ### Arbitrum One (Mainnet)
 
 **Advantages:**
+
 - Production environment
 - Real economics
 
 **Requirements:**
+
 - **MUST follow full phased rollout**
 - **MUST complete testing on Arbitrum Sepolia first**
 - **MUST have governance approval at each stage**
@@ -490,6 +528,7 @@ Located in `packages/issuance/deploy/governance/`:
 - **rewards-eligibility-upgrade.ts** - Builds RM upgrade + REO/IA integration batch
 
 **Hardhat Task:**
+
 ```bash
 npx hardhat issuance:build-rewards-eligibility-upgrade \
   --network <network> \
@@ -524,18 +563,21 @@ When IssuanceAllocator is ready to deploy:
 ## Checklist Summary
 
 **Pre-Deployment:**
+
 - [ ] RewardsManager V6 implementation ready
 - [ ] REO contracts audited
 - [ ] Configuration parameters validated
 - [ ] Governance approval obtained for RM upgrade
 
 **Phase 1: RM Upgrade**
+
 - [ ] Implementation deployed
 - [ ] Governance batch generated
 - [ ] Governance executes upgrade
 - [ ] Upgrade verified
 
 **Phase 2: REO Deployment**
+
 - [ ] REO deployed via Ignition
 - [ ] Addresses synced
 - [ ] Contracts verified
@@ -543,24 +585,28 @@ When IssuanceAllocator is ready to deploy:
 - [ ] Oracle operations set up
 
 **Phase 3: Testing**
+
 - [ ] Smart contract tests complete
 - [ ] Oracle operations validated
 - [ ] Security review complete
 - [ ] 2-4 week testing period complete
 
 **Phase 4: Integration**
+
 - [ ] Governance batch generated
 - [ ] Independent verification performed
 - [ ] Governance executes integration
 - [ ] Integration verified
 
 **Phase 5: Monitoring**
+
 - [ ] 4-8 week monitoring period complete
 - [ ] Oracle operating reliably
 - [ ] Data quality validated
 - [ ] Governance approves enabling validation
 
 **Phase 6: Enable Validation**
+
 - [ ] Governance enables validation
 - [ ] System operating as expected
 - [ ] Monitoring continues

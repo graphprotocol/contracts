@@ -233,6 +233,7 @@ Document each type of governance transaction:
    ```
 
 5. **Role Management:**
+
    ```typescript
    reo.grantRole(OPERATOR_ROLE, operatorAddress)
    reo.grantRole(ORACLE_ROLE, oracleAddress)

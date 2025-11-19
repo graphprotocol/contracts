@@ -172,8 +172,8 @@ Horizon's toolshed interfaces (`IHorizonStakingToolshed`, `IL2GNSToolshed`, etc.
 ```solidity
 // IL2GNSToolshed adds missing functions
 interface IL2GNSToolshed is IGNS, IL2GNS, IMulticall {
-    function nextAccountSeqID(address account) external view returns (uint256);
-    function subgraphNFT() external view returns (address);
+  function nextAccountSeqID(address account) external view returns (uint256);
+  function subgraphNFT() external view returns (address);
 }
 ```
 
@@ -224,9 +224,7 @@ const horizonContracts = connectGraphHorizon(42161, provider)
 const issuanceContracts = connectGraphIssuance(42161, provider)
 
 // Use both together
-await issuanceContracts.IssuanceAllocator.setTarget(
-  horizonContracts.HorizonStaking.target
-)
+await issuanceContracts.IssuanceAllocator.setTarget(horizonContracts.HorizonStaking.target)
 ```
 
 ### In Hardhat Tasks
@@ -237,12 +235,8 @@ import { loadGraphIssuance } from '@graphprotocol/toolshed'
 task('set-issuance', 'Set issuance rate')
   .addParam('rate', 'New issuance rate')
   .setAction(async ({ rate }, hre) => {
-    const { contracts } = loadGraphIssuance(
-      'addresses.json',
-      hre.network.config.chainId!,
-      hre.ethers.provider
-    )
-    
+    const { contracts } = loadGraphIssuance('addresses.json', hre.network.config.chainId!, hre.ethers.provider)
+
     await contracts.IssuanceAllocator.setIssuancePerBlock(rate)
   })
 ```
