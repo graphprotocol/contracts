@@ -6,6 +6,31 @@ This guide covers the complete workflow for deploying and activating contract up
 
 ## Workflow Steps
 
+### 0. Check Deployment Status (Optional)
+
+Before starting, you can check the current state of all deployments:
+
+```bash
+npx hardhat issuance:deployment-status --network arbitrumOne
+```
+
+**What this shows:**
+
+- All deployed Horizon and Issuance contracts
+- Proxy status and implementation addresses
+- Pending implementations (if any)
+- Summary statistics
+
+**Options:**
+
+```bash
+# Verify on-chain state (slower but safer)
+npx hardhat issuance:deployment-status --verify true --network arbitrumOne
+
+# Show only specific package
+npx hardhat issuance:deployment-status --package issuance --network arbitrumOne
+```
+
 ### 1. Deploy New Implementation
 
 Deploy a new contract implementation and mark it as pending:
