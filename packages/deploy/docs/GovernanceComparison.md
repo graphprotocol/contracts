@@ -120,7 +120,7 @@ task('rewards-eligibility-upgrade')
 | Hardhat Integration             | ⚠️ (Ignition only)         | ✅ (Tasks + Ignition)   | **Current**             |
 | Reusability                     | ⚠️ (per-contract scripts)  | ✅ (general TxBuilder)  | **Current**             |
 | Contract Reference System       | ✅ (Ignition m.contractAt) | ✅ (toolshed connect\*) | Tie                     |
-| Deployment Status Reporting     | ✅                         | ❌                      | Legacy                  |
+| Deployment Status Reporting     | ✅                         | ✅                      | **Current** (Phase 2.5) |
 | Testability                     | ⚠️                         | ✅                      | **Current**             |
 
 ## Conclusion
@@ -156,13 +156,10 @@ The following features from legacy code were successfully incorporated:
    - See [GovernanceWorkflow.md](./GovernanceWorkflow.md)
    - Eliminates manual address book editing
 
-### Future Enhancements
-
-Consider adding (low priority):
-
-1. **Deployment Status Reporting** (nice-to-have)
-   - Could add `hardhat deployment-status` task
-   - Low priority - `issuance:list-pending` provides basic status
+3. **✅ Deployment Status Reporting**
+   - Implemented via `issuance:deployment-status` task
+   - Shows all contracts, proxy status, pending implementations
+   - Optional on-chain verification
 
 ## Testing
 

@@ -11,6 +11,7 @@ import './tasks/rewards-eligibility-upgrade'
 import './tasks/deploy-reo-implementation'
 import './tasks/sync-pending-implementation'
 import './tasks/list-pending-implementations'
+import './tasks/deployment-status'
 
 const baseConfig = hardhatBaseConfig(require)
 
