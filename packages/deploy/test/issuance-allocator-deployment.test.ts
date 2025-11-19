@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers, ignition } from 'hardhat'
 
-import IssuanceAllocatorModule from '../ignition/modules/IssuanceAllocator'
+import IssuanceAllocatorModule from '../../issuance/deploy/ignition/modules/IssuanceAllocator'
 
 describe('IssuanceAllocator Deployment', function () {
   let governor: any
