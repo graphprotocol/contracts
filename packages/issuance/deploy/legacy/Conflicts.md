@@ -16,17 +16,20 @@ There are no fundamental conflicts that prevent integration. However, there are 
 ### Earlier Approach: GraphProxyAdmin2
 
 **Pattern:**
+
 - Creates new ProxyAdmin contract: `GraphProxyAdmin2`
 - Issuance proxies owned by GraphProxyAdmin2
 - Existing protocol proxies owned by GraphProxyAdmin (legacy)
 - Both ProxyAdmins owned by governance multi-sig
 
 **Rationale:**
+
 - Isolates issuance system governance
 - Independent upgrade paths
 - Clear ownership boundaries
 
 **Code:**
+
 ```solidity
 // Deploy new ProxyAdmin
 GraphProxyAdmin2 proxyAdmin2 = new GraphProxyAdmin2();
@@ -43,26 +46,29 @@ TransparentUpgradeableProxy iaProxy = new TransparentUpgradeableProxy(
 ### Current Approach: Standard TransparentUpgradeableProxy
 
 **Pattern:**
+
 - Uses OpenZeppelin's standard TransparentUpgradeableProxy pattern
 - ProxyAdmin created per deployment or shared pattern (standard Ignition)
 - No explicit GraphProxyAdmin2 contract
 
 **Rationale:**
+
 - Simpler deployment
 - Standard OpenZeppelin pattern
 - Ignition handles ProxyAdmin automatically
 
 **Code:**
+
 ```typescript
 // In Ignition module
 const { proxy } = await deployWithTransparentUpgradeableProxy(
-    m,
-    "IssuanceAllocator",
-    implementation,
-    proxyAdmin,
-    governor,
-    initData
-);
+  m,
+  'IssuanceAllocator',
+  implementation,
+  proxyAdmin,
+  governor,
+  initData,
+)
 ```
 
 ### Decision Required
@@ -89,6 +95,7 @@ const { proxy } = await deployWithTransparentUpgradeableProxy(
 **Recommendation:** **Option 3 - Keep standard pattern**
 
 **Reasoning:**
+
 - Current approach already transfers ProxyAdmin ownership to governor
 - Functional separation achieved without additional contract
 - Simpler for deployment and maintenance
@@ -104,6 +111,7 @@ const { proxy } = await deployWithTransparentUpgradeableProxy(
 ### Earlier Approach: Component vs Integration Targets
 
 **Pattern:**
+
 - **Component targets** (in issuance package):
   - `service-quality-oracle` - Deploy SQO contracts only
   - `issuance-allocator` - Deploy IA contracts only
@@ -116,7 +124,8 @@ const { proxy } = await deployWithTransparentUpgradeableProxy(
   - Each integration requires governance execution
 
 **Structure:**
-```
+
+```text
 packages/
   issuance/
     deploy/
@@ -131,6 +140,7 @@ packages/
 ```
 
 **Rationale:**
+
 - Clear separation: deployment vs governance-required activation
 - Package boundaries match ownership
 - Can deploy components without governance
@@ -139,6 +149,7 @@ packages/
 ### Current Approach: Single Orchestrated Deployment
 
 **Pattern:**
+
 - Single `deploy.ts` module that:
   - Deploys all three contracts with proxies
   - Transfers ProxyAdmin ownership
@@ -146,7 +157,8 @@ packages/
   - Returns all references
 
 **Structure:**
-```
+
+```text
 packages/
   issuance/
     deploy/
@@ -158,6 +170,7 @@ packages/
 ```
 
 **Rationale:**
+
 - Simpler for initial deployment
 - All contracts deployed atomically
 - Ignition handles dependencies
@@ -190,6 +203,7 @@ packages/
 **Recommendation:** **Option 3 - Multiple modules with orchestrator**
 
 **Reasoning:**
+
 - Keep current deploy.ts as default orchestrator
 - Individual modules (IssuanceAllocator.ts, etc.) provide granularity when needed
 - Add governance-specific modules later (e.g., `activate-issuance.ts`)
@@ -197,6 +211,7 @@ packages/
 - Best of both worlds: simple default, granular when needed
 
 **Action:**
+
 - Keep current structure
 - Add governance activation modules when implementing governance workflow
 - Document when to use orchestrator vs individual modules
@@ -208,12 +223,14 @@ packages/
 ### Earlier Approach: Address Book with Pending State
 
 **Pattern:**
+
 - Address book tracks both active and pending implementations
 - `setPendingImplementation()` records deployed-but-not-active implementation
 - `activatePendingImplementation()` moves pending → active after governance
 - Clear audit trail of upgrade workflow
 
 **Format:**
+
 ```json
 {
   "IssuanceAllocator": {
@@ -236,6 +253,7 @@ packages/
 ```
 
 **Workflow:**
+
 1. Deploy new implementation → record as pending
 2. Generate governance proposal → link in pending
 3. Governance executes upgrade
@@ -244,11 +262,13 @@ packages/
 ### Current Approach: Standard Ignition Deployment Tracking
 
 **Pattern:**
+
 - Ignition tracks deployments in `deployed_addresses.json`
 - `sync-addresses.ts` script updates main `addresses.json`
 - Address book shows current active state only
 
 **Format:**
+
 ```json
 {
   "42161": {
@@ -263,6 +283,7 @@ packages/
 ```
 
 **Workflow:**
+
 1. Deploy via Ignition → creates deployment artifacts
 2. Run sync script → updates addresses.json
 3. Address book reflects deployed state
@@ -294,6 +315,7 @@ packages/
 **Recommendation:** **Option 3 - Extend address book for upgrades**
 
 **Reasoning:**
+
 - Initial deployment doesn't need pending state
 - Upgrades benefit from pending tracking
 - Can add `pendingImplementation` field when doing first upgrade
@@ -301,6 +323,7 @@ packages/
 - Document upgrade workflow using pending state
 
 **Action:**
+
 - Keep current format for initial deployment
 - Document pending implementation pattern for upgrades
 - Update sync-addresses.ts to support optional pending field
@@ -313,12 +336,14 @@ packages/
 ### Earlier Approach: Four-Phase Deployment
 
 **Pattern:**
+
 - **Phase 1:** RewardsManager Upgrade (prerequisite)
 - **Phase 2:** GraphProxyAdmin2 Deployment
 - **Phase 3:** ServiceQualityOracle Deployment (8 stages)
 - **Phase 4:** IssuanceAllocator Deployment (3 stages)
 
 **Explicit dependencies:**
+
 ```
 RewardsManager V6 ← SQO, IA (need integration methods)
 GraphProxyAdmin2 ← SQO, IA (manage proxies)
@@ -328,6 +353,7 @@ IA → GraphToken (minting authority)
 ```
 
 **Granular stages:**
+
 - Deploy contracts
 - Configure roles
 - Configure parameters
@@ -338,11 +364,13 @@ IA → GraphToken (minting authority)
 ### Current Approach: Single Deployment
 
 **Pattern:**
+
 - Deploy all three contracts together
 - No explicit phases or stages documented
 - Governance integration via Safe TX builder (RewardsManager only)
 
 **Dependencies:**
+
 - Implicit in code (constructor args)
 - No documentation of sequencing requirements
 
@@ -371,12 +399,14 @@ IA → GraphToken (minting authority)
 **Recommendation:** **Option 3 - Environment-specific strategies**
 
 **Reasoning:**
+
 - Testnets: Use simple deployment for iteration speed
 - Mainnet: Use phased rollout for safety
 - Document both approaches
 - Make deployment strategy configurable
 
 **Action:**
+
 - Document phased rollout strategy for mainnet
 - Keep simple deployment for development/testnets
 - Add deployment strategy selection to deployment guide
@@ -388,17 +418,20 @@ IA → GraphToken (minting authority)
 ### Earlier Approach: 3-Stage IssuanceAllocator Migration
 
 **Stage 4.1 - Deploy & Configure:**
+
 - Deploy IA with zero production impact
 - Configure to exactly replicate RewardsManager (100% allocation)
 - Comprehensive validation
 - **State:** Deployed but not active
 
 **Stage 4.2 - Migrate to Allocator Control:**
+
 - Governance integrates IA with RewardsManager
 - Grant minting authority
 - **State:** Live, but 100% to RM (no distribution change)
 
 **Stage 4.3 - Allocation Changes:**
+
 - Deploy DirectAllocation targets
 - Gradually adjust allocations (99%/1%, then 95%/5%, etc.)
 - **State:** New distribution model active
@@ -408,6 +441,7 @@ IA → GraphToken (minting authority)
 ### Current Approach: No Documented Migration Strategy
 
 **Pattern:**
+
 - Deploy contracts
 - Integrate with RewardsManager (via Safe TX builder)
 - No explicit strategy for allocation changes
@@ -430,12 +464,14 @@ IA → GraphToken (minting authority)
 **Recommendation:** **Option 1 - MUST adopt 3-stage migration**
 
 **Reasoning:**
+
 - This is not a design decision; it's a safety requirement
 - Mainnet deployment without this is too risky
 - Replicating existing distribution (100% to RM) validates integration without changing economics
 - Gradual allocation changes allow monitoring and rollback
 
 **Action:**
+
 - **CRITICAL:** Document 3-stage migration in deployment guide
 - Implement verification that Stage 4.2 truly replicates existing distribution
 - Create governance TX builders for each stage
@@ -464,13 +500,13 @@ These are **additive** - they don't conflict with current implementation, they e
 
 ## Summary of Decisions
 
-| Decision | Recommendation | Priority | Action |
-|----------|----------------|----------|--------|
-| **Proxy Administration** | Keep standard pattern, document governance | LOW | Document only |
-| **Module Granularity** | Keep orchestrator, add governance modules later | MEDIUM | Add governance modules in Phase 2 |
-| **Pending Implementation** | Extend address book for upgrades | HIGH | Update sync script & docs |
-| **Deployment Sequencing** | Environment-specific (simple for testnet, phased for mainnet) | HIGH | Document both strategies |
-| **Gradual Migration** | **MUST adopt 3-stage migration** | **CRITICAL** | Document & implement verification |
+| Decision                   | Recommendation                                                | Priority     | Action                            |
+| -------------------------- | ------------------------------------------------------------- | ------------ | --------------------------------- |
+| **Proxy Administration**   | Keep standard pattern, document governance                    | LOW          | Document only                     |
+| **Module Granularity**     | Keep orchestrator, add governance modules later               | MEDIUM       | Add governance modules in Phase 2 |
+| **Pending Implementation** | Extend address book for upgrades                              | HIGH         | Update sync script & docs         |
+| **Deployment Sequencing**  | Environment-specific (simple for testnet, phased for mainnet) | HIGH         | Document both strategies          |
+| **Gradual Migration**      | **MUST adopt 3-stage migration**                              | **CRITICAL** | Document & implement verification |
 
 ---
 

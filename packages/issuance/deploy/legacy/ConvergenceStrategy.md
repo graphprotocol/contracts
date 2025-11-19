@@ -173,19 +173,18 @@
 3. **GovernanceAssertions Helper**
    - New contract in `packages/issuance/contracts/helpers/GovernanceAssertions.sol`
    - View-only functions that revert with clear messages:
+
      ```solidity
-     function assertRewardsEligibilityOracleSet(
-         address rewardsManager,
-         address expectedOracle
-     ) external view {
-         address actual = IRewardsManager(rewardsManager).rewardsEligibilityOracle();
-         require(actual == expectedOracle, "REO not set");
+     function assertRewardsEligibilityOracleSet(address rewardsManager, address expectedOracle) external view {
+       address actual = IRewardsManager(rewardsManager).rewardsEligibilityOracle();
+       require(actual == expectedOracle, 'REO not set');
      }
      ```
 
 4. **Fork-Based Governance Testing**
    - New test file: `packages/issuance/deploy/test/governance-workflow.fork.test.ts`
    - Pattern:
+
      ```typescript
      // 1. Fork Arbitrum
      await network.provider.request({ method: "hardhat_reset", params: [...] })
@@ -211,6 +210,7 @@
 5. **Pending Implementation Tracking**
    - Extend `addresses.json` schema or create separate `address-book.json`
    - Schema:
+
      ```json
      {
        "RewardsManager": {
@@ -221,6 +221,7 @@
        }
      }
      ```
+
    - Helper script: `scripts/address-book/update-pending-implementation.ts`
 
 ---
@@ -238,6 +239,7 @@
 **Goal:** Enable automated verification of governance state.
 
 **Tasks:**
+
 1. Create `packages/issuance/contracts/helpers/GovernanceAssertions.sol`
 2. Implement assertion functions:
    - `assertRewardsEligibilityOracleSet(rm, expectedREO)`
@@ -254,6 +256,7 @@
 **Goal:** Prove the deployment and governance workflow end-to-end.
 
 **Tasks:**
+
 1. Create `test/governance-workflow.fork.test.ts`
 2. Implement REO deployment + integration test:
    - Fork Arbitrum Sepolia
@@ -273,6 +276,7 @@
 **Goal:** Ensure component modules don't call governance functions.
 
 **Tasks:**
+
 1. Review `IssuanceAllocator.ts` - remove any governance calls
 2. Review `RewardsEligibilityOracle.ts` - remove any governance calls
 3. Ensure modules only deploy, initialize, and transfer ownership to governor
@@ -285,11 +289,13 @@
 **Goal:** Separate integration targets from component package.
 
 **Decision needed:** Where should orchestration package live?
+
 - Option A: `packages/issuance-orchestration/`
 - Option B: Extend `packages/horizon/`
 - Option C: New `packages/graph-protocol-deploy/`
 
 **Tasks (once decided):**
+
 1. Create new package structure
 2. Move integration targets from spike (if any exist)
 3. Create new integration Ignition modules:
@@ -306,6 +312,7 @@
 **Goal:** Track pending implementations for upgrade workflows.
 
 **Tasks:**
+
 1. Extend `addresses.json` schema or create `address-book.json`
 2. Create helper scripts:
    - `scripts/address-book/set-pending-implementation.ts`
@@ -324,16 +331,19 @@
 **Options:**
 
 **A. New `packages/issuance-orchestration/`**
+
 - ✅ Clean separation, clear purpose
 - ✅ No confusion about scope
 - ❌ Additional package to maintain
 
 **B. Extend `packages/horizon/`**
+
 - ✅ Horizon already orchestrates protocol deployment
 - ✅ One fewer package
 - ❌ Blurs Horizon's scope (is it Horizon-specific or protocol-wide?)
 
 **C. New `packages/graph-protocol-deploy/`**
+
 - ✅ Broader scope for future protocol-wide orchestration
 - ✅ Could include mainnet → Horizon migration coordination
 - ❌ Broader scope = less focused
@@ -345,12 +355,14 @@
 ### Decision 2: GovernanceAssertions - Solidity or TypeScript?
 
 **Option A: Solidity Contract**
+
 - ✅ Can be called from Ignition modules
 - ✅ Gas-efficient for on-chain verification
 - ✅ Proven pattern from legacy
 - ❌ Requires deployment
 
 **Option B: TypeScript-Only**
+
 - ✅ No deployment needed
 - ✅ Easier to iterate
 - ❌ Can't be called from Ignition modules
@@ -363,11 +375,13 @@
 ### Decision 3: Timing - When to Refactor?
 
 **Option A: Refactor Now (Before REO Deployment)**
+
 - ✅ Clean architecture before production use
 - ✅ Tests validate correct pattern
 - ❌ Delays REO deployment slightly
 
 **Option B: Incremental (After REO Deployment)**
+
 - ✅ REO deploys faster
 - ❌ Risk embedding wrong pattern
 - ❌ Harder to refactor after production use
@@ -410,6 +424,7 @@
 8. ✅ IA 3-stage migration pattern is implementable
 
 **We've converged when:**
+
 - The spike's modern tooling + legacy's proven patterns = robust, tested deployment system
 - No valuable work discarded from either approach
 - Architecture supports both immediate needs (REO) and future needs (IA)
@@ -450,12 +465,14 @@
 ## Summary
 
 **From Current Spike - KEEP:**
+
 - All tooling (TxBuilder, governance tasks, Toolshed helpers)
 - Ignition module structure (as component layer)
 - Network configurations
 - Monorepo integration
 
 **From Legacy Work - ADOPT:**
+
 - Component/integration separation pattern
 - GovernanceAssertions helper
 - Fork-based governance testing
@@ -464,6 +481,7 @@
 - Proven deployment sequencing
 
 **Convergence Path:**
+
 - Phases 1-3: Add missing patterns without disrupting spike (1 week)
 - Phase 4-5: Architectural refinement (orchestration package, address book)
 - Result: Modern tooling + proven patterns = production-ready deployment system

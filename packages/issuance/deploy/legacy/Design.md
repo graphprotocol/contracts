@@ -18,7 +18,7 @@ This document is the single source of truth for deploying the issuance system. S
 - IssuanceAllocator (Upgradeable proxy + implementation, uses GraphToken)
 - ServiceQualityOracle (Upgradeable proxy + implementation)
 - PilotAllocation (Upgradeable proxy + implementation, using DirectAllocation implementation contract)
-- RewardsManager (Existing ppgradeable proxy, new implementation)
+- RewardsManager (Existing upgradeable proxy, new implementation)
 - GraphProxyAdmin2 (ProxyAdmin for issuance proxies; governance‑owned)
 - TransparentUpgradeableProxy (standard OZ proxies per component)
 - GraphToken (Existing contract, no action needed, just need module to reference)

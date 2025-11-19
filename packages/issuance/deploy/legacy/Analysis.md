@@ -66,9 +66,99 @@ These documents analyze the earlier work and provide integration recommendations
 
 ---
 
+## Practical Alignment: Mapping Legacy to Current
+
+### Contract Name Mappings
+
+Current components (from `DEPLOYMENT.md` and Ignition modules):
+
+- `IssuanceAllocator` – proxy + implementation
+- `DirectAllocation` – proxy + implementation (replaces legacy "PilotAllocation" conceptually)
+- `RewardsEligibilityOracle` – proxy + implementation (replaces legacy `ServiceQualityOracle`)
+
+**Rough mapping:**
+
+- Legacy `ServiceQualityOracle` → `RewardsEligibilityOracle`
+- Legacy `PilotAllocation` → `DirectAllocation` (same role: additional allocation targets)
+- Legacy `GraphProxyAdmin2` → we currently have per-module `ProxyAdmin` contracts in Ignition; we may still adopt a shared admin pattern if helpful, but that is an implementation choice
+
+### Key Alignment Points
+
+**1. Keep issuance deploy package component-only**
+
+`packages/issuance/deploy/ignition/modules/*` should focus on deploying and initializing:
+- `IssuanceAllocator` (with GraphToken address parameterized)
+- `DirectAllocation` instances
+- `RewardsEligibilityOracle` (with eligibility period/timeouts etc.)
+
+They should not directly call into RewardsManager or GraphToken governance functions for production flows.
+
+**2. Introduce (or reuse) an orchestration layer for "Active" states**
+
+Somewhere else (either a new `packages/deploy` or an existing Horizon/orchestration package), define targets/sequences that:
+- Upgrade RewardsManager implementation where needed
+- Call `RewardsManager.setIssuanceAllocator(IA)`
+- Call `RewardsManager.setServiceQualityOracle(Oracle)`
+- Call `GraphToken.addMinter(IA)`
+- Adjust allocations via `IssuanceAllocator.setTargetAllocation(...)`
+
+These are the steps that should be modelled as explicit Safe transactions and replayed in fork-based tests.
+
+**3. Make governance checkpoints explicit in tests**
+
+Fork-based Arbitrum tests should:
+- Run Ignition deploy modules for new components
+- Then impersonate governance and execute the exact sequence of transactions described in the legacy `DeploymentGuide.md` (adapted to the new contracts)
+- Then run assertion helpers that mirror the legacy `GovernanceAssertions` pattern
+
+### Arbitrum & Testnet Focus
+
+Legacy docs talk about mainnet + Arbitrum + Sepolia, but for this repo we care about:
+
+- **Arbitrum One / Arbitrum Sepolia** as primary; mainnet notes are structural inspiration
+- Legacy `ignition/configs/issuance.arbitrumOne.json5` and `issuance.arbitrumSepolia.json5` show the shape of parameters we'll likely need:
+  - Governance addresses (multisig, council)
+  - Existing RewardsManager proxy, GraphToken, existing ProxyAdmin(s)
+  - Optional `pendingImplementation` slots for upgrades
+
+These can guide how we structure `deploy/ignition/configs/issuance.arbitrum*.json5` and any future orchestration configs.
+
+### Suggested Reuse from Legacy Code
+
+When deciding what to adapt from the legacy packages, the highest-value items are:
+
+**Docs:**
+- `doc/Design.md` – for target model and governance phases
+- `doc/DeploymentGuide.md` – for the multi-phase (RewardsManager → ProxyAdmin → SQO → Allocator) sequencing
+
+**Ignition:**
+- `ignition/modules/contracts/*` – how they modeled component deployments and shared admin
+- `ignition/modules/targets/*` – patterns for "Active" targets as assertions
+
+**Scripts/tests:**
+- `scripts/deploy-upgrade-prep.js` & `deploy-governance-upgrade.js` – proposal and upgrade flows
+- `scripts/address-book.js` / `update-address-book.js` – how pending/active implementations are tracked
+- `test-governance-workflow.ts` – governance workflow encoding that we can adapt into Arbitrum fork tests
+
+These should be read with the intent to **port patterns**, not code verbatim, to the new contracts and package layout.
+
+### Open Design Choices
+
+To be decided collaboratively:
+
+1. Where exactly should the new orchestration/governance package live (for "Active" targets)?
+2. Do we want a shared `GraphProxyAdmin2`-style admin for issuance proxies on Arbitrum, or keep per-contract ProxyAdmins as in the current Ignition spike?
+3. Should the governance assertions live as:
+   - A small Solidity helper contract, or
+   - Pure TypeScript tests that directly query live state?
+4. How strictly do we want to mirror the three-phase legacy workflow vs simplifying for first Arbitrum deployments (while keeping upgrade safety)?
+
+---
+
 ## Recommendations Summary
 
 ### Phase 1: Documentation Integration (Immediate)
+
 **Goal:** Extract and adapt essential documentation
 **Risk:** Low (documentation only)
 
@@ -80,6 +170,7 @@ These documents analyze the earlier work and provide integration recommendations
 6. Document API correctness
 
 ### Phase 2: Critical Implementation (Before Testnet)
+
 **Goal:** Implement governance coordination patterns
 **Risk:** Medium (new code)
 
@@ -90,6 +181,7 @@ These documents analyze the earlier work and provide integration recommendations
 5. Add deployment tests
 
 ### Phase 3: Production Readiness (Before Mainnet)
+
 **Goal:** Complete operational procedures
 **Risk:** Low (operational documentation)
 
@@ -211,7 +303,7 @@ See [Conflicts.md](./Conflicts.md) for detailed analysis of each decision.
 Recommended reading order for understanding the analysis:
 
 1. **Start here:** [ConvergenceStrategy.md](./ConvergenceStrategy.md) - **Clear answer to "what to keep from each approach"**
-2. **Overview:** This AnalysisREADME.md (you are here) - Summary of key findings
+2. **Overview:** This Analysis.md (you are here) - Summary of key findings and practical alignment
 3. **Understand gaps:** [GapAnalysis.md](./GapAnalysis.md) - What's missing in current spike
 4. **Resolve conflicts:** [Conflicts.md](./Conflicts.md) - Design decisions to make
 5. **Plan next phase:** [NextPhaseRecommendations.md](./NextPhaseRecommendations.md) - Detailed implementation plan
@@ -228,6 +320,7 @@ Recommended reading order for understanding the analysis:
 - [x] Gaps identified
 - [x] Conflicts documented
 - [x] Recommendations detailed
+- [x] Phase 1 cleanup: duplicates removed, naming standardized
 - [ ] User review
 - [ ] Design decisions approved
 - [ ] Phase 1 execution begun
