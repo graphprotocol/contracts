@@ -1,0 +1,19 @@
+{
+  // Local development parameters for IssuanceAllocator
+  // Uses Hardhat's default accounts for testing
+  $global: {
+    // Core deployment parameters
+    owner: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // First Hardhat account (governance)
+    graphToken: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Mock GRT token for local testing
+    // Governance upgrade parameters (will be set after initial deployment)
+    issuanceAllocatorProxyAddress: '0x0000000000000000000000000000000000000000', // TODO: Set after deployment
+    proxyAdminAddress: '0x0000000000000000000000000000000000000000', // TODO: Set after deployment
+    newImplementationAddress: '0x0000000000000000000000000000000000000000', // TODO: Set after implementation deployment
+    // For governance transaction generation
+    proxyAddress: '0x0000000000000000000000000000000000000000', // TODO: Set after deployment
+  },
+  IssuanceAllocator: {
+    owner: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+    graphToken: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+  },
+}

@@ -1,0 +1,125 @@
+{
+  // Ethereum mainnet configuration for IssuanceAllocator
+  // NOTE: Graph Protocol primarily operates on Arbitrum One
+  // This config is for reference or special deployment scenarios
+
+  // Core deployment parameters
+  owner: '0x0000000000000000000000000000000000000000', // MUST BE SET: Graph Protocol governance address
+  graphToken: '0xc944E90C64B2c07662A292be6244BDf05Cda44a7', // GRT token on Ethereum mainnet (verified)
+
+  // Network information
+  network: {
+    name: 'mainnet',
+    chainId: 1,
+    description: 'Ethereum mainnet',
+    isTestnet: false,
+    blockTime: 12, // ~12 seconds on Ethereum
+    rpcUrl: 'https://mainnet.infura.io/v3/YOUR_INFURA_KEY',
+    explorerUrl: 'https://etherscan.io',
+  },
+
+  // Deployment configuration
+  deployment: {
+    confirmations: 5, // Wait for 5 confirmations on mainnet
+    gasPrice: 'auto', // Let network handle gas pricing (will be expensive)
+    gasLimit: 'auto', // Let network handle gas limits
+    timeout: 1200000, // 20 minutes timeout (Ethereum can be slow)
+  },
+
+  // IssuanceAllocator specific parameters
+  issuanceAllocator: {
+    // Initial configuration (can be updated via governance)
+    initialIssuancePerBlock: '10000000000000000000', // 10 GRT per block (REVIEW: Ethereum rate)
+
+    // Governance settings (CRITICAL: Must be set correctly)
+    governor: '0x0000000000000000000000000000000000000000', // MUST BE SET: Graph Protocol governance
+
+    // Production flags
+    enableTestingFeatures: false, // Disable testing features on mainnet
+    skipInitialValidation: false, // Always validate on mainnet
+  },
+
+  // Contract addresses for Ethereum mainnet
+  contracts: {
+    // Core Graph Protocol contracts on Ethereum mainnet (verified addresses)
+    graphToken: '0xc944E90C64B2c07662A292be6244BDf05Cda44a7', // GRT token (verified)
+
+    // Known mainnet contracts (NOTE: Most Graph Protocol contracts are on Arbitrum)
+    // governance: "0x0000000000000000000000000000000000000000", // MUST BE SET: Governance contract
+
+    // Production accounts (all must be set)
+    productionAccounts: {
+      deployer: '0x0000000000000000000000000000000000000000', // MUST BE SET: Deployer account
+      governance: '0x0000000000000000000000000000000000000000', // MUST BE SET: Governance account
+      treasury: '0x0000000000000000000000000000000000000000', // MUST BE SET: Treasury account
+    },
+  },
+
+  // Verification settings
+  verification: {
+    enabled: true, // REQUIRED: Always verify contracts on mainnet
+    apiKey: 'ETHERSCAN_API_KEY', // Environment variable for Etherscan API key
+    apiUrl: 'https://api.etherscan.io/api',
+    explorerUrl: 'https://etherscan.io',
+  },
+
+  // Production settings
+  production: {
+    saveDeploymentInfo: true, // REQUIRED: Save deployment info for tracking
+    logLevel: 'warn', // Minimal logging for production
+    enableGasReporting: true, // Track gas usage (very important on Ethereum)
+    enableCoverage: false, // Disable coverage on mainnet
+    requireConfirmation: true, // REQUIRED: Manual confirmation for all operations
+    enableEmergencyPause: true, // Enable emergency pause functionality
+
+    // Ethereum-specific warnings
+    warnings: [
+      'HIGH_GAS_COSTS: Ethereum mainnet has high gas costs',
+      'ARBITRUM_PREFERRED: Graph Protocol primarily operates on Arbitrum One',
+      'REVIEW_NECESSITY: Confirm this deployment is necessary on Ethereum L1',
+    ],
+  },
+
+  // Security settings
+  security: {
+    // Multi-signature requirements
+    requireMultiSig: true, // REQUIRED: All governance operations must use multi-sig
+    minSignatures: 3, // Minimum signatures required
+
+    // Time delays
+    governanceDelay: 172800, // 48 hours delay for governance actions (seconds)
+    emergencyDelay: 86400, // 24 hours delay for emergency actions (seconds)
+
+    // Access controls
+    restrictedFunctions: [
+      'upgrade', // Proxy upgrades require governance
+      'setIssuancePerBlock', // Issuance rate changes require governance
+      'pause', // Pausing requires governance
+    ],
+  },
+
+  // Environment requirements
+  requirements: {
+    // Required environment variables
+    envVars: [
+      'MAINNET_URL', // RPC URL for Ethereum mainnet
+      'PRIVATE_KEY', // Deployer private key (should be hardware wallet)
+      'ETHERSCAN_API_KEY', // For contract verification
+    ],
+
+    // Required parameter validation
+    requiredParams: [
+      'owner', // Must set governance address
+      'graphToken', // Must be verified GRT address
+    ],
+
+    // Security checks
+    securityChecks: [
+      'verifyGovernanceAddress', // Verify governance address is correct
+      'verifyGraphTokenAddress', // Verify GRT token address is correct
+      'checkDeployerBalance', // Ensure deployer has sufficient ETH (expensive!)
+      'validateNetworkId', // Ensure deploying to correct network
+      'confirmEthereumDeployment', // Extra confirmation for Ethereum deployment
+    ],
+  },
+}
