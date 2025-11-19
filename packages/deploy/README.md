@@ -5,6 +5,7 @@ Cross-package deployment orchestration for Graph Protocol contracts.
 ## Purpose
 
 This package coordinates deployments and governance integrations across multiple packages:
+
 - **Horizon** (`@graphprotocol/horizon`) - Core protocol contracts (RewardsManager, GraphToken, etc.)
 - **Issuance** (`@graphprotocol/issuance`) - Issuance system contracts (REO, IA, DirectAllocation)
 
@@ -93,5 +94,6 @@ pnpm test:fork
 This package does NOT deploy contract implementations - it coordinates already-deployed contracts from other packages.
 
 For component deployment, see:
+
 - Horizon: `packages/horizon/`
 - Issuance: `packages/issuance/deploy/`
