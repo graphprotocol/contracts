@@ -23,8 +23,8 @@
       "default": "./dist/fixtures/index.js"
     },
     "./hardhat": {
-      "types": "./src/hardhat/index.ts",
-      "default": "./src/hardhat/index.ts"
+      "types": "./dist/hardhat/index.d.ts",
+      "default": "./dist/hardhat/index.js"
     },
     "./utils": {
       "types": "./dist/utils/index.d.ts",
