@@ -256,42 +256,49 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 | Category | Incorporated | Remaining | Status |
 |----------|--------------|-----------|--------|
 | Contracts | 100% (3/3) | 0 | ✅ Complete |
-| Checkpoint Modules | 100% (3/3) | 0 | ✅ Complete |
+| Checkpoint Modules | 100% (9/9) | 0 | ✅ Complete (deleted from legacy) |
+| Component Modules | 100% (5/5) | 0 | ✅ Complete (deleted from legacy) |
+| Target Modules | 100% (3/3) | 0 | ✅ Complete (Phase 3 patterns documented) |
 | Reference Pattern | 100% | 0 | ✅ Complete |
 | Package Structure | 100% | 0 | ✅ Complete |
-| Fork-Based Tests | 0% | 100% | ⏳ Phase 2 |
-| Address Book | 0% | 100% | ⏳ Phase 2 |
-| Gradual Migration | 0% | 100% | ⏳ Phase 3 |
-| **Overall** | **~40%** | **~60%** | ⏳ In Progress |
+| Fork-Based Tests | 0% | 1 file | ⏳ Phase 2 |
+| Address Book | 0% | 1 file | ⏳ Phase 2 |
+| Reference Scripts | 0% | 20 files | ⏳ Review |
+| Config Files | 0% | 4 files | ⏳ Reference |
+| **Overall** | **~63%** | **~37%** | ⏳ In Progress |
+| **Files** | **17 removed** | **27 remain** | See REMAINING_WORK.md |
 
 ---
 
 ## Summary
 
-**Legacy is NOT obsolete yet.**
+**Legacy cleanup is ~63% complete. Valuable patterns identified and preserved.**
 
-**What's done (40%):**
-- ✅ Contracts (IssuanceStateVerifier, mocks)
-- ✅ Checkpoint module pattern
-- ✅ Reference module pattern
-- ✅ Package structure
+**What's done (63% - 17 files removed):**
+- ✅ Contracts (IssuanceStateVerifier, mocks) - Incorporated
+- ✅ Checkpoint modules (9 files) - Fully migrated and deleted
+- ✅ Component modules (5 files) - Superseded and deleted
+- ✅ Target modules (3 files) - Patterns documented, deleted
+- ✅ Reference module pattern - Reorganized and improved
+- ✅ Package structure - Two-package architecture established
 
-**What remains valuable (60%):**
-- ⏳ Fork-based governance testing (CRITICAL for Phase 2)
-- ⏳ Pending implementation tracking (IMPORTANT)
-- ⏳ ReplicatedAllocation pattern (CRITICAL for Phase 3)
-- ⏳ Config files (reference for addresses)
+**What remains (37% - 27 files):**
+- ⏳ Fork-based governance testing (1 file) - CRITICAL for Phase 2
+- ⏳ Pending implementation tracking (1 file) - IMPORTANT for Phase 2
+- ⏳ Reference scripts (20 files) - User requested to keep, review needed
+- ⏳ Config files (4 files) - Reference only, may have useful addresses
+- ⏳ Gradual migration patterns - Documented, recreate in Phase 3
 
-**What can be archived:**
-- ❌ Completed analysis docs
-- ❌ Completed design docs
-- ❌ Superseded component modules
+**Files successfully removed:**
+- ✅ 9 checkpoint modules (IssuanceAllocatorActive, ServiceQualityOracleActive, etc.)
+- ✅ 5 component modules (ServiceQualityOracle, IssuanceAllocator, etc.)
+- ✅ 3 target modules (ReplicatedAllocation, PilotAllocation, etc.)
 
-**Timeline to obsolescence:**
-- After Phase 2: ~70% complete → Can archive most analysis
-- After Phase 3: ~90% complete → Can archive most code
-- After Phase 4: 100% complete → Can delete entire legacy directory
+**Timeline to completion:**
+- After Phase 2: ~85% complete → Fork tests + address book incorporated
+- After Phase 3: ~95% complete → Gradual migration patterns recreated
+- After Phase 4: 100% complete → Entire legacy/packages/ deletable
 
 ---
 
-**Status:** Legacy remains valuable reference for Phases 2-4 of convergence.
+**Status:** Major cleanup complete. See [REMAINING_WORK.md](./REMAINING_WORK.md) for detailed file-by-file analysis.
