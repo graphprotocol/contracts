@@ -26,6 +26,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 **Content to extract and adapt:**
 
 1. **Dependency Graph** - Update for current contracts:
+
    ```
    RewardsManager V6 upgrade
        ↓
@@ -64,6 +65,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
    - Each phase requires governance verification before proceeding
 
 **Adaptation needed:**
+
 - Remove ServiceQualityOracle references → RewardsEligibilityOracle
 - Remove GraphProxyAdmin2 (using standard pattern)
 - Update for current contract architecture
@@ -72,6 +74,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 **Output:** New file documenting phase-by-phase deployment sequence
 
 **Acceptance criteria:**
+
 - Clear phase definitions
 - Explicit dependencies documented
 - Success criteria for each phase
@@ -90,6 +93,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 **CRITICAL: 3-Stage IssuanceAllocator Migration**
 
 **Stage 1 - Deploy with Zero Impact:**
+
 - Deploy IssuanceAllocator configured to exactly replicate existing RewardsManager behavior
 - Configuration: 100% allocation to RewardsManager, 0% to other targets
 - Verification:
@@ -100,6 +104,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 - **State:** Deployed but inactive
 
 **Stage 2 - Activate with No Distribution Change:**
+
 - Governance integrates IA with RewardsManager: `rewardsManager.setIssuanceAllocator(ia)`
 - Grant IA minting authority: `graphToken.addMinter(ia)`
 - Verification:
@@ -110,6 +115,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 - **State:** Live but replicating existing distribution
 
 **Stage 3 - Gradual Allocation Adjustments:**
+
 - Deploy DirectAllocation target contracts as needed
 - Governance adjusts allocations gradually:
   - Example: 99% RM / 1% DirectAllocation (pilot)
@@ -125,6 +131,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 - **State:** New distribution model active
 
 **Risk Mitigation:**
+
 - Stage 1: Zero risk (not active)
 - Stage 2: Validated integration before economic changes
 - Stage 3: Gradual changes with monitoring, easy rollback
@@ -132,6 +139,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 - Clear rollback: Governance can revert RM.issuanceAllocator() to zero address
 
 **Adaptation needed:**
+
 - Update contract names and methods
 - Document verification commands for each stage
 - Create governance TX builders for each stage transition
@@ -139,6 +147,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 **Output:** Documented migration strategy with clear stages
 
 **Acceptance criteria:**
+
 - Three stages clearly defined
 - Zero-impact deployment documented
 - Replication strategy explicit (100% to RM)
@@ -158,6 +167,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 **Three-Phase Governance Pattern:**
 
 **Phase 1 - Prepare (Permissionless):**
+
 - Anyone can deploy new implementations or contracts
 - Generate governance proposal data
 - Document expected state transitions
@@ -170,6 +180,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
   - Expected state documentation
 
 **Phase 2 - Execute (Governance):**
+
 - Governance multi-sig reviews proposal
 - Independent verification of contracts and proposal
 - Execute Safe batch transaction
@@ -181,6 +192,7 @@ Based on gap analysis and conflict resolution, this document provides a detailed
   - Verification that governance executed correctly
 
 **Phase 3 - Verify/Sync (Automated):**
+
 - Run verification scripts
 - Update address book
 - Confirm expected state
@@ -196,29 +208,28 @@ Based on gap analysis and conflict resolution, this document provides a detailed
 Document each type of governance transaction:
 
 1. **Proxy Upgrade:**
+
    ```typescript
    proxyAdmin.upgrade(proxyAddress, newImplementation)
    ```
 
 2. **Integration:**
+
    ```typescript
    rewardsManager.setIssuanceAllocator(iaAddress)
    rewardsManager.setRewardsEligibilityOracle(reoAddress)
    ```
 
 3. **Minting Authority:**
+
    ```typescript
    graphToken.addMinter(iaAddress)
    ```
 
 4. **Allocation Changes:**
+
    ```typescript
-   issuanceAllocator.setTargetAllocation(
-     targetAddress,
-     allocatorMintingPPM,
-     selfMintingPPM,
-     evenIfDistributionPending
-   )
+   issuanceAllocator.setTargetAllocation(targetAddress, allocatorMintingPPM, selfMintingPPM, evenIfDistributionPending)
    ```
 
 5. **Role Management:**
@@ -230,12 +241,14 @@ Document each type of governance transaction:
 **Safe Batch Transaction Format:**
 
 Document how to construct Safe batches for each scenario:
+
 - JSON format
 - Transaction ordering
 - Value and data encoding
 - Gas estimation
 
 **Adaptation needed:**
+
 - Update for current governance multi-sig address
 - Update contract names and addresses
 - Create example Safe JSON for each scenario
@@ -244,6 +257,7 @@ Document how to construct Safe batches for each scenario:
 **Output:** Complete governance workflow documentation
 
 **Acceptance criteria:**
+
 - Three phases clearly defined
 - Governance transaction patterns documented
 - Safe batch format documented
@@ -261,6 +275,7 @@ Document how to construct Safe batches for each scenario:
 **Content to extract and adapt:**
 
 **Pre-Deployment Checklist:**
+
 - [ ] Contract code reviewed and audited
 - [ ] Unit tests passing
 - [ ] Integration tests passing
@@ -275,6 +290,7 @@ Document how to construct Safe batches for each scenario:
 **Deployment Checklist (per phase):**
 
 **Phase 1: RewardsManager Upgrade:**
+
 - [ ] New RM implementation deployed
 - [ ] Implementation has `setIssuanceAllocator()` method
 - [ ] Implementation has `setRewardsEligibilityOracle()` method
@@ -284,6 +300,7 @@ Document how to construct Safe batches for each scenario:
 - [ ] Verification: Existing RM functionality unchanged
 
 **Phase 2: Issuance Contracts Deployment:**
+
 - [ ] IssuanceAllocator implementation deployed
 - [ ] IssuanceAllocator proxy deployed
 - [ ] IA initialized with correct GraphToken address
@@ -297,6 +314,7 @@ Document how to construct Safe batches for each scenario:
 - [ ] Address book updated
 
 **Phase 3: Integration (Stage 2 of Migration):**
+
 - [ ] IA configured to replicate RM (100% allocation)
 - [ ] Governance proposal created (integrate IA + REO)
 - [ ] Independent verification of proposal
@@ -307,6 +325,7 @@ Document how to construct Safe batches for each scenario:
 - [ ] Monitoring: Rewards flowing correctly
 
 **Phase 4: Minting Authority:**
+
 - [ ] Governance proposal created (grant minting)
 - [ ] Independent verification of proposal
 - [ ] Governance executes minting grant
@@ -315,6 +334,7 @@ Document how to construct Safe batches for each scenario:
 - [ ] Monitoring: Issuance amounts correct
 
 **Post-Deployment Checklist:**
+
 - [ ] All contracts verified on block explorer
 - [ ] Address book updated and committed
 - [ ] Documentation updated
@@ -325,6 +345,7 @@ Document how to construct Safe batches for each scenario:
 **Verification Checklist (per contract):**
 
 **IssuanceAllocator:**
+
 - [ ] Contract deployed at expected address
 - [ ] Proxy points to correct implementation
 - [ ] ProxyAdmin owned by governance
@@ -337,6 +358,7 @@ Document how to construct Safe batches for each scenario:
 - [ ] Events emitted correctly
 
 **RewardsEligibilityOracle:**
+
 - [ ] Contract deployed at expected address
 - [ ] Proxy points to correct implementation
 - [ ] ProxyAdmin owned by governance
@@ -352,6 +374,7 @@ Document how to construct Safe batches for each scenario:
 **Monitoring Checklist:**
 
 **Ongoing Monitoring (first 24 hours):**
+
 - [ ] Monitor IA issuance amounts (hourly)
 - [ ] Monitor distribution to targets (hourly)
 - [ ] Monitor RM rewards (hourly) - should be unchanged in Stage 2
@@ -360,18 +383,21 @@ Document how to construct Safe batches for each scenario:
 - [ ] Check block explorer for all transactions
 
 **Ongoing Monitoring (first week):**
+
 - [ ] Daily check of issuance amounts
 - [ ] Daily check of distribution percentages
 - [ ] Daily check for governance proposals
 - [ ] Weekly review with team
 
 **Ongoing Monitoring (first month):**
+
 - [ ] Weekly issuance review
 - [ ] Weekly distribution review
 - [ ] Monitor for needed adjustments
 - [ ] Prepare for Stage 3 allocation changes (if applicable)
 
 **Adaptation needed:**
+
 - Update contract names
 - Update parameter names
 - Add current network addresses
@@ -380,6 +406,7 @@ Document how to construct Safe batches for each scenario:
 **Output:** Comprehensive checklists for all phases
 
 **Acceptance criteria:**
+
 - Checklists for each deployment phase
 - Verification checklists for each contract
 - Monitoring checklists with timeframes
@@ -396,6 +423,7 @@ Document how to construct Safe batches for each scenario:
 **Diagrams to create:**
 
 1. **Contract Architecture:**
+
 ```mermaid
 graph TB
     GT[GraphToken]
@@ -416,6 +444,7 @@ graph TB
 ```
 
 2. **Deployment Sequence:**
+
 ```mermaid
 sequenceDiagram
     participant D as Deployer
@@ -448,6 +477,7 @@ sequenceDiagram
 ```
 
 3. **Governance Workflow:**
+
 ```mermaid
 stateDiagram-v2
     [*] --> Prepare
@@ -480,6 +510,7 @@ stateDiagram-v2
 ```
 
 4. **Gradual Migration Flow:**
+
 ```mermaid
 stateDiagram-v2
     [*] --> Deployed
@@ -513,6 +544,7 @@ stateDiagram-v2
 ```
 
 5. **Proxy Administration:**
+
 ```mermaid
 graph TB
     GOV[Governance Multi-sig]
@@ -534,6 +566,7 @@ graph TB
 ```
 
 **Adaptation needed:**
+
 - Update contract names for current implementation
 - Remove GraphProxyAdmin2 references
 - Add current deployment modules
@@ -541,6 +574,7 @@ graph TB
 **Output:** Visual architecture documentation
 
 **Acceptance criteria:**
+
 - Clear visual representation of architecture
 - Deployment sequence diagram
 - Governance workflow diagram
@@ -681,6 +715,7 @@ graphToken.addMinter(issuanceAllocatorAddress);
    - ✅ Grant role first: `reo.grantRole(ORACLE_ROLE, oracle)`
 
 **Adaptation needed:**
+
 - Verify all method signatures match current contracts
 - Add code examples for current implementation
 - Document all integration points
@@ -688,6 +723,7 @@ graphToken.addMinter(issuanceAllocatorAddress);
 **Output:** API reference preventing common errors
 
 **Acceptance criteria:**
+
 - All integration methods documented
 - Correct method signatures
 - Common mistakes identified
@@ -713,9 +749,9 @@ graphToken.addMinter(issuanceAllocatorAddress);
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import { IRewardsManager } from "@graphprotocol/horizon/contracts/interfaces/IRewardsManager.sol";
-import { IGraphToken } from "@graphprotocol/contracts/contracts/token/IGraphToken.sol";
-import { IIssuanceAllocator } from "../interfaces/IIssuanceAllocator.sol";
+import { IRewardsManager } from '@graphprotocol/horizon/contracts/interfaces/IRewardsManager.sol';
+import { IGraphToken } from '@graphprotocol/contracts/contracts/token/IGraphToken.sol';
+import { IIssuanceAllocator } from '../interfaces/IIssuanceAllocator.sol';
 
 /**
  * @title IssuanceGovernanceAssertions
@@ -727,152 +763,135 @@ import { IIssuanceAllocator } from "../interfaces/IIssuanceAllocator.sol";
  *      - Clear error messages showing what's missing
  */
 contract IssuanceGovernanceAssertions {
-    /**
-     * @notice Assert that RewardsManager has IssuanceAllocator set
-     * @param rewardsManager The RewardsManager contract
-     * @param expectedAllocator The expected IssuanceAllocator address
-     */
-    function assertIssuanceAllocatorSet(
-        IRewardsManager rewardsManager,
-        address expectedAllocator
-    ) external view {
-        address actual = rewardsManager.issuanceAllocator();
-        require(
-            actual == expectedAllocator,
-            string(abi.encodePacked(
-                "IssuanceAllocator not set. Expected: ",
-                toAsciiString(expectedAllocator),
-                ", Actual: ",
-                toAsciiString(actual)
-            ))
-        );
+  /**
+   * @notice Assert that RewardsManager has IssuanceAllocator set
+   * @param rewardsManager The RewardsManager contract
+   * @param expectedAllocator The expected IssuanceAllocator address
+   */
+  function assertIssuanceAllocatorSet(IRewardsManager rewardsManager, address expectedAllocator) external view {
+    address actual = rewardsManager.issuanceAllocator();
+    require(
+      actual == expectedAllocator,
+      string(
+        abi.encodePacked(
+          'IssuanceAllocator not set. Expected: ',
+          toAsciiString(expectedAllocator),
+          ', Actual: ',
+          toAsciiString(actual)
+        )
+      )
+    );
+  }
+
+  /**
+   * @notice Assert that RewardsManager has RewardsEligibilityOracle set
+   * @param rewardsManager The RewardsManager contract
+   * @param expectedOracle The expected oracle address
+   */
+  function assertRewardsEligibilityOracleSet(IRewardsManager rewardsManager, address expectedOracle) external view {
+    address actual = rewardsManager.rewardsEligibilityOracle();
+    require(
+      actual == expectedOracle,
+      string(
+        abi.encodePacked(
+          'RewardsEligibilityOracle not set. Expected: ',
+          toAsciiString(expectedOracle),
+          ', Actual: ',
+          toAsciiString(actual)
+        )
+      )
+    );
+  }
+
+  /**
+   * @notice Assert that IssuanceAllocator has minting authority on GraphToken
+   * @param graphToken The GraphToken contract
+   * @param allocator The IssuanceAllocator address
+   */
+  function assertMinter(IGraphToken graphToken, address allocator) external view {
+    require(
+      graphToken.isMinter(allocator),
+      string(abi.encodePacked('IssuanceAllocator is not a minter. Address: ', toAsciiString(allocator)))
+    );
+  }
+
+  /**
+   * @notice Assert that IssuanceAllocator replicates existing RewardsManager distribution
+   * @param allocator The IssuanceAllocator contract
+   * @param rewardsManager The RewardsManager address
+   * @dev This verifies Stage 2 of migration: 100% allocation to RM
+   */
+  function assertReplicationAllocation(IIssuanceAllocator allocator, address rewardsManager) external view {
+    (uint256 allocatorPPM, uint256 selfPPM) = allocator.getTargetAllocation(rewardsManager);
+
+    require(
+      allocatorPPM == 1_000_000,
+      string(abi.encodePacked('RewardsManager allocation is not 100%. Allocator PPM: ', uintToString(allocatorPPM)))
+    );
+
+    require(
+      selfPPM == 0,
+      string(abi.encodePacked('RewardsManager self-minting is not 0%. Self PPM: ', uintToString(selfPPM)))
+    );
+  }
+
+  /**
+   * @notice Assert complete integration (Stage 2 complete)
+   * @dev Combines all checks for "Stage 2 complete" state
+   */
+  function assertStage2Complete(
+    IRewardsManager rewardsManager,
+    IGraphToken graphToken,
+    IIssuanceAllocator allocator,
+    address reoAddress
+  ) external view {
+    // Check RM integration
+    this.assertIssuanceAllocatorSet(rewardsManager, address(allocator));
+    this.assertRewardsEligibilityOracleSet(rewardsManager, reoAddress);
+
+    // Check minting authority
+    this.assertMinter(graphToken, address(allocator));
+
+    // Check replication (100% to RM)
+    this.assertReplicationAllocation(allocator, address(rewardsManager));
+  }
+
+  // Helper functions for error messages
+  function toAsciiString(address x) internal pure returns (string memory) {
+    bytes memory s = new bytes(42);
+    s[0] = '0';
+    s[1] = 'x';
+    for (uint256 i = 0; i < 20; i++) {
+      bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2 ** (8 * (19 - i)))));
+      bytes1 hi = bytes1(uint8(b) / 16);
+      bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+      s[2 * i + 2] = char(hi);
+      s[2 * i + 3] = char(lo);
     }
+    return string(s);
+  }
 
-    /**
-     * @notice Assert that RewardsManager has RewardsEligibilityOracle set
-     * @param rewardsManager The RewardsManager contract
-     * @param expectedOracle The expected oracle address
-     */
-    function assertRewardsEligibilityOracleSet(
-        IRewardsManager rewardsManager,
-        address expectedOracle
-    ) external view {
-        address actual = rewardsManager.rewardsEligibilityOracle();
-        require(
-            actual == expectedOracle,
-            string(abi.encodePacked(
-                "RewardsEligibilityOracle not set. Expected: ",
-                toAsciiString(expectedOracle),
-                ", Actual: ",
-                toAsciiString(actual)
-            ))
-        );
+  function char(bytes1 b) internal pure returns (bytes1 c) {
+    if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+    else return bytes1(uint8(b) + 0x57);
+  }
+
+  function uintToString(uint256 v) internal pure returns (string memory) {
+    if (v == 0) return '0';
+    uint256 digits;
+    uint256 temp = v;
+    while (temp != 0) {
+      digits++;
+      temp /= 10;
     }
-
-    /**
-     * @notice Assert that IssuanceAllocator has minting authority on GraphToken
-     * @param graphToken The GraphToken contract
-     * @param allocator The IssuanceAllocator address
-     */
-    function assertMinter(
-        IGraphToken graphToken,
-        address allocator
-    ) external view {
-        require(
-            graphToken.isMinter(allocator),
-            string(abi.encodePacked(
-                "IssuanceAllocator is not a minter. Address: ",
-                toAsciiString(allocator)
-            ))
-        );
+    bytes memory buffer = new bytes(digits);
+    while (v != 0) {
+      digits -= 1;
+      buffer[digits] = bytes1(uint8(48 + uint256(v % 10)));
+      v /= 10;
     }
-
-    /**
-     * @notice Assert that IssuanceAllocator replicates existing RewardsManager distribution
-     * @param allocator The IssuanceAllocator contract
-     * @param rewardsManager The RewardsManager address
-     * @dev This verifies Stage 2 of migration: 100% allocation to RM
-     */
-    function assertReplicationAllocation(
-        IIssuanceAllocator allocator,
-        address rewardsManager
-    ) external view {
-        (uint256 allocatorPPM, uint256 selfPPM) = allocator.getTargetAllocation(rewardsManager);
-
-        require(
-            allocatorPPM == 1_000_000,
-            string(abi.encodePacked(
-                "RewardsManager allocation is not 100%. Allocator PPM: ",
-                uintToString(allocatorPPM)
-            ))
-        );
-
-        require(
-            selfPPM == 0,
-            string(abi.encodePacked(
-                "RewardsManager self-minting is not 0%. Self PPM: ",
-                uintToString(selfPPM)
-            ))
-        );
-    }
-
-    /**
-     * @notice Assert complete integration (Stage 2 complete)
-     * @dev Combines all checks for "Stage 2 complete" state
-     */
-    function assertStage2Complete(
-        IRewardsManager rewardsManager,
-        IGraphToken graphToken,
-        IIssuanceAllocator allocator,
-        address reoAddress
-    ) external view {
-        // Check RM integration
-        this.assertIssuanceAllocatorSet(rewardsManager, address(allocator));
-        this.assertRewardsEligibilityOracleSet(rewardsManager, reoAddress);
-
-        // Check minting authority
-        this.assertMinter(graphToken, address(allocator));
-
-        // Check replication (100% to RM)
-        this.assertReplicationAllocation(allocator, address(rewardsManager));
-    }
-
-    // Helper functions for error messages
-    function toAsciiString(address x) internal pure returns (string memory) {
-        bytes memory s = new bytes(42);
-        s[0] = "0";
-        s[1] = "x";
-        for (uint256 i = 0; i < 20; i++) {
-            bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2 ** (8 * (19 - i)))));
-            bytes1 hi = bytes1(uint8(b) / 16);
-            bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
-            s[2 * i + 2] = char(hi);
-            s[2 * i + 3] = char(lo);
-        }
-        return string(s);
-    }
-
-    function char(bytes1 b) internal pure returns (bytes1 c) {
-        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
-        else return bytes1(uint8(b) + 0x57);
-    }
-
-    function uintToString(uint256 v) internal pure returns (string memory) {
-        if (v == 0) return "0";
-        uint256 digits;
-        uint256 temp = v;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (v != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(v % 10)));
-            v /= 10;
-        }
-        return string(buffer);
-    }
+    return string(buffer);
+  }
 }
 ```
 
@@ -882,26 +901,26 @@ contract IssuanceGovernanceAssertions {
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
-import "../../contracts/governance/IssuanceGovernanceAssertions.sol";
+import 'forge-std/Test.sol';
+import '../../contracts/governance/IssuanceGovernanceAssertions.sol';
 // ... import mocks
 
 contract GovernanceAssertionsTest is Test {
-    IssuanceGovernanceAssertions assertions;
+  IssuanceGovernanceAssertions assertions;
 
-    function setUp() public {
-        assertions = new IssuanceGovernanceAssertions();
-    }
+  function setUp() public {
+    assertions = new IssuanceGovernanceAssertions();
+  }
 
-    function test_AssertIssuanceAllocatorSet_RevertsWhenNotSet() public {
-        // Test that assertion reverts with clear message when not set
-    }
+  function test_AssertIssuanceAllocatorSet_RevertsWhenNotSet() public {
+    // Test that assertion reverts with clear message when not set
+  }
 
-    function test_AssertIssuanceAllocatorSet_SucceedsWhenSet() public {
-        // Test that assertion succeeds when correctly set
-    }
+  function test_AssertIssuanceAllocatorSet_SucceedsWhenSet() public {
+    // Test that assertion succeeds when correctly set
+  }
 
-    // ... tests for all assertion functions
+  // ... tests for all assertion functions
 }
 ```
 
@@ -909,30 +928,28 @@ contract GovernanceAssertionsTest is Test {
 
 ```typescript
 // packages/issuance/scripts/verify-stage2.ts
-import { ethers } from "hardhat";
+import { ethers } from 'hardhat'
 
 async function main() {
-    const assertions = await ethers.getContractAt(
-        "IssuanceGovernanceAssertions",
-        ASSERTIONS_ADDRESS
-    );
+  const assertions = await ethers.getContractAt('IssuanceGovernanceAssertions', ASSERTIONS_ADDRESS)
 
-    const rm = await ethers.getContractAt("IRewardsManager", RM_ADDRESS);
-    const gt = await ethers.getContractAt("IGraphToken", GT_ADDRESS);
-    const ia = await ethers.getContractAt("IIssuanceAllocator", IA_ADDRESS);
+  const rm = await ethers.getContractAt('IRewardsManager', RM_ADDRESS)
+  const gt = await ethers.getContractAt('IGraphToken', GT_ADDRESS)
+  const ia = await ethers.getContractAt('IIssuanceAllocator', IA_ADDRESS)
 
-    try {
-        await assertions.assertStage2Complete(rm.address, gt.address, ia.address, REO_ADDRESS);
-        console.log("✅ Stage 2 verification PASSED");
-        process.exit(0);
-    } catch (error) {
-        console.error("❌ Stage 2 verification FAILED:", error.message);
-        process.exit(1);
-    }
+  try {
+    await assertions.assertStage2Complete(rm.address, gt.address, ia.address, REO_ADDRESS)
+    console.log('✅ Stage 2 verification PASSED')
+    process.exit(0)
+  } catch (error) {
+    console.error('❌ Stage 2 verification FAILED:', error.message)
+    process.exit(1)
+  }
 }
 ```
 
 **Acceptance criteria:**
+
 - Contract compiles
 - All assertion functions implemented
 - Tests pass
@@ -975,42 +992,37 @@ async function main() {
 **Update sync-addresses.ts:**
 
 ```typescript
-import fs from 'fs';
-import path from 'path';
+import fs from 'fs'
+import path from 'path'
 
 interface PendingImplementation {
-  address: string;
-  deployedAt: string;
-  deployedBy: string;
-  deploymentId: string;
-  readyForUpgrade: boolean;
-  notes?: string;
+  address: string
+  deployedAt: string
+  deployedBy: string
+  deploymentId: string
+  readyForUpgrade: boolean
+  notes?: string
 }
 
 interface ContractEntry {
-  address: string;
-  proxy?: string;
-  proxyAdmin?: string;
-  implementation?: string;
-  pendingImplementation?: PendingImplementation;
+  address: string
+  proxy?: string
+  proxyAdmin?: string
+  implementation?: string
+  pendingImplementation?: PendingImplementation
 }
 
 async function syncAddresses(deploymentId: string, chainId: string, mode: 'active' | 'pending' = 'active') {
   // Load Ignition deployment artifacts
-  const deployedAddressesPath = path.join(
-    __dirname,
-    '../ignition/deployments',
-    deploymentId,
-    'deployed_addresses.json'
-  );
-  const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, 'utf8'));
+  const deployedAddressesPath = path.join(__dirname, '../ignition/deployments', deploymentId, 'deployed_addresses.json')
+  const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath, 'utf8'))
 
   // Load current address book
-  const addressBookPath = path.join(__dirname, '../addresses.json');
-  const addressBook = JSON.parse(fs.readFileSync(addressBookPath, 'utf8'));
+  const addressBookPath = path.join(__dirname, '../addresses.json')
+  const addressBook = JSON.parse(fs.readFileSync(addressBookPath, 'utf8'))
 
   if (!addressBook[chainId]) {
-    addressBook[chainId] = {};
+    addressBook[chainId] = {}
   }
 
   // Process each deployed contract
@@ -1020,7 +1032,7 @@ async function syncAddresses(deploymentId: string, chainId: string, mode: 'activ
     if (mode === 'pending') {
       // Record as pending implementation
       if (!addressBook[chainId][contractName]) {
-        throw new Error(`Cannot add pending implementation for ${contractName}: contract not in address book`);
+        throw new Error(`Cannot add pending implementation for ${contractName}: contract not in address book`)
       }
 
       addressBook[chainId][contractName].pendingImplementation = {
@@ -1029,28 +1041,28 @@ async function syncAddresses(deploymentId: string, chainId: string, mode: 'activ
         deployedBy: deployerAddress,
         deploymentId,
         readyForUpgrade: false, // Governance must set to true
-        notes: process.env.PENDING_NOTES || ''
-      };
+        notes: process.env.PENDING_NOTES || '',
+      }
     } else {
       // Record as active (default behavior)
       addressBook[chainId][contractName] = {
         address: proxyAddress,
         proxy: 'transparent',
         proxyAdmin: proxyAdminAddress,
-        implementation: implementationAddress
-      };
+        implementation: implementationAddress,
+      }
     }
   }
 
   // Write updated address book
-  fs.writeFileSync(addressBookPath, JSON.stringify(addressBook, null, 2));
+  fs.writeFileSync(addressBookPath, JSON.stringify(addressBook, null, 2))
 
-  console.log(`✅ Address book updated (mode: ${mode})`);
+  console.log(`✅ Address book updated (mode: ${mode})`)
 }
 
 // CLI
-const [deploymentId, chainId, mode] = process.argv.slice(2);
-syncAddresses(deploymentId, chainId, (mode as 'active' | 'pending') || 'active');
+const [deploymentId, chainId, mode] = process.argv.slice(2)
+syncAddresses(deploymentId, chainId, (mode as 'active' | 'pending') || 'active')
 ```
 
 **Usage:**
@@ -1070,24 +1082,25 @@ npx ts-node scripts/activate-pending.ts 42161 IssuanceAllocator
 
 ```typescript
 async function activatePending(chainId: string, contractName: string) {
-  const addressBookPath = path.join(__dirname, '../addresses.json');
-  const addressBook = JSON.parse(fs.readFileSync(addressBookPath, 'utf8'));
+  const addressBookPath = path.join(__dirname, '../addresses.json')
+  const addressBook = JSON.parse(fs.readFileSync(addressBookPath, 'utf8'))
 
-  const contract = addressBook[chainId][contractName];
+  const contract = addressBook[chainId][contractName]
   if (!contract.pendingImplementation) {
-    throw new Error(`No pending implementation for ${contractName}`);
+    throw new Error(`No pending implementation for ${contractName}`)
   }
 
   // Move pending to active
-  contract.implementation = contract.pendingImplementation.address;
-  delete contract.pendingImplementation;
+  contract.implementation = contract.pendingImplementation.address
+  delete contract.pendingImplementation
 
-  fs.writeFileSync(addressBookPath, JSON.stringify(addressBook, null, 2));
-  console.log(`✅ Activated pending implementation for ${contractName}`);
+  fs.writeFileSync(addressBookPath, JSON.stringify(addressBook, null, 2))
+  console.log(`✅ Activated pending implementation for ${contractName}`)
 }
 ```
 
 **Acceptance criteria:**
+
 - sync-addresses.ts supports both active and pending modes
 - activate-pending.ts moves pending → active
 - Address book format documented
@@ -1110,108 +1123,108 @@ async function activatePending(chainId: string, contractName: string) {
  * Phases: phase1-rm-upgrade | phase2-deployment | phase3-integration | phase4-minting
  */
 
-import { ethers } from "hardhat";
-import { connectGraphIssuance } from "@graphprotocol/toolshed";
-import addresses from "../../addresses.json";
+import { ethers } from 'hardhat'
+import { connectGraphIssuance } from '@graphprotocol/toolshed'
+import addresses from '../../addresses.json'
 
 async function verifyPhase1(chainId: number, provider: any) {
-  console.log("\n🔍 Verifying Phase 1: RewardsManager Upgrade\n");
+  console.log('\n🔍 Verifying Phase 1: RewardsManager Upgrade\n')
 
-  const rmAddress = addresses[chainId].RewardsManager?.address;
-  if (!rmAddress) throw new Error("RewardsManager address not found");
+  const rmAddress = addresses[chainId].RewardsManager?.address
+  if (!rmAddress) throw new Error('RewardsManager address not found')
 
-  const rm = await ethers.getContractAt("IRewardsManager", rmAddress);
+  const rm = await ethers.getContractAt('IRewardsManager', rmAddress)
 
   // Check that new methods exist
   try {
-    await rm.issuanceAllocator();
-    console.log("✅ RewardsManager.issuanceAllocator() method exists");
+    await rm.issuanceAllocator()
+    console.log('✅ RewardsManager.issuanceAllocator() method exists')
   } catch (e) {
-    console.error("❌ RewardsManager.issuanceAllocator() method missing");
-    return false;
+    console.error('❌ RewardsManager.issuanceAllocator() method missing')
+    return false
   }
 
   try {
-    await rm.rewardsEligibilityOracle();
-    console.log("✅ RewardsManager.rewardsEligibilityOracle() method exists");
+    await rm.rewardsEligibilityOracle()
+    console.log('✅ RewardsManager.rewardsEligibilityOracle() method exists')
   } catch (e) {
-    console.error("❌ RewardsManager.rewardsEligibilityOracle() method missing");
-    return false;
+    console.error('❌ RewardsManager.rewardsEligibilityOracle() method missing')
+    return false
   }
 
-  console.log("\n✅ Phase 1 verification PASSED\n");
-  return true;
+  console.log('\n✅ Phase 1 verification PASSED\n')
+  return true
 }
 
 async function verifyPhase2(chainId: number, provider: any) {
-  console.log("\n🔍 Verifying Phase 2: Issuance Contracts Deployment\n");
+  console.log('\n🔍 Verifying Phase 2: Issuance Contracts Deployment\n')
 
-  const contracts = connectGraphIssuance(chainId, provider);
+  const contracts = connectGraphIssuance(chainId, provider)
 
   // Verify IssuanceAllocator
-  console.log("Checking IssuanceAllocator...");
-  const iaAddress = await contracts.IssuanceAllocator.getAddress();
-  console.log(`  Address: ${iaAddress}`);
+  console.log('Checking IssuanceAllocator...')
+  const iaAddress = await contracts.IssuanceAllocator.getAddress()
+  console.log(`  Address: ${iaAddress}`)
 
-  const iaOwner = await contracts.IssuanceAllocator.owner();
-  console.log(`  Owner: ${iaOwner}`);
-  const expectedOwner = addresses[chainId].Governance?.address;
+  const iaOwner = await contracts.IssuanceAllocator.owner()
+  console.log(`  Owner: ${iaOwner}`)
+  const expectedOwner = addresses[chainId].Governance?.address
   if (iaOwner.toLowerCase() !== expectedOwner?.toLowerCase()) {
-    console.error(`  ❌ Owner should be ${expectedOwner}`);
-    return false;
+    console.error(`  ❌ Owner should be ${expectedOwner}`)
+    return false
   }
-  console.log("  ✅ Owner is governance");
+  console.log('  ✅ Owner is governance')
 
-  const graphToken = await contracts.IssuanceAllocator.graphToken();
-  console.log(`  GraphToken: ${graphToken}`);
-  const expectedGT = addresses[chainId].GraphToken?.address;
+  const graphToken = await contracts.IssuanceAllocator.graphToken()
+  console.log(`  GraphToken: ${graphToken}`)
+  const expectedGT = addresses[chainId].GraphToken?.address
   if (graphToken.toLowerCase() !== expectedGT?.toLowerCase()) {
-    console.error(`  ❌ GraphToken should be ${expectedGT}`);
-    return false;
+    console.error(`  ❌ GraphToken should be ${expectedGT}`)
+    return false
   }
-  console.log("  ✅ GraphToken correct");
+  console.log('  ✅ GraphToken correct')
 
   // Verify RewardsEligibilityOracle
-  console.log("\nChecking RewardsEligibilityOracle...");
-  const reoAddress = await contracts.RewardsEligibilityOracle.getAddress();
-  console.log(`  Address: ${reoAddress}`);
+  console.log('\nChecking RewardsEligibilityOracle...')
+  const reoAddress = await contracts.RewardsEligibilityOracle.getAddress()
+  console.log(`  Address: ${reoAddress}`)
 
-  const reoOwner = await contracts.RewardsEligibilityOracle.owner();
-  console.log(`  Owner: ${reoOwner}`);
+  const reoOwner = await contracts.RewardsEligibilityOracle.owner()
+  console.log(`  Owner: ${reoOwner}`)
   if (reoOwner.toLowerCase() !== expectedOwner?.toLowerCase()) {
-    console.error(`  ❌ Owner should be ${expectedOwner}`);
-    return false;
+    console.error(`  ❌ Owner should be ${expectedOwner}`)
+    return false
   }
-  console.log("  ✅ Owner is governance");
+  console.log('  ✅ Owner is governance')
 
   // Check not integrated yet
-  const rmAddress = addresses[chainId].RewardsManager?.address;
-  const rm = await ethers.getContractAt("IRewardsManager", rmAddress);
+  const rmAddress = addresses[chainId].RewardsManager?.address
+  const rm = await ethers.getContractAt('IRewardsManager', rmAddress)
 
-  const rmIA = await rm.issuanceAllocator();
+  const rmIA = await rm.issuanceAllocator()
   if (rmIA !== ethers.ZeroAddress) {
-    console.warn("  ⚠️  IssuanceAllocator already set on RewardsManager (should be zero in Phase 2)");
+    console.warn('  ⚠️  IssuanceAllocator already set on RewardsManager (should be zero in Phase 2)')
   } else {
-    console.log("  ✅ IssuanceAllocator not yet integrated (expected in Phase 2)");
+    console.log('  ✅ IssuanceAllocator not yet integrated (expected in Phase 2)')
   }
 
-  console.log("\n✅ Phase 2 verification PASSED\n");
-  return true;
+  console.log('\n✅ Phase 2 verification PASSED\n')
+  return true
 }
 
 async function verifyPhase3(chainId: number, provider: any) {
-  console.log("\n🔍 Verifying Phase 3: Integration (Stage 2 of Migration)\n");
+  console.log('\n🔍 Verifying Phase 3: Integration (Stage 2 of Migration)\n')
 
-  const contracts = connectGraphIssuance(chainId, provider);
-  const rmAddress = addresses[chainId].RewardsManager?.address;
-  const rm = await ethers.getContractAt("IRewardsManager", rmAddress);
-  const gt = await ethers.getContractAt("IGraphToken", addresses[chainId].GraphToken.address);
+  const contracts = connectGraphIssuance(chainId, provider)
+  const rmAddress = addresses[chainId].RewardsManager?.address
+  const rm = await ethers.getContractAt('IRewardsManager', rmAddress)
+  const gt = await ethers.getContractAt('IGraphToken', addresses[chainId].GraphToken.address)
 
   // Use GovernanceAssertions helper
   const assertions = await ethers.getContractAt(
-    "IssuanceGovernanceAssertions",
-    addresses[chainId].IssuanceGovernanceAssertions.address
-  );
+    'IssuanceGovernanceAssertions',
+    addresses[chainId].IssuanceGovernanceAssertions.address,
+  )
 
   try {
     // This will revert with descriptive message if not correctly set
@@ -1219,79 +1232,80 @@ async function verifyPhase3(chainId: number, provider: any) {
       rmAddress,
       gt.address,
       contracts.IssuanceAllocator.address,
-      contracts.RewardsEligibilityOracle.address
-    );
+      contracts.RewardsEligibilityOracle.address,
+    )
 
-    console.log("✅ RewardsManager integration verified");
-    console.log("✅ Minting authority verified");
-    console.log("✅ 100% allocation to RewardsManager verified");
-    console.log("\n✅ Phase 3 verification PASSED\n");
-    return true;
+    console.log('✅ RewardsManager integration verified')
+    console.log('✅ Minting authority verified')
+    console.log('✅ 100% allocation to RewardsManager verified')
+    console.log('\n✅ Phase 3 verification PASSED\n')
+    return true
   } catch (error: any) {
-    console.error("❌ Phase 3 verification FAILED:");
-    console.error(error.message);
-    return false;
+    console.error('❌ Phase 3 verification FAILED:')
+    console.error(error.message)
+    return false
   }
 }
 
 async function verifyPhase4(chainId: number, provider: any) {
-  console.log("\n🔍 Verifying Phase 4: Minting Authority\n");
+  console.log('\n🔍 Verifying Phase 4: Minting Authority\n')
 
-  const contracts = connectGraphIssuance(chainId, provider);
-  const gt = await ethers.getContractAt("IGraphToken", addresses[chainId].GraphToken.address);
+  const contracts = connectGraphIssuance(chainId, provider)
+  const gt = await ethers.getContractAt('IGraphToken', addresses[chainId].GraphToken.address)
 
-  const isMinter = await gt.isMinter(contracts.IssuanceAllocator.address);
+  const isMinter = await gt.isMinter(contracts.IssuanceAllocator.address)
   if (!isMinter) {
-    console.error("❌ IssuanceAllocator is not a minter");
-    return false;
+    console.error('❌ IssuanceAllocator is not a minter')
+    return false
   }
-  console.log("✅ IssuanceAllocator has minting authority");
+  console.log('✅ IssuanceAllocator has minting authority')
 
-  console.log("\n✅ Phase 4 verification PASSED\n");
-  return true;
+  console.log('\n✅ Phase 4 verification PASSED\n')
+  return true
 }
 
 async function main() {
-  const [network, phase] = process.argv.slice(2);
+  const [network, phase] = process.argv.slice(2)
 
   if (!network || !phase) {
-    console.error("Usage: npx ts-node scripts/verify/verify-deployment.ts <network> <phase>");
-    console.error("Phases: phase1-rm-upgrade | phase2-deployment | phase3-integration | phase4-minting");
-    process.exit(1);
+    console.error('Usage: npx ts-node scripts/verify/verify-deployment.ts <network> <phase>')
+    console.error('Phases: phase1-rm-upgrade | phase2-deployment | phase3-integration | phase4-minting')
+    process.exit(1)
   }
 
-  const provider = ethers.provider;
-  const { chainId } = await provider.getNetwork();
+  const provider = ethers.provider
+  const { chainId } = await provider.getNetwork()
 
-  let result: boolean;
+  let result: boolean
   switch (phase) {
     case 'phase1-rm-upgrade':
-      result = await verifyPhase1(Number(chainId), provider);
-      break;
+      result = await verifyPhase1(Number(chainId), provider)
+      break
     case 'phase2-deployment':
-      result = await verifyPhase2(Number(chainId), provider);
-      break;
+      result = await verifyPhase2(Number(chainId), provider)
+      break
     case 'phase3-integration':
-      result = await verifyPhase3(Number(chainId), provider);
-      break;
+      result = await verifyPhase3(Number(chainId), provider)
+      break
     case 'phase4-minting':
-      result = await verifyPhase4(Number(chainId), provider);
-      break;
+      result = await verifyPhase4(Number(chainId), provider)
+      break
     default:
-      console.error(`Unknown phase: ${phase}`);
-      process.exit(1);
+      console.error(`Unknown phase: ${phase}`)
+      process.exit(1)
   }
 
-  process.exit(result ? 0 : 1);
+  process.exit(result ? 0 : 1)
 }
 
 main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+  console.error(error)
+  process.exit(1)
+})
 ```
 
 **Acceptance criteria:**
+
 - Verification script for each deployment phase
 - Uses GovernanceAssertions helper
 - Clear pass/fail output
@@ -1320,7 +1334,7 @@ main().catch((error) => {
 **Enhanced tx-builder.ts:**
 
 ```typescript
-import { buildSafeTx, SafeTransaction } from './safe-utils';
+import { buildSafeTx, SafeTransaction } from './safe-utils'
 
 export type GovernanceScenario =
   | 'phase1-rm-upgrade'
@@ -1328,57 +1342,51 @@ export type GovernanceScenario =
   | 'phase4-minting'
   | 'stage3-allocation'
   | 'proxy-upgrade'
-  | 'role-management';
+  | 'role-management'
 
-export async function buildGovernanceTx(
-  scenario: GovernanceScenario,
-  params: any
-): Promise<SafeTransaction[]> {
+export async function buildGovernanceTx(scenario: GovernanceScenario, params: any): Promise<SafeTransaction[]> {
   switch (scenario) {
     case 'phase1-rm-upgrade':
-      return buildPhase1RewardsManagerUpgrade(params);
+      return buildPhase1RewardsManagerUpgrade(params)
     case 'phase3-integration':
-      return buildPhase3Integration(params);
+      return buildPhase3Integration(params)
     case 'phase4-minting':
-      return buildPhase4Minting(params);
+      return buildPhase4Minting(params)
     case 'stage3-allocation':
-      return buildStage3Allocation(params);
+      return buildStage3Allocation(params)
     case 'proxy-upgrade':
-      return buildProxyUpgrade(params);
+      return buildProxyUpgrade(params)
     case 'role-management':
-      return buildRoleManagement(params);
+      return buildRoleManagement(params)
     default:
-      throw new Error(`Unknown scenario: ${scenario}`);
+      throw new Error(`Unknown scenario: ${scenario}`)
   }
 }
 
 async function buildPhase1RewardsManagerUpgrade(params: {
-  proxyAdmin: string;
-  rewardsManagerProxy: string;
-  newImplementation: string;
+  proxyAdmin: string
+  rewardsManagerProxy: string
+  newImplementation: string
 }) {
-  const proxyAdmin = await ethers.getContractAt('IProxyAdmin', params.proxyAdmin);
+  const proxyAdmin = await ethers.getContractAt('IProxyAdmin', params.proxyAdmin)
 
   return [
     await buildSafeTx({
       to: params.proxyAdmin,
-      data: proxyAdmin.interface.encodeFunctionData('upgrade', [
-        params.rewardsManagerProxy,
-        params.newImplementation
-      ]),
+      data: proxyAdmin.interface.encodeFunctionData('upgrade', [params.rewardsManagerProxy, params.newImplementation]),
       value: '0',
       operation: 0,
-      description: 'Upgrade RewardsManager to add issuance integration methods'
-    })
-  ];
+      description: 'Upgrade RewardsManager to add issuance integration methods',
+    }),
+  ]
 }
 
 async function buildPhase3Integration(params: {
-  rewardsManager: string;
-  issuanceAllocator: string;
-  rewardsEligibilityOracle: string;
+  rewardsManager: string
+  issuanceAllocator: string
+  rewardsEligibilityOracle: string
 }) {
-  const rm = await ethers.getContractAt('IRewardsManager', params.rewardsManager);
+  const rm = await ethers.getContractAt('IRewardsManager', params.rewardsManager)
 
   return [
     await buildSafeTx({
@@ -1386,23 +1394,20 @@ async function buildPhase3Integration(params: {
       data: rm.interface.encodeFunctionData('setIssuanceAllocator', [params.issuanceAllocator]),
       value: '0',
       operation: 0,
-      description: 'Set IssuanceAllocator on RewardsManager'
+      description: 'Set IssuanceAllocator on RewardsManager',
     }),
     await buildSafeTx({
       to: params.rewardsManager,
       data: rm.interface.encodeFunctionData('setRewardsEligibilityOracle', [params.rewardsEligibilityOracle]),
       value: '0',
       operation: 0,
-      description: 'Set RewardsEligibilityOracle on RewardsManager'
-    })
-  ];
+      description: 'Set RewardsEligibilityOracle on RewardsManager',
+    }),
+  ]
 }
 
-async function buildPhase4Minting(params: {
-  graphToken: string;
-  issuanceAllocator: string;
-}) {
-  const gt = await ethers.getContractAt('IGraphToken', params.graphToken);
+async function buildPhase4Minting(params: { graphToken: string; issuanceAllocator: string }) {
+  const gt = await ethers.getContractAt('IGraphToken', params.graphToken)
 
   return [
     await buildSafeTx({
@@ -1410,21 +1415,21 @@ async function buildPhase4Minting(params: {
       data: gt.interface.encodeFunctionData('addMinter', [params.issuanceAllocator]),
       value: '0',
       operation: 0,
-      description: 'Grant minting authority to IssuanceAllocator'
-    })
-  ];
+      description: 'Grant minting authority to IssuanceAllocator',
+    }),
+  ]
 }
 
 async function buildStage3Allocation(params: {
-  issuanceAllocator: string;
+  issuanceAllocator: string
   allocations: Array<{
-    target: string;
-    allocatorPPM: number;
-    selfPPM: number;
-    evenIfPending: boolean;
-  }>;
+    target: string
+    allocatorPPM: number
+    selfPPM: number
+    evenIfPending: boolean
+  }>
 }) {
-  const ia = await ethers.getContractAt('IIssuanceAllocator', params.issuanceAllocator);
+  const ia = await ethers.getContractAt('IIssuanceAllocator', params.issuanceAllocator)
 
   return params.allocations.map(async (alloc) =>
     buildSafeTx({
@@ -1433,13 +1438,13 @@ async function buildStage3Allocation(params: {
         alloc.target,
         alloc.allocatorPPM,
         alloc.selfPPM,
-        alloc.evenIfPending
+        alloc.evenIfPending,
       ]),
       value: '0',
       operation: 0,
-      description: `Set allocation: ${alloc.allocatorPPM / 10000}% to ${alloc.target}`
-    })
-  );
+      description: `Set allocation: ${alloc.allocatorPPM / 10000}% to ${alloc.target}`,
+    }),
+  )
 }
 
 // ... other scenario builders
@@ -1449,26 +1454,27 @@ async function buildStage3Allocation(params: {
 
 ```typescript
 // deploy/tasks/governance-tx.ts
-task("issuance:build-governance-tx", "Build Safe batch transaction for governance scenario")
-  .addParam("scenario", "Governance scenario")
-  .addParam("params", "JSON file with parameters")
-  .addParam("output", "Output file for Safe JSON", "./governance-tx.json")
+task('issuance:build-governance-tx', 'Build Safe batch transaction for governance scenario')
+  .addParam('scenario', 'Governance scenario')
+  .addParam('params', 'JSON file with parameters')
+  .addParam('output', 'Output file for Safe JSON', './governance-tx.json')
   .setAction(async (args, hre) => {
-    const params = JSON.parse(fs.readFileSync(args.params, 'utf8'));
-    const txs = await buildGovernanceTx(args.scenario, params);
+    const params = JSON.parse(fs.readFileSync(args.params, 'utf8'))
+    const txs = await buildGovernanceTx(args.scenario, params)
 
     const safeBatch = {
-      version: "1.0",
+      version: '1.0',
       chainId: (await hre.ethers.provider.getNetwork()).chainId.toString(),
-      transactions: txs
-    };
+      transactions: txs,
+    }
 
-    fs.writeFileSync(args.output, JSON.stringify(safeBatch, null, 2));
-    console.log(`✅ Governance transaction written to ${args.output}`);
-  });
+    fs.writeFileSync(args.output, JSON.stringify(safeBatch, null, 2))
+    console.log(`✅ Governance transaction written to ${args.output}`)
+  })
 ```
 
 **Acceptance criteria:**
+
 - TX builder for all governance scenarios
 - Hardhat task for each scenario
 - Safe JSON output format
@@ -1493,49 +1499,49 @@ task("issuance:build-governance-tx", "Build Safe batch transaction for governanc
 **Example: test-deployment.ts**
 
 ```typescript
-import { expect } from "chai";
-import { ethers, ignition } from "hardhat";
-import IssuanceDeployModule from "../../deploy/ignition/modules/deploy";
+import { expect } from 'chai'
+import { ethers, ignition } from 'hardhat'
+import IssuanceDeployModule from '../../deploy/ignition/modules/deploy'
 
-describe("Issuance Deployment", function () {
-  it("Should deploy all contracts successfully", async function () {
+describe('Issuance Deployment', function () {
+  it('Should deploy all contracts successfully', async function () {
     const { issuanceAllocator, rewardsEligibilityOracle, directAllocation } =
-      await ignition.deploy(IssuanceDeployModule);
+      await ignition.deploy(IssuanceDeployModule)
 
-    expect(await issuanceAllocator.getAddress()).to.be.properAddress;
-    expect(await rewardsEligibilityOracle.getAddress()).to.be.properAddress;
-    expect(await directAllocation.getAddress()).to.be.properAddress;
-  });
+    expect(await issuanceAllocator.getAddress()).to.be.properAddress
+    expect(await rewardsEligibilityOracle.getAddress()).to.be.properAddress
+    expect(await directAllocation.getAddress()).to.be.properAddress
+  })
 
-  it("Should initialize contracts correctly", async function () {
-    const { issuanceAllocator, rewardsEligibilityOracle } =
-      await ignition.deploy(IssuanceDeployModule);
+  it('Should initialize contracts correctly', async function () {
+    const { issuanceAllocator, rewardsEligibilityOracle } = await ignition.deploy(IssuanceDeployModule)
 
-    const graphToken = await issuanceAllocator.graphToken();
-    expect(graphToken).to.be.properAddress;
+    const graphToken = await issuanceAllocator.graphToken()
+    expect(graphToken).to.be.properAddress
 
-    const rewardsManager = await rewardsEligibilityOracle.rewardsManager();
-    expect(rewardsManager).to.be.properAddress;
-  });
+    const rewardsManager = await rewardsEligibilityOracle.rewardsManager()
+    expect(rewardsManager).to.be.properAddress
+  })
 
-  it("Should transfer ownership to governor", async function () {
-    const [deployer, governor] = await ethers.getSigners();
+  it('Should transfer ownership to governor', async function () {
+    const [deployer, governor] = await ethers.getSigners()
 
     // Deploy with governor as second account
-    const { issuanceAllocator } = await ignition.deploy(IssuanceDeployModule);
+    const { issuanceAllocator } = await ignition.deploy(IssuanceDeployModule)
 
-    const owner = await issuanceAllocator.owner();
-    expect(owner).to.equal(governor.address);
-  });
+    const owner = await issuanceAllocator.owner()
+    expect(owner).to.equal(governor.address)
+  })
 
-  it("Should support Stage 2 migration (100% to RewardsManager)", async function () {
+  it('Should support Stage 2 migration (100% to RewardsManager)', async function () {
     // Test full migration workflow
     // This would be a comprehensive integration test
-  });
-});
+  })
+})
 ```
 
 **Acceptance criteria:**
+
 - Tests pass on local network
 - Deployment flow verified
 - Governance workflow simulated
@@ -1559,6 +1565,7 @@ describe("Issuance Deployment", function () {
 **Content:**
 
 **Testing Period (Post-Phase 2):**
+
 - **Duration:** 2-4 weeks recommended
 - **Purpose:** Validate deployment before integration
 - **Activities:**
@@ -1577,6 +1584,7 @@ describe("Issuance Deployment", function () {
   - No critical issues found
 
 **Monitoring Period (Post-Phase 3):**
+
 - **Duration:** 4-8 weeks recommended
 - **Purpose:** Monitor integration before allocation changes
 - **Activities:**
@@ -1595,6 +1603,7 @@ describe("Issuance Deployment", function () {
   - Governance comfortable proceeding to Stage 3
 
 **Gradual Allocation Changes (Stage 3):**
+
 - **Duration:** Variable, governance-determined
 - **Approach:** Small incremental changes with monitoring
 - **Example Timeline:**
@@ -1619,6 +1628,7 @@ describe("Issuance Deployment", function () {
 **Monitoring Requirements:**
 
 **Phase 3 (Stage 2) - Integration:**
+
 - IssuanceAllocator.totalIssuancePerBlock()
 - Distribution amounts to RewardsManager
 - RewardsManager rewards (should match historical)
@@ -1627,6 +1637,7 @@ describe("Issuance Deployment", function () {
 - Gas costs
 
 **Stage 3 - Allocation Changes:**
+
 - Allocation percentages on-chain
 - Distribution amounts to each target
 - DirectAllocation balances
@@ -1637,12 +1648,14 @@ describe("Issuance Deployment", function () {
 **Monitoring Scripts:**
 
 Create `packages/issuance/scripts/monitor/`:
+
 - `check-allocations.ts` - Display current allocations
 - `check-issuance.ts` - Display issuance amounts
 - `check-distributions.ts` - Display distribution history
 - `alert-reverts.ts` - Alert on any reverts
 
 **Alerting:**
+
 - Set up alerts for unexpected behavior
 - Monitor for reverts
 - Track gas cost spikes
@@ -1688,12 +1701,14 @@ Create `packages/issuance/scripts/monitor/`:
 **Rollback Procedures:**
 
 **From Stage 3 (Allocation Changes):**
+
 - Governance: Reset allocations to 100% RM
 - Monitor: Verify distribution back to original
 - Investigate issue
 - Fix and test before re-attempting
 
 **From Stage 2 (Integration):**
+
 - Governance: Set RM.issuanceAllocator() to zero address
 - Governance: Remove IA minting authority
 - System reverts to RM self-minting
@@ -1708,6 +1723,7 @@ Create `packages/issuance/scripts/monitor/`:
 **Action:** Review and document all configuration values
 
 **For each network:**
+
 - Document why each parameter value was chosen
 - Validate against GIP proposals
 - Cross-reference with protocol economics
@@ -1751,14 +1767,17 @@ Create `packages/issuance/scripts/monitor/`:
 ## Summary Timeline
 
 ### Before Any Deployment
+
 - [x] Phase 1: Documentation Integration (analysis complete)
 - [ ] Review and approve design decisions
 
 ### Before Testnet Deployment
+
 - [ ] Phase 1: Documentation Integration (execution)
 - [ ] Phase 2: Critical Implementation
 
 ### Before Mainnet Deployment
+
 - [ ] Phase 3: Production Readiness
 - [ ] Full testnet deployment and validation
 - [ ] Governance review and approval
@@ -1788,12 +1807,14 @@ Create `packages/issuance/scripts/monitor/`:
 ## Success Criteria
 
 **Phase 1 Complete:**
+
 - All critical documentation extracted and adapted
 - Deployment sequence clearly defined
 - Governance workflow documented
 - Comprehensive checklists created
 
 **Phase 2 Complete:**
+
 - GovernanceAssertions contract deployed and tested
 - Address book enhanced with pending tracking
 - Verification scripts working
@@ -1801,6 +1822,7 @@ Create `packages/issuance/scripts/monitor/`:
 - Deployment tests passing
 
 **Phase 3 Complete:**
+
 - Testing periods documented
 - Monitoring documentation and scripts
 - Emergency procedures documented
