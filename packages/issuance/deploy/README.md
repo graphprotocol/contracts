@@ -7,21 +7,28 @@
 
 ## Quick Navigation
 
+### 🚀 **For Understanding How to Converge Current Spike ↔ Legacy Patterns:**
+
+→ **START HERE:** [legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md) - **What to keep from each approach and how to combine them**
+
 ### 🎯 **For Immediate REO Deployment Planning:**
+
 → **Start here:** [docs/README.md](./docs/README.md) - Production deployment documentation
 
 ### 📊 **For Understanding Design Decisions:**
+
 → **Start here:** [legacy/analysis.md](./legacy/analysis.md) - Legacy alignment analysis
-→ **And:** [legacy/TargetModelProposal.md](./legacy/TargetModelProposal.md) - Target model proposal
+→ **And:** [legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md) - Convergence strategy
 
 ### 🔍 **For Deep Dive / Background Research:**
-→ **Start here:** [analysis/AnalysisREADME.md](./analysis/AnalysisREADME.md) - Comprehensive gap analysis
+
+→ **Start here:** [legacy/AnalysisREADME.md](./legacy/AnalysisREADME.md) - Comprehensive gap analysis
 
 ---
 
 ## Directory Structure
 
-```
+```text
 packages/issuance/deploy/
 ├── docs/                    # 🎯 PRODUCTION DOCUMENTATION (Phase 1 Complete)
 │   ├── README.md           # Navigation guide for deployment docs
@@ -34,18 +41,16 @@ packages/issuance/deploy/
 │
 ├── legacy/                  # 📚 LEGACY CODE & ANALYSIS
 │   ├── analysis.md          # What's valuable from legacy + alignment
-│   ├── TargetModelProposal.md        # Component/integration separation
-│   └── packages/            # Full legacy deployment implementation
-│       ├── issuance/deploy/ # Legacy Ignition modules, scripts, tests
-│       └── deploy/          # Legacy orchestration (if present)
-│
-├── analysis/                # 🔍 GAP ANALYSIS & RECOMMENDATIONS
+│   ├── ConvergenceStrategy.md        # 🚀 How to converge spike ↔ legacy
 │   ├── AnalysisREADME.md    # Overview of gap analysis
 │   ├── GapAnalysis.md       # Detailed comparison (earlier vs current)
 │   ├── Conflicts.md         # Design decisions to make
 │   ├── NextPhaseRecommendations.md   # Phase 2+ implementation plan
-│   ├── [Legacy source docs]  # Design.md, DeploymentGuide.md, README.md
-│   └── TargetModelProposal.md        # (Earlier version)
+│   ├── Design.md            # Legacy design doc (reference)
+│   ├── DeploymentGuide.md   # Legacy deployment guide (reference)
+│   ├── README.md            # Legacy architectural overview (reference)
+│   └── packages/            # Full legacy deployment implementation
+│       └── issuance/deploy/ # Legacy Ignition modules, scripts, tests
 │
 ├── ignition/                # ⚙️ CURRENT IGNITION DEPLOYMENT
 │   ├── modules/             # Current deployment modules
@@ -74,6 +79,7 @@ packages/issuance/deploy/
 **Status:** ✅ Phase 1 Complete
 
 **Key Documents:**
+
 - **[REODeploymentSequence.md](./docs/REODeploymentSequence.md)** (17 KB) - 6-phase deployment sequence, rollback procedures, network strategies
 - **[GovernanceWorkflow.md](./docs/GovernanceWorkflow.md)** (27 KB) - Three-phase governance pattern, Safe TX builder guide, emergency procedures
 - **[VerificationChecklists.md](./docs/VerificationChecklists.md)** (22 KB) - Comprehensive checklists for every phase
@@ -84,6 +90,7 @@ packages/issuance/deploy/
 **Start Here If:** You're planning REO deployment, need governance workflow guidance, or want production checklists
 
 **Documentation Principles:**
+
 - REO deployment is immediate priority
 - IA patterns preserved but lower priority (no immediate deployment plans)
 - Integrates with existing governance tooling (`issuance:build-rewards-eligibility-upgrade` task)
@@ -93,16 +100,28 @@ packages/issuance/deploy/
 
 ### 📁 `legacy/` - Legacy Code & Analysis
 
-**Purpose:** Reference implementation from earlier deployment work, with analysis of what's valuable to preserve.
+**Purpose:** Reference implementation from earlier deployment work, with comprehensive analysis of what's valuable to preserve and how to converge with current spike.
 
-**Status:** ✅ Added for reference
+**Status:** ✅ Analysis Complete
 
 **Key Documents:**
+
+- **[ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)** (32 KB) - **🚀 START HERE** - What to keep from each approach and how to converge
 - **[analysis.md](./legacy/analysis.md)** (8 KB) - Summarizes valuable legacy patterns and alignment with current work
-- **[TargetModelProposal.md](./legacy/TargetModelProposal.md)** (6 KB) - Proposes component/integration target separation
+- **[AnalysisREADME.md](./legacy/AnalysisREADME.md)** - Overview and reading guide for all analysis documents
+- **[GapAnalysis.md](./legacy/GapAnalysis.md)** (18 KB) - Detailed component-by-component comparison
+- **[Conflicts.md](./legacy/Conflicts.md)** (15 KB) - Design decisions where approaches differ
+- **[NextPhaseRecommendations.md](./legacy/NextPhaseRecommendations.md)** (55 KB) - Detailed Phase 2+ implementation plan
+
+**Legacy Reference Docs:**
+
+- **[Design.md](./legacy/Design.md)** (18 KB) - Legacy design doc (copied for reference)
+- **[DeploymentGuide.md](./legacy/DeploymentGuide.md)** (25 KB) - Legacy deployment guide (copied for reference)
+- **[README.md](./legacy/README.md)** (2 KB) - Legacy architectural overview (copied for reference)
 
 **Legacy Code Structure:**
-```
+
+```text
 legacy/packages/issuance/deploy/
 ├── doc/                     # Original design docs (Design.md, DeploymentGuide.md)
 ├── ignition/modules/
@@ -113,39 +132,21 @@ legacy/packages/issuance/deploy/
 └── src/                     # Address book tracking (pending/active implementations)
 ```
 
-**Start Here If:** You want to understand the target model proposal, see reference implementations, or understand legacy deployment patterns
+**Start Here If:** You want to understand convergence strategy, see reference implementations, or understand legacy deployment patterns
 
-**Key Insights from Legacy:**
-1. **Target Model:** Component-only targets in issuance package; integration/active targets in orchestration package (avoid circular dependencies)
-2. **Three-Phase Governance:** Prepare (permissionless) → Execute (governance) → Verify/Sync (automated)
-3. **Pending Implementation Tracking:** Address book explicitly tracks implementation vs pendingImplementation
-4. **Governance Assertions:** Stateless helper with checks that revert until governance executes
-5. **3-Stage IA Migration:** Deploy → Replicate (100% RM) → Adjust allocations
+**Key Insights:**
 
----
-
-### 📁 `analysis/` - Gap Analysis & Recommendations
-
-**Purpose:** Comprehensive comparison of earlier deployment work vs current Ignition spike, identifying gaps and providing integration recommendations.
-
-**Status:** ✅ Analysis Complete
-
-**Key Documents:**
-- **[AnalysisREADME.md](./analysis/AnalysisREADME.md)** - Overview and reading guide
-- **[GapAnalysis.md](./analysis/GapAnalysis.md)** (18 KB) - Detailed component-by-component comparison
-- **[Conflicts.md](./analysis/Conflicts.md)** (15 KB) - Design decisions where approaches differ
-- **[NextPhaseRecommendations.md](./analysis/NextPhaseRecommendations.md)** (55 KB) - Detailed Phase 2+ implementation plan
-
-**Also Includes:**
-- **[Design.md](./analysis/Design.md)** (18 KB) - Legacy design doc (copied for reference)
-- **[DeploymentGuide.md](./analysis/DeploymentGuide.md)** (25 KB) - Legacy deployment guide (copied for reference)
-- **[README.md](./analysis/README.md)** (2 KB) - Legacy architectural overview (copied for reference)
-
-**Start Here If:** You want deep understanding of gaps, need to prioritize Phase 2 work, or want to understand design tradeoffs
+1. **Convergence Strategy:** Keep spike's modern tooling + adopt legacy's architectural patterns (see ConvergenceStrategy.md)
+2. **Target Model:** Component-only targets in issuance package; integration/active targets in orchestration package
+3. **Three-Phase Governance:** Prepare (permissionless) → Execute (governance) → Verify/Sync (automated)
+4. **Pending Implementation Tracking:** Address book explicitly tracks implementation vs pendingImplementation
+5. **Governance Assertions:** Stateless helper with checks that revert until governance executes
+6. **3-Stage IA Migration:** Deploy → Replicate (100% RM) → Adjust allocations
 
 **Key Findings:**
+
 - **CRITICAL Gaps:** Deployment sequencing, gradual migration strategy (3-stage IA), zero-impact deployment pattern
-- **HIGH VALUE Gaps:** Three-phase governance workflow, GovernanceAssertions helper, pending implementation tracking, verification checklists
+- **HIGH VALUE Gaps:** Three-phase governance workflow, GovernanceAssertions helper, pending implementation tracking
 - **Recommendations:** Phase 1 (docs) complete ✅, Phase 2 (critical implementation) next, Phase 3 (production readiness) before mainnet
 
 ---
@@ -157,17 +158,20 @@ legacy/packages/issuance/deploy/
 **Status:** ✅ Implementation complete (spike)
 
 **Contents:**
+
 - **modules/** - IssuanceAllocator, RewardsEligibilityOracle, DirectAllocation deployment modules
 - **configs/** - Network-specific JSON5 configuration files
 - **README.md** - Ignition deployment commands and configuration guide
 
 **Characteristics:**
+
 - Well-designed, aligns with Horizon patterns
 - Complete Toolshed integration
 - Reusable proxy deployment utilities
 - Single orchestrated deployment (deploy.ts)
 
 **Gaps:**
+
 - No deployment sequence documentation (now in `docs/`)
 - No governance coordination patterns (now in `docs/`)
 - No testing/verification (recommended in analysis)
@@ -181,11 +185,13 @@ legacy/packages/issuance/deploy/
 **Status:** ✅ Existing tooling good
 
 **Contents:**
+
 - **tx-builder.ts** - TxBuilder class for Safe-compatible JSON
 - **rewards-eligibility-upgrade.ts** - Builds RM upgrade + REO/IA integration batch
 - **README.md** - Governance tooling documentation
 
 **Hardhat Task:**
+
 ```bash
 npx hardhat issuance:build-rewards-eligibility-upgrade \
   --network <network> \
@@ -205,11 +211,13 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 **From:** Legacy Design.md, adapted in docs/GovernanceWorkflow.md
 
 **Pattern:**
+
 1. **Prepare (Permissionless):** Deploy contracts, generate Safe batch JSON, independent verification
 2. **Execute (Governance):** Governance reviews and executes Safe batch, state transitions occur
 3. **Verify/Sync (Automated):** Verification scripts confirm expected state, address book updated
 
 **Benefits:**
+
 - Clear separation of deployment from governance
 - Independent verification before execution
 - Automated verification after execution
@@ -222,16 +230,19 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 **From:** Legacy DeploymentGuide.md, adapted in docs/REODeploymentSequence.md
 
 **Pattern:**
+
 - Deploy contracts without affecting production
 - Test and verify in production environment
 - Activate only via governance when ready
 
 **REO Example:**
+
 - Phase 2: Deploy REO (not integrated)
 - Phase 3: Test for 2-4 weeks
 - Phase 4: Governance integration (production impact)
 
 **IA Example (Future):**
+
 - Stage 1: Deploy IA (not integrated)
 - Stage 2: Integrate at 100% to RM (replicate existing)
 - Stage 3: Gradually adjust allocations
@@ -245,23 +256,27 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 **CRITICAL for IA mainnet deployment - non-negotiable**
 
 **Stage 1 - Deploy with Zero Impact:**
+
 - Deploy IA configured to replicate existing distribution (100% to RM)
 - Not integrated yet
 - Comprehensive testing possible without risk
 
 **Stage 2 - Activate with No Distribution Change:**
+
 - Governance integrates IA with RewardsManager
 - Grant minting authority
 - **Still 100% to RM** - no economic change yet
 - Validates integration before changing distribution
 
 **Stage 3 - Gradual Allocation Changes:**
+
 - Deploy DirectAllocation targets
 - Gradually adjust allocations (99%/1%, then 95%/5%, etc.)
 - Monitor each change before proceeding
 - Clear rollback at each step
 
 **Why Critical:**
+
 - Separates integration validation from economic changes
 - Small incremental changes with monitoring
 - Issues caught early with minimal impact
@@ -274,6 +289,7 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 **From:** Legacy analysis.md and TargetModelProposal.md
 
 **Proposal:**
+
 - **Component targets** (in packages/issuance/deploy):
   - Deploy and initialize contracts only
   - No cross-package wiring
@@ -285,6 +301,7 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
   - Examples: `*-active` targets, allocation stages, governance batches
 
 **Benefits:**
+
 - Avoids circular dependencies
 - Clear package boundaries
 - Component deploys are idempotent and self-contained
@@ -299,25 +316,30 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 ### What We've Converged On
 
 **✅ REO Deployment is Immediate Priority**
+
 - Production documentation focused on REO (docs/)
 - IA patterns preserved but lower priority
 - Clear 6-phase REO deployment sequence
 
 **✅ Three-Phase Governance Workflow**
+
 - Prepare/Execute/Verify pattern documented (docs/GovernanceWorkflow.md)
 - Aligns with legacy approach
 - Integrates with existing governance tooling
 
 **✅ Zero-Impact Deployment Pattern**
+
 - Deploy first, integrate later via governance
 - Documented for both REO and IA (docs/)
 
 **✅ 3-Stage IA Gradual Migration**
+
 - Critical pattern documented (docs/IADeploymentGuide.md)
 - Non-negotiable for mainnet safety
 - Preserved for when IA deployment planned
 
 **✅ Existing Governance Tooling is Good**
+
 - tx-builder class solid
 - rewards-eligibility-upgrade task solid
 - Documentation references and integrates with it
@@ -329,6 +351,7 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 **From:** legacy/analysis.md (section 6)
 
 **1. Orchestration Package Location**
+
 - Where should "Active" integration targets live?
 - Options:
   - New `packages/issuance-orchestration`
@@ -337,19 +360,22 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 - **Decision needed before:** IA deployment or complex multi-package coordination
 
 **2. Proxy Administration Pattern**
+
 - Use shared GraphProxyAdmin2 (legacy pattern)?
 - Or keep per-contract ProxyAdmins (current Ignition spike)?
 - **Current approach:** Per-contract is simpler and works well
 - **Recommendation:** Keep current unless specific need arises
 
 **3. Governance Assertions Implementation**
+
 - Solidity helper contract (legacy approach)?
 - Pure TypeScript tests?
 - Both?
 - **Recommendation:** Both - Solidity for on-chain verification, TS for fork testing
-- **Status:** Proposed in analysis/NextPhaseRecommendations.md Phase 2
+- **Status:** Proposed in legacy/NextPhaseRecommendations.md Phase 2
 
 **4. Workflow Strictness**
+
 - How strictly mirror legacy three-phase workflow?
 - Simplify for first Arbitrum deployments?
 - **Recommendation:** Follow three-phase for safety, but adapt where appropriate
@@ -361,16 +387,17 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 
 ### Current State
 
-| Component | Implementation | Documentation | Status |
-|-----------|----------------|---------------|--------|
-| **RewardsEligibilityOracle** | ✅ Module exists | ✅ Complete | 🟡 Planning |
-| **IssuanceAllocator** | ✅ Module exists | ✅ Preserved | ⚪ Future |
-| **DirectAllocation** | ✅ Module exists | ✅ Complete | ⚪ As needed |
-| **Governance Tooling** | ✅ tx-builder, task | ✅ Complete | ✅ Ready |
-| **Verification** | ❌ No scripts yet | ✅ Complete | 🟡 Planned |
-| **Testing** | ❌ No deploy tests | ✅ Complete | 🟡 Planned |
+| Component                    | Implementation      | Documentation | Status       |
+| ---------------------------- | ------------------- | ------------- | ------------ |
+| **RewardsEligibilityOracle** | ✅ Module exists    | ✅ Complete   | 🟡 Planning  |
+| **IssuanceAllocator**        | ✅ Module exists    | ✅ Preserved  | ⚪ Future    |
+| **DirectAllocation**         | ✅ Module exists    | ✅ Complete   | ⚪ As needed |
+| **Governance Tooling**       | ✅ tx-builder, task | ✅ Complete   | ✅ Ready     |
+| **Verification**             | ❌ No scripts yet   | ✅ Complete   | 🟡 Planned   |
+| **Testing**                  | ❌ No deploy tests  | ✅ Complete   | 🟡 Planned   |
 
 **Legend:**
+
 - ✅ Complete/Ready
 - 🟡 In Progress/Planning
 - ⚪ Not Started/Future
@@ -383,6 +410,7 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 ### Immediate (Before REO Deployment)
 
 **Review & Planning:**
+
 1. ✅ Review production documentation (docs/)
 2. ✅ Review legacy alignment analysis (legacy/analysis.md)
 3. ✅ Review target model proposal (legacy/TargetModelProposal.md)
@@ -393,6 +421,7 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 8. 🔲 Set up oracle infrastructure
 
 **Questions to Resolve:**
+
 - Governance multi-sig addresses (Arbitrum One, Arbitrum Sepolia)?
 - Who/what should have OPERATOR_ROLE on REO?
 - Who/what should have ORACLE_ROLE on REO?
@@ -404,9 +433,10 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 
 ### Phase 2 Implementation (When Ready)
 
-**From:** analysis/NextPhaseRecommendations.md
+**From:** legacy/NextPhaseRecommendations.md
 
 **High-Value Additions:**
+
 1. **GovernanceAssertions Helper Contract**
    - Stateless Solidity contract with verification methods
    - Enables programmatic verification
@@ -432,7 +462,7 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
    - Allocation monitoring (future IA)
    - Alert on issues
 
-**See:** analysis/NextPhaseRecommendations.md for detailed implementation plan
+**See:** legacy/NextPhaseRecommendations.md for detailed implementation plan
 
 ---
 
@@ -462,15 +492,15 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 
 ### For Understanding Design Decisions
 
-1. Read **[legacy/analysis.md](./legacy/analysis.md)** - legacy alignment summary
-2. Read **[legacy/TargetModelProposal.md](./legacy/TargetModelProposal.md)** - target model proposal
-3. Review **[analysis/GapAnalysis.md](./analysis/GapAnalysis.md)** - detailed comparison
-4. Check **[analysis/Conflicts.md](./analysis/Conflicts.md)** - design decisions
+1. Read **[legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)** - **START HERE** for convergence
+2. Read **[legacy/analysis.md](./legacy/analysis.md)** - legacy alignment summary
+3. Review **[legacy/GapAnalysis.md](./legacy/GapAnalysis.md)** - detailed comparison
+4. Check **[legacy/Conflicts.md](./legacy/Conflicts.md)** - design decisions
 
 ### For Deep Research / Background
 
-1. Start with **[analysis/AnalysisREADME.md](./analysis/AnalysisREADME.md)**
-2. Read full gap analysis and recommendations
+1. Start with **[legacy/AnalysisREADME.md](./legacy/AnalysisREADME.md)**
+2. Read full gap analysis and recommendations in `legacy/`
 3. Explore legacy code in **legacy/packages/** for reference implementations
 4. Review legacy docs (Design.md, DeploymentGuide.md) for original thinking
 
@@ -481,6 +511,7 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 ### Updating Documentation
 
 **When to update:**
+
 - Contract interfaces change
 - Deployment procedures change
 - New networks added
@@ -488,24 +519,27 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 - Design decisions made
 
 **What to update:**
+
 - Keep docs/ current with production procedures
-- Update analysis/ if comparing new approaches
-- Add to legacy/ only if referencing additional legacy work
+- Update legacy/ if comparing new approaches or adding analysis
+- Add to legacy/packages/ only if referencing additional legacy code
 - Maintain consistency across documents
 
 **Documentation principles:**
+
 - Keep production docs (docs/) focused and actionable
-- Keep analysis (analysis/, legacy/) comprehensive but clearly marked as background
+- Keep analysis (legacy/) comprehensive but clearly marked as background
 - Use clear, concise, technical language
 - Include examples and diagrams
 - Document both correct and incorrect usage
-- Explain *why* not just *what*
+- Explain _why_ not just _what_
 
 ---
 
 ## Acknowledgments
 
 This documentation synthesizes:
+
 - **Current Ignition spike** - Well-designed deployment modules and governance tooling
 - **Earlier deployment work** - Production-ready patterns and governance workflows
 - **Parallel analysis** - Target model proposals and alignment considerations
@@ -520,16 +554,19 @@ All three sources contribute valuable insights to a production-ready deployment 
 **Future Priority:** IA deployment (3-stage migration)
 
 **Key Documentation:**
+
 - Production: [docs/README.md](./docs/README.md)
-- Analysis: [legacy/analysis.md](./legacy/analysis.md)
-- Gap Analysis: [analysis/AnalysisREADME.md](./analysis/AnalysisREADME.md)
+- Convergence: [legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)
+- Analysis: [legacy/AnalysisREADME.md](./legacy/AnalysisREADME.md)
 
 **Key Patterns:**
+
 - Three-phase governance: Prepare → Execute → Verify
 - Zero-impact deployment: Deploy → Test → Integrate
 - 3-stage IA migration: Deploy → Replicate → Adjust
 
 **Existing Tooling:**
+
 - Ignition modules: [ignition/modules/](./ignition/modules/)
 - Governance task: `npx hardhat issuance:build-rewards-eligibility-upgrade --help`
 - Configs: [ignition/configs/](./ignition/configs/)

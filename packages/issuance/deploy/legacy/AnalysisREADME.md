@@ -21,6 +21,7 @@ These are copied from the earlier deployment work for reference:
 
 These documents analyze the earlier work and provide integration recommendations:
 
+- **[ConvergenceStrategy.md](./ConvergenceStrategy.md)** - **START HERE** - Clear comparison of what to keep from each approach and how to converge
 - **[GapAnalysis.md](./GapAnalysis.md)** - Comprehensive comparison of earlier work vs current spike, identifies what's missing
 - **[Conflicts.md](./Conflicts.md)** - Documents design decisions where approaches differ, recommends resolutions
 - **[NextPhaseRecommendations.md](./NextPhaseRecommendations.md)** - Detailed, actionable plan for integrating valuable patterns
@@ -209,11 +210,12 @@ See [Conflicts.md](./Conflicts.md) for detailed analysis of each decision.
 
 Recommended reading order for understanding the analysis:
 
-1. **Start here:** This AnalysisREADME.md (you are here)
-2. **Understand gaps:** [GapAnalysis.md](./GapAnalysis.md) - What's missing in current spike
-3. **Resolve conflicts:** [Conflicts.md](./Conflicts.md) - Design decisions to make
-4. **Plan next phase:** [NextPhaseRecommendations.md](./NextPhaseRecommendations.md) - Detailed implementation plan
-5. **Reference earlier work:**
+1. **Start here:** [ConvergenceStrategy.md](./ConvergenceStrategy.md) - **Clear answer to "what to keep from each approach"**
+2. **Overview:** This AnalysisREADME.md (you are here) - Summary of key findings
+3. **Understand gaps:** [GapAnalysis.md](./GapAnalysis.md) - What's missing in current spike
+4. **Resolve conflicts:** [Conflicts.md](./Conflicts.md) - Design decisions to make
+5. **Plan next phase:** [NextPhaseRecommendations.md](./NextPhaseRecommendations.md) - Detailed implementation plan
+6. **Reference earlier work:**
    - [README.md](./README.md) - Architecture overview
    - [Design.md](./Design.md) - Technical details and diagrams
    - [DeploymentGuide.md](./DeploymentGuide.md) - Detailed procedures
