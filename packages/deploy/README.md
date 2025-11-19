@@ -9,7 +9,7 @@ This package coordinates deployments and governance integrations across multiple
 - **Horizon** (`@graphprotocol/horizon`) - Core protocol contracts (RewardsManager, GraphToken, etc.)
 - **Issuance** (`@graphprotocol/issuance`) - Issuance system contracts (REO, IA, DirectAllocation)
 
-TODO: Above statement about Horizon and core contracts should be reviewed. The contracts mentioned are in contracts package, although it might be they are deployed via horizon package? However, even that might not be what we need now, as the Horizon deployment configures for Horizon, rather than merely upgrading RewardsManager for example it sets the sub.
+TODO: Above statement about Horizon and core contracts should be reviewed. The contracts mentioned are in contracts package, although it might be they are deployed via horizon package? However, even that might not be what we need now, as the Horizon deployment configures for Horizon, rather than merely upgrading RewardsManager for example it sets the subgraph service?
 
 ## Structure
 
