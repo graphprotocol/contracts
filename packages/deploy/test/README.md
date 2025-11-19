@@ -7,6 +7,7 @@ Integration and fork-based tests for cross-package orchestration.
 ### Integration Tests
 
 Test orchestration logic without forking:
+
 - TX batch generation
 - Module coordination
 - Parameter validation
@@ -14,6 +15,7 @@ Test orchestration logic without forking:
 ### Fork-Based Tests
 
 Test complete governance workflow on Arbitrum fork:
+
 - Deploy components
 - Generate governance TX
 - Simulate governance execution

@@ -16,6 +16,7 @@
 ## Incorporated from Legacy ✅
 
 ### Contracts
+
 - ✅ **IssuanceStateVerifier.sol** → `packages/issuance/deploy/contracts/IssuanceStateVerifier.sol`
   - Updated: `serviceQualityOracle` → `rewardsEligibilityOracle`
   - Updated: Method names to match REO
@@ -54,9 +55,11 @@
 ### High-Value Code (Should Copy/Adapt)
 
 #### 1. Fork-Based Governance Testing ⭐ CRITICAL
+
 **File:** `legacy/packages/issuance/deploy/test-governance-workflow.ts`
 
 **What it does:**
+
 - Forks Arbitrum network
 - Deploys components
 - Impersonates governance
@@ -68,11 +71,14 @@
 **Action:** Adapt for `packages/deploy/test/reo-governance-workflow.test.ts`
 
 #### 2. Address Book with Pending Implementation ⭐ IMPORTANT
+
 **Files:**
+
 - `legacy/packages/issuance/deploy/src/address-book.ts`
 - `legacy/packages/issuance/deploy/scripts/update-address-book.js`
 
 **What it provides:**
+
 ```typescript
 interface IssuanceContractEntry {
   address: string
@@ -90,11 +96,14 @@ interface IssuanceContractEntry {
 **Action:** Extend Toolshed AddressBook or create custom wrapper
 
 #### 3. Governance Transaction Scripts
+
 **Files:**
+
 - `legacy/packages/issuance/deploy/scripts/deploy-governance-upgrade.js`
 - `legacy/packages/issuance/deploy/scripts/deploy-upgrade-prep.js`
 
 **What they do:**
+
 - Generate governance proposals
 - Prepare upgrade transactions
 - Coordination logic
@@ -104,9 +113,11 @@ interface IssuanceContractEntry {
 **Action:** Reference if needed, but current approach is sufficient
 
 #### 4. ReplicatedAllocation Pattern ⭐ CRITICAL (for IA)
+
 **File:** `legacy/packages/issuance/deploy/ignition/modules/targets/ReplicatedAllocation.ts`
 
 **What it does:**
+
 - Deploy IA configured to replicate current RewardsManager (100%)
 - Zero-impact deployment pattern
 - Part of 3-stage gradual migration
@@ -116,9 +127,11 @@ interface IssuanceContractEntry {
 **Action:** Will be needed in Phase 3 (IA structure)
 
 #### 5. GovernanceCheckpoint Module
+
 **File:** `legacy/packages/issuance/deploy/ignition/modules/contracts/GovernanceCheckpoint.ts`
 
 **What it does:**
+
 - Detects when governance checkpoints are needed
 - More sophisticated than simple assertion modules
 
@@ -129,9 +142,11 @@ interface IssuanceContractEntry {
 ### Medium-Value Code (Reference/Examples)
 
 #### 6. Governance Transaction Builders (lib/)
+
 **Files:** `legacy/packages/issuance/deploy/lib/ignition/modules/governanceTransactions.js`
 
 **What they do:**
+
 - Build Safe transactions
 - Encode function calls
 
@@ -140,10 +155,13 @@ interface IssuanceContractEntry {
 **Action:** Reference only if issues arise
 
 #### 7. Component Deployment Modules
+
 **Files:**
+
 - `legacy/packages/issuance/deploy/ignition/modules/contracts/*.ts`
 
 **What they do:**
+
 - Deploy ServiceQualityOracle, IssuanceAllocator, etc.
 - Using legacy contract names
 
@@ -152,6 +170,7 @@ interface IssuanceContractEntry {
 **Action:** None - current modules supersede these
 
 #### 8. Orchestration Modules (deploy package)
+
 **Files:** `legacy/packages/deploy/ignition/modules/issuance/*.ts`
 
 **Status:** ✅ INCORPORATED (checkpoint modules created)
@@ -161,6 +180,7 @@ interface IssuanceContractEntry {
 ### Low-Value Code (Archive or Delete)
 
 #### 9. Config Files
+
 **Files:** `legacy/packages/issuance/deploy/ignition/configs/*.json5`
 
 **Status:** ⏳ REFERENCE ONLY
@@ -168,7 +188,9 @@ interface IssuanceContractEntry {
 **Action:** Reference for address lookup if needed, then delete
 
 #### 10. Test Files (Component Tests)
+
 **Files:**
+
 - `legacy/packages/issuance/deploy/test/service-quality-oracle-deploy.test.ts`
 - `legacy/packages/issuance/deploy/test/deployment.test.js`
 
@@ -177,6 +199,7 @@ interface IssuanceContractEntry {
 **Action:** Reference if writing similar tests, then delete
 
 #### 11. Compiled JS (lib/ directory)
+
 **Files:** `legacy/packages/issuance/deploy/lib/**/*.js`
 
 **Status:** ⏳ KEPT (you reverted deletion)
@@ -229,21 +252,23 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 ### Phase 2 (Before REO Testing)
 
 **Must incorporate:**
+
 1. ⭐ Fork-based governance test pattern → `packages/deploy/test/`
 2. ⭐ Pending implementation tracking → Extend address book
 
-**Can reference:**
-3. Governance workflow scripts → If issues arise with tasks
+**Can reference:** 3. Governance workflow scripts → If issues arise with tasks
 
 ### Phase 3 (IA Structure)
 
 **Must incorporate:**
+
 1. ⭐ ReplicatedAllocation pattern → For gradual IA migration
 2. Consider GovernanceCheckpoint module → If needed
 
 ### Phase 4 (Final Cleanup)
 
 **Delete entire legacy directory after:**
+
 1. ✅ All valuable code incorporated
 2. ✅ All patterns documented
 3. ✅ Tests passing with new structure
@@ -253,20 +278,20 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 
 ## Progress Tracker
 
-| Category | Incorporated | Remaining | Status |
-|----------|--------------|-----------|--------|
-| Contracts | 100% (3/3) | 0 | ✅ Complete |
-| Checkpoint Modules | 100% (9/9) | 0 | ✅ Complete (deleted from legacy) |
-| Component Modules | 100% (5/5) | 0 | ✅ Complete (deleted from legacy) |
-| Target Modules | 100% (3/3) | 0 | ✅ Complete (Phase 3 patterns documented) |
-| Reference Pattern | 100% | 0 | ✅ Complete |
-| Package Structure | 100% | 0 | ✅ Complete |
-| Fork-Based Tests | 0% | 1 file | ⏳ Phase 2 |
-| Address Book | 0% | 1 file | ⏳ Phase 2 |
-| Reference Scripts | 0% | 20 files | ⏳ Review |
-| Config Files | 0% | 4 files | ⏳ Reference |
-| **Overall** | **~63%** | **~37%** | ⏳ In Progress |
-| **Files** | **17 removed** | **27 remain** | See REMAINING_WORK.md |
+| Category           | Incorporated   | Remaining     | Status                                    |
+| ------------------ | -------------- | ------------- | ----------------------------------------- |
+| Contracts          | 100% (3/3)     | 0             | ✅ Complete                               |
+| Checkpoint Modules | 100% (9/9)     | 0             | ✅ Complete (deleted from legacy)         |
+| Component Modules  | 100% (5/5)     | 0             | ✅ Complete (deleted from legacy)         |
+| Target Modules     | 100% (3/3)     | 0             | ✅ Complete (Phase 3 patterns documented) |
+| Reference Pattern  | 100%           | 0             | ✅ Complete                               |
+| Package Structure  | 100%           | 0             | ✅ Complete                               |
+| Fork-Based Tests   | 0%             | 1 file        | ⏳ Phase 2                                |
+| Address Book       | 0%             | 1 file        | ⏳ Phase 2                                |
+| Reference Scripts  | 0%             | 20 files      | ⏳ Review                                 |
+| Config Files       | 0%             | 4 files       | ⏳ Reference                              |
+| **Overall**        | **~63%**       | **~37%**      | ⏳ In Progress                            |
+| **Files**          | **17 removed** | **27 remain** | See REMAINING_WORK.md                     |
 
 ---
 
@@ -275,6 +300,7 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 **Legacy cleanup is ~63% complete. Valuable patterns identified and preserved.**
 
 **What's done (63% - 17 files removed):**
+
 - ✅ Contracts (IssuanceStateVerifier, mocks) - Incorporated
 - ✅ Checkpoint modules (9 files) - Fully migrated and deleted
 - ✅ Component modules (5 files) - Superseded and deleted
@@ -283,6 +309,7 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 - ✅ Package structure - Two-package architecture established
 
 **What remains (37% - 27 files):**
+
 - ⏳ Fork-based governance testing (1 file) - CRITICAL for Phase 2
 - ⏳ Pending implementation tracking (1 file) - IMPORTANT for Phase 2
 - ⏳ Reference scripts (20 files) - User requested to keep, review needed
@@ -290,11 +317,13 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 - ⏳ Gradual migration patterns - Documented, recreate in Phase 3
 
 **Files successfully removed:**
+
 - ✅ 9 checkpoint modules (IssuanceAllocatorActive, ServiceQualityOracleActive, etc.)
 - ✅ 5 component modules (ServiceQualityOracle, IssuanceAllocator, etc.)
 - ✅ 3 target modules (ReplicatedAllocation, PilotAllocation, etc.)
 
 **Timeline to completion:**
+
 - After Phase 2: ~85% complete → Fork tests + address book incorporated
 - After Phase 3: ~95% complete → Gradual migration patterns recreated
 - After Phase 4: 100% complete → Entire legacy/packages/ deletable

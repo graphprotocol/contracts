@@ -8,6 +8,7 @@
 ## Purpose
 
 This package provides **component-only deployment** for Graph Issuance contracts:
+
 - RewardsEligibilityOracle (REO)
 - IssuanceAllocator (IA)
 - DirectAllocation
@@ -31,6 +32,7 @@ packages/deploy/                   # Cross-package orchestration
 ```
 
 **Why two packages?**
+
 - **Component deployment** (this package) is permissionless and pure
 - **Governance integration** (packages/deploy/) requires coordination with Horizon
 - Clean separation enables independent testing and deployment
@@ -167,8 +169,8 @@ Located in `ignition/configs/`:
 ```json5
 {
   $global: {
-    graphTokenAddress: '0x...',  // Required: GraphToken address
-  }
+    graphTokenAddress: '0x...', // Required: GraphToken address
+  },
 }
 ```
 

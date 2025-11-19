@@ -19,12 +19,14 @@ This document outlines the deployment strategy for IssuanceAllocator (IA) when i
 ### Why This Pattern is Critical
 
 The IssuanceAllocator fundamentally changes how tokens are minted and distributed in the protocol. A direct deployment and activation carries significant risk:
+
 - Could disrupt existing rewards distribution
 - Difficult to verify correct operation
 - No clear rollback if issues arise
 - High impact if something goes wrong
 
 The 3-stage migration pattern **eliminates these risks** by:
+
 1. Deploying without production impact (Stage 1)
 2. Activating while replicating existing behavior (Stage 2)
 3. Gradually changing distribution with monitoring (Stage 3)
@@ -38,6 +40,7 @@ The 3-stage migration pattern **eliminates these risks** by:
 ### Actions
 
 1. **Deploy IA Contracts**
+
    ```bash
    cd packages/issuance/deploy
    npx hardhat ignition deploy ignition/modules/IssuanceAllocator.ts \
@@ -47,17 +50,19 @@ The 3-stage migration pattern **eliminates these risks** by:
    ```
 
 2. **Configure to Replicate Existing Distribution**
+
    ```typescript
    // Set 100% allocation to RewardsManager
    await issuanceAllocator.setTargetAllocation(
      rewardsManagerAddress,
-     1_000_000,  // 100% in PPM (parts per million)
-     0,          // 0% self-minting
-     false       // Don't set if distribution pending
+     1_000_000, // 100% in PPM (parts per million)
+     0, // 0% self-minting
+     false, // Don't set if distribution pending
    )
    ```
 
 3. **Set Initial Issuance Rate**
+
    ```typescript
    // Match current RewardsManager issuance rate
    const currentRate = await rewardsManager.getIssuancePerBlock()
@@ -93,6 +98,7 @@ The 3-stage migration pattern **eliminates these risks** by:
 ### Actions
 
 **Generate governance transaction batch:**
+
 ```bash
 npx hardhat issuance:build-rewards-eligibility-upgrade \
   --network arbitrumSepolia \
@@ -106,11 +112,13 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 **Governance executes:**
 
 1. **Integrate IA with RewardsManager**
+
    ```typescript
    await rewardsManager.setIssuanceAllocator(iaAddress)
    ```
 
 2. **Grant Minting Authority**
+
    ```typescript
    await graphToken.addMinter(iaAddress)
    ```
@@ -128,21 +136,21 @@ npx hardhat issuance:build-rewards-eligibility-upgrade \
 
 ```typescript
 // scripts/verify/verify-ia-stage2.ts
-const rm = await ethers.getContractAt("RewardsManager", RM_ADDRESS)
-const ia = await ethers.getContractAt("IssuanceAllocator", IA_ADDRESS)
-const gt = await ethers.getContractAt("GraphToken", GT_ADDRESS)
+const rm = await ethers.getContractAt('RewardsManager', RM_ADDRESS)
+const ia = await ethers.getContractAt('IssuanceAllocator', IA_ADDRESS)
+const gt = await ethers.getContractAt('GraphToken', GT_ADDRESS)
 
 // Check integration
-console.log("RM.issuanceAllocator():", await rm.issuanceAllocator())
+console.log('RM.issuanceAllocator():', await rm.issuanceAllocator())
 // Should equal IA_ADDRESS
 
 // Check minting authority
-console.log("GT.isMinter(ia):", await gt.isMinter(ia.address))
+console.log('GT.isMinter(ia):', await gt.isMinter(ia.address))
 // Should equal true
 
 // Check allocation (should still be 100% RM)
 const [allocatorPPM, selfPPM] = await ia.getTargetAllocation(rm.address)
-console.log("RM Allocation:", (allocatorPPM.toNumber() / 10000).toFixed(2) + "%")
+console.log('RM Allocation:', (allocatorPPM.toNumber() / 10000).toFixed(2) + '%')
 // Should equal 100.00%
 
 // Check other targets have 0% allocation
@@ -150,7 +158,7 @@ const targets = await ia.getAllTargets() // If this method exists
 for (const target of targets) {
   if (target !== rm.address) {
     const [ppm, _] = await ia.getTargetAllocation(target)
-    console.log(`${target} Allocation:`, (ppm.toNumber() / 10000).toFixed(2) + "%")
+    console.log(`${target} Allocation:`, (ppm.toNumber() / 10000).toFixed(2) + '%')
     // Should equal 0.00%
   }
 }
@@ -178,6 +186,7 @@ for (const target of targets) {
 **Week 1: Pilot (99% RM / 1% New Target)**
 
 1. **Deploy DirectAllocation target** (if not already deployed)
+
    ```bash
    npx hardhat ignition deploy ignition/modules/DirectAllocation.ts \
      --network arbitrumSepolia \
@@ -185,6 +194,7 @@ for (const target of targets) {
    ```
 
 2. **Governance adjusts allocations**
+
    ```typescript
    // Set 99% to RewardsManager
    await ia.setTargetAllocation(rewardsManagerAddress, 990_000, 0, false)
@@ -202,6 +212,7 @@ for (const target of targets) {
 **Week 3-4: Small Increase (95% RM / 5% New)**
 
 4. **If pilot successful, governance increases allocation**
+
    ```typescript
    // Set 95% to RewardsManager
    await ia.setTargetAllocation(rewardsManagerAddress, 950_000, 0, false)
@@ -225,6 +236,7 @@ for (const target of targets) {
 ### Important Considerations
 
 **Monitoring After Each Change:**
+
 - Verify on-chain allocations match expected
 - Verify distribution amounts match expected percentages
 - Monitor RewardsManager rewards (should decrease proportionally)
@@ -233,22 +245,26 @@ for (const target of targets) {
 - User feedback
 
 **Rollback Capability:**
+
 - At any point, governance can reset to 100% RM:
+
   ```typescript
   await ia.setTargetAllocation(rewardsManagerAddress, 1_000_000, 0, false)
   await ia.setTargetAllocation(directAllocationAddress, 0, 0, false)
   ```
+
 - This immediately reverts to Stage 2 state (safe)
 
 **Validation:**
+
 ```typescript
 // scripts/verify/verify-allocations.ts
-const ia = await ethers.getContractAt("IssuanceAllocator", IA_ADDRESS)
+const ia = await ethers.getContractAt('IssuanceAllocator', IA_ADDRESS)
 
 // Get all targets and their allocations
 const targets = [
-  { name: "RewardsManager", address: RM_ADDRESS },
-  { name: "DirectAllocation", address: DA_ADDRESS },
+  { name: 'RewardsManager', address: RM_ADDRESS },
+  { name: 'DirectAllocation', address: DA_ADDRESS },
   // Add more targets as deployed
 ]
 
@@ -265,7 +281,7 @@ console.log(`Total Allocation: ${(totalPPM / 10000).toFixed(2)}%`)
 // Should equal 100.00%
 
 if (totalPPM !== 1_000_000) {
-  console.error("❌ Total allocation does not equal 100%!")
+  console.error('❌ Total allocation does not equal 100%!')
   process.exit(1)
 }
 ```
@@ -279,11 +295,13 @@ if (totalPPM !== 1_000_000) {
 ### Stage 1: Risk-Free Deployment
 
 **Without Stage 1:**
+
 - Deploy and immediately activate ← High risk
 - Difficult to test in production environment
 - No opportunity for verification
 
 **With Stage 1:**
+
 - Deploy without impact ← Zero risk
 - Can test thoroughly in production
 - Can verify configuration correct
@@ -296,11 +314,13 @@ if (totalPPM !== 1_000_000) {
 ### Stage 2: Validate Integration Before Economic Changes
 
 **Without Stage 2:**
+
 - Deploy and change distribution simultaneously ← Very high risk
 - Multiple changes at once, hard to debug
 - Can't isolate integration issues from distribution issues
 
 **With Stage 2:**
+
 - Integrate while replicating existing ← Moderate risk
 - Validates integration works correctly
 - Economic model unchanged, so safer
@@ -314,11 +334,13 @@ if (totalPPM !== 1_000_000) {
 ### Stage 3: Gradual Change with Monitoring
 
 **Without Stage 3:**
+
 - Change distribution immediately to target ← High risk
 - Large impact, hard to rollback
 - May not notice issues until significant damage
 
 **With Stage 3:**
+
 - Small incremental changes ← Low risk per change
 - Monitor after each change
 - Can rollback easily
@@ -336,6 +358,7 @@ if (totalPPM !== 1_000_000) {
 **Issue:** New distribution not working as expected
 
 **Action:**
+
 ```typescript
 // Governance resets to 100% RM
 await ia.setTargetAllocation(rewardsManagerAddress, 1_000_000, 0, false)
@@ -351,6 +374,7 @@ await ia.setTargetAllocation(otherTarget, 0, 0, false)
 **Issue:** Major problem with IA integration
 
 **Action:**
+
 ```typescript
 // Governance disconnects IA from RM
 await rewardsManager.setIssuanceAllocator(ethers.ZeroAddress)
@@ -370,6 +394,7 @@ await graphToken.removeMinter(iaAddress)
 **Issue:** Problem with IA deployment itself
 
 **Action:**
+
 - No rollback needed (not active, zero impact)
 - Can redeploy IA if necessary
 - Can fix issues and redeploy
@@ -445,12 +470,14 @@ await graphToken.removeMinter(iaAddress)
 The earlier deployment work documented an 8-stage ServiceQualityOracle (now REO) rollout and this 3-stage IA migration. The current implementation has:
 
 **Preserved:**
+
 - ✅ 3-stage gradual migration pattern (critical)
 - ✅ Zero-impact deployment concept
 - ✅ Replication before adjustment
 - ✅ Monitoring between stages
 
 **Not Yet Implemented:**
+
 - ❌ Separate governance tasks for IA
 - ❌ Verification scripts for IA stages
 - ❌ GovernanceAssertions with IA checks

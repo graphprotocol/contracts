@@ -41,6 +41,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 **Complete deployment sequence for RewardsEligibilityOracle**
 
 **Contents:**
+
 - **6-Phase Deployment:** RM Upgrade → REO Deployment → Testing → Integration → Monitoring → Enable Validation
 - **Stage-by-stage breakdown** of Phase 2 deployment
 - **Dependency graph** showing sequencing constraints
@@ -59,6 +60,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 **Three-phase governance pattern for deployment and integration**
 
 **Contents:**
+
 - **Phase 1: Prepare (Permissionless)** - Deploy contracts, generate proposals
 - **Phase 2: Execute (Governance)** - Review and execute transactions
 - **Phase 3: Verify/Sync (Automated)** - Confirm state and update docs
@@ -77,6 +79,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 **Comprehensive checklists for every deployment phase**
 
 **Contents:**
+
 - **Pre-Deployment Checklist** - Code, config, roles, infrastructure
 - **Phase-by-phase checklists** for all 6 REO deployment phases
 - **Contract deployment verification** - Addresses, initialization, ownership
@@ -96,6 +99,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 **Visual diagrams and architecture documentation**
 
 **Contents:**
+
 - **Contract architecture** - Component relationships graph
 - **Deployment sequence** - Phase-by-phase sequence diagram
 - **Governance workflow** - Three-phase state diagram
@@ -119,6 +123,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 **Correct method signatures and usage to prevent implementation errors**
 
 **Contents:**
+
 - **REO methods** with correct signatures and examples
 - **RewardsManager integration** methods
 - **IssuanceAllocator methods** (future use section)
@@ -139,6 +144,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 **Critical 3-stage gradual migration pattern for IssuanceAllocator**
 
 **Contents:**
+
 - **Stage 1: Deploy with Zero Impact** - Deploy without production changes
 - **Stage 2: Activate with No Distribution Change** - Integrate at 100% to RM
 - **Stage 3: Gradual Allocation Changes** - Incrementally adjust distribution
@@ -159,24 +165,28 @@ This directory contains production-ready deployment documentation for Graph Prot
 ### Three-Phase Governance Pattern
 
 **Phase 1: Prepare (Permissionless)**
+
 - Anyone can deploy implementations
 - Generate governance transaction data
 - Independent verification
 - **No production impact**
 
 **Phase 2: Execute (Governance)**
+
 - Governance multi-sig reviews
 - Safe batch transaction execution
 - State transitions occur
 - **Production impact happens**
 
 **Phase 3: Verify/Sync (Automated)**
+
 - Verify expected state achieved
 - Update address book
 - Activate monitoring
 - **Confirmation and documentation**
 
 **Benefits:**
+
 - Clear separation of deployment and governance
 - Independent verification before execution
 - Automated verification after execution
@@ -189,6 +199,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 **Concept:** Deploy contracts without affecting production system
 
 **REO Example:**
+
 - Phase 2: Deploy REO contracts
 - REO exists but not integrated with RewardsManager
 - Production rewards unchanged
@@ -196,6 +207,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 - Phase 4: Governance integration (production impact)
 
 **IA Example (Future):**
+
 - Stage 1: Deploy IA configured at 100% to RM
 - IA exists but not integrated
 - Zero production impact
@@ -203,6 +215,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 - Stage 3: Change allocations gradually
 
 **Benefits:**
+
 - Safe deployment without production risk
 - Time to validate before activation
 - Independent verification possible
@@ -213,11 +226,13 @@ This directory contains production-ready deployment documentation for Graph Prot
 ### Gradual Migration (IA Specific)
 
 **3-Stage Pattern:**
+
 1. **Deploy** - Infrastructure ready, zero impact
 2. **Replicate** - Activate while matching existing behavior
 3. **Adjust** - Gradually change to target distribution
 
 **Why Gradual:**
+
 - Validates integration before economic changes
 - Proves mechanics work (Stage 2)
 - Small changes easier to monitor and rollback (Stage 3)
@@ -232,14 +247,15 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 ### Current State
 
-| Component | Status | Documentation |
-|-----------|--------|---------------|
-| **RewardsEligibilityOracle** | 🟡 Planning | REODeploymentSequence.md |
-| **IssuanceAllocator** | ⚪ Future | IADeploymentGuide.md |
-| **Governance Tooling** | 🟢 Ready | GovernanceWorkflow.md |
-| **Verification** | 🟡 Planned | VerificationChecklists.md |
+| Component                    | Status      | Documentation             |
+| ---------------------------- | ----------- | ------------------------- |
+| **RewardsEligibilityOracle** | 🟡 Planning | REODeploymentSequence.md  |
+| **IssuanceAllocator**        | ⚪ Future   | IADeploymentGuide.md      |
+| **Governance Tooling**       | 🟢 Ready    | GovernanceWorkflow.md     |
+| **Verification**             | 🟡 Planned  | VerificationChecklists.md |
 
 **Legend:**
+
 - 🟢 Ready/Complete
 - 🟡 In Progress/Planning
 - 🔴 Blocked/Issues
@@ -252,20 +268,24 @@ This directory contains production-ready deployment documentation for Graph Prot
 ### In This Repository
 
 **Configuration:**
+
 - `../ignition/README.md` - Ignition deployment modules
 - `../ignition/configs/` - Network-specific configuration
 
 **Governance:**
+
 - `../governance/README.md` - Governance transaction tooling
 - `../governance/rewards-eligibility-upgrade.ts` - TX builder for REO integration
 
 **Existing Integration Docs:**
+
 - `../../DEPLOYMENT.md` - Overview of what was created
 - `../../INTEGRATION.md` - Horizon alignment and toolshed integration
 
 ### Analysis (Background)
 
 **Earlier Deployment Work Analysis:**
+
 - `../legacy/AnalysisREADME.md` - Overview of analysis
 - `../legacy/GapAnalysis.md` - Comparison with current spike
 - `../legacy/Conflicts.md` - Design decisions
@@ -295,6 +315,7 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 1. Deploy contracts (Phase 1: Prepare)
 2. Generate Safe transaction batch:
+
    ```bash
    cd packages/issuance/deploy
    npx hardhat issuance:build-rewards-eligibility-upgrade \
@@ -303,6 +324,7 @@ This directory contains production-ready deployment documentation for Graph Prot
      --rewardsEligibilityOracleAddress <address> \
      --outputDir ./governance-proposals
    ```
+
 3. Follow governance workflow ([GovernanceWorkflow.md](./GovernanceWorkflow.md))
 4. Create forum post with proposal
 5. Collect governance signatures
@@ -373,15 +395,18 @@ A: Each document includes rollback procedures. Phase-dependent rollback options 
 ### Getting Help
 
 **For deployment questions:**
+
 - Review relevant documentation in this directory
 - Check [APICorrectness.md](./APICorrectness.md) for method usage
 - Check existing tooling in `../governance/` and `../ignition/`
 
 **For governance questions:**
+
 - See [GovernanceWorkflow.md](./GovernanceWorkflow.md)
 - Check existing task: `npx hardhat issuance:build-rewards-eligibility-upgrade --help`
 
 **For technical integration:**
+
 - See [APICorrectness.md](./APICorrectness.md)
 - Check contract interfaces in `@graphprotocol/interfaces`
 - Review integration tests in `../../test/`
@@ -393,6 +418,7 @@ A: Each document includes rollback procedures. Phase-dependent rollback options 
 ### Updating Documentation
 
 **When to update:**
+
 - Contract interfaces change
 - Deployment procedures change
 - New networks added
@@ -400,6 +426,7 @@ A: Each document includes rollback procedures. Phase-dependent rollback options 
 - Issues discovered or resolved
 
 **How to update:**
+
 - Maintain consistency across documents
 - Update related documents together
 - Add dates to updated sections
@@ -407,11 +434,12 @@ A: Each document includes rollback procedures. Phase-dependent rollback options 
 - Keep checklists actionable
 
 **Documentation style:**
+
 - Clear, concise, technical
 - Actionable (tell what to do, not just what exists)
 - Include examples
 - Document both correct and incorrect usage
-- Explain *why* not just *what*
+- Explain _why_ not just _what_
 
 ---
 
@@ -420,6 +448,7 @@ A: Each document includes rollback procedures. Phase-dependent rollback options 
 ### 2025-11-19 - Initial Release
 
 **Created:**
+
 - REODeploymentSequence.md - Complete REO deployment guide
 - GovernanceWorkflow.md - Three-phase governance pattern
 - VerificationChecklists.md - Comprehensive verification checklists
@@ -429,6 +458,7 @@ A: Each document includes rollback procedures. Phase-dependent rollback options 
 - README.md (this file)
 
 **Source:**
+
 - Extracted and adapted from earlier deployment work
 - Focused on REO immediate deployment needs
 - Preserved IA patterns for future use
@@ -439,18 +469,21 @@ A: Each document includes rollback procedures. Phase-dependent rollback options 
 ## Additional Resources
 
 **Deployment Tools:**
-- Hardhat Ignition: https://hardhat.org/ignition
-- Gnosis Safe: https://app.safe.global/
+
+- Hardhat Ignition: <https://hardhat.org/ignition>
+- Gnosis Safe: <https://app.safe.global/>
 - Block Explorers: Arbiscan (Arbitrum One, Arbitrum Sepolia)
 
 **Protocol Documentation:**
-- Graph Protocol Docs: https://thegraph.com/docs/
+
+- Graph Protocol Docs: <https://thegraph.com/docs/>
 - GIP-0079: [Rewards Eligibility Oracle proposal]
 
 **Development:**
-- Hardhat: https://hardhat.org/
-- Ethers.js: https://docs.ethers.org/
-- OpenZeppelin: https://docs.openzeppelin.com/
+
+- Hardhat: <https://hardhat.org/>
+- Ethers.js: <https://docs.ethers.org/>
+- OpenZeppelin: <https://docs.openzeppelin.com/>
 
 ---
 

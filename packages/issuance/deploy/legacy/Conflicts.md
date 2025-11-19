@@ -485,7 +485,7 @@ IA → GraphToken (minting authority)
 
 The following are not conflicts but rather features in earlier work that are missing in current spike:
 
-### Not Conflicts:
+### Not Conflicts
 
 1. **GovernanceAssertions helper contract** - Missing, should add
 2. **Verification scripts** - Missing, should add

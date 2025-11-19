@@ -10,7 +10,7 @@ The Hardhat task below generates a Gnosis Safe Transaction Builder JSON batch th
 2. Sets the `IssuanceAllocator` on `RewardsManager`.
 3. Sets the `RewardsEligibilityOracle` on `RewardsManager`.
 
-All three steps are emitted as *governance-only* transactions – nothing is executed locally.
+All three steps are emitted as _governance-only_ transactions – nothing is executed locally.
 
 ### Usage
 
@@ -31,4 +31,3 @@ The script will:
 - Emit a Safe Tx Builder JSON file in the current directory (or in `--outputDir` if provided).
 
 You can then upload that JSON file into the Safe Transaction Builder UI for review and execution by governance.
-

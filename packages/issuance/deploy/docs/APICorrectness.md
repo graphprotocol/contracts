@@ -19,11 +19,13 @@ This document provides the correct method signatures and usage patterns for inte
 #### Enable/Disable Validation
 
 **CORRECT:**
+
 ```solidity
 function setEligibilityValidationEnabled(bool enabled) external onlyRole(OPERATOR_ROLE)
 ```
 
 **Example:**
+
 ```typescript
 // Enable validation (Phase 6)
 await reo.setEligibilityValidationEnabled(true)
@@ -33,6 +35,7 @@ await reo.setEligibilityValidationEnabled(false)
 ```
 
 **❌ WRONG:**
+
 - `setCheckingActive(bool)` ← Does not exist
 - `setQualityChecking(bool)` ← Wrong name
 - `enableValidation(bool)` ← Wrong name
@@ -42,17 +45,20 @@ await reo.setEligibilityValidationEnabled(false)
 #### Update Eligibility Period
 
 **CORRECT:**
+
 ```solidity
 function setEligibilityPeriod(uint256 period) external onlyRole(OPERATOR_ROLE)
 ```
 
 **Example:**
+
 ```typescript
 // Set to 14 days
 await reo.setEligibilityPeriod(1_209_600) // 14 days in seconds
 ```
 
 **Parameter:**
+
 - `period`: Duration in seconds
 - Example: 1_209_600 = 14 days
 
@@ -61,17 +67,20 @@ await reo.setEligibilityPeriod(1_209_600) // 14 days in seconds
 #### Update Oracle Timeout
 
 **CORRECT:**
+
 ```solidity
 function setOracleUpdateTimeout(uint256 timeout) external onlyRole(OPERATOR_ROLE)
 ```
 
 **Example:**
+
 ```typescript
 // Set to 7 days
 await reo.setOracleUpdateTimeout(604_800) // 7 days in seconds
 ```
 
 **Parameter:**
+
 - `timeout`: Maximum time between oracle updates, in seconds
 - Example: 604_800 = 7 days
 
@@ -82,6 +91,7 @@ await reo.setOracleUpdateTimeout(604_800) // 7 days in seconds
 #### Update Oracle Data
 
 **CORRECT:**
+
 ```solidity
 function updateOracleData(
     address[] calldata indexers,
@@ -91,18 +101,19 @@ function updateOracleData(
 ```
 
 **Example:**
+
 ```typescript
 // Prepare data
 const indexers = [
   '0x1111111111111111111111111111111111111111',
   '0x2222222222222222222222222222222222222222',
-  '0x3333333333333333333333333333333333333333'
+  '0x3333333333333333333333333333333333333333',
 ]
 
 const eligible = [
-  true,   // Indexer 1 is eligible
-  false,  // Indexer 2 is not eligible
-  true    // Indexer 3 is eligible
+  true, // Indexer 1 is eligible
+  false, // Indexer 2 is not eligible
+  true, // Indexer 3 is eligible
 ]
 
 const eligibilityPeriodEnd = Math.floor(Date.now() / 1000) + 1_209_600 // 14 days from now
@@ -112,16 +123,19 @@ await reo.updateOracleData(indexers, eligible, eligibilityPeriodEnd)
 ```
 
 **Parameters:**
+
 - `indexers`: Array of indexer addresses
 - `eligible`: Array of boolean eligibility status (same length as indexers)
 - `eligibilityPeriodEnd`: Unix timestamp when this eligibility period ends
 
 **Requirements:**
+
 - Arrays must be same length
 - Must have ORACLE_ROLE
 - `eligibilityPeriodEnd` must be in the future
 
 **❌ WRONG:**
+
 - Mismatched array lengths ← Will revert
 - Past `eligibilityPeriodEnd` ← May revert or be ignored
 - Not having ORACLE_ROLE ← Will revert
@@ -133,11 +147,13 @@ await reo.updateOracleData(indexers, eligible, eligibilityPeriodEnd)
 #### Check Indexer Eligibility
 
 **CORRECT:**
+
 ```solidity
 function isIndexerEligible(address indexer) external view returns (bool)
 ```
 
 **Example:**
+
 ```typescript
 // Check if indexer is eligible
 const eligible = await reo.isIndexerEligible('0x1111111111111111111111111111111111111111')
@@ -145,12 +161,14 @@ console.log('Eligible:', eligible)
 ```
 
 **Returns:**
+
 - `true` if indexer is eligible
 - `false` if indexer is not eligible
 - `true` if validation disabled (all indexers eligible)
 - May revert if oracle timeout exceeded and validation enabled
 
 **Logic:**
+
 1. If `eligibilityValidationEnabled == false`: Return `true` (all eligible)
 2. If no oracle data: Return `true` (grace period)
 3. If oracle timeout exceeded: Revert (safety mechanism)
@@ -163,6 +181,7 @@ console.log('Eligible:', eligible)
 #### Get Configuration
 
 **CORRECT:**
+
 ```typescript
 // Get eligibility period
 const period = await reo.eligibilityPeriod()
@@ -196,6 +215,7 @@ console.log('Period Ends:', new Date(periodEnd.toNumber() * 1000))
 #### Grant Roles
 
 **CORRECT:**
+
 ```typescript
 import { keccak256, toUtf8Bytes } from 'ethers'
 
@@ -211,6 +231,7 @@ await reo.grantRole(ORACLE_ROLE, oracleAddress)
 ```
 
 **Check Roles:**
+
 ```typescript
 // Check if address has role
 const hasOperatorRole = await reo.hasRole(OPERATOR_ROLE, operatorAddress)
@@ -221,6 +242,7 @@ console.log('Has Oracle Role:', hasOracleRole)
 ```
 
 **Revoke Roles:**
+
 ```typescript
 // Revoke role
 await reo.revokeRole(OPERATOR_ROLE, operatorAddress)
@@ -233,11 +255,13 @@ await reo.revokeRole(OPERATOR_ROLE, operatorAddress)
 ### Set REO on RewardsManager
 
 **CORRECT:**
+
 ```solidity
 function setRewardsEligibilityOracle(address oracle) external onlyGovernor
 ```
 
 **Example:**
+
 ```typescript
 // Set REO on RewardsManager (governance only)
 await rewardsManager.setRewardsEligibilityOracle(reoAddress)
@@ -248,10 +272,12 @@ console.log('REO Address:', reo)
 ```
 
 **Parameter:**
+
 - `oracle`: Address of REO proxy
 - Use `address(0)` to disable REO integration
 
 **Usage:**
+
 - Initial integration (Phase 4)
 - Rollback: `setRewardsEligibilityOracle(ethers.ZeroAddress)`
 
@@ -260,6 +286,7 @@ console.log('REO Address:', reo)
 ### Query REO from RM
 
 **CORRECT:**
+
 ```typescript
 // RewardsManager internally calls REO
 // When distributing rewards, RM will call:
@@ -280,6 +307,7 @@ const eligible = await reo.isIndexerEligible(indexerAddress)
 #### Set Target Allocation
 
 **CORRECT:**
+
 ```solidity
 function setTargetAllocation(
     address target,
@@ -290,42 +318,46 @@ function setTargetAllocation(
 ```
 
 **Example - Stage 2: 100% to RewardsManager (Replication)**
+
 ```typescript
 // Set 100% allocation to RewardsManager
 await ia.setTargetAllocation(
   rewardsManagerAddress,
-  1_000_000,  // 100% in PPM (parts per million)
-  0,          // 0% self-minting
-  false       // Don't set if distribution pending
+  1_000_000, // 100% in PPM (parts per million)
+  0, // 0% self-minting
+  false, // Don't set if distribution pending
 )
 ```
 
 **Example - Stage 3: 95% RM / 5% DirectAllocation**
+
 ```typescript
 // Set 95% to RewardsManager
 await ia.setTargetAllocation(
   rewardsManagerAddress,
-  950_000,    // 95% in PPM
+  950_000, // 95% in PPM
   0,
-  false
+  false,
 )
 
 // Set 5% to DirectAllocation
 await ia.setTargetAllocation(
   directAllocationAddress,
-  50_000,     // 5% in PPM
+  50_000, // 5% in PPM
   0,
-  false
+  false,
 )
 ```
 
 **Parameters:**
+
 - `target`: Address of target contract
 - `allocatorMintingPPM`: Percentage in PPM (1,000,000 = 100%)
 - `selfMintingPPM`: Percentage for self-minting (usually 0)
 - `evenIfDistributionPending`: Override pending distribution check
 
 **PPM (Parts Per Million):**
+
 - 1,000,000 = 100%
 - 500,000 = 50%
 - 100,000 = 10%
@@ -333,6 +365,7 @@ await ia.setTargetAllocation(
 - 1,000 = 0.1%
 
 **❌ WRONG:**
+
 - Using 100 for 100% ← Should be 1,000,000
 - Using decimals ← Should be integers only
 - Total allocations > 100% ← Will revert
@@ -342,17 +375,20 @@ await ia.setTargetAllocation(
 #### Set Issuance Per Block
 
 **CORRECT:**
+
 ```solidity
 function setIssuancePerBlock(uint256 issuancePerBlock) external onlyOwner
 ```
 
 **Example:**
+
 ```typescript
 // Set issuance rate (tokens per block)
 await ia.setIssuancePerBlock(ethers.parseEther('10')) // 10 tokens per block
 ```
 
 **Parameter:**
+
 - `issuancePerBlock`: Amount of tokens to mint per block (in wei)
 - Example: `parseEther('10')` = 10 tokens per block
 
@@ -363,28 +399,32 @@ await ia.setIssuancePerBlock(ethers.parseEther('10')) // 10 tokens per block
 #### Get Target Allocation
 
 **CORRECT:**
+
 ```solidity
 function getTargetAllocation(address target) external view returns (uint256 allocatorPPM, uint256 selfPPM)
 ```
 
 **Example:**
+
 ```typescript
 // Get allocation for RewardsManager
 const [allocatorPPM, selfPPM] = await ia.getTargetAllocation(rewardsManagerAddress)
 
 console.log('Allocator PPM:', allocatorPPM.toString()) // e.g., 1000000 (100%)
-console.log('Self PPM:', selfPPM.toString())           // e.g., 0 (0%)
+console.log('Self PPM:', selfPPM.toString()) // e.g., 0 (0%)
 
 // Calculate percentage
 const percentage = (allocatorPPM.toNumber() / 10000).toFixed(2)
-console.log('Percentage:', percentage + '%')           // e.g., "100.00%"
+console.log('Percentage:', percentage + '%') // e.g., "100.00%"
 ```
 
 **Returns:**
+
 - `allocatorPPM`: Percentage allocated by allocator (in PPM)
 - `selfPPM`: Percentage for self-minting (in PPM)
 
 **❌ WRONG:**
+
 - Using `getTargetIssuancePerBlock().issuancePerBlock` ← Wrong field name
 - Expecting single return value ← Returns tuple
 
@@ -393,6 +433,7 @@ console.log('Percentage:', percentage + '%')           // e.g., "100.00%"
 #### Get Target Issuance Per Block
 
 **CORRECT:**
+
 ```solidity
 struct TargetIssuance {
     uint256 selfIssuancePerBlock;
@@ -403,18 +444,20 @@ function getTargetIssuancePerBlock(address target) external view returns (Target
 ```
 
 **Example:**
+
 ```typescript
 // Get issuance for RewardsManager
 const ti = await ia.getTargetIssuancePerBlock(rewardsManagerAddress)
 
 // ⚠️ IMPORTANT: Use correct field name!
-const rmIssuance = ti.selfIssuancePerBlock  // ← CORRECT
+const rmIssuance = ti.selfIssuancePerBlock // ← CORRECT
 // NOT: ti.issuancePerBlock ← WRONG
 
 console.log('RM Issuance Per Block:', ethers.formatEther(rmIssuance))
 ```
 
 **Returns:**
+
 - `TargetIssuance` struct with two fields:
   - `selfIssuancePerBlock`: Amount target receives per block
   - `allocatorIssuancePerBlock`: Amount allocated by allocator
@@ -422,6 +465,7 @@ console.log('RM Issuance Per Block:', ethers.formatEther(rmIssuance))
 **For RewardsManager integration, use `selfIssuancePerBlock`**
 
 **❌ WRONG:**
+
 - Using `ti.issuancePerBlock` ← Field does not exist
 - Using wrong field name ← Will cause errors
 
@@ -432,11 +476,13 @@ console.log('RM Issuance Per Block:', ethers.formatEther(rmIssuance))
 #### Set IA on RewardsManager
 
 **CORRECT:**
+
 ```solidity
 function setIssuanceAllocator(address allocator) external onlyGovernor
 ```
 
 **Example:**
+
 ```typescript
 // Set IA on RewardsManager (governance only)
 await rewardsManager.setIssuanceAllocator(iaAddress)
@@ -447,6 +493,7 @@ console.log('IA Address:', ia)
 ```
 
 **Parameter:**
+
 - `allocator`: Address of IssuanceAllocator proxy
 - Use `address(0)` to disable IA integration (rollback)
 
@@ -455,10 +502,11 @@ console.log('IA Address:', ia)
 #### RM Queries IA for Issuance
 
 **CORRECT:**
+
 ```typescript
 // RewardsManager internally calls:
 const ti = await ia.getTargetIssuancePerBlock(rewardsManagerAddress)
-const issuance = ti.selfIssuancePerBlock  // ⚠️ Use correct field!
+const issuance = ti.selfIssuancePerBlock // ⚠️ Use correct field!
 
 // Then RM uses this issuance amount for rewards distribution
 ```
@@ -472,11 +520,13 @@ const issuance = ti.selfIssuancePerBlock  // ⚠️ Use correct field!
 ### Grant Minting Authority
 
 **CORRECT:**
+
 ```solidity
 function addMinter(address minter) external onlyGovernor
 ```
 
 **Example:**
+
 ```typescript
 // Grant IA minting authority (governance only)
 await graphToken.addMinter(iaAddress)
@@ -487,6 +537,7 @@ console.log('Is Minter:', isMinter) // true
 ```
 
 **Parameter:**
+
 - `minter`: Address to grant minting authority
 
 ---
@@ -494,11 +545,13 @@ console.log('Is Minter:', isMinter) // true
 ### Revoke Minting Authority
 
 **CORRECT:**
+
 ```solidity
 function removeMinter(address minter) external onlyGovernor
 ```
 
 **Example:**
+
 ```typescript
 // Revoke minting authority (governance only, for rollback)
 await graphToken.removeMinter(iaAddress)
@@ -515,27 +568,24 @@ console.log('Is Minter:', isMinter) // false
 ### Upgrade Proxy
 
 **CORRECT:**
+
 ```solidity
 // GraphProxyAdmin (from Horizon)
 function upgrade(address proxy, address implementation) external onlyOwner
 ```
 
 **Example:**
+
 ```typescript
 // Upgrade RewardsManager proxy (governance via ProxyAdmin)
-await graphProxyAdmin.upgrade(
-  rewardsManagerProxyAddress,
-  newRewardsManagerImplementation
-)
+await graphProxyAdmin.upgrade(rewardsManagerProxyAddress, newRewardsManagerImplementation)
 
 // Accept proxy
-await graphProxyAdmin.acceptProxy(
-  newRewardsManagerImplementation,
-  rewardsManagerProxyAddress
-)
+await graphProxyAdmin.acceptProxy(newRewardsManagerImplementation, rewardsManagerProxyAddress)
 ```
 
 **Parameters:**
+
 - `proxy`: Address of proxy contract
 - `implementation`: Address of new implementation
 
@@ -546,11 +596,13 @@ await graphProxyAdmin.acceptProxy(
 ### 1. Wrong Method Name
 
 **❌ WRONG:**
+
 ```typescript
-await reo.setCheckingActive(true)  // Method does not exist
+await reo.setCheckingActive(true) // Method does not exist
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 await reo.setEligibilityValidationEnabled(true)
 ```
@@ -560,13 +612,15 @@ await reo.setEligibilityValidationEnabled(true)
 ### 2. Wrong Percentage Units
 
 **❌ WRONG:**
+
 ```typescript
-await ia.setTargetAllocation(target, 100, 0, false)  // 100 = 0.01%, not 100%!
+await ia.setTargetAllocation(target, 100, 0, false) // 100 = 0.01%, not 100%!
 ```
 
 **✅ CORRECT:**
+
 ```typescript
-await ia.setTargetAllocation(target, 1_000_000, 0, false)  // 1,000,000 = 100%
+await ia.setTargetAllocation(target, 1_000_000, 0, false) // 1,000,000 = 100%
 ```
 
 ---
@@ -574,15 +628,17 @@ await ia.setTargetAllocation(target, 1_000_000, 0, false)  // 1,000,000 = 100%
 ### 3. Wrong Struct Field Name
 
 **❌ WRONG:**
+
 ```typescript
 const ti = await ia.getTargetIssuancePerBlock(target)
-const issuance = ti.issuancePerBlock  // Field does not exist!
+const issuance = ti.issuancePerBlock // Field does not exist!
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 const ti = await ia.getTargetIssuancePerBlock(target)
-const issuance = ti.selfIssuancePerBlock  // Correct field name
+const issuance = ti.selfIssuancePerBlock // Correct field name
 ```
 
 ---
@@ -590,12 +646,14 @@ const issuance = ti.selfIssuancePerBlock  // Correct field name
 ### 4. Forgetting Role Requirements
 
 **❌ WRONG:**
+
 ```typescript
 // Called by address without ORACLE_ROLE
-await reo.updateOracleData(indexers, eligible, periodEnd)  // Will revert!
+await reo.updateOracleData(indexers, eligible, periodEnd) // Will revert!
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 // 1. Grant role first (governance)
 await reo.grantRole(ORACLE_ROLE, oracleAddress)
@@ -609,16 +667,18 @@ await reo.connect(oracleSigner).updateOracleData(indexers, eligible, periodEnd)
 ### 5. Array Length Mismatch
 
 **❌ WRONG:**
+
 ```typescript
 const indexers = ['0x1111...', '0x2222...']
-const eligible = [true]  // Wrong length!
-await reo.updateOracleData(indexers, eligible, periodEnd)  // Will revert
+const eligible = [true] // Wrong length!
+await reo.updateOracleData(indexers, eligible, periodEnd) // Will revert
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 const indexers = ['0x1111...', '0x2222...']
-const eligible = [true, false]  // Same length as indexers
+const eligible = [true, false] // Same length as indexers
 await reo.updateOracleData(indexers, eligible, periodEnd)
 ```
 
@@ -627,15 +687,17 @@ await reo.updateOracleData(indexers, eligible, periodEnd)
 ### 6. Using Zero Address Incorrectly
 
 **❌ WRONG:**
+
 ```typescript
 await ia.setTargetAllocation('0x0000000000000000000000000000000000000000', 1_000_000, 0, false)
 // Zero address as target is invalid
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 // Use zero address only to disable integration
-await rewardsManager.setRewardsEligibilityOracle(ethers.ZeroAddress)  // Disable REO
+await rewardsManager.setRewardsEligibilityOracle(ethers.ZeroAddress) // Disable REO
 ```
 
 ---
@@ -644,35 +706,35 @@ await rewardsManager.setRewardsEligibilityOracle(ethers.ZeroAddress)  // Disable
 
 ### REO Methods
 
-| Method | Who Can Call | Parameters | Returns |
-|--------|--------------|------------|---------|
-| `setEligibilityValidationEnabled` | OPERATOR | `bool` | - |
-| `setEligibilityPeriod` | OPERATOR | `uint256 (seconds)` | - |
-| `setOracleUpdateTimeout` | OPERATOR | `uint256 (seconds)` | - |
-| `updateOracleData` | ORACLE | `address[], bool[], uint256` | - |
-| `isIndexerEligible` | Anyone | `address` | `bool` |
-| `eligibilityPeriod` | Anyone | - | `uint256` |
-| `oracleUpdateTimeout` | Anyone | - | `uint256` |
-| `eligibilityValidationEnabled` | Anyone | - | `bool` |
-| `grantRole` | ADMIN (Governance) | `bytes32, address` | - |
+| Method                            | Who Can Call       | Parameters                   | Returns   |
+| --------------------------------- | ------------------ | ---------------------------- | --------- |
+| `setEligibilityValidationEnabled` | OPERATOR           | `bool`                       | -         |
+| `setEligibilityPeriod`            | OPERATOR           | `uint256 (seconds)`          | -         |
+| `setOracleUpdateTimeout`          | OPERATOR           | `uint256 (seconds)`          | -         |
+| `updateOracleData`                | ORACLE             | `address[], bool[], uint256` | -         |
+| `isIndexerEligible`               | Anyone             | `address`                    | `bool`    |
+| `eligibilityPeriod`               | Anyone             | -                            | `uint256` |
+| `oracleUpdateTimeout`             | Anyone             | -                            | `uint256` |
+| `eligibilityValidationEnabled`    | Anyone             | -                            | `bool`    |
+| `grantRole`                       | ADMIN (Governance) | `bytes32, address`           | -         |
 
 ### IA Methods (Future)
 
-| Method | Who Can Call | Parameters | Returns |
-|--------|--------------|------------|---------|
-| `setTargetAllocation` | Owner (Governance) | `address, uint256, uint256, bool` | - |
-| `setIssuancePerBlock` | Owner (Governance) | `uint256` | - |
-| `getTargetAllocation` | Anyone | `address` | `(uint256, uint256)` |
-| `getTargetIssuancePerBlock` | Anyone | `address` | `TargetIssuance` |
+| Method                      | Who Can Call       | Parameters                        | Returns              |
+| --------------------------- | ------------------ | --------------------------------- | -------------------- |
+| `setTargetAllocation`       | Owner (Governance) | `address, uint256, uint256, bool` | -                    |
+| `setIssuancePerBlock`       | Owner (Governance) | `uint256`                         | -                    |
+| `getTargetAllocation`       | Anyone             | `address`                         | `(uint256, uint256)` |
+| `getTargetIssuancePerBlock` | Anyone             | `address`                         | `TargetIssuance`     |
 
 ### RM Integration Methods
 
-| Method | Who Can Call | Parameters | Returns |
-|--------|--------------|------------|---------|
-| `setRewardsEligibilityOracle` | Governor | `address` | - |
-| `setIssuanceAllocator` | Governor | `address` | - |
-| `rewardsEligibilityOracle` | Anyone | - | `address` |
-| `issuanceAllocator` | Anyone | - | `address` |
+| Method                        | Who Can Call | Parameters | Returns   |
+| ----------------------------- | ------------ | ---------- | --------- |
+| `setRewardsEligibilityOracle` | Governor     | `address`  | -         |
+| `setIssuanceAllocator`        | Governor     | `address`  | -         |
+| `rewardsEligibilityOracle`    | Anyone       | -          | `address` |
+| `issuanceAllocator`           | Anyone       | -          | `address` |
 
 ---
 

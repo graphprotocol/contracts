@@ -103,20 +103,24 @@ legacy/packages/
 These provide patterns worth implementing in the current codebase:
 
 **Contracts:**
+
 - `IssuanceStateVerifier.sol` - GovernanceAssertions helper contract (novel pattern)
 - `MockGraphToken.sol` / `MockRewardsManager.sol` - Test mocks
 
 **Ignition Modules:**
+
 - `GovernanceCheckpoint.ts` - Governance checkpoint detection pattern
 - `ReplicatedAllocation.ts` - Gradual migration pattern (100% → adjusted)
 - "Active" target modules (IssuanceAllocatorActive, etc.) - Integration patterns
 
 **Scripts:**
+
 - `deploy-governance-upgrade.js` - Governance upgrade workflow
 - `deploy-upgrade-prep.js` - Upgrade preparation workflow
 - `address-book.ts` - Pending implementation tracking
 
 **Tests:**
+
 - `test-governance-workflow.ts` - Fork-based governance testing
 - `issuance-active.test.ts` / `issuance-active-smoke.test.ts` - Integration tests
 - `issuance-state-verifier.test.ts` - Verification testing
@@ -126,13 +130,16 @@ These provide patterns worth implementing in the current codebase:
 These show how things were done but shouldn't be copied verbatim:
 
 **Ignition Modules:**
+
 - Component deployment modules (show structure but use old contract names)
 - Target modules (show orchestration patterns)
 
 **Configs:**
+
 - `issuance.arbitrumOne.json5` / `issuance.arbitrumSepolia.json5` - Show config shape but addresses are outdated
 
 **Scripts:**
+
 - `deployAll.js` - Shows orchestration flow
 - `verify.ts` - Shows verification approach
 
@@ -141,16 +148,20 @@ These show how things were done but shouldn't be copied verbatim:
 These can be safely deleted:
 
 **Compiled Code:**
+
 - Entire `lib/` directory - Generated JavaScript, not source
 
 **Non-Arbitrum Configs:**
+
 - `issuance.mainnet.json5` - Not relevant (Arbitrum-only deployment)
 - `issuance.sepolia.json5` - Not relevant (Arbitrum-only deployment)
 
 **Duplicate Parameters:**
+
 - `ignition/parameters/` directory - Superseded by `configs/`
 
 **Build Artifacts:**
+
 - `.prettierignore` - Not needed for legacy reference
 - `.markdownlint.json` - Not needed for legacy reference
 - `.solhint.json` - Not needed for legacy reference
@@ -162,6 +173,7 @@ These can be safely deleted:
 ### Phase 1: Immediate Actions
 
 **Delete low-value files:**
+
 ```bash
 # Remove compiled code
 rm -rf legacy/packages/issuance/deploy/lib/
@@ -182,6 +194,7 @@ rm legacy/packages/*/.*
 ### Phase 2: Extract High-Value Patterns
 
 **Create examples directory:**
+
 ```
 legacy/examples/
 ├── contracts/
@@ -204,10 +217,12 @@ legacy/examples/
 ### Phase 3: Archive or Delete Remaining
 
 **Option A: Archive for reference**
+
 - Keep `legacy/packages/` as-is for historical reference
 - Add `legacy/packages/README.md` explaining it's archived
 
 **Option B: Delete after extraction**
+
 - Once patterns are extracted to `legacy/examples/`
 - Delete entire `legacy/packages/` directory
 - Keeps legacy/ focused on analysis docs only
@@ -216,19 +231,20 @@ legacy/examples/
 
 ## File Count Summary
 
-| Category | Files | Action |
-|----------|-------|--------|
-| High-value code | ~15 | Extract patterns to examples/ |
-| Reference patterns | ~20 | Keep or extract as examples |
-| Configs (reference) | ~7 | Keep Arbitrum, delete others |
-| Discard (compiled/duplicates) | ~29 | Delete immediately |
-| **Total** | **71** | **Reduce to ~25-30 reference files** |
+| Category                      | Files  | Action                               |
+| ----------------------------- | ------ | ------------------------------------ |
+| High-value code               | ~15    | Extract patterns to examples/        |
+| Reference patterns            | ~20    | Keep or extract as examples          |
+| Configs (reference)           | ~7     | Keep Arbitrum, delete others         |
+| Discard (compiled/duplicates) | ~29    | Delete immediately                   |
+| **Total**                     | **71** | **Reduce to ~25-30 reference files** |
 
 ---
 
 ## Current State vs. Target State
 
 **Current:**
+
 ```
 legacy/
 ├── [9 analysis markdown files]
@@ -236,6 +252,7 @@ legacy/
 ```
 
 **Target (Option A - Archive):**
+
 ```
 legacy/
 ├── [9 analysis markdown files]
@@ -244,6 +261,7 @@ legacy/
 ```
 
 **Target (Option B - Extract then Delete):**
+
 ```
 legacy/
 ├── [9 analysis markdown files]
@@ -279,16 +297,19 @@ legacy/
 ## Recommended Next Steps
 
 **Immediate (now):**
+
 1. Run Phase 1 cleanup (delete ~29 low-value files)
 2. Add `legacy/packages/README.md` explaining the directory
 3. Update `legacy/Analysis.md` to reference the code examples
 
 **Before implementing convergence:**
+
 1. Extract specific patterns as needed into working codebase
 2. Reference these files for implementation guidance
 3. Delete `legacy/packages/` once patterns are integrated
 
 **Long term:**
+
 1. Once convergence is complete, decide if legacy/ should be:
    - Archived to `docs/archive/`
    - Kept as reference documentation

@@ -34,6 +34,7 @@ graph TB
 ```
 
 **Key Relationships:**
+
 - **Governance** owns and controls REO proxy
 - **ProxyAdmin** manages proxy upgrades (owned by governance)
 - **RewardsManager** queries REO for indexer eligibility
@@ -221,6 +222,7 @@ graph LR
 ```
 
 **Flow Description:**
+
 1. RewardsManager queries REO for indexer eligibility
 2. REO proxy delegates to implementation
 3. Implementation checks if validation enabled
@@ -298,6 +300,7 @@ graph TB
 ```
 
 **Upgrade Process:**
+
 1. Deploy new implementation (IMPL_V2)
 2. Governance calls `proxyAdmin.upgrade(proxy, impl_v2)`
 3. Proxy now delegates to IMPL_V2
@@ -343,6 +346,7 @@ graph TD
 ```
 
 **Critical Path:**
+
 1. RM must be upgraded before REO deployment (provides integration method)
 2. REO must be tested before integration
 3. Integration requires governance approval
@@ -397,11 +401,13 @@ graph TD
 **Rollback Options:**
 
 **Option 1: Disable Validation** (Minor issues, oracle problems)
+
 - Governance: `reo.setEligibilityValidationEnabled(false)`
 - Impact: All indexers treated as eligible, rewards continue
 - Recovery: Fix oracle, re-enable when ready
 
 **Option 2: Disconnect REO** (Major issues, contract problems)
+
 - Governance: `rm.setRewardsEligibilityOracle(address(0))`
 - Impact: RM reverts to previous behavior, no validation
 - Recovery: Fix/upgrade REO, reconnect when safe
@@ -437,6 +443,7 @@ graph LR
 ```
 
 **Key Metrics:**
+
 - Oracle update frequency
 - Indexer coverage (% assessed)
 - Eligibility percentages
@@ -483,22 +490,26 @@ graph TB
 **Role Permissions:**
 
 **DEFAULT_ADMIN_ROLE** (Governance):
+
 - Grant/revoke all roles
 - Upgrade implementation
 - Transfer ownership
 - Pause/unpause (if pausable)
 
 **OPERATOR_ROLE:**
+
 - `setEligibilityPeriod()`
 - `setOracleUpdateTimeout()`
 - `setEligibilityValidationEnabled()`
 - Configuration updates
 
 **ORACLE_ROLE:**
+
 - `updateOracleData()`
 - Submit eligibility assessments
 
 **Public:**
+
 - All view functions
 - `isIndexerEligible()` (called by RM)
 
@@ -544,6 +555,7 @@ graph TB
 ```
 
 **Deployment Strategy:**
+
 1. Deploy and validate on Arbitrum Sepolia first
 2. Complete full lifecycle on testnet
 3. Validate procedures and governance workflow
@@ -581,12 +593,14 @@ graph TB
 ```
 
 **Future State:**
+
 - IssuanceAllocator mints tokens from GraphToken
 - Distributes tokens to multiple targets (RM, DirectAllocation, etc.)
 - RewardsManager uses REO for eligibility
 - Governance controls all components
 
 **Current State:**
+
 - IA not deployed yet
 - RM self-mints (traditional flow)
 - REO ready to integrate when IA deploys
@@ -611,6 +625,7 @@ graph LR
 ```
 
 **Colors:**
+
 - 🟢 **Green:** Deployed, active, success
 - 🔵 **Blue:** Protocol contracts (RM, GT)
 - 🟡 **Yellow:** Administrative (ProxyAdmin, config)
@@ -623,6 +638,7 @@ graph LR
 ## Usage Notes
 
 These diagrams can be:
+
 - Embedded in documentation (GitHub renders Mermaid)
 - Exported to images for presentations
 - Updated as architecture evolves
@@ -630,7 +646,8 @@ These diagrams can be:
 - Included in audit reports
 
 To render locally:
-- Use Mermaid Live Editor: https://mermaid.live/
+
+- Use Mermaid Live Editor: <https://mermaid.live/>
 - Use VS Code with Mermaid extension
 - Use GitHub/GitLab (renders automatically)
 
@@ -638,7 +655,7 @@ To render locally:
 
 ## References
 
-- Mermaid Documentation: https://mermaid.js.org/
+- Mermaid Documentation: <https://mermaid.js.org/>
 - Deployment Sequence: `REODeploymentSequence.md`
 - Governance Workflow: `GovernanceWorkflow.md`
 - Verification Checklists: `VerificationChecklists.md`
