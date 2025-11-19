@@ -1,5 +1,6 @@
 import '@nomicfoundation/hardhat-ethers'
 import '@nomicfoundation/hardhat-ignition-ethers'
+import '@nomicfoundation/hardhat-chai-matchers'
 import '@typechain/hardhat'
 import '@nomicfoundation/hardhat-verify'
 

@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers, ignition } from 'hardhat'
 
-import RewardsEligibilityOracleModule from '../ignition/modules/RewardsEligibilityOracle'
+import RewardsEligibilityOracleModule from '../../issuance/deploy/ignition/modules/RewardsEligibilityOracle'
 
 describe('RewardsEligibilityOracle Deployment', function () {
   it('deploys proxy and implementation; initializes roles and defaults', async () => {
