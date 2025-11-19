@@ -1,5 +1,8 @@
 # Legacy Code Audit
 
+> **ARCHIVED:** Historical analysis document. See [../../RemainingWork.md](../../RemainingWork.md) for current status.
+
+
 **Created:** 2025-11-19
 **Purpose:** Document what exists in `legacy/packages/` and recommendations for what to keep/discard
 

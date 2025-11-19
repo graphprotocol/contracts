@@ -291,7 +291,7 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 | Reference Scripts  | 0%             | 20 files      | ⏳ Review                                 |
 | Config Files       | 0%             | 4 files       | ⏳ Reference                              |
 | **Overall**        | **~63%**       | **~37%**      | ⏳ In Progress                            |
-| **Files**          | **17 removed** | **27 remain** | See REMAINING_WORK.md                     |
+| **Files**          | **17 removed** | **27 remain** | See RemainingWork.md                      |
 
 ---
 
@@ -330,4 +330,4 @@ mv legacy/OrchestratorPackageProposal.md legacy/archive/analysis/
 
 ---
 
-**Status:** Major cleanup complete. See [REMAINING_WORK.md](./REMAINING_WORK.md) for detailed file-by-file analysis.
+**Status:** Major cleanup complete. See [RemainingWork.md](./RemainingWork.md) for detailed file-by-file analysis.

@@ -1,5 +1,7 @@
 # Issuance Deployment Analysis
 
+> **ARCHIVED:** This document provided initial analysis during Phase 1 cleanup. See [../../RemainingWork.md](../../RemainingWork.md) and [../../LegacyStatus.md](../../LegacyStatus.md) for current status.
+
 **Created:** 2025-11-19
 **Purpose:** Analysis of earlier issuance deployment work and integration plan for current Ignition spike
 
