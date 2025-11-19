@@ -1,17 +1,21 @@
-# Graph Protocol Issuance System - Complete Deployment Guide
+# Deploy Package - Deployment Guide
 
-For architecture and target definitions, see Design.md (canonical). This guide is procedural; governance workflow details live in Governance.md.
+**Status:** This document contains aspirational workflows that are not yet fully implemented. See TODOs for unimplemented features.
 
-This guide covers the complete deployment of the Graph Protocol Issuance System, including all dependencies and components.
+**Note:** For actual component deployment procedures (REO, IA, DirectAllocation), see `packages/issuance/deploy/docs/`.
+
+This guide describes the conceptual deployment workflow for cross-package governance integration.
 
 ## **Deployment Overview**
 
 The deployment consists of four major phases:
 
-1. **Phase 1: RewardsManager Upgrade** - Common dependency for both SQO and IssuanceAllocator
+1. **Phase 1: RewardsManager Upgrade** - Common dependency for both REO and IssuanceAllocator integration
 2. **Phase 2: GraphProxyAdmin2 Deployment** - Shared proxy administration for issuance contracts
-3. **Phase 3: ServiceQualityOracle Deployment** - Quality enforcement system
+3. **Phase 3: RewardsEligibilityOracle Deployment** - Eligibility enforcement system
 4. **Phase 4: IssuanceAllocator Deployment** - Token distribution system
+
+**TODO:** Most of the detailed workflows in this document describe future implementation, not current capabilities.
 
 ## 📋 **Prerequisites**
 
@@ -53,12 +57,14 @@ pnpm verify:upgrade:mainnet
 ```bash
 # Verify new interfaces are available
 # - setIssuanceAllocator(address)
-# - setServiceQualityOracle(address)
+# - setRewardsEligibilityOracle(address)
 # - issuanceAllocator() view function
-# - serviceQualityOracle() view function
+# - rewardsEligibilityOracle() view function
 ```
 
 **✅ Phase 1 Complete**: RewardsManager now supports issuance system integration
+
+**TODO:** Phase 1 workflows are not implemented in this package. RewardsManager upgrades are handled by `packages/horizon/` or `packages/contracts/`.
 
 ---
 
@@ -81,7 +87,7 @@ pnpm deploy:admin:mainnet  # Deploy only the proxy admin
 pnpm status:mainnet
 ```
 
-**Note**: The `deploy:admin:*`, `deploy:sqo:*`, and `deploy:issuance:*` commands need to be implemented as separate Ignition modules for granular deployment control.
+**TODO:** Phase 2 deployment workflows are aspirational. GraphProxyAdmin2 deployment is handled in `packages/issuance/deploy/`, not in this orchestration package.
 
 ### **2.2 Verify GraphProxyAdmin2 Configuration**
 
@@ -105,20 +111,22 @@ Ensure the proxy admin is properly configured and owned by governance.
 
 ---
 
-## **Phase 3: ServiceQualityOracle Deployment**
+## **Phase 3: RewardsEligibilityOracle Deployment**
 
-Deploy and integrate the ServiceQualityOracle for indexer quality enforcement. This is a multi-stage process requiring careful configuration and validation.
+Deploy and integrate the RewardsEligibilityOracle for indexer quality enforcement. This is a multi-stage process requiring careful configuration and validation.
 
-### **Stage 3.1: Deploy ServiceQualityOracle**
+**TODO:** Phase 3 deployment is handled in `packages/issuance/deploy/`. See `packages/issuance/deploy/docs/REODeploymentSequence.md` for actual deployment procedures. This package (`packages/deploy/`) only handles the governance integration step.
 
-Deploy the ServiceQualityOracle contract system using the existing GraphProxyAdmin2.
+### **Stage 3.1: Deploy RewardsEligibilityOracle**
+
+Deploy the RewardsEligibilityOracle contract system using the existing GraphProxyAdmin2.
 
 ```bash
 # Navigate to issuance deployment
 cd packages/issuance/deploy
 
-# Deploy SQO system (uses existing GraphProxyAdmin2)
-pnpm deploy:sqo:mainnet  # Deploys SQO proxy + implementation
+# Deploy REO system (uses existing GraphProxyAdmin2)
+pnpm deploy:sqo:mainnet  # Deploys REO proxy + implementation
 
 # Check deployment status
 pnpm status:mainnet
@@ -126,17 +134,17 @@ pnpm status:mainnet
 
 **Verification**:
 
-- [ ] ServiceQualityOracle proxy deployed
-- [ ] ServiceQualityOracle implementation deployed
+- [ ] RewardsEligibilityOracle proxy deployed
+- [ ] RewardsEligibilityOracle implementation deployed
 - [ ] Proxy managed by existing GraphProxyAdmin2
 - [ ] Contracts properly initialized
 
 ### **Stage 3.2: Define and Configure Roles**
 
-Set up the role-based access control for the SQO system based on GIP-0079 specifications.
+Set up the role-based access control for the REO system based on GIP-0079 specifications.
 
 ```bash
-# Configure SQO roles (governance transactions required):
+# Configure REO roles (governance transactions required):
 # 1. Set OPERATOR role (can manage oracle roles)
 # 2. Set ORACLE role (can call allowIndexers function)
 ```
@@ -145,11 +153,11 @@ Set up the role-based access control for the SQO system based on GIP-0079 specif
 
 ```solidity
 // Set operator role (can manage oracles)
-ServiceQualityOracle.grantRole(OPERATOR_ROLE, OPERATOR_ADDRESS)
+RewardsEligibilityOracle.grantRole(OPERATOR_ROLE, OPERATOR_ADDRESS)
 
 // Set oracle roles (can mark indexers as eligible)
-ServiceQualityOracle.grantRole(ORACLE_ROLE, ORACLE_1_ADDRESS)
-ServiceQualityOracle.grantRole(ORACLE_ROLE, ORACLE_2_ADDRESS)
+RewardsEligibilityOracle.grantRole(ORACLE_ROLE, ORACLE_1_ADDRESS)
+RewardsEligibilityOracle.grantRole(ORACLE_ROLE, ORACLE_2_ADDRESS)
 // ... additional oracles as needed
 ```
 
@@ -159,7 +167,7 @@ ServiceQualityOracle.grantRole(ORACLE_ROLE, ORACLE_2_ADDRESS)
 - [ ] ORACLE roles assigned to authorized oracle operators
 - [ ] Role hierarchy properly configured (operators can manage oracles)
 
-### **Stage 3.3: Configure SQO Parameters**
+### **Stage 3.3: Configure REO Parameters**
 
 Set the operational parameters for quality assessment based on GIP-0079 specifications.
 
@@ -167,9 +175,9 @@ Set the operational parameters for quality assessment based on GIP-0079 specific
 
 ```solidity
 // Configure the three main parameters from GIP-0079
-ServiceQualityOracle.setAllowedPeriod(ALLOWED_PERIOD_SECONDS)        // How long eligibility lasts
-ServiceQualityOracle.setOracleUpdateTimeout(TIMEOUT_SECONDS)         // Safety timeout for oracle updates
-ServiceQualityOracle.setQualityChecking(true)                        // Enable quality checking
+RewardsEligibilityOracle.setAllowedPeriod(ALLOWED_PERIOD_SECONDS)        // How long eligibility lasts
+RewardsEligibilityOracle.setOracleUpdateTimeout(TIMEOUT_SECONDS)         // Safety timeout for oracle updates
+RewardsEligibilityOracle.setQualityChecking(true)                        // Enable quality checking
 ```
 
 **Parameter Examples (from GIP-0079)**:
@@ -219,13 +227,13 @@ Set up the oracle operators and their off-chain systems for quality assessment.
 
 ### **Stage 3.5: Testing and Validation Period**
 
-Run the SQO system in testing mode for a defined period to verify functionality.
+Run the REO system in testing mode for a defined period to verify functionality.
 
 **Testing Phase (Recommended: 2-4 weeks)**:
 
 ```bash
 # Testing can be done with quality checking disabled initially
-ServiceQualityOracle.setQualityChecking(false)  # All indexers eligible during testing
+RewardsEligibilityOracle.setQualityChecking(false)  # All indexers eligible during testing
 
 # Monitor oracle submissions
 # - Oracles calling allowIndexers() function
@@ -260,11 +268,11 @@ ServiceQualityOracle.setQualityChecking(false)  # All indexers eligible during t
 
 ### **Stage 3.6: Governance Integration Preparation**
 
-Prepare for integrating SQO with the upgraded RewardsManager.
+Prepare for integrating REO with the upgraded RewardsManager.
 
 **Pre-Integration Checklist**:
 
-- [ ] SQO system fully tested and validated
+- [ ] REO system fully tested and validated
 - [ ] Oracle operators trained and operational
 - [ ] Quality parameters finalized and approved
 - [ ] Emergency procedures documented and tested
@@ -274,10 +282,10 @@ Prepare for integrating SQO with the upgraded RewardsManager.
 
 ```bash
 # Prepare governance transaction data
-# RewardsManager.setServiceQualityOracle(SQO_ADDRESS)
+# RewardsManager.setRewardsEligibilityOracle(REO_ADDRESS)
 
 # Create governance proposal with:
-# 1. SQO contract address
+# 1. REO contract address
 # 2. Integration timeline
 # 3. Rollback procedures
 # 4. Success metrics
@@ -285,14 +293,14 @@ Prepare for integrating SQO with the upgraded RewardsManager.
 
 ### **Stage 3.7: Execute Governance Integration**
 
-Execute the governance transaction to connect SQO to RewardsManager.
+Execute the governance transaction to connect REO to RewardsManager.
 
 **Governance Execution**:
 
 ```bash
 # Execute governance transaction (via multi-sig)
 # This requires RewardsManager to be upgraded first (Phase 1)
-RewardsManager.setServiceQualityOracle(SQO_ADDRESS)
+RewardsManager.setRewardsEligibilityOracle(REO_ADDRESS)
 
 # Verify integration
 pnpm verify:upgrade:mainnet
@@ -302,7 +310,7 @@ pnpm verify:upgrade:mainnet
 
 ```bash
 # Verify RewardsManager integration (based on GIP-0079)
-# 1. Check SQO address is set correctly in RewardsManager
+# 1. Check REO address is set correctly in RewardsManager
 # 2. RewardsManager calls isAllowed() when indexers claim rewards
 # 3. Only eligible indexers receive rewards
 # 4. Ineligible indexers are denied rewards
@@ -311,7 +319,7 @@ pnpm verify:upgrade:mainnet
 **Verification**:
 
 - [ ] Governance transaction executed successfully
-- [ ] RewardsManager correctly references SQO address
+- [ ] RewardsManager correctly references REO address
 - [ ] RewardsManager calls `isAllowed()` during reward claims
 - [ ] Quality enforcement working: eligible indexers get rewards
 - [ ] Quality enforcement working: ineligible indexers denied rewards
@@ -343,17 +351,19 @@ Monitor the integrated system and make adjustments as needed.
 # Oracle role administration (via AccessControl)
 # Grant/revoke roles using grantRole/revokeRole on OPERATOR_ROLE and ORACLE_ROLE as appropriate
 # Example:
-# ServiceQualityOracle.grantRole(OPERATOR_ROLE, OPERATOR_ADDRESS)
-# ServiceQualityOracle.grantRole(ORACLE_ROLE, ORACLE_ADDRESS)
+# RewardsEligibilityOracle.grantRole(OPERATOR_ROLE, OPERATOR_ADDRESS)
+# RewardsEligibilityOracle.grantRole(ORACLE_ROLE, ORACLE_ADDRESS)
 ```
 
-**✅ Phase 3 Complete**: ServiceQualityOracle fully operational and integrated with RewardsManager
+**✅ Phase 3 Complete**: RewardsEligibilityOracle fully operational and integrated with RewardsManager
 
 ---
 
 ## 💰 **Phase 4: IssuanceAllocator Deployment**
 
 Deploy and migrate to the IssuanceAllocator system through careful, verifiable stages.
+
+**TODO:** Phase 4 deployment is handled in `packages/issuance/deploy/`. See `packages/issuance/deploy/docs/IADeploymentGuide.md` for actual deployment procedures. This package (`packages/deploy/`) only handles the governance integration step.
 
 ### **Stage 4.1: Contract Deployment and Configuration**
 
@@ -590,7 +600,7 @@ pnpm verify:upgrade:mainnet
 ```bash
 # Pause system if needed
 # - Pause IssuanceAllocator
-# - Pause ServiceQualityOracle
+# - Pause RewardsEligibilityOracle
 # - Revert to direct RewardsManager if necessary
 ```
 
@@ -619,7 +629,7 @@ pnpm verify:upgrade:mainnet      # Verify upgrade success
 
 ### **Phase 3 Success**
 
-- [ ] ServiceQualityOracle deployed and operational
+- [ ] RewardsEligibilityOracle deployed and operational
 - [ ] Role-based access control configured
 - [ ] Quality parameters set and validated
 - [ ] Oracle operators registered and active

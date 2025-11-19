@@ -1,6 +1,10 @@
-# Issuance Deployment Design (Canonical)
+# Deploy Package Design
 
-This document is the single source of truth for deploying the issuance system. See DeploymentGuide.md for step-by-step instructions and Governance.md for the governance workflow.
+This document describes the design for the cross-package orchestration system in `packages/deploy/`.
+
+**Status:** This document contains both current implementation and aspirational design. TODOs mark features not yet implemented.
+
+**Note:** For component deployment (REO, IA, DirectAllocation), see `packages/issuance/deploy/`. For detailed deployment guides, see that package's `docs/` directory.
 
 ## Goals
 
@@ -15,40 +19,61 @@ This document is the single source of truth for deploying the issuance system. S
 
 ### Components
 
+**Deployed by issuance package** (`packages/issuance/deploy/`):
+
 - IssuanceAllocator (Upgradeable proxy + implementation, uses GraphToken)
-- ServiceQualityOracle (Upgradeable proxy + implementation)
-- PilotAllocation (Upgradeable proxy + implementation, using DirectAllocation implementation contract)
-- RewardsManager (Existing upgradeable proxy, new implementation)
+- RewardsEligibilityOracle (Upgradeable proxy + implementation)
+- DirectAllocation (Implementation used by allocation instances)
 - GraphProxyAdmin2 (ProxyAdmin for issuance proxies; governance‑owned)
-- TransparentUpgradeableProxy (standard OZ proxies per component)
-- GraphToken (Existing contract, no action needed, just need module to reference)
-- GraphProxyAdmin (Existing proxy admin for core contracts, no action needed, just need module to reference)
+
+**Referenced by this package** (already deployed elsewhere):
+
+- RewardsManager (From `@graphprotocol/contracts` or `@graphprotocol/horizon`)
+- GraphToken (From `@graphprotocol/contracts`)
+- GraphProxyAdmin (From `@graphprotocol/contracts` or `@graphprotocol/horizon`)
+
+**TODO:** PilotAllocation deployment not yet implemented in any package.
 
 ### Targets model
 
-- Component targets (in this package):
-  - service-quality-oracle
-  - issuance-allocator
-- Integration targets (cross‑package; live in packages/deploy):
-  - service-quality-oracle-active: RewardsManager.setServiceQualityOracle(SQO)
-  - issuance-allocator-active: RewardsManager.setIssuanceAllocator(IA)
-  - issuance-allocator-minter: GraphToken.addMinter(IA)
+**Component targets** (in `packages/issuance/deploy/`):
+
+- rewards-eligibility-oracle (REO deployment)
+- issuance-allocator (IA deployment)
+- direct-allocation (DA implementation deployment)
+
+**Integration/checkpoint targets** (in this package - `packages/deploy/`):
+
+- rewards-eligibility-oracle-active: Verifies `RewardsManager.setRewardsEligibilityOracle(REO)` executed
+- issuance-allocator-active: Verifies `RewardsManager.setIssuanceAllocator(IA)` executed
+- issuance-allocator-minter: Verifies `GraphToken.addMinter(IA)` executed
+
+**TODO:** The following targets mentioned in this design are not yet implemented:
+
+- pilot-allocation component deployment
+- issuance-allocator-reallocation checkpoint
 
 Notes:
 
-- “Active” targets assert equality (e.g., RewardsManager.serviceQualityOracle() == SQO). They are intentionally not in issuance package when they depend on external packages.
+- "Active" targets assert equality (e.g., `RewardsManager.rewardsEligibilityOracle() == REO`). They are intentionally not in issuance package when they depend on external packages.
 
 ### Configuration state definitions
 
-- Service Quality Oracle states:
-  - Service Quality Oracle: deployed and ready to provide quality assessments
-  - Service Quality Oracle Active: integrated via RewardsManager.setServiceQualityOracle()
-- Issuance Allocator states:
-  - Replicated Allocation: IssuanceAllocator replicates current issuance per block with 100% allocated to RewardsManager
-  - Replicated Allocation Active: integrated via RewardsManager.setIssuanceAllocator() with 100% allocation to RewardsManager
-  - Issuance Allocator Active: RewardsManager uses IssuanceAllocator for issuance distribution
-  - Issuance Allocator Minter: IssuanceAllocator has GraphToken minting authority via GraphToken.addMinter(IA)
-  - Pilot Allocation Active: 99% to RewardsManager and 1% to a PilotAllocation (for testing only; not proposed for production)
+**Rewards Eligibility Oracle states:**
+
+- Rewards Eligibility Oracle: deployed and ready to provide eligibility assessments
+- Rewards Eligibility Oracle Active: integrated via `RewardsManager.setRewardsEligibilityOracle()`
+
+**Issuance Allocator states:**
+
+- Issuance Allocator Active: RewardsManager uses IssuanceAllocator for issuance distribution
+- Issuance Allocator Minter: IssuanceAllocator has GraphToken minting authority via `GraphToken.addMinter(IA)`
+
+**TODO:** The following states mentioned in this design are not yet implemented:
+
+- Replicated Allocation: IssuanceAllocator replicates current issuance per block with 100% allocated to RewardsManager
+- Replicated Allocation Active: integrated via `RewardsManager.setIssuanceAllocator()` with 100% allocation to RewardsManager
+- Pilot Allocation Active: 99% to RewardsManager and 1% to a PilotAllocation (for testing only; not proposed for production)
 
 ### Governance workflow
 
@@ -58,21 +83,26 @@ Three phases per upgrade:
 2. Execute (governance): execute Safe batch to perform the state transition
 3. Verify/Sync: assertion modules/scripts succeed; address book syncs pending → active
 
-We use a small, stateless GovernanceAssertions helper with view functions that revert until state is correct:
+We use a small, stateless `IssuanceStateVerifier` helper with view functions that revert until state is correct:
 
-- assertServiceQualityOracleSet(rewardsManager, expectedSQO)
-- assertIssuanceAllocatorSet(rewardsManager, expectedIA)
-- assertMinter(graphToken, minter)
+- `assertRewardsEligibilityOracleSet(rewardsManager, expectedREO)`
+- `assertIssuanceAllocatorSet(rewardsManager, expectedIA)`
+- `assertMinterRole(graphToken, expectedMinter)`
+- `assertTargetAllocated(issuanceAllocator, target)`
 
 ### Governance transactions
 
-All “Active” states are reached via governance transactions:
+All "Active" states are reached via governance transactions:
 
-- RewardsManager Upgrade: GraphProxyAdmin.upgrade() for RewardsManager proxy implementation (to include SQO/IA integration methods)
-- Issuance Contract Upgrades: GraphProxyAdmin2.upgrade() for IssuanceAllocator and PilotAllocation implementations
-- Integration Configuration: RewardsManager.setServiceQualityOracle(SQO), RewardsManager.setIssuanceAllocator(IA)
-- Minting Authority: GraphToken.addMinter(IA)
-- Allocation Configuration: configure IssuanceAllocator allocation percentages
+- RewardsManager Upgrade: `GraphProxyAdmin.upgrade()` for RewardsManager proxy implementation (to include REO/IA integration methods)
+- Integration Configuration: `RewardsManager.setRewardsEligibilityOracle(REO)`, `RewardsManager.setIssuanceAllocator(IA)`
+- Minting Authority: `GraphToken.addMinter(IA)`
+
+**TODO:** The following governance transactions are not yet implemented in this package:
+
+- Issuance Contract Upgrades: `GraphProxyAdmin2.upgrade()` for IssuanceAllocator implementations
+- Allocation Configuration: configure IssuanceAllocator allocation percentages via `setTargetAllocation()`
+- PilotAllocation deployment and configuration
 
 ### Address book and pending implementations
 
@@ -157,29 +187,37 @@ sequenceDiagram
 
 ### Parameters and CLI
 
-- Minimal scripts in this package:
-  - compile, deploy, status, test, clean, lint
-- One deploy entrypoint (scripts/deploy.ts) that takes:
-  - --target: service-quality-oracle | issuance-allocator | (legacy demo)
-  - --network: hardhat | sepolia | mainnet | arbitrumOne | arbitrumSepolia
-  - --parameters: path to a JSON5 file (ignition/parameters/<network>.json5)
+**TODO:** This package does not yet have its own CLI. It uses Hardhat tasks:
+
+- `issuance:build-rewards-eligibility-upgrade` - Generate Safe TX batch for REO/IA integration
+
+For component deployment CLI, see `packages/issuance/deploy/`.
 
 ### API correctness
 
-- ServiceQualityOracle: setQualityChecking(bool), setAllowedPeriod(uint256), setOracleUpdateTimeout(uint256)
-- IssuanceAllocator: setTargetAllocation(target, allocatorMintingPPM, selfMintingPPM, evenIfDistributionPending)
-- RewardsManager reads issuance via issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuancePerBlock
+**RewardsEligibilityOracle:**
+
+- `setEligibilityValidation(bool)` - Enable/disable eligibility validation
+- `setEligibilityPeriod(uint256)` - Set how long eligibility lasts
+- See `packages/issuance/deploy/docs/APICorrectness.md` for complete REO API
+
+**IssuanceAllocator:**
+
+- `setTargetAllocation(target, allocatorMintingPPM, selfMintingPPM, evenIfDistributionPending)`
+- RewardsManager reads issuance via `issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuancePerBlock`
 
 ### Conventions
 
 - TypeScript throughout (.ts) for modules and scripts
-- TitleCase for docs; this Design.md is canonical
+- TitleCase for docs
 
 ### What lives where
 
-- packages/issuance/deploy: component deployments for issuance system, assertions helper for governance checks used by targets
-- packages/contracts/deploy: core contracts (GraphToken, GraphProxyAdmin, RewardsManager)
-- packages/deploy: integration targets and cross‑package governance orchestration (Safe batches, equality checks)
+- `packages/issuance/deploy/`: Component deployments for issuance system, IssuanceStateVerifier helper for governance checks
+- `packages/contracts/`: Core contracts source code (GraphToken, GraphProxyAdmin, RewardsManager)
+- `packages/deploy/` (this package): Integration/checkpoint modules and cross‑package governance orchestration (Safe TX batches)
+
+**TODO:** `packages/contracts/deploy/` is mentioned in this design but doesn't currently exist. RewardsManager deployment may be handled by `packages/horizon/` instead.
 
 ### Ignition-based deployment approach
 
@@ -257,7 +295,7 @@ graph TB
     Gov -->|owns| NewAdmin
 
     LegacyContracts[Staking, Curation, EpochManager, RewardsManager]
-    IssuanceContracts[IssuanceAllocator, ServiceQualityOracle, PilotAllocation]
+    IssuanceContracts[IssuanceAllocator, RewardsEligibilityOracle, DirectAllocation]
 
     ExistingAdmin -->|manages| LegacyContracts
     NewAdmin -->|manages| IssuanceContracts
@@ -275,22 +313,22 @@ graph TB
     end
 
     subgraph "Allocation Instances"
-        PA[PilotAllocation]
+        DA[DirectAllocation]
         DA_Impl[DirectAllocationImplementation]
     end
 
-    subgraph "ServiceQualityOracle System"
-        SQO[ServiceQualityOracle]
-        SQO_Impl[ServiceQualityOracleImplementation]
+    subgraph "Rewards Eligibility System"
+        REO[RewardsEligibilityOracle]
+        REO_Impl[RewardsEligibilityOracleImplementation]
     end
 
     ProxyAdmin2 -->|upgrades| IA
-    ProxyAdmin2 -->|upgrades| PA
-    ProxyAdmin2 -->|upgrades| SQO
+    ProxyAdmin2 -->|upgrades| DA
+    ProxyAdmin2 -->|upgrades| REO
 
     IA -.->|delegates to| IA_Impl
-    PA -.->|delegates to| DA_Impl
-    SQO -.->|delegates to| SQO_Impl
+    DA -.->|delegates to| DA_Impl
+    REO -.->|delegates to| REO_Impl
 ```
 
 ## Contract dependencies (state-free)
@@ -300,59 +338,59 @@ graph TD
     GraphToken[GraphToken]
     RewardsManager[RewardsManager]
 
-    ServiceQualityOracle[ServiceQualityOracle]
+    RewardsEligibilityOracle[RewardsEligibilityOracle]
     IssuanceAllocator[IssuanceAllocator]
-    PilotAllocation[PilotAllocation]
+    DirectAllocation[DirectAllocation]
 
-    ServiceQualityOracle -.-> RewardsManager
+    RewardsEligibilityOracle -.-> RewardsManager
     IssuanceAllocator -.-> RewardsManager
     IssuanceAllocator -.-> GraphToken
-    IssuanceAllocator -.-> PilotAllocation
-    PilotAllocation -.-> GraphToken
+    IssuanceAllocator -.-> DirectAllocation
+    DirectAllocation -.-> GraphToken
 ```
 
-## Service Quality Oracle
+## Rewards Eligibility Oracle
 
-### Service Quality Flow
+### Rewards Eligibility Flow
 
 ```mermaid
 graph TB
     %% Core Components
-    SQO[ServiceQualityOracle]
+    REO[RewardsEligibilityOracle]
     RM[RewardsManager<br/>#40;Upgraded#41;]
 
     %% External Actors
-    OfflineOracles[Offline Oracles<br/>Quality Monitors]
+    OfflineOracles[Offline Oracles<br/>Eligibility Monitors]
     Indexers[Indexers]
 
-    %% Quality Enforcement Flow
-    OfflineOracles -->|qualifying<br/>indexers| SQO
-    RM -->|check qualification| SQO
-    SQO -->|qualify/disqualify| RM
+    %% Eligibility Enforcement Flow
+    OfflineOracles -->|qualifying<br/>indexers| REO
+    RM -->|check eligibility| REO
+    REO -->|qualify/disqualify| RM
     RM -->|distribute rewards| Indexers
 
-    %% Quality feedback loop
+    %% Eligibility feedback loop
     Indexers -.->|service quality| OfflineOracles
 ```
 
-### Service Quality Oracle targets
+### Rewards Eligibility Oracle targets
 
 ```mermaid
 graph TD
     RewardsManager[RewardsManager]
     GraphProxyAdmin2[GraphProxyAdmin2]
-    ServiceQualityOracle[ServiceQualityOracle]
-    ServiceQualityOracleActive[ServiceQualityOracleActive]
+    RewardsEligibilityOracle[RewardsEligibilityOracle]
+    RewardsEligibilityOracleActive[RewardsEligibilityOracleActive]
 
-    ServiceQualityOracleActive --> ServiceQualityOracle
-    ServiceQualityOracle -.-> GraphProxyAdmin2
-    ServiceQualityOracleActive --> RewardsManager
+    RewardsEligibilityOracleActive --> RewardsEligibilityOracle
+    RewardsEligibilityOracle -.-> GraphProxyAdmin2
+    RewardsEligibilityOracleActive --> RewardsManager
 
     classDef contract fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
     classDef config fill:#bbdefb,stroke:#0d47a1,stroke-width:2px
 
-    class RewardsManager,GraphProxyAdmin2,ServiceQualityOracle contract
-    class ServiceQualityOracleActive config
+    class RewardsManager,GraphProxyAdmin2,RewardsEligibilityOracle contract
+    class RewardsEligibilityOracleActive config
 ```
 
 ## Issuance Allocator targets
