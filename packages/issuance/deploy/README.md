@@ -1,576 +1,277 @@
-# Issuance Deployment - Documentation & Planning
+# Issuance Component Deployment
 
 **Last Updated:** 2025-11-19
-**Status:** Planning & Design Phase
+**Status:** Production-ready component deployment
 
 ---
 
-## Quick Navigation
+## Purpose
 
-### 🚀 **For Understanding How to Converge Current Spike ↔ Legacy Patterns:**
+This package provides **component-only deployment** for Graph Issuance contracts:
+- RewardsEligibilityOracle (REO)
+- IssuanceAllocator (IA)
+- DirectAllocation
 
-→ **START HERE:** [legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md) - **What to keep from each approach and how to combine them**
+**Important:** This package handles component deployment only. For cross-package orchestration and governance integration, see `packages/deploy/`.
 
-### 🎯 **For Immediate REO Deployment Planning:**
+---
 
-→ **Start here:** [docs/README.md](./docs/README.md) - Production deployment documentation
+## Architecture
 
-### 📊 **For Understanding Design Decisions:**
+### Two-Package Deployment Model
 
-→ **Start here:** [legacy/analysis.md](./legacy/analysis.md) - Legacy alignment analysis
-→ **And:** [legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md) - Convergence strategy
+```
+packages/issuance/deploy/          # Component deployment (this package)
+└── Deploy REO, IA, DirectAllocation with proxies
 
-### 🔍 **For Deep Dive / Background Research:**
+packages/deploy/                   # Cross-package orchestration
+├── Generate governance TX batches
+├── Coordinate with Horizon contracts (RewardsManager, GraphToken)
+└── Verify integration with checkpoint modules
+```
 
-→ **Start here:** [legacy/AnalysisREADME.md](./legacy/AnalysisREADME.md) - Comprehensive gap analysis
+**Why two packages?**
+- **Component deployment** (this package) is permissionless and pure
+- **Governance integration** (packages/deploy/) requires coordination with Horizon
+- Clean separation enables independent testing and deployment
 
 ---
 
 ## Directory Structure
 
-```text
+```
 packages/issuance/deploy/
-├── docs/                    # 🎯 PRODUCTION DOCUMENTATION (Phase 1 Complete)
-│   ├── README.md           # Navigation guide for deployment docs
-│   ├── REODeploymentSequence.md      # Complete REO deployment guide
-│   ├── GovernanceWorkflow.md         # Three-phase governance pattern
-│   ├── VerificationChecklists.md     # Comprehensive checklists
-│   ├── REOArchitecture.md            # Visual diagrams (12 Mermaid diagrams)
-│   ├── APICorrectness.md             # Method signatures & correct usage
-│   └── IADeploymentGuide.md          # 3-stage IA migration (future)
+├── contracts/                      # Deployment helper contracts
+│   ├── IssuanceStateVerifier.sol  # Stateless governance verification helper
+│   └── mocks/                      # Test mocks (MockGraphToken, MockRewardsManager)
 │
-├── legacy/                  # 📚 LEGACY CODE & ANALYSIS
-│   ├── analysis.md          # What's valuable from legacy + alignment
-│   ├── ConvergenceStrategy.md        # 🚀 How to converge spike ↔ legacy
-│   ├── AnalysisREADME.md    # Overview of gap analysis
-│   ├── GapAnalysis.md       # Detailed comparison (earlier vs current)
-│   ├── Conflicts.md         # Design decisions to make
-│   ├── NextPhaseRecommendations.md   # Phase 2+ implementation plan
-│   ├── Design.md            # Legacy design doc (reference)
-│   ├── DeploymentGuide.md   # Legacy deployment guide (reference)
-│   ├── README.md            # Legacy architectural overview (reference)
-│   └── packages/            # Full legacy deployment implementation
-│       └── issuance/deploy/ # Legacy Ignition modules, scripts, tests
+├── ignition/                       # Hardhat Ignition modules
+│   ├── modules/
+│   │   ├── contracts/              # Component deployment modules
+│   │   │   ├── RewardsEligibilityOracle.ts
+│   │   │   ├── IssuanceAllocator.ts
+│   │   │   └── DirectAllocation.ts
+│   │   ├── proxy/                  # Proxy deployment utilities
+│   │   │   ├── implementation.ts
+│   │   │   ├── TransparentUpgradeableProxy.ts
+│   │   │   └── utils.ts
+│   │   ├── deploy.ts               # Main deployment orchestrator
+│   │   ├── index.ts                # Module exports
+│   │   └── examples/               # Example deployment scripts
+│   └── configs/                    # Network-specific configurations
+│       ├── issuance.default.json5
+│       ├── issuance.arbitrumSepolia.json5
+│       └── issuance.arbitrumOne.json5
 │
-├── ignition/                # ⚙️ CURRENT IGNITION DEPLOYMENT
-│   ├── modules/             # Current deployment modules
-│   ├── configs/             # Network-specific configs
-│   └── README.md            # Ignition deployment guide
+├── docs/                           # Production deployment documentation
+│   ├── README.md                   # Documentation navigation
+│   ├── REODeploymentSequence.md   # Complete REO deployment guide
+│   ├── GovernanceWorkflow.md      # Three-phase governance pattern
+│   ├── VerificationChecklists.md  # Comprehensive checklists
+│   ├── REOArchitecture.md         # Visual diagrams
+│   ├── APICorrectness.md          # Method signatures
+│   └── IADeploymentGuide.md       # 3-stage IA migration (future)
 │
-├── governance/              # 🏛️ GOVERNANCE TOOLING
-│   ├── tx-builder.ts        # Safe transaction builder
-│   ├── rewards-eligibility-upgrade.ts  # REO/IA integration batch
-│   └── README.md            # Governance tooling guide
+├── legacy/                         # Analysis and convergence planning
+│   ├── ConvergenceStrategy.md     # Convergence plan
+│   ├── ConvergencePlan.md         # Detailed implementation plan
+│   ├── OrchestratorPackageProposal.md  # Orchestrator design
+│   └── [other analysis docs]
 │
-├── tasks/                   # 🔧 HARDHAT TASKS
-│   └── rewards-eligibility-upgrade.ts  # CLI task for governance TX
-│
-└── README.md               # 📖 THIS FILE - Master navigation
+└── README.md                       # This file
 ```
 
----
-
-## What's in Each Directory
-
-### 📁 `docs/` - Production Deployment Documentation
-
-**Purpose:** Production-ready deployment documentation focused on REO deployment (immediate priority), with IA patterns preserved for future use.
-
-**Status:** ✅ Phase 1 Complete
-
-**Key Documents:**
-
-- **[REODeploymentSequence.md](./docs/REODeploymentSequence.md)** (17 KB) - 6-phase deployment sequence, rollback procedures, network strategies
-- **[GovernanceWorkflow.md](./docs/GovernanceWorkflow.md)** (27 KB) - Three-phase governance pattern, Safe TX builder guide, emergency procedures
-- **[VerificationChecklists.md](./docs/VerificationChecklists.md)** (22 KB) - Comprehensive checklists for every phase
-- **[REOArchitecture.md](./docs/REOArchitecture.md)** (16 KB) - 12 Mermaid diagrams showing architecture and flows
-- **[APICorrectness.md](./docs/APICorrectness.md)** (18 KB) - Correct method signatures to prevent implementation errors
-- **[IADeploymentGuide.md](./docs/IADeploymentGuide.md)** (14 KB) - **Critical 3-stage gradual migration pattern** for future IA deployment
-
-**Start Here If:** You're planning REO deployment, need governance workflow guidance, or want production checklists
-
-**Documentation Principles:**
-
-- REO deployment is immediate priority
-- IA patterns preserved but lower priority (no immediate deployment plans)
-- Integrates with existing governance tooling (`issuance:build-rewards-eligibility-upgrade` task)
-- Extracted mature patterns from legacy work, adapted for current implementation
+**Note:** `governance/` and `tasks/` have moved to `packages/deploy/` as they handle cross-package orchestration.
 
 ---
 
-### 📁 `legacy/` - Legacy Code & Analysis
+## Quick Start
 
-**Purpose:** Reference implementation from earlier deployment work, with comprehensive analysis of what's valuable to preserve and how to converge with current spike.
+### 1. Deploy Component (Permissionless)
 
-**Status:** ✅ Analysis Complete
-
-**Key Documents:**
-
-- **[ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)** (32 KB) - **🚀 START HERE** - What to keep from each approach and how to converge
-- **[analysis.md](./legacy/analysis.md)** (8 KB) - Summarizes valuable legacy patterns and alignment with current work
-- **[AnalysisREADME.md](./legacy/AnalysisREADME.md)** - Overview and reading guide for all analysis documents
-- **[GapAnalysis.md](./legacy/GapAnalysis.md)** (18 KB) - Detailed component-by-component comparison
-- **[Conflicts.md](./legacy/Conflicts.md)** (15 KB) - Design decisions where approaches differ
-- **[NextPhaseRecommendations.md](./legacy/NextPhaseRecommendations.md)** (55 KB) - Detailed Phase 2+ implementation plan
-
-**Legacy Reference Docs:**
-
-- **[Design.md](./legacy/Design.md)** (18 KB) - Legacy design doc (copied for reference)
-- **[DeploymentGuide.md](./legacy/DeploymentGuide.md)** (25 KB) - Legacy deployment guide (copied for reference)
-- **[README.md](./legacy/README.md)** (2 KB) - Legacy architectural overview (copied for reference)
-
-**Legacy Code Structure:**
-
-```text
-legacy/packages/issuance/deploy/
-├── doc/                     # Original design docs (Design.md, DeploymentGuide.md)
-├── ignition/modules/
-│   ├── contracts/          # Component deployments (SQO, IA, GraphProxyAdmin2, etc.)
-│   └── targets/            # Integration targets (Active states, assertions)
-├── scripts/                 # Deployment, governance, address book scripts
-├── test/                    # Governance workflow tests
-└── src/                     # Address book tracking (pending/active implementations)
-```
-
-**Start Here If:** You want to understand convergence strategy, see reference implementations, or understand legacy deployment patterns
-
-**Key Insights:**
-
-1. **Convergence Strategy:** Keep spike's modern tooling + adopt legacy's architectural patterns (see ConvergenceStrategy.md)
-2. **Target Model:** Component-only targets in issuance package; integration/active targets in orchestration package
-3. **Three-Phase Governance:** Prepare (permissionless) → Execute (governance) → Verify/Sync (automated)
-4. **Pending Implementation Tracking:** Address book explicitly tracks implementation vs pendingImplementation
-5. **Governance Assertions:** Stateless helper with checks that revert until governance executes
-6. **3-Stage IA Migration:** Deploy → Replicate (100% RM) → Adjust allocations
-
-**Key Findings:**
-
-- **CRITICAL Gaps:** Deployment sequencing, gradual migration strategy (3-stage IA), zero-impact deployment pattern
-- **HIGH VALUE Gaps:** Three-phase governance workflow, GovernanceAssertions helper, pending implementation tracking
-- **Recommendations:** Phase 1 (docs) complete ✅, Phase 2 (critical implementation) next, Phase 3 (production readiness) before mainnet
-
----
-
-### 📁 `ignition/` - Current Ignition Deployment
-
-**Purpose:** Current Hardhat Ignition deployment modules and configurations.
-
-**Status:** ✅ Implementation complete (spike)
-
-**Contents:**
-
-- **modules/** - IssuanceAllocator, RewardsEligibilityOracle, DirectAllocation deployment modules
-- **configs/** - Network-specific JSON5 configuration files
-- **README.md** - Ignition deployment commands and configuration guide
-
-**Characteristics:**
-
-- Well-designed, aligns with Horizon patterns
-- Complete Toolshed integration
-- Reusable proxy deployment utilities
-- Single orchestrated deployment (deploy.ts)
-
-**Gaps:**
-
-- No deployment sequence documentation (now in `docs/`)
-- No governance coordination patterns (now in `docs/`)
-- No testing/verification (recommended in analysis)
-
----
-
-### 📁 `governance/` - Governance Tooling
-
-**Purpose:** Safe transaction builder and governance integration scripts.
-
-**Status:** ✅ Existing tooling good
-
-**Contents:**
-
-- **tx-builder.ts** - TxBuilder class for Safe-compatible JSON
-- **rewards-eligibility-upgrade.ts** - Builds RM upgrade + REO/IA integration batch
-- **README.md** - Governance tooling documentation
-
-**Hardhat Task:**
+Deploy REO component contracts:
 
 ```bash
-npx hardhat issuance:build-rewards-eligibility-upgrade \
-  --network <network> \
-  --rewardsManagerImplementation <address> \
-  [--rewardsEligibilityOracleAddress <address>] \
-  [--outputDir <path>]
+cd packages/issuance/deploy
+npx hardhat ignition deploy ignition/modules/contracts/RewardsEligibilityOracle.ts \
+  --network arbitrum-sepolia \
+  --parameters ignition/configs/issuance.arbitrumSepolia.json5
 ```
 
-**Assessment:** This tooling is solid! Documentation in `docs/` integrates with it.
+**Result:** REO deployed at address `0xREO...`
+
+### 2. Governance Integration (See packages/deploy/)
+
+For governance integration with RewardsManager, see `packages/deploy/` README.
 
 ---
 
-## Key Concepts & Patterns
+## What This Package Provides
 
-### Three-Phase Governance Workflow
+### ✅ Component Deployment
 
-**From:** Legacy Design.md, adapted in docs/GovernanceWorkflow.md
+- Deploy contract implementations
+- Deploy TransparentUpgradeableProxy for each contract
+- Initialize contracts with safe defaults
+- Track deployments in Ignition artifacts
 
-**Pattern:**
+### ✅ Helper Contracts
 
-1. **Prepare (Permissionless):** Deploy contracts, generate Safe batch JSON, independent verification
-2. **Execute (Governance):** Governance reviews and executes Safe batch, state transitions occur
-3. **Verify/Sync (Automated):** Verification scripts confirm expected state, address book updated
+- **IssuanceStateVerifier.sol** - Stateless helper for governance verification
+- **Mock contracts** - For testing (MockGraphToken, MockRewardsManager)
 
-**Benefits:**
+### ✅ Deployment Utilities
 
-- Clear separation of deployment from governance
-- Independent verification before execution
-- Automated verification after execution
-- Audit trail at each step
-
----
-
-### Zero-Impact Deployment
-
-**From:** Legacy DeploymentGuide.md, adapted in docs/REODeploymentSequence.md
-
-**Pattern:**
-
-- Deploy contracts without affecting production
-- Test and verify in production environment
-- Activate only via governance when ready
-
-**REO Example:**
-
-- Phase 2: Deploy REO (not integrated)
-- Phase 3: Test for 2-4 weeks
-- Phase 4: Governance integration (production impact)
-
-**IA Example (Future):**
-
-- Stage 1: Deploy IA (not integrated)
-- Stage 2: Integrate at 100% to RM (replicate existing)
-- Stage 3: Gradually adjust allocations
+- Reusable proxy deployment helpers
+- Implementation deployment utilities
+- Network configuration management
 
 ---
 
-### 3-Stage Gradual Migration (IA)
+## What This Package Does NOT Provide
 
-**From:** Legacy DeploymentGuide.md, adapted in docs/IADeploymentGuide.md
+### ❌ Governance Integration
 
-**CRITICAL for IA mainnet deployment - non-negotiable**
+**Not here:** Integrating REO/IA with RewardsManager
+**See instead:** `packages/deploy/` - Cross-package orchestration
 
-**Stage 1 - Deploy with Zero Impact:**
+### ❌ Safe Transaction Generation
 
-- Deploy IA configured to replicate existing distribution (100% to RM)
-- Not integrated yet
-- Comprehensive testing possible without risk
+**Not here:** Generating governance TX batches
+**See instead:** `packages/deploy/governance/` - TX builders
 
-**Stage 2 - Activate with No Distribution Change:**
+### ❌ Hardhat Tasks for Orchestration
 
-- Governance integrates IA with RewardsManager
-- Grant minting authority
-- **Still 100% to RM** - no economic change yet
-- Validates integration before changing distribution
+**Not here:** Tasks that coordinate multiple packages
+**See instead:** `packages/deploy/tasks/` - Orchestration tasks
 
-**Stage 3 - Gradual Allocation Changes:**
+### ❌ Checkpoint/Verification Modules
 
-- Deploy DirectAllocation targets
-- Gradually adjust allocations (99%/1%, then 95%/5%, etc.)
-- Monitor each change before proceeding
-- Clear rollback at each step
-
-**Why Critical:**
-
-- Separates integration validation from economic changes
-- Small incremental changes with monitoring
-- Issues caught early with minimal impact
-- Each step independently verifiable and reversible
+**Not here:** Modules that verify governance execution
+**See instead:** `packages/deploy/ignition/modules/issuance/` - Checkpoint modules
 
 ---
 
-### Target Model: Component vs Integration Separation
+## Configuration
 
-**From:** Legacy analysis.md and TargetModelProposal.md
+### Network Configuration Files
 
-**Proposal:**
+Located in `ignition/configs/`:
 
-- **Component targets** (in packages/issuance/deploy):
-  - Deploy and initialize contracts only
-  - No cross-package wiring
-  - Examples: `issuance-allocator`, `rewards-eligibility-oracle`, `direct-allocation-*`
+- `issuance.default.json5` - Default parameters
+- `issuance.arbitrumSepolia.json5` - Testnet config
+- `issuance.arbitrumOne.json5` - Mainnet config
 
-- **Integration targets** (in separate orchestration package):
-  - Governance-required state transitions
-  - Cross-package wiring
-  - Examples: `*-active` targets, allocation stages, governance batches
+### Required Parameters
 
-**Benefits:**
-
-- Avoids circular dependencies
-- Clear package boundaries
-- Component deploys are idempotent and self-contained
-- Governance flows explicit and testable
-
-**Status:** Proposed, not yet implemented in current spike
+```json5
+{
+  $global: {
+    graphTokenAddress: '0x...',  // Required: GraphToken address
+  }
+}
+```
 
 ---
 
-## Convergence & Alignment
+## Deployment Modules
 
-### What We've Converged On
+### RewardsEligibilityOracle
 
-**✅ REO Deployment is Immediate Priority**
+```typescript
+// Deploy new REO
+import REOModule from './ignition/modules/contracts/RewardsEligibilityOracle'
 
-- Production documentation focused on REO (docs/)
-- IA patterns preserved but lower priority
-- Clear 6-phase REO deployment sequence
+// Connect to existing REO
+import { MigrateRewardsEligibilityOracleModule } from './ignition/modules/contracts/RewardsEligibilityOracle'
+```
 
-**✅ Three-Phase Governance Workflow**
+### IssuanceAllocator
 
-- Prepare/Execute/Verify pattern documented (docs/GovernanceWorkflow.md)
-- Aligns with legacy approach
-- Integrates with existing governance tooling
+```typescript
+// Deploy new IA
+import IAModule from './ignition/modules/contracts/IssuanceAllocator'
 
-**✅ Zero-Impact Deployment Pattern**
+// Connect to existing IA
+import { MigrateIssuanceAllocatorModule } from './ignition/modules/contracts/IssuanceAllocator'
+```
 
-- Deploy first, integrate later via governance
-- Documented for both REO and IA (docs/)
+### DirectAllocation
 
-**✅ 3-Stage IA Gradual Migration**
+```typescript
+// Deploy new DirectAllocation
+import DAModule from './ignition/modules/contracts/DirectAllocation'
 
-- Critical pattern documented (docs/IADeploymentGuide.md)
-- Non-negotiable for mainnet safety
-- Preserved for when IA deployment planned
-
-**✅ Existing Governance Tooling is Good**
-
-- tx-builder class solid
-- rewards-eligibility-upgrade task solid
-- Documentation references and integrates with it
-
----
-
-### Open Design Decisions
-
-**From:** legacy/analysis.md (section 6)
-
-**1. Orchestration Package Location**
-
-- Where should "Active" integration targets live?
-- Options:
-  - New `packages/issuance-orchestration`
-  - Existing `packages/deploy` (if it exists)
-  - Within issuance/deploy but clearly separated
-- **Decision needed before:** IA deployment or complex multi-package coordination
-
-**2. Proxy Administration Pattern**
-
-- Use shared GraphProxyAdmin2 (legacy pattern)?
-- Or keep per-contract ProxyAdmins (current Ignition spike)?
-- **Current approach:** Per-contract is simpler and works well
-- **Recommendation:** Keep current unless specific need arises
-
-**3. Governance Assertions Implementation**
-
-- Solidity helper contract (legacy approach)?
-- Pure TypeScript tests?
-- Both?
-- **Recommendation:** Both - Solidity for on-chain verification, TS for fork testing
-- **Status:** Proposed in legacy/NextPhaseRecommendations.md Phase 2
-
-**4. Workflow Strictness**
-
-- How strictly mirror legacy three-phase workflow?
-- Simplify for first Arbitrum deployments?
-- **Recommendation:** Follow three-phase for safety, but adapt where appropriate
-- **Status:** Documented in docs/, but not enforced in code
+// Connect to existing DirectAllocation
+import { MigrateDirectAllocationModule } from './ignition/modules/contracts/DirectAllocation'
+```
 
 ---
 
-## Deployment Status
+## Testing
 
-### Current State
+```bash
+# Compile contracts (includes IssuanceStateVerifier and mocks)
+pnpm compile
 
-| Component                    | Implementation      | Documentation | Status       |
-| ---------------------------- | ------------------- | ------------- | ------------ |
-| **RewardsEligibilityOracle** | ✅ Module exists    | ✅ Complete   | 🟡 Planning  |
-| **IssuanceAllocator**        | ✅ Module exists    | ✅ Preserved  | ⚪ Future    |
-| **DirectAllocation**         | ✅ Module exists    | ✅ Complete   | ⚪ As needed |
-| **Governance Tooling**       | ✅ tx-builder, task | ✅ Complete   | ✅ Ready     |
-| **Verification**             | ❌ No scripts yet   | ✅ Complete   | 🟡 Planned   |
-| **Testing**                  | ❌ No deploy tests  | ✅ Complete   | 🟡 Planned   |
-
-**Legend:**
-
-- ✅ Complete/Ready
-- 🟡 In Progress/Planning
-- ⚪ Not Started/Future
-- ❌ Not Implemented
+# Run tests
+pnpm test
+```
 
 ---
 
-## Next Steps
+## Next Steps After Component Deployment
 
-### Immediate (Before REO Deployment)
+After deploying components in this package:
 
-**Review & Planning:**
-
-1. ✅ Review production documentation (docs/)
-2. ✅ Review legacy alignment analysis (legacy/analysis.md)
-3. ✅ Review target model proposal (legacy/TargetModelProposal.md)
-4. 🔲 Decide on target model / orchestration approach
-5. 🔲 Identify governance addresses for networks
-6. 🔲 Identify role addresses (OPERATOR, ORACLE) for REO
-7. 🔲 Validate configuration parameters
-8. 🔲 Set up oracle infrastructure
-
-**Questions to Resolve:**
-
-- Governance multi-sig addresses (Arbitrum One, Arbitrum Sepolia)?
-- Who/what should have OPERATOR_ROLE on REO?
-- Who/what should have ORACLE_ROLE on REO?
-- Where does oracle infrastructure run?
-- Monitoring - who owns it, what tools?
-- Timeline - how long on testnet before mainnet?
+1. **Generate Governance TX** - See `packages/deploy/` README
+2. **Execute via Safe** - Upload TX batch to Safe UI
+3. **Verify Integration** - Use checkpoint modules in `packages/deploy/`
+4. **Update Address Book** - Record integrated contracts
 
 ---
 
-### Phase 2 Implementation (When Ready)
+## Documentation
 
-**From:** legacy/NextPhaseRecommendations.md
+### Production Deployment Guides
 
-**High-Value Additions:**
+See `docs/` directory for comprehensive deployment documentation:
 
-1. **GovernanceAssertions Helper Contract**
-   - Stateless Solidity contract with verification methods
-   - Enables programmatic verification
-   - Novel pattern from legacy work
+- **[docs/README.md](./docs/README.md)** - Documentation navigation
+- **[docs/REODeploymentSequence.md](./docs/REODeploymentSequence.md)** - Complete REO deployment guide
+- **[docs/GovernanceWorkflow.md](./docs/GovernanceWorkflow.md)** - Three-phase governance workflow
+- **[docs/VerificationChecklists.md](./docs/VerificationChecklists.md)** - Comprehensive checklists
 
-2. **Verification Scripts**
-   - Automated on-chain state validation
-   - Per-phase verification scripts
-   - CI/CD compatible (exit codes)
+### Convergence Planning
 
-3. **Enhanced Address Book**
-   - Pending implementation tracking
-   - Support upgrade workflow
-   - activate-pending.ts script
+See `legacy/` directory for analysis and convergence planning:
 
-4. **Deployment Tests**
-   - Fork-based testing
-   - Governance workflow simulation
-   - Migration stages testing
-
-5. **Monitoring Scripts**
-   - Track REO operations
-   - Allocation monitoring (future IA)
-   - Alert on issues
-
-**See:** legacy/NextPhaseRecommendations.md for detailed implementation plan
+- **[legacy/ConvergencePlan.md](./legacy/ConvergencePlan.md)** - Detailed convergence implementation plan
+- **[legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)** - What to keep from each approach
+- **[legacy/OrchestratorPackageProposal.md](./legacy/OrchestratorPackageProposal.md)** - Orchestrator package design
 
 ---
 
-### Future: IssuanceAllocator Deployment
+## For Cross-Package Orchestration
 
-**When IA deployment is planned:**
+See **`packages/deploy/`** for:
 
-1. **MUST READ:** docs/IADeploymentGuide.md (3-stage migration is critical)
-2. **Review:** legacy/TargetModelProposal.md (consider orchestration separation)
-3. **Implement:** Phase 2 items above (if not already done)
-4. **Plan:** 3-stage rollout with monitoring periods between stages
-5. **Budget:** 4-8 weeks between Stage 2 and Stage 3
-
-**Do NOT:** Skip stages or rush the process - mainnet safety requires gradual migration
+- Governance TX generation
+- Safe batch builders
+- Checkpoint/verification modules
+- Fork-based integration tests
+- Hardhat orchestration tasks
 
 ---
 
-## How to Use This Repository
+## Status
 
-### For REO Deployment Planning
+- ✅ Component deployment modules ready
+- ✅ IssuanceStateVerifier contract added
+- ✅ Mock contracts for testing
+- ✅ Proxy deployment utilities
+- ✅ Network configurations
+- ✅ Documentation complete
+- ✅ Orchestration separated to `packages/deploy/`
 
-1. Start with **[docs/README.md](./docs/README.md)** - production documentation
-2. Follow **[docs/REODeploymentSequence.md](./docs/REODeploymentSequence.md)** - deployment guide
-3. Use **[docs/VerificationChecklists.md](./docs/VerificationChecklists.md)** - during execution
-4. Reference **[docs/GovernanceWorkflow.md](./docs/GovernanceWorkflow.md)** - for governance coordination
-5. Check **[docs/APICorrectness.md](./docs/APICorrectness.md)** - when implementing integration
-
-### For Understanding Design Decisions
-
-1. Read **[legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)** - **START HERE** for convergence
-2. Read **[legacy/analysis.md](./legacy/analysis.md)** - legacy alignment summary
-3. Review **[legacy/GapAnalysis.md](./legacy/GapAnalysis.md)** - detailed comparison
-4. Check **[legacy/Conflicts.md](./legacy/Conflicts.md)** - design decisions
-
-### For Deep Research / Background
-
-1. Start with **[legacy/AnalysisREADME.md](./legacy/AnalysisREADME.md)**
-2. Read full gap analysis and recommendations in `legacy/`
-3. Explore legacy code in **legacy/packages/** for reference implementations
-4. Review legacy docs (Design.md, DeploymentGuide.md) for original thinking
-
----
-
-## Contributing & Maintenance
-
-### Updating Documentation
-
-**When to update:**
-
-- Contract interfaces change
-- Deployment procedures change
-- New networks added
-- Lessons learned from deployment
-- Design decisions made
-
-**What to update:**
-
-- Keep docs/ current with production procedures
-- Update legacy/ if comparing new approaches or adding analysis
-- Add to legacy/packages/ only if referencing additional legacy code
-- Maintain consistency across documents
-
-**Documentation principles:**
-
-- Keep production docs (docs/) focused and actionable
-- Keep analysis (legacy/) comprehensive but clearly marked as background
-- Use clear, concise, technical language
-- Include examples and diagrams
-- Document both correct and incorrect usage
-- Explain _why_ not just _what_
-
----
-
-## Acknowledgments
-
-This documentation synthesizes:
-
-- **Current Ignition spike** - Well-designed deployment modules and governance tooling
-- **Earlier deployment work** - Production-ready patterns and governance workflows
-- **Parallel analysis** - Target model proposals and alignment considerations
-
-All three sources contribute valuable insights to a production-ready deployment strategy.
-
----
-
-## Quick Reference
-
-**Immediate Priority:** REO deployment
-**Future Priority:** IA deployment (3-stage migration)
-
-**Key Documentation:**
-
-- Production: [docs/README.md](./docs/README.md)
-- Convergence: [legacy/ConvergenceStrategy.md](./legacy/ConvergenceStrategy.md)
-- Analysis: [legacy/AnalysisREADME.md](./legacy/AnalysisREADME.md)
-
-**Key Patterns:**
-
-- Three-phase governance: Prepare → Execute → Verify
-- Zero-impact deployment: Deploy → Test → Integrate
-- 3-stage IA migration: Deploy → Replicate → Adjust
-
-**Existing Tooling:**
-
-- Ignition modules: [ignition/modules/](./ignition/modules/)
-- Governance task: `npx hardhat issuance:build-rewards-eligibility-upgrade --help`
-- Configs: [ignition/configs/](./ignition/configs/)
-
----
-
-**Everything is in place. Ready for review, decisions, and next steps.**
+**This package is production-ready for component deployment.**
