@@ -8,6 +8,9 @@ import type { HardhatUserConfig } from 'hardhat/config'
 
 // Explicitly register local Hardhat tasks (orchestration helpers)
 import './tasks/rewards-eligibility-upgrade'
+import './tasks/deploy-reo-implementation'
+import './tasks/sync-pending-implementation'
+import './tasks/list-pending-implementations'
 
 const baseConfig = hardhatBaseConfig(require)
 

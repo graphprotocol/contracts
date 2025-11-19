@@ -1,13 +1,18 @@
 import { task } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
+import path from 'path'
 
 import { buildRewardsEligibilityUpgradeTxs } from '../governance/rewards-eligibility-upgrade'
+import { EnhancedIssuanceAddressBook } from '../lib/enhanced-address-book'
 
 task(
   'issuance:build-rewards-eligibility-upgrade',
   'Build Safe Tx Builder JSON to upgrade RewardsManager and wire RewardsEligibilityOracle / IssuanceAllocator',
 )
-  .addParam('rewardsManagerImplementation', 'New RewardsManager implementation address')
+  .addOptionalParam(
+    'rewardsManagerImplementation',
+    'New RewardsManager implementation address (defaults to pending implementation if available)',
+  )
   .addOptionalParam(
     'rewardsManagerAddress',
     'RewardsManager proxy address (defaults to Horizon address book value for this network)',
@@ -26,10 +31,33 @@ task(
   )
   .addOptionalParam('outputDir', 'Directory where the Safe Tx JSON file will be written')
   .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
+    const { ethers } = hre
+    const chainId = hre.network.config.chainId ?? (await ethers.provider.getNetwork()).chainId
+
+    // Try to load pending implementation if not explicitly provided
+    let implementationAddress = taskArgs.rewardsManagerImplementation
+
+    if (!implementationAddress) {
+      const issuanceAddressBookPath = path.resolve(__dirname, '../../issuance/addresses.json')
+      const addressBook = new EnhancedIssuanceAddressBook(issuanceAddressBookPath, Number(chainId))
+
+      const pendingImpl = addressBook.getPendingImplementation('RewardsManager')
+      if (pendingImpl) {
+        console.log(`\n💡 Using pending implementation from address book: ${pendingImpl}`)
+        implementationAddress = pendingImpl
+      } else {
+        throw new Error(
+          'No RewardsManager implementation address provided and no pending implementation found. ' +
+            'Either deploy an implementation first with issuance:deploy-reo-implementation, ' +
+            'or provide --rewards-manager-implementation parameter.',
+        )
+      }
+    }
+
     const result = await buildRewardsEligibilityUpgradeTxs(
       hre,
       {
-        rewardsManagerImplementation: taskArgs.rewardsManagerImplementation,
+        rewardsManagerImplementation: implementationAddress,
         rewardsManagerAddress: taskArgs.rewardsManagerAddress,
         graphProxyAdmin: taskArgs.graphProxyAdmin,
         rewardsEligibilityOracleAddress: taskArgs.rewardsEligibilityOracleAddress,
@@ -42,6 +70,7 @@ task(
 
     console.log('\n========== Issuance Rewards Eligibility Upgrade ==========', '\n')
     console.log(`Network: ${hre.network.name} (chainId=${result.chainId})`)
+    console.log(`Implementation: ${implementationAddress}`)
     console.log(`Safe transaction batch written to: ${result.outputFile}`)
   })
 

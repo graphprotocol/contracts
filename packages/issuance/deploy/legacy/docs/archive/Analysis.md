@@ -7,29 +7,6 @@
 
 ---
 
-## Contents
-
-This directory contains analysis and planning documents comparing the earlier issuance deployment work (`/git/graphprotocol/contracts/private/packages/issuance/deploy`) with the current Ignition-based deployment spike in this repository.
-
-### Source Documents (Earlier Work)
-
-These are copied from the earlier deployment work for reference:
-
-- **[README.md](./README.md)** - Architectural overview, target-based deployment model, API correctness reference
-- **[Design.md](./Design.md)** - Technical architecture, governance workflow, component relationships, extensive Mermaid diagrams
-- **[DeploymentGuide.md](./DeploymentGuide.md)** - Detailed 4-phase deployment procedure, 8-stage SQO rollout, 3-stage IA migration, comprehensive checklists
-
-### Analysis Documents (This Work)
-
-These documents analyze the earlier work and provide integration recommendations:
-
-- **[ConvergenceStrategy.md](./ConvergenceStrategy.md)** - **START HERE** - Clear comparison of what to keep from each approach and how to converge
-- **[GapAnalysis.md](./GapAnalysis.md)** - Comprehensive comparison of earlier work vs current spike, identifies what's missing
-- **[Conflicts.md](./Conflicts.md)** - Documents design decisions where approaches differ, recommends resolutions
-- **[NextPhaseRecommendations.md](./NextPhaseRecommendations.md)** - Detailed, actionable plan for integrating valuable patterns
-
----
-
 ## Key Findings
 
 ### What the Current Spike Has (Strengths)
@@ -68,66 +45,6 @@ These documents analyze the earlier work and provide integration recommendations
 
 ---
 
-## Practical Alignment: Mapping Legacy to Current
-
-### Contract Name Mappings
-
-Current components (from `DEPLOYMENT.md` and Ignition modules):
-
-- `IssuanceAllocator` – proxy + implementation
-- `DirectAllocation` – proxy + implementation (replaces legacy "PilotAllocation" conceptually)
-- `RewardsEligibilityOracle` – proxy + implementation (replaces legacy `ServiceQualityOracle`)
-
-**Rough mapping:**
-
-- Legacy `ServiceQualityOracle` → `RewardsEligibilityOracle`
-- Legacy `PilotAllocation` → `DirectAllocation` (same role: additional allocation targets)
-- Legacy `GraphProxyAdmin2` → we currently have per-module `ProxyAdmin` contracts in Ignition; we may still adopt a shared admin pattern if helpful, but that is an implementation choice
-
-### Key Alignment Points
-
-**1. Keep issuance deploy package component-only**
-
-`packages/issuance/deploy/ignition/modules/*` should focus on deploying and initializing:
-
-- `IssuanceAllocator` (with GraphToken address parameterized)
-- `DirectAllocation` instances
-- `RewardsEligibilityOracle` (with eligibility period/timeouts etc.)
-
-They should not directly call into RewardsManager or GraphToken governance functions for production flows.
-
-**2. Introduce (or reuse) an orchestration layer for "Active" states**
-
-Somewhere else (either a new `packages/deploy` or an existing Horizon/orchestration package), define targets/sequences that:
-
-- Upgrade RewardsManager implementation where needed
-- Call `RewardsManager.setIssuanceAllocator(IA)`
-- Call `RewardsManager.setServiceQualityOracle(Oracle)`
-- Call `GraphToken.addMinter(IA)`
-- Adjust allocations via `IssuanceAllocator.setTargetAllocation(...)`
-
-These are the steps that should be modelled as explicit Safe transactions and replayed in fork-based tests.
-
-**3. Make governance checkpoints explicit in tests**
-
-Fork-based Arbitrum tests should:
-
-- Run Ignition deploy modules for new components
-- Then impersonate governance and execute the exact sequence of transactions described in the legacy `DeploymentGuide.md` (adapted to the new contracts)
-- Then run assertion helpers that mirror the legacy `GovernanceAssertions` pattern
-
-### Arbitrum & Testnet Focus
-
-Legacy docs talk about mainnet + Arbitrum + Sepolia, but for this repo we care about:
-
-- **Arbitrum One / Arbitrum Sepolia** as primary; mainnet notes are structural inspiration
-- Legacy `ignition/configs/issuance.arbitrumOne.json5` and `issuance.arbitrumSepolia.json5` show the shape of parameters we'll likely need:
-  - Governance addresses (multisig, council)
-  - Existing RewardsManager proxy, GraphToken, existing ProxyAdmin(s)
-  - Optional `pendingImplementation` slots for upgrades
-
-These can guide how we structure `deploy/ignition/configs/issuance.arbitrum*.json5` and any future orchestration configs.
-
 ### Suggested Reuse from Legacy Code
 
 When deciding what to adapt from the legacy packages, the highest-value items are:
@@ -154,12 +71,8 @@ These should be read with the intent to **port patterns**, not code verbatim, to
 
 To be decided collaboratively:
 
-1. Where exactly should the new orchestration/governance package live (for "Active" targets)?
-2. Do we want a shared `GraphProxyAdmin2`-style admin for issuance proxies on Arbitrum, or keep per-contract ProxyAdmins as in the current Ignition spike?
-3. Should the governance assertions live as:
-   - A small Solidity helper contract, or
-   - Pure TypeScript tests that directly query live state?
-4. How strictly do we want to mirror the three-phase legacy workflow vs simplifying for first Arbitrum deployments (while keeping upgrade safety)?
+1. Do we want a shared `GraphProxyAdmin2`-style admin for issuance proxies on Arbitrum, or keep per-contract ProxyAdmins as in the current Ignition spike? A: I think GraphProxyAdmin2 is required for new issuance contracts.
+2. How strictly do we want to mirror the three-phase legacy workflow vs simplifying for first Arbitrum deployments (while keeping upgrade safety)? A: Very strictly!
 
 ---
 
