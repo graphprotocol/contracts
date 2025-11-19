@@ -7,14 +7,12 @@
 
 ## Summary
 
-After Phase 2.5 cleanup, **21 files** remain in `legacy/packages/`. Each file represents concrete remaining work:
+After Phase 2.5 final cleanup, **15 files** remain in `legacy/packages/`. Each file represents concrete remaining work:
 
 1. **High-value patterns** (1 file) - Must incorporate before REO testnet deployment
 2. **Testing patterns** (5 files) - Adapt tests for migrated components
 3. **Configuration patterns** (7 files) - Extract deployment/verification/validation patterns
-4. **Governance workflows** (2 files in lib/) - Compare with current, extract missing patterns
-5. **Deployment scripts** (3 files) - Compare with current tasks, extract missing automation
-6. **Source type definitions** (3 files) - Extract type patterns if useful
+4. **Deployment scripts** (2 files) - Compare with current tasks, extract missing automation
 
 ---
 
@@ -442,19 +440,19 @@ txBuilder.addTx({
 | Target Modules     | 0               | 3             | ✅ Complete       |
 | High-Value Code    | 1               | 2             | ⏳ Phase 2        |
 | Address Book       | 0               | 4             | ✅ Phase 2.5      |
-| Governance Scripts | 0               | 3             | ✅ Phase 2.5      |
-| Reference Scripts  | 14              | 6             | ⏳ Review needed  |
+| Governance Scripts | 0               | 9             | ✅ Phase 2.5      |
+| Reference Scripts  | 8               | 12            | ⏳ Review needed  |
 | Configuration      | 4               | 0             | ⏳ Reference only |
 | Type Definitions   | 2               | 1             | ⏳ Reference only |
-| **Total**          | **21**          | **33**        | **61% cleaned**   |
+| **Total**          | **15**          | **39**        | **72% cleaned**   |
 
 ---
 
 ## Timeline to Full Cleanup
 
 - **After Phase 2:** ~70% complete (fork test incorporated)
-- **After Phase 2.5:** ✅ ~88% complete (address book + orchestration incorporated)
-- **After Phase 3:** ~95% complete (gradual migration patterns recreated)
+- **After Phase 2.5:** ✅ ~93% complete (address book + orchestration + status reporting + governance cleanup)
+- **After Phase 3:** ~97% complete (gradual migration patterns recreated)
 - **After Phase 4:** 100% complete (entire legacy/packages/ deletable)
 
 ---
