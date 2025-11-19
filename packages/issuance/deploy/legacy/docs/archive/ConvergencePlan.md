@@ -1,5 +1,8 @@
 # Convergence Plan: Merging Current Spike with Legacy Implementation
 
+> **ARCHIVED:** Historical analysis document. See [../../RemainingWork.md](../../RemainingWork.md) for current status.
+
+
 **Created:** 2025-11-19
 **Purpose:** Actionable plan to converge two partial implementations into one production-ready codebase
 **Priority:** REO deployment first, then complete structure for IA

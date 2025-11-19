@@ -1,5 +1,8 @@
 # Next Phase Recommendations: Production-Ready Issuance Deployment
 
+> **ARCHIVED:** Historical analysis document. See [../../RemainingWork.md](../../RemainingWork.md) for current status.
+
+
 **Date:** 2025-11-19
 **Purpose:** Detailed plan for integrating valuable patterns from earlier deployment work into current Ignition spike
 

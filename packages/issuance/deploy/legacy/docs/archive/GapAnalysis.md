@@ -1,5 +1,8 @@
 # Gap Analysis: Earlier Deployment Work vs Current Ignition Spike
 
+> **ARCHIVED:** Historical analysis document. See [../../RemainingWork.md](../../RemainingWork.md) for current status.
+
+
 **Date:** 2025-11-19
 **Purpose:** Identify valuable patterns from earlier deployment work to integrate into current Ignition-based implementation
 

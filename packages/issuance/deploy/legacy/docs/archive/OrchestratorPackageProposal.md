@@ -1,5 +1,8 @@
 # Orchestration Package Proposal
 
+> **ARCHIVED:** Historical analysis document. See [../../RemainingWork.md](../../RemainingWork.md) for current status.
+
+
 **Decision:** Separate `packages/deploy/` orchestration package for cross-package integrations
 
 **Rationale:**

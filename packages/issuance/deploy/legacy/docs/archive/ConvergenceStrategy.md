@@ -1,5 +1,8 @@
 # Convergence Strategy: Current Spike ↔ Legacy Patterns
 
+> **ARCHIVED:** Historical analysis document. See [../../RemainingWork.md](../../RemainingWork.md) for current status.
+
+
 **Purpose:** Clearly identify what is required from each approach and how to converge them without discarding valuable work.
 
 **Last Updated:** 2025-11-19
