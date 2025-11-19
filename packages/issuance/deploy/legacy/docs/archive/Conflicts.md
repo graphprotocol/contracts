@@ -2,7 +2,6 @@
 
 > **ARCHIVED:** Historical analysis document. See [../../RemainingWork.md](../../RemainingWork.md) for current status.
 
-
 **Date:** 2025-11-19
 **Purpose:** Document where earlier deployment work and current Ignition spike use different approaches, requiring design decisions
 

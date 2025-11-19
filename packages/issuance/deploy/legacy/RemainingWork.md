@@ -7,13 +7,14 @@
 
 ## Summary
 
-After cleanup, **27 files** remain in `legacy/packages/`. Each file represents concrete remaining work:
+After Phase 2.5 cleanup, **21 files** remain in `legacy/packages/`. Each file represents concrete remaining work:
 
-1. **High-value patterns** (3 files) - Must incorporate in Phase 2-3
+1. **High-value patterns** (1 file) - Must incorporate before REO testnet deployment
 2. **Testing patterns** (5 files) - Adapt tests for migrated components
 3. **Configuration patterns** (7 files) - Extract deployment/verification/validation patterns
-4. **Governance workflows** (6 files in lib/) - Compare with current, extract missing patterns
-5. **Deployment scripts** (6 files) - Compare with current tasks, extract missing automation
+4. **Governance workflows** (2 files in lib/) - Compare with current, extract missing patterns
+5. **Deployment scripts** (3 files) - Compare with current tasks, extract missing automation
+6. **Source type definitions** (3 files) - Extract type patterns if useful
 
 ---
 
@@ -49,43 +50,27 @@ After cleanup, **27 files** remain in `legacy/packages/`. Each file represents c
 
 ---
 
-### 2. Address Book with Pending Implementation ⭐ IMPORTANT - Phase 2
+### 2. ~~Address Book with Pending Implementation~~ ✅ COMPLETE - Phase 2.5
 
-**File:** `packages/issuance/deploy/src/address-book.ts`
-**Compiled:** `packages/issuance/deploy/lib/src/address-book.js`
+**Status:** ✅ INCORPORATED in Phase 2.5
 
-**What it provides:**
+**Implementation:** Created `EnhancedIssuanceAddressBook` wrapper in `packages/deploy/lib/enhanced-address-book.ts`
 
-```typescript
-interface IssuanceContractEntry {
-  address: string
-  implementation?: {
-    address: string
-    deployedAt?: string
-  }
-  pendingImplementation?: {
-    // ← This feature doesn't exist in Toolshed
-    address: string
-    deployedAt?: string
-    readyForUpgrade?: boolean // Tracks upgrade readiness
-  }
-}
-```
+**What was incorporated:**
 
-**Why it's valuable:**
+- Pending implementation tracking via wrapper pattern
+- Methods: `setPendingImplementation()`, `activatePendingImplementation()`, `getPendingImplementation()`
+- Integrated with orchestration tasks (deploy, sync, list)
+- Full documentation in [GovernanceWorkflow.md](../../deploy/docs/GovernanceWorkflow.md)
 
-- Tracks pending implementation deployments
-- Marks when implementations are ready for governance upgrade
-- Useful for multi-step upgrade workflows
-- Not available in Toolshed AddressBook
+**Legacy files now obsolete:**
 
-**Remaining work:**
+- ✅ `packages/issuance/deploy/src/address-book.ts` - Pattern incorporated
+- ✅ `packages/issuance/deploy/lib/src/address-book.js` - Compiled version
+- ✅ `packages/issuance/deploy/scripts/address-book.js` - Script incorporated
+- ✅ `packages/issuance/deploy/scripts/update-address-book.js` - Script incorporated
 
-- Review implementation details
-- Decide: Extend Toolshed AddressBook OR create custom wrapper
-- Integrate pending implementation tracking into current workflows
-
-**Priority:** MEDIUM - Useful for upgrade coordination
+**Can be deleted:** Yes, after Phase 2.5 commit
 
 ---
 
@@ -300,30 +285,35 @@ txBuilder.addTx({
 
 ## Deployment Scripts (6 files) - Compare with Current Tasks
 
-### scripts/deploy-governance-upgrade.js
+### ~~scripts/deploy-governance-upgrade.js~~ ✅ COMPLETE - Phase 2.5
 
-**What it does:** Automated governance upgrade workflow script
+**Status:** ✅ INCORPORATED in Phase 2.5
 
-**Current equivalent:** `packages/deploy/tasks/*.ts`
+**Implementation:** Pattern incorporated in `packages/deploy/tasks/deploy-reo-implementation.ts`
 
-**Work needed:**
+**What was incorporated:**
 
-1. Compare with current task implementations
-2. Check if all upgrade steps are automated in current tasks
-3. Extract missing automation patterns
-4. Can delete after comparison
+- Automated deployment → address book → TX generation workflow
+- Safe TX JSON output with clear next steps
+- Resumable deployment pattern
+
+**Can be deleted:** Yes, after Phase 2.5 commit
 
 ---
 
-### scripts/deploy-upgrade-prep.js
+### ~~scripts/deploy-upgrade-prep.js~~ ✅ COMPLETE - Phase 2.5
 
-**What it does:** Prepares upgrade transactions
+**Status:** ✅ INCORPORATED in Phase 2.5
 
-**Work needed:**
+**Implementation:** Pattern incorporated in `packages/deploy/tasks/rewards-eligibility-upgrade.ts` and `deploy-reo-implementation.ts`
 
-1. Compare with current governance TX builder
-2. Extract preparation patterns if missing
-3. Can delete after comparison
+**What was incorporated:**
+
+- TX preparation and batching
+- Auto-detection of pending implementations
+- Safe TX JSON generation
+
+**Can be deleted:** Yes, after Phase 2.5 commit
 
 ---
 
@@ -340,15 +330,19 @@ txBuilder.addTx({
 
 ---
 
-### scripts/address-book.js, update-address-book.js
+### ~~scripts/address-book.js, update-address-book.js~~ ✅ COMPLETE - Phase 2.5
 
-**What they do:** Address book management utilities
+**Status:** ✅ INCORPORATED in Phase 2.5
 
-**Work needed:**
+**Implementation:** Pattern incorporated in `packages/deploy/lib/enhanced-address-book.ts` and `packages/deploy/tasks/sync-pending-implementation.ts`
 
-1. Part of src/address-book.ts incorporation work (see High-Value section)
-2. Review for address tracking automation
-3. Can delete after address book feature incorporated
+**What was incorporated:**
+
+- Address book update automation
+- Pending implementation activation
+- On-chain verification before sync
+
+**Can be deleted:** Yes, after Phase 2.5 commit
 
 ---
 
@@ -446,16 +440,20 @@ txBuilder.addTx({
 | Checkpoint Modules | 0               | 9             | ✅ Complete       |
 | Component Modules  | 0               | 5             | ✅ Complete       |
 | Target Modules     | 0               | 3             | ✅ Complete       |
-| High-Value Code    | 3               | 0             | ⏳ Phase 2-3      |
-| Reference Scripts  | 20              | 0             | ⏳ Review needed  |
+| High-Value Code    | 1               | 2             | ⏳ Phase 2        |
+| Address Book       | 0               | 4             | ✅ Phase 2.5      |
+| Governance Scripts | 0               | 3             | ✅ Phase 2.5      |
+| Reference Scripts  | 14              | 6             | ⏳ Review needed  |
 | Configuration      | 4               | 0             | ⏳ Reference only |
-| **Total**          | **27**          | **17**        | **63% cleaned**   |
+| Type Definitions   | 2               | 1             | ⏳ Reference only |
+| **Total**          | **21**          | **33**        | **61% cleaned**   |
 
 ---
 
 ## Timeline to Full Cleanup
 
-- **After Phase 2:** ~85% complete (high-value code incorporated)
+- **After Phase 2:** ~70% complete (fork test incorporated)
+- **After Phase 2.5:** ✅ ~88% complete (address book + orchestration incorporated)
 - **After Phase 3:** ~95% complete (gradual migration patterns recreated)
 - **After Phase 4:** 100% complete (entire legacy/packages/ deletable)
 

@@ -15,7 +15,7 @@ type AddressBookEntry = {
   address: string
   proxy?: 'graph' | 'transparent'
   proxyAdmin?: string
-  implementation?: string  // Just an address string
+  implementation?: string // Just an address string
 }
 ```
 
@@ -34,7 +34,8 @@ interface IssuanceContractEntry {
     runtimeCodeHash?: string
     txHash?: string
   }
-  pendingImplementation?: {  // ← New feature
+  pendingImplementation?: {
+    // ← New feature
     address: string
     constructorArgs?: unknown[]
     creationCodeHash?: string
@@ -73,21 +74,24 @@ getPendingImplementation(contractName): string | undefined
 ### Typical Upgrade Flow
 
 1. **Deploy new implementation**
+
    ```bash
    # Deploy new RewardsManager implementation
    npx hardhat ignition deploy RewardsManagerImplementation
    ```
 
 2. **Mark as pending** (using enhanced address book)
+
    ```typescript
-   addressBook.setPendingImplementation(
-     'RewardsManager',
-     newImplementationAddress,
-     { txHash, deployedAt, readyForUpgrade: true }
-   )
+   addressBook.setPendingImplementation('RewardsManager', newImplementationAddress, {
+     txHash,
+     deployedAt,
+     readyForUpgrade: true,
+   })
    ```
 
 3. **Generate governance TX**
+
    ```bash
    # Create Safe TX batch for upgrade
    npx hardhat rewards-eligibility-upgrade \
@@ -101,48 +105,73 @@ getPendingImplementation(contractName): string | undefined
    - Upgrade happens on-chain
 
 5. **Sync address book**
+
    ```typescript
    addressBook.activatePendingImplementation('RewardsManager')
    ```
 
-## Recommendation
+## Implementation Status
 
-### Phase 2 Decision: Defer Implementation
+### ✅ Phase 2.5: Implemented
 
-**Decision:** Do NOT implement pending implementation tracking yet.
+**Status:** Feature successfully implemented in Phase 2.5
+
+**Implementation Details:**
+
+Created `EnhancedIssuanceAddressBook` class that extends toolshed's `GraphIssuanceAddressBook`:
+
+**Location:** [packages/deploy/lib/enhanced-address-book.ts](../lib/enhanced-address-book.ts)
+
+**Key Methods:**
+
+```typescript
+setPendingImplementation(contractName, address, metadata)
+activatePendingImplementation(contractName)
+getPendingImplementation(contractName): string | undefined
+hasPendingImplementation(contractName): boolean
+listPendingImplementations(): string[]
+clearPendingImplementation(contractName)
+```
+
+**Integration:**
+
+The enhanced address book is used by the orchestration tasks:
+
+1. **deploy-reo-implementation** - Sets pending implementation after deployment
+2. **sync-pending-implementation** - Activates pending after governance execution
+3. **list-pending-implementations** - Shows all pending implementations
+4. **rewards-eligibility-upgrade** - Auto-detects pending implementations
+
+See [GovernanceWorkflow.md](./GovernanceWorkflow.md) for complete usage guide.
+
+### Design Decision: Wrapper Pattern
+
+**Approach Chosen:** Wrapper extending toolshed's AddressBook (not modifying toolshed)
 
 **Rationale:**
-1. **Simple manual tracking works** for Phase 2 (REO deployment)
-   - Only one or two upgrades planned
-   - Can track manually in deployment notes
 
-2. **Toolshed extension requires careful design**
-   - Should support all packages (Horizon, Issuance, SubgraphService)
-   - Needs TypeScript type safety across packages
-   - Best done as coordinated toolshed update
+1. **No toolshed changes needed** - Avoids cross-package coordination
+2. **Fast implementation** - Can iterate quickly within deploy package
+3. **Type-safe** - Full TypeScript support
+4. **Backwards compatible** - Toolshed AddressBook unchanged
 
-3. **Current workaround is sufficient**
-   - Use JSON comments in addresses.json
-   - Track in deployment docs
-   - Generate TX batches with explicit addresses
+### Future Consideration: Extend Toolshed
 
-### Phase 3+ Recommendation: Extend Toolshed
+When other packages need pending implementation tracking, consider:
 
-When upgrade workflows become frequent (IA upgrades, multiple contracts), consider:
+1. **Promote to Toolshed**
+   - Move wrapper logic into toolshed's AddressBook
+   - Make available to all packages
+   - Add comprehensive cross-package tests
 
-1. **Extend Toolshed AddressBook**
-   - Add `pendingImplementation` field to `AddressBookEntry`
-   - Add methods: `setPending()`, `activatePending()`, `hasPending()`
-   - Ensure compatibility across all packages
+2. **Keep wrapper if sufficient**
+   - If only deploy package needs this feature
+   - Current wrapper pattern works well
+   - No need to complicate toolshed
 
-2. **Alternative: Deployment Tool**
-   - Create governance-specific deployment tracker
-   - Separate from runtime address book
-   - Focus on upgrade coordination
+## Alternative: Manual Tracking
 
-## Manual Tracking (Phase 2)
-
-For REO deployment, track pending implementations manually:
+If you prefer not to use the enhanced address book, you can track pending implementations manually:
 
 ### In Deployment Notes
 
@@ -157,7 +186,7 @@ For REO deployment, track pending implementations manually:
   - TX: 0x...
   - Safe TX: tx-builder-123456.json
 
-- RewardsEligibilityOracle: 0x...  - Deployed: 2025-01-15
+- RewardsEligibilityOracle: 0x... - Deployed: 2025-01-15
   - Status: Active (no upgrade needed)
 ```
 
