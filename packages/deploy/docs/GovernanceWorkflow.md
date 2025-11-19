@@ -261,6 +261,6 @@ Compared to manual workflow:
 
 ## See Also
 
-- [GovernanceComparison.md](./GovernanceComparison.md) - Legacy vs. current approach
+- [GovernanceComparison.md (archived)](./archive/GovernanceComparison.md) - Legacy vs. current approach (Phase 2.5 complete)
 - [PendingImplementationTracking.md](./PendingImplementationTracking.md) - Technical details
 - [Phase2Reconsideration.md](./Phase2Reconsideration.md) - Design decisions

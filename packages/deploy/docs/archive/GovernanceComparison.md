@@ -1,4 +1,11 @@
-# Governance Workflow Comparison
+# ARCHIVED: Governance Workflow Comparison
+
+> **Status:** ARCHIVED - Phase 2.5 Complete
+> **Date:** 2025-11-19
+> **Current Information:** See [GovernanceWorkflow.md](./GovernanceWorkflow.md)
+>
+> This document was used during Phase 2/2.5 to compare legacy and current governance approaches.
+> All valuable features have been incorporated. The current implementation now wins in all categories.
 
 ## Overview
 
