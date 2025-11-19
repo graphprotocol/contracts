@@ -1,0 +1,41 @@
+{
+  "name": "@graphprotocol/contracts-deploy",
+  "version": "0.1.0",
+  "description": "Cross-package deployment orchestration for Graph Protocol contracts",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "hardhat test",
+    "test:integration": "hardhat test test/*integration*.test.ts",
+    "test:fork": "hardhat test test/*fork*.test.ts",
+    "clean": "rm -rf dist cache artifacts ignition/deployments"
+  },
+  "dependencies": {
+    "@graphprotocol/horizon": "workspace:*",
+    "@graphprotocol/issuance": "workspace:*",
+    "@graphprotocol/toolshed": "^0.5.0",
+    "@nomicfoundation/hardhat-ignition": "^0.15.0",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
+    "ethers": "^6.13.0",
+    "hardhat": "^2.22.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "chai": "^4.3.0",
+    "ts-node": "^10.9.0",
+    "typechain": "^8.3.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
