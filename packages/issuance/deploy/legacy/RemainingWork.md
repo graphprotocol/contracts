@@ -7,66 +7,44 @@
 
 ## Summary
 
-**7 files** remain in `legacy/packages/` - all test files for reference:
+**1 file** remains in `legacy/packages/` - type definitions for reference only:
 
-1. **Fork test pattern** (1 file) - Reference for governance testing
-2. **Testing patterns** (5 files) - Test files to review
-3. **Type definitions** (1 file) - Contract type definitions
+1. **Type definitions** (1 file) - Contract type definitions
 
 ---
 
 ## Files Remaining
 
-### Fork-Based Governance Testing (Reference)
-
-**File:** `packages/issuance/deploy/test-governance-workflow.ts`
-
-**What it does:**
-
-- Forks Arbitrum network
-- Impersonates governance Safe
-- Tests complete deployment → governance → verification workflow
-
-**Usage:** Reference pattern for future governance E2E tests
-
-**Priority:** LOW - Current fork test already exists in `packages/deploy/test/reo-governance-fork.test.ts`
-
----
-
-### Testing Patterns (5 files)
-
-**Files:**
-
-- `packages/deploy/test/issuance-active.test.ts`
-- `packages/deploy/test/issuance-active-smoke.test.ts`
-- `packages/issuance/deploy/test/service-quality-oracle-deploy.test.ts`
-- `packages/issuance/deploy/test/issuance-state-verifier.test.ts`
-- `packages/issuance/deploy/test/deployment.test.js`
-
-**What they test:** Legacy checkpoint modules and deployment patterns
-
-**Work needed:**
-
-1. Review for test patterns to adapt
-2. Verify current tests cover equivalent functionality
-3. Delete after review
-
-**Priority:** MEDIUM - Useful patterns may exist
-
----
-
 ### Type Definitions (1 file)
 
 **File:** `src/contracts.ts`
 
-**What it contains:** Contract type definitions and exports
+**What it contains:** Manual contract type definitions and exports
 
 **Work needed:**
 
-1. Check for useful type definitions
-2. Delete after review
+1. Check for any unique type definitions not covered by TypeChain
+2. Delete after review (TypeChain auto-generation is now the standard)
 
-**Priority:** LOW - Reference only
+**Priority:** LOW - Reference only, TypeChain types are superior
+
+---
+
+## Recently Migrated (6 files processed)
+
+### Test Files Migrated (5 files) ✅
+
+**Migrated to `packages/deploy/test/`:**
+
+1. `issuance-state-verifier.test.ts` → `issuance-state-verifier.test.ts` (updated REO naming)
+2. `service-quality-oracle-deploy.test.ts` → `reo-deployment.test.ts` (updated naming)
+3. `deployment.test.js` → `issuance-allocator-deployment.test.ts` (converted to TS)
+4. `issuance-active-smoke.test.ts` → `checkpoint-smoke.test.ts` (updated REO naming)
+5. `issuance-active.test.ts` → `checkpoint-modules.test.ts` (updated REO naming)
+
+### Obsolete Files Deleted (1 file) ✅
+
+1. `test-governance-workflow.ts` - Referenced non-existent code, superseded by reo-governance-fork.test.ts
 
 ---
 
@@ -84,49 +62,55 @@
 - ✅ 3 deployment scripts - Patterns incorporated, files removed
 - ✅ 1 scripts README - Obsolete
 
-**Total removed:** 47 files
+**Test Migration (6 files processed):**
+
+- ✅ 5 test files - Migrated to packages/deploy/test/ with updated naming
+- ✅ 1 obsolete test - Deleted (test-governance-workflow.ts)
+
+**Total removed/processed:** 53 files
 
 ---
 
 ## Metrics
 
-| Category           | Files Remaining | Files Removed | Status            |
-| ------------------ | --------------- | ------------- | ----------------- |
-| Checkpoint Modules | 0               | 9             | ✅ Complete       |
-| Component Modules  | 0               | 5             | ✅ Complete       |
-| Target Modules     | 0               | 3             | ✅ Complete       |
-| Address Book       | 0               | 4             | ✅ Phase 2.5      |
-| Governance Scripts | 0               | 15            | ✅ Phase 2.5      |
-| Configuration      | 0               | 7             | ✅ Removed        |
-| Deployment Scripts | 0               | 4             | ✅ Removed        |
-| Fork Test Pattern  | 1               | 0             | ⏳ Reference      |
-| Testing Patterns   | 5               | 0             | ⏳ Review needed  |
-| Type Definitions   | 1               | 1             | ⏳ Reference only |
-| **Total**          | **7**           | **47**        | **87% cleaned**   |
+| Category           | Files Remaining | Files Removed | Status             |
+| ------------------ | --------------- | ------------- | ------------------ |
+| Checkpoint Modules | 0               | 9             | ✅ Complete        |
+| Component Modules  | 0               | 5             | ✅ Complete        |
+| Target Modules     | 0               | 3             | ✅ Complete        |
+| Address Book       | 0               | 4             | ✅ Phase 2.5       |
+| Governance Scripts | 0               | 15            | ✅ Phase 2.5       |
+| Configuration      | 0               | 7             | ✅ Removed         |
+| Deployment Scripts | 0               | 4             | ✅ Removed         |
+| Fork Test Pattern  | 0               | 1             | ✅ Deleted         |
+| Testing Patterns   | 0               | 5             | ✅ Migrated        |
+| Type Definitions   | 1               | 1             | ⏳ Reference only  |
+| **Total**          | **1**           | **53**        | **98% cleaned**    |
 
 ---
 
 ## Timeline to Full Cleanup
 
 - **After Phase 2.5:** ✅ ~87% complete (7 files remaining, all test/reference files)
-- **After Phase 3:** ~95% complete (gradual migration patterns recreated)
+- **After Test Migration:** ✅ ~98% complete (1 file remaining: contracts.ts)
+- **After Phase 3:** ~99% complete (gradual migration patterns recreated if needed)
 - **After Phase 4:** 100% complete (entire legacy/packages/ deletable)
 
 ---
 
 ## Next Actions
 
-**Phase 3 (IssuanceAllocator):**
+**Immediate:**
+
+1. Review contracts.ts for any unique type definitions
+2. Delete contracts.ts after confirming TypeChain covers all cases
+3. Delete entire `legacy/packages/` directory
+
+**Phase 3 (IssuanceAllocator patterns - if needed):**
 
 - Recreate gradual migration patterns when IA work begins
 - Reference ReplicatedAllocation pattern from documentation
 
-**Phase 4 (Final Cleanup):**
-
-1. Review remaining 6 test files for useful patterns
-2. Check contracts.ts for any unique type definitions
-3. Delete entire `legacy/packages/` directory
-
 ---
 
-**Status:** Legacy directory reduced to 7 reference/test files only. All implementation patterns incorporated.
+**Status:** Legacy directory down to 1 reference file only (contracts.ts). All test patterns successfully migrated. 53 files removed total.

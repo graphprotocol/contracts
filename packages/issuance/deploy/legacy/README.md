@@ -4,21 +4,19 @@ This directory contains earlier issuance deployment work that is being progressi
 
 ## Status
 
-**Progress:** ~87% complete (7 files remaining, all test/reference files)
+**Progress:** ~98% complete (1 file remaining: contracts.ts reference file)
 
-**Current State:** All implementation patterns incorporated. Only test files remain for reference.
+**Current State:** All implementation patterns incorporated. All tests migrated. Only 1 type definitions file remains for reference.
 
 ## What Remains
 
-**7 files** in `legacy/packages/` (see [RemainingWork.md](./RemainingWork.md) for details):
+**1 file** in `legacy/packages/` (see [RemainingWork.md](./RemainingWork.md) for details):
 
-- 1 fork test pattern - Reference for governance testing
-- 5 testing patterns - Test files to review
-- 1 type definitions file - Contract type definitions
+- 1 type definitions file - Manual contract type definitions (contracts.ts) - TypeChain auto-generation now preferred
 
 ## Active Documentation
 
-- **[RemainingWork.md](./RemainingWork.md)** - Detailed file-by-file inventory (7 files remaining, 47 files removed)
+- **[RemainingWork.md](./RemainingWork.md)** - Detailed file-by-file inventory (1 file remaining, 53 files processed)
 
 ## Implementation Plan
 
@@ -36,10 +34,9 @@ See [RemainingWork.md](./RemainingWork.md#phase-3-ia-structure) for details.
 
 **Tasks:**
 
-1. Delete remaining reference scripts after pattern extraction
-2. Delete legacy test files after adaptation
-3. Delete config files after address capture
-4. Remove entire `legacy/packages/` directory
+1. ✅ Delete legacy test files after migration (complete)
+2. Review contracts.ts for unique type definitions
+3. Remove entire `legacy/packages/` directory
 
 ## Archive
 
