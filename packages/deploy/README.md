@@ -4,12 +4,12 @@ Cross-package deployment orchestration for Graph Protocol contracts.
 
 ## Purpose
 
-This package coordinates deployments and governance integrations across multiple packages:
+This package coordinates governance integrations across the Graph Protocol contract ecosystem:
 
-- **Horizon** (`@graphprotocol/horizon`) - Core protocol contracts (RewardsManager, GraphToken, etc.)
-- **Issuance** (`@graphprotocol/issuance`) - Issuance system contracts (REO, IA, DirectAllocation)
+- **Core Contracts** - References to already-deployed protocol contracts (RewardsManager from `@graphprotocol/contracts` or `@graphprotocol/horizon`, GraphToken from `@graphprotocol/contracts`)
+- **Issuance** (`@graphprotocol/issuance`) - Issuance system contracts (RewardsEligibilityOracle, IssuanceAllocator, DirectAllocation)
 
-TODO: Above statement about Horizon and core contracts should be reviewed. The contracts mentioned are in contracts package, although it might be they are deployed via horizon package? However, even that might not be what we need now, as the Horizon deployment configures for Horizon, rather than merely upgrading RewardsManager for example it sets the subgraph service?
+This package does **NOT deploy contract implementations** - it orchestrates governance integration between already-deployed contracts from other packages.
 
 ## Structure
 
@@ -18,21 +18,24 @@ packages/deploy/
 ├── governance/           # Safe TX builders and helpers
 ├── tasks/                # Hardhat tasks for orchestration
 ├── ignition/modules/
-│   ├── horizon/          # Reference modules for Horizon contracts
+│   ├── horizon/          # Reference modules for already-deployed protocol contracts
 │   └── issuance/         # Checkpoint modules for issuance integration
 └── test/                 # Integration and fork-based tests
 ```
+
+**Note:** Reference modules (in `horizon/`) use `contractAt()` to reference already-deployed contracts - they don't deploy anything. Checkpoint modules (in `issuance/`) verify that governance has executed integration steps.
 
 ## Workflow
 
 ### 1. Deploy Components (Permissionless)
 
-Deploy issuance contracts in the issuance package:
+Deploy issuance contracts using the issuance package:
 
 ```bash
 cd packages/issuance/deploy
 npx hardhat ignition deploy ignition/modules/contracts/RewardsEligibilityOracle.ts \
-  --network arbitrum-sepolia
+  --network arbitrum-sepolia \
+  --parameters ignition/configs/issuance.arbitrumSepolia.json5
 ```
 
 ### 2. Generate Governance TX (Permissionless)
@@ -41,11 +44,11 @@ Generate Safe transaction batch for governance:
 
 ```bash
 cd packages/deploy
-npx hardhat deploy:build-reo-upgrade \
-  --rewards-manager-impl 0x... \
+npx hardhat issuance:build-rewards-eligibility-upgrade \
+  --rewards-manager-implementation 0x... \
   --network arbitrum-sepolia
 
-# Output: tx-batch-421614-reo-upgrade.json
+# Output: tx-batch-421614-rewards-eligibility-upgrade.json
 ```
 
 ### 3. Execute via Governance (Via Safe UI)
@@ -72,9 +75,9 @@ npx hardhat ignition deploy ignition/modules/issuance/RewardsEligibilityOracleAc
 
 Checkpoint modules use `IssuanceStateVerifier` (stateless helper) to assert governance execution:
 
-- **RewardsEligibilityOracleActive** - Asserts REO integrated with RewardsManager
-- **IssuanceAllocatorActive** - Asserts IA integrated with RewardsManager
-- **IssuanceAllocatorMinter** - Asserts IA has minter role on GraphToken
+- **RewardsEligibilityOracleActive** - Asserts RewardsEligibilityOracle (REO) integrated with RewardsManager
+- **IssuanceAllocatorActive** - Asserts IssuanceAllocator (IA) integrated with RewardsManager
+- **IssuanceAllocatorMinter** - Asserts IssuanceAllocator (IA) has minter role on GraphToken
 
 These modules **revert until governance executes**, providing programmatic verification.
 
