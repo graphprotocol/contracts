@@ -104,26 +104,24 @@ task('rewards-eligibility-upgrade')
 - ✅ **Network-agnostic** - Uses toolshed's connectGraph\* helpers
 - ✅ **Testable** - Can verify TX generation without execution
 
-### Weaknesses
+### Considerations
 
-- ⚠️ No automated orchestration (intentional - governance should be manual)
-- ⚠️ No pending implementation tracking (documented as future work)
-- ⚠️ Requires manual Safe UI interaction (safer for governance)
+- ⚠️ Requires manual Safe UI interaction (safer for governance - this is by design)
 
 ## Comparison Matrix
 
-| Feature                         | Legacy                     | Current                 | Winner                                             |
-| ------------------------------- | -------------------------- | ----------------------- | -------------------------------------------------- |
-| Safe TX JSON Output             | ❌                         | ✅                      | **Current**                                        |
-| Type Safety                     | ⚠️ (JS)                    | ✅ (TS)                 | **Current**                                        |
-| Transaction Batching            | ❌                         | ✅                      | **Current**                                        |
-| Pending Implementation Tracking | ✅                         | ❌                      | Legacy                                             |
-| Orchestration Automation        | ✅                         | ❌                      | Tie (automation not always desired for governance) |
-| Hardhat Integration             | ⚠️ (Ignition only)         | ✅ (Tasks + Ignition)   | **Current**                                        |
-| Reusability                     | ⚠️ (per-contract scripts)  | ✅ (general TxBuilder)  | **Current**                                        |
-| Contract Reference System       | ✅ (Ignition m.contractAt) | ✅ (toolshed connect\*) | Tie                                                |
-| Deployment Status Reporting     | ✅                         | ❌                      | Legacy                                             |
-| Testability                     | ⚠️                         | ✅                      | **Current**                                        |
+| Feature                         | Legacy                     | Current                 | Winner                  |
+| ------------------------------- | -------------------------- | ----------------------- | ----------------------- |
+| Safe TX JSON Output             | ❌                         | ✅                      | **Current**             |
+| Type Safety                     | ⚠️ (JS)                    | ✅ (TS)                 | **Current**             |
+| Transaction Batching            | ❌                         | ✅                      | **Current**             |
+| Pending Implementation Tracking | ⚠️ (basic)                 | ✅ (enhanced)           | **Current** (Phase 2.5) |
+| Orchestration Automation        | ⚠️ (shell scripts)         | ✅ (Hardhat tasks)      | **Current** (Phase 2.5) |
+| Hardhat Integration             | ⚠️ (Ignition only)         | ✅ (Tasks + Ignition)   | **Current**             |
+| Reusability                     | ⚠️ (per-contract scripts)  | ✅ (general TxBuilder)  | **Current**             |
+| Contract Reference System       | ✅ (Ignition m.contractAt) | ✅ (toolshed connect\*) | Tie                     |
+| Deployment Status Reporting     | ✅                         | ❌                      | Legacy                  |
+| Testability                     | ⚠️                         | ✅                      | **Current**             |
 
 ## Conclusion
 
@@ -144,25 +142,27 @@ The legacy governance scripts don't provide value because:
 - Shell command orchestration is brittle
 - Current approach is more maintainable
 
-### Future Enhancements (from Legacy)
+### Implemented in Phase 2.5
+
+The following features from legacy code were successfully incorporated:
+
+1. **✅ Pending Implementation Tracking**
+   - Implemented via `EnhancedIssuanceAddressBook` wrapper
+   - See [PendingImplementationTracking.md](./PendingImplementationTracking.md)
+   - Enables resumable governance-gated deployments
+
+2. **✅ Orchestration Automation**
+   - Implemented via Hardhat tasks (deploy, sync, list)
+   - See [GovernanceWorkflow.md](./GovernanceWorkflow.md)
+   - Eliminates manual address book editing
+
+### Future Enhancements
 
 Consider adding (low priority):
 
-1. **Pending Implementation Tracking** (Phase 3+)
-   - See [PendingImplementationTracking.md](./PendingImplementationTracking.md)
-   - Manual tracking sufficient for Phase 2
-
-2. **Deployment Status Reporting** (nice-to-have)
+1. **Deployment Status Reporting** (nice-to-have)
    - Could add `hardhat deployment-status` task
-   - Low priority - manual checking works fine
-
-## Recommendation
-
-**✅ Keep current TX builder implementation as-is**
-
-- Current approach is production-ready
-- No valuable patterns in legacy scripts to extract
-- Legacy governance scripts can be safely ignored
+   - Low priority - `issuance:list-pending` provides basic status
 
 ## Testing
 
