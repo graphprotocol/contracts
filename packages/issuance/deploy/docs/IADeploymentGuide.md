@@ -462,8 +462,8 @@ These can be added when IA deployment becomes imminent.
 
 ## References
 
-- Earlier deployment work: `packages/issuance/deploy/analysis/DeploymentGuide.md`
-- Current IA implementation: `packages/issuance/contracts/IssuanceAllocator.sol`
+- Earlier deployment work: `../legacy/DeploymentGuide.md`
+- Current IA implementation: `../../contracts/IssuanceAllocator.sol`
 - API Reference: `APICorrectness.md`
 - Governance Workflow: `GovernanceWorkflow.md`
 

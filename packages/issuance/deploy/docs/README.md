@@ -266,13 +266,14 @@ This directory contains production-ready deployment documentation for Graph Prot
 ### Analysis (Background)
 
 **Earlier Deployment Work Analysis:**
-- `../analysis/AnalysisREADME.md` - Overview of analysis
-- `../analysis/GapAnalysis.md` - Comparison with current spike
-- `../analysis/Conflicts.md` - Design decisions
-- `../analysis/NextPhaseRecommendations.md` - Future implementation plan
-- `../analysis/[Earlier docs]` - Design.md, DeploymentGuide.md, README.md
+- `../legacy/AnalysisREADME.md` - Overview of analysis
+- `../legacy/GapAnalysis.md` - Comparison with current spike
+- `../legacy/Conflicts.md` - Design decisions
+- `../legacy/NextPhaseRecommendations.md` - Future implementation plan
+- `../legacy/ConvergenceStrategy.md` - Convergence strategy (what to keep from each approach)
+- Earlier docs in `../legacy/` - Design.md, DeploymentGuide.md, README.md
 
-**Note:** Analysis directory contains background research that informed these production docs
+**Note:** Legacy directory contains background research and earlier work that informed these production docs
 
 ---
 

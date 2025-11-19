@@ -2,22 +2,7 @@
 
 This document summarizes what is valuable in the legacy issuance deployment work (now exposed under `/git/graphprotocol/contracts/private`) and how it should inform the current Ignition-based deployment in this repo.
 
-## 1. Scope & reference locations
-
-Legacy reference tree (read-only via symlink):
-
-- `packages/issuance/deploy/legacy/raw/v1/packages/issuance/deploy/doc/`
-- `packages/issuance/deploy/legacy/raw/v1/packages/issuance/deploy/ignition/`
-- `packages/issuance/deploy/legacy/raw/v1/packages/issuance/deploy/scripts/`
-
-Current issuance deploy spike (active design):
-
-- `packages/issuance/deploy/ignition/` (modules, configs)
-- `packages/issuance/DEPLOYMENT.md` (current deploy guide)
-
-This doc is **for humans**: it does not try to be executable; it distills patterns and decisions worth carrying over.
-
-## 2. Legacy design patterns worth preserving
+## Legacy design patterns worth preserving
 
 From legacy `doc/README.md` and `Design.md`:
 
