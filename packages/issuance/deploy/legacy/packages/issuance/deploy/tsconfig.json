@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./lib",
+    "declarationDir": "./types",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "ignition/**/*"],
+  "exclude": ["lib", "types", "artifacts", "cache", "node_modules", "**/*.test.ts"]
+}

@@ -1,0 +1,69 @@
+{
+  // Local development configuration for IssuanceAllocator
+  // Enhanced configuration with comprehensive parameters for local testing
+
+  // Core deployment parameters
+  owner: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // First Hardhat account (governance)
+  graphToken: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Mock GRT token for local testing
+
+  // Network information
+  network: {
+    name: 'hardhat',
+    chainId: 1337,
+    description: 'Local Hardhat development network',
+    isTestnet: true,
+    blockTime: 2, // seconds
+  },
+
+  // Deployment configuration
+  deployment: {
+    confirmations: 1, // Fast confirmations for local testing
+    gasPrice: 'auto', // Let Hardhat handle gas pricing
+    gasLimit: 'auto', // Let Hardhat handle gas limits
+    timeout: 60000, // 60 seconds timeout for local deployment
+  },
+
+  // IssuanceAllocator specific parameters
+  issuanceAllocator: {
+    // Initial configuration (can be updated via governance)
+    initialIssuancePerBlock: '100000000000000000000', // 100 GRT per block
+
+    // Governance settings
+    governor: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Same as owner for local testing
+
+    // Testing flags
+    enableTestingFeatures: true,
+    skipInitialValidation: false,
+  },
+
+  // Contract addresses for local testing
+  contracts: {
+    // Core Graph Protocol contracts (will be deployed fresh)
+    graphToken: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+
+    // Test accounts for different roles
+    testAccounts: {
+      deployer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+      governance: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+      operator1: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      operator2: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+      user1: '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
+      user2: '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
+    },
+  },
+
+  // Verification settings
+  verification: {
+    enabled: false, // No verification needed for local testing
+    apiKey: '', // Not needed for local
+    apiUrl: '', // Not needed for local
+  },
+
+  // Development utilities
+  development: {
+    saveDeploymentInfo: true, // Save deployment addresses for testing
+    logLevel: 'debug', // Verbose logging for development
+    enableGasReporting: true, // Track gas usage
+    enableCoverage: false, // Disable coverage by default
+  },
+}

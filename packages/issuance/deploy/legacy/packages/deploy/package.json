@@ -1,0 +1,32 @@
+{
+  "name": "@graphprotocol/deploy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-package deployment orchestrator for The Graph Protocol",
+  "scripts": {
+    "deploy:local": "node scripts/deployAll.js --network hardhat",
+    "deploy:sepolia": "node scripts/deployAll.js --network sepolia",
+    "deploy:mainnet": "node scripts/deployAll.js --network mainnet",
+    "verify": "tsx scripts/verify.ts",
+    "deploy:contracts": "cd ../contracts/deploy && pnpm deploy:impl:local",
+    "deploy:issuance": "cd ../issuance/deploy && pnpm deploy:local",
+    "test": "pnpm --filter @graphprotocol/contracts-deploy --filter @graphprotocol/issuance-deploy test",
+    "clean": "npm run clean:contracts && npm run clean:issuance",
+    "clean:contracts": "cd ../contracts/deploy && pnpm clean",
+    "clean:issuance": "cd ../issuance/deploy && pnpm clean",
+    "lint": "pnpm lint:ts; pnpm lint:md; pnpm lint:json",
+    "lint:ts": "eslint '**/*.{js,ts,cjs,mjs,jsx,tsx}' --fix --cache; prettier -w --cache --log-level warn '**/*.{js,ts,cjs,mjs,jsx,tsx}'",
+    "lint:md": "markdownlint --fix '**/*.md'; prettier -w --cache --log-level warn '**/*.md'",
+    "lint:json": "prettier -w --cache --log-level warn '**/*.{json,json5}'"
+  },
+  "dependencies": {
+    "@graphprotocol/common": "workspace:*"
+  },
+  "devDependencies": {
+    "chalk": "^4.1.2",
+    "eslint": "catalog:",
+    "markdownlint-cli": "catalog:",
+    "prettier": "catalog:",
+    "typescript-eslint": "catalog:"
+  }
+}

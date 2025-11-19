@@ -1,0 +1,90 @@
+{
+  // Arbitrum Sepolia testnet configuration for IssuanceAllocator
+  // Production-like environment for testing before mainnet deployment
+
+  // Core deployment parameters
+  owner: '0x0000000000000000000000000000000000000000', // MUST BE SET: Governance address
+  graphToken: '0x0000000000000000000000000000000000000000', // MUST BE SET: GRT token on Arbitrum Sepolia
+
+  // Network information
+  network: {
+    name: 'arbitrumSepolia',
+    chainId: 421614,
+    description: 'Arbitrum Sepolia testnet',
+    isTestnet: true,
+    blockTime: 0.25, // ~250ms on Arbitrum
+    rpcUrl: 'https://sepolia-rollup.arbitrum.io/rpc',
+    explorerUrl: 'https://sepolia.arbiscan.io',
+  },
+
+  // Deployment configuration
+  deployment: {
+    confirmations: 3, // Wait for 3 confirmations on testnet
+    gasPrice: 'auto', // Let network handle gas pricing
+    gasLimit: 'auto', // Let network handle gas limits
+    timeout: 300000, // 5 minutes timeout for testnet deployment
+  },
+
+  // IssuanceAllocator specific parameters
+  issuanceAllocator: {
+    // Initial configuration (can be updated via governance)
+    initialIssuancePerBlock: '1000000000000000000000', // 1000 GRT per block (higher for testing)
+
+    // Governance settings (MUST BE SET for testnet)
+    governor: '0x0000000000000000000000000000000000000000', // MUST BE SET: Testnet governance
+
+    // Testing flags
+    enableTestingFeatures: true, // Enable testing features on testnet
+    skipInitialValidation: false,
+  },
+
+  // Contract addresses for Arbitrum Sepolia
+  contracts: {
+    // Core Graph Protocol contracts (TODO: Add actual testnet addresses)
+    graphToken: '0x0000000000000000000000000000000000000000', // MUST BE SET: GRT on Arbitrum Sepolia
+
+    // Known testnet contracts (if any)
+    // rewardsManager: "0x0000000000000000000000000000000000000000", // Optional: RewardsManager if deployed
+
+    // Test accounts (example addresses - replace with actual testnet accounts)
+    testAccounts: {
+      deployer: '0x0000000000000000000000000000000000000000', // MUST BE SET: Deployer account
+      governance: '0x0000000000000000000000000000000000000000', // MUST BE SET: Governance account
+      operator1: '0x0000000000000000000000000000000000000000', // Optional: Test operator 1
+      operator2: '0x0000000000000000000000000000000000000000', // Optional: Test operator 2
+    },
+  },
+
+  // Verification settings
+  verification: {
+    enabled: true, // Enable contract verification on testnet
+    apiKey: 'ARBISCAN_API_KEY', // Environment variable for Arbiscan API key
+    apiUrl: 'https://api-sepolia.arbiscan.io/api',
+    explorerUrl: 'https://sepolia.arbiscan.io',
+  },
+
+  // Production-like settings
+  production: {
+    saveDeploymentInfo: true, // Save deployment info for tracking
+    logLevel: 'info', // Standard logging for testnet
+    enableGasReporting: true, // Track gas usage for optimization
+    enableCoverage: false, // Disable coverage on testnet
+    requireConfirmation: true, // Require manual confirmation for sensitive operations
+  },
+
+  // Environment requirements
+  requirements: {
+    // Required environment variables
+    envVars: [
+      'ARBITRUM_SEPOLIA_URL', // RPC URL for Arbitrum Sepolia
+      'PRIVATE_KEY', // Deployer private key
+      'ARBISCAN_API_KEY', // For contract verification
+    ],
+
+    // Required parameter validation
+    requiredParams: [
+      'owner', // Must set governance address
+      'graphToken', // Must set GRT token address
+    ],
+  },
+}

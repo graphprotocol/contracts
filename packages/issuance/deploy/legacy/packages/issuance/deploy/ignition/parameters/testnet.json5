@@ -1,0 +1,20 @@
+{
+  // Testnet configuration for IssuanceAllocator (Sepolia)
+  $global: {
+    // Governance (replace with actual testnet addresses)
+    owner: '0x0000000000000000000000000000000000000000', // TODO: Set testnet governor
+
+    // Graph Protocol contracts on Sepolia
+    graphToken: '0x0000000000000000000000000000000000000000', // TODO: Set testnet GraphToken address
+
+    // Governance upgrade parameters (will be set after initial deployment)
+    issuanceAllocatorProxyAddress: '0x0000000000000000000000000000000000000000', // TODO: Set after deployment
+    proxyAdminAddress: '0x0000000000000000000000000000000000000000', // TODO: Set after deployment
+    newImplementationAddress: '0x0000000000000000000000000000000000000000', // TODO: Set after implementation deployment
+  },
+
+  IssuanceAllocator: {
+    owner: '0x0000000000000000000000000000000000000000', // TODO: Set testnet governor
+    graphToken: '0x0000000000000000000000000000000000000000', // TODO: Set testnet GraphToken address
+  },
+}
