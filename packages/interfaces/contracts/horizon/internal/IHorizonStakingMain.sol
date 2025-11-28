@@ -27,6 +27,13 @@ interface IHorizonStakingMain {
      */
     event HorizonStakeDeposited(address indexed serviceProvider, uint256 tokens);
 
+    /**
+     * @notice Emitted when a service provider unstakes tokens.
+     * @param serviceProvider The address of the service provider
+     * @param tokens The amount of tokens withdrawn
+     */
+    event HorizonStakeWithdrawn(address indexed serviceProvider, uint256 tokens);
+
     // -- Events: provision --
 
     /**
@@ -206,7 +213,7 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Emitted when `delegator` withdrew delegated `tokens` from `indexer` using `withdrawDelegated`.
-     * @dev This event is for the legacy `withdrawDelegated` function.
+     * @dev This event is for the legacy `withdrawDelegated` function, only emitted for pre-horizon undelegations.
      * @param indexer The address of the indexer
      * @param delegator The address of the delegator
      * @param tokens The amount of tokens withdrawn
@@ -446,7 +453,8 @@ interface IHorizonStakingMain {
     error HorizonStakingTooManyThawRequests();
 
     /**
-     * @notice Thrown when attempting to withdraw tokens that have not thawed (legacy undelegate).
+     * @notice Thrown when attempting to withdraw tokens that have not thawed.
+     * @dev This error is only thrown for pre-horizon undelegations.
      */
     error HorizonStakingNothingToWithdraw();
 
@@ -469,11 +477,6 @@ interface IHorizonStakingMain {
      * @param feeCut The fee cut
      */
     error HorizonStakingInvalidDelegationFeeCut(uint256 feeCut);
-
-    /**
-     * @notice Thrown when a legacy slash fails.
-     */
-    error HorizonStakingLegacySlashFailed();
 
     /**
      * @notice Thrown when there attempting to slash a provision with no tokens to slash.
@@ -541,6 +544,18 @@ interface IHorizonStakingMain {
      * @param tokens Amount of tokens to unstake
      */
     function unstake(uint256 tokens) external;
+
+    /**
+     * @notice Withdraw service provider tokens once the thawing period (initiated by {unstake}) has passed.
+     * All thawed tokens are withdrawn.
+     * This function is for backwards compatibility with the legacy staking contract.
+     * It only allows withdrawing tokens unstaked before horizon upgrade.
+     * @dev This function can't be removed in case there are still pre-horizon unstakes.
+     *
+     * Emits a {HorizonStakeWithdrawn} event.
+     *
+     */
+    function withdraw() external;
 
     /**
      * @notice Provision stake to a verifier. The tokens will be locked with a thawing period
@@ -826,6 +841,7 @@ interface IHorizonStakingMain {
      * @notice Withdraw undelegated tokens from the subgraph data service provision after thawing.
      * This function is for backwards compatibility with the legacy staking contract.
      * It only allows withdrawing tokens undelegated before horizon upgrade.
+     * @dev This function can't be removed in case there are still pre-horizon undelegations.
      * @dev See {delegate}.
      * @param serviceProvider The service provider address
      * @param deprecated Deprecated parameter kept for backwards compatibility

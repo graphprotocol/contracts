@@ -9,7 +9,6 @@ pragma solidity 0.8.27;
 
 import { IGraphToken } from "@graphprotocol/interfaces/contracts/contracts/token/IGraphToken.sol";
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
-import { IHorizonStakingExtension } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingExtension.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { ILinkedList } from "@graphprotocol/interfaces/contracts/horizon/internal/ILinkedList.sol";
 
@@ -28,9 +27,6 @@ import { HorizonStakingBase } from "./HorizonStakingBase.sol";
  * @dev Implements the {IHorizonStakingMain} interface.
  * @dev This is the main Staking contract in The Graph protocol after the Horizon upgrade.
  * It is designed to be deployed as an upgrade to the L2Staking contract from the legacy contracts package.
- * @dev It uses a {HorizonStakingExtension} contract to implement the full {IHorizonStaking} interface through delegatecalls.
- * This is due to the contract size limit on Arbitrum (24kB). The extension contract implements functionality to support
- * the legacy staking functions. It can be eventually removed without affecting the main staking contract.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -407,21 +403,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint256 tokensVerifier,
         address verifierDestination
     ) external override notPaused {
-        // TRANSITION PERIOD: remove after the transition period
-        // Check if sender is authorized to slash on the deprecated list
-        if (__DEPRECATED_slashers[msg.sender]) {
-            // Forward call to staking extension
-            // solhint-disable-next-line avoid-low-level-calls
-            (bool success, ) = STAKING_EXTENSION_ADDRESS.delegatecall(
-                abi.encodeCall(
-                    IHorizonStakingExtension.legacySlash,
-                    (serviceProvider, tokens, tokensVerifier, verifierDestination)
-                )
-            );
-            require(success, HorizonStakingLegacySlashFailed());
-            return;
-        }
-
         address verifier = msg.sender;
         Provision storage prov = _provisions[serviceProvider][verifier];
         DelegationPoolInternal storage pool = _getDelegationPool(serviceProvider, verifier);
@@ -539,12 +520,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /// @inheritdoc IHorizonStakingMain
-    function clearThawingPeriod() external override onlyGovernor {
-        __DEPRECATED_thawingPeriod = 0;
-        emit ThawingPeriodCleared();
-    }
-
-    /// @inheritdoc IHorizonStakingMain
     function setMaxThawingPeriod(uint64 maxThawingPeriod) external override onlyGovernor {
         _maxThawingPeriod = maxThawingPeriod;
         emit MaxThawingPeriodSet(_maxThawingPeriod);
@@ -569,17 +544,19 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     }
 
     /*
-     * GETTERS
-     */
-
-    /// @inheritdoc IHorizonStakingMain
-    function getStakingExtension() external view override returns (address) {
-        return STAKING_EXTENSION_ADDRESS;
-    }
-
-    /*
      * PRIVATE FUNCTIONS
      */
+
+    /**
+     * @notice Deposit tokens into the service provider stake.
+     * Emits a {HorizonStakeDeposited} event.
+     * @param _serviceProvider The address of the service provider.
+     * @param _tokens The amount of tokens to deposit.
+     */
+    function _stake(address _serviceProvider, uint256 _tokens) internal {
+        _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
+        emit HorizonStakeDeposited(_serviceProvider, _tokens);
+    }
 
     /**
      * @notice Deposit tokens on the service provider stake, on behalf of the service provider.
@@ -599,12 +576,7 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
 
     /**
      * @notice Move idle stake back to the owner's account.
-     * Stake is removed from the protocol:
-     * - During the transition period it's locked for a period of time before it can be withdrawn
-     *   by calling {withdraw}.
-     * - After the transition period it's immediately withdrawn.
-     * Note that after the transition period if there are tokens still locked they will have to be
-     * withdrawn by calling {withdraw}.
+     * Stake is immediately removed from the protocol.
      * @param _tokens Amount of tokens to unstake
      */
     function _unstake(uint256 _tokens) private {
@@ -616,43 +588,18 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         ServiceProviderInternal storage sp = _serviceProviders[serviceProvider];
         uint256 stakedTokens = sp.tokensStaked;
 
-        // This is also only during the transition period: we need
-        // to ensure tokens stay locked after closing legacy allocations.
-        // After sufficient time (56 days?) we should remove the closeAllocation function
-        // and set the thawing period to 0.
-        uint256 lockingPeriod = __DEPRECATED_thawingPeriod;
-        if (lockingPeriod == 0) {
-            sp.tokensStaked = stakedTokens - _tokens;
-            _graphToken().pushTokens(serviceProvider, _tokens);
-            emit HorizonStakeWithdrawn(serviceProvider, _tokens);
-        } else {
-            // Before locking more tokens, withdraw any unlocked ones if possible
-            if (sp.__DEPRECATED_tokensLocked != 0 && block.number >= sp.__DEPRECATED_tokensLockedUntil) {
-                _withdraw(serviceProvider);
-            }
-            // TRANSITION PERIOD: remove after the transition period
-            // Take into account period averaging for multiple unstake requests
-            if (sp.__DEPRECATED_tokensLocked > 0) {
-                lockingPeriod = MathUtils.weightedAverageRoundingUp(
-                    MathUtils.diffOrZero(sp.__DEPRECATED_tokensLockedUntil, block.number), // Remaining thawing period
-                    sp.__DEPRECATED_tokensLocked, // Weighted by remaining unstaked tokens
-                    lockingPeriod, // Thawing period
-                    _tokens // Weighted by new tokens to unstake
-                );
-            }
-
-            // Update balances
-            sp.__DEPRECATED_tokensLocked = sp.__DEPRECATED_tokensLocked + _tokens;
-            sp.__DEPRECATED_tokensLockedUntil = block.number + lockingPeriod;
-            emit HorizonStakeLocked(serviceProvider, sp.__DEPRECATED_tokensLocked, sp.__DEPRECATED_tokensLockedUntil);
-        }
+        sp.tokensStaked = stakedTokens - _tokens;
+        _graphToken().pushTokens(serviceProvider, _tokens);
+        emit HorizonStakeWithdrawn(serviceProvider, _tokens);
     }
 
     /**
      * @notice Withdraw service provider tokens once the thawing period (initiated by {unstake}) has passed.
      * All thawed tokens are withdrawn.
-     * @dev TRANSITION PERIOD: This is only needed during the transition period while we still have
-     * a global lock. After that, unstake() will automatically withdraw.
+     * This function is for backwards compatibility with the legacy staking contract.
+     * It only allows withdrawing tokens unstaked before horizon upgrade.
+     * @dev This function can't be removed in case there are still pre-horizon unstakes.
+     * Note that it's assumed unstakes have already passed their thawing period.
      * @param _serviceProvider Address of service provider to withdraw funds from
      */
     function _withdraw(address _serviceProvider) private {
@@ -660,10 +607,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         ServiceProviderInternal storage sp = _serviceProviders[_serviceProvider];
         uint256 tokensToWithdraw = sp.__DEPRECATED_tokensLocked;
         require(tokensToWithdraw != 0, HorizonStakingInvalidZeroTokens());
-        require(
-            block.number >= sp.__DEPRECATED_tokensLockedUntil,
-            HorizonStakingStillThawing(sp.__DEPRECATED_tokensLockedUntil)
-        );
 
         // Reset locked tokens
         sp.__DEPRECATED_tokensLocked = 0;
@@ -683,8 +626,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
      * service, where the data service is the verifier.
      * This function can be called by the service provider or by an operator authorized by the provider
      * for this specific verifier.
-     * @dev TRANSITION PERIOD: During the transition period, only the subgraph data service can be used as a verifier. This
-     * prevents an escape hatch for legacy allocation stake.
      * @param _serviceProvider The service provider address
      * @param _tokens The amount of tokens that will be locked and slashable
      * @param _verifier The verifier address for which the tokens are provisioned (who will be able to slash the tokens)
@@ -699,11 +640,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         uint64 _thawingPeriod
     ) private {
         require(_tokens > 0, HorizonStakingInvalidZeroTokens());
-        // TRANSITION PERIOD: Remove this after the transition period - it prevents an early escape hatch for legacy allocations
-        require(
-            _verifier == SUBGRAPH_DATA_SERVICE_ADDRESS || __DEPRECATED_thawingPeriod == 0,
-            HorizonStakingInvalidVerifier(_verifier)
-        );
         require(PPMMath.isValidPPM(_maxVerifierCut), HorizonStakingInvalidMaxVerifierCut(_maxVerifierCut));
         require(
             _thawingPeriod <= _maxThawingPeriod,

@@ -199,16 +199,6 @@ interface ISubgraphService is IDataServiceFees {
     function resizeAllocation(address indexer, address allocationId, uint256 tokens) external;
 
     /**
-     * @notice Imports a legacy allocation id into the subgraph service
-     * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract.
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     */
-    function migrateLegacyAllocation(address indexer, address allocationId, bytes32 subgraphDeploymentId) external;
-
-    /**
      * @notice Sets a pause guardian
      * @param pauseGuardian The address of the pause guardian
      * @param allowed True if the pause guardian is allowed to pause the contract, false otherwise

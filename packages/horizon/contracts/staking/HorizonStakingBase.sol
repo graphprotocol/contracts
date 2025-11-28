@@ -23,9 +23,7 @@ import { HorizonStakingV1Storage } from "./HorizonStakingStorage.sol";
  * @author Edge & Node
  * @notice This contract is the base staking contract implementing storage getters for both internal
  * and external use.
- * @dev Implementation of the {IHorizonStakingBase} interface.
- * @dev It's meant to be inherited by the {HorizonStaking} and {HorizonStakingExtension}
- * contracts so some internal functions are also included here.
+ * @dev Implementation of the {IHorizonStakingBase} interface, meant to be inherited by {HorizonStaking}.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -219,30 +217,17 @@ abstract contract HorizonStakingBase is
     }
 
     /**
-     * @notice Deposit tokens into the service provider stake.
-     * @dev TRANSITION PERIOD: After transition period move to IHorizonStakingMain. Temporarily it
-     * needs to be here since it's used by both {HorizonStaking} and {HorizonStakingExtension}.
-     *
-     * Emits a {HorizonStakeDeposited} event.
-     * @param _serviceProvider The address of the service provider.
-     * @param _tokens The amount of tokens to deposit.
-     */
-    function _stake(address _serviceProvider, uint256 _tokens) internal {
-        _serviceProviders[_serviceProvider].tokensStaked = _serviceProviders[_serviceProvider].tokensStaked + _tokens;
-        emit HorizonStakeDeposited(_serviceProvider, _tokens);
-    }
-
-    /**
      * @notice Gets the service provider's idle stake which is the stake that is not being
      * used for any provision. Note that this only includes service provider's self stake.
-     * @dev Note that the calculation considers tokens that were locked in the legacy staking contract.
-     * @dev TRANSITION PERIOD: update the calculation after the transition period.
+     * @dev Note that the calculation:
+     * - assumes tokens that were allocated to a subgraph deployment pre-horizon were all unallocated.
+     * - considers tokens that were locked in the legacy staking contract and never withdrawn.
+     *
      * @param _serviceProvider The address of the service provider.
      * @return The amount of tokens that are idle.
      */
     function _getIdleStake(address _serviceProvider) internal view returns (uint256) {
         uint256 tokensUsed = _serviceProviders[_serviceProvider].tokensProvisioned +
-            _serviceProviders[_serviceProvider].__DEPRECATED_tokensAllocated +
             _serviceProviders[_serviceProvider].__DEPRECATED_tokensLocked;
         uint256 tokensStaked = _serviceProviders[_serviceProvider].tokensStaked;
         return tokensStaked > tokensUsed ? tokensStaked - tokensUsed : 0;
