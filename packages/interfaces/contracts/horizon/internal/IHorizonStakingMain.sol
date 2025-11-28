@@ -14,7 +14,6 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
  * @notice Provides functions for managing stake, provisions, delegations, and slashing.
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
- * @dev TRANSITION PERIOD: After transition period rename to IHorizonStaking.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
@@ -27,21 +26,6 @@ interface IHorizonStakingMain {
      * @param tokens The amount of tokens staked.
      */
     event HorizonStakeDeposited(address indexed serviceProvider, uint256 tokens);
-
-    /**
-     * @notice Emitted when a service provider unstakes tokens during the transition period.
-     * @param serviceProvider The address of the service provider
-     * @param tokens The amount of tokens now locked (including previously locked tokens)
-     * @param until The block number until the stake is locked
-     */
-    event HorizonStakeLocked(address indexed serviceProvider, uint256 tokens, uint256 until);
-
-    /**
-     * @notice Emitted when a service provider withdraws tokens during the transition period.
-     * @param serviceProvider The address of the service provider
-     * @param tokens The amount of tokens withdrawn
-     */
-    event HorizonStakeWithdrawn(address indexed serviceProvider, uint256 tokens);
 
     // -- Events: provision --
 
@@ -328,12 +312,6 @@ interface IHorizonStakingMain {
     event AllowedLockedVerifierSet(address indexed verifier, bool allowed);
 
     /**
-     * @notice Emitted when the legacy global thawing period is set to zero.
-     * @dev This marks the end of the transition period.
-     */
-    event ThawingPeriodCleared();
-
-    /**
      * @notice Emitted when the delegation slashing global flag is set.
      */
     event DelegationSlashingEnabled();
@@ -377,13 +355,6 @@ interface IHorizonStakingMain {
     error HorizonStakingNotAuthorized(address serviceProvider, address verifier, address caller);
 
     /**
-     * @notice Thrown when attempting to create a provision with a verifier other than the
-     * subgraph data service. This restriction only applies during the transition period.
-     * @param verifier The verifier address
-     */
-    error HorizonStakingInvalidVerifier(address verifier);
-
-    /**
      * @notice Thrown when attempting to create a provision with an invalid maximum verifier cut.
      * @param maxVerifierCut The maximum verifier cut
      */
@@ -409,14 +380,6 @@ interface IHorizonStakingMain {
      * @param minTokens The minimum required token amount
      */
     error HorizonStakingInsufficientIdleStake(uint256 tokens, uint256 minTokens);
-
-    /**
-     * @notice Thrown during the transition period when the service provider has insufficient stake to
-     * cover their existing legacy allocations.
-     * @param tokens The actual token amount
-     * @param minTokens The minimum required token amount
-     */
-    error HorizonStakingInsufficientStakeForLegacyAllocations(uint256 tokens, uint256 minTokens);
 
     // -- Errors: delegation --
 
@@ -488,13 +451,6 @@ interface IHorizonStakingMain {
     error HorizonStakingNothingToWithdraw();
 
     // -- Errors: misc --
-    /**
-     * @notice Thrown during the transition period when attempting to withdraw tokens that are still thawing.
-     * @dev Note this thawing refers to the global thawing period applied to legacy allocated tokens,
-     * it does not refer to thaw requests.
-     * @param until The block number until the stake is locked
-     */
-    error HorizonStakingStillThawing(uint256 until);
 
     /**
      * @notice Thrown when a service provider attempts to operate on verifiers that are not allowed.
@@ -574,31 +530,17 @@ interface IHorizonStakingMain {
 
     /**
      * @notice Move idle stake back to the owner's account.
-     * Stake is removed from the protocol:
-     * - During the transition period it's locked for a period of time before it can be withdrawn
-     *   by calling {withdraw}.
-     * - After the transition period it's immediately withdrawn.
-     * Note that after the transition period if there are tokens still locked they will have to be
-     * withdrawn by calling {withdraw}.
+     * Stake is immediately removed from the protocol.
      * @dev Requirements:
      * - `_tokens` cannot be zero.
      * - `_serviceProvider` must have enough idle stake to cover the staking amount and any
      *   legacy allocation.
      *
-     * Emits a {HorizonStakeLocked} event during the transition period.
-     * Emits a {HorizonStakeWithdrawn} event after the transition period.
+     * Emits a {HorizonStakeWithdrawn} event.
      *
      * @param tokens Amount of tokens to unstake
      */
     function unstake(uint256 tokens) external;
-
-    /**
-     * @notice Withdraw service provider tokens once the thawing period (initiated by {unstake}) has passed.
-     * All thawed tokens are withdrawn.
-     * @dev This is only needed during the transition period while we still have
-     * a global lock. After that, unstake() will automatically withdraw.
-     */
-    function withdraw() external;
 
     /**
      * @notice Provision stake to a verifier. The tokens will be locked with a thawing period
@@ -606,8 +548,6 @@ interface IHorizonStakingMain {
      * service, where the data service is the verifier.
      * This function can be called by the service provider or by an operator authorized by the provider
      * for this specific verifier.
-     * @dev During the transition period, only the subgraph data service can be used as a verifier. This
-     * prevents an escape hatch for legacy allocation stake.
      * @dev Requirements:
      * - `tokens` cannot be zero.
      * - The `serviceProvider` must have enough idle stake to cover the tokens to provision.
@@ -973,14 +913,6 @@ interface IHorizonStakingMain {
      * @dev This function can only be called by the contract governor.
      */
     function setDelegationSlashingEnabled() external;
-
-    /**
-     * @notice Clear the legacy global thawing period.
-     * This signifies the end of the transition period, after which no legacy allocations should be left.
-     * @dev This function can only be called by the contract governor.
-     * @dev Emits a {ThawingPeriodCleared} event.
-     */
-    function clearThawingPeriod() external;
 
     /**
      * @notice Sets the global maximum thawing period allowed for provisions.
