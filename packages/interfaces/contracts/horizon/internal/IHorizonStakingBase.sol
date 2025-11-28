@@ -13,23 +13,13 @@ import { ILinkedList } from "./ILinkedList.sol";
 /**
  * @title Interface for the {HorizonStakingBase} contract.
  * @author Edge & Node
- * @notice Provides getters for {HorizonStaking} and {HorizonStakingExtension} storage variables.
+ * @notice Provides getters for {HorizonStaking} storage variables.
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any
  * bugs. We may have an active bug bounty program.
  */
 interface IHorizonStakingBase {
-    /**
-     * @notice Emitted when a service provider stakes tokens.
-     * @dev TRANSITION PERIOD: After transition period move to IHorizonStakingMain. Temporarily it
-     * needs to be here since it's emitted by {_stake} which is used by both {HorizonStaking}
-     * and {HorizonStakingExtension}.
-     * @param serviceProvider The address of the service provider.
-     * @param tokens The amount of tokens staked.
-     */
-    event HorizonStakeDeposited(address indexed serviceProvider, uint256 tokens);
-
     /**
      * @notice Thrown when using an invalid thaw request type.
      */

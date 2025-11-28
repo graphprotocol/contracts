@@ -12,10 +12,6 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
  * @title Inferface for the {HorizonStaking} contract.
  * @author Edge & Node
  * @notice Provides functions for managing stake, provisions, delegations, and slashing.
- * @dev Note that this interface only includes the functions implemented by {HorizonStaking} contract,
- * and not those implemented by {HorizonStakingExtension}.
- * Do not use this interface to interface with the {HorizonStaking} contract, use {IHorizonStaking} for
- * the complete interface.
  * @dev Most functions operate over {HorizonStaking} provisions. To uniquely identify a provision
  * functions take `serviceProvider` and `verifier` addresses.
  * @dev TRANSITION PERIOD: After transition period rename to IHorizonStaking.
@@ -24,6 +20,13 @@ import { IHorizonStakingTypes } from "./IHorizonStakingTypes.sol";
  */
 interface IHorizonStakingMain {
     // -- Events: stake --
+
+    /**
+     * @notice Emitted when a service provider stakes tokens.
+     * @param serviceProvider The address of the service provider.
+     * @param tokens The amount of tokens staked.
+     */
+    event HorizonStakeDeposited(address indexed serviceProvider, uint256 tokens);
 
     /**
      * @notice Emitted when a service provider unstakes tokens during the transition period.
@@ -1002,10 +1005,4 @@ interface IHorizonStakingMain {
      * @return Whether the operator is authorized or not
      */
     function isAuthorized(address serviceProvider, address verifier, address operator) external view returns (bool);
-
-    /**
-     * @notice Get the address of the staking extension.
-     * @return The address of the staking extension
-     */
-    function getStakingExtension() external view returns (address);
 }
