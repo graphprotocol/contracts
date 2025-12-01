@@ -64,7 +64,7 @@ jobs:
 
           # Get changed files, filtering out deleted files and files in ignored directories
           CHANGED_TS_JS=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.(js|ts|jsx|tsx|cjs|mjs)$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
-          CHANGED_SOL=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.sol$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
+          CHANGED_SOL=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.sol$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts|/test/)' || true)
           CHANGED_MD=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.md$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
           CHANGED_JSON=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.json$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
           CHANGED_YAML=$(git diff --name-only --diff-filter=d $BASE_SHA $HEAD_SHA | grep -E '\.(yml|yaml)$' | grep -v -E '(node_modules|dist|build|cache|reports|lib|coverage|artifacts|typechain|hardhat-cache|ignition/deployments|ignition/modules/artifacts)' || true)
