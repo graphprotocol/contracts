@@ -1,4 +1,4 @@
-import { connectGraphIssuance } from '@graphprotocol/toolshed'
+import { connectGraphIssuance } from '@graphprotocol/toolshed/deployments'
 import { task } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path from 'path'

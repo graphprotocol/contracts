@@ -5,32 +5,32 @@ import { deployImplementation } from './proxy/implementation'
 import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
 
 export default buildModule('IssuanceAllocator', (m) => {
+  const deployer = m.getAccount(0)
   const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
 
-  // Deploy IssuanceAllocator implementation
-  const IssuanceAllocatorImplementation = deployImplementation(m, {
+  // Deploy proxy (this also deploys the implementation internally)
+  const {
+    proxy: IssuanceAllocatorProxy,
+    proxyAdmin: IssuanceAllocatorProxyAdmin,
+    implementation: IssuanceAllocatorImplementation,
+  } = deployWithTransparentUpgradeableProxy(m, {
     name: 'IssuanceAllocator',
     artifact: IssuanceAllocatorArtifact,
     constructorArgs: [graphTokenAddress],
+    initArgs: [governor],
   })
 
-  // Deploy proxy
-  const { proxy: IssuanceAllocatorProxy, proxyAdmin: IssuanceAllocatorProxyAdmin } =
-    deployWithTransparentUpgradeableProxy(m, {
-      name: 'IssuanceAllocator',
-      artifact: IssuanceAllocatorArtifact,
-      constructorArgs: [graphTokenAddress],
-      initArgs: [governor],
-    })
-
-  // Transfer ProxyAdmin ownership to governor
-  m.call(IssuanceAllocatorProxyAdmin, 'transferOwnership', [governor], { after: [IssuanceAllocatorProxy] })
+  // Transfer ProxyAdmin ownership to governor (must be called by deployer who owns it)
+  m.call(IssuanceAllocatorProxyAdmin, 'transferOwnership', [governor], {
+    from: deployer,
+    after: [IssuanceAllocatorProxy],
+  })
 
   return {
     IssuanceAllocator: IssuanceAllocatorProxy,
-    IssuanceAllocatorImplementation,
     IssuanceAllocatorProxyAdmin,
+    IssuanceAllocatorImplementation,
   }
 })
 

@@ -1,4 +1,4 @@
-import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed'
+import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed/deployments'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 import path from 'path'
 
@@ -26,7 +26,7 @@ export async function buildRewardsEligibilityUpgradeTxs(
   params: RewardsEligibilityUpgradeParams,
   options: RewardsEligibilityUpgradeOptions = {},
 ): Promise<RewardsEligibilityUpgradeResult> {
-  const chainId = hre.network.config.chainId ?? (await hre.ethers.provider.getNetwork()).chainId
+  const chainId = Number(hre.network.config.chainId ?? (await hre.ethers.provider.getNetwork()).chainId)
   const provider = hre.ethers.provider
 
   const horizonContracts = connectGraphHorizon(chainId, provider)

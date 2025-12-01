@@ -3,6 +3,7 @@ import type { Signer } from 'ethers'
 import { ethers, ignition, network } from 'hardhat'
 
 import RewardsEligibilityOracleActive from '../ignition/modules/issuance/RewardsEligibilityOracleActive'
+import RewardsEligibilityOracleArtifact from '../../issuance/artifacts/contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle.json'
 
 // Note: This test requires contracts from @graphprotocol/issuance and @graphprotocol/horizon
 // These are available through workspace dependencies and Hardhat's artifact resolution
@@ -81,7 +82,7 @@ describe('REO Governance Workflow (Fork)', function () {
     // Fund governance account for gas
     await deployer.sendTransaction({
       to: controllerAddress,
-      value: ethers.utils.parseEther('1.0'),
+      value: ethers.parseEther('1.0'),
     })
 
     console.log('\n🔧 Fork Test Setup')
@@ -103,11 +104,13 @@ describe('REO Governance Workflow (Fork)', function () {
     console.log('-'.repeat(30))
 
     // Deploy a mock REO for testing (in real scenario, this would be the actual deployment)
-    const reoFactory = await ethers.getContractFactory('RewardsEligibilityOracle')
-    const mockREO = await reoFactory.deploy()
-    await mockREO.deployed()
+    const reoFactory = await ethers.getContractFactoryFromArtifact(RewardsEligibilityOracleArtifact)
+    const graphTokenAddress = deployer.address // Use dummy address for testing
+    const mockREO = await reoFactory.deploy(graphTokenAddress)
+    await mockREO.waitForDeployment()
+    const mockREOAddress = await mockREO.getAddress()
 
-    console.log(`Mock REO deployed: ${mockREO.address}`)
+    console.log(`Mock REO deployed: ${mockREOAddress}`)
 
     try {
       // Try to run the checkpoint module - this should FAIL
@@ -117,7 +120,7 @@ describe('REO Governance Workflow (Fork)', function () {
             address: rewardsManagerAddress,
           },
           REORef: {
-            address: mockREO.address,
+            address: mockREOAddress,
           },
         },
       })
@@ -136,25 +139,27 @@ describe('REO Governance Workflow (Fork)', function () {
     console.log('-'.repeat(30))
 
     // Deploy REO
-    const reoFactory = await ethers.getContractFactory('RewardsEligibilityOracle')
-    const reo = await reoFactory.deploy()
-    await reo.deployed()
+    const reoFactory = await ethers.getContractFactoryFromArtifact(RewardsEligibilityOracleArtifact)
+    const graphTokenAddress = deployer.address // Use dummy address for testing
+    const reo = await reoFactory.deploy(graphTokenAddress)
+    await reo.waitForDeployment()
 
-    console.log(`REO deployed: ${reo.address}`)
+    console.log(`REO deployed: ${await reo.getAddress()}`)
 
     // Get RewardsManager contract
-    const rewardsManager = await ethers.getContractAt('RewardsManager', rewardsManagerAddress)
+    const rewardsManager = await ethers.getContractAt('IRewardsManager', rewardsManagerAddress)
 
     // Execute governance transaction to set REO (as Controller)
     console.log('Executing setRewardsEligibilityOracle...')
-    const tx = await rewardsManager.connect(governance).setRewardsEligibilityOracle(reo.address)
+    const reoAddress = await reo.getAddress()
+    const tx = await rewardsManager.connect(governance).setRewardsEligibilityOracle(reoAddress)
     await tx.wait()
 
     console.log('✅ Governance transaction executed')
 
     // Verify integration
     const actualREO = await rewardsManager.rewardsEligibilityOracle()
-    expect(actualREO).to.equal(reo.address)
+    expect(actualREO).to.equal(reoAddress)
     console.log(`✅ REO integrated: ${actualREO}`)
   })
 
@@ -163,13 +168,15 @@ describe('REO Governance Workflow (Fork)', function () {
     console.log('-'.repeat(30))
 
     // Deploy REO
-    const reoFactory = await ethers.getContractFactory('RewardsEligibilityOracle')
-    const reo = await reoFactory.deploy()
-    await reo.deployed()
+    const reoFactory = await ethers.getContractFactoryFromArtifact(RewardsEligibilityOracleArtifact)
+    const graphTokenAddress = deployer.address // Use dummy address for testing
+    const reo = await reoFactory.deploy(graphTokenAddress)
+    await reo.waitForDeployment()
 
     // Integrate via governance (from previous test pattern)
-    const rewardsManager = await ethers.getContractAt('RewardsManager', rewardsManagerAddress)
-    await rewardsManager.connect(governance).setRewardsEligibilityOracle(reo.address)
+    const reoAddress = await reo.getAddress()
+    const rewardsManager = await ethers.getContractAt('IRewardsManager', rewardsManagerAddress)
+    await rewardsManager.connect(governance).setRewardsEligibilityOracle(reoAddress)
 
     console.log('REO integrated via governance')
 
@@ -180,7 +187,7 @@ describe('REO Governance Workflow (Fork)', function () {
           address: rewardsManagerAddress,
         },
         REORef: {
-          address: reo.address,
+          address: reoAddress,
         },
       },
     })
@@ -196,20 +203,22 @@ describe('REO Governance Workflow (Fork)', function () {
 
     // Step 1: Deploy REO
     console.log('Step 1: Deploy REO...')
-    const reoFactory = await ethers.getContractFactory('RewardsEligibilityOracle')
-    const reo = await reoFactory.deploy()
-    await reo.deployed()
-    console.log(`  ✅ REO deployed: ${reo.address}`)
+    const reoFactory = await ethers.getContractFactoryFromArtifact(RewardsEligibilityOracleArtifact)
+    const graphTokenAddress = deployer.address // Use dummy address for testing
+    const reo = await reoFactory.deploy(graphTokenAddress)
+    await reo.waitForDeployment()
+    const reoAddress = await reo.getAddress()
+    console.log(`  ✅ REO deployed: ${reoAddress}`)
 
     // Step 2: Generate governance transaction (in real workflow, this would create Safe TX)
     console.log('Step 2: Generate governance transaction...')
-    const rewardsManager = await ethers.getContractAt('RewardsManager', rewardsManagerAddress)
-    const setREOData = rewardsManager.interface.encodeFunctionData('setRewardsEligibilityOracle', [reo.address])
+    const rewardsManager = await ethers.getContractAt('IRewardsManager', rewardsManagerAddress)
+    const setREOData = rewardsManager.interface.encodeFunctionData('setRewardsEligibilityOracle', [reoAddress])
     console.log(`  ✅ TX data generated: ${setREOData.slice(0, 20)}...`)
 
     // Step 3: Execute governance (simulate Safe execution)
     console.log('Step 3: Execute via governance...')
-    await rewardsManager.connect(governance).setRewardsEligibilityOracle(reo.address)
+    await rewardsManager.connect(governance).setRewardsEligibilityOracle(reoAddress)
     console.log('  ✅ Governance executed')
 
     // Step 4: Verify with checkpoint module
@@ -220,7 +229,7 @@ describe('REO Governance Workflow (Fork)', function () {
           address: rewardsManagerAddress,
         },
         REORef: {
-          address: reo.address,
+          address: reoAddress,
         },
       },
     })

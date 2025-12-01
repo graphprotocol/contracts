@@ -15,7 +15,7 @@
   "dependencies": {
     "@graphprotocol/horizon": "workspace:*",
     "@graphprotocol/issuance": "workspace:*",
-    "@graphprotocol/toolshed": "^0.5.0",
+    "@graphprotocol/toolshed": "workspace:*",
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
     "@nomicfoundation/solidity-analyzer-linux-x64-gnu": "^0.1.2",
@@ -26,6 +26,7 @@
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@openzeppelin/contracts": "5.4.0",
     "@typechain/ethers-v6": "^0.5.0",
     "@typechain/hardhat": "^9.0.0",
     "@types/chai": "^4.3.0",

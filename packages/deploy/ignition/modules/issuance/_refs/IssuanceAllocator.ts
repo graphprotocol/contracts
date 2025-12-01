@@ -1,5 +1,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
+import IssuanceAllocatorArtifact from '../../../../../issuance/artifacts/contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator.json'
+
 /**
  * Reference module for deployed IssuanceAllocator
  *
@@ -9,9 +11,14 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 export default buildModule('IssuanceAllocatorRef', (m) => {
   const address = m.getParameter('issuanceAllocatorAddress')
 
-  const issuanceAllocator = m.contractAt('IssuanceAllocator', address, {
-    id: 'IssuanceAllocator',
-  })
+  const issuanceAllocator = m.contractAt(
+    'IssuanceAllocator',
+    IssuanceAllocatorArtifact,
+    address,
+    {
+      id: 'IssuanceAllocator',
+    },
+  )
 
   return { issuanceAllocator }
 })

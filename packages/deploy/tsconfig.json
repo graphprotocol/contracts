@@ -6,16 +6,18 @@
     "composite": true
   },
   "include": [
-    "governance/**/*",
+    "lib/**/*",
     "tasks/**/*",
-    "test/**/*",
-    "ignition/**/*",
     "hardhat.config.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "artifacts",
-    "cache"
+    "cache",
+    "test",
+    "tasks/deploy-reo-implementation.ts",
+    "tasks/rewards-eligibility-upgrade.ts",
+    "governance/rewards-eligibility-upgrade.ts"
   ]
 }

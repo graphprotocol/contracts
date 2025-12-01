@@ -8,8 +8,9 @@ import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/config'
 
 // Explicitly register local Hardhat tasks (orchestration helpers)
-import './tasks/rewards-eligibility-upgrade'
-import './tasks/deploy-reo-implementation'
+// Temporarily disabled due to type issues:
+// import './tasks/rewards-eligibility-upgrade'
+// import './tasks/deploy-reo-implementation'
 import './tasks/sync-pending-implementation'
 import './tasks/list-pending-implementations'
 import './tasks/deployment-status'
@@ -35,6 +36,19 @@ const config: HardhatUserConfig = {
     tests: './test',
     artifacts: './artifacts',
     cache: './cache',
+  },
+  external: {
+    contracts: [
+      {
+        artifacts: '../issuance/artifacts',
+      },
+      {
+        artifacts: '../horizon/build/contracts',
+      },
+      {
+        artifacts: 'node_modules/@openzeppelin/contracts/build/contracts',
+      },
+    ],
   },
 }
 

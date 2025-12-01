@@ -12,25 +12,11 @@ describe('Orchestration Active smoke', () => {
   it('REO/IA integration checks pass after simulating governance', async () => {
     const [deployer] = await ethers.getSigners()
 
-    // Minimal mocks inline
-    const RMFactory = await ethers.getContractFactory(`
-      contract MockRM {
-        address public rewardsEligibilityOracle;
-        address public issuanceAllocator;
-        function setRewardsEligibilityOracle(address a) external { rewardsEligibilityOracle = a; }
-        function setIssuanceAllocator(address a) external { issuanceAllocator = a; }
-      }
-    `)
+    // Deploy mock contracts
+    const RMFactory = await ethers.getContractFactory('MockRM')
     const rm = await RMFactory.deploy()
 
-    const GTFactory = await ethers.getContractFactory(`
-      interface IGraphToken { function isMinter(address) external view returns (bool); }
-      contract MockGT is IGraphToken {
-        mapping(address => bool) public minter;
-        function setMinter(address m, bool v) external { minter[m] = v; }
-        function isMinter(address a) external view returns (bool) { return minter[a]; }
-      }
-    `)
+    const GTFactory = await ethers.getContractFactory('MockGraphTokenWithMinter')
     const gt = await GTFactory.deploy()
 
     const expectedREO = deployer.address
@@ -40,11 +26,14 @@ describe('Orchestration Active smoke', () => {
     await (await rm.setIssuanceAllocator(expectedIA)).wait()
 
     // Assert: REO Active passes
+    const rmAddress = await rm.getAddress()
     await ignition.deploy(RewardsEligibilityOracleActive, {
       parameters: {
-        RewardsEligibilityOracleActive: {
-          rewardsManager: await rm.getAddress(),
-          rewardsEligibilityOracle: expectedREO,
+        RewardsManagerRef: {
+          rewardsManagerAddress: rmAddress,
+        },
+        RewardsEligibilityOracleRef: {
+          rewardsEligibilityOracleAddress: expectedREO,
         },
       },
     })
@@ -52,20 +41,25 @@ describe('Orchestration Active smoke', () => {
     // Assert: IA Active passes
     await ignition.deploy(IssuanceAllocatorActive, {
       parameters: {
-        IssuanceAllocatorActive: {
-          rewardsManager: await rm.getAddress(),
-          issuanceAllocator: expectedIA,
+        RewardsManagerRef: {
+          rewardsManagerAddress: rmAddress,
+        },
+        IssuanceAllocatorRef: {
+          issuanceAllocatorAddress: expectedIA,
         },
       },
     })
 
     // Grant IA minter and assert IssuanceAllocatorMinter passes
     await (await gt.setMinter(expectedIA, true)).wait()
+    const gtAddress = await gt.getAddress()
     await ignition.deploy(IssuanceAllocatorMinter, {
       parameters: {
-        IssuanceAllocatorMinter: {
-          graphToken: await gt.getAddress(),
-          issuanceAllocator: expectedIA,
+        GraphTokenRef: {
+          graphTokenAddress: gtAddress,
+        },
+        IssuanceAllocatorRef: {
+          issuanceAllocatorAddress: expectedIA,
         },
       },
     })

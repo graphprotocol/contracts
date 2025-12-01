@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import { ethers, ignition } from 'hardhat'
 
 import RewardsEligibilityOracleModule from '../../issuance/deploy/ignition/modules/RewardsEligibilityOracle'
+import RewardsEligibilityOracleArtifact from '../../issuance/artifacts/contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle.json'
 
 describe('RewardsEligibilityOracle Deployment', function () {
   it('deploys proxy and implementation; initializes roles and defaults', async () => {
@@ -24,7 +25,7 @@ describe('RewardsEligibilityOracle Deployment', function () {
     expect(RewardsEligibilityOracle.target).to.be.properAddress
     expect(RewardsEligibilityOracleImplementation.target).to.be.properAddress
 
-    const REO = await ethers.getContractFactory('RewardsEligibilityOracle')
+    const REO = await ethers.getContractFactoryFromArtifact(RewardsEligibilityOracleArtifact)
     const reo = REO.attach(RewardsEligibilityOracle.target)
 
     // Governor role granted

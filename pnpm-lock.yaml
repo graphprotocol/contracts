@@ -751,14 +751,17 @@ importers:
         specifier: workspace:*
         version: link:../issuance
       '@graphprotocol/toolshed':
-        specifier: ^0.5.0
-        version: 0.5.5(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
+        specifier: workspace:*
+        version: link:../toolshed
       '@nomicfoundation/hardhat-ignition':
         specifier: ^0.15.0
         version: 0.15.13(@nomicfoundation/hardhat-verify@2.1.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(bufferutil@4.0.9)(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       '@nomicfoundation/hardhat-ignition-ethers':
         specifier: ^0.15.0
         version: 0.15.14(@nomicfoundation/hardhat-ethers@3.1.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(@nomicfoundation/hardhat-ignition@0.15.13(@nomicfoundation/hardhat-verify@2.1.1(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)))(bufferutil@4.0.9)(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10))(@nomicfoundation/ignition-core@0.15.13(bufferutil@4.0.9)(utf-8-validate@5.0.10))(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
+      '@nomicfoundation/solidity-analyzer-linux-x64-gnu':
+        specifier: ^0.1.2
+        version: 0.1.2
       ethers:
         specifier: ^6.13.0
         version: 6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -775,6 +778,9 @@ importers:
       '@nomicfoundation/hardhat-network-helpers':
         specifier: ^1.0.0
         version: 1.1.0(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
+      '@openzeppelin/contracts':
+        specifier: 5.4.0
+        version: 5.4.0
       '@typechain/ethers-v6':
         specifier: ^0.5.0
         version: 0.5.1(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3))(typescript@5.9.3)
@@ -2927,21 +2933,12 @@ packages:
   '@graphprotocol/contracts@7.2.1':
     resolution: {integrity: sha512-Ge2RD5QoEeSabCzdlMG3DT1mdsTGaD3aqxDsxRWwDx9nejudkrTlhjTTRAGVtBkfxlEy7P4Kxejr+fZmK29yRg==}
 
-  '@graphprotocol/horizon@0.3.3':
-    resolution: {integrity: sha512-aAQ7zOaqGE/nMuu+h2CGwO8Tkho/m1CcezfOz54voBpFSqfxk2WggYe1lUWd+nvHpuynfgaqM4gW+kYTLliWYw==}
-
   '@graphprotocol/pino-sentry-simple@0.7.1':
     resolution: {integrity: sha512-iccKFdFBjarSp8/liXuK1EtGq8Vwn118tqymbOJBxblecRsi4rOebk63qnL+dK/a0IvxH6h2+RjjWDbRt7UsUA==}
     engines: {node: '>=10'}
 
   '@graphprotocol/sdk@0.6.0':
     resolution: {integrity: sha512-oZGzUNFvZZ5MVsBvKXE0IzVBMzQ6Rxp9L3eCSeeOvHxQD7fUTFwbNr3SsGQagQlo3axLemAvK1hrl+aB5DlZIA==}
-
-  '@graphprotocol/subgraph-service@0.3.5':
-    resolution: {integrity: sha512-QmcQ4eOoUkmA+yStnRwIPAjCDyqIyQ0hLTL9IRZPDXs5a0ye7Kd9XIZDikuPlm1Bdqwu+tr2/yYdc3x3t0Sx2Q==}
-
-  '@graphprotocol/toolshed@0.5.5':
-    resolution: {integrity: sha512-fS/FmGAukWq2MjW4uOOJ/y+fXY6vB5kiZORLmKTN36hJnBXJsCOs6u8JNWER2E5MN4iTMSOLd6fj9JgncDNhsg==}
 
   '@graphql-codegen/core@3.1.0':
     resolution: {integrity: sha512-DH1/yaR7oJE6/B+c6ZF2Tbdh7LixF1K8L+8BoSubjNyQ8pNwR4a70mvc1sv6H7qgp6y1bPQ9tKE+aazRRshysw==}
@@ -3553,12 +3550,6 @@ packages:
       chai: ^4.2.0
       ethers: ^6.14.0
       hardhat: ^2.26.0
-
-  '@nomicfoundation/hardhat-ethers@3.0.8':
-    resolution: {integrity: sha512-zhOZ4hdRORls31DTOqg+GmEZM0ujly8GGIuRY7t7szEk2zW/arY1qDug/py8AEktT00v5K+b6RvbVog+va51IA==}
-    peerDependencies:
-      ethers: ^6.1.0
-      hardhat: ^2.0.0
 
   '@nomicfoundation/hardhat-ethers@3.1.0':
     resolution: {integrity: sha512-jx6fw3Ms7QBwFGT2MU6ICG292z0P81u6g54JjSV105+FbTZOF4FJqPksLfDybxkkOeq28eDxbqq7vpxRYyIlxA==}
@@ -6694,10 +6685,6 @@ packages:
 
   ethers@5.8.0:
     resolution: {integrity: sha512-DUq+7fHrCg1aPDFCHx6UIPb3nmt2XMpM7Y/g2gLhsl3lIBqeAfOJIl1qEvRf2uq3BiKxmh6Fh5pfp2ieyek7Kg==}
-
-  ethers@6.13.7:
-    resolution: {integrity: sha512-qbaJ0uIrjh+huP1Lad2f2QtzW5dcqSVjIzVH6yWB4dKoMuj2WqYz5aMeeQTCNpAKgTJBM5J9vcc2cYJ23UAimQ==}
-    engines: {node: '>=14.0.0'}
 
   ethers@6.15.0:
     resolution: {integrity: sha512-Kf/3ZW54L4UT0pZtsY/rf+EkBU7Qi5nnhonjUb8yTXcxH3cdcWrV2cRyk0Xk/4jK6OoHhxxZHriyhje20If2hQ==}
@@ -14774,8 +14761,6 @@ snapshots:
 
   '@graphprotocol/contracts@7.2.1': {}
 
-  '@graphprotocol/horizon@0.3.3': {}
-
   '@graphprotocol/pino-sentry-simple@0.7.1':
     dependencies:
       '@sentry/node': 5.30.0
@@ -14814,26 +14799,6 @@ snapshots:
       - sqlite3
       - supports-color
       - tedious
-      - ts-node
-      - typescript
-      - utf-8-validate
-
-  '@graphprotocol/subgraph-service@0.3.5': {}
-
-  '@graphprotocol/toolshed@0.5.5(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)':
-    dependencies:
-      '@graphprotocol/contracts': 7.2.1
-      '@graphprotocol/horizon': 0.3.3
-      '@graphprotocol/subgraph-service': 0.3.5
-      '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))
-      debug: 4.4.3(supports-color@9.4.0)
-      ethers: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      glob: 11.0.3
-      hardhat: 2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
-      json5: 2.2.3
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
       - ts-node
       - typescript
       - utf-8-validate
@@ -15854,15 +15819,6 @@ snapshots:
       hardhat: 2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
       ordinal: 1.0.3
 
-  '@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))':
-    dependencies:
-      debug: 4.4.3(supports-color@9.4.0)
-      ethers: 6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      hardhat: 2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
-      lodash.isequal: 4.5.0
-    transitivePeerDependencies:
-      - supports-color
-
   '@nomicfoundation/hardhat-ethers@3.1.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))':
     dependencies:
       debug: 4.4.3(supports-color@9.4.0)
@@ -16044,8 +16000,7 @@ snapshots:
   '@nomicfoundation/solidity-analyzer-linux-arm64-musl@0.1.2':
     optional: true
 
-  '@nomicfoundation/solidity-analyzer-linux-x64-gnu@0.1.2':
-    optional: true
+  '@nomicfoundation/solidity-analyzer-linux-x64-gnu@0.1.2': {}
 
   '@nomicfoundation/solidity-analyzer-linux-x64-musl@0.1.2':
     optional: true
@@ -20515,19 +20470,6 @@ snapshots:
       '@ethersproject/wallet': 5.8.0
       '@ethersproject/web': 5.8.0
       '@ethersproject/wordlists': 5.8.0
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
-  ethers@6.13.7(bufferutil@4.0.9)(utf-8-validate@5.0.10):
-    dependencies:
-      '@adraffy/ens-normalize': 1.10.1
-      '@noble/curves': 1.2.0
-      '@noble/hashes': 1.3.2
-      '@types/node': 20.19.14
-      aes-js: 4.0.0-beta.5
-      tslib: 2.7.0
-      ws: 8.17.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate

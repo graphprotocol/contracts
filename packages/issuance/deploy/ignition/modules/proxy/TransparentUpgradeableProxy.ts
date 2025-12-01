@@ -5,6 +5,8 @@ import {
   IgnitionModuleBuilder,
 } from '@nomicfoundation/ignition-core'
 import DummyArtifact from '@openzeppelin/contracts/build/contracts/ERC1967Utils.json'
+import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdmin.json'
+import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
 
 import { deployImplementation, type ImplementationMetadata } from './implementation'
 import { loadProxyWithABI } from './utils'
@@ -24,15 +26,24 @@ export function deployTransparentUpgradeableProxy(
     implementation = m.contract('Dummy', DummyArtifact, [], { ...options, id: `OZProxyDummy_${metadata.name}` })
   }
 
-  const TransparentUpgradeableProxy = m.contract('TransparentUpgradeableProxy', [implementation, deployer, '0x'], {
+  const TransparentUpgradeableProxy = m.contract(
+    'TransparentUpgradeableProxy',
+    TransparentUpgradeableProxyArtifact,
+    [implementation, deployer, '0x'],
+    {
+      ...options,
+      id: `TransparentUpgradeableProxy_${metadata.name}`,
+    },
+  )
+
+  const proxyAdminAddress = m.readEventArgument(TransparentUpgradeableProxy, 'AdminChanged', 'newAdmin', {
     ...options,
-    id: `TransparentUpgradeableProxy_${metadata.name}`,
+    id: `TransparentUpgradeableProxy_${metadata.name}_AdminChanged`,
   })
 
-  const ProxyAdmin = m.readEventArgument(TransparentUpgradeableProxy, 'AdminChanged', 'newAdmin', {
+  const ProxyAdmin = m.contractAt('ProxyAdmin', ProxyAdminArtifact, proxyAdminAddress, {
     ...options,
     id: `ProxyAdmin_${metadata.name}`,
-    emitter: TransparentUpgradeableProxy,
   })
 
   const proxy = loadProxyWithABI(m, TransparentUpgradeableProxy, metadata, options)
