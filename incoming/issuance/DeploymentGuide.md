@@ -1,0 +1,761 @@
+# Graph Protocol Issuance System - Complete Deployment Guide
+
+For architecture and target definitions, see Design.md (canonical). This guide is procedural; governance workflow details live in Governance.md.
+
+This guide covers the complete deployment of the Graph Protocol Issuance System, including all dependencies and components.
+
+## **Deployment Overview**
+
+The deployment consists of four major phases:
+
+1. **Phase 1: RewardsManager Upgrade** - Common dependency for both REO and IssuanceAllocator
+2. **Phase 2: GraphProxyAdmin2 Deployment** - Shared proxy administration for issuance contracts
+3. **Phase 3: RewardsEligibilityOracle Deployment** - Quality enforcement system
+4. **Phase 4: IssuanceAllocator Deployment** - Token distribution system
+
+## 📋 **Prerequisites**
+
+- [ ] Governance multi-sig access
+- [ ] Network configuration (mainnet/arbitrum/sepolia)
+- [ ] GraphToken contract address
+- [ ] Current RewardsManager proxy address
+- [ ] Deployment environment setup
+
+## 🔄 **Phase 1: RewardsManager Upgrade**
+
+The RewardsManager needs to be upgraded to support the new issuance system interfaces.
+
+### **1.1 Prepare RewardsManager Upgrade**
+
+```bash
+# Navigate to contracts deployment
+cd packages/contracts/deploy
+
+# Deploy new RewardsManager implementation
+pnpm deploy:impl:mainnet  # or sepolia/arbitrumOne
+
+# Check deployment status
+pnpm status:mainnet
+```
+
+### **1.2 Execute RewardsManager Governance Upgrade**
+
+```bash
+# Execute governance upgrade
+pnpm governance-upgrade:mainnet
+
+# Verify upgrade completed
+pnpm verify:upgrade:mainnet
+```
+
+### **1.3 Verify RewardsManager Integration Points**
+
+```bash
+# Verify new interfaces are available
+# - setIssuanceAllocator(address)
+# - setRewardsEligibilityOracle(address)
+# - issuanceAllocator() view function
+# - RewardsEligibilityOracle() view function
+```
+
+**✅ Phase 1 Complete**: RewardsManager now supports issuance system integration
+
+---
+
+## 🏗️ **Phase 2: GraphProxyAdmin2 Deployment**
+
+Deploy the shared proxy administration contract that will manage upgrades for all issuance system contracts.
+
+### **2.1 Deploy GraphProxyAdmin2**
+
+Deploy the dedicated proxy admin for the issuance system.
+
+```bash
+# Navigate to issuance deployment
+cd packages/issuance/deploy
+
+# Deploy GraphProxyAdmin2 only
+pnpm deploy:admin:mainnet  # Deploy only the proxy admin
+
+# Check deployment status
+pnpm status:mainnet
+```
+
+**Note**: The `deploy:admin:*`, `deploy:reo:*`, and `deploy:issuance:*` commands need to be implemented as separate Ignition modules for granular deployment control.
+
+### **2.2 Verify GraphProxyAdmin2 Configuration**
+
+Ensure the proxy admin is properly configured and owned by governance.
+
+```bash
+# Verify proxy admin deployment
+# - Contract deployed successfully
+# - Owner set to governance multi-sig
+# - No proxy contracts managed yet (empty)
+```
+
+**Verification**:
+
+- [ ] GraphProxyAdmin2 deployed successfully
+- [ ] Owner is governance multi-sig address
+- [ ] Contract is ready to manage proxy upgrades
+- [ ] Address recorded in deployment artifacts
+
+**✅ Phase 2 Complete**: GraphProxyAdmin2 ready for issuance system contracts
+
+---
+
+## **Phase 3: RewardsEligibilityOracle Deployment**
+
+Deploy and integrate the RewardsEligibilityOracle for indexer quality enforcement. This is a multi-stage process requiring careful configuration and validation.
+
+### **Stage 3.1: Deploy RewardsEligibilityOracle**
+
+Deploy the RewardsEligibilityOracle contract system using the existing GraphProxyAdmin2.
+
+```bash
+# Navigate to issuance deployment
+cd packages/issuance/deploy
+
+# Deploy REO system (uses existing GraphProxyAdmin2)
+pnpm deploy:reo:mainnet  # Deploys REO proxy + implementation
+
+# Check deployment status
+pnpm status:mainnet
+```
+
+**Verification**:
+
+- [ ] RewardsEligibilityOracle proxy deployed
+- [ ] RewardsEligibilityOracle implementation deployed
+- [ ] Proxy managed by existing GraphProxyAdmin2
+- [ ] Contracts properly initialized
+
+### **Stage 3.2: Define and Configure Roles**
+
+Set up the role-based access control for the REO system based on GIP-0079 specifications.
+
+```bash
+# Configure REO roles (governance transactions required):
+# 1. Set OPERATOR role (can manage oracle roles)
+# 2. Set ORACLE role (can call allowIndexers function)
+```
+
+**Required Governance Transactions**:
+
+```solidity
+// Set operator role (can manage oracles)
+RewardsEligibilityOracle.grantRole(OPERATOR_ROLE, OPERATOR_ADDRESS)
+
+// Set oracle roles (can mark indexers as eligible)
+RewardsEligibilityOracle.grantRole(ORACLE_ROLE, ORACLE_1_ADDRESS)
+RewardsEligibilityOracle.grantRole(ORACLE_ROLE, ORACLE_2_ADDRESS)
+// ... additional oracles as needed
+```
+
+**Verification**:
+
+- [ ] OPERATOR role assigned to operational team
+- [ ] ORACLE roles assigned to authorized oracle operators
+- [ ] Role hierarchy properly configured (operators can manage oracles)
+
+### **Stage 3.3: Configure REO Parameters**
+
+Set the operational parameters for quality assessment based on GIP-0079 specifications.
+
+**Required Configuration**:
+
+```solidity
+// Configure the three main parameters from GIP-0079
+RewardsEligibilityOracle.setAllowedPeriod(ALLOWED_PERIOD_SECONDS)        // How long eligibility lasts
+RewardsEligibilityOracle.setOracleUpdateTimeout(TIMEOUT_SECONDS)         // Safety timeout for oracle updates
+RewardsEligibilityOracle.setQualityChecking(true)                        // Enable quality checking
+```
+
+**Parameter Examples (from GIP-0079)**:
+
+- **Allowed Period**: 14 days (1209600 seconds) - How long indexer eligibility lasts
+- **Oracle Update Timeout**: 7 days (604800 seconds) - Safety mechanism if oracles stop updating
+- **Quality Checking Active**: true - Enable the quality enforcement system
+
+**Verification**:
+
+- [ ] Allowed period set to 14 days (or governance-approved value)
+- [ ] Oracle update timeout set to 7 days (or governance-approved value)
+- [ ] Quality checking enabled
+- [ ] Parameter values match GIP-0079 specifications
+
+### **Stage 3.4: Prepare Oracle Operations**
+
+Set up the oracle operators and their off-chain systems for quality assessment.
+
+**Oracle Setup** (based on GIP-0079):
+
+- Oracles have ORACLE_ROLE (granted in Stage 3.2)
+- Oracles will call `allowIndexers(address[] indexers, bytes data)` function
+- Quality assessment happens off-chain using service quality metrics
+- Oracles should update eligibility regularly (less than 14-day allowed period)
+
+**Off-chain Oracle Systems**:
+
+- **Quality Metrics Collection**: Monitor indexer service quality, response times, availability
+- **Assessment Framework**: Conservative quality metrics to identify underperforming indexers
+- **Regular Updates**: Daily or regular cadence to mark eligible indexers
+- **Transparency**: Provide methodology and results transparency
+
+**Oracle Responsibilities** (from GIP-0079):
+
+- Assess indexer service quality through off-chain mechanisms
+- Mark eligible indexers by calling `allowIndexers()` function
+- Provide transparency about assessment methodology
+- Update eligibility regularly (recommended daily)
+
+**Verification**:
+
+- [ ] Oracle operators have off-chain monitoring systems ready
+- [ ] Quality assessment methodology defined and documented
+- [ ] Oracle update schedules established
+- [ ] Transparency and reporting mechanisms in place
+
+### **Stage 3.5: Testing and Validation Period**
+
+Run the REO system in testing mode for a defined period to verify functionality.
+
+**Testing Phase (Recommended: 2-4 weeks)**:
+
+```bash
+# Testing can be done with quality checking disabled initially
+RewardsEligibilityOracle.setQualityChecking(false)  # All indexers eligible during testing
+
+# Monitor oracle submissions
+# - Oracles calling allowIndexers() function
+# - Indexer eligibility being recorded correctly
+# - isAllowed() function returning correct results
+```
+
+**Testing Activities**:
+
+- [ ] Oracle operators call `allowIndexers()` with test indexer lists
+- [ ] Verify `isAllowed()` function returns correct eligibility status
+- [ ] Test eligibility expiration after allowed period (14 days)
+- [ ] Test oracle update timeout safety mechanism (7 days)
+- [ ] Monitor gas costs for oracle operations
+- [ ] Test quality checking enable/disable functionality
+
+**Validation Metrics**:
+
+- **Assessment Coverage**: % of active indexers assessed
+- **Oracle Participation**: % of oracles actively submitting
+- **Score Accuracy**: Manual validation of quality scores
+- **System Performance**: Gas costs, response times
+- **Dispute Resolution**: Test dispute mechanisms
+
+**Verification**:
+
+- [ ] All oracle operators actively participating
+- [ ] Quality assessments covering target indexer set
+- [ ] Score calculations validated against manual review
+- [ ] System performance within acceptable limits
+- [ ] Emergency procedures tested and working
+
+### **Stage 3.6: Governance Integration Preparation**
+
+Prepare for integrating REO with the upgraded RewardsManager.
+
+**Pre-Integration Checklist**:
+
+- [ ] REO system fully tested and validated
+- [ ] Oracle operators trained and operational
+- [ ] Quality parameters finalized and approved
+- [ ] Emergency procedures documented and tested
+- [ ] Governance proposal prepared
+
+**Governance Proposal Preparation**:
+
+```bash
+# Prepare governance transaction data
+# RewardsManager.setRewardsEligibilityOracle(REO_ADDRESS)
+
+# Create governance proposal with:
+# 1. REO contract address
+# 2. Integration timeline
+# 3. Rollback procedures
+# 4. Success metrics
+```
+
+### **Stage 3.7: Execute Governance Integration**
+
+Execute the governance transaction to connect REO to RewardsManager.
+
+**Governance Execution**:
+
+```bash
+# Execute governance transaction (via multi-sig)
+# This requires RewardsManager to be upgraded first (Phase 1)
+RewardsManager.setRewardsEligibilityOracle(REO_ADDRESS)
+
+# Verify integration
+pnpm verify:upgrade:mainnet
+```
+
+**Post-Integration Verification**:
+
+```bash
+# Verify RewardsManager integration (based on GIP-0079)
+# 1. Check REO address is set correctly in RewardsManager
+# 2. RewardsManager calls isAllowed() when indexers claim rewards
+# 3. Only eligible indexers receive rewards
+# 4. Ineligible indexers are denied rewards
+```
+
+**Verification**:
+
+- [ ] Governance transaction executed successfully
+- [ ] RewardsManager correctly references REO address
+- [ ] RewardsManager calls `isAllowed()` during reward claims
+- [ ] Quality enforcement working: eligible indexers get rewards
+- [ ] Quality enforcement working: ineligible indexers denied rewards
+
+### **Stage 3.8: Monitoring and Adjustment Period**
+
+Monitor the integrated system and make adjustments as needed.
+
+**Monitoring Period (Recommended: 4-8 weeks)**:
+
+- [ ] Daily monitoring of quality assessments
+- [ ] Weekly review of indexer qualification changes
+- [ ] Monthly parameter adjustment reviews
+- [ ] Continuous oracle performance monitoring
+
+**Key Metrics to Monitor**:
+
+- **Indexer Qualification Rate**: % of indexers meeting quality standards
+- **Oracle Participation**: Consistency of oracle submissions
+- **Quality Score Distribution**: Range and distribution of scores
+- **Dispute Rate**: Frequency of quality disputes
+- **System Impact**: Effect on overall network rewards
+
+**Adjustment Procedures**:
+
+```bash
+# Parameter adjustments (if needed)
+
+# Oracle role administration (via AccessControl)
+# Grant/revoke roles using grantRole/revokeRole on OPERATOR_ROLE and ORACLE_ROLE as appropriate
+# Example:
+# RewardsEligibilityOracle.grantRole(OPERATOR_ROLE, OPERATOR_ADDRESS)
+# RewardsEligibilityOracle.grantRole(ORACLE_ROLE, ORACLE_ADDRESS)
+```
+
+**✅ Phase 3 Complete**: RewardsEligibilityOracle fully operational and integrated with RewardsManager
+
+---
+
+## 💰 **Phase 4: IssuanceAllocator Deployment**
+
+Deploy and migrate to the IssuanceAllocator system through careful, verifiable stages.
+
+### **Stage 4.1: Contract Deployment and Configuration**
+
+Deploy and configure the IssuanceAllocator to match existing configuration without impacting production.
+
+#### **4.1.1 Deploy IssuanceAllocator**
+
+```bash
+# Deploy IssuanceAllocator system (uses existing GraphProxyAdmin2 from Phase 2)
+pnpm deploy:issuance:mainnet
+
+# Check deployment status
+pnpm status:mainnet
+```
+
+**Verification**:
+
+- [ ] IssuanceAllocator proxy deployed
+- [ ] IssuanceAllocator implementation deployed
+- [ ] Proxy managed by existing GraphProxyAdmin2
+- [ ] Contracts properly initialized
+
+#### **4.1.2 Configure Allocator to Match Existing Distribution**
+
+Configure the Allocator to exactly replicate current RewardsManager behavior.
+
+```bash
+# Configure IssuanceAllocator to match existing setup:
+# 1. Set same issuance rate as current RewardsManager
+# 2. Set 100% allocation to RewardsManager (self-minting target)
+# 3. Set 0% to other allocators (initially)
+
+# Example configuration calls:
+IssuanceAllocator.setIssuancePerBlock(CURRENT_REWARDS_MANAGER_RATE)
+// Configure 100% self-minting allocation to RewardsManager
+IssuanceAllocator.setTargetAllocation(REWARDS_MANAGER_ADDRESS, 0, 1_000_000, true)
+```
+
+**Key Points**:
+
+- **No Production Impact**: Allocator has no effect yet because RewardsManager doesn't use it
+- **No Minting Authority**: Allocator cannot mint tokens yet
+- **Exact Replication**: Same rate, same distribution (100% to RewardsManager)
+
+**Verification**:
+
+- [ ] Issuance rate matches current RewardsManager rate
+- [ ] 100% allocation set to RewardsManager address
+- [ ] RewardsManager configured as self-minting target
+- [ ] Total allocations equal 100% (1,000,000 PPM)
+
+#### **4.1.3 Validate Deployment, Configuration, and State**
+
+Comprehensive validation of the deployed system.
+
+```bash
+# Verify contract deployment
+pnpm verify:upgrade:mainnet
+
+# Validate configuration matches expectations
+# - Check issuance rate
+# - Check allocation percentages
+# - Check target addresses
+# - Check role assignments
+```
+
+**Validation Checklist**:
+
+- [ ] Contract bytecode matches expected implementation
+- [ ] Configuration exactly replicates existing distribution
+- [ ] Contract not paused
+- [ ] Roles properly configured
+- [ ] No unexpected state or configuration
+
+**✅ Stage 4.1 Complete**: IssuanceAllocator deployed and configured, ready for governance validation
+
+### **Stage 4.2: Migrate to Allocator Controlled Issuance**
+
+Governance performs independent verification and makes the Allocator live in production.
+
+#### **4.2.1 Complete Role Configuration and Transfer Governor**
+
+Transfer governance control to the proper governance multi-sig.
+
+```bash
+# Governance transactions to complete role setup:
+# 1. Verify current roles are correct
+# 2. Transfer Governor role to governance multi-sig
+# 3. Renounce any temporary deployment roles
+
+IssuanceAllocator.grantRole(GOVERNOR_ROLE, GOVERNANCE_MULTISIG)
+IssuanceAllocator.renounceRole(GOVERNOR_ROLE, DEPLOYER_ADDRESS)
+```
+
+**Verification**:
+
+- [ ] Governor role transferred to governance multi-sig
+- [ ] Deployer roles renounced
+- [ ] Only governance can modify configuration
+
+#### **4.2.2 Governance Independent Verification**
+
+Governance performs comprehensive independent verification before going live.
+
+**Governance Verification Checklist**:
+
+- [ ] **Contract Verification**: Bytecode matches expected implementation
+- [ ] **Configuration Verification**:
+  - [ ] Issuance rate matches current RewardsManager
+  - [ ] 100% allocation to RewardsManager address
+  - [ ] RewardsManager set as self-minting target
+- [ ] **State Verification**:
+  - [ ] Contract not paused
+  - [ ] Proper role assignments
+  - [ ] No unexpected configuration
+- [ ] **Security Review**: Independent audit of deployment and configuration
+
+#### **4.2.3 Set RewardsManager to Use Allocator**
+
+Governance transaction to make the Allocator live in production.
+
+```bash
+# Critical governance transaction - makes Allocator live
+RewardsManager.setIssuanceAllocator(ISSUANCE_ALLOCATOR_ADDRESS)
+```
+
+**Impact**:
+
+- **Allocator Now Live**: RewardsManager now uses Allocator for issuance calculations
+- **Same Distribution**: Still 100% to RewardsManager, no change in rewards
+- **Self-Minting**: RewardsManager still mints its own tokens (backward compatibility)
+
+**Post-Integration Verification**:
+
+- [ ] RewardsManager correctly references Allocator address
+- [ ] RewardsManager reads issuance via `issuanceAllocator.getTargetIssuancePerBlock(address(this)).selfIssuancePerBlock`
+- [ ] Same reward amounts distributed to indexers
+- [ ] No disruption to existing rewards distribution
+
+#### **4.2.4 Grant Allocator Minting Authority**
+
+Final step: Grant the Allocator permission to mint tokens for non-self-minting targets.
+
+```bash
+# Governance transaction to grant minting authority
+GraphToken.addMinter(ISSUANCE_ALLOCATOR_ADDRESS)
+```
+
+**Impact**:
+
+- **Allocator Can Mint**: Now capable of allocator-controlled minting
+- **Ready for New Targets**: Can mint tokens for DirectAllocation and other targets
+- **Full Functionality**: Complete IssuanceAllocator system operational
+
+**Verification**:
+
+- [ ] Allocator has minting authority on GraphToken
+- [ ] Can call `distributeIssuance()` successfully
+- [ ] Ready to support non-self-minting allocation targets
+
+**✅ Stage 4.2 Complete**: IssuanceAllocator live in production with existing distribution
+
+### **Stage 4.3: Allocation Changes**
+
+Governance-controlled allocation changes can now be made safely.
+
+#### **4.3.1 Deploy Additional Allocation Targets**
+
+Deploy DirectAllocation contracts for new allocation targets.
+
+```bash
+# Deploy DirectAllocation instances for new targets
+# Example: Innovation allocation, ecosystem allocation, etc.
+pnpm deploy:direct-allocation:mainnet
+```
+
+#### **4.3.2 Gradual Allocation Adjustments**
+
+Implement allocation changes gradually through governance.
+
+```bash
+# Example gradual transition (governance transactions):
+# Week 1: 95% RewardsManager, 5% Innovation
+IssuanceAllocator.setTargetAllocation(REWARDS_MANAGER_ADDRESS, 950000, false, true)    // 95%
+IssuanceAllocator.setTargetAllocation(INNOVATION_ALLOCATION_ADDRESS, 50000, false, false) // 5%
+
+# Week 4: 90% RewardsManager, 10% Innovation
+IssuanceAllocator.setTargetAllocation(REWARDS_MANAGER_ADDRESS, 900000, false, true)    // 90%
+IssuanceAllocator.setTargetAllocation(INNOVATION_ALLOCATION_ADDRESS, 100000, false, false) // 10%
+
+# Continue gradual transition as approved by governance
+```
+
+#### **4.3.3 Monitor and Verify Changes**
+
+Continuous monitoring and verification of allocation changes.
+
+```bash
+# Monitor system performance after each change
+pnpm status:mainnet
+
+# Verify allocation changes are working correctly
+# - Check distribution amounts
+# - Verify target contracts receive correct amounts
+# - Monitor for any issues or unexpected behavior
+```
+
+**Monitoring Checklist**:
+
+- [ ] Allocation percentages applied correctly
+- [ ] Token distribution amounts match expectations
+- [ ] All targets receiving correct allocations
+- [ ] No disruption to RewardsManager distribution
+- [ ] System operating within expected parameters
+
+**✅ Stage 4.3 Complete**: Full issuance system operational with new allocation model
+
+---
+
+## 🔧 **Operational Commands**
+
+### **Status Monitoring**
+
+```bash
+# Check overall system status
+pnpm status:mainnet
+
+# Check specific component status
+pnpm verify:upgrade:mainnet
+```
+
+### **Emergency Procedures**
+
+```bash
+# Pause system if needed
+# - Pause IssuanceAllocator
+# - Pause RewardsEligibilityOracle
+# - Revert to direct RewardsManager if necessary
+```
+
+### **Upgrade Procedures**
+
+```bash
+# For future upgrades:
+pnpm upgrade-prep:mainnet        # Deploy new implementation
+pnpm governance-upgrade:mainnet  # Execute governance upgrade
+pnpm verify:upgrade:mainnet      # Verify upgrade success
+```
+
+## 📊 **Success Criteria**
+
+### **Phase 1 Success**
+
+- [ ] RewardsManager upgraded successfully
+- [ ] New interfaces available and functional
+- [ ] No disruption to existing rewards distribution
+
+### **Phase 2 Success**
+
+- [ ] GraphProxyAdmin2 deployed successfully
+- [ ] Owner set to governance multi-sig
+- [ ] Ready to manage issuance system proxies
+
+### **Phase 3 Success**
+
+- [ ] RewardsEligibilityOracle deployed and operational
+- [ ] Role-based access control configured
+- [ ] Quality parameters set and validated
+- [ ] Oracle operators registered and active
+- [ ] Testing period completed successfully
+- [ ] Governance integration executed
+- [ ] Quality enforcement active in RewardsManager
+- [ ] Monitoring period shows stable operation
+
+### **Phase 4.1 Success (Contract Deployment and Configuration)**
+
+- [ ] IssuanceAllocator deployed and operational
+- [ ] Configuration exactly matches existing RewardsManager setup
+- [ ] 100% allocation to RewardsManager (self-minting)
+- [ ] No production impact (RewardsManager not using Allocator yet)
+- [ ] Comprehensive validation completed
+
+### **Phase 4.2 Success (Migrate to Allocator Controlled Issuance)**
+
+- [ ] Governance roles properly transferred
+- [ ] Independent governance verification completed
+- [ ] RewardsManager successfully set to use Allocator
+- [ ] Same reward distribution maintained (no disruption)
+- [ ] Allocator granted minting authority
+- [ ] System live in production with existing distribution
+
+### **Phase 4.3 Success (Allocation Changes)**
+
+- [ ] Additional allocation targets deployed
+- [ ] Gradual allocation adjustments implemented
+- [ ] New distribution model operational
+- [ ] Continuous monitoring shows stable operation
+
+## 🚨 **Risk Mitigation**
+
+### **Deployment Safety Approach**
+
+1. **No Production Impact During Deployment**: Allocator deployed and configured without affecting live rewards
+2. **Independent Governance Verification**: Governance performs comprehensive verification before going live
+3. **Exact Replication First**: 100% allocation to RewardsManager maintains existing distribution
+4. **Gradual Migration**: Three distinct stages with verification at each step
+5. **Self-Minting Compatibility**: RewardsManager continues self-minting during transition
+
+### **Key Safety Mechanisms**
+
+1. **Staged Deployment**: Each phase can be tested and verified independently
+2. **Governance Control**: All critical transitions require governance approval
+3. **Rollback Capability**: Clear rollback procedures at each stage
+4. **Comprehensive Testing**: Full testing on testnets before mainnet
+5. **Continuous Monitoring**: Real-time monitoring and verification at each step
+
+### **Critical Verification Points**
+
+1. **Contract Deployment**: Bytecode verification and configuration validation
+2. **Governance Transfer**: Proper role assignments and access control
+3. **Production Migration**: RewardsManager integration without disruption
+4. **Minting Authority**: Safe granting of token minting permissions
+5. **Allocation Changes**: Gradual adjustments with continuous monitoring
+
+## 📋 **Network-Specific Considerations**
+
+### **Mainnet**
+
+- Requires governance approval for all upgrades
+- Higher gas costs - optimize batch operations
+- Maximum security and testing required
+
+### **Arbitrum**
+
+- Lower gas costs enable more frequent adjustments
+- Bridge considerations for token transfers
+- L1/L2 coordination for governance
+
+### **Testnets (Sepolia/Arbitrum Sepolia)**
+
+- Full testing of complete deployment flow
+- Governance simulation
+- Performance and gas optimization testing
+
+## 🔧 **Parameter Configuration**
+
+### **Required Parameters**
+
+Each network requires these parameters in its JSON5 file:
+
+```json5
+{
+  $global: {
+    // Governance addresses
+    owner: '0x...', // Governor/Council address
+
+    // Protocol contracts
+    graphToken: '0x...', // GraphToken contract address
+
+    // Upgrade parameters (set after deployment)
+    issuanceAllocatorProxyAddress: '0x...',
+    proxyAdminAddress: '0x...',
+    newImplementationAddress: '0x...',
+  },
+
+  IssuanceAllocator: {
+    owner: '0x...', // Same as global owner
+    graphToken: '0x...', // Same as global graphToken
+  },
+}
+```
+
+## 🧪 **Testing Strategy**
+
+### **Pre-Deployment Testing**
+
+- [ ] Unit tests for all contracts
+- [ ] Integration tests for complete system
+- [ ] Fork testing on mainnet state
+- [ ] Gas optimization analysis
+
+### **Deployment Testing**
+
+- [ ] Testnet deployment and verification
+- [ ] Governance workflow simulation
+- [ ] Performance monitoring
+- [ ] Security audit completion
+
+## 📈 **Monitoring & Maintenance**
+
+### **Post-Deployment Monitoring**
+
+- [ ] Contract functionality verification
+- [ ] Distribution accuracy monitoring
+- [ ] Gas usage optimization
+- [ ] Security incident response
+
+### **Ongoing Maintenance**
+
+- [ ] Regular system health checks
+- [ ] Parameter adjustment procedures
+- [ ] Upgrade preparation workflows
+- [ ] Documentation updates
+
+This comprehensive deployment ensures a safe, gradual rollout of the complete issuance system while maintaining existing functionality throughout the process.
