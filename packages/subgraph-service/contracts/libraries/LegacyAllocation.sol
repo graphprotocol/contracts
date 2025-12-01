@@ -14,19 +14,6 @@ library LegacyAllocation {
     using LegacyAllocation for ILegacyAllocation.State;
 
     /**
-     * @notice Get a legacy allocation
-     * @param self The legacy allocation list mapping
-     * @param allocationId The allocation id
-     * @return The legacy allocation details
-     */
-    function get(
-        mapping(address => ILegacyAllocation.State) storage self,
-        address allocationId
-    ) internal view returns (ILegacyAllocation.State memory) {
-        return _get(self, allocationId);
-    }
-
-    /**
      * @notice Revert if a legacy allocation exists
      * @dev We check the migrated allocations mapping.
      * @param self The legacy allocation list mapping
@@ -46,20 +33,5 @@ library LegacyAllocation {
      */
     function exists(ILegacyAllocation.State memory self) internal pure returns (bool) {
         return self.indexer != address(0);
-    }
-
-    /**
-     * @notice Get a legacy allocation
-     * @param self The legacy allocation list mapping
-     * @param allocationId The allocation id
-     * @return The legacy allocation details
-     */
-    function _get(
-        mapping(address => ILegacyAllocation.State) storage self,
-        address allocationId
-    ) private view returns (ILegacyAllocation.State storage) {
-        ILegacyAllocation.State storage allocation = self[allocationId];
-        require(allocation.exists(), ILegacyAllocation.LegacyAllocationDoesNotExist(allocationId));
-        return allocation;
     }
 }

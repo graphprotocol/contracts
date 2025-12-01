@@ -69,8 +69,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             operator: createUser("operator"),
             gateway: createUser("gateway"),
             verifier: createUser("verifier"),
-            delegator: createUser("delegator"),
-            legacySlasher: createUser("legacySlasher")
+            delegator: createUser("delegator")
         });
 
         // Deploy protocol contracts
