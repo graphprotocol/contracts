@@ -7,7 +7,7 @@ Cross-package deployment orchestration for Graph Protocol contracts.
 This package coordinates governance integrations across the Graph Protocol contract ecosystem:
 
 - **Core Contracts** - References to already-deployed protocol contracts (RewardsManager from `@graphprotocol/contracts` or `@graphprotocol/horizon`, GraphToken from `@graphprotocol/contracts`)
-- **Issuance** (`@graphprotocol/issuance`) - Issuance system contracts (RewardsEligibilityOracle, IssuanceAllocator, DirectAllocation)
+- **Issuance** (`@graphprotocol/issuance`) - Issuance system contracts (RewardsEligibilityOracle, IssuanceAllocator, PilotAllocation)
 
 This package does **NOT deploy contract implementations** - it orchestrates governance integration between already-deployed contracts from other packages.
 

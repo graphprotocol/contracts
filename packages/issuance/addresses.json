@@ -6,7 +6,7 @@
       "proxyAdmin": "",
       "implementation": ""
     },
-    "DirectAllocation": {
+    "PilotAllocation": {
       "address": "",
       "proxy": "transparent",
       "proxyAdmin": "",
@@ -26,7 +26,7 @@
       "proxyAdmin": "",
       "implementation": ""
     },
-    "DirectAllocation": {
+    "PilotAllocation": {
       "address": "",
       "proxy": "transparent",
       "proxyAdmin": "",
@@ -46,7 +46,7 @@
       "proxyAdmin": "",
       "implementation": ""
     },
-    "DirectAllocation": {
+    "PilotAllocation": {
       "address": "",
       "proxy": "transparent",
       "proxyAdmin": "",

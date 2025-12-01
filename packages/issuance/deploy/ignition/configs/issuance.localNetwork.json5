@@ -8,7 +8,7 @@
     // Test issuance per block for local network
     "issuancePerBlock": "114155251141552511415n"
   },
-  "DirectAllocation": {},
+  "PilotAllocation": {},
   "RewardsEligibilityOracle": {
     // Shorter periods for local testing
     "eligibilityPeriod": 3600, // 1 hour

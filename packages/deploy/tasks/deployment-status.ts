@@ -1,6 +1,7 @@
+import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed/deployments'
+import type { Provider } from 'ethers'
 import { task } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed/deployments'
 import path from 'path'
 
 import { EnhancedIssuanceAddressBook } from '../lib/enhanced-address-book'
@@ -108,11 +109,11 @@ task('issuance:deployment-status', 'Show comprehensive deployment status for all
           printContractStatus(status)
         }
 
-        // DirectAllocation (if exists)
-        if (issuanceContracts.DirectAllocation) {
+        // PilotAllocation (if exists)
+        if (issuanceContracts.PilotAllocation) {
           const status = await getContractStatus(
-            'DirectAllocation',
-            issuanceContracts.DirectAllocation.target.toString(),
+            'PilotAllocation',
+            issuanceContracts.PilotAllocation.target.toString(),
             provider,
             shouldVerify,
             'issuance',
@@ -134,7 +135,7 @@ task('issuance:deployment-status', 'Show comprehensive deployment status for all
 async function getContractStatus(
   name: string,
   address: string,
-  provider: any,
+  provider: Provider,
   verify: boolean,
   pkg: 'horizon' | 'issuance',
   pendingImplementation?: string,
@@ -160,7 +161,7 @@ async function getContractStatus(
         status.implementation = '0x' + implBytes.slice(-40)
         status.verified = true
       }
-    } catch (error) {
+    } catch (_error) {
       status.verified = false
     }
   } else {

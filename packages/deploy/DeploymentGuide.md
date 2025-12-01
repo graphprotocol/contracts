@@ -2,7 +2,7 @@
 
 **Status:** This document contains aspirational workflows that are not yet fully implemented. See TODOs for unimplemented features.
 
-**Note:** For actual component deployment procedures (REO, IA, DirectAllocation), see `packages/issuance/deploy/docs/`.
+**Note:** For actual component deployment procedures (REO, IA, PilotAllocation), see `packages/issuance/deploy/docs/`.
 
 This guide describes the conceptual deployment workflow for cross-package governance integration.
 
@@ -515,7 +515,7 @@ GraphToken.addMinter(ISSUANCE_ALLOCATOR_ADDRESS)
 **Impact**:
 
 - **Allocator Can Mint**: Now capable of allocator-controlled minting
-- **Ready for New Targets**: Can mint tokens for DirectAllocation and other targets
+- **Ready for New Targets**: Can mint tokens for PilotAllocation and other targets
 - **Full Functionality**: Complete IssuanceAllocator system operational
 
 **Verification**:
@@ -532,12 +532,12 @@ Governance-controlled allocation changes can now be made safely.
 
 #### **4.3.1 Deploy Additional Allocation Targets**
 
-Deploy DirectAllocation contracts for new allocation targets.
+Deploy PilotAllocation contracts for new allocation targets.
 
 ```bash
-# Deploy DirectAllocation instances for new targets
+# Deploy PilotAllocation instances for new targets
 # Example: Innovation allocation, ecosystem allocation, etc.
-pnpm deploy:direct-allocation:mainnet
+pnpm deploy:pilot-allocation:mainnet
 ```
 
 #### **4.3.2 Gradual Allocation Adjustments**
