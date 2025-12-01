@@ -205,10 +205,7 @@ abstract contract HorizonStakingSharedTest is GraphBaseTest {
         assertEq(afterStakingBalance, beforeStakingBalance - _tokens);
         assertEq(afterServiceProvider.tokensStaked, beforeServiceProvider.tokensStaked - _tokens);
         assertEq(afterServiceProvider.tokensProvisioned, beforeServiceProvider.tokensProvisioned);
-        assertEq(
-            afterServiceProvider.__DEPRECATED_tokensAllocated,
-            beforeServiceProvider.__DEPRECATED_tokensAllocated
-        );
+        assertEq(afterServiceProvider.__DEPRECATED_tokensAllocated, beforeServiceProvider.__DEPRECATED_tokensAllocated);
         assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, beforeServiceProvider.__DEPRECATED_tokensLocked);
         assertEq(
             afterServiceProvider.__DEPRECATED_tokensLockedUntil,

@@ -21,11 +21,10 @@ import { IRewardsManager } from "@graphprotocol/interfaces/contracts/contracts/r
  * @title Rewards Manager Contract
  * @author Edge & Node
  * @notice Manages rewards distribution for indexers and delegators in the Graph Protocol
- * @dev Tracks how inflationary GRT rewards should be handed out. Relies on the Curation contract
- * and the Staking contract. Signaled GRT in Curation determine what percentage of the tokens go
- * towards each subgraph. Then each Subgraph can have multiple Indexers Staked on it. Thus, the
- * total rewards for the Subgraph are split up for each Indexer based on much they have Staked on
- * that Subgraph.
+ * @dev Tracks how inflationary GRT rewards should be handed out. Signaled GRT in Curation determine
+ * what percentage of the tokens go towards each subgraph. Then each Subgraph can have multiple
+ * Indexers Staked on it. Thus, the total rewards for the Subgraph are split up for each Indexer based
+ * on much they have Staked on that Subgraph.
  *
  * Note:
  * The contract provides getter functions to query the state of accrued rewards:
@@ -249,11 +248,8 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
             subgraph.accRewardsForSubgraphSnapshot
         );
 
-        // There are two contributors to subgraph allocated tokens:
-        // - the legacy allocations on the legacy staking contract
-        // - the new allocations on the subgraph service
         uint256 subgraphAllocatedTokens = 0;
-        address[2] memory rewardsIssuers = [address(staking()), address(subgraphService)];
+        address[1] memory rewardsIssuers = [address(subgraphService)];
         for (uint256 i = 0; i < rewardsIssuers.length; i++) {
             if (rewardsIssuers[i] != address(0)) {
                 subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuers[i]).getSubgraphAllocatedTokens(
@@ -303,7 +299,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
 
     /**
      * @inheritdoc IRewardsManager
-     * @dev Hook called from the Staking contract on allocate() and close()
+     * @dev Hook called from the IRewardsIssuer contract on allocate() and close()
      */
     function onSubgraphAllocationUpdate(bytes32 _subgraphDeploymentID) public override returns (uint256) {
         Subgraph storage subgraph = subgraphs[_subgraphDeploymentID];
@@ -317,10 +313,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
 
     /// @inheritdoc IRewardsManager
     function getRewards(address _rewardsIssuer, address _allocationID) external view override returns (uint256) {
-        require(
-            _rewardsIssuer == address(staking()) || _rewardsIssuer == address(subgraphService),
-            "Not a rewards issuer"
-        );
+        require(_rewardsIssuer == address(subgraphService), "Not a rewards issuer");
 
         (
             bool isActive,
@@ -372,15 +365,12 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     /**
      * @inheritdoc IRewardsManager
      * @dev This function can only be called by an authorized rewards issuer which are
-     * the staking contract (for legacy allocations), and the subgraph service (for new allocations).
+     * - the subgraph service (for new allocations).
      * Mints 0 tokens if the allocation is not active.
      */
     function takeRewards(address _allocationID) external override returns (uint256) {
         address rewardsIssuer = msg.sender;
-        require(
-            rewardsIssuer == address(staking()) || rewardsIssuer == address(subgraphService),
-            "Caller must be a rewards issuer"
-        );
+        require(rewardsIssuer == address(subgraphService), "Caller must be a rewards issuer");
 
         (
             bool isActive,
