@@ -191,7 +191,7 @@ abstract contract GraphBaseTest is IHorizonStakingTypes, Utils, Constants {
             escrow = PaymentsEscrow(escrowProxyAddress);
         }
 
-        stakingBase = new HorizonStaking(address(controller), address(0), subgraphDataServiceLegacyAddress);
+        stakingBase = new HorizonStaking(address(controller), subgraphDataServiceLegacyAddress);
 
         graphTallyCollector = new GraphTallyCollector(
             "GraphTallyCollector",

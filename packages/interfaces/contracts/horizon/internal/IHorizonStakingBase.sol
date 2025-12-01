@@ -26,6 +26,12 @@ interface IHorizonStakingBase {
     error HorizonStakingInvalidThawRequestType();
 
     /**
+     * @notice Gets the address of the subgraph data service.
+     * @return The address of the subgraph data service.
+     */
+    function getSubgraphService() external view returns (address);
+
+    /**
      * @notice Gets the details of a service provider.
      * @param serviceProvider The address of the service provider.
      * @return The service provider details.

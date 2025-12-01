@@ -1,5 +1,5 @@
 import { loadConfig } from '@graphprotocol/toolshed/hardhat'
-import { assert, expect } from 'chai'
+import { expect } from 'chai'
 import hre from 'hardhat'
 
 import { graphProxyTests } from './lib/GraphProxy.test'
@@ -26,16 +26,6 @@ describe('HorizonStaking', function () {
     const delegationSlashingEnabled = await HorizonStaking.isDelegationSlashingEnabled()
     expect(delegationSlashingEnabled).to.equal(false)
   })
-
-  testIf(4)('should set a non zero thawing period', async function () {
-    if (process.env.IGNITION_DEPLOYMENT_TYPE === 'protocol') {
-      assert.fail('Deployment type "protocol": no historical state available')
-    }
-    const thawingPeriod = await HorizonStaking.__DEPRECATED_getThawingPeriod()
-    expect(thawingPeriod).to.not.equal(0)
-  })
-
-  it.skip('should set the right staking extension address')
 
   testIf(4)('should set the right subgraph data service address', async function () {
     const subgraphDataServiceAddress = await HorizonStaking.getSubgraphService()

@@ -53,6 +53,11 @@ abstract contract HorizonStakingBase is
     }
 
     /// @inheritdoc IHorizonStakingBase
+    function getSubgraphService() external view override returns (address) {
+        return SUBGRAPH_DATA_SERVICE_ADDRESS;
+    }
+
+    /// @inheritdoc IHorizonStakingBase
     /// @dev Removes deprecated fields from the return value.
     function getServiceProvider(address serviceProvider) external view override returns (ServiceProvider memory) {
         ServiceProvider memory sp;

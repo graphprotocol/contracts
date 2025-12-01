@@ -38,9 +38,6 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /// @dev Maximum number of simultaneous stake thaw requests (per provision) or undelegations (per delegation)
     uint256 private constant MAX_THAW_REQUESTS = 1_000;
 
-    /// @dev Address of the staking extension contract
-    address private immutable STAKING_EXTENSION_ADDRESS;
-
     /// @dev Minimum amount of delegation.
     uint256 private constant MIN_DELEGATION = 1e18;
 
@@ -73,50 +70,12 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
     /**
      * @notice The staking contract is upgradeable however we still use the constructor to set a few immutable variables
      * @param controller The address of the Graph controller contract
-     * @param stakingExtensionAddress The address of the staking extension contract
      * @param subgraphDataServiceAddress The address of the subgraph data service
      */
     constructor(
         address controller,
-        address stakingExtensionAddress,
         address subgraphDataServiceAddress
-    ) HorizonStakingBase(controller, subgraphDataServiceAddress) {
-        STAKING_EXTENSION_ADDRESS = stakingExtensionAddress;
-    }
-
-    /**
-     * @notice Delegates the current call to the StakingExtension implementation.
-     * @dev This function does not return to its internal call site, it will return directly to the
-     * external caller.
-     */
-    fallback() external {
-        // solhint-disable-previous-line payable-fallback, no-complex-fallback
-        address extensionImpl = STAKING_EXTENSION_ADDRESS;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            // (a) get free memory pointer
-            let ptr := mload(0x40)
-
-            // (1) copy incoming call data
-            calldatacopy(ptr, 0, calldatasize())
-
-            // (2) forward call to logic contract
-            let result := delegatecall(gas(), extensionImpl, ptr, calldatasize(), 0, 0)
-            let size := returndatasize()
-
-            // (3) retrieve return data
-            returndatacopy(ptr, 0, size)
-
-            // (4) forward return data back to caller
-            switch result
-            case 0 {
-                revert(ptr, size)
-            }
-            default {
-                return(ptr, size)
-            }
-        }
-    }
+    ) HorizonStakingBase(controller, subgraphDataServiceAddress) {}
 
     /*
      * STAKING
