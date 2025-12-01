@@ -19,34 +19,32 @@ async function main() {
 
   // Deploy all contracts using the main deployment module
   const {
+    GraphProxyAdmin2,
     IssuanceAllocator,
     IssuanceAllocatorImplementation,
-    IssuanceAllocatorProxyAdmin,
     PilotAllocation,
     PilotAllocationImplementation,
-    PilotAllocationProxyAdmin,
     RewardsEligibilityOracle,
     RewardsEligibilityOracleImplementation,
-    RewardsEligibilityOracleProxyAdmin,
   } = await ignition.deploy(GraphIssuanceModule)
 
   console.log('\n=== Deployment Complete ===\n')
 
   // Log deployed addresses
-  console.log('IssuanceAllocator:')
+  console.log('GraphProxyAdmin2 (Shared):')
+  console.log('  Address:', await GraphProxyAdmin2.getAddress())
+
+  console.log('\nIssuanceAllocator:')
   console.log('  Proxy:', await IssuanceAllocator.getAddress())
   console.log('  Implementation:', await IssuanceAllocatorImplementation.getAddress())
-  console.log('  ProxyAdmin:', await IssuanceAllocatorProxyAdmin.getAddress())
 
   console.log('\nPilotAllocation:')
   console.log('  Proxy:', await PilotAllocation.getAddress())
   console.log('  Implementation:', await PilotAllocationImplementation.getAddress())
-  console.log('  ProxyAdmin:', await PilotAllocationProxyAdmin.getAddress())
 
   console.log('\nRewardsEligibilityOracle:')
   console.log('  Proxy:', await RewardsEligibilityOracle.getAddress())
   console.log('  Implementation:', await RewardsEligibilityOracleImplementation.getAddress())
-  console.log('  ProxyAdmin:', await RewardsEligibilityOracleProxyAdmin.getAddress())
 
   // Example: Interact with deployed contracts
   console.log('\n=== Contract Interaction Examples ===\n')

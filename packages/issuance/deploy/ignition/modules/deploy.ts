@@ -1,18 +1,22 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
+import GraphProxyAdmin2Module from './GraphProxyAdmin2'
 import IssuanceAllocatorModule from './IssuanceAllocator'
 import PilotAllocationModule from './PilotAllocation'
 import RewardsEligibilityOracleModule from './RewardsEligibilityOracle'
 
 export default buildModule('GraphIssuance_Deploy', (m) => {
-  const { IssuanceAllocator, IssuanceAllocatorImplementation, IssuanceAllocatorProxyAdmin } =
-    m.useModule(IssuanceAllocatorModule)
+  // Deploy shared GraphProxyAdmin2 first
+  const { GraphProxyAdmin2 } = m.useModule(GraphProxyAdmin2Module)
 
-  const { PilotAllocation, PilotAllocationImplementation, PilotAllocationProxyAdmin } =
-    m.useModule(PilotAllocationModule)
+  // Deploy issuance contracts (they will use GraphProxyAdmin2)
+  const { IssuanceAllocator, IssuanceAllocatorImplementation } = m.useModule(IssuanceAllocatorModule)
 
-  const { RewardsEligibilityOracle, RewardsEligibilityOracleImplementation, RewardsEligibilityOracleProxyAdmin } =
-    m.useModule(RewardsEligibilityOracleModule)
+  const { PilotAllocation, PilotAllocationImplementation } = m.useModule(PilotAllocationModule)
+
+  const { RewardsEligibilityOracle, RewardsEligibilityOracleImplementation } = m.useModule(
+    RewardsEligibilityOracleModule,
+  )
 
   const governor = m.getAccount(1)
 
@@ -33,14 +37,12 @@ export default buildModule('GraphIssuance_Deploy', (m) => {
   })
 
   return {
+    GraphProxyAdmin2,
     IssuanceAllocator,
     IssuanceAllocatorImplementation,
-    IssuanceAllocatorProxyAdmin,
     PilotAllocation,
     PilotAllocationImplementation,
-    PilotAllocationProxyAdmin,
     RewardsEligibilityOracle,
     RewardsEligibilityOracleImplementation,
-    RewardsEligibilityOracleProxyAdmin,
   }
 })

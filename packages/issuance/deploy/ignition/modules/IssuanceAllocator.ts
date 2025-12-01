@@ -1,35 +1,30 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import IssuanceAllocatorArtifact from '../../../artifacts/contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator.json'
-import { deployImplementation } from './proxy/implementation'
-import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
+import GraphProxyAdmin2Module from './GraphProxyAdmin2'
+import { deployWithGraphProxy } from './proxy/GraphProxy'
 
 export default buildModule('IssuanceAllocator', (m) => {
-  const deployer = m.getAccount(0)
   const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
 
-  // Deploy proxy (this also deploys the implementation internally)
-  const {
-    proxy: IssuanceAllocatorProxy,
-    proxyAdmin: IssuanceAllocatorProxyAdmin,
-    implementation: IssuanceAllocatorImplementation,
-  } = deployWithTransparentUpgradeableProxy(m, {
-    name: 'IssuanceAllocator',
-    artifact: IssuanceAllocatorArtifact,
-    constructorArgs: [graphTokenAddress],
-    initArgs: [governor],
-  })
+  // Use shared GraphProxyAdmin2
+  const { GraphProxyAdmin2 } = m.useModule(GraphProxyAdmin2Module)
 
-  // Transfer ProxyAdmin ownership to governor (must be called by deployer who owns it)
-  m.call(IssuanceAllocatorProxyAdmin, 'transferOwnership', [governor], {
-    from: deployer,
-    after: [IssuanceAllocatorProxy],
-  })
+  // Deploy proxy using GraphProxy pattern with shared admin
+  const { proxy: IssuanceAllocatorProxy, implementation: IssuanceAllocatorImplementation } = deployWithGraphProxy(
+    m,
+    GraphProxyAdmin2,
+    {
+      name: 'IssuanceAllocator',
+      artifact: IssuanceAllocatorArtifact,
+      constructorArgs: [graphTokenAddress],
+      initArgs: [governor],
+    },
+  )
 
   return {
     IssuanceAllocator: IssuanceAllocatorProxy,
-    IssuanceAllocatorProxyAdmin,
     IssuanceAllocatorImplementation,
   }
 })
@@ -42,4 +37,3 @@ export const MigrateIssuanceAllocatorModule = buildModule('IssuanceAllocatorMigr
 
   return { IssuanceAllocator }
 })
-

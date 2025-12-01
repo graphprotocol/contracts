@@ -1,61 +1,70 @@
 {
   "42161": {
+    "GraphProxyAdmin2": {
+      "address": ""
+    },
     "IssuanceAllocator": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     },
     "PilotAllocation": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     },
     "RewardsEligibilityOracle": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     }
   },
   "421614": {
+    "GraphProxyAdmin2": {
+      "address": ""
+    },
     "IssuanceAllocator": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     },
     "PilotAllocation": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     },
     "RewardsEligibilityOracle": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     }
   },
   "31337": {
+    "GraphProxyAdmin2": {
+      "address": ""
+    },
     "IssuanceAllocator": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     },
     "PilotAllocation": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     },
     "RewardsEligibilityOracle": {
       "address": "",
-      "proxy": "transparent",
-      "proxyAdmin": "",
+      "proxy": "graph",
+      "proxyAdmin": "GraphProxyAdmin2",
       "implementation": ""
     }
   }

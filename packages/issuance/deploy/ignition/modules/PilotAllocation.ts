@@ -1,23 +1,21 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import DirectAllocationArtifact from '../../../artifacts/contracts/allocate/DirectAllocation.sol/DirectAllocation.json'
-import { deployImplementation } from './proxy/implementation'
-import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
+import GraphProxyAdmin2Module from './GraphProxyAdmin2'
+import { deployWithGraphProxy } from './proxy/GraphProxy'
 
 export default buildModule('PilotAllocation', (m) => {
   const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
 
-  // Deploy DirectAllocation implementation (contract name is DirectAllocation)
-  const PilotAllocationImplementation = deployImplementation(m, {
-    name: 'PilotAllocation',
-    artifact: DirectAllocationArtifact,
-    constructorArgs: [graphTokenAddress],
-  })
+  // Use shared GraphProxyAdmin2
+  const { GraphProxyAdmin2 } = m.useModule(GraphProxyAdmin2Module)
 
-  // Deploy proxy (deployed as PilotAllocation)
-  const { proxy: PilotAllocationProxy, proxyAdmin: PilotAllocationProxyAdmin } = deployWithTransparentUpgradeableProxy(
+  // Deploy proxy using GraphProxy pattern with shared admin
+  // Note: The implementation contract is DirectAllocation.sol, but deployment is named PilotAllocation
+  const { proxy: PilotAllocationProxy, implementation: PilotAllocationImplementation } = deployWithGraphProxy(
     m,
+    GraphProxyAdmin2,
     {
       name: 'PilotAllocation',
       artifact: DirectAllocationArtifact,
@@ -26,13 +24,9 @@ export default buildModule('PilotAllocation', (m) => {
     },
   )
 
-  // Transfer ProxyAdmin ownership to governor
-  m.call(PilotAllocationProxyAdmin, 'transferOwnership', [governor], { after: [PilotAllocationProxy] })
-
   return {
     PilotAllocation: PilotAllocationProxy,
     PilotAllocationImplementation,
-    PilotAllocationProxyAdmin,
   }
 })
 
