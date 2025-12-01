@@ -5,34 +5,32 @@ import { deployImplementation } from './proxy/implementation'
 import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
 
 export default buildModule('RewardsEligibilityOracle', (m) => {
+  const deployer = m.getAccount(0)
   const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
 
-  // Deploy RewardsEligibilityOracle implementation
-  const RewardsEligibilityOracleImplementation = deployImplementation(m, {
+  // Deploy proxy (this also deploys the implementation internally)
+  const {
+    proxy: RewardsEligibilityOracleProxy,
+    proxyAdmin: RewardsEligibilityOracleProxyAdmin,
+    implementation: RewardsEligibilityOracleImplementation,
+  } = deployWithTransparentUpgradeableProxy(m, {
     name: 'RewardsEligibilityOracle',
     artifact: RewardsEligibilityOracleArtifact,
     constructorArgs: [graphTokenAddress],
+    initArgs: [governor],
   })
 
-  // Deploy proxy
-  const { proxy: RewardsEligibilityOracleProxy, proxyAdmin: RewardsEligibilityOracleProxyAdmin } =
-    deployWithTransparentUpgradeableProxy(m, {
-      name: 'RewardsEligibilityOracle',
-      artifact: RewardsEligibilityOracleArtifact,
-      constructorArgs: [graphTokenAddress],
-      initArgs: [governor],
-    })
-
-  // Transfer ProxyAdmin ownership to governor
+  // Transfer ProxyAdmin ownership to governor (must be called by deployer who owns it)
   m.call(RewardsEligibilityOracleProxyAdmin, 'transferOwnership', [governor], {
+    from: deployer,
     after: [RewardsEligibilityOracleProxy],
   })
 
   return {
     RewardsEligibilityOracle: RewardsEligibilityOracleProxy,
-    RewardsEligibilityOracleImplementation,
     RewardsEligibilityOracleProxyAdmin,
+    RewardsEligibilityOracleImplementation,
   }
 })
 

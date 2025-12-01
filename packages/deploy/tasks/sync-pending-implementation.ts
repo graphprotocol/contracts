@@ -22,7 +22,7 @@ task(
   'Mark pending implementation as active after governance execution',
 )
   .addParam('contract', 'Contract name (e.g., RewardsManager, IssuanceAllocator)')
-  .addOptionalParam('skipVerification', 'Skip on-chain verification (use with caution)', false)
+  .addOptionalParam('skipVerification', 'Skip on-chain verification (use with caution)', 'false')
   .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
     const { ethers } = hre
     const chainId = hre.network.config.chainId ?? (await ethers.provider.getNetwork()).chainId
@@ -45,7 +45,7 @@ task(
     console.log(`\n📋 Pending implementation: ${pendingImpl}`)
 
     // Step 1: Verify on-chain (unless skipped)
-    if (!taskArgs.skipVerification) {
+    if (taskArgs.skipVerification !== 'true') {
       console.log('\n🔍 Verifying on-chain implementation...')
 
       const entry = addressBook.getEntry(contractName as any)

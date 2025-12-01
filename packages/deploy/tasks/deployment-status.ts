@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed'
+import { connectGraphHorizon, connectGraphIssuance } from '@graphprotocol/toolshed/deployments'
 import path from 'path'
 
 import { EnhancedIssuanceAddressBook } from '../lib/enhanced-address-book'
@@ -20,7 +20,7 @@ task('issuance:deployment-status', 'Show comprehensive deployment status for all
   .addOptionalParam('package', 'Show only specific package (horizon|issuance|all)', 'all')
   .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
     const { ethers } = hre
-    const chainId = hre.network.config.chainId ?? (await ethers.provider.getNetwork()).chainId
+    const chainId = Number(hre.network.config.chainId ?? (await ethers.provider.getNetwork()).chainId)
     const provider = hre.ethers.provider
     const shouldVerify = taskArgs.verify === 'true'
     const packageFilter = taskArgs.package.toLowerCase()

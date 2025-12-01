@@ -1,5 +1,6 @@
-import { GraphIssuanceAddressBook, GraphIssuanceContractName } from '@graphprotocol/toolshed'
-import type { AddressBookEntry } from '@graphprotocol/toolshed'
+import { GraphIssuanceAddressBook } from '@graphprotocol/toolshed/deployments'
+import type { GraphIssuanceContractName } from '@graphprotocol/toolshed/deployments'
+import type { AddressBookEntry } from '@graphprotocol/toolshed/deployments'
 
 /**
  * Enhanced address book entry with pending implementation support
@@ -119,7 +120,8 @@ export class EnhancedIssuanceAddressBook extends GraphIssuanceAddressBook {
     }
 
     // Move pending to active, clear pending
-    const updatedEntry: Partial<AddressBookEntry> = {
+    // Cast to any because we're setting custom fields preserved in JSON
+    const updatedEntry: any = {
       ...entry,
       implementation: entry.pendingImplementation.address,
       pendingImplementation: undefined,
@@ -182,7 +184,8 @@ export class EnhancedIssuanceAddressBook extends GraphIssuanceAddressBook {
       throw new Error(`Contract ${contractName} not found in address book`)
     }
 
-    const updatedEntry: Partial<AddressBookEntry> = {
+    // Cast to any because we're clearing custom fields preserved in JSON
+    const updatedEntry: any = {
       ...entry,
       pendingImplementation: undefined,
     }

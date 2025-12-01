@@ -6,7 +6,7 @@
 
 ## Overview
 
-This directory contains production-ready deployment documentation for Graph Protocol's issuance contracts. The documentation focuses on **RewardsEligibilityOracle (REO)** deployment (immediate priority) while preserving patterns for **IssuanceAllocator (IA)** deployment (future).
+The documentation focuses on **RewardsEligibilityOracle (REO)** deployment (immediate priority) while preserving patterns for **IssuanceAllocator (IA)** deployment (future).
 
 ---
 
@@ -38,9 +38,9 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 #### [REODeploymentSequence.md](./REODeploymentSequence.md)
 
-**Complete deployment sequence for RewardsEligibilityOracle**
+Complete deployment sequence for RewardsEligibilityOracle.
 
-**Contents:**
+Contents:
 
 - **6-Phase Deployment:** RM Upgrade → REO Deployment → Testing → Integration → Monitoring → Enable Validation
 - **Stage-by-stage breakdown** of Phase 2 deployment
@@ -57,9 +57,9 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 #### [GovernanceWorkflow.md](./GovernanceWorkflow.md)
 
-**Three-phase governance pattern for deployment and integration**
+Three-phase governance pattern for deployment and integration.
 
-**Contents:**
+Contents:
 
 - **Phase 1: Prepare (Permissionless)** - Deploy contracts, generate proposals
 - **Phase 2: Execute (Governance)** - Review and execute transactions
@@ -76,9 +76,9 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 #### [VerificationChecklists.md](./VerificationChecklists.md)
 
-**Comprehensive checklists for every deployment phase**
+Comprehensive checklists for every deployment phase.
 
-**Contents:**
+Contents:
 
 - **Pre-Deployment Checklist** - Code, config, roles, infrastructure
 - **Phase-by-phase checklists** for all 6 REO deployment phases
@@ -96,9 +96,9 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 #### [REOArchitecture.md](./REOArchitecture.md)
 
-**Visual diagrams and architecture documentation**
+Visual diagrams and architecture documentation.
 
-**Contents:**
+Contents:
 
 - **Contract architecture** - Component relationships graph
 - **Deployment sequence** - Phase-by-phase sequence diagram
@@ -120,9 +120,9 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 #### [APICorrectness.md](./APICorrectness.md)
 
-**Correct method signatures and usage to prevent implementation errors**
+Correct method signatures and usage to prevent implementation errors.
 
-**Contents:**
+Contents:
 
 - **REO methods** with correct signatures and examples
 - **RewardsManager integration** methods
@@ -141,9 +141,9 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 #### [IADeploymentGuide.md](./IADeploymentGuide.md)
 
-**Critical 3-stage gradual migration pattern for IssuanceAllocator**
+Critical 3-stage gradual migration pattern for IssuanceAllocator.
 
-**Contents:**
+Contents:
 
 - **Stage 1: Deploy with Zero Impact** - Deploy without production changes
 - **Stage 2: Activate with No Distribution Change** - Integrate at 100% to RM
@@ -164,21 +164,21 @@ This directory contains production-ready deployment documentation for Graph Prot
 
 ### Three-Phase Governance Pattern
 
-**Phase 1: Prepare (Permissionless)**
+#### Phase 1: Prepare (Permissionless)
 
 - Anyone can deploy implementations
 - Generate governance transaction data
 - Independent verification
 - **No production impact**
 
-**Phase 2: Execute (Governance)**
+#### Phase 2: Execute (Governance)
 
 - Governance multi-sig reviews
 - Safe batch transaction execution
 - State transitions occur
 - **Production impact happens**
 
-**Phase 3: Verify/Sync (Automated)**
+#### Phase 3: Verify/Sync (Automated)
 
 - Verify expected state achieved
 - Update address book

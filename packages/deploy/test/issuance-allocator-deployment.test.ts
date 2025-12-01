@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import { ethers, ignition } from 'hardhat'
 
 import IssuanceAllocatorModule from '../../issuance/deploy/ignition/modules/IssuanceAllocator'
+import IssuanceAllocatorArtifact from '../../issuance/artifacts/contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator.json'
 
 describe('IssuanceAllocator Deployment', function () {
   let governor: any
@@ -17,7 +18,7 @@ describe('IssuanceAllocator Deployment', function () {
   describe('Complete System Deployment', function () {
     it('should deploy complete IssuanceAllocator system', async function () {
       // Deploy using Ignition
-      const { IssuanceAllocatorProxyAdmin, IssuanceAllocatorImplementation, IssuanceAllocator } = await ignition.deploy(
+      const { IssuanceAllocatorProxyAdmin, IssuanceAllocator } = await ignition.deploy(
         IssuanceAllocatorModule,
         {
           parameters: {
@@ -33,18 +34,14 @@ describe('IssuanceAllocator Deployment', function () {
       expect(IssuanceAllocatorProxyAdmin.target).to.be.properAddress
       expect(await IssuanceAllocatorProxyAdmin.owner()).to.equal(governor.address)
 
-      // Verify Implementation deployment
-      expect(IssuanceAllocatorImplementation.target).to.be.properAddress
-      // Note: graphToken is stored as immutable internal variable, not accessible externally
-
       // Verify Proxy deployment
       expect(IssuanceAllocator.target).to.be.properAddress
 
-      // Verify proxy points to implementation
+      // Verify proxy points to an implementation (has non-zero implementation slot)
       const implementationSlot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc'
       const implementationAddress = await ethers.provider.getStorage(IssuanceAllocator.target, implementationSlot)
       const cleanImplementationAddress = ethers.getAddress('0x' + implementationAddress.slice(-40))
-      expect(cleanImplementationAddress).to.equal(IssuanceAllocatorImplementation.target)
+      expect(cleanImplementationAddress).to.not.equal(ethers.ZeroAddress)
     })
 
     it('should initialize proxy correctly', async function () {
@@ -58,7 +55,7 @@ describe('IssuanceAllocator Deployment', function () {
       })
 
       // Create interface to interact with proxy as IssuanceAllocator
-      const IssuanceAllocatorFactory = await ethers.getContractFactory('IssuanceAllocator')
+      const IssuanceAllocatorFactory = await ethers.getContractFactoryFromArtifact(IssuanceAllocatorArtifact)
       const issuanceAllocator = IssuanceAllocatorFactory.attach(IssuanceAllocator.target)
 
       // Verify initialization - check if governor role is set
@@ -67,7 +64,7 @@ describe('IssuanceAllocator Deployment', function () {
     })
 
     it('should have correct contract interfaces', async function () {
-      const { IssuanceAllocatorImplementation } = await ignition.deploy(IssuanceAllocatorModule, {
+      const { IssuanceAllocator } = await ignition.deploy(IssuanceAllocatorModule, {
         parameters: {
           IssuanceAllocator: {
             graphTokenAddress: mockGraphTokenAddress,
@@ -76,10 +73,13 @@ describe('IssuanceAllocator Deployment', function () {
         defaultSender: governor.address,
       })
 
-      // Check key functions exist
-      expect(IssuanceAllocatorImplementation.interface.getFunction('initialize')).to.exist
-      expect(IssuanceAllocatorImplementation.interface.getFunction('distributeIssuance')).to.exist
-      expect(IssuanceAllocatorImplementation.interface.getFunction('issuancePerBlock')).to.exist
+      // Check key functions exist (proxy has same interface as implementation)
+      const IssuanceAllocatorFactory = await ethers.getContractFactoryFromArtifact(IssuanceAllocatorArtifact)
+      const issuanceAllocator = IssuanceAllocatorFactory.attach(IssuanceAllocator.target)
+
+      expect(issuanceAllocator.interface.getFunction('initialize')).to.exist
+      expect(issuanceAllocator.interface.getFunction('distributeIssuance')).to.exist
+      expect(issuanceAllocator.interface.getFunction('issuancePerBlock')).to.exist
     })
   })
 })

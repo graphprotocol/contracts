@@ -16,9 +16,11 @@ describe('Orchestration Active targets (issuance)', () => {
     // We cannot fully pass without a real RM/REO pair; test that it attempts the assertion call by deploying the module
     const { rewardsManager, rewardsEligibilityOracle } = await ignition.deploy(RewardsEligibilityOracleModule, {
       parameters: {
-        RewardsEligibilityOracleActive: {
-          rewardsManager: dummy,
-          rewardsEligibilityOracle: dummy,
+        RewardsManagerRef: {
+          rewardsManagerAddress: dummy,
+        },
+        RewardsEligibilityOracleRef: {
+          rewardsEligibilityOracleAddress: dummy,
         },
       },
     })
@@ -33,9 +35,11 @@ describe('Orchestration Active targets (issuance)', () => {
 
     const { rewardsManager, issuanceAllocator } = await ignition.deploy(IssuanceAllocatorActiveModule, {
       parameters: {
-        IssuanceAllocatorActive: {
-          rewardsManager: dummy,
-          issuanceAllocator: dummy,
+        RewardsManagerRef: {
+          rewardsManagerAddress: dummy,
+        },
+        IssuanceAllocatorRef: {
+          issuanceAllocatorAddress: dummy,
         },
       },
     })
@@ -50,9 +54,11 @@ describe('Orchestration Active targets (issuance)', () => {
 
     const { graphToken, issuanceAllocator } = await ignition.deploy(IssuanceAllocatorMinterModule, {
       parameters: {
-        IssuanceAllocatorMinter: {
-          graphToken: dummy,
-          issuanceAllocator: dummy,
+        GraphTokenRef: {
+          graphTokenAddress: dummy,
+        },
+        IssuanceAllocatorRef: {
+          issuanceAllocatorAddress: dummy,
         },
       },
     })
