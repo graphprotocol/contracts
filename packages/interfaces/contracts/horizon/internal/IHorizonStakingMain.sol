@@ -536,8 +536,7 @@ interface IHorizonStakingMain {
      * Stake is immediately removed from the protocol.
      * @dev Requirements:
      * - `_tokens` cannot be zero.
-     * - `_serviceProvider` must have enough idle stake to cover the staking amount and any
-     *   legacy allocation.
+     * - `_serviceProvider` must have enough idle stake to cover the staking amount.
      *
      * Emits a {HorizonStakeWithdrawn} event.
      *

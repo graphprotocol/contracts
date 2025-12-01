@@ -328,15 +328,6 @@ contract SubgraphService is
     }
 
     /// @inheritdoc ISubgraphService
-    function migrateLegacyAllocation(
-        address indexer,
-        address allocationId,
-        bytes32 subgraphDeploymentID
-    ) external override onlyOwner {
-        _migrateLegacyAllocation(indexer, allocationId, subgraphDeploymentID);
-    }
-
-    /// @inheritdoc ISubgraphService
     function setPauseGuardian(address pauseGuardian, bool allowed) external override onlyOwner {
         _setPauseGuardian(pauseGuardian, allowed);
     }
