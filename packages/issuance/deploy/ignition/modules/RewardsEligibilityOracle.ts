@@ -1,35 +1,27 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 import RewardsEligibilityOracleArtifact from '../../../artifacts/contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle.json'
-import { deployImplementation } from './proxy/implementation'
-import { deployWithTransparentUpgradeableProxy } from './proxy/TransparentUpgradeableProxy'
+import GraphProxyAdmin2Module from './GraphProxyAdmin2'
+import { deployWithGraphProxy } from './proxy/GraphProxy'
 
 export default buildModule('RewardsEligibilityOracle', (m) => {
-  const deployer = m.getAccount(0)
   const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
 
-  // Deploy proxy (this also deploys the implementation internally)
-  const {
-    proxy: RewardsEligibilityOracleProxy,
-    proxyAdmin: RewardsEligibilityOracleProxyAdmin,
-    implementation: RewardsEligibilityOracleImplementation,
-  } = deployWithTransparentUpgradeableProxy(m, {
-    name: 'RewardsEligibilityOracle',
-    artifact: RewardsEligibilityOracleArtifact,
-    constructorArgs: [graphTokenAddress],
-    initArgs: [governor],
-  })
+  // Use shared GraphProxyAdmin2
+  const { GraphProxyAdmin2 } = m.useModule(GraphProxyAdmin2Module)
 
-  // Transfer ProxyAdmin ownership to governor (must be called by deployer who owns it)
-  m.call(RewardsEligibilityOracleProxyAdmin, 'transferOwnership', [governor], {
-    from: deployer,
-    after: [RewardsEligibilityOracleProxy],
-  })
+  // Deploy proxy using GraphProxy pattern with shared admin
+  const { proxy: RewardsEligibilityOracleProxy, implementation: RewardsEligibilityOracleImplementation } =
+    deployWithGraphProxy(m, GraphProxyAdmin2, {
+      name: 'RewardsEligibilityOracle',
+      artifact: RewardsEligibilityOracleArtifact,
+      constructorArgs: [graphTokenAddress],
+      initArgs: [governor],
+    })
 
   return {
     RewardsEligibilityOracle: RewardsEligibilityOracleProxy,
-    RewardsEligibilityOracleProxyAdmin,
     RewardsEligibilityOracleImplementation,
   }
 })
@@ -46,4 +38,3 @@ export const MigrateRewardsEligibilityOracleModule = buildModule('RewardsEligibi
 
   return { RewardsEligibilityOracle }
 })
-
