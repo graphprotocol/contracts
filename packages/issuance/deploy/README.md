@@ -11,7 +11,7 @@ This package provides **component-only deployment** for Graph Issuance contracts
 
 - RewardsEligibilityOracle (REO)
 - IssuanceAllocator (IA)
-- DirectAllocation
+- PilotAllocation
 
 **Important:** This package handles component deployment only. For cross-package orchestration and governance integration, see `packages/deploy/`.
 
@@ -23,7 +23,7 @@ This package provides **component-only deployment** for Graph Issuance contracts
 
 ```
 packages/issuance/deploy/          # Component deployment (this package)
-└── Deploy REO, IA, DirectAllocation with proxies
+└── Deploy REO, IA, PilotAllocation with proxies
 
 packages/deploy/                   # Cross-package orchestration
 ├── Generate governance TX batches
@@ -52,7 +52,7 @@ packages/issuance/deploy/
 │   │   ├── contracts/              # Component deployment modules
 │   │   │   ├── RewardsEligibilityOracle.ts
 │   │   │   ├── IssuanceAllocator.ts
-│   │   │   └── DirectAllocation.ts
+│   │   │   └── PilotAllocation.ts
 │   │   ├── proxy/                  # Proxy deployment utilities
 │   │   │   ├── implementation.ts
 │   │   │   ├── TransparentUpgradeableProxy.ts
@@ -198,14 +198,14 @@ import IAModule from './ignition/modules/contracts/IssuanceAllocator'
 import { MigrateIssuanceAllocatorModule } from './ignition/modules/contracts/IssuanceAllocator'
 ```
 
-### DirectAllocation
+### PilotAllocation
 
 ```typescript
-// Deploy new DirectAllocation
-import DAModule from './ignition/modules/contracts/DirectAllocation'
+// Deploy new PilotAllocation
+import PAModule from './ignition/modules/contracts/PilotAllocation'
 
-// Connect to existing DirectAllocation
-import { MigrateDirectAllocationModule } from './ignition/modules/contracts/DirectAllocation'
+// Connect to existing PilotAllocation
+import { MigratePilotAllocationModule } from './ignition/modules/contracts/PilotAllocation'
 ```
 
 ---

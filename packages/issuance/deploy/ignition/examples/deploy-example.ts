@@ -22,9 +22,9 @@ async function main() {
     IssuanceAllocator,
     IssuanceAllocatorImplementation,
     IssuanceAllocatorProxyAdmin,
-    DirectAllocation,
-    DirectAllocationImplementation,
-    DirectAllocationProxyAdmin,
+    PilotAllocation,
+    PilotAllocationImplementation,
+    PilotAllocationProxyAdmin,
     RewardsEligibilityOracle,
     RewardsEligibilityOracleImplementation,
     RewardsEligibilityOracleProxyAdmin,
@@ -38,10 +38,10 @@ async function main() {
   console.log('  Implementation:', await IssuanceAllocatorImplementation.getAddress())
   console.log('  ProxyAdmin:', await IssuanceAllocatorProxyAdmin.getAddress())
 
-  console.log('\nDirectAllocation:')
-  console.log('  Proxy:', await DirectAllocation.getAddress())
-  console.log('  Implementation:', await DirectAllocationImplementation.getAddress())
-  console.log('  ProxyAdmin:', await DirectAllocationProxyAdmin.getAddress())
+  console.log('\nPilotAllocation:')
+  console.log('  Proxy:', await PilotAllocation.getAddress())
+  console.log('  Implementation:', await PilotAllocationImplementation.getAddress())
+  console.log('  ProxyAdmin:', await PilotAllocationProxyAdmin.getAddress())
 
   console.log('\nRewardsEligibilityOracle:')
   console.log('  Proxy:', await RewardsEligibilityOracle.getAddress())
@@ -77,4 +77,3 @@ main()
     console.error(error)
     process.exit(1)
   })
-

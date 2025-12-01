@@ -8,7 +8,7 @@
     // Production issuance per block
     "issuancePerBlock": "114155251141552511415n"
   },
-  "DirectAllocation": {},
+  "PilotAllocation": {},
   "RewardsEligibilityOracle": {
     "eligibilityPeriod": 1209600, // 14 days
     "oracleUpdateTimeout": 604800, // 7 days

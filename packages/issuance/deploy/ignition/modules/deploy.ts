@@ -1,15 +1,15 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-import DirectAllocationModule from './DirectAllocation'
 import IssuanceAllocatorModule from './IssuanceAllocator'
+import PilotAllocationModule from './PilotAllocation'
 import RewardsEligibilityOracleModule from './RewardsEligibilityOracle'
 
 export default buildModule('GraphIssuance_Deploy', (m) => {
   const { IssuanceAllocator, IssuanceAllocatorImplementation, IssuanceAllocatorProxyAdmin } =
     m.useModule(IssuanceAllocatorModule)
 
-  const { DirectAllocation, DirectAllocationImplementation, DirectAllocationProxyAdmin } =
-    m.useModule(DirectAllocationModule)
+  const { PilotAllocation, PilotAllocationImplementation, PilotAllocationProxyAdmin } =
+    m.useModule(PilotAllocationModule)
 
   const { RewardsEligibilityOracle, RewardsEligibilityOracleImplementation, RewardsEligibilityOracleProxyAdmin } =
     m.useModule(RewardsEligibilityOracleModule)
@@ -22,9 +22,9 @@ export default buildModule('GraphIssuance_Deploy', (m) => {
     after: [IssuanceAllocatorModule],
   })
 
-  m.call(DirectAllocation, 'acceptOwnership', [], {
+  m.call(PilotAllocation, 'acceptOwnership', [], {
     from: governor,
-    after: [DirectAllocationModule],
+    after: [PilotAllocationModule],
   })
 
   m.call(RewardsEligibilityOracle, 'acceptOwnership', [], {
@@ -36,12 +36,11 @@ export default buildModule('GraphIssuance_Deploy', (m) => {
     IssuanceAllocator,
     IssuanceAllocatorImplementation,
     IssuanceAllocatorProxyAdmin,
-    DirectAllocation,
-    DirectAllocationImplementation,
-    DirectAllocationProxyAdmin,
+    PilotAllocation,
+    PilotAllocationImplementation,
+    PilotAllocationProxyAdmin,
     RewardsEligibilityOracle,
     RewardsEligibilityOracleImplementation,
     RewardsEligibilityOracleProxyAdmin,
   }
 })
-

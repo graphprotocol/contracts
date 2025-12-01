@@ -4,7 +4,7 @@ This document describes the design for the cross-package orchestration system in
 
 **Status:** This document contains both current implementation and aspirational design. TODOs mark features not yet implemented.
 
-**Note:** For component deployment (REO, IA, DirectAllocation), see `packages/issuance/deploy/`. For detailed deployment guides, see that package's `docs/` directory.
+**Note:** For component deployment (REO, IA, PilotAllocation), see `packages/issuance/deploy/`. For detailed deployment guides, see that package's `docs/` directory.
 
 ## Goals
 
@@ -23,7 +23,7 @@ This document describes the design for the cross-package orchestration system in
 
 - IssuanceAllocator (Upgradeable proxy + implementation, uses GraphToken)
 - RewardsEligibilityOracle (Upgradeable proxy + implementation)
-- DirectAllocation (Implementation used by allocation instances)
+- PilotAllocation (Upgradeable proxy + implementation using DirectAllocation.sol contract)
 - GraphProxyAdmin2 (ProxyAdmin for issuance proxies; governance‑owned)
 
 **Referenced by this package** (already deployed elsewhere):
@@ -31,8 +31,6 @@ This document describes the design for the cross-package orchestration system in
 - RewardsManager (From `@graphprotocol/contracts` or `@graphprotocol/horizon`)
 - GraphToken (From `@graphprotocol/contracts`)
 - GraphProxyAdmin (From `@graphprotocol/contracts` or `@graphprotocol/horizon`)
-
-**TODO:** PilotAllocation deployment not yet implemented in any package.
 
 ### Targets model
 
@@ -295,7 +293,7 @@ graph TB
     Gov -->|owns| NewAdmin
 
     LegacyContracts[Staking, Curation, EpochManager, RewardsManager]
-    IssuanceContracts[IssuanceAllocator, RewardsEligibilityOracle, DirectAllocation]
+    IssuanceContracts[IssuanceAllocator, RewardsEligibilityOracle, PilotAllocation]
 
     ExistingAdmin -->|manages| LegacyContracts
     NewAdmin -->|manages| IssuanceContracts
@@ -313,8 +311,8 @@ graph TB
     end
 
     subgraph "Allocation Instances"
-        DA[DirectAllocation]
-        DA_Impl[DirectAllocationImplementation]
+        PA[PilotAllocation]
+        PA_Impl[PilotAllocationImplementation]
     end
 
     subgraph "Rewards Eligibility System"
@@ -323,11 +321,11 @@ graph TB
     end
 
     ProxyAdmin2 -->|upgrades| IA
-    ProxyAdmin2 -->|upgrades| DA
+    ProxyAdmin2 -->|upgrades| PA
     ProxyAdmin2 -->|upgrades| REO
 
     IA -.->|delegates to| IA_Impl
-    DA -.->|delegates to| DA_Impl
+    PA -.->|delegates to| PA_Impl
     REO -.->|delegates to| REO_Impl
 ```
 
@@ -340,13 +338,13 @@ graph TD
 
     RewardsEligibilityOracle[RewardsEligibilityOracle]
     IssuanceAllocator[IssuanceAllocator]
-    DirectAllocation[DirectAllocation]
+    PilotAllocation[PilotAllocation]
 
     RewardsEligibilityOracle -.-> RewardsManager
     IssuanceAllocator -.-> RewardsManager
     IssuanceAllocator -.-> GraphToken
-    IssuanceAllocator -.-> DirectAllocation
-    DirectAllocation -.-> GraphToken
+    IssuanceAllocator -.-> PilotAllocation
+    PilotAllocation -.-> GraphToken
 ```
 
 ## Rewards Eligibility Oracle

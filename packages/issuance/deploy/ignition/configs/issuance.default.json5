@@ -8,8 +8,8 @@
     // Initial issuance per block (can be set to 0 and updated later)
     "issuancePerBlock": "0"
   },
-  "DirectAllocation": {
-    // No specific parameters needed for DirectAllocation
+  "PilotAllocation": {
+    // No specific parameters needed for PilotAllocation
   },
   "RewardsEligibilityOracle": {
     // Default eligibility period: 14 days (in seconds)

@@ -1,14 +1,10 @@
-import type {
-  DirectAllocation,
-  IssuanceAllocator,
-  RewardsEligibilityOracle,
-} from '@graphprotocol/interfaces'
+import type { DirectAllocation, IssuanceAllocator, RewardsEligibilityOracle } from '@graphprotocol/interfaces'
 
 import type { ContractList } from '../contract'
 
 export const GraphIssuanceContractNameList = [
   'IssuanceAllocator',
-  'DirectAllocation',
+  'PilotAllocation',
   'RewardsEligibilityOracle',
 ] as const
 
@@ -16,7 +12,6 @@ export type GraphIssuanceContractName = (typeof GraphIssuanceContractNameList)[n
 
 export interface GraphIssuanceContracts extends ContractList<GraphIssuanceContractName> {
   IssuanceAllocator: IssuanceAllocator
-  DirectAllocation: DirectAllocation
+  PilotAllocation: DirectAllocation
   RewardsEligibilityOracle: RewardsEligibilityOracle
 }
-
