@@ -151,6 +151,10 @@ describe('Rewards', () => {
       await grt.connect(wallet).approve(staking.address, toGRT('1000000'))
       await grt.connect(wallet).approve(curation.address, toGRT('1000000'))
     }
+
+    // HACK: we set the staking contract as the subgraph service to make tests pass.
+    // This is due to the test suite being outdated.
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {

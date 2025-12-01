@@ -379,6 +379,10 @@ describe('Staking:Allocation', () => {
     // Give some funds to the delegator and approve staking contract to use funds on delegator behalf
     await grt.connect(governor).mint(delegator.address, tokensToDelegate)
     await grt.connect(delegator).approve(staking.address, tokensToDelegate)
+
+    // HACK: we set the staking contract as the subgraph service to make tests pass.
+    // This is due to the test suite being outdated.
+    await rewardsManager.connect(governor).setSubgraphService(staking.address)
   })
 
   beforeEach(async function () {

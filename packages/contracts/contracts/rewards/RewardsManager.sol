@@ -249,13 +249,9 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
         );
 
         uint256 subgraphAllocatedTokens = 0;
-        address[1] memory rewardsIssuers = [address(subgraphService)];
-        for (uint256 i = 0; i < rewardsIssuers.length; i++) {
-            if (rewardsIssuers[i] != address(0)) {
-                subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuers[i]).getSubgraphAllocatedTokens(
-                    _subgraphDeploymentID
-                );
-            }
+        address rewardsIssuer = address(subgraphService);
+        if (rewardsIssuer != address(0)) {
+            subgraphAllocatedTokens += IRewardsIssuer(rewardsIssuer).getSubgraphAllocatedTokens(_subgraphDeploymentID);
         }
 
         if (subgraphAllocatedTokens == 0) {
