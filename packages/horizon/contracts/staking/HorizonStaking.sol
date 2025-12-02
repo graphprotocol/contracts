@@ -545,9 +545,8 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         require(_tokens <= tokensIdle, HorizonStakingInsufficientIdleStake(_tokens, tokensIdle));
 
         ServiceProviderInternal storage sp = _serviceProviders[serviceProvider];
-        uint256 stakedTokens = sp.tokensStaked;
+        sp.tokensStaked -= _tokens;
 
-        sp.tokensStaked = stakedTokens - _tokens;
         _graphToken().pushTokens(serviceProvider, _tokens);
         emit HorizonStakeWithdrawn(serviceProvider, _tokens);
     }

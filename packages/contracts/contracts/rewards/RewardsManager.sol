@@ -361,7 +361,7 @@ contract RewardsManager is RewardsManagerV5Storage, GraphUpgradeable, IRewardsMa
     /**
      * @inheritdoc IRewardsManager
      * @dev This function can only be called by an authorized rewards issuer which are
-     * - the subgraph service (for new allocations).
+     * - the subgraph service (for allocations).
      * Mints 0 tokens if the allocation is not active.
      */
     function takeRewards(address _allocationID) external override returns (uint256) {
