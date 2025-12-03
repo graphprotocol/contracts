@@ -23,7 +23,10 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
 
         // forceWithdraw
         vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.HorizonStakeWithdrawn(_serviceProvider, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        emit IHorizonStakingMain.HorizonStakeWithdrawn(
+            _serviceProvider,
+            beforeServiceProvider.__DEPRECATED_tokensLocked
+        );
         staking.forceWithdraw(_serviceProvider);
 
         // after
@@ -33,7 +36,10 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         uint256 afterStakingBalance = token.balanceOf(address(staking));
 
         // assert - tokens go to service provider, not caller
-        assertEq(afterServiceProviderBalance - beforeServiceProviderBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProviderBalance - beforeServiceProviderBalance,
+            beforeServiceProvider.__DEPRECATED_tokensLocked
+        );
         assertEq(afterCallerBalance, beforeCallerBalance); // caller balance unchanged
         assertEq(beforeStakingBalance - afterStakingBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
 
@@ -94,7 +100,10 @@ contract HorizonStakingForceWithdrawTest is HorizonStakingTest {
         uint256 afterStakingBalance = token.balanceOf(address(staking));
 
         // assert
-        assertEq(afterServiceProviderBalance - beforeServiceProviderBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
+        assertEq(
+            afterServiceProviderBalance - beforeServiceProviderBalance,
+            beforeServiceProvider.__DEPRECATED_tokensLocked
+        );
         assertEq(beforeStakingBalance - afterStakingBalance, beforeServiceProvider.__DEPRECATED_tokensLocked);
         assertEq(afterServiceProvider.__DEPRECATED_tokensLocked, 0);
         assertEq(afterServiceProvider.__DEPRECATED_tokensLockedUntil, 0);
