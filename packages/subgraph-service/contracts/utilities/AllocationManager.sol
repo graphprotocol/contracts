@@ -117,18 +117,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     );
 
     /**
-     * @notice Emitted when a legacy allocation is migrated into the subgraph service
-     * @param indexer The address of the indexer
-     * @param allocationId The id of the allocation
-     * @param subgraphDeploymentId The id of the subgraph deployment
-     */
-    event LegacyAllocationMigrated(
-        address indexed indexer,
-        address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId
-    );
-
-    /**
      * @notice Emitted when the maximum POI staleness is updated
      * @param maxPOIStaleness The max POI staleness in seconds
      */
@@ -176,19 +164,6 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
     function __AllocationManager_init_unchained() internal onlyInitializing {}
 
     /**
-     * @notice Imports a legacy allocation id into the subgraph service
-     * This is a governor only action that is required to prevent indexers from re-using allocation ids from the
-     * legacy staking contract. It will revert with LegacyAllocationAlreadyMigrated if the allocation has already been migrated.
-     * @param _indexer The address of the indexer
-     * @param _allocationId The id of the allocation
-     * @param _subgraphDeploymentId The id of the subgraph deployment
-     */
-    function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentId) internal {
-        _legacyAllocations.migrate(_indexer, _allocationId, _subgraphDeploymentId);
-        emit LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentId);
-    }
-
-    /**
      * @notice Create an allocation
      * @dev The `_allocationProof` is a 65-bytes Ethereum signed message of `keccak256(indexerAddress,allocationId)`
      *
@@ -218,7 +193,7 @@ abstract contract AllocationManager is EIP712Upgradeable, GraphDirectory, Alloca
 
         // Ensure allocation id is not reused
         // need to check both subgraph service (on allocations.create()) and legacy allocations
-        _legacyAllocations.revertIfExists(_graphStaking(), _allocationId);
+        _legacyAllocations.revertIfExists(_allocationId);
 
         uint256 currentEpoch = _graphEpochManager().currentEpoch();
         IAllocation.State memory allocation = _allocations.create(

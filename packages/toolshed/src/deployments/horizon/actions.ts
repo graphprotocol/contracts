@@ -63,15 +63,6 @@ export function loadActions(contracts: GraphHorizonContracts) {
     provision: (signer: HardhatEthersSigner, args: Parameters<GraphHorizonContracts['HorizonStaking']['provision']>) =>
       provision(contracts, signer, args),
     /**
-     * [Legacy] Collects query fees from the Horizon staking contract
-     * Note that it will approve HorizonStaking to spend the tokens
-     * @param signer - The signer that will execute the collect transaction
-     * @param args Parameters:
-     *   - `[tokens, allocationID]` - The collect parameters
-     */
-    collect: (signer: HardhatEthersSigner, args: Parameters<GraphHorizonContracts['HorizonStaking']['collect']>) =>
-      collect(contracts, signer, args),
-    /**
      * Delegates tokens in the Horizon staking contract
      * Note that it will approve HorizonStaking to spend the tokens
      * @param signer - The signer that will execute the delegate transaction
@@ -155,18 +146,6 @@ async function provision(
   await GraphToken.connect(signer).approve(HorizonStaking.target, tokens)
   await HorizonStaking.connect(signer).stake(tokens)
   await HorizonStaking.connect(signer).provision(serviceProvider, verifier, tokens, maxVerifierCut, thawingPeriod)
-}
-
-async function collect(
-  contracts: GraphHorizonContracts,
-  signer: HardhatEthersSigner,
-  args: Parameters<GraphHorizonContracts['HorizonStaking']['collect']>,
-) {
-  const { GraphToken, HorizonStaking } = contracts
-  const [tokens, allocationID] = args
-
-  await GraphToken.connect(signer).approve(HorizonStaking.target, tokens)
-  await HorizonStaking.connect(signer).collect(tokens, allocationID)
 }
 
 async function delegate(

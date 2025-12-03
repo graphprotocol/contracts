@@ -8,7 +8,6 @@ import { GraphPayments } from "@graphprotocol/horizon/contracts/payments/GraphPa
 import { GraphProxy } from "@graphprotocol/contracts/contracts/upgrades/GraphProxy.sol";
 import { GraphProxyAdmin } from "@graphprotocol/contracts/contracts/upgrades/GraphProxyAdmin.sol";
 import { HorizonStaking } from "@graphprotocol/horizon/contracts/staking/HorizonStaking.sol";
-import { HorizonStakingExtension } from "@graphprotocol/horizon/contracts/staking/HorizonStakingExtension.sol";
 import { IGraphPayments } from "@graphprotocol/interfaces/contracts/horizon/IGraphPayments.sol";
 import { IHorizonStaking } from "@graphprotocol/interfaces/contracts/horizon/IHorizonStaking.sol";
 import { IPaymentsEscrow } from "@graphprotocol/interfaces/contracts/horizon/IPaymentsEscrow.sol";
@@ -45,7 +44,6 @@ abstract contract SubgraphBaseTest is Utils, Constants {
     GraphTallyCollector graphTallyCollector;
 
     HorizonStaking private stakingBase;
-    HorizonStakingExtension private stakingExtension;
 
     MockCuration curation;
     MockGRTToken token;
@@ -174,8 +172,7 @@ abstract contract SubgraphBaseTest is Utils, Constants {
         );
         subgraphService = SubgraphService(subgraphServiceProxy);
 
-        stakingExtension = new HorizonStakingExtension(address(controller), address(subgraphService));
-        stakingBase = new HorizonStaking(address(controller), address(stakingExtension), address(subgraphService));
+        stakingBase = new HorizonStaking(address(controller), address(subgraphService));
 
         graphPayments = new GraphPayments{ salt: saltGraphPayments }(address(controller), protocolPaymentCut);
         escrow = new PaymentsEscrow{ salt: saltEscrow }(address(controller), withdrawEscrowThawingPeriod);

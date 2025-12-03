@@ -44,12 +44,6 @@ interface IAllocationManager {
         bool forceClosed
     );
 
-    event LegacyAllocationMigrated(
-        address indexed indexer,
-        address indexed allocationId,
-        bytes32 indexed subgraphDeploymentId
-    );
-
     event MaxPOIStalenessSet(uint256 maxPOIStaleness);
 
     // Errors

@@ -5,11 +5,10 @@ import "forge-std/Test.sol";
 
 import { IHorizonStakingMain } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingMain.sol";
 import { IHorizonStakingTypes } from "@graphprotocol/interfaces/contracts/horizon/internal/IHorizonStakingTypes.sol";
-import { LinkedList } from "../../../../contracts/libraries/LinkedList.sol";
 
 import { HorizonStakingTest } from "../HorizonStaking.t.sol";
 
-contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
+contract HorizonStakingForceWithdrawDelegatedTest is HorizonStakingTest {
     /*
      * MODIFIERS
      */
@@ -46,21 +45,20 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
      * ACTIONS
      */
 
-    function _legacyWithdrawDelegated(address _indexer) internal {
-        (, address delegator, ) = vm.readCallers();
+    function _forceWithdrawDelegated(address _indexer, address _delegator) internal {
         IHorizonStakingTypes.DelegationPool memory pool = staking.getDelegationPool(
             _indexer,
             subgraphDataServiceLegacyAddress
         );
         uint256 beforeStakingBalance = token.balanceOf(address(staking));
-        uint256 beforeDelegatorBalance = token.balanceOf(users.delegator);
+        uint256 beforeDelegatorBalance = token.balanceOf(_delegator);
 
         vm.expectEmit(address(staking));
-        emit IHorizonStakingMain.StakeDelegatedWithdrawn(_indexer, delegator, pool.tokens);
-        staking.withdrawDelegated(users.indexer, address(0));
+        emit IHorizonStakingMain.StakeDelegatedWithdrawn(_indexer, _delegator, pool.tokens);
+        staking.forceWithdrawDelegated(_indexer, _delegator);
 
         uint256 afterStakingBalance = token.balanceOf(address(staking));
-        uint256 afterDelegatorBalance = token.balanceOf(users.delegator);
+        uint256 afterDelegatorBalance = token.balanceOf(_delegator);
 
         assertEq(afterStakingBalance, beforeStakingBalance - pool.tokens);
         assertEq(afterDelegatorBalance - pool.tokens, beforeDelegatorBalance);
@@ -68,7 +66,7 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
         DelegationInternal memory delegation = _getStorage_Delegation(
             _indexer,
             subgraphDataServiceLegacyAddress,
-            delegator,
+            _delegator,
             true
         );
         assertEq(delegation.shares, 0);
@@ -80,22 +78,57 @@ contract HorizonStakingLegacyWithdrawDelegationTest is HorizonStakingTest {
      * TESTS
      */
 
-    function testWithdraw_Legacy(uint256 tokensLocked) public useDelegator {
+    function testForceWithdrawDelegated_Tokens(uint256 tokensLocked) public useDelegator {
         vm.assume(tokensLocked > 0);
 
         _setStorage_DelegationPool(users.indexer, tokensLocked, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, tokensLocked, 1);
         token.transfer(address(staking), tokensLocked);
 
-        _legacyWithdrawDelegated(users.indexer);
+        // switch to a third party (not the delegator)
+        resetPrank(users.operator);
+
+        _forceWithdrawDelegated(users.indexer, users.delegator);
     }
 
-    function testWithdraw_Legacy_RevertWhen_NoTokens() public useDelegator {
+    function testForceWithdrawDelegated_CalledByDelegator(uint256 tokensLocked) public useDelegator {
+        vm.assume(tokensLocked > 0);
+
+        _setStorage_DelegationPool(users.indexer, tokensLocked, 0, 0);
+        _setLegacyDelegation(users.indexer, users.delegator, 0, tokensLocked, 1);
+        token.transfer(address(staking), tokensLocked);
+
+        // delegator can also call forceWithdrawDelegated on themselves
+        _forceWithdrawDelegated(users.indexer, users.delegator);
+    }
+
+    function testForceWithdrawDelegated_RevertWhen_NoTokens() public useDelegator {
         _setStorage_DelegationPool(users.indexer, 0, 0, 0);
         _setLegacyDelegation(users.indexer, users.delegator, 0, 0, 0);
 
+        // switch to a third party
+        resetPrank(users.operator);
+
         bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingToWithdraw()");
         vm.expectRevert(expectedError);
-        staking.withdrawDelegated(users.indexer, address(0));
+        staking.forceWithdrawDelegated(users.indexer, users.delegator);
+    }
+
+    function testForceWithdrawDelegated_RevertWhen_StillLocked(uint256 tokensLocked) public useDelegator {
+        vm.assume(tokensLocked > 0);
+
+        // Set a future epoch for tokensLockedUntil
+        uint256 futureEpoch = 1000;
+        _setStorage_DelegationPool(users.indexer, tokensLocked, 0, 0);
+        _setLegacyDelegation(users.indexer, users.delegator, 0, tokensLocked, futureEpoch);
+        token.transfer(address(staking), tokensLocked);
+
+        // switch to a third party
+        resetPrank(users.operator);
+
+        // Should revert because tokens are still locked (current epoch < futureEpoch)
+        bytes memory expectedError = abi.encodeWithSignature("HorizonStakingNothingToWithdraw()");
+        vm.expectRevert(expectedError);
+        staking.forceWithdrawDelegated(users.indexer, users.delegator);
     }
 }

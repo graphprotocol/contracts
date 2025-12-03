@@ -383,7 +383,7 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
         CollectPaymentData memory collectPaymentDataBefore,
         CollectPaymentData memory collectPaymentDataAfter
     ) private view {
-        (IGraphTallyCollector.SignedRAV memory signedRav, uint256 tokensToCollect) = abi.decode(
+        (IGraphTallyCollector.SignedRAV memory signedRav, ) = abi.decode(
             _data,
             (IGraphTallyCollector.SignedRAV, uint256)
         );
@@ -487,10 +487,16 @@ contract SubgraphServiceTest is SubgraphServiceSharedTest {
     }
 
     function _migrateLegacyAllocation(address _indexer, address _allocationId, bytes32 _subgraphDeploymentID) internal {
-        vm.expectEmit(address(subgraphService));
-        emit AllocationManager.LegacyAllocationMigrated(_indexer, _allocationId, _subgraphDeploymentID);
+        // migrate fn was removed, we simulate history by manually setting the storage state
+        uint256 legacyAllocationsSlot = 208;
+        bytes32 legacyAllocationBaseSlot = keccak256(abi.encode(_allocationId, legacyAllocationsSlot));
 
-        subgraphService.migrateLegacyAllocation(_indexer, _allocationId, _subgraphDeploymentID);
+        vm.store(address(subgraphService), legacyAllocationBaseSlot, bytes32(uint256(uint160(_indexer))));
+        vm.store(
+            address(subgraphService),
+            bytes32(uint256(legacyAllocationBaseSlot) + 1),
+            bytes32(_subgraphDeploymentID)
+        );
 
         ILegacyAllocation.State memory afterLegacyAllocation = subgraphService.getLegacyAllocation(_allocationId);
         assertEq(afterLegacyAllocation.indexer, _indexer);
