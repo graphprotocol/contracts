@@ -1,14 +1,25 @@
 # IssuanceAllocator Deployment Guide (Future Use)
 
-**Status:** FUTURE - Not yet scheduled for deployment
+**Status:** Background / supplementary (future use)
 **Priority:** LOWER - REO deployment first
 **Last Updated:** 2025-11-19
+
+> Canonical issuance deployment design now lives in
+> `packages/issuance/deploy/docs/Design.md`. Cross-package governance and
+> orchestration patterns live in `packages/deploy/docs`.
+>
+> This document captures a detailed IA deployment strategy (with the critical
+> 3-stage migration pattern) and is retained for future planning/background. It
+> should not be treated as the primary source of truth and should not be
+> extended with new normative content.
 
 ---
 
 ## Overview
 
-This document outlines the deployment strategy for IssuanceAllocator (IA) when it's ready to deploy. The IA is not currently planned for immediate deployment, but this guide preserves the critical patterns from earlier deployment work.
+This document outlines the deployment strategy for IssuanceAllocator (IA) when
+it's ready to deploy. The IA is not currently planned for immediate deployment,
+but this guide preserves the critical patterns from earlier deployment work.
 
 ⚠️ **CRITICAL:** The 3-stage gradual migration pattern is **non-negotiable** for mainnet safety.
 

@@ -1,12 +1,24 @@
 # Governance Workflow for Issuance Deployment
 
+**Status:** Background / supplementary
 **Last Updated:** 2025-11-19
+
+> Canonical issuance deployment design now lives in
+> `packages/issuance/deploy/docs/Design.md`. Cross-package governance and
+> orchestration patterns live in `packages/deploy/docs`.
+>
+> This document is retained for additional detail and historical context; it
+> should not be treated as the primary source of truth and should not be
+> extended with new normative content.
 
 ---
 
 ## Overview
 
-This document describes the governance workflow for deploying and integrating issuance contracts (RewardsEligibilityOracle and IssuanceAllocator). This workflow separates permissionless deployment from governance-required activation, enabling independent verification and safe production rollout.
+This document describes the governance workflow for deploying and integrating
+issuance contracts (RewardsEligibilityOracle and IssuanceAllocator). This
+workflow separates permissionless deployment from governance-required
+activation, enabling independent verification and safe production rollout.
 
 ---
 

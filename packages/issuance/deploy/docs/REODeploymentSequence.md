@@ -1,14 +1,25 @@
 # RewardsEligibilityOracle Deployment Sequence
 
-**Status:** Planning
+**Status:** Background / supplementary (planning)
 **Priority:** HIGH - REO deployment planned soon
 **Last Updated:** 2025-11-19
+
+> Canonical issuance deployment design now lives in
+> `packages/issuance/deploy/docs/Design.md`. Cross-package governance and
+> orchestration patterns live in `packages/deploy/docs`.
+>
+> This document captures a detailed REO deployment sequence and is retained
+> for planning/background. It should not be treated as the primary source of
+> truth and should not be extended with new normative content.
 
 ---
 
 ## Overview
 
-This document outlines the deployment sequence for RewardsEligibilityOracle (REO), including the required RewardsManager upgrade. This sequence is based on production-ready patterns from earlier deployment work, adapted for the current Ignition implementation.
+This document outlines the deployment sequence for RewardsEligibilityOracle
+(REO), including the required RewardsManager upgrade. This sequence is based on
+production-ready patterns from earlier deployment work, adapted for the
+current Ignition implementation.
 
 ### Scope
 

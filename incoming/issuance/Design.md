@@ -1,14 +1,18 @@
-# Issuance Deployment Design (Canonical)
+# Issuance Deployment Design
 
-This document is the single source of truth for deploying the issuance system. See DeploymentGuide.md for step-by-step instructions and Governance.md for the governance workflow.
+This document captures the issuance deployment design as originally drafted.
+The canonical, maintained version now lives in
+`packages/issuance/deploy/docs/Design.md`. See `DeploymentGuide.md` for
+step-by-step instructions and governance docs under `packages/deploy/docs`
+for orchestration workflows.
 
 ## Goals
 
 - Clean, target-based, idempotent deployments using Hardhat Ignition
 - Separation of concerns:
-  - Issuance deployment package (packages/issuance/deploy): deploy issuance components (no cross‑package wiring)
-  - Contracts deployment package (packages/contracts/deploy): core contract modules, mainly for RewardsManager (no cross‑package wiring)
-  - Orchestration package (packages/deploy): perform cross‑package integrations that require governance
+  - Issuance deployment package (`packages/issuance/deploy`): deploy issuance components only (no cross‑package wiring)
+  - Horizon deployment package (`packages/horizon`): deploy and upgrade core protocol contracts (GraphToken, RewardsManager, GraphProxyAdmin) using the shared contracts in `packages/contracts`
+  - Orchestration package (`packages/deploy`): perform cross‑package integrations and governance wiring (e.g. activating issuance components in RewardsManager, managing address books)
 - Minimal, parameterized CLI (network/parameters/target)
 - Governance checkpoints encoded as assertion calls that revert until the governance transaction is executed
 - Address book tracks active and pending implementations
@@ -32,10 +36,12 @@ TODO: Why is contract name kept as GraphProxyAdmin2 and not GraphIssuanceProxyAd
 - Component targets (in this package):
   - rewards-eligibility-oracle
   - issuance-allocator
+  - pilot-allocation (experimental/test allocation target, typically a small slice of IssuanceAllocator distribution)
 - Integration targets (cross‑package; live in packages/deploy):
   - rewards-eligibility-oracle-active: RewardsManager.setRewardsEligibilityOracle(REO)
   - issuance-allocator-active: RewardsManager.setIssuanceAllocator(IA)
   - issuance-allocator-minter: GraphToken.addMinter(IA)
+  - issuance-allocator-reallocation: configure IssuanceAllocator allocations over time (e.g. transition from replicated allocation to target distribution, including pilot-allocation)
 
 Notes:
 

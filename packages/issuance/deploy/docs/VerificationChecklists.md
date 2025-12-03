@@ -1,12 +1,23 @@
 # Verification Checklists for REO Deployment
 
+**Status:** Background / supplementary
 **Last Updated:** 2025-11-19
+
+> Canonical issuance deployment design now lives in
+> `packages/issuance/deploy/docs/Design.md`. Cross-package governance and
+> orchestration patterns live in `packages/deploy/docs`.
+>
+> This document is retained for detailed checklists and historical context; it
+> should not be treated as the primary source of truth and should not be
+> extended with new normative content.
 
 ---
 
 ## Overview
 
-This document provides comprehensive verification checklists for each phase of RewardsEligibilityOracle deployment. Use these checklists to ensure nothing is missed and maintain audit trails.
+This document provides comprehensive verification checklists for each phase of
+RewardsEligibilityOracle deployment. Use these checklists to ensure nothing is
+missed and maintain audit trails.
 
 ---
 
@@ -758,21 +769,21 @@ This document provides comprehensive verification checklists for each phase of R
 
 ### Key Addresses
 
-**Network:** ********\_\_********
-**Chain ID:** ********\_\_********
+**Network:** **\*\*\*\***\_\_**\*\*\*\***
+**Chain ID:** **\*\*\*\***\_\_**\*\*\*\***
 
-| Component                     | Address              |
-| ----------------------------- | -------------------- |
-| GraphToken                    | ********\_\_******** |
-| RewardsManager Proxy          | ********\_\_******** |
-| RewardsManager Implementation | ********\_\_******** |
-| GraphProxyAdmin               | ********\_\_******** |
-| REO Proxy                     | ********\_\_******** |
-| REO Implementation            | ********\_\_******** |
-| REO ProxyAdmin                | ********\_\_******** |
-| Governance Multi-sig          | ********\_\_******** |
-| OPERATOR Address              | ********\_\_******** |
-| ORACLE Address                | ********\_\_******** |
+| Component                     | Address                      |
+| ----------------------------- | ---------------------------- |
+| GraphToken                    | **\*\*\*\***\_\_**\*\*\*\*** |
+| RewardsManager Proxy          | **\*\*\*\***\_\_**\*\*\*\*** |
+| RewardsManager Implementation | **\*\*\*\***\_\_**\*\*\*\*** |
+| GraphProxyAdmin               | **\*\*\*\***\_\_**\*\*\*\*** |
+| REO Proxy                     | **\*\*\*\***\_\_**\*\*\*\*** |
+| REO Implementation            | **\*\*\*\***\_\_**\*\*\*\*** |
+| REO ProxyAdmin                | **\*\*\*\***\_\_**\*\*\*\*** |
+| Governance Multi-sig          | **\*\*\*\***\_\_**\*\*\*\*** |
+| OPERATOR Address              | **\*\*\*\***\_\_**\*\*\*\*** |
+| ORACLE Address                | **\*\*\*\***\_\_**\*\*\*\*** |
 
 ### Key Parameters
 

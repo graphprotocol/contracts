@@ -27,97 +27,24 @@ preserving the gradual migration pattern for **IssuanceAllocator (IA)**.
 
 ## Quick Start
 
-### For REO Deployment (Immediate Priority)
+In this phase, treat this directory primarily as a **design hub**:
 
-**Read in this order:**
+1. Start with **[`Design.md`](./Design.md)** for the canonical target model.
+2. For deep background and historical deployment planning for REO/IA, you
+   may consult:
+   - `REODeploymentSequence.md`
+   - `IADeploymentGuide.md`
+   - `GovernanceWorkflow.md`
+   - `VerificationChecklists.md`
+   - `REOArchitecture.md`
 
-1. **[REODeploymentSequence.md](./REODeploymentSequence.md)** - Complete deployment sequence
-2. **[GovernanceWorkflow.md](./GovernanceWorkflow.md)** - Three-phase governance pattern
-3. **[VerificationChecklists.md](./VerificationChecklists.md)** - Comprehensive checklists for each phase
-4. **[REOArchitecture.md](./REOArchitecture.md)** - Visual diagrams and architecture
-5. **[APICorrectness.md](./APICorrectness.md)** - Correct method signatures and usage
+These background documents contain richer process detail, diagrams and
+checklists, but they are **not** the source of truth. Cross-package
+governance/orchestration belongs in `packages/deploy/docs`.
 
-### For IA Deployment (Future)
+We will gradually migrate or trim these background docs; they should not be
+extended with new normative content.
 
-**When IA deployment is planned:**
-
-1. **[IADeploymentGuide.md](./IADeploymentGuide.md)** - Critical 3-stage migration pattern
-2. **[APICorrectness.md](./APICorrectness.md)** - IA section for correct integration
-3. **[GovernanceWorkflow.md](./GovernanceWorkflow.md)** - Applies to IA as well
-
----
-
-## Document Index
-
-### REO Deployment Documents
-
-#### [REODeploymentSequence.md](./REODeploymentSequence.md)
-
-Complete deployment sequence for RewardsEligibilityOracle.
-
-Contents:
-
-- **6-Phase Deployment:** RM Upgrade → REO Deployment → Testing → Integration → Monitoring → Enable Validation
-- **Stage-by-stage breakdown** of Phase 2 deployment
-- **Dependency graph** showing sequencing constraints
-- **Risk mitigation strategies** for each phase
-- **Rollback procedures** at each stage
-- **Network-specific considerations** (testnet vs mainnet)
-- **Existing tooling reference** (Ignition, governance tasks)
-- **Configuration parameters** with rationale
-
-**When to use:** Primary reference for planning and executing REO deployment
-
----
-
-#### [GovernanceWorkflow.md](./GovernanceWorkflow.md)
-
-Three-phase governance pattern for deployment and integration.
-
-Contents:
-
-- **Phase 1: Prepare (Permissionless)** - Deploy contracts, generate proposals
-- **Phase 2: Execute (Governance)** - Review and execute transactions
-- **Phase 3: Verify/Sync (Automated)** - Confirm state and update docs
-- **Governance transaction patterns** for all scenarios (upgrades, integration, config, roles)
-- **Safe Transaction Builder guide** with step-by-step instructions
-- **Verification procedures** for on-chain state
-- **Emergency procedures** and rollback options
-- **Communication plan** for governance and community
-
-**When to use:** Understanding governance coordination, preparing proposals, executing governance actions
-
----
-
-#### [VerificationChecklists.md](./VerificationChecklists.md)
-
-Comprehensive checklists for every deployment phase.
-
-Contents:
-
-- **Pre-Deployment Checklist** - Code, config, roles, infrastructure
-- **Phase-by-phase checklists** for all 6 REO deployment phases
-- **Contract deployment verification** - Addresses, initialization, ownership
-- **Integration verification** - RM connection, role configuration
-- **Testing period checklist** - Smart contracts, oracle operations, security
-- **Monitoring period checklist** - Metrics, alerts, ongoing verification
-- **Post-deployment documentation** checklist
-- **Emergency procedures checklist**
-- **Quick reference** tables and commands
-
-**When to use:** During deployment execution, ensuring nothing is missed, creating audit trail
-
----
-
-#### [REOArchitecture.md](./REOArchitecture.md)
-
-Visual diagrams and architecture documentation.
-
-Contents:
-
-- **Contract architecture** - Component relationships graph
-- **Deployment sequence** - Phase-by-phase sequence diagram
-- **Governance workflow** - Three-phase state diagram
 - **REO lifecycle states** - State transition diagram
 - **Integration flow** - RM + REO query flow
 - **Oracle operations** - Data submission flow
