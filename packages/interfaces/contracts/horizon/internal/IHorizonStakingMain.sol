@@ -952,4 +952,30 @@ interface IHorizonStakingMain {
      * @return Whether the operator is authorized or not
      */
     function isAuthorized(address serviceProvider, address verifier, address operator) external view returns (bool);
+
+    /**
+     * @notice Withdraw service provider legacy locked tokens.
+     * This is a permissionless function that allows anyone to withdraw on behalf of a service provider.
+     * It only allows withdrawing tokens that were unstaked before the Horizon upgrade.
+     * @dev Tokens are always sent to the service provider, not the caller.
+     *
+     * Emits a {HorizonStakeWithdrawn} event.
+     *
+     * @param serviceProvider Address of service provider to withdraw funds from
+     */
+    function forceWithdraw(address serviceProvider) external;
+
+    /**
+     * @notice Withdraw delegator legacy undelegated tokens.
+     * This is a permissionless function that allows anyone to withdraw on behalf of a delegator.
+     * It only allows withdrawing tokens that were undelegated before the Horizon upgrade.
+     * @dev Tokens are always sent to the delegator, not the caller.
+     *
+     * Emits a {StakeDelegatedWithdrawn} event.
+     *
+     * @param serviceProvider The service provider address
+     * @param delegator The delegator address to withdraw funds for
+     * @return The amount of tokens withdrawn
+     */
+    function forceWithdrawDelegated(address serviceProvider, address delegator) external returns (uint256);
 }

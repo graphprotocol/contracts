@@ -111,6 +111,11 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         _withdraw(msg.sender);
     }
 
+    /// @inheritdoc IHorizonStakingMain
+    function forceWithdraw(address serviceProvider) external override notPaused {
+        _withdraw(serviceProvider);
+    }
+
     /*
      * PROVISIONS
      */
@@ -322,33 +327,15 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
         address serviceProvider,
         address // deprecated - kept for backwards compatibility
     ) external override notPaused returns (uint256) {
-        // Get the delegation pool of the indexer
-        address delegator = msg.sender;
-        DelegationPoolInternal storage pool = _legacyDelegationPools[serviceProvider];
-        DelegationInternal storage delegation = pool.delegators[delegator];
+        return _withdrawDelegatedLegacy(serviceProvider, msg.sender);
+    }
 
-        // Validation
-        uint256 tokensToWithdraw = 0;
-        uint256 currentEpoch = _graphEpochManager().currentEpoch();
-        if (
-            delegation.__DEPRECATED_tokensLockedUntil > 0 && currentEpoch >= delegation.__DEPRECATED_tokensLockedUntil
-        ) {
-            tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
-        }
-        require(tokensToWithdraw > 0, HorizonStakingNothingToWithdraw());
-
-        // Reset lock
-        delegation.__DEPRECATED_tokensLocked = 0;
-        delegation.__DEPRECATED_tokensLockedUntil = 0;
-
-        emit StakeDelegatedWithdrawn(serviceProvider, delegator, tokensToWithdraw);
-
-        // -- Interactions --
-
-        // Return tokens to the delegator
-        _graphToken().pushTokens(delegator, tokensToWithdraw);
-
-        return tokensToWithdraw;
+    /// @inheritdoc IHorizonStakingMain
+    function forceWithdrawDelegated(
+        address serviceProvider,
+        address delegator
+    ) external override notPaused returns (uint256) {
+        return _withdrawDelegatedLegacy(serviceProvider, delegator);
     }
 
     /*
@@ -1120,6 +1107,42 @@ contract HorizonStaking is HorizonStakingBase, IHorizonStakingMain {
             _operatorAuth[msg.sender][_verifier][_operator] = _allowed;
         }
         emit OperatorSet(msg.sender, _verifier, _operator, _allowed);
+    }
+
+    /**
+     * @notice Withdraw legacy undelegated tokens for a delegator.
+     * @dev This function handles pre-Horizon undelegations where tokens are locked
+     * in the legacy delegation pool.
+     * @param _serviceProvider The service provider address
+     * @param _delegator The delegator address
+     * @return The amount of tokens withdrawn
+     */
+    function _withdrawDelegatedLegacy(address _serviceProvider, address _delegator) private returns (uint256) {
+        DelegationPoolInternal storage pool = _legacyDelegationPools[_serviceProvider];
+        DelegationInternal storage delegation = pool.delegators[_delegator];
+
+        // Validation
+        uint256 tokensToWithdraw = 0;
+        uint256 currentEpoch = _graphEpochManager().currentEpoch();
+        if (
+            delegation.__DEPRECATED_tokensLockedUntil > 0 && currentEpoch >= delegation.__DEPRECATED_tokensLockedUntil
+        ) {
+            tokensToWithdraw = delegation.__DEPRECATED_tokensLocked;
+        }
+        require(tokensToWithdraw > 0, HorizonStakingNothingToWithdraw());
+
+        // Reset lock
+        delegation.__DEPRECATED_tokensLocked = 0;
+        delegation.__DEPRECATED_tokensLockedUntil = 0;
+
+        emit StakeDelegatedWithdrawn(_serviceProvider, _delegator, tokensToWithdraw);
+
+        // -- Interactions --
+
+        // Return tokens to the delegator
+        _graphToken().pushTokens(_delegator, tokensToWithdraw);
+
+        return tokensToWithdraw;
     }
 
     /**
