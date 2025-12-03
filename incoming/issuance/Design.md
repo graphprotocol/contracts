@@ -257,7 +257,7 @@ graph TB
     Gov -->|owns| NewAdmin
 
     LegacyContracts[Staking, Curation, EpochManager, RewardsManager]
-    IssuanceContracts[IssuanceAllocator, ServiceQualityOracle, PilotAllocation]
+    IssuanceContracts[IssuanceAllocator, RewardsEligibilityOracle, PilotAllocation]
 
     ExistingAdmin -->|manages| LegacyContracts
     NewAdmin -->|manages| IssuanceContracts

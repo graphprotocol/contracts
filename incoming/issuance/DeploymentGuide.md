@@ -27,26 +27,11 @@ The RewardsManager needs to be upgraded to support the new issuance system inter
 
 ### **1.1 Prepare RewardsManager Upgrade**
 
-```bash
-# Navigate to contracts deployment
-cd packages/contracts/deploy
-
-# Deploy new RewardsManager implementation
-pnpm deploy:impl:mainnet  # or sepolia/arbitrumOne
-
-# Check deployment status
-pnpm status:mainnet
-```
+Deploy new RewardsManager implementation via the contracts package deployment tooling.
 
 ### **1.2 Execute RewardsManager Governance Upgrade**
 
-```bash
-# Execute governance upgrade
-pnpm governance-upgrade:mainnet
-
-# Verify upgrade completed
-pnpm verify:upgrade:mainnet
-```
+Execute governance upgrade transaction via Safe multi-sig.
 
 ### **1.3 Verify RewardsManager Integration Points**
 
@@ -68,31 +53,11 @@ Deploy the shared proxy administration contract that will manage upgrades for al
 
 ### **2.1 Deploy GraphProxyAdmin2**
 
-Deploy the dedicated proxy admin for the issuance system.
-
-```bash
-# Navigate to issuance deployment
-cd packages/issuance/deploy
-
-# Deploy GraphProxyAdmin2 only
-pnpm deploy:admin:mainnet  # Deploy only the proxy admin
-
-# Check deployment status
-pnpm status:mainnet
-```
-
-**Note**: The `deploy:admin:*`, `deploy:reo:*`, and `deploy:issuance:*` commands need to be implemented as separate Ignition modules for granular deployment control.
+Deploy the dedicated proxy admin for the issuance system using Hardhat Ignition modules.
 
 ### **2.2 Verify GraphProxyAdmin2 Configuration**
 
 Ensure the proxy admin is properly configured and owned by governance.
-
-```bash
-# Verify proxy admin deployment
-# - Contract deployed successfully
-# - Owner set to governance multi-sig
-# - No proxy contracts managed yet (empty)
-```
 
 **Verification**:
 
@@ -111,18 +76,7 @@ Deploy and integrate the RewardsEligibilityOracle for indexer quality enforcemen
 
 ### **Stage 3.1: Deploy RewardsEligibilityOracle**
 
-Deploy the RewardsEligibilityOracle contract system using the existing GraphProxyAdmin2.
-
-```bash
-# Navigate to issuance deployment
-cd packages/issuance/deploy
-
-# Deploy REO system (uses existing GraphProxyAdmin2)
-pnpm deploy:reo:mainnet  # Deploys REO proxy + implementation
-
-# Check deployment status
-pnpm status:mainnet
-```
+Deploy the RewardsEligibilityOracle contract system using the existing GraphProxyAdmin2 via Hardhat Ignition.
 
 **Verification**:
 
@@ -134,12 +88,6 @@ pnpm status:mainnet
 ### **Stage 3.2: Define and Configure Roles**
 
 Set up the role-based access control for the REO system based on GIP-0079 specifications.
-
-```bash
-# Configure REO roles (governance transactions required):
-# 1. Set OPERATOR role (can manage oracle roles)
-# 2. Set ORACLE role (can call allowIndexers function)
-```
 
 **Required Governance Transactions**:
 
@@ -223,15 +171,7 @@ Run the REO system in testing mode for a defined period to verify functionality.
 
 **Testing Phase (Recommended: 2-4 weeks)**:
 
-```bash
-# Testing can be done with quality checking disabled initially
-RewardsEligibilityOracle.setQualityChecking(false)  # All indexers eligible during testing
-
-# Monitor oracle submissions
-# - Oracles calling allowIndexers() function
-# - Indexer eligibility being recorded correctly
-# - isAllowed() function returning correct results
-```
+Testing can be done with quality checking disabled initially via `setQualityChecking(false)`, allowing all indexers to be eligible during testing. Monitor oracle submissions to ensure oracles are calling `allowIndexers()` and eligibility is being recorded correctly.
 
 **Testing Activities**:
 
@@ -268,20 +208,7 @@ Prepare for integrating REO with the upgraded RewardsManager.
 - [ ] Oracle operators trained and operational
 - [ ] Quality parameters finalized and approved
 - [ ] Emergency procedures documented and tested
-- [ ] Governance proposal prepared
-
-**Governance Proposal Preparation**:
-
-```bash
-# Prepare governance transaction data
-# RewardsManager.setRewardsEligibilityOracle(REO_ADDRESS)
-
-# Create governance proposal with:
-# 1. REO contract address
-# 2. Integration timeline
-# 3. Rollback procedures
-# 4. Success metrics
-```
+- [ ] Governance proposal prepared with REO contract address, integration timeline, rollback procedures, and success metrics
 
 ### **Stage 3.7: Execute Governance Integration**
 
@@ -289,24 +216,16 @@ Execute the governance transaction to connect REO to RewardsManager.
 
 **Governance Execution**:
 
-```bash
-# Execute governance transaction (via multi-sig)
-# This requires RewardsManager to be upgraded first (Phase 1)
-RewardsManager.setRewardsEligibilityOracle(REO_ADDRESS)
-
-# Verify integration
-pnpm verify:upgrade:mainnet
-```
+Execute governance transaction via Safe multi-sig to call `RewardsManager.setRewardsEligibilityOracle(REO_ADDRESS)`. This requires RewardsManager to be upgraded first (Phase 1).
 
 **Post-Integration Verification**:
 
-```bash
-# Verify RewardsManager integration (based on GIP-0079)
-# 1. Check REO address is set correctly in RewardsManager
-# 2. RewardsManager calls isAllowed() when indexers claim rewards
-# 3. Only eligible indexers receive rewards
-# 4. Ineligible indexers are denied rewards
-```
+Verify RewardsManager integration:
+
+1. Check REO address is set correctly in RewardsManager
+2. RewardsManager calls isAllowed() when indexers claim rewards
+3. Only eligible indexers receive rewards
+4. Ineligible indexers are denied rewards
 
 **Verification**:
 
@@ -337,15 +256,7 @@ Monitor the integrated system and make adjustments as needed.
 
 **Adjustment Procedures**:
 
-```bash
-# Parameter adjustments (if needed)
-
-# Oracle role administration (via AccessControl)
-# Grant/revoke roles using grantRole/revokeRole on OPERATOR_ROLE and ORACLE_ROLE as appropriate
-# Example:
-# RewardsEligibilityOracle.grantRole(OPERATOR_ROLE, OPERATOR_ADDRESS)
-# RewardsEligibilityOracle.grantRole(ORACLE_ROLE, ORACLE_ADDRESS)
-```
+Parameter adjustments and oracle role administration can be performed via governance as needed, using `grantRole` and `revokeRole` functions on OPERATOR_ROLE and ORACLE_ROLE.
 
 **✅ Phase 3 Complete**: RewardsEligibilityOracle fully operational and integrated with RewardsManager
 
@@ -361,13 +272,7 @@ Deploy and configure the IssuanceAllocator to match existing configuration witho
 
 #### **4.1.1 Deploy IssuanceAllocator**
 
-```bash
-# Deploy IssuanceAllocator system (uses existing GraphProxyAdmin2 from Phase 2)
-pnpm deploy:issuance:mainnet
-
-# Check deployment status
-pnpm status:mainnet
-```
+Deploy IssuanceAllocator system using existing GraphProxyAdmin2 from Phase 2 via Hardhat Ignition.
 
 **Verification**:
 
@@ -378,19 +283,11 @@ pnpm status:mainnet
 
 #### **4.1.2 Configure Allocator to Match Existing Distribution**
 
-Configure the Allocator to exactly replicate current RewardsManager behavior.
+Configure the Allocator to exactly replicate current RewardsManager behavior:
 
-```bash
-# Configure IssuanceAllocator to match existing setup:
-# 1. Set same issuance rate as current RewardsManager
-# 2. Set 100% allocation to RewardsManager (self-minting target)
-# 3. Set 0% to other allocators (initially)
-
-# Example configuration calls:
-IssuanceAllocator.setIssuancePerBlock(CURRENT_REWARDS_MANAGER_RATE)
-// Configure 100% self-minting allocation to RewardsManager
-IssuanceAllocator.setTargetAllocation(REWARDS_MANAGER_ADDRESS, 0, 1_000_000, true)
-```
+1. Set same issuance rate as current RewardsManager via `setIssuancePerBlock()`
+2. Set 100% allocation to RewardsManager (self-minting target) via `setTargetAllocation(REWARDS_MANAGER_ADDRESS, 0, 1_000_000, true)`
+3. Set 0% to other allocators (initially)
 
 **Key Points**:
 
@@ -407,18 +304,7 @@ IssuanceAllocator.setTargetAllocation(REWARDS_MANAGER_ADDRESS, 0, 1_000_000, tru
 
 #### **4.1.3 Validate Deployment, Configuration, and State**
 
-Comprehensive validation of the deployed system.
-
-```bash
-# Verify contract deployment
-pnpm verify:upgrade:mainnet
-
-# Validate configuration matches expectations
-# - Check issuance rate
-# - Check allocation percentages
-# - Check target addresses
-# - Check role assignments
-```
+Comprehensive validation of the deployed system: verify contract deployment, check issuance rate, allocation percentages, target addresses, and role assignments.
 
 **Validation Checklist**:
 
@@ -436,17 +322,7 @@ Governance performs independent verification and makes the Allocator live in pro
 
 #### **4.2.1 Complete Role Configuration and Transfer Governor**
 
-Transfer governance control to the proper governance multi-sig.
-
-```bash
-# Governance transactions to complete role setup:
-# 1. Verify current roles are correct
-# 2. Transfer Governor role to governance multi-sig
-# 3. Renounce any temporary deployment roles
-
-IssuanceAllocator.grantRole(GOVERNOR_ROLE, GOVERNANCE_MULTISIG)
-IssuanceAllocator.renounceRole(GOVERNOR_ROLE, DEPLOYER_ADDRESS)
-```
+Transfer governance control to the proper governance multi-sig via `grantRole` and `renounceRole` transactions.
 
 **Verification**:
 
@@ -473,12 +349,7 @@ Governance performs comprehensive independent verification before going live.
 
 #### **4.2.3 Set RewardsManager to Use Allocator**
 
-Governance transaction to make the Allocator live in production.
-
-```bash
-# Critical governance transaction - makes Allocator live
-RewardsManager.setIssuanceAllocator(ISSUANCE_ALLOCATOR_ADDRESS)
-```
+Execute critical governance transaction to make the Allocator live: `RewardsManager.setIssuanceAllocator(ISSUANCE_ALLOCATOR_ADDRESS)`
 
 **Impact**:
 
@@ -495,12 +366,7 @@ RewardsManager.setIssuanceAllocator(ISSUANCE_ALLOCATOR_ADDRESS)
 
 #### **4.2.4 Grant Allocator Minting Authority**
 
-Final step: Grant the Allocator permission to mint tokens for non-self-minting targets.
-
-```bash
-# Governance transaction to grant minting authority
-GraphToken.addMinter(ISSUANCE_ALLOCATOR_ADDRESS)
-```
+Execute final governance transaction to grant minting authority: `GraphToken.addMinter(ISSUANCE_ALLOCATOR_ADDRESS)`
 
 **Impact**:
 
@@ -522,44 +388,15 @@ Governance-controlled allocation changes can now be made safely.
 
 #### **4.3.1 Deploy Additional Allocation Targets**
 
-Deploy DirectAllocation contracts for new allocation targets.
-
-```bash
-# Deploy DirectAllocation instances for new targets
-# Example: Innovation allocation, ecosystem allocation, etc.
-pnpm deploy:direct-allocation:mainnet
-```
+Deploy DirectAllocation contracts for new allocation targets via Hardhat Ignition.
 
 #### **4.3.2 Gradual Allocation Adjustments**
 
-Implement allocation changes gradually through governance.
-
-```bash
-# Example gradual transition (governance transactions):
-# Week 1: 95% RewardsManager, 5% Innovation
-IssuanceAllocator.setTargetAllocation(REWARDS_MANAGER_ADDRESS, 950000, false, true)    // 95%
-IssuanceAllocator.setTargetAllocation(INNOVATION_ALLOCATION_ADDRESS, 50000, false, false) // 5%
-
-# Week 4: 90% RewardsManager, 10% Innovation
-IssuanceAllocator.setTargetAllocation(REWARDS_MANAGER_ADDRESS, 900000, false, true)    // 90%
-IssuanceAllocator.setTargetAllocation(INNOVATION_ALLOCATION_ADDRESS, 100000, false, false) // 10%
-
-# Continue gradual transition as approved by governance
-```
+Implement allocation changes gradually through governance using `setTargetAllocation()` to adjust percentages over time (e.g., Week 1: 95% RewardsManager / 5% new target, Week 4: 90% / 10%, etc.).
 
 #### **4.3.3 Monitor and Verify Changes**
 
-Continuous monitoring and verification of allocation changes.
-
-```bash
-# Monitor system performance after each change
-pnpm status:mainnet
-
-# Verify allocation changes are working correctly
-# - Check distribution amounts
-# - Verify target contracts receive correct amounts
-# - Monitor for any issues or unexpected behavior
-```
+Continuously monitor system performance and verify allocation changes are working correctly: check distribution amounts, verify target contracts receive correct amounts, and monitor for any issues or unexpected behavior.
 
 **Monitoring Checklist**:
 
@@ -573,35 +410,19 @@ pnpm status:mainnet
 
 ---
 
-## 🔧 **Operational Commands**
+## 🔧 **Operational Procedures**
 
 ### **Status Monitoring**
 
-```bash
-# Check overall system status
-pnpm status:mainnet
-
-# Check specific component status
-pnpm verify:upgrade:mainnet
-```
+Check overall system status and verify component deployments using checkpoint modules and deployment status tasks.
 
 ### **Emergency Procedures**
 
-```bash
-# Pause system if needed
-# - Pause IssuanceAllocator
-# - Pause RewardsEligibilityOracle
-# - Revert to direct RewardsManager if necessary
-```
+In emergencies: pause IssuanceAllocator, pause RewardsEligibilityOracle, or revert to direct RewardsManager as needed via governance.
 
 ### **Upgrade Procedures**
 
-```bash
-# For future upgrades:
-pnpm upgrade-prep:mainnet        # Deploy new implementation
-pnpm governance-upgrade:mainnet  # Execute governance upgrade
-pnpm verify:upgrade:mainnet      # Verify upgrade success
-```
+For future upgrades: deploy new implementation, execute governance upgrade transaction, and verify upgrade success using checkpoint modules.
 
 ## 📊 **Success Criteria**
 
