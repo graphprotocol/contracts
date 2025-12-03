@@ -34,12 +34,24 @@ contract GraphEscrowGettersTest is GraphEscrowTest {
         uint256 amountDeposit,
         uint256 amountThawing,
         uint256 amountCollected
-    ) public useGateway useDeposit(amountDeposit) {
-        vm.assume(amountThawing > 0);
-        vm.assume(amountDeposit > 0);
-        vm.assume(amountDeposit >= amountThawing);
-        vm.assume(amountDeposit >= amountCollected);
-        vm.assume(amountDeposit - amountCollected < amountThawing);
+    ) public useGateway {
+        amountThawing = bound(amountThawing, 1, MAX_STAKING_TOKENS);
+        amountCollected = bound(amountCollected, 1, MAX_STAKING_TOKENS);
+
+        // amountDeposit must be:
+        // - >= amountThawing (so we can thaw that amount)
+        // - >= amountCollected (so we can collect that amount)
+        // - < amountThawing + amountCollected (so that after collecting, balance < thawing)
+        // - <= MAX_STAKING_TOKENS (consistent with other tests)
+        uint256 minDeposit = amountThawing > amountCollected ? amountThawing : amountCollected;
+        uint256 maxDeposit = amountThawing + amountCollected - 1;
+        if (maxDeposit > MAX_STAKING_TOKENS) {
+            maxDeposit = MAX_STAKING_TOKENS;
+        }
+        vm.assume(minDeposit <= maxDeposit);
+        amountDeposit = bound(amountDeposit, minDeposit, maxDeposit);
+
+        _depositTokens(users.verifier, users.indexer, amountDeposit);
 
         // thaw some funds
         _thawEscrow(users.verifier, users.indexer, amountThawing);
