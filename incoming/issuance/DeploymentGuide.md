@@ -8,15 +8,16 @@ This guide covers the complete deployment of the Graph Protocol Issuance System,
 
 The deployment consists of four major phases:
 
-1. **Phase 1: RewardsManager Upgrade** - Common dependency for both REO and IssuanceAllocator
-2. **Phase 2: GraphProxyAdmin2 Deployment** - Shared proxy administration for issuance contracts
+1. **Phase 1: RewardsManager Upgrade** - Ensure the Horizon RewardsManager proxy is on an implementation that exposes the issuance integration interfaces
+2. **Phase 2: GraphIssuanceProxyAdmin (GraphProxyAdmin2) Deployment** - Shared proxy administration for issuance contracts
 3. **Phase 3: RewardsEligibilityOracle Deployment** - Quality enforcement system
-4. **Phase 4: IssuanceAllocator Deployment** - Token distribution system
+4. **Phase 4: IssuanceAllocator & PilotAllocation Deployment** - Token distribution system, including optional experimental pilot-allocation target
 
 ## 📋 **Prerequisites**
 
 - [ ] Governance multi-sig access
 - [ ] Network configuration (mainnet/arbitrum/sepolia)
+- [ ] Existing Horizon deployment (GraphToken, RewardsManager, GraphProxyAdmin) on the target network, or equivalent contracts deployed via `packages/horizon`
 - [ ] GraphToken contract address
 - [ ] Current RewardsManager proxy address
 - [ ] Deployment environment setup
@@ -27,7 +28,7 @@ The RewardsManager needs to be upgraded to support the new issuance system inter
 
 ### **1.1 Prepare RewardsManager Upgrade**
 
-Deploy new RewardsManager implementation via the contracts package deployment tooling.
+Deploy the upgraded RewardsManager implementation via the Horizon deployment tooling (`packages/horizon`) or via orchestration tasks that depend on Horizon's Ignition modules. The key requirement is that RewardsManager exposes the issuance integration methods.
 
 ### **1.2 Execute RewardsManager Governance Upgrade**
 
@@ -40,8 +41,10 @@ Execute governance upgrade transaction via Safe multi-sig.
 # - setIssuanceAllocator(address)
 # - setRewardsEligibilityOracle(address)
 # - issuanceAllocator() view function
-# - RewardsEligibilityOracle() view function
+# - rewardsEligibilityOracle() view function
 ```
+
+TODO: Can this be done via checking interfaces are implemented? (Not indvidual calls, there are defined Interfaces and ERC165?)
 
 **✅ Phase 1 Complete**: RewardsManager now supports issuance system integration
 
@@ -49,24 +52,24 @@ Execute governance upgrade transaction via Safe multi-sig.
 
 ## 🏗️ **Phase 2: GraphProxyAdmin2 Deployment**
 
-Deploy the shared proxy administration contract that will manage upgrades for all issuance system contracts.
+Deploy the shared proxy administration contract (GraphIssuanceProxyAdmin, implemented by the `GraphProxyAdmin2` contract) that will manage upgrades for all issuance system contracts.
 
-### **2.1 Deploy GraphProxyAdmin2**
+### **2.1 Deploy GraphIssuanceProxyAdmin (GraphProxyAdmin2)**
 
-Deploy the dedicated proxy admin for the issuance system using Hardhat Ignition modules.
+Deploy the dedicated proxy admin for the issuance system using the standalone GraphIssuanceProxyAdmin Ignition module. RewardsEligibilityOracle and IssuanceAllocator deployment modules should depend on this shared module rather than deploying their own proxy admin instances.
 
-### **2.2 Verify GraphProxyAdmin2 Configuration**
+### **2.2 Verify GraphIssuanceProxyAdmin Configuration**
 
 Ensure the proxy admin is properly configured and owned by governance.
 
 **Verification**:
 
-- [ ] GraphProxyAdmin2 deployed successfully
+- [ ] GraphIssuanceProxyAdmin (GraphProxyAdmin2) deployed successfully
 - [ ] Owner is governance multi-sig address
 - [ ] Contract is ready to manage proxy upgrades
 - [ ] Address recorded in deployment artifacts
 
-**✅ Phase 2 Complete**: GraphProxyAdmin2 ready for issuance system contracts
+**✅ Phase 2 Complete**: GraphIssuanceProxyAdmin ready for issuance system contracts
 
 ---
 
@@ -76,13 +79,13 @@ Deploy and integrate the RewardsEligibilityOracle for indexer quality enforcemen
 
 ### **Stage 3.1: Deploy RewardsEligibilityOracle**
 
-Deploy the RewardsEligibilityOracle contract system using the existing GraphProxyAdmin2 via Hardhat Ignition.
+Deploy the RewardsEligibilityOracle contract system using the existing GraphIssuanceProxyAdmin (GraphProxyAdmin2) via Hardhat Ignition.
 
 **Verification**:
 
 - [ ] RewardsEligibilityOracle proxy deployed
 - [ ] RewardsEligibilityOracle implementation deployed
-- [ ] Proxy managed by existing GraphProxyAdmin2
+- [ ] Proxy managed by existing GraphIssuanceProxyAdmin (GraphProxyAdmin2)
 - [ ] Contracts properly initialized
 
 ### **Stage 3.2: Define and Configure Roles**
@@ -272,13 +275,13 @@ Deploy and configure the IssuanceAllocator to match existing configuration witho
 
 #### **4.1.1 Deploy IssuanceAllocator**
 
-Deploy IssuanceAllocator system using existing GraphProxyAdmin2 from Phase 2 via Hardhat Ignition.
+Deploy IssuanceAllocator system using the existing GraphIssuanceProxyAdmin (GraphProxyAdmin2) from Phase 2 via Hardhat Ignition.
 
 **Verification**:
 
 - [ ] IssuanceAllocator proxy deployed
 - [ ] IssuanceAllocator implementation deployed
-- [ ] Proxy managed by existing GraphProxyAdmin2
+- [ ] Proxy managed by existing GraphIssuanceProxyAdmin (GraphProxyAdmin2)
 - [ ] Contracts properly initialized
 
 #### **4.1.2 Configure Allocator to Match Existing Distribution**
@@ -388,7 +391,7 @@ Governance-controlled allocation changes can now be made safely.
 
 #### **4.3.1 Deploy Additional Allocation Targets**
 
-Deploy DirectAllocation contracts for new allocation targets via Hardhat Ignition.
+Deploy DirectAllocation-based contracts for new allocation targets via Hardhat Ignition, including the optional PilotAllocation test/experimental target when appropriate.
 
 #### **4.3.2 Gradual Allocation Adjustments**
 
@@ -434,7 +437,7 @@ For future upgrades: deploy new implementation, execute governance upgrade trans
 
 ### **Phase 2 Success**
 
-- [ ] GraphProxyAdmin2 deployed successfully
+- [ ] GraphIssuanceProxyAdmin (GraphProxyAdmin2) deployed successfully
 - [ ] Owner set to governance multi-sig
 - [ ] Ready to manage issuance system proxies
 

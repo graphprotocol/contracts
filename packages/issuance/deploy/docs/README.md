@@ -6,7 +6,22 @@
 
 ## Overview
 
-The documentation focuses on **RewardsEligibilityOracle (REO)** deployment (immediate priority) while preserving patterns for **IssuanceAllocator (IA)** deployment (future).
+This directory documents **issuance component deployment**. The canonical
+design and target model for the issuance system lives in
+[`Design.md`](./Design.md), which in turn restates and updates the original
+design from `incoming/issuance/Design.md`.
+
+For this phase the focus is on:
+
+- Making it clear what is **logically required** to deploy the issuance
+  components (RewardsEligibilityOracle, IssuanceAllocator, PilotAllocation)
+  on top of an existing Horizon deployment.
+- Keeping cross-package governance/orchestration details in `packages/deploy`
+  docs; the more detailed multi-phase guides listed below should be treated
+  as **background**, not canonical.
+
+The immediate priority remains **RewardsEligibilityOracle (REO)** while
+preserving the gradual migration pattern for **IssuanceAllocator (IA)**.
 
 ---
 

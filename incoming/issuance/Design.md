@@ -19,7 +19,10 @@ This document is the single source of truth for deploying the issuance system. S
 - RewardsEligibilityOracle (Upgradeable proxy + implementation)
 - PilotAllocation (Upgradeable proxy + implementation, using DirectAllocation implementation contract)
 - RewardsManager (Existing upgradeable proxy, new implementation)
-- GraphProxyAdmin2 (ProxyAdmin for issuance proxies; governance‑owned)
+- GraphIssuanceProxyAdmin (contract name `GraphProxyAdmin2`, ProxyAdmin for issuance proxies; governance‑owned)
+
+TODO: Why is contract name kept as GraphProxyAdmin2 and not GraphIssuanceProxyAdmin? Change?
+
 - TransparentUpgradeableProxy (standard OZ proxies per component)
 - GraphToken (Existing contract, no action needed, just need module to reference)
 - GraphProxyAdmin (Existing proxy admin for core contracts, no action needed, just need module to reference)

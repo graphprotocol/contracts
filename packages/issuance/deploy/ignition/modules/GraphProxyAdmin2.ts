@@ -3,13 +3,14 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import GraphProxyAdminArtifact from '../../../../contracts/artifacts/contracts/upgrades/GraphProxyAdmin.sol/GraphProxyAdmin.json'
 
 /**
- * GraphProxyAdmin2 - Shared proxy admin for issuance contracts
+ * GraphIssuanceProxyAdmin (contract name: GraphProxyAdmin2) - shared proxy admin for issuance contracts
  *
- * This is a second instance of GraphProxyAdmin, used specifically for
+ * This is a dedicated instance of GraphProxyAdmin, used specifically for
  * issuance contracts (IssuanceAllocator, RewardsEligibilityOracle, PilotAllocation).
  *
- * The original GraphProxyAdmin (in horizon package) manages legacy contracts.
- * This GraphProxyAdmin2 manages all issuance-related proxies.
+ * The original GraphProxyAdmin (in the Horizon deployment) manages core protocol proxies.
+ * This GraphIssuanceProxyAdmin instance manages all issuance-related proxies and is
+ * consumed via this standalone Ignition module (rather than being duplicated in REO/IA modules).
  */
 export default buildModule('GraphProxyAdmin2', (m) => {
   const governor = m.getAccount(1)
