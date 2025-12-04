@@ -8,9 +8,10 @@ import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/config'
 
 // Explicitly register local Hardhat tasks (orchestration helpers)
-// Temporarily disabled due to type issues:
-// import './tasks/rewards-eligibility-upgrade'
-// import './tasks/deploy-reo-implementation'
+import './tasks/rewards-eligibility-upgrade'
+import './tasks/deploy-reo-implementation'
+import './tasks/deploy-ia-implementation'
+import './tasks/deploy-reo-impl'
 import './tasks/sync-pending-implementation'
 import './tasks/list-pending-implementations'
 import './tasks/deployment-status'
