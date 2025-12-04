@@ -1,4 +1,3 @@
-import { ethers } from 'hardhat'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 // Minimal PoC: Deploy ProxyAdmin, IssuanceAllocator + RewardsEligibilityOracle implementations,
@@ -18,7 +17,7 @@ type DeployFunc = ((hre: HardhatRuntimeEnvironment) => Promise<void>) & { tags?:
 
 const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
   const { deployments, getNamedAccounts, network } = hre
-  const { deploy, execute, getArtifact } = deployments
+  const { deploy, execute } = deployments
   const { deployer, governor: governorNamed } = await getNamedAccounts()
 
   const chainId = network.config.chainId
@@ -34,71 +33,40 @@ const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
   // Governor account: use named account only
   const governor = governorNamed
 
-  // OpenZeppelin artifacts
-  // Rely on node resolution across workspace (already used by Ignition modules)
-  const ProxyAdminArtifact = require('@openzeppelin/contracts/build/contracts/ProxyAdmin.json')
-  const TransparentUpgradeableProxyArtifact = require('@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json')
+  // hardhat-deploy proxy options (cast to bypass strict typing in this workspace)
+  const proxyOpts = {
+    owner: governor,
+    proxyContract: 'OpenZeppelinTransparentProxy',
+    execute: {
+      init: {
+        methodName: 'initialize',
+        args: [governor],
+      },
+    },
+  } as unknown as never
 
-  // 1) Proxy Admin (governor as initial owner)
-  // Reuse an existing OZ ProxyAdmin from deployments or deploy a new one
-  const existingPA = await deployments.getOrNull('GraphIssuanceProxyAdmin')
-  const proxyAdminAddress: string = existingPA
-    ? existingPA.address
-    : (
-        await deploy('GraphIssuanceProxyAdmin', {
-          from: deployer,
-          log: true,
-          args: [governor],
-          contract: ProxyAdminArtifact,
-        })
-      ).address
+  // 1) Deploy proxied contracts using hardhat-deploy proxy pattern
+  const ia = await deploy('IssuanceAllocator', {
+    contract: 'IssuanceAllocator',
+    from: deployer,
+    log: true,
+    args: [GRAPH_TOKEN],
+    proxy: proxyOpts,
+  })
 
-  // Helper to deploy a proxied upgradeable with atomic init
-  const deployProxied = async (
-    name: string,
-    implContractName: string,
-    initMethod: string,
-    implConstructorArgs: unknown[],
-    initArgs: unknown[],
-  ) => {
-    const implArtifact = await getArtifact(implContractName)
-    const impl = await deploy(`${name}_Implementation`, {
-      contract: implArtifact,
-      from: deployer,
-      log: true,
-      args: implConstructorArgs,
-    })
-
-    const iface = new ethers.utils.Interface(implArtifact.abi)
-    const initData = iface.encodeFunctionData(initMethod, initArgs)
-
-    const proxy = await deploy(name, {
-      contract: TransparentUpgradeableProxyArtifact,
-      from: deployer,
-      log: true,
-      args: [impl.address, proxyAdminAddress, initData],
-    })
-
-    return { impl, proxy }
-  }
-
-  // 2) IssuanceAllocator
-  const ia = await deployProxied('IssuanceAllocator', 'IssuanceAllocator', 'initialize', [GRAPH_TOKEN], [governor])
-
-  // 3) RewardsEligibilityOracle
-  const reo = await deployProxied(
-    'RewardsEligibilityOracle',
-    'RewardsEligibilityOracle',
-    'initialize',
-    [GRAPH_TOKEN],
-    [governor],
-  )
+  const reo = await deploy('RewardsEligibilityOracle', {
+    contract: 'RewardsEligibilityOracle',
+    from: deployer,
+    log: true,
+    args: [GRAPH_TOKEN],
+    proxy: proxyOpts,
+  })
 
   // Post-deploy governance acceptOwnership calls (idempotent/no-op if already accepted)
-  if (ia.proxy.newlyDeployed) {
+  if (ia.newlyDeployed) {
     await execute('IssuanceAllocator', { from: governor, log: true }, 'acceptOwnership')
   }
-  if (reo.proxy.newlyDeployed) {
+  if (reo.newlyDeployed) {
     await execute('RewardsEligibilityOracle', { from: governor, log: true }, 'acceptOwnership')
   }
 }
