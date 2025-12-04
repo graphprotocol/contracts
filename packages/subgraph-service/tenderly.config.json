@@ -8,14 +8,7 @@
       "project": "horizon-arbitrum-one"
     }
   },
-  "verifyList": [
-    "SubgraphService",
-    "DisputeManager"
-  ],
-  "excludeList": [
-    "L2Curation",
-    "L2GNS",
-    "SubgraphNFT"
-  ],
+  "verifyList": ["SubgraphService", "DisputeManager"],
+  "excludeList": ["L2Curation", "L2GNS", "SubgraphNFT"],
   "tag": "Subgraph Service"
 }
