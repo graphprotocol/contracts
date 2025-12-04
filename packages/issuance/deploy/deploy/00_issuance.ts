@@ -1,8 +1,6 @@
 import { ethers } from 'hardhat'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-import { loadParams } from './lib/params'
-
 // Minimal PoC: Deploy ProxyAdmin, IssuanceAllocator + RewardsEligibilityOracle implementations,
 // and TransparentUpgradeableProxy instances with atomic initialization. Then accept ownership.
 //
@@ -26,35 +24,15 @@ const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
   const chainId = network.config.chainId
   if (!chainId) throw new Error('Missing chainId in network config')
 
-  const params = await loadParams(hre)
-
-  const isAddressCompat = (addr: string | undefined): addr is string => {
-    if (!addr) return false
-    try {
-      const e = ethers as unknown as {
-        utils?: { getAddress?: (a: string) => string }
-        getAddress?: (a: string) => string
-      }
-      if (e.utils && typeof e.utils.getAddress === 'function') {
-        e.utils.getAddress(addr)
-        return true
-      }
-      if (typeof e.getAddress === 'function') {
-        e.getAddress(addr)
-        return true
-      }
-      return false
-    } catch {
-      return false
-    }
+  // Require GraphToken to be provided via deployments JSON (hardhat-deploy way)
+  const graphTokenDep = await deployments.getOrNull('GraphToken')
+  if (!graphTokenDep) {
+    throw new Error('Missing deployments/<network>/GraphToken.json (required)')
   }
-  const GRAPH_TOKEN = params.graphToken
-  if (!isAddressCompat(GRAPH_TOKEN)) {
-    throw new Error('GraphToken address not provided. Set GRAPH_TOKEN env var or config/<network>.json')
-  }
+  const GRAPH_TOKEN = graphTokenDep.address
 
-  // Governor account: env override wins, else named account
-  const governor = params.governor ?? governorNamed
+  // Governor account: use named account only
+  const governor = governorNamed
 
   // OpenZeppelin artifacts
   // Rely on node resolution across workspace (already used by Ignition modules)
@@ -62,19 +40,18 @@ const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
   const TransparentUpgradeableProxyArtifact = require('@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json')
 
   // 1) Proxy Admin (governor as initial owner)
-  // Either reuse an existing OZ ProxyAdmin (graphIssuanceProxyAdmin/config) or deploy a new one
-  let proxyAdminAddress: string
-  if (isAddressCompat(params.graphIssuanceProxyAdmin)) {
-    proxyAdminAddress = params.graphIssuanceProxyAdmin
-  } else {
-    const pa = await deploy('GraphIssuanceProxyAdmin', {
-      from: deployer,
-      log: true,
-      args: [governor],
-      contract: ProxyAdminArtifact,
-    })
-    proxyAdminAddress = pa.address
-  }
+  // Reuse an existing OZ ProxyAdmin from deployments or deploy a new one
+  const existingPA = await deployments.getOrNull('GraphIssuanceProxyAdmin')
+  const proxyAdminAddress: string = existingPA
+    ? existingPA.address
+    : (
+        await deploy('GraphIssuanceProxyAdmin', {
+          from: deployer,
+          log: true,
+          args: [governor],
+          contract: ProxyAdminArtifact,
+        })
+      ).address
 
   // Helper to deploy a proxied upgradeable with atomic init
   const deployProxied = async (
