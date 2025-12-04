@@ -17,8 +17,9 @@ import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdm
 export default buildModule('GraphIssuanceProxyAdmin', (m) => {
   const governor = m.getAccount(1)
 
-  const GraphIssuanceProxyAdmin = m.contract('GraphIssuanceProxyAdmin', ProxyAdminArtifact)
-  m.call(GraphIssuanceProxyAdmin, 'transferOwnership', [governor])
+  // Deploy ProxyAdmin with governor as initial owner
+  // OZ ProxyAdmin constructor: constructor(address initialOwner)
+  const GraphIssuanceProxyAdmin = m.contract('GraphIssuanceProxyAdmin', ProxyAdminArtifact, [governor])
 
   return { GraphIssuanceProxyAdmin }
 })
