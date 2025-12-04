@@ -26,16 +26,13 @@ const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
     )
   }
 
-  const adminPrimary = await getOrNull('GraphProxyAdmin')
-  const adminLegacy = adminPrimary ? undefined : await getOrNull('GraphLegacyProxyAdmin')
-  if (!adminPrimary && !adminLegacy) {
-    throw new Error(
-      'Missing deployments/<network>/GraphProxyAdmin.json (or GraphLegacyProxyAdmin.json). Provide legacy admin via deployments.',
-    )
+  const adminLegacy = await getOrNull('GraphLegacyProxyAdmin')
+  if (!adminLegacy) {
+    throw new Error('Missing deployments/<network>/GraphLegacyProxyAdmin.json (required)')
   }
 
   const proxyAddress = rewardsManagerDep.address
-  const adminName = adminPrimary ? 'GraphProxyAdmin' : 'GraphLegacyProxyAdmin'
+  const adminName = 'GraphLegacyProxyAdmin'
 
   // 2) Deploy (or reuse) the latest implementation with hardhat-deploy
   // If bytecode is unchanged, hardhat-deploy will skip and return the existing deployment
