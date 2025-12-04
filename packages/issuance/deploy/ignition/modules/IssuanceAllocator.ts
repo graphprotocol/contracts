@@ -13,16 +13,18 @@ import { loadProxyWithABI } from './proxy/utils'
  *
  * FIRST RUN:
  *   npx hardhat ignition deploy ignition/modules/IssuanceAllocator.ts --network arbitrumOne
- *   Deploys: GraphIssuanceProxyAdmin → Implementation → TransparentUpgradeableProxy
- *   Initialization: Immediate via m.call within same deployment (prevents front-running attacks)
+ *   Deploys: GraphIssuanceProxyAdmin → Implementation → TransparentUpgradeableProxy (with atomic init)
+ *   Initialization: ATOMIC via proxy constructor (prevents front-running attacks)
  *
  * SUBSEQUENT RUNS:
  *   Same command - Ignition detects existing deployments automatically
  *   Deploys: ONLY new implementation (if code changed)
  *   Upgrade: Via governance transaction ProxyAdmin.upgradeAndCall(proxy, newImpl, '0x')
  *
- * Security: Proxy is initialized immediately after deployment within the same Ignition execution
- * batch to prevent front-running attacks where an attacker could call initialize() before governance.
+ * Security: Proxy is initialized ATOMICALLY in the same transaction as deployment via
+ * m.encodeFunctionCall(), completely eliminating front-running attack vectors where an
+ * attacker could call initialize() before governance. The initialization data is passed
+ * directly to the TransparentUpgradeableProxy constructor.
  *
  * Uses standard OpenZeppelin TransparentUpgradeableProxy + ProxyAdmin (NOT Graph protocol's
  * custom GraphProxy). This ensures complete independence from @graphprotocol/contracts.
@@ -39,12 +41,17 @@ export default buildModule('IssuanceAllocator', (m) => {
     constructorArgs: [graphTokenAddress],
   })
 
-  // Deploy proxy with implementation (no initialization data in constructor)
-  // We'll initialize via upgradeAndCall to maintain compatibility with Ignition's runtime values
+  // SECURITY: Encode initialization data using m.encodeFunctionCall
+  // This works with Ignition's Future values (governor from m.getAccount)
+  const initData = m.encodeFunctionCall(IssuanceAllocatorImplementation, 'initialize', [governor])
+
+  // Deploy proxy with implementation AND initialization data
+  // This achieves truly atomic initialization - the proxy is initialized in the same
+  // transaction as deployment, completely preventing any front-running attacks
   const TransparentUpgradeableProxy = m.contract(
     'TransparentUpgradeableProxy',
     TransparentUpgradeableProxyArtifact,
-    [IssuanceAllocatorImplementation, GraphIssuanceProxyAdmin, '0x'],
+    [IssuanceAllocatorImplementation, GraphIssuanceProxyAdmin, initData],
     { id: 'IssuanceAllocator_Proxy' },
   )
 
@@ -52,14 +59,6 @@ export default buildModule('IssuanceAllocator', (m) => {
   const IssuanceAllocator = loadProxyWithABI(m, TransparentUpgradeableProxy, {
     name: 'IssuanceAllocator',
     artifact: IssuanceAllocatorArtifact,
-  })
-
-  // SECURITY: Initialize immediately via upgradeAndCall
-  // While this is a separate call, it's within the same Ignition deployment execution
-  // Ignition ensures this runs atomically as part of the deployment batch
-  m.call(IssuanceAllocator, 'initialize', [governor], {
-    id: 'IssuanceAllocator_Initialize',
-    from: governor,
   })
 
   return {
