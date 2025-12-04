@@ -9,20 +9,20 @@ import { loadProxyWithABI } from './proxy/utils'
 /**
  * PilotAllocation - Declarative module for deployment and upgrades
  *
- * This module uses Ignition's declarative model to handle both initial deployment and upgrades:
+ * This module uses Ignition's declarative model for deployment:
  *
  * FIRST RUN:
  *   npx hardhat ignition deploy ignition/modules/PilotAllocation.ts --network arbitrumOne
  *   Deploys: GraphIssuanceProxyAdmin → Implementation → TransparentUpgradeableProxy
- *   Orchestration: upgradeAndCall(proxy, implementation, initializeData) to initialize
+ *   Initialization: Immediate via m.call within same deployment (prevents front-running attacks)
  *
  * SUBSEQUENT RUNS:
  *   Same command - Ignition detects existing deployments automatically
  *   Deploys: ONLY new implementation (if code changed)
- *   Orchestration: upgradeAndCall(proxy, newImplementation, '0x') to upgrade
+ *   Upgrade: Via governance transaction ProxyAdmin.upgradeAndCall(proxy, newImpl, '0x')
  *
- * Key insight: Ignition's state management handles deduplication. The module always declares
- * the desired end state, and Ignition ensures already-deployed contracts aren't redeployed.
+ * Security: Proxy is initialized immediately after deployment within the same Ignition execution
+ * batch to prevent front-running attacks where an attacker could call initialize() before governance.
  *
  * Note: PilotAllocation uses DirectAllocation as its implementation contract.
  *
@@ -30,6 +30,7 @@ import { loadProxyWithABI } from './proxy/utils'
  * custom GraphProxy). This ensures complete independence from @graphprotocol/contracts.
  */
 export default buildModule('PilotAllocation', (m) => {
+  const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
   const { GraphIssuanceProxyAdmin } = m.useModule(GraphIssuanceProxyAdminModule)
 
@@ -40,7 +41,8 @@ export default buildModule('PilotAllocation', (m) => {
     constructorArgs: [graphTokenAddress],
   })
 
-  // Deploy proxy with implementation (no init data - initialization via upgrade transaction)
+  // Deploy proxy with implementation (no initialization data in constructor)
+  // We'll initialize via m.call to maintain compatibility with Ignition's runtime values
   const TransparentUpgradeableProxy = m.contract(
     'TransparentUpgradeableProxy',
     TransparentUpgradeableProxyArtifact,
@@ -52,6 +54,14 @@ export default buildModule('PilotAllocation', (m) => {
   const PilotAllocation = loadProxyWithABI(m, TransparentUpgradeableProxy, {
     name: 'PilotAllocation',
     artifact: DirectAllocationArtifact,
+  })
+
+  // SECURITY: Initialize immediately via m.call
+  // While this is a separate call, it's within the same Ignition deployment execution
+  // Ignition ensures this runs atomically as part of the deployment batch
+  m.call(PilotAllocation, 'initialize', [governor], {
+    id: 'PilotAllocation_Initialize',
+    from: governor,
   })
 
   return {

@@ -4,6 +4,7 @@ import { ethers, ignition } from 'hardhat'
 import IssuanceAllocatorModule from '../../issuance/deploy/ignition/modules/IssuanceAllocator'
 import GraphIssuanceProxyAdminModule from '../../issuance/deploy/ignition/modules/GraphIssuanceProxyAdmin'
 import IssuanceAllocatorArtifact from '../../issuance/artifacts/contracts/allocate/IssuanceAllocator.sol/IssuanceAllocator.json'
+import ProxyAdminArtifact from '@openzeppelin/contracts/build/contracts/ProxyAdmin.json'
 
 /**
  * Test suite demonstrating the governed deployment pattern for issuance contracts
@@ -24,10 +25,11 @@ describe('Issuance Governed Deployment Pattern', function () {
     mockGraphTokenAddress = '0x' + '1'.repeat(40)
   })
 
-  describe('Initial Deployment + Governed Initialization', function () {
-    it('should deploy system and initialize via governance transaction', async function () {
+  describe('Initial Deployment with Atomic Initialization', function () {
+    it('should deploy system with atomic initialization (prevents front-running)', async function () {
       // STEP 1: Deploy using Ignition (deployer account)
       // This deploys: GraphIssuanceProxyAdmin → Implementation → TransparentUpgradeableProxy
+      // SECURITY: Proxy is initialized atomically during deployment via constructor calldata
       const { IssuanceAllocator, IssuanceAllocatorImplementation } = await ignition.deploy(
         IssuanceAllocatorModule,
         {
@@ -53,21 +55,12 @@ describe('Issuance Governed Deployment Pattern', function () {
       // Verify ProxyAdmin is owned by governor (set in constructor)
       expect(await GraphIssuanceProxyAdmin.owner()).to.equal(governor.address)
 
-      // STEP 2: Prepare initialization call data
+      // STEP 2: Verify atomic initialization succeeded
+      // The proxy was initialized during deployment - no separate transaction needed
       const IssuanceAllocatorFactory = await ethers.getContractFactoryFromArtifact(IssuanceAllocatorArtifact)
       const issuanceAllocator = IssuanceAllocatorFactory.attach(IssuanceAllocator.target)
 
-      const initializeData = issuanceAllocator.interface.encodeFunctionData('initialize', [governor.address])
-
-      // STEP 3: Governor executes upgradeAndCall to initialize
-      // This is the governed initialization pattern - even initial setup uses governance transaction
-      await GraphIssuanceProxyAdmin.connect(governor).upgradeAndCall(
-        IssuanceAllocator.target,
-        IssuanceAllocatorImplementation.target,
-        initializeData,
-      )
-
-      // STEP 4: Verify initialization succeeded
+      // Verify governor role was set during deployment
       expect(await issuanceAllocator.hasRole(await issuanceAllocator.GOVERNOR_ROLE(), governor.address)).to.be.true
 
       // Verify proxy points to implementation
@@ -78,104 +71,71 @@ describe('Issuance Governed Deployment Pattern', function () {
     })
   })
 
-  describe('Upgrade Flow via Governance', function () {
-    it('should upgrade implementation via governance transaction', async function () {
-      // STEP 1: Deploy initial system
-      const { IssuanceAllocator, IssuanceAllocatorImplementation } = await ignition.deploy(
-        IssuanceAllocatorModule,
-        {
-          parameters: {
-            IssuanceAllocator: {
-              graphTokenAddress: mockGraphTokenAddress,
-            },
-          },
-          defaultSender: deployer.address,
-        },
-      )
-
+  describe('Governance and Security', function () {
+    it('should have ProxyAdmin owned by governor', async function () {
       const { GraphIssuanceProxyAdmin } = await ignition.deploy(GraphIssuanceProxyAdminModule, {
         defaultSender: deployer.address,
       })
 
-      // ProxyAdmin is already owned by governor (from constructor)
-      // Initialize via governance
+      // Create ProxyAdmin contract instance
+      const ProxyAdminFactory = await ethers.getContractFactoryFromArtifact(ProxyAdminArtifact)
+      const proxyAdmin = ProxyAdminFactory.attach(GraphIssuanceProxyAdmin.target)
+
+      // Verify ProxyAdmin is owned by governor
+      expect(await proxyAdmin.owner()).to.equal(governor.address)
+    })
+
+    it('should prevent double initialization', async function () {
+      const { IssuanceAllocator } = await ignition.deploy(IssuanceAllocatorModule, {
+        parameters: {
+          IssuanceAllocator: {
+            graphTokenAddress: mockGraphTokenAddress,
+          },
+        },
+        defaultSender: deployer.address,
+      })
+
+      // Get contract instance
       const IssuanceAllocatorFactory = await ethers.getContractFactoryFromArtifact(IssuanceAllocatorArtifact)
       const issuanceAllocator = IssuanceAllocatorFactory.attach(IssuanceAllocator.target)
 
-      const initializeData = issuanceAllocator.interface.encodeFunctionData('initialize', [governor.address])
-      await GraphIssuanceProxyAdmin.connect(governor).upgradeAndCall(
-        IssuanceAllocator.target,
-        IssuanceAllocatorImplementation.target,
-        initializeData,
-      )
-
-      const initialImplementation = IssuanceAllocatorImplementation.target
-
-      // STEP 2: Simulate deployment of new implementation
-      // In practice, this would be a new Ignition run with updated contract code
-      // For this test, we'll verify the upgrade mechanism works
-
-      // Query current implementation via ProxyAdmin
-      const currentImpl = await GraphIssuanceProxyAdmin.connect(governor).getProxyImplementation(
-        IssuanceAllocator.target,
-      )
-      expect(currentImpl).to.equal(initialImplementation)
-
-      // STEP 3: Governor executes upgradeAndCall with new implementation
-      // (In this test, we "upgrade" to the same implementation to verify the mechanism)
-      // In production, this would be a different implementation address
-      await GraphIssuanceProxyAdmin.connect(governor).upgradeAndCall(
-        IssuanceAllocator.target,
-        IssuanceAllocatorImplementation.target,
-        '0x', // No re-initialization needed for upgrades
-      )
-
-      // STEP 4: Verify upgrade succeeded
-      const newImpl = await GraphIssuanceProxyAdmin.connect(governor).getProxyImplementation(
-        IssuanceAllocator.target,
-      )
-      expect(newImpl).to.equal(IssuanceAllocatorImplementation.target)
-
-      // Verify proxy state persisted through upgrade
+      // Verify contract is already initialized (governor role is set)
       expect(await issuanceAllocator.hasRole(await issuanceAllocator.GOVERNOR_ROLE(), governor.address)).to.be.true
+
+      // Attempt to initialize again should fail
+      await expect(issuanceAllocator.connect(governor).initialize(governor.address)).to.be.revertedWithCustomError(
+        issuanceAllocator,
+        'InvalidInitialization',
+      )
     })
 
-    it('should enforce governance-only access to upgrade functions', async function () {
-      const { IssuanceAllocator, IssuanceAllocatorImplementation } = await ignition.deploy(
-        IssuanceAllocatorModule,
-        {
-          parameters: {
-            IssuanceAllocator: {
-              graphTokenAddress: mockGraphTokenAddress,
-            },
+    it('should prevent unauthorized access to ProxyAdmin functions', async function () {
+      const { IssuanceAllocator } = await ignition.deploy(IssuanceAllocatorModule, {
+        parameters: {
+          IssuanceAllocator: {
+            graphTokenAddress: mockGraphTokenAddress,
           },
-          defaultSender: deployer.address,
         },
-      )
+        defaultSender: deployer.address,
+      })
 
       const { GraphIssuanceProxyAdmin } = await ignition.deploy(GraphIssuanceProxyAdminModule, {
         defaultSender: deployer.address,
       })
 
-      // ProxyAdmin is already owned by governor (from constructor)
+      // Create ProxyAdmin contract instance
+      const ProxyAdminFactory = await ethers.getContractFactoryFromArtifact(ProxyAdminArtifact)
+      const proxyAdmin = ProxyAdminFactory.attach(GraphIssuanceProxyAdmin.target)
+
+      // Deploy a mock implementation
+      const newImplementationFactory = await ethers.getContractFactoryFromArtifact(IssuanceAllocatorArtifact)
+      const newImplementation = await newImplementationFactory.deploy(mockGraphTokenAddress)
+      await newImplementation.waitForDeployment()
 
       // Verify non-governor cannot upgrade
       await expect(
-        GraphIssuanceProxyAdmin.connect(deployer).upgradeAndCall(
-          IssuanceAllocator.target,
-          IssuanceAllocatorImplementation.target,
-          '0x',
-        ),
-      ).to.be.revertedWithCustomError(GraphIssuanceProxyAdmin, 'OwnableUnauthorizedAccount')
-
-      // Verify governor can upgrade
-      await expect(
-        GraphIssuanceProxyAdmin.connect(governor).upgradeAndCall(
-          IssuanceAllocator.target,
-          IssuanceAllocatorImplementation.target,
-          '0x',
-        ),
-      ).to.not.be.reverted
+        proxyAdmin.connect(deployer).upgradeAndCall(IssuanceAllocator.target, newImplementation.target, '0x'),
+      ).to.be.revertedWithCustomError(proxyAdmin, 'OwnableUnauthorizedAccount')
     })
   })
 

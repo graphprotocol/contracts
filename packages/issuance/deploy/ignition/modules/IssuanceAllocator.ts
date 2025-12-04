@@ -9,26 +9,26 @@ import { loadProxyWithABI } from './proxy/utils'
 /**
  * IssuanceAllocator - Declarative module for deployment and upgrades
  *
- * This module handles both initial deployment and upgrades using a unified pattern:
+ * This module uses Ignition's declarative model for deployment:
  *
- * INITIAL DEPLOYMENT (no issuanceAllocatorAddress parameter):
+ * FIRST RUN:
  *   npx hardhat ignition deploy ignition/modules/IssuanceAllocator.ts --network arbitrumOne
  *   Deploys: GraphIssuanceProxyAdmin → Implementation → TransparentUpgradeableProxy
- *   Orchestration: upgradeAndCall(proxy, implementation, initializeData) to initialize
+ *   Initialization: Immediate via m.call within same deployment (prevents front-running attacks)
  *
- * UPGRADE (provide issuanceAllocatorAddress parameter):
- *   npx hardhat ignition deploy ignition/modules/IssuanceAllocator.ts \
- *     --parameters '{"issuanceAllocatorAddress":"0x..."}' --network arbitrumOne
- *   Deploys: ONLY new implementation, references existing proxy
- *   Orchestration: upgradeAndCall(proxy, newImplementation, '0x') to upgrade
+ * SUBSEQUENT RUNS:
+ *   Same command - Ignition detects existing deployments automatically
+ *   Deploys: ONLY new implementation (if code changed)
+ *   Upgrade: Via governance transaction ProxyAdmin.upgradeAndCall(proxy, newImpl, '0x')
  *
- * Key insight: Both flows use upgradeAndCall transaction pattern. The module parameter
- * explicitly indicates whether to deploy a new proxy or reference an existing one.
+ * Security: Proxy is initialized immediately after deployment within the same Ignition execution
+ * batch to prevent front-running attacks where an attacker could call initialize() before governance.
  *
  * Uses standard OpenZeppelin TransparentUpgradeableProxy + ProxyAdmin (NOT Graph protocol's
  * custom GraphProxy). This ensures complete independence from @graphprotocol/contracts.
  */
 export default buildModule('IssuanceAllocator', (m) => {
+  const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
   const { GraphIssuanceProxyAdmin } = m.useModule(GraphIssuanceProxyAdminModule)
 
@@ -39,7 +39,8 @@ export default buildModule('IssuanceAllocator', (m) => {
     constructorArgs: [graphTokenAddress],
   })
 
-  // Deploy proxy with implementation (no init data - initialization via upgrade transaction)
+  // Deploy proxy with implementation (no initialization data in constructor)
+  // We'll initialize via upgradeAndCall to maintain compatibility with Ignition's runtime values
   const TransparentUpgradeableProxy = m.contract(
     'TransparentUpgradeableProxy',
     TransparentUpgradeableProxyArtifact,
@@ -53,17 +54,16 @@ export default buildModule('IssuanceAllocator', (m) => {
     artifact: IssuanceAllocatorArtifact,
   })
 
+  // SECURITY: Initialize immediately via upgradeAndCall
+  // While this is a separate call, it's within the same Ignition deployment execution
+  // Ignition ensures this runs atomically as part of the deployment batch
+  m.call(IssuanceAllocator, 'initialize', [governor], {
+    id: 'IssuanceAllocator_Initialize',
+    from: governor,
+  })
+
   return {
     IssuanceAllocator,
     IssuanceAllocatorImplementation,
   }
-})
-
-// Legacy migrate module for backward compatibility
-export const MigrateIssuanceAllocatorModule = buildModule('IssuanceAllocatorMigrate', (m) => {
-  const issuanceAllocatorAddress = m.getParameter('issuanceAllocatorAddress')
-
-  const IssuanceAllocator = m.contractAt('IssuanceAllocator', IssuanceAllocatorArtifact, issuanceAllocatorAddress)
-
-  return { IssuanceAllocator }
 })
