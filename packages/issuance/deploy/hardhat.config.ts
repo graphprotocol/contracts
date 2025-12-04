@@ -1,5 +1,6 @@
 import '@nomicfoundation/hardhat-ethers'
 import '@nomicfoundation/hardhat-ignition-ethers'
+import 'hardhat-deploy'
 import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
@@ -35,6 +36,14 @@ const config: HardhatUserConfig = {
     tests: './test',
     artifacts: '../artifacts',
     cache: '../cache',
+  },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+    governor: {
+      default: 1,
+    },
   },
 }
 
