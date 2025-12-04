@@ -48,8 +48,9 @@ This document describes the design for the cross-package orchestration system in
 
 **TODO:** The following targets mentioned in this design are not yet implemented:
 
-- pilot-allocation component deployment
 - issuance-allocator-reallocation checkpoint
+
+**Note:** pilot-allocation component deployment is handled in `packages/issuance/deploy/`, and the PilotAllocationActive checkpoint is now implemented in this package.
 
 Notes:
 
@@ -71,7 +72,8 @@ Notes:
 
 - Replicated Allocation: IssuanceAllocator replicates current issuance per block with 100% allocated to RewardsManager
 - Replicated Allocation Active: integrated via `RewardsManager.setIssuanceAllocator()` with 100% allocation to RewardsManager
-- Pilot Allocation Active: 99% to RewardsManager and 1% to a PilotAllocation (for testing only; not proposed for production)
+
+**Note:** Pilot Allocation Active checkpoint is now implemented. It verifies that PilotAllocation is configured as an allocation target in IssuanceAllocator (for testing only; not proposed for production).
 
 ### Governance workflow
 

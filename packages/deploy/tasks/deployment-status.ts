@@ -109,17 +109,28 @@ task('issuance:deployment-status', 'Show comprehensive deployment status for all
           printContractStatus(status)
         }
 
-        // PilotAllocation (if exists)
-        if (issuanceContracts.PilotAllocation) {
-          const status = await getContractStatus(
-            'PilotAllocation',
-            issuanceContracts.PilotAllocation.target.toString(),
-            provider,
-            shouldVerify,
-            'issuance',
-          )
-          statuses.push(status)
-          printContractStatus(status)
+        // PilotAllocation (if exists in address book)
+        // Note: PilotAllocation uses DirectAllocation implementation but is a separate deployment
+        // PilotAllocation is not part of GraphIssuanceContractName type, so we access it directly
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pilotEntry = addressBook.getEntry('PilotAllocation' as any)
+          if (pilotEntry?.address) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pending = addressBook.getPendingImplementation('PilotAllocation' as any)
+            const status = await getContractStatus(
+              'PilotAllocation',
+              pilotEntry.address,
+              provider,
+              shouldVerify,
+              'issuance',
+              pending,
+            )
+            statuses.push(status)
+            printContractStatus(status)
+          }
+        } catch {
+          // PilotAllocation not in address book for this network, skip
         }
 
         console.log()
@@ -166,7 +177,11 @@ async function getContractStatus(
     }
   } else {
     // Assume it's a proxy if name suggests it (heuristic)
-    status.isProxy = name.includes('Manager') || name.includes('Oracle') || name.includes('Allocator')
+    status.isProxy =
+      name.includes('Manager') ||
+      name.includes('Oracle') ||
+      name.includes('Allocator') ||
+      name.includes('Allocation')
     status.implementation = 'Not verified'
   }
 
