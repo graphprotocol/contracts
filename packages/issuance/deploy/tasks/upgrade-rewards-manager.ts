@@ -1,11 +1,12 @@
 import { ethers } from 'hardhat'
 import { task } from 'hardhat/config'
+
 import { loadParams } from '../deploy/lib/params'
 
 // Minimal ABI for legacy GraphProxyAdmin
 const GRAPH_PROXY_ADMIN_ABI = [
   'function upgrade(address proxy, address implementation) external',
-  'function upgradeAndCall(address proxy, address implementation, bytes data) external'
+  'function upgradeAndCall(address proxy, address implementation, bytes data) external',
 ]
 
 // Usage:
@@ -27,18 +28,28 @@ task('upgrade:rewards-manager', 'Upgrade RewardsManager via legacy GraphProxyAdm
     const graphLegacyProxyAdmin = params.graphLegacyProxyAdmin
     const governorAddr = params.governor
 
-    if (!rewardsManager) throw new Error('Missing rewardsManager in params (config/<network>.json or REWARDS_MANAGER env)')
+    if (!rewardsManager)
+      throw new Error('Missing rewardsManager in params (config/<network>.json or REWARDS_MANAGER env)')
     if (!graphLegacyProxyAdmin)
-      throw new Error(
-        'Missing graphLegacyProxyAdmin in params (config/<network>.json or GRAPH_LEGACY_PROXY_ADMIN env)',
-      )
+      throw new Error('Missing graphLegacyProxyAdmin in params (config/<network>.json or GRAPH_LEGACY_PROXY_ADMIN env)')
     const isValid = (() => {
       try {
-        const e = ethers as unknown as { utils?: { getAddress?: (a: string) => string }; getAddress?: (a: string) => string }
-        if (e.utils?.getAddress) { e.utils.getAddress(newImpl); return true }
-        if (e.getAddress) { e.getAddress(newImpl); return true }
+        const e = ethers as unknown as {
+          utils?: { getAddress?: (a: string) => string }
+          getAddress?: (a: string) => string
+        }
+        if (e.utils?.getAddress) {
+          e.utils.getAddress(newImpl)
+          return true
+        }
+        if (e.getAddress) {
+          e.getAddress(newImpl)
+          return true
+        }
         return false
-      } catch { return false }
+      } catch {
+        return false
+      }
     })()
     if (!isValid) throw new Error('newImpl must be a valid address')
 

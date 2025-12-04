@@ -5,12 +5,11 @@ import '@typechain/hardhat'
 import 'hardhat-contract-sizer'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomicfoundation/hardhat-verify'
+// Explicitly register local Hardhat tasks (deployment / governance helpers)
+import './tasks/upgrade-rewards-manager'
 
 import { hardhatBaseConfig } from '@graphprotocol/toolshed/hardhat'
 import type { HardhatUserConfig } from 'hardhat/config'
-
-// Explicitly register local Hardhat tasks (deployment / governance helpers)
-import './tasks/rewards-eligibility-upgrade'
 
 // Issuance-specific Solidity configuration with Cancun EVM version
 const issuanceSolidityConfig = {
@@ -48,4 +47,3 @@ const config: HardhatUserConfig = {
 }
 
 export default config
-

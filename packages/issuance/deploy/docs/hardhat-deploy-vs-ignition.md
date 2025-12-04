@@ -31,16 +31,16 @@
 
 ## How It Would Look (PoC sketch)
 
-1) Add plugin to `@graphprotocol/issuance-deploy` (non-breaking, opt-in):
+1. Add plugin to `@graphprotocol/issuance-deploy` (non-breaking, opt-in):
    - Add devDependency: `hardhat-deploy`.
    - Do NOT remove Ignition; keep both available while we compare.
-2) Create `deploy/00_issuance.ts`:
+2. Create `deploy/00_issuance.ts`:
    - Deploy `GraphIssuanceProxyAdmin`.
    - Deploy implementations for `IssuanceAllocator`, `PilotAllocation`, `RewardsEligibilityOracle`.
    - Deploy proxies with init data (atomic) pointing to the ProxyAdmin.
    - Post‑deploy: call `acceptOwnership` from the governor account (named account `governor`).
    - Save results: default `deployments` plus write-through to the address book.
-3) Optional: `deploy/10_verify.ts` tag `verify` that runs `hardhat-verify` on impls and proxies.
+3. Optional: `deploy/10_verify.ts` tag `verify` that runs `hardhat-verify` on impls and proxies.
 
 Example core (abbreviated):
 
@@ -66,10 +66,9 @@ const func: DeployFunction = async (hre) => {
     args: [process.env.GRAPH_TOKEN!],
   })
 
-  const initData = (await ethers.getContractFactory('IssuanceAllocator')).interface.encodeFunctionData(
-    'initialize',
-    [governor],
-  )
+  const initData = (await ethers.getContractFactory('IssuanceAllocator')).interface.encodeFunctionData('initialize', [
+    governor,
+  ])
 
   const iaProxy = await deploy('IssuanceAllocator', {
     contract: 'TransparentUpgradeableProxy',

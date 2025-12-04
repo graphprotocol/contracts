@@ -1,5 +1,6 @@
 import { ethers } from 'hardhat'
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
+
 import { loadParams } from './lib/params'
 
 // Minimal PoC: Deploy ProxyAdmin, IssuanceAllocator + RewardsEligibilityOracle implementations,
@@ -58,9 +59,7 @@ const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
   // OpenZeppelin artifacts
   // Rely on node resolution across workspace (already used by Ignition modules)
   const ProxyAdminArtifact = require('@openzeppelin/contracts/build/contracts/ProxyAdmin.json')
-  const TransparentUpgradeableProxyArtifact = require(
-    '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json',
-  )
+  const TransparentUpgradeableProxyArtifact = require('@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json')
 
   // 1) Proxy Admin (governor as initial owner)
   // Either reuse an existing OZ ProxyAdmin (graphIssuanceProxyAdmin/config) or deploy a new one
@@ -107,13 +106,7 @@ const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
   }
 
   // 2) IssuanceAllocator
-  const ia = await deployProxied(
-    'IssuanceAllocator',
-    'IssuanceAllocator',
-    'initialize',
-    [GRAPH_TOKEN],
-    [governor],
-  )
+  const ia = await deployProxied('IssuanceAllocator', 'IssuanceAllocator', 'initialize', [GRAPH_TOKEN], [governor])
 
   // 3) RewardsEligibilityOracle
   const reo = await deployProxied(

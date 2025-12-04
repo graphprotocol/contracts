@@ -1,21 +1,19 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { ethers } from 'hardhat'
 
-// RewardsManager upgrade orchestrated via hardhat-deploy.
+// RewardsManager upgrade orchestrated via hardhat-deploy with minimal custom code.
 // Assumptions:
-// - RewardsManager is an EXISTING legacy GraphProxy at a known address, provided via
-//   hardhat-deploy deployments JSON (per-network) named `RewardsManager.json`.
-// - GraphProxyAdmin that controls RewardsManager is also provided via deployments as `GraphProxyAdmin.json`.
-// - This script compiles/loads the latest RewardsManager implementation artifact from contracts package,
-//   deploys a new implementation when runtime bytecode differs, and performs
-//   GraphProxyAdmin.upgrade(proxy, newImpl) from the `governor` named account.
-// - No environment params are used here; addresses must come from per-network deployments JSON.
+// - RewardsManager is an EXISTING legacy GraphProxy at a known address provided via
+//   hardhat-deploy deployments JSON `deployments/<network>/RewardsManager.json`.
+// - GraphProxyAdmin (legacy) is provided via `deployments/<network>/GraphProxyAdmin.json` (or GraphLegacyProxyAdmin.json).
+// - We rely on hardhat-deploy to deploy a new implementation only when the artifact changed;
+//   then we compare current implementation address and call `upgrade` if needed.
+// - No env/config params here; addresses come from deployments JSON (the hardhat-deploy way).
 
 type DeployFunc = ((hre: HardhatRuntimeEnvironment) => Promise<void>) & { tags?: string[]; dependencies?: string[] }
 
 const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
-  const { deployments, getNamedAccounts, network, ethers: hhEthers } = hre
-  const { getOrNull, deploy, log } = deployments
+  const { deployments, getNamedAccounts, network } = hre
+  const { getOrNull, deploy, log, getArtifact, read, execute } = deployments
   const { deployer, governor } = await getNamedAccounts()
 
   if (!network.config.chainId) throw new Error('Missing chainId in network config')
@@ -24,55 +22,40 @@ const func: DeployFunc = async (hre: HardhatRuntimeEnvironment) => {
   const rewardsManagerDep = await getOrNull('RewardsManager')
   if (!rewardsManagerDep) {
     throw new Error(
-      'Missing deployments/<network>/RewardsManager.json. Provide the existing proxy address via hardhat-deploy deployments.'
+      'Missing deployments/<network>/RewardsManager.json. Provide the existing proxy address via hardhat-deploy deployments.',
     )
   }
 
-  const graphProxyAdminDep = (await getOrNull('GraphProxyAdmin')) || (await getOrNull('GraphLegacyProxyAdmin'))
-  if (!graphProxyAdminDep) {
+  const adminPrimary = await getOrNull('GraphProxyAdmin')
+  const adminLegacy = adminPrimary ? undefined : await getOrNull('GraphLegacyProxyAdmin')
+  if (!adminPrimary && !adminLegacy) {
     throw new Error(
-      'Missing deployments/<network>/GraphProxyAdmin.json (or GraphLegacyProxyAdmin.json). Provide legacy admin via deployments.'
+      'Missing deployments/<network>/GraphProxyAdmin.json (or GraphLegacyProxyAdmin.json). Provide legacy admin via deployments.',
     )
   }
 
   const proxyAddress = rewardsManagerDep.address
-  const adminAddress = graphProxyAdminDep.address
+  const adminName = adminPrimary ? 'GraphProxyAdmin' : 'GraphLegacyProxyAdmin'
 
-  // 2) Load ABIs and Artifacts from monorepo packages
-  const IGraphProxyAdminArtifact = require('../../interfaces/artifacts/contracts/contracts/upgrades/IGraphProxyAdmin.sol/IGraphProxyAdmin.json')
-  const RewardsManagerArtifact = require('../../contracts/artifacts/contracts/rewards/RewardsManager.sol/RewardsManager.json')
-
-  // 3) Resolve current implementation via GraphProxyAdmin
-  const admin = new ethers.Contract(adminAddress, IGraphProxyAdminArtifact.abi, await hhEthers.getSigner(governor))
-  const currentImpl: string = await admin.getProxyImplementation(proxyAddress)
-
-  // 4) Compare runtime bytecode with compiled artifact's deployedBytecode
-  const onchainCode = await hhEthers.provider.getCode(currentImpl)
-  const compiledRuntime = RewardsManagerArtifact.deployedBytecode as string
-
-  const normalize = (hex: string) => hex?.toLowerCase().replace(/^0x/, '')
-  const equalBytecode = normalize(onchainCode) === normalize(compiledRuntime)
-
-  if (equalBytecode) {
-    log(`RewardsManager implementation already up-to-date at ${currentImpl}`)
-    return
-  }
-
-  // 5) Deploy new implementation (no constructor args; initialization happens via upgrade if needed)
+  // 2) Deploy (or reuse) the latest implementation with hardhat-deploy
+  // If bytecode is unchanged, hardhat-deploy will skip and return the existing deployment
+  const RewardsManagerArtifact = await getArtifact('RewardsManager')
   const impl = await deploy('RewardsManager_Implementation', {
     from: deployer,
     log: true,
-    // Use artifact object directly to avoid relying on this package's compiler paths
     contract: RewardsManagerArtifact,
     args: [],
   })
 
-  // 6) Upgrade via GraphProxyAdmin using the governor named account
-  log(`Upgrading RewardsManager proxy @ ${proxyAddress} to implementation ${impl.address}`)
-  const tx = await admin.upgrade(proxyAddress, impl.address)
-  log(`tx: ${tx.hash}`)
-  await tx.wait()
+  // 3) Compare addresses: if current implementation matches, no-op; else upgrade
+  const currentImpl: string = await read(adminName, 'getProxyImplementation', proxyAddress)
+  if (currentImpl?.toLowerCase() === impl.address.toLowerCase()) {
+    log(`RewardsManager implementation already up-to-date at ${currentImpl}`)
+    return
+  }
 
+  log(`Upgrading RewardsManager proxy @ ${proxyAddress} to implementation ${impl.address}`)
+  await execute(adminName, { from: governor, log: true }, 'upgrade', proxyAddress, impl.address)
   log('RewardsManager upgraded successfully')
 }
 
