@@ -1,14 +1,10 @@
-import type {
-  DirectAllocation,
-  GraphProxyAdmin,
-  IssuanceAllocator,
-  RewardsEligibilityOracle,
-} from '@graphprotocol/interfaces'
+import type { DirectAllocation, IssuanceAllocator, RewardsEligibilityOracle } from '@graphprotocol/interfaces'
+import type { ProxyAdmin } from '@openzeppelin/contracts'
 
 import type { ContractList } from '../contract'
 
 export const GraphIssuanceContractNameList = [
-  'GraphProxyAdmin2',
+  'GraphIssuanceProxyAdmin',
   'IssuanceAllocator',
   'PilotAllocation',
   'RewardsEligibilityOracle',
@@ -17,7 +13,7 @@ export const GraphIssuanceContractNameList = [
 export type GraphIssuanceContractName = (typeof GraphIssuanceContractNameList)[number]
 
 export interface GraphIssuanceContracts extends ContractList<GraphIssuanceContractName> {
-  GraphProxyAdmin2: GraphProxyAdmin
+  GraphIssuanceProxyAdmin: ProxyAdmin
   IssuanceAllocator: IssuanceAllocator
   PilotAllocation: DirectAllocation
   RewardsEligibilityOracle: RewardsEligibilityOracle

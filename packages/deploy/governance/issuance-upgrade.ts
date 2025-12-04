@@ -7,7 +7,8 @@ import { TxBuilder } from './tx-builder'
 export interface IssuanceContractUpgradeParams {
   contractName: 'IssuanceAllocator' | 'RewardsEligibilityOracle' | 'PilotAllocation'
   newImplementation: string
-  graphProxyAdmin2Address?: string
+  graphIssuanceProxyAdminAddress?: string
+  callData?: string // Optional calldata for upgradeAndCall (defaults to '0x')
 }
 
 export interface IssuanceContractUpgradeOptions {
@@ -21,13 +22,13 @@ export interface IssuanceContractUpgradeResult {
 }
 
 /**
- * Build Safe TX batch for upgrading issuance contracts via GraphProxyAdmin2
+ * Build Safe TX batch for upgrading issuance contracts via GraphIssuanceProxyAdmin
  *
  * This generates a governance transaction to upgrade an issuance contract (IA, REO, or PA)
- * to a new implementation using GraphProxyAdmin2.upgrade() and .acceptProxy().
+ * to a new implementation using OpenZeppelin's ProxyAdmin.upgradeAndCall().
  *
  * @param hre Hardhat Runtime Environment
- * @param params Upgrade parameters (contract name and new implementation address)
+ * @param params Upgrade parameters (contract name, new implementation address, optional calldata)
  * @param options Output options (template path, output directory)
  * @returns Result with chainId and output file path
  */
@@ -41,8 +42,8 @@ export async function buildIssuanceContractUpgradeTxs(
 
   const issuanceContracts = connectGraphIssuance(chainId, provider)
 
-  if (!issuanceContracts.GraphProxyAdmin2) {
-    throw new Error('GraphProxyAdmin2 not found in Issuance address book')
+  if (!issuanceContracts.GraphIssuanceProxyAdmin) {
+    throw new Error('GraphIssuanceProxyAdmin not found in Issuance address book')
   }
 
   // Get the proxy address based on contract name
@@ -70,8 +71,10 @@ export async function buildIssuanceContractUpgradeTxs(
       throw new Error(`Unknown contract name: ${params.contractName}`)
   }
 
-  const graphProxyAdmin2Address = params.graphProxyAdmin2Address ?? issuanceContracts.GraphProxyAdmin2.target.toString()
+  const graphIssuanceProxyAdminAddress =
+    params.graphIssuanceProxyAdminAddress ?? issuanceContracts.GraphIssuanceProxyAdmin.target.toString()
   const newImplementation = params.newImplementation
+  const callData = params.callData ?? '0x' // Default to no call data
 
   const templatePath = options.txBuilderTemplate
     ? path.isAbsolute(options.txBuilderTemplate)
@@ -87,25 +90,17 @@ export async function buildIssuanceContractUpgradeTxs(
 
   const builder = new TxBuilder(chainId, { template: templatePath, outputDir })
 
-  // GraphProxyAdmin2.upgrade(proxy, implementation)
-  const upgradeTx = await issuanceContracts.GraphProxyAdmin2.populateTransaction.upgrade(proxyAddress, newImplementation)
-
-  // GraphProxyAdmin2.acceptProxy(implementation, proxy)
-  const acceptTx = await issuanceContracts.GraphProxyAdmin2.populateTransaction.acceptProxy(
-    newImplementation,
+  // OpenZeppelin ProxyAdmin.upgradeAndCall(proxy, implementation, data)
+  const upgradeAndCallTx = await issuanceContracts.GraphIssuanceProxyAdmin.populateTransaction.upgradeAndCall(
     proxyAddress,
+    newImplementation,
+    callData,
   )
 
   builder.addTx({
-    to: graphProxyAdmin2Address,
+    to: graphIssuanceProxyAdminAddress,
     value: '0',
-    data: upgradeTx.data ?? '0x',
-  })
-
-  builder.addTx({
-    to: graphProxyAdmin2Address,
-    value: '0',
-    data: acceptTx.data ?? '0x',
+    data: upgradeAndCallTx.data ?? '0x',
   })
 
   const outputFile = builder.saveToFile()

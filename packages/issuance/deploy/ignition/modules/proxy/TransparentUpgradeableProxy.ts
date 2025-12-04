@@ -94,3 +94,37 @@ export function deployWithTransparentUpgradeableProxy(
   return { proxy, proxyAdmin, implementation }
 }
 
+// Deploy implementation and proxy with a SHARED ProxyAdmin
+// Use this when you want multiple proxies to share the same ProxyAdmin
+export function deployWithSharedProxyAdmin(
+  m: IgnitionModuleBuilder,
+  proxyAdmin: CallableContractFuture<string>,
+  metadata: ImplementationMetadata,
+  options?: ContractOptions,
+) {
+  options = options || {}
+
+  // Deploy implementation
+  const implementation = deployImplementation(m, metadata, options)
+
+  // Deploy TransparentUpgradeableProxy with existing ProxyAdmin
+  const TransparentUpgradeableProxy = m.contract(
+    'TransparentUpgradeableProxy',
+    TransparentUpgradeableProxyArtifact,
+    [implementation, proxyAdmin, '0x'],
+    {
+      ...options,
+      id: `TransparentUpgradeableProxy_${metadata.name}`,
+    },
+  )
+
+  const proxy = loadProxyWithABI(m, TransparentUpgradeableProxy, metadata, options)
+
+  // Initialize the proxy if initArgs are provided
+  if (metadata.initArgs !== undefined && metadata.initArgs.length > 0) {
+    m.call(proxy, 'initialize', metadata.initArgs, options)
+  }
+
+  return { proxy, implementation }
+}
+

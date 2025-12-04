@@ -1,32 +1,64 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
+import TransparentUpgradeableProxyArtifact from '@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json'
 
 import RewardsEligibilityOracleArtifact from '../../../artifacts/contracts/eligibility/RewardsEligibilityOracle.sol/RewardsEligibilityOracle.json'
-import GraphProxyAdmin2Module from './GraphProxyAdmin2'
-import { deployWithGraphProxy } from './proxy/GraphProxy'
+import GraphIssuanceProxyAdminModule from './GraphIssuanceProxyAdmin'
+import { deployImplementation } from './proxy/implementation'
+import { loadProxyWithABI } from './proxy/utils'
 
+/**
+ * RewardsEligibilityOracle - Declarative module for deployment and upgrades
+ *
+ * This module uses Ignition's declarative model to handle both initial deployment and upgrades:
+ *
+ * FIRST RUN:
+ *   npx hardhat ignition deploy ignition/modules/RewardsEligibilityOracle.ts --network arbitrumOne
+ *   Deploys: GraphIssuanceProxyAdmin → Implementation → TransparentUpgradeableProxy
+ *   Orchestration: upgradeAndCall(proxy, implementation, initializeData) to initialize
+ *
+ * SUBSEQUENT RUNS:
+ *   Same command - Ignition detects existing deployments automatically
+ *   Deploys: ONLY new implementation (if code changed)
+ *   Orchestration: upgradeAndCall(proxy, newImplementation, '0x') to upgrade
+ *
+ * Key insight: Ignition's state management handles deduplication. The module always declares
+ * the desired end state, and Ignition ensures already-deployed contracts aren't redeployed.
+ *
+ * Uses standard OpenZeppelin TransparentUpgradeableProxy + ProxyAdmin (NOT Graph protocol's
+ * custom GraphProxy). This ensures complete independence from @graphprotocol/contracts.
+ */
 export default buildModule('RewardsEligibilityOracle', (m) => {
-  const governor = m.getAccount(1)
   const graphTokenAddress = m.getParameter('graphTokenAddress')
+  const { GraphIssuanceProxyAdmin } = m.useModule(GraphIssuanceProxyAdminModule)
 
-  // Use shared GraphProxyAdmin2
-  const { GraphProxyAdmin2 } = m.useModule(GraphProxyAdmin2Module)
+  // Always deploy latest implementation
+  const RewardsEligibilityOracleImplementation = deployImplementation(m, {
+    name: 'RewardsEligibilityOracle',
+    artifact: RewardsEligibilityOracleArtifact,
+    constructorArgs: [graphTokenAddress],
+  })
 
-  // Deploy proxy using GraphProxy pattern with shared admin
-  const { proxy: RewardsEligibilityOracleProxy, implementation: RewardsEligibilityOracleImplementation } =
-    deployWithGraphProxy(m, GraphProxyAdmin2, {
-      name: 'RewardsEligibilityOracle',
-      artifact: RewardsEligibilityOracleArtifact,
-      constructorArgs: [graphTokenAddress],
-      initArgs: [governor],
-    })
+  // Deploy proxy with implementation (no init data - initialization via upgrade transaction)
+  const TransparentUpgradeableProxy = m.contract(
+    'TransparentUpgradeableProxy',
+    TransparentUpgradeableProxyArtifact,
+    [RewardsEligibilityOracleImplementation, GraphIssuanceProxyAdmin, '0x'],
+    { id: 'RewardsEligibilityOracle_Proxy' },
+  )
+
+  // Load proxy with RewardsEligibilityOracle ABI for typed access
+  const RewardsEligibilityOracle = loadProxyWithABI(m, TransparentUpgradeableProxy, {
+    name: 'RewardsEligibilityOracle',
+    artifact: RewardsEligibilityOracleArtifact,
+  })
 
   return {
-    RewardsEligibilityOracle: RewardsEligibilityOracleProxy,
+    RewardsEligibilityOracle,
     RewardsEligibilityOracleImplementation,
   }
 })
 
-// Module for connecting to existing RewardsEligibilityOracle deployment
+// Legacy migrate module for backward compatibility
 export const MigrateRewardsEligibilityOracleModule = buildModule('RewardsEligibilityOracleMigrate', (m) => {
   const rewardsEligibilityOracleAddress = m.getParameter('rewardsEligibilityOracleAddress')
 
