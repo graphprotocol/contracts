@@ -829,6 +829,9 @@ importers:
       '@openzeppelin/foundry-upgrades':
         specifier: 0.4.0
         version: 0.4.0(@openzeppelin/defender-deploy-client-cli@0.0.1-alpha.10(encoding@0.1.13))(@openzeppelin/upgrades-core@1.44.1)
+      '@tenderly/hardhat-tenderly':
+        specifier: ^1.11.0
+        version: 1.11.0(@types/node@20.19.14)(bufferutil@4.0.9)(encoding@0.1.13)(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       '@typechain/ethers-v6':
         specifier: ^0.5.0
         version: 0.5.1(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3))(typescript@5.9.3)
@@ -1006,6 +1009,9 @@ importers:
       '@openzeppelin/foundry-upgrades':
         specifier: 0.4.0
         version: 0.4.0(@openzeppelin/defender-deploy-client-cli@0.0.1-alpha.10(encoding@0.1.13))(@openzeppelin/upgrades-core@1.44.1)
+      '@tenderly/hardhat-tenderly':
+        specifier: ^1.11.0
+        version: 1.11.0(@types/node@20.19.14)(bufferutil@4.0.9)(encoding@0.1.13)(hardhat@2.26.3(bufferutil@4.0.9)(ts-node@10.9.2(@types/node@20.19.14)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
       '@typechain/ethers-v6':
         specifier: ^0.5.0
         version: 0.5.1(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(typechain@8.3.2(patch_hash=b34ed6afcf99760666fdc85ecb2094fdd20ce509f947eb09cef21665a2a6a1d6)(typescript@5.9.3))(typescript@5.9.3)
@@ -13287,7 +13293,7 @@ snapshots:
   '@ethereumjs/common@2.6.0':
     dependencies:
       crc-32: 1.2.2
-      ethereumjs-util: 7.1.3
+      ethereumjs-util: 7.1.5
 
   '@ethereumjs/common@2.6.5':
     dependencies:
@@ -13309,7 +13315,7 @@ snapshots:
   '@ethereumjs/tx@3.4.0':
     dependencies:
       '@ethereumjs/common': 2.6.0
-      ethereumjs-util: 7.1.3
+      ethereumjs-util: 7.1.5
 
   '@ethereumjs/tx@3.5.2':
     dependencies:
@@ -13336,7 +13342,7 @@ snapshots:
       async-eventemitter: 0.2.4
       core-js-pure: 3.45.1
       debug: 2.6.9
-      ethereumjs-util: 7.1.3
+      ethereumjs-util: 7.1.5
       functional-red-black-tree: 1.0.1
       mcl-wasm: 0.7.9
       merkle-patricia-tree: 4.2.4
@@ -13360,12 +13366,12 @@ snapshots:
   '@ethersproject/abi@5.6.0':
     dependencies:
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
       '@ethersproject/hash': 5.6.0
       '@ethersproject/keccak256': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/strings': 5.6.0
 
@@ -13395,9 +13401,9 @@ snapshots:
 
   '@ethersproject/abstract-provider@5.6.0':
     dependencies:
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/networks': 5.6.1
       '@ethersproject/properties': 5.6.0
       '@ethersproject/transactions': 5.6.0
@@ -13405,7 +13411,7 @@ snapshots:
 
   '@ethersproject/abstract-provider@5.7.0':
     dependencies:
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.7.0
       '@ethersproject/networks': 5.7.1
@@ -13426,15 +13432,15 @@ snapshots:
   '@ethersproject/abstract-signer@5.6.0':
     dependencies:
       '@ethersproject/abstract-provider': 5.8.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
 
   '@ethersproject/abstract-signer@5.7.0':
     dependencies:
       '@ethersproject/abstract-provider': 5.8.0
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.7.0
       '@ethersproject/properties': 5.7.0
@@ -13449,10 +13455,10 @@ snapshots:
 
   '@ethersproject/address@5.6.0':
     dependencies:
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/keccak256': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/rlp': 5.6.0
 
   '@ethersproject/address@5.6.1':
@@ -13465,7 +13471,7 @@ snapshots:
 
   '@ethersproject/address@5.7.0':
     dependencies:
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/keccak256': 5.7.0
       '@ethersproject/logger': 5.7.0
@@ -13509,7 +13515,7 @@ snapshots:
   '@ethersproject/bignumber@5.6.0':
     dependencies:
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       bn.js: 4.12.2
 
   '@ethersproject/bignumber@5.7.0':
@@ -13526,7 +13532,7 @@ snapshots:
 
   '@ethersproject/bytes@5.6.1':
     dependencies:
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/bytes@5.7.0':
     dependencies:
@@ -13538,11 +13544,11 @@ snapshots:
 
   '@ethersproject/constants@5.6.0':
     dependencies:
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
 
   '@ethersproject/constants@5.7.0':
     dependencies:
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
 
   '@ethersproject/constants@5.8.0':
     dependencies:
@@ -13554,10 +13560,10 @@ snapshots:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/transactions': 5.6.0
 
@@ -13567,7 +13573,7 @@ snapshots:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.7.0
       '@ethersproject/logger': 5.7.0
@@ -13612,10 +13618,10 @@ snapshots:
     dependencies:
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/keccak256': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/strings': 5.6.0
 
@@ -13624,7 +13630,7 @@ snapshots:
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/address': 5.8.0
       '@ethersproject/base64': 5.7.0
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/keccak256': 5.7.0
       '@ethersproject/logger': 5.7.0
@@ -13647,9 +13653,9 @@ snapshots:
     dependencies:
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/basex': 5.6.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/pbkdf2': 5.6.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/sha2': 5.6.0
@@ -13662,7 +13668,7 @@ snapshots:
     dependencies:
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/basex': 5.7.0
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.7.0
       '@ethersproject/pbkdf2': 5.7.0
@@ -13695,7 +13701,7 @@ snapshots:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hdnode': 5.6.0
       '@ethersproject/keccak256': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/pbkdf2': 5.6.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/random': 5.6.0
@@ -13759,11 +13765,11 @@ snapshots:
 
   '@ethersproject/networks@5.6.1':
     dependencies:
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/networks@5.7.0':
     dependencies:
-      '@ethersproject/logger': 5.7.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/networks@5.7.1':
     dependencies:
@@ -13790,7 +13796,7 @@ snapshots:
 
   '@ethersproject/properties@5.6.0':
     dependencies:
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/properties@5.7.0':
     dependencies:
@@ -13806,11 +13812,11 @@ snapshots:
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/address': 5.8.0
       '@ethersproject/basex': 5.6.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
       '@ethersproject/hash': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/networks': 5.6.1
       '@ethersproject/properties': 5.6.0
       '@ethersproject/random': 5.6.0
@@ -13832,18 +13838,18 @@ snapshots:
       '@ethersproject/address': 5.8.0
       '@ethersproject/base64': 5.7.0
       '@ethersproject/basex': 5.7.0
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/constants': 5.7.0
+      '@ethersproject/constants': 5.8.0
       '@ethersproject/hash': 5.7.0
-      '@ethersproject/logger': 5.7.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/networks': 5.7.0
       '@ethersproject/properties': 5.7.0
       '@ethersproject/random': 5.7.0
       '@ethersproject/rlp': 5.7.0
       '@ethersproject/sha2': 5.7.0
       '@ethersproject/strings': 5.7.0
-      '@ethersproject/transactions': 5.7.0
+      '@ethersproject/transactions': 5.8.0
       '@ethersproject/web': 5.7.0
       bech32: 1.1.4
       ws: 7.4.6(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -13906,7 +13912,7 @@ snapshots:
   '@ethersproject/random@5.6.0':
     dependencies:
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/random@5.7.0':
     dependencies:
@@ -13921,7 +13927,7 @@ snapshots:
   '@ethersproject/rlp@5.6.0':
     dependencies:
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/rlp@5.7.0':
     dependencies:
@@ -13936,7 +13942,7 @@ snapshots:
   '@ethersproject/sha2@5.6.0':
     dependencies:
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       hash.js: 1.1.7
 
   '@ethersproject/sha2@5.7.0':
@@ -13954,7 +13960,7 @@ snapshots:
   '@ethersproject/signing-key@5.6.0':
     dependencies:
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       bn.js: 4.12.2
       elliptic: 6.5.4
@@ -13980,16 +13986,16 @@ snapshots:
 
   '@ethersproject/solidity@5.6.0':
     dependencies:
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/keccak256': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/sha2': 5.6.0
       '@ethersproject/strings': 5.6.0
 
   '@ethersproject/solidity@5.7.0':
     dependencies:
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/keccak256': 5.7.0
       '@ethersproject/logger': 5.7.0
@@ -14009,7 +14015,7 @@ snapshots:
     dependencies:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/strings@5.7.0':
     dependencies:
@@ -14026,11 +14032,11 @@ snapshots:
   '@ethersproject/transactions@5.6.0':
     dependencies:
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.6.0
       '@ethersproject/keccak256': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/rlp': 5.6.0
       '@ethersproject/signing-key': 5.6.0
@@ -14038,7 +14044,7 @@ snapshots:
   '@ethersproject/transactions@5.7.0':
     dependencies:
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/constants': 5.7.0
       '@ethersproject/keccak256': 5.7.0
@@ -14061,13 +14067,13 @@ snapshots:
 
   '@ethersproject/units@5.6.0':
     dependencies:
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/constants': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
 
   '@ethersproject/units@5.7.0':
     dependencies:
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/constants': 5.7.0
       '@ethersproject/logger': 5.7.0
 
@@ -14082,13 +14088,13 @@ snapshots:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.6.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hash': 5.6.0
       '@ethersproject/hdnode': 5.6.0
       '@ethersproject/json-wallets': 5.6.0
       '@ethersproject/keccak256': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/random': 5.6.0
       '@ethersproject/signing-key': 5.6.0
@@ -14100,7 +14106,7 @@ snapshots:
       '@ethersproject/abstract-provider': 5.8.0
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/address': 5.8.0
-      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bignumber': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hash': 5.7.0
       '@ethersproject/hdnode': 5.7.0
@@ -14135,7 +14141,7 @@ snapshots:
     dependencies:
       '@ethersproject/base64': 5.6.0
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/strings': 5.6.0
 
@@ -14143,7 +14149,7 @@ snapshots:
     dependencies:
       '@ethersproject/base64': 5.7.0
       '@ethersproject/bytes': 5.8.0
-      '@ethersproject/logger': 5.7.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.7.0
       '@ethersproject/strings': 5.7.0
 
@@ -14167,7 +14173,7 @@ snapshots:
     dependencies:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/hash': 5.6.0
-      '@ethersproject/logger': 5.6.0
+      '@ethersproject/logger': 5.8.0
       '@ethersproject/properties': 5.6.0
       '@ethersproject/strings': 5.6.0
 
