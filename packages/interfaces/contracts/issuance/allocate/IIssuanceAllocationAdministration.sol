@@ -73,6 +73,17 @@ interface IIssuanceAllocationAdministration {
     function forceTargetNoChangeNotificationBlock(address target, uint256 blockNumber) external returns (uint256);
 
     /**
+     * @notice Set the address that receives the default (unallocated) portion of issuance
+     * @param newAddress The new default allocation address (can be address(0))
+     * @return True if successful
+     * @dev The default allocation automatically receives the portion of issuance not allocated to other targets
+     * @dev This maintains the invariant that total allocation is always 100%
+     * @dev Reverts if attempting to set to an address that has a normal (non-default) allocation
+     * @dev No-op if setting to the same address
+     */
+    function setDefaultAllocationAddress(address newAddress) external returns (bool);
+
+    /**
      * @notice Distribute any pending accumulated issuance to allocator-minting targets.
      * @return Block number up to which issuance has been distributed
      * @dev This function can be called even when the contract is paused.
