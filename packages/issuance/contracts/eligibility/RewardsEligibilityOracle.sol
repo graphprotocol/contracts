@@ -12,9 +12,12 @@ import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
  * @title RewardsEligibilityOracle
  * @author Edge & Node
  * @notice This contract allows authorized oracles to mark indexers as eligible to receive rewards
- * with an expiration mechanism. Indexers are denied by default until they are explicitly marked as eligible,
- * and their eligibility expires after a configurable eligible period.
- * The contract also includes a global eligibility check toggle and an oracle update timeout mechanism.
+ * with an expiration mechanism. Under normal configuration with reasonable eligibility periods, indexers
+ * are denied by default until they are explicitly marked as eligible, and their eligibility expires after
+ * a configurable eligible period. The contract also includes a global eligibility check toggle and an
+ * oracle update timeout mechanism.
+ * @dev Note: If the eligibility period is set to an extremely large value that exceeds the current
+ * block timestamp, all indexers (including those never registered) will be eligible.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
  */
 contract RewardsEligibilityOracle is
@@ -216,6 +219,14 @@ contract RewardsEligibilityOracle is
 
     /**
      * @inheritdoc IRewardsEligibility
+     * @dev Returns true if any of the following conditions are met:
+     * 1. Eligibility validation is disabled globally
+     * 2. Oracle timeout has been exceeded (fail-safe to allow all indexers)
+     * 3. block.timestamp < indexerEligibilityTimestamps[indexer] + eligibilityPeriod
+     *
+     * Note on condition 3: For indexers who have never been registered, indexerEligibilityTimestamps[indexer]
+     * is 0. If eligibilityPeriod is set to an extremely large value exceeding block.timestamp, the check
+     * becomes (block.timestamp < 0 + eligibilityPeriod), which will be true, making all indexers eligible.
      */
     function isEligible(address indexer) external view override returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();

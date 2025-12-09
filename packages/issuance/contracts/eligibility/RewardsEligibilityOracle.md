@@ -4,7 +4,9 @@ The RewardsEligibilityOracle is a smart contract that manages indexer eligibilit
 
 ## Overview
 
-The contract operates on a "deny by default" principle - all indexers are initially ineligible for rewards until their eligibility is explicitly renewed by an authorized oracle. Once eligibility is renewed, indexers remain eligible for a configurable period before their eligibility expires and needs to be renewed again.
+The contract operates on a "deny by default" principle - indexers are not eligible for rewards until their eligibility is explicitly validated by an authorized oracle. (See edge case below for extremely large eligibility periods.) After eligibility is initially validated or renewed, indexers remain eligible for a configurable period before their eligibility expires and needs to be renewed again. We generally refer to all validation as "renewal" for simplicity.
+
+**Very large eligibility period edge case**: If the eligibility period is set to an extremely large value that exceeds the current block timestamp relative to the genesis block, all indexers (including those who have never been registered) will be considered eligible. This is an edge case; if configured with an eligibility period that includes the genesis block, all indexers are eligible.
 
 ## Key Features
 
@@ -140,6 +142,16 @@ This design ensures that:
 - The system fails open if oracles stop updating
 - Operators can disable eligibility validation entirely if needed
 - Individual indexer eligibility has time limits
+
+### Edge Case: Large Eligibility Periods
+
+The eligibility check `block.timestamp < indexerEligibilityTimestamps[indexer] + eligibilityPeriod` has specific behavior when the eligibility period is set to an extremely large value:
+
+- For indexers who have never been registered, `indexerEligibilityTimestamps[indexer]` is 0 (zero-initialized storage)
+- If `block.timestamp < eligibilityPeriod`, then `block.timestamp < 0 + eligibilityPeriod`
+- This means **all indexers are eligible**, including those who have never been explicitly approved
+
+For normal operations with reasonable eligibility periods (e.g., 14 days), indexers who have never been registered will correctly be ineligible since `block.timestamp < 0 + 14 days` will be false for any realistic block timestamp.
 
 In normal operation, the first condition is expected to be the only one that applies. The other two conditions provide fail-safes for oracle failures, or in extreme cases an operator override. For normal operational failure of oracles, the system gracefully degrades into a "allow all" mode. This mechanism is not perfect in that oracles could still be updating but allowing far fewer indexers than they should. However this is regarded as simple mechanism that is good enough to start with and provide a foundation for future improvements and decentralization.
 
