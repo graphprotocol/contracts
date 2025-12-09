@@ -49,6 +49,20 @@ interface IRewardsManager {
      */
     function setRewardsEligibilityOracle(address newRewardsEligibilityOracle) external;
 
+    /**
+     * @notice Set the indexer eligibility reclaim address
+     * @dev Address to mint tokens that would be denied due to indexer eligibility. Set to zero to disable.
+     * @param newEligibilityReclaimAddress The address to receive eligibility-denied tokens
+     */
+    function setIndexerEligibilityReclaimAddress(address newEligibilityReclaimAddress) external;
+
+    /**
+     * @notice Set the subgraph denied reclaim address
+     * @dev Address to mint tokens that would be denied due to subgraph denylist. Set to zero to disable.
+     * @param newSubgraphReclaimAddress The address to receive subgraph-denied tokens
+     */
+    function setSubgraphDeniedReclaimAddress(address newSubgraphReclaimAddress) external;
+
     // -- Denylist --
 
     /**
