@@ -566,7 +566,9 @@ contract IssuanceAllocator is
         // (Would not be likely to be exploitable due to only governor being able to
         // make a call to set target allocation, but better to be paranoid.)
 
-        uint256 availablePPM = defaultTarget.allocatorMintingPPM + targetData.allocatorMintingPPM + targetData.selfMintingPPM;
+        uint256 availablePPM = defaultTarget.allocatorMintingPPM +
+            targetData.allocatorMintingPPM +
+            targetData.selfMintingPPM;
         // solhint-disable-next-line gas-strict-inequalities
         require(allocatorMintingPPM + selfMintingPPM <= availablePPM, InsufficientAllocationAvailable());
 

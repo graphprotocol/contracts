@@ -344,6 +344,20 @@ describe('IssuanceAllocator - Default Allocation', () => {
       const allocation = await issuanceAllocator.getTargetAllocation(addresses.target1)
       expect(allocation.totalAllocationPPM).to.equal(300_000n)
     })
+
+    it('should revert when trying to set allocation for address(0) when default is not address(0)', async () => {
+      // Change default to target1
+      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target1)
+
+      // Try to set allocation for address(0) directly should fail
+      await expectCustomError(
+        issuanceAllocator
+          .connect(accounts.governor)
+          ['setTargetAllocation(address,uint256)'](ethers.ZeroAddress, 300_000n),
+        issuanceAllocator,
+        'TargetAddressCannotBeZero',
+      )
+    })
   })
 
   describe('Distribution with default allocation', () => {
@@ -426,7 +440,8 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
       const expectedTarget1 = (issuancePerBlock * 200_000n * 2n) / MILLION
       const expectedTarget2 = (issuancePerBlock * 300_000n) / MILLION
-      const expectedTarget3 = issuancePerBlock * 2n + (issuancePerBlock * 800_000n) / MILLION + (issuancePerBlock * 500_000n) / MILLION
+      const expectedTarget3 =
+        issuancePerBlock * 2n + (issuancePerBlock * 800_000n) / MILLION + (issuancePerBlock * 500_000n) / MILLION
 
       expect(target1Balance).to.equal(expectedTarget1)
       expect(target2Balance).to.equal(expectedTarget2)
@@ -518,6 +533,22 @@ describe('IssuanceAllocator - Default Allocation', () => {
 
       expect(data.allocatorMintingPPM).to.equal(600_000n)
       expect(data.selfMintingPPM).to.equal(0n)
+    })
+
+    it('should report 100% total allocation when default is a real address', async () => {
+      // Set target1 allocation first
+      await issuanceAllocator
+        .connect(accounts.governor)
+        ['setTargetAllocation(address,uint256)'](addresses.target1, 300_000n)
+
+      // Change default to target2 (a real address, not address(0))
+      await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(addresses.target2)
+
+      // When default is a real address, it should report 100% total allocation
+      const totalAllocation = await issuanceAllocator.getTotalAllocation()
+      expect(totalAllocation.totalAllocationPPM).to.equal(MILLION)
+      expect(totalAllocation.allocatorMintingPPM).to.equal(MILLION) // target1=30% + target2=70% = 100%
+      expect(totalAllocation.selfMintingPPM).to.equal(0n)
     })
   })
 })
