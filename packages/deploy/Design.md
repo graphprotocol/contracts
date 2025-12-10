@@ -24,7 +24,7 @@ This document describes the design for the cross-package orchestration system in
 - IssuanceAllocator (Upgradeable proxy + implementation, uses GraphToken)
 - RewardsEligibilityOracle (Upgradeable proxy + implementation)
 - PilotAllocation (Upgradeable proxy + implementation using DirectAllocation.sol contract)
-- GraphProxyAdmin2 (ProxyAdmin for issuance proxies; governance‑owned)
+- GraphIssuanceProxyAdmin (ProxyAdmin for issuance proxies; governance‑owned)
 
 **Referenced by this package** (already deployed elsewhere):
 
@@ -100,7 +100,7 @@ All "Active" states are reached via governance transactions:
 
 **TODO:** The following governance transactions are not yet implemented in this package:
 
-- Issuance Contract Upgrades: `GraphProxyAdmin2.upgrade()` for IssuanceAllocator implementations
+- Issuance Contract Upgrades: `GraphIssuanceProxyAdmin.upgrade()` for IssuanceAllocator implementations
 - Allocation Configuration: configure IssuanceAllocator allocation percentages via `setTargetAllocation()`
 - PilotAllocation deployment and configuration
 
@@ -289,7 +289,7 @@ Note: Integration (“Active”) targets now live in packages/deploy. See that p
 graph TB
     Gov[Governance Multi-sig]
     ExistingAdmin[GraphProxyAdmin #40;legacy#41;]
-    NewAdmin[GraphProxyAdmin2]
+    NewAdmin[GraphIssuanceProxyAdmin]
 
     Gov -->|owns| ExistingAdmin
     Gov -->|owns| NewAdmin
@@ -305,7 +305,7 @@ graph TB
 
 ```mermaid
 graph TB
-    ProxyAdmin2[GraphProxyAdmin2]
+    ProxyAdmin2[GraphIssuanceProxyAdmin]
 
     subgraph "Issuance Allocation"
         IA[IssuanceAllocator]
@@ -378,18 +378,18 @@ graph TB
 ```mermaid
 graph TD
     RewardsManager[RewardsManager]
-    GraphProxyAdmin2[GraphProxyAdmin2]
+    GraphIssuanceProxyAdmin[GraphIssuanceProxyAdmin]
     RewardsEligibilityOracle[RewardsEligibilityOracle]
     RewardsEligibilityOracleActive[RewardsEligibilityOracleActive]
 
     RewardsEligibilityOracleActive --> RewardsEligibilityOracle
-    RewardsEligibilityOracle -.-> GraphProxyAdmin2
+    RewardsEligibilityOracle -.-> GraphIssuanceProxyAdmin
     RewardsEligibilityOracleActive --> RewardsManager
 
     classDef contract fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
     classDef config fill:#bbdefb,stroke:#0d47a1,stroke-width:2px
 
-    class RewardsManager,GraphProxyAdmin2,RewardsEligibilityOracle contract
+    class RewardsManager,GraphIssuanceProxyAdmin,RewardsEligibilityOracle contract
     class RewardsEligibilityOracleActive config
 ```
 
@@ -398,7 +398,7 @@ graph TD
 ```mermaid
 graph TD
     RewardsManager[RewardsManager]
-    GraphProxyAdmin2[GraphProxyAdmin2]
+    GraphIssuanceProxyAdmin[GraphIssuanceProxyAdmin]
     GraphToken[GraphToken]
 
     IssuanceAllocator[IssuanceAllocator]
@@ -420,8 +420,8 @@ graph TD
     PilotAllocationActive --> IssuanceAllocatorActive
     ReplicatedAllocation -.-> RewardsManager
 
-    IssuanceAllocator -.-> GraphProxyAdmin2
-    PilotAllocation -.-> GraphProxyAdmin2
+    IssuanceAllocator -.-> GraphIssuanceProxyAdmin
+    PilotAllocation -.-> GraphIssuanceProxyAdmin
     IssuanceAllocator --> GraphToken
     PilotAllocation -.-> GraphToken
 
@@ -430,7 +430,7 @@ graph TD
     classDef contract fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
     classDef config fill:#bbdefb,stroke:#0d47a1,stroke-width:2px
 
-    class RewardsManager,GraphProxyAdmin2,IssuanceAllocator,PilotAllocation,GraphToken contract
+    class RewardsManager,GraphIssuanceProxyAdmin,IssuanceAllocator,PilotAllocation,GraphToken contract
     class ReplicatedAllocation,ReplicatedAllocationActive,IssuanceAllocatorActive,IssuanceAllocatorMinter,PilotAllocationActive config
 ```
 
@@ -458,7 +458,7 @@ graph TB
 
 ```mermaid
 graph TD
-    Admin[GraphProxyAdmin2]
+    Admin[GraphIssuanceProxyAdmin]
     Impl[Implementation]
     Proxy[TransparentUpgradeableProxy]
 
@@ -486,7 +486,7 @@ graph TD
 sequenceDiagram
     participant Deployer as Deployer
     participant Ignition as Hardhat Ignition
-    participant Admin as GraphProxyAdmin2
+    participant Admin as GraphIssuanceProxyAdmin
     participant Impl as Implementation Contract
     participant Proxy as Transparent Upgradeable Proxy
     participant Gov as Governance

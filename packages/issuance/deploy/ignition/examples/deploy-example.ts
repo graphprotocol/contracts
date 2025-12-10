@@ -19,7 +19,7 @@ async function main() {
 
   // Deploy all contracts using the main deployment module
   const {
-    GraphProxyAdmin2,
+    GraphIssuanceProxyAdmin,
     IssuanceAllocator,
     IssuanceAllocatorImplementation,
     PilotAllocation,
@@ -31,8 +31,8 @@ async function main() {
   console.log('\n=== Deployment Complete ===\n')
 
   // Log deployed addresses
-  console.log('GraphProxyAdmin2 (Shared):')
-  console.log('  Address:', await GraphProxyAdmin2.getAddress())
+  console.log('GraphIssuanceProxyAdmin (Shared):')
+  console.log('  Address:', await GraphIssuanceProxyAdmin.getAddress())
 
   console.log('\nIssuanceAllocator:')
   console.log('  Proxy:', await IssuanceAllocator.getAddress())

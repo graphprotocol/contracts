@@ -11,7 +11,7 @@ import { EnhancedIssuanceAddressBook } from '../lib/enhanced-address-book'
  * This task:
  * 1. Deploys new RewardsEligibilityOracle implementation contract
  * 2. Marks it as pending in the address book
- * 3. Auto-generates Safe TX JSON for governance (GraphProxyAdmin2.upgrade)
+ * 3. Auto-generates Safe TX JSON for governance (GraphIssuanceProxyAdmin.upgrade)
  * 4. Prints next steps for governance execution
  *
  * Usage:

@@ -44,7 +44,7 @@ This package does **NOT deploy contract implementations** - it orchestrates gove
 - RewardsEligibilityOracle deployment
 - IssuanceAllocator deployment
 - PilotAllocation deployment
-- GraphProxyAdmin2 deployment
+- GraphIssuanceProxyAdmin deployment
 
 ❌ **Deploy Horizon/core contracts** → See `packages/horizon/`
 

@@ -1,70 +1,70 @@
 {
   "42161": {
-    "GraphProxyAdmin2": {
+    "GraphIssuanceProxyAdmin": {
       "address": ""
     },
     "IssuanceAllocator": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     },
     "PilotAllocation": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     },
     "RewardsEligibilityOracle": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     }
   },
   "421614": {
-    "GraphProxyAdmin2": {
+    "GraphIssuanceProxyAdmin": {
       "address": ""
     },
     "IssuanceAllocator": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     },
     "PilotAllocation": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     },
     "RewardsEligibilityOracle": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     }
   },
   "31337": {
-    "GraphProxyAdmin2": {
+    "GraphIssuanceProxyAdmin": {
       "address": ""
     },
     "IssuanceAllocator": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     },
     "PilotAllocation": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     },
     "RewardsEligibilityOracle": {
       "address": "",
       "proxy": "graph",
-      "proxyAdmin": "GraphProxyAdmin2",
+      "proxyAdmin": "GraphIssuanceProxyAdmin",
       "implementation": ""
     }
   }

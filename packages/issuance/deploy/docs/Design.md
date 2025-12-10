@@ -35,7 +35,7 @@ single source of truth for issuance deployment.
 - PilotAllocation (Upgradeable proxy + implementation, using DirectAllocation
   implementation contract)
 - RewardsManager (Existing upgradeable proxy, new implementation)
-- GraphIssuanceProxyAdmin (contract name `GraphProxyAdmin2`, ProxyAdmin for
+- GraphIssuanceProxyAdmin (contract name `GraphIssuanceProxyAdmin`, ProxyAdmin for
   issuance proxies; governance‑owned)
 - TransparentUpgradeableProxy (standard OZ proxies per component)
 - GraphToken (Existing contract, no action needed, just need module to

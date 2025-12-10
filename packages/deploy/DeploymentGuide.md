@@ -11,7 +11,7 @@ This guide describes the conceptual deployment workflow for cross-package govern
 The deployment consists of four major phases:
 
 1. **Phase 1: RewardsManager Upgrade** - Common dependency for both REO and IssuanceAllocator integration
-2. **Phase 2: GraphProxyAdmin2 Deployment** - Shared proxy administration for issuance contracts
+2. **Phase 2: GraphIssuanceProxyAdmin Deployment** - Shared proxy administration for issuance contracts
 3. **Phase 3: RewardsEligibilityOracle Deployment** - Eligibility enforcement system
 4. **Phase 4: IssuanceAllocator Deployment** - Token distribution system
 
@@ -68,11 +68,11 @@ pnpm verify:upgrade:mainnet
 
 ---
 
-## 🏗️ **Phase 2: GraphProxyAdmin2 Deployment**
+## 🏗️ **Phase 2: GraphIssuanceProxyAdmin Deployment**
 
 Deploy the shared proxy administration contract that will manage upgrades for all issuance system contracts.
 
-### **2.1 Deploy GraphProxyAdmin2**
+### **2.1 Deploy GraphIssuanceProxyAdmin**
 
 Deploy the dedicated proxy admin for the issuance system.
 
@@ -80,16 +80,16 @@ Deploy the dedicated proxy admin for the issuance system.
 # Navigate to issuance deployment
 cd packages/issuance/deploy
 
-# Deploy GraphProxyAdmin2 only
+# Deploy GraphIssuanceProxyAdmin only
 pnpm deploy:admin:mainnet  # Deploy only the proxy admin
 
 # Check deployment status
 pnpm status:mainnet
 ```
 
-**TODO:** Phase 2 deployment workflows are aspirational. GraphProxyAdmin2 deployment is handled in `packages/issuance/deploy/`, not in this orchestration package.
+**TODO:** Phase 2 deployment workflows are aspirational. GraphIssuanceProxyAdmin deployment is handled in `packages/issuance/deploy/`, not in this orchestration package.
 
-### **2.2 Verify GraphProxyAdmin2 Configuration**
+### **2.2 Verify GraphIssuanceProxyAdmin Configuration**
 
 Ensure the proxy admin is properly configured and owned by governance.
 
@@ -102,12 +102,12 @@ Ensure the proxy admin is properly configured and owned by governance.
 
 **Verification**:
 
-- [ ] GraphProxyAdmin2 deployed successfully
+- [ ] GraphIssuanceProxyAdmin deployed successfully
 - [ ] Owner is governance multi-sig address
 - [ ] Contract is ready to manage proxy upgrades
 - [ ] Address recorded in deployment artifacts
 
-**✅ Phase 2 Complete**: GraphProxyAdmin2 ready for issuance system contracts
+**✅ Phase 2 Complete**: GraphIssuanceProxyAdmin ready for issuance system contracts
 
 ---
 
@@ -119,13 +119,13 @@ Deploy and integrate the RewardsEligibilityOracle for indexer quality enforcemen
 
 ### **Stage 3.1: Deploy RewardsEligibilityOracle**
 
-Deploy the RewardsEligibilityOracle contract system using the existing GraphProxyAdmin2.
+Deploy the RewardsEligibilityOracle contract system using the existing GraphIssuanceProxyAdmin.
 
 ```bash
 # Navigate to issuance deployment
 cd packages/issuance/deploy
 
-# Deploy REO system (uses existing GraphProxyAdmin2)
+# Deploy REO system (uses existing GraphIssuanceProxyAdmin)
 pnpm deploy:sqo:mainnet  # Deploys REO proxy + implementation
 
 # Check deployment status
@@ -136,7 +136,7 @@ pnpm status:mainnet
 
 - [ ] RewardsEligibilityOracle proxy deployed
 - [ ] RewardsEligibilityOracle implementation deployed
-- [ ] Proxy managed by existing GraphProxyAdmin2
+- [ ] Proxy managed by existing GraphIssuanceProxyAdmin
 - [ ] Contracts properly initialized
 
 ### **Stage 3.2: Define and Configure Roles**
@@ -372,7 +372,7 @@ Deploy and configure the IssuanceAllocator to match existing configuration witho
 #### **4.1.1 Deploy IssuanceAllocator**
 
 ```bash
-# Deploy IssuanceAllocator system (uses existing GraphProxyAdmin2 from Phase 2)
+# Deploy IssuanceAllocator system (uses existing GraphIssuanceProxyAdmin from Phase 2)
 pnpm deploy:issuance:mainnet
 
 # Check deployment status
@@ -383,7 +383,7 @@ pnpm status:mainnet
 
 - [ ] IssuanceAllocator proxy deployed
 - [ ] IssuanceAllocator implementation deployed
-- [ ] Proxy managed by existing GraphProxyAdmin2
+- [ ] Proxy managed by existing GraphIssuanceProxyAdmin
 - [ ] Contracts properly initialized
 
 #### **4.1.2 Configure Allocator to Match Existing Distribution**
@@ -623,7 +623,7 @@ pnpm verify:upgrade:mainnet      # Verify upgrade success
 
 ### **Phase 2 Success**
 
-- [ ] GraphProxyAdmin2 deployed successfully
+- [ ] GraphIssuanceProxyAdmin deployed successfully
 - [ ] Owner set to governance multi-sig
 - [ ] Ready to manage issuance system proxies
 
