@@ -161,6 +161,107 @@ It might initially seem safer to allow indexers by default unless an oracle expl
 
 In general to be rewarded for providing service on The Graph, there is expected to be proof provided of good operation (such as for proof of indexing). While proof should be required to receive rewards, the system is designed for participants to have confidence is being able to adequately prove good operation (and in the case of oracles, be seen by at least one observer) that is sufficient to allow the indexer to receive rewards. The oracle model is in general far more suited to collecting evidence of good operation, from multiple independent observers, rather than any observer being able to establish that an indexer is not providing good service.
 
+## Operational Considerations
+
+### Race Conditions with Configuration Changes
+
+Configuration changes can create race conditions with in-flight reward claim transactions, potentially causing indexers to permanently lose rewards.
+
+When an indexer submits a transaction to claim rewards through the RewardsManager:
+
+1. The indexer is eligible at the time of transaction submission
+2. The transaction enters the mempool and waits for execution
+3. A configuration change occurs (e.g., reducing `eligibilityPeriod` or enabling `eligibilityValidation`)
+4. The transaction executes after the indexer is no longer eligible
+5. **The indexer is denied rewards** resulting in permanent loss for the indexer
+
+This occurs because the RewardsManager's `takeRewards()` function returns 0 rewards for ineligible indexers, but the calling contract (Staking or SubgraphService) still marks the allocation as processed.
+
+Circumstances potentially leading to this race condition:
+
+1. **Reducing eligibility period** (`setEligibilityPeriod`):
+   - Shortening the eligibility window may cause recently-approved indexers to become ineligible
+   - Indexers near the end of their eligibility period become ineligible immediately
+
+2. **Enabling eligibility validation** (`setEligibilityValidation`):
+   - Switching from disabled (all eligible) to enabled (oracle-based)
+   - Indexers without recent oracle renewals become ineligible immediately
+
+3. **Oracle update delays**:
+   - If oracles do not renew an indexer's eligibility before it expires
+   - Combined with network congestion delaying claim transactions
+
+4. **Network conditions**:
+   - High gas prices causing indexers to delay transaction submission
+   - Network congestion delaying transaction execution
+   - Multiple blocks between submission and execution
+
+#### Mitigation Strategies
+
+Operators and indexers should implement these practices:
+
+**For Operators:**
+
+1. **Announce configuration changes in advance**:
+   - Publish planned changes to eligibility period or validation state
+   - Provide sufficient notice (e.g., 24-48 hours) before executing changes
+   - Use governance forums, Discord, or official communication channels
+
+2. **Implement two-step process for critical changes**:
+   - First transaction: Announce the pending change with a delay period
+   - Second transaction: Execute the change after the delay
+   - This is a governance/operational practice, not enforced by the contract
+
+3. **Avoid sudden reductions in eligibility**:
+   - When reducing eligibility period, consider gradual reductions
+   - Monitor pending transactions in the mempool before making changes
+   - Time changes for periods of low network activity
+
+4. **Coordinate with oracle operations**:
+   - Ensure oracles are actively renewing indexer eligibility
+   - Verify oracle health before enabling eligibility validation
+   - Monitor `lastOracleUpdateTime` to detect oracle failures
+
+**For Indexers:**
+
+1. **Monitor eligibility status closely**:
+   - Regularly check `isEligible()` and `getEligibilityRenewalTime()`
+   - Calculate when eligibility will expire (`renewalTime + eligibilityPeriod`)
+   - Set up alerts for approaching expiration
+
+2. **Claim rewards with sufficient margin**:
+   - Don't wait until the last moment of eligibility period
+   - Account for network congestion and gas price volatility
+   - Consider claiming more frequently rather than in large batches
+
+3. **Watch for configuration change announcements**:
+   - Monitor governance communications and proposals
+   - Subscribe to operator announcements
+   - Plan claim transactions around announced changes
+
+4. **Use appropriate gas pricing**:
+   - During announced configuration changes, use higher gas prices
+   - Ensure transactions execute quickly during critical windows
+   - Monitor transaction status and resubmit if necessary
+
+5. **Understand the risk**:
+   - Be aware that rewards can be permanently lost due to race conditions
+   - Factor this risk into reward claiming strategies
+
+#### Monitoring and Detection
+
+Operators should monitor:
+
+- `RewardsDeniedDueToEligibility` events
+- Time between configuration changes and claim transactions
+
+Indexers should monitor:
+
+- Their own eligibility status via `isEligible()`
+- `EligibilityPeriodUpdated` events
+- `EligibilityValidationUpdated` events
+- `IndexerEligibilityRenewed` events for their address
+
 ## Events
 
 ```solidity
@@ -193,8 +294,8 @@ The system is deployed with reasonable defaults but can be adjusted as required.
 
 ### Normal Operation
 
-1. Oracles periodically call `renewIndexerEligibility()` to renew eligibility for indexers
-2. Reward systems call `isEligible()` to check indexer eligibility
+1. Oracle nodes periodically call `renewIndexerEligibility()` to renew eligibility for indexers
+2. Reward Manager calls `isEligible()` to check indexer eligibility
 3. Operators adjust parameters as needed via configuration functions
 4. The operation of the system is monitored and adjusted as needed
 
