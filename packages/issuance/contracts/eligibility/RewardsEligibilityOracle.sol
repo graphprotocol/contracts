@@ -12,10 +12,18 @@ import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
  * @title RewardsEligibilityOracle
  * @author Edge & Node
  * @notice This contract allows authorized oracles to mark indexers as eligible to receive rewards
- * with an expiration mechanism. Indexers are denied by default until they are explicitly marked as eligible,
- * and their eligibility expires after a configurable eligible period.
- * The contract also includes a global eligibility check toggle and an oracle update timeout mechanism.
+ * with an expiration mechanism. Under normal configuration with reasonable eligibility periods, indexers
+ * are denied by default until they are explicitly marked as eligible, and their eligibility expires after
+ * a configurable eligibility period. The contract also includes a global eligibility check toggle and an
+ * oracle update timeout mechanism.
+ * @dev Note: If the eligibility period is set to an extremely large value that exceeds the current
+ * block timestamp, all indexers (including those never registered) will be eligible.
  * @custom:security-contact Please email security+contracts@thegraph.com if you find any bugs. We might have an active bug bounty program.
+ * @custom:security-warning Configuration changes (eligibility period, validation toggle) can create race
+ * conditions with in-flight reward claim transactions. When configuration changes make an indexer ineligible
+ * between transaction submission and execution, the indexer permanently loses those rewards.
+ * Operators should announce configuration changes in advance and consider implementing
+ * a two-step process (announce delay, then execute) for changes that reduce eligibility.
  */
 contract RewardsEligibilityOracle is
     BaseUpgradeable,
@@ -130,6 +138,10 @@ contract RewardsEligibilityOracle is
      * @dev Only callable by accounts with the OPERATOR_ROLE
      * @param eligibilityPeriod New eligibility period in seconds
      * @return True if the state is as requested (eligibility period is set to the specified value)
+     * @custom:warning Configuration changes can affect in-flight reward claim transactions. Reducing the
+     * eligibility period may cause indexers to lose rewards if their claim transactions execute after
+     * they become ineligible due to the configuration change. Consider announcing configuration changes
+     * in advance and using a two-step process (announce, then execute) for changes that reduce eligibility.
      */
     function setEligibilityPeriod(uint256 eligibilityPeriod) external override onlyRole(OPERATOR_ROLE) returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();
@@ -168,6 +180,10 @@ contract RewardsEligibilityOracle is
      * @dev Only callable by accounts with the OPERATOR_ROLE
      * @param enabled True to enable eligibility validation, false to disable
      * @return True if successfully set (always the case for current code)
+     * @custom:warning Enabling eligibility validation can affect in-flight reward claim transactions.
+     * Indexers who submitted claim transactions while validation was disabled may lose rewards if
+     * validation is enabled before their transactions execute and they are not marked as eligible.
+     * Consider announcing this change in advance to allow indexers to adjust their claiming behavior.
      */
     function setEligibilityValidation(bool enabled) external override onlyRole(OPERATOR_ROLE) returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();
@@ -216,6 +232,14 @@ contract RewardsEligibilityOracle is
 
     /**
      * @inheritdoc IRewardsEligibility
+     * @dev Returns true if any of the following conditions are met:
+     * 1. Eligibility validation is disabled globally
+     * 2. Oracle timeout has been exceeded (fail-safe to allow all indexers)
+     * 3. block.timestamp < indexerEligibilityTimestamps[indexer] + eligibilityPeriod
+     *
+     * Note on condition 3: For indexers who have never been registered, indexerEligibilityTimestamps[indexer]
+     * is 0. If eligibilityPeriod is set to an extremely large value exceeding block.timestamp, the check
+     * becomes (block.timestamp < 0 + eligibilityPeriod), which will be true, making all indexers eligible.
      */
     function isEligible(address indexer) external view override returns (bool) {
         RewardsEligibilityOracleData storage $ = _getRewardsEligibilityOracleStorage();

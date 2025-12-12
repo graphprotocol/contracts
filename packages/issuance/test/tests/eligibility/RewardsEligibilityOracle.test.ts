@@ -666,5 +666,56 @@ describe('RewardsEligibilityOracle', () => {
       // Now indexer should be allowed again
       expect(await rewardsEligibilityOracle.isEligible(accounts.indexer1.address)).to.be.true
     })
+
+    it('should return true for never-registered indexer when eligibility period exceeds block timestamp', async function () {
+      // This test validates the edge case identified in audit finding TRST-L-1:
+      // When eligibility period is set to an extremely large value that exceeds current block timestamp,
+      // all indexers (including those who have never been registered) become eligible.
+
+      // Use a fresh deployment to avoid shared state contamination
+      const graphToken = await deployTestGraphToken()
+      const graphTokenAddress = await graphToken.getAddress()
+      const freshRewardsEligibilityOracle = await deployRewardsEligibilityOracle(graphTokenAddress, accounts.governor)
+
+      // Grant necessary roles
+      await freshRewardsEligibilityOracle.connect(accounts.governor).grantRole(OPERATOR_ROLE, accounts.operator.address)
+      await freshRewardsEligibilityOracle.connect(accounts.operator).grantRole(ORACLE_ROLE, accounts.operator.address)
+
+      // Enable eligibility validation
+      await freshRewardsEligibilityOracle.connect(accounts.operator).setEligibilityValidation(true)
+
+      // Set a non-zero lastOracleUpdateTime and very long oracle timeout to isolate the eligibility period check
+      await freshRewardsEligibilityOracle
+        .connect(accounts.operator)
+        .renewIndexerEligibility([accounts.nonGovernor.address], '0x')
+      await freshRewardsEligibilityOracle.connect(accounts.operator).setOracleUpdateTimeout(365 * 24 * 60 * 60) // 1 year
+
+      // Get current block timestamp
+      const currentBlock = await ethers.provider.getBlock('latest')
+      const blockTimestamp = currentBlock ? currentBlock.timestamp : 0
+
+      // Verify indexer1 has never been registered (renewal time should be 0)
+      const renewalTime = await freshRewardsEligibilityOracle.getEligibilityRenewalTime(accounts.indexer1.address)
+      expect(renewalTime).to.equal(0)
+
+      // With normal eligibility period (14 days), never-registered indexer should be ineligible
+      // because block.timestamp < 0 + 14 days is false for any realistic timestamp
+      expect(await freshRewardsEligibilityOracle.isEligible(accounts.indexer1.address)).to.be.false
+
+      // Now set eligibility period to a value larger than current block timestamp
+      // This makes the check: block.timestamp < 0 + eligibilityPeriod become true
+      const largeEligibilityPeriod = BigInt(blockTimestamp) + BigInt(365 * 24 * 60 * 60) // Current time + 1 year
+      await freshRewardsEligibilityOracle.connect(accounts.operator).setEligibilityPeriod(largeEligibilityPeriod)
+
+      // Now the never-registered indexer should be eligible
+      // because block.timestamp < indexerEligibilityTimestamps[indexer] + eligibilityPeriod
+      // becomes block.timestamp < 0 + largeEligibilityPeriod, which is true
+      expect(await freshRewardsEligibilityOracle.isEligible(accounts.indexer1.address)).to.be.true
+
+      // Verify this applies to any never-registered indexer
+      expect(await freshRewardsEligibilityOracle.isEligible(accounts.indexer2.address)).to.be.true
+
+      // When the eligibility period exceeds block timestamp, all indexers become eligible
+    })
   })
 })
