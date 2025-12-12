@@ -57,6 +57,12 @@ contract MockRewardsManager is IRewardsManager {
 
     function isDenied(bytes32) external view returns (bool) {}
 
+    // -- Reclaim --
+
+    function setSubgraphDeniedReclaimAddress(address) external {}
+
+    function setIndexerEligibilityReclaimAddress(address) external {}
+
     // -- Getters --
 
     function getNewRewardsPerSignal() external view returns (uint256) {}

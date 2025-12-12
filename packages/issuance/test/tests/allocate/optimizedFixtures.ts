@@ -73,13 +73,19 @@ export async function setupOptimizedAllocateSystem(customOptions: any = {}) {
     helpers: {
       // Helper to reset state without redeploying
       resetState: async () => {
-        // Remove all targets
+        // Remove all targets except the default at index 0
         const targets = await issuanceAllocator.getTargets()
+        const defaultAddress = await issuanceAllocator.getTargetAt(0)
         for (const targetAddr of targets) {
+          // Skip the default allocation target
+          if (targetAddr === defaultAddress) continue
           await issuanceAllocator
             .connect(accounts.governor)
             ['setTargetAllocation(address,uint256,uint256,bool)'](targetAddr, 0, 0, false)
         }
+
+        // Reset default allocation to address(0) with 100%
+        await issuanceAllocator.connect(accounts.governor).setDefaultAllocationAddress(ethers.ZeroAddress)
 
         // Reset issuance rate
         await issuanceAllocator.connect(accounts.governor).setIssuancePerBlock(options.issuancePerBlock, false)

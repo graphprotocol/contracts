@@ -84,13 +84,11 @@ describe('Issuance System', () => {
       // Set up initial allocations using helper
       await system.helpers.setupStandardAllocations()
 
-      // Verify initial total allocation (30% + 40% = 70%)
+      // Verify initial total allocation (excludes default since it's address(0))
       const totalAlloc = await contracts.issuanceAllocator.getTotalAllocation()
-      expect(totalAlloc.totalAllocationPPM).to.equal(
-        TestConstants.ALLOCATION_30_PERCENT + TestConstants.ALLOCATION_40_PERCENT,
-      )
+      expect(totalAlloc.totalAllocationPPM).to.equal(700000) // 70% (30% + 40%, excludes default)
 
-      // Change allocations: target1 = 50%, target2 = 20% (still 70%)
+      // Change allocations: target1 = 50%, target2 = 20% (30% goes to default)
       await contracts.issuanceAllocator
         .connect(accounts.governor)
         [
@@ -102,11 +100,9 @@ describe('Issuance System', () => {
           'setTargetAllocation(address,uint256,uint256,bool)'
         ](addresses.target2, TestConstants.ALLOCATION_20_PERCENT, 0, false)
 
-      // Verify updated allocations
+      // Verify updated allocations (excludes default since it's address(0))
       const updatedTotalAlloc = await contracts.issuanceAllocator.getTotalAllocation()
-      expect(updatedTotalAlloc.totalAllocationPPM).to.equal(
-        TestConstants.ALLOCATION_50_PERCENT + TestConstants.ALLOCATION_20_PERCENT,
-      )
+      expect(updatedTotalAlloc.totalAllocationPPM).to.equal(700000) // 70% (50% + 20%, excludes default)
 
       // Verify individual target allocations
       const target1Info = await contracts.issuanceAllocator.getTargetData(addresses.target1)

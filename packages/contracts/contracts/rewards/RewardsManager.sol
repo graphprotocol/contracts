@@ -108,6 +108,46 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
         address indexed newRewardsEligibilityOracle
     );
 
+    /**
+     * @notice Emitted when the eligibility reclaim address is set
+     * @param oldReclaimAddress Previous eligibility reclaim address
+     * @param newReclaimAddress New eligibility reclaim address
+     */
+    event IndexerEligibilityReclaimAddressSet(address indexed oldReclaimAddress, address indexed newReclaimAddress);
+
+    /**
+     * @notice Emitted when the subgraph reclaim address is set
+     * @param oldReclaimAddress Previous subgraph reclaim address
+     * @param newReclaimAddress New subgraph reclaim address
+     */
+    event SubgraphDeniedReclaimAddressSet(address indexed oldReclaimAddress, address indexed newReclaimAddress);
+
+    /**
+     * @notice Emitted when denied rewards are reclaimed due to eligibility
+     * @param indexer Address of the indexer whose rewards were denied
+     * @param allocationID Address of the allocation
+     * @param amount Amount of rewards reclaimed
+     */
+    event RewardsReclaimedDueToIndexerEligibility(
+        address indexed indexer,
+        address indexed allocationID,
+        uint256 amount
+    );
+
+    /**
+     * @notice Emitted when denied rewards are reclaimed due to subgraph denylist
+     * @param indexer Address of the indexer whose rewards were denied
+     * @param allocationID Address of the allocation
+     * @param subgraphDeploymentID Subgraph deployment ID that was denied
+     * @param amount Amount of rewards reclaimed
+     */
+    event RewardsReclaimedDueToSubgraphDenylist(
+        address indexed indexer,
+        address indexed allocationID,
+        bytes32 indexed subgraphDeploymentID,
+        uint256 amount
+    );
+
     // -- Modifiers --
 
     /**
@@ -261,6 +301,32 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
             address oldRewardsEligibilityOracle = address(rewardsEligibilityOracle);
             rewardsEligibilityOracle = IRewardsEligibility(newRewardsEligibilityOracle);
             emit RewardsEligibilityOracleSet(oldRewardsEligibilityOracle, newRewardsEligibilityOracle);
+        }
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev Set to zero address to disable eligibility reclaim functionality
+     */
+    function setIndexerEligibilityReclaimAddress(address newReclaimAddress) external override onlyGovernor {
+        address oldReclaimAddress = indexerEligibilityReclaimAddress;
+
+        if (oldReclaimAddress != newReclaimAddress) {
+            indexerEligibilityReclaimAddress = newReclaimAddress;
+            emit IndexerEligibilityReclaimAddressSet(oldReclaimAddress, newReclaimAddress);
+        }
+    }
+
+    /**
+     * @inheritdoc IRewardsManager
+     * @dev Set to zero address to disable subgraph reclaim functionality
+     */
+    function setSubgraphDeniedReclaimAddress(address newReclaimAddress) external override onlyGovernor {
+        address oldReclaimAddress = subgraphDeniedReclaimAddress;
+
+        if (oldReclaimAddress != newReclaimAddress) {
+            subgraphDeniedReclaimAddress = newReclaimAddress;
+            emit SubgraphDeniedReclaimAddressSet(oldReclaimAddress, newReclaimAddress);
         }
     }
 
@@ -495,6 +561,60 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
     }
 
     /**
+     * @notice Checks for and handles denial and reclaim of rewards due to subgraph deny list
+     * @dev If denied, emits RewardsDenied event and mints to reclaim address if configured
+     * @param indexer Address of the indexer
+     * @param allocationID Address of the allocation
+     * @param subgraphDeploymentID Subgraph deployment ID
+     * @param rewards Amount of rewards that would be distributed
+     * @return True if rewards are denied, false otherwise
+     */
+    function _rewardsDeniedDueToSubgraphDenyList(
+        address indexer,
+        address allocationID,
+        bytes32 subgraphDeploymentID,
+        uint256 rewards
+    ) private returns (bool) {
+        if (isDenied(subgraphDeploymentID)) {
+            emit RewardsDenied(indexer, allocationID);
+
+            // If a reclaim address is set, mint the denied rewards there
+            if (0 < rewards && subgraphDeniedReclaimAddress != address(0)) {
+                graphToken().mint(subgraphDeniedReclaimAddress, rewards);
+                emit RewardsReclaimedDueToSubgraphDenylist(indexer, allocationID, subgraphDeploymentID, rewards);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @notice Checks for and handles denial and reclaim of rewards due to indexer eligibility
+     * @dev If denied, emits RewardsDeniedDueToEligibility event and mints to reclaim address if configured
+     * @param indexer Address of the indexer
+     * @param allocationID Address of the allocation
+     * @param rewards Amount of rewards that would be distributed
+     * @return True if rewards are denied, false otherwise
+     */
+    function _rewardsDeniedDueToIndexerEligibility(
+        address indexer,
+        address allocationID,
+        uint256 rewards
+    ) private returns (bool) {
+        if (address(rewardsEligibilityOracle) != address(0) && !rewardsEligibilityOracle.isEligible(indexer)) {
+            emit RewardsDeniedDueToEligibility(indexer, allocationID, rewards);
+
+            // If a reclaim address is set, mint the denied rewards there
+            if (0 < rewards && indexerEligibilityReclaimAddress != address(0)) {
+                graphToken().mint(indexerEligibilityReclaimAddress, rewards);
+                emit RewardsReclaimedDueToIndexerEligibility(indexer, allocationID, rewards);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * @inheritdoc IRewardsManager
      * @dev This function can only be called by an authorized rewards issuer which are
      * the staking contract (for legacy allocations), and the subgraph service (for new allocations).
@@ -518,31 +638,24 @@ contract RewardsManager is RewardsManagerV6Storage, GraphUpgradeable, IERC165, I
 
         uint256 updatedAccRewardsPerAllocatedToken = onSubgraphAllocationUpdate(subgraphDeploymentID);
 
-        // Do not do rewards on denied subgraph deployments ID
-        if (isDenied(subgraphDeploymentID)) {
-            emit RewardsDenied(indexer, _allocationID);
-            return 0;
-        }
-
         uint256 rewards = 0;
         if (isActive) {
             // Calculate rewards accrued by this allocation
             rewards = accRewardsPending.add(
                 _calcRewards(tokens, accRewardsPerAllocatedToken, updatedAccRewardsPerAllocatedToken)
             );
+        }
 
-            // Do not reward if indexer is not eligible based on rewards eligibility
-            if (address(rewardsEligibilityOracle) != address(0) && !rewardsEligibilityOracle.isEligible(indexer)) {
-                emit RewardsDeniedDueToEligibility(indexer, _allocationID, rewards);
-                return 0;
-            }
+        if (_rewardsDeniedDueToSubgraphDenyList(indexer, _allocationID, subgraphDeploymentID, rewards)) return 0;
 
-            if (rewards > 0) {
-                // Mint directly to rewards issuer for the reward amount
-                // The rewards issuer contract will do bookkeeping of the reward and
-                // assign in proportion to each stakeholder incentive
-                graphToken().mint(rewardsIssuer, rewards);
-            }
+        if (_rewardsDeniedDueToIndexerEligibility(indexer, _allocationID, rewards)) return 0;
+
+        // Mint rewards to the rewards issuer
+        if (rewards > 0) {
+            // Mint directly to rewards issuer for the reward amount
+            // The rewards issuer contract will do bookkeeping of the reward and
+            // assign in proportion to each stakeholder incentive
+            graphToken().mint(rewardsIssuer, rewards);
         }
 
         emit HorizonRewardsAssigned(indexer, _allocationID, rewards);

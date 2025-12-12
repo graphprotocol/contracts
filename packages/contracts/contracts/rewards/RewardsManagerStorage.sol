@@ -83,11 +83,15 @@ contract RewardsManagerV5Storage is RewardsManagerV4Storage {
  * @title RewardsManagerV6Storage
  * @author Edge & Node
  * @notice Storage layout for RewardsManager V6
- * Includes support for Rewards Eligibility Oracle and Issuance Allocator.
+ * Includes support for Rewards Eligibility Oracle, Issuance Allocator, and reclaim addresses.
  */
 contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     /// @notice Address of the rewards eligibility oracle contract
     IRewardsEligibility public rewardsEligibilityOracle;
     /// @notice Address of the issuance allocator
     IIssuanceAllocationDistribution public issuanceAllocator;
+    /// @notice Address to receive tokens denied due to indexer eligibility checks, set to zero to disable
+    address public indexerEligibilityReclaimAddress;
+    /// @notice Address to receive tokens denied due to subgraph denylist, set to zero to disable
+    address public subgraphDeniedReclaimAddress;
 }
