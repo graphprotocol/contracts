@@ -567,8 +567,12 @@ contract IssuanceAllocator is
         AllocationTarget storage targetData = $.allocationTargets[target];
         AllocationTarget storage defaultTarget = $.allocationTargets[$.targetAddresses[0]];
 
-        // Calculation is done here after notifications to prevent reentrancy issues
+        // Calculations occur after notifications in the caller to prevent reentrancy issues
 
+        // availablePPM comprises the default allocation's current allocator-minting PPM,
+        // the target's current allocator-minting PPM, and the target's current self-minting PPM.
+        // This maintains the 100% allocation invariant by calculating how much can be reallocated
+        // to the target without exceeding total available allocation.
         uint256 availablePPM = defaultTarget.allocatorMintingPPM +
             targetData.allocatorMintingPPM +
             targetData.selfMintingPPM;
