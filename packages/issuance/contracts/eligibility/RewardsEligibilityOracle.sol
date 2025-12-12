@@ -14,7 +14,7 @@ import { BaseUpgradeable } from "../common/BaseUpgradeable.sol";
  * @notice This contract allows authorized oracles to mark indexers as eligible to receive rewards
  * with an expiration mechanism. Under normal configuration with reasonable eligibility periods, indexers
  * are denied by default until they are explicitly marked as eligible, and their eligibility expires after
- * a configurable eligible period. The contract also includes a global eligibility check toggle and an
+ * a configurable eligibility period. The contract also includes a global eligibility check toggle and an
  * oracle update timeout mechanism.
  * @dev Note: If the eligibility period is set to an extremely large value that exceeds the current
  * block timestamp, all indexers (including those never registered) will be eligible.

@@ -155,11 +155,11 @@ For normal operations with reasonable eligibility periods (e.g., 14 days), index
 
 In normal operation, the first condition is expected to be the only one that applies. The other two conditions provide fail-safes for oracle failures, or in extreme cases an operator override. For normal operational failure of oracles, the system gracefully degrades into a "allow all" mode. This mechanism is not perfect in that oracles could still be updating but allowing far fewer indexers than they should. However this is regarded as simple mechanism that is good enough to start with and provide a foundation for future improvements and decentralization.
 
-While this simple model allows the criteria for providing good service to evolve over time (which is essential for the long-term health of the network), it captures sufficient information on-chain for indexers to be able to monitor their eligibility. This is important to ensure that even in the absence of other sources of information regarding observed indexer service, indexers have a good transparency about if they are being observed to be providing good service, and for how long their current approval is valid.
+While this simple model allows the criteria for providing good service to evolve over time (which is essential for the long-term health of the network), it captures sufficient information on-chain for indexers to be able to monitor their eligibility. This is important to ensure that even in the absence of other sources of information regarding observed indexer service, indexers have good transparency about if they are being observed to be providing good service, and for how long their current approval is valid.
 
 It might initially seem safer to allow indexers by default unless an oracle explicitly denies an indexer. While that might seem safer from the perspective of the RewardsEligibilityOracle in isolation, in the absence of a more sophisticated voting system it would make the system vulnerable to a single bad oracle denying many indexers. The design of deny by default is better suited to allowing redundant oracles to be working in parallel, where only one needs to be successfully detecting indexers that are providing quality service, as well as eventually allowing different oracles to have different approval criteria and/or inputs. Therefore deny by default facilitates a more resilient and open oracle system that is less vulnerable to a single points of failure, and more open to increasing decentralization over time.
 
-In general to be rewarded for providing service on The Graph, there is expected to be proof provided of good operation (such as for proof of indexing). While proof should be required to receive rewards, the system is designed for participants to have confidence is being able to adequately prove good operation (and in the case of oracles, be seen by at least one observer) that is sufficient to allow the indexer to receive rewards. The oracle model is in general far more suited to collecting evidence of good operation, from multiple independent observers, rather than any observer being able to establish that an indexer is not providing good service.
+In general to be rewarded for providing service on The Graph, there is expected to be proof provided of good operation (such as for proof of indexing). While proof should be required to receive rewards, the system is designed for participants to have confidence in being able to adequately prove good operation (and in the case of oracles, be seen by at least one observer) that is sufficient to allow the indexer to receive rewards. The oracle model is in general far more suited to collecting evidence of good operation, from multiple independent observers, rather than any observer being able to establish that an indexer is not providing good service.
 
 ## Operational Considerations
 
@@ -295,7 +295,7 @@ The system is deployed with reasonable defaults but can be adjusted as required.
 ### Normal Operation
 
 1. Oracle nodes periodically call `renewIndexerEligibility()` to renew eligibility for indexers
-2. Reward Manager calls `isEligible()` to check indexer eligibility
+2. RewardsManager calls `isEligible()` to check indexer eligibility
 3. Operators adjust parameters as needed via configuration functions
 4. The operation of the system is monitored and adjusted as needed
 
