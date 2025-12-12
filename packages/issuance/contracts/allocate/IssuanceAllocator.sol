@@ -248,12 +248,13 @@ contract IssuanceAllocator is
         if (0 < newIssuance) {
             for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
                 address target = $.targetAddresses[i];
+
+                // Skip minting to zero address (default allocation when not configured)
+                if (target == address(0)) continue;
+
                 AllocationTarget storage targetData = $.allocationTargets[target];
 
                 if (0 < targetData.allocatorMintingPPM) {
-                    // Skip minting to zero address (default allocation when not configured)
-                    if (target == address(0)) continue;
-
                     // There can be a small rounding loss here. This is acceptable.
                     uint256 targetIssuance = (newIssuance * targetData.allocatorMintingPPM) / MILLION;
 
@@ -678,12 +679,13 @@ contract IssuanceAllocator is
 
         for (uint256 i = 0; i < $.targetAddresses.length; ++i) {
             address target = $.targetAddresses[i];
+
+            // Skip minting to zero address (default allocation when not configured)
+            if (target == address(0)) continue;
+
             AllocationTarget storage targetData = $.allocationTargets[target];
 
             if (0 < targetData.allocatorMintingPPM) {
-                // Skip minting to zero address (default allocation when not configured)
-                if (target == address(0)) continue;
-
                 // There can be a small rounding loss here. This is acceptable.
                 // Pending issuance is distributed in proportion to allocator-minting portion of total available allocation.
                 uint256 targetIssuance = (pendingAmount * targetData.allocatorMintingPPM) /
