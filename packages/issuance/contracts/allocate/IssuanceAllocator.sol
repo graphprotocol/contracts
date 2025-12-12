@@ -442,6 +442,10 @@ contract IssuanceAllocator is
             require($.targetAddresses[i] != newAddress, CannotSetDefaultToAllocatedTarget());
         }
 
+        // Notify both old and new addresses of the allocation change
+        _notifyTarget(oldAddress);
+        _notifyTarget(newAddress);
+
         // Update the default allocation address at index 0
         $.targetAddresses[0] = newAddress;
         $.allocationTargets[newAddress] = $.allocationTargets[oldAddress];
