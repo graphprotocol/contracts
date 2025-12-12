@@ -61,7 +61,7 @@ describe('IssuanceAllocator - Default Allocation', () => {
       expect(allocation.selfMintingPPM).to.equal(0n)
     })
 
-    it('should report total allocation as 100%', async () => {
+    it('should report total allocation as 0% when default is address(0)', async () => {
       const totalAllocation = await issuanceAllocator.getTotalAllocation()
 
       // When default is address(0), it is treated as unallocated for reporting purposes
