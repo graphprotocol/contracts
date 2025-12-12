@@ -439,6 +439,9 @@ contract IssuanceAllocator is
 
         // Cannot set default allocation to a normally allocated target
         // Check if newAddress is in targetAddresses (excluding index 0 which is the default)
+        // Note: This is O(n) for the number of targets, which could become expensive as targets increase.
+        // However, other operations (distribution, notifications) already loop through all targets and
+        // would encounter gas issues first. Recovery mechanisms exist (pause, per-target notification control).
         for (uint256 i = 1; i < $.targetAddresses.length; ++i) {
             require($.targetAddresses[i] != newAddress, CannotSetDefaultToAllocatedTarget());
         }
@@ -478,7 +481,7 @@ contract IssuanceAllocator is
 
         // Total allocation calculation and check is delayed until after notifications.
         // Distributing and notifying unnecessarily is harmless, but we need to prevent
-        // reentrancy looping changing allocations mid-calculation.
+        // reentrancy from looping and changing allocations mid-calculation.
         // (Would not be likely to be exploitable due to only governor being able to
         // make a call to set target allocation, but better to be paranoid.)
         // Validate totals and auto-adjust default allocation BEFORE updating target data
@@ -565,11 +568,7 @@ contract IssuanceAllocator is
         AllocationTarget storage targetData = $.allocationTargets[target];
         AllocationTarget storage defaultTarget = $.allocationTargets[$.targetAddresses[0]];
 
-        // Total allocation calculation and check is delayed until after notifications.
-        // Distributing and notifying unnecessarily is harmless, but we need to prevent
-        // reentrancy looping changing allocations mid-calculation.
-        // (Would not be likely to be exploitable due to only governor being able to
-        // make a call to set target allocation, but better to be paranoid.)
+        // Calculation is done here after notifications to prevent reentrancy issues
 
         uint256 availablePPM = defaultTarget.allocatorMintingPPM +
             targetData.allocatorMintingPPM +

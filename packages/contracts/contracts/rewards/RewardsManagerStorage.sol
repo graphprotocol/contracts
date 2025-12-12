@@ -90,8 +90,8 @@ contract RewardsManagerV6Storage is RewardsManagerV5Storage {
     IRewardsEligibility public rewardsEligibilityOracle;
     /// @notice Address of the issuance allocator
     IIssuanceAllocationDistribution public issuanceAllocator;
-    /// @notice Address to mint tokens that would be denied due to eligibility
+    /// @notice Address to receive tokens denied due to indexer eligibility checks
     address public indexerEligibilityReclaimAddress;
-    /// @notice Address to mint tokens that would be denied due to subgraph denylist
+    /// @notice Address to receive tokens denied due to subgraph denylist
     address public subgraphDeniedReclaimAddress;
 }
