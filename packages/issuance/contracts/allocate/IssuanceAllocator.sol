@@ -308,11 +308,11 @@ contract IssuanceAllocator is
      * @return True if notification was sent or already sent for this block
      */
     function _notifyTarget(address target) private returns (bool) {
-        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
-        AllocationTarget storage targetData = $.allocationTargets[target];
-
         // Skip notification for zero address (default allocation when unset)
         if (target == address(0)) return true;
+
+        IssuanceAllocatorData storage $ = _getIssuanceAllocatorStorage();
+        AllocationTarget storage targetData = $.allocationTargets[target];
 
         // Check-effects-interactions pattern: check if already notified this block
         // solhint-disable-next-line gas-strict-inequalities
