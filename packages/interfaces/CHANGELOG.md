@@ -1,5 +1,11 @@
 # @graphprotocol/interfaces
 
+## 0.6.6
+
+### Patch Changes
+
+- fix: rebuild wagmi dist files with correct withdrawDelegated outputs
+
 ## 0.6.5
 
 ### Patch Changes
