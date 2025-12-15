@@ -1,5 +1,11 @@
 # @graphprotocol/subgraph-service
 
+## 1.1.1
+
+### Patch Changes
+
+- remove return types from IGraphTokenLockWalletToolshed
+
 ## 1.1.0
 
 ### Minor Changes
